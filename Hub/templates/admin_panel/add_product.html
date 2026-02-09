@@ -1,0 +1,264 @@
+﻿{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Add Product - FashioHub Admin{% endblock %}
+
+{% block content %}
+<h4 class="fw-bold py-3 mb-4"><span class="text-muted fw-light">Products /</span> Add New Product</h4>
+
+<!-- Display messages -->
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<div class="row">
+    <!-- Basic Information -->
+    <div class="col-xl-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Basic Information</h5>
+                <small class="text-muted float-end">Required fields *</small>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label" for="name">Product Name *</label>
+                        <input type="text" class="form-control" id="name" name="name" placeholder="Enter product name" required />
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label" for="price">Original Price *</label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text">&#8377;</span>
+                                <input type="text" inputmode="decimal" class="form-control" id="price" name="price" placeholder="0.00" required />
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="margin">Margin (Profit)</label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text">&#8377;</span>
+                                <input type="text" inputmode="decimal" class="form-control" id="margin" name="margin" placeholder="0.00" />
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="old_price">Old Price (Compare at)</label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text">&#8377;</span>
+                                <input type="text" inputmode="decimal" class="form-control" id="old_price" name="old_price" placeholder="0.00" />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label" for="description">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="4" placeholder="Enter product description"></textarea>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="sku">SKU</label>
+                            <input type="text" class="form-control" id="sku" name="sku" placeholder="Product SKU" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="brand">Brand</label>
+                            <input type="text" class="form-control" id="brand" name="brand" placeholder="Brand name" />
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="category">Category</label>
+                            <select id="category" name="category" class="form-select" required>
+                                <option value="">Select Category</option>
+                                {% for category in categories %}
+                                    <option value="{{ category.category_key }}">{{ category.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label" for="stock">Stock</label>
+                            <input type="number" class="form-control" id="stock" name="stock" placeholder="Available quantity" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label" for="sold">Sold</label>
+                            <input type="number" class="form-control" id="sold" name="sold" placeholder="0" value="0" />
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="color">Color</label>
+                            <input type="text" class="form-control" id="color" name="color" placeholder="e.g., Red, Blue" />
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Available Sizes (Select Multiple)</label>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="size" value="Un Stitched" id="size_un_stitched" />
+                                    <label class="form-check-label" for="size_un_stitched">Un Stitched</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="size" value="Semi Stitched" id="size_semi_stitched" />
+                                    <label class="form-check-label" for="size_semi_stitched">Semi Stitched</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="size" value="Free Size" id="size_free" />
+                                    <label class="form-check-label" for="size_free">Free Size</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="size" value="XS" id="size_xs" />
+                                    <label class="form-check-label" for="size_xs">XS</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="size" value="S" id="size_s" />
+                                    <label class="form-check-label" for="size_s">S</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="size" value="M" id="size_m" />
+                                    <label class="form-check-label" for="size_m">M</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="size" value="L" id="size_l" />
+                                    <label class="form-check-label" for="size_l">L</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="size" value="XL" id="size_xl" />
+                                    <label class="form-check-label" for="size_xl">XL</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="size" value="XXL" id="size_xxl" />
+                                    <label class="form-check-label" for="size_xxl">XXL</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="size" value="3XL" id="size_3xl" />
+                                    <label class="form-check-label" for="size_3xl">3XL</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="size" value="4XL" id="size_4xl" />
+                                    <label class="form-check-label" for="size_4xl">4XL</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="size" value="5XL" id="size_5xl" />
+                                    <label class="form-check-label" for="size_5xl">5XL</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="size" value="6XL" id="size_6xl" />
+                                    <label class="form-check-label" for="size_6xl">6XL</label>
+                                </div>
+                            </div>
+                        </div>
+                        <small class="text-muted">Select all applicable sizes for this product</small>
+                    </div>
+                    
+
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="rating">Rating (0-5)</label>
+                            <input type="number" step="0.1" min="0" max="5" class="form-control" id="rating" name="rating" placeholder="4.5" value="0" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="review_count">Review Count</label>
+                            <input type="number" class="form-control" id="review_count" name="review_count" placeholder="0" value="0" />
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label" for="image">Main Product Image</label>
+                        <input class="form-control" type="file" id="image" name="image" accept="image/*" />
+                        <small class="text-muted">Recommended: 800x800px</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label" for="gallery_images">Gallery Images (Multiple)</label>
+                        <input class="form-control" type="file" id="gallery_images" name="gallery_images" accept="image/*" multiple />
+                        <small class="text-muted">You can select multiple images</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label" for="descriptionImage">Description Image (Large Display Image)</label>
+                        <input class="form-control" type="file" id="descriptionImage" name="descriptionImage" accept="image/*" />
+                        <small class="text-muted">Upload a large image to display below product description (Recommended: 1200x800px)</small>
+                    </div>
+                    
+
+                    
+                    <button type="submit" class="btn btn-primary">Add Product</button>
+                    <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Add Product Review Section -->
+        <div class="card mb-4 mt-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Auto-Generate Reviews</h5>
+                <small class="text-muted float-end">Optional</small>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info" role="alert">
+                    <i class="bx bx-info-circle me-2"></i>
+                    If you enter a rating and review count above, the system will automatically generate approved reviews for this product when you click "Add Product".
+                </div>
+                <p class="text-muted">
+                    <strong>How it works:</strong><br>
+                    • Enter a Rating (e.g., 4.5) and Review Count (e.g., 10) in the fields above<br>
+                    • Click "Add Product" button<br>
+                    • System will automatically create realistic reviews<br>
+                    • Reviews will be visible to customers immediately<br>
+                    • You can also manually add individual reviews later from the product edit page
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Guide -->
+    <div class="col-xl-4">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h6 class="card-title">Quick Guide</h6>
+                <p class="card-text">
+                    <small class="text-muted">
+                        <strong>Product Name:</strong> Use clear, descriptive names.<br><br>
+                        <strong>Price:</strong> Set competitive pricing.<br><br>
+                        <strong>Images:</strong> Use high-quality images for better customer experience.<br><br>
+                        <strong>Description:</strong> Detailed descriptions increase sales.<br><br>
+                        <strong>Category:</strong> Proper categorization helps customers find products.<br><br>
+                        <strong>Active:</strong> Uncheck to hide product from website.
+                    </small>
+                </p>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Image Guidelines</h6>
+                <ul class="list-unstyled mb-0">
+                    <li><small class="text-muted">✓ Size: 800x800px or larger</small></li>
+                    <li><small class="text-muted">✓ Format: JPG, PNG, WEBP</small></li>
+                    <li><small class="text-muted">✓ Background: White or transparent</small></li>
+                    <li><small class="text-muted">✓ Quality: High resolution</small></li>
+                    <li><small class="text-muted">✓ Multiple angles in gallery</small></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

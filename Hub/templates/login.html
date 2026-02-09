@@ -1,0 +1,443 @@
+﻿{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}Login - VibeMall{% endblock %}
+
+{% block content %}
+
+<!-- Page Banner Start -->
+<div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
+    <div class="container">
+        <div class="row">
+            <div class="col-xl-12">
+                <div class="page-banner-content text-center">
+                    <h4 class="breadcrumb-title">Login</h4>
+                    <div class="breadcrumb-two">
+                        <nav>
+                            <nav class="breadcrumb-trail breadcrumbs">
+                                <ul class="breadcrumb-menu">
+                                    <li class="breadcrumb-trail">
+                                        <a href="{% url 'index' %}"><span>Home</span></a>
+                                    </li>
+                                    <li class="trail-item">
+                                        <span>Login</span>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Page Banner End -->
+
+<!-- Login Area Start -->
+<section class="login-area pt-100 pb-100">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-6">
+                <!-- Messages -->
+                {% if messages %}
+                    <div class="mb-30">
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags|default:'danger' }} alert-dismissible fade show" role="alert">
+                                <i class="fas fa-{% if message.tags == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i> 
+                                <strong>{% if message.tags == 'success' %}Success!{% else %}Error!{% endif %}</strong> {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <div class="login-form-wrapper">
+                    <div class="login-form-header text-center mb-40">
+                        <h3 class="mb-10">
+                            <i class="fas fa-sign-in-alt"></i> Welcome Back
+                        </h3>
+                        <p class="text-muted">Sign in to your VibeMall account</p>
+                    </div>
+
+                    <form method="POST">
+                        {% csrf_token %}
+
+                        <!-- Login Form Section -->
+                        <div class="form-section mb-35">
+                            <h6 class="mb-20 pb-2 border-bottom">
+                                <i class="fas fa-user"></i> Account Credentials
+                            </h6>
+
+                            <div class="mb-20">
+                                <label class="form-label">Username or Email <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                    <input type="text" name="username" id="username" class="form-control" placeholder="Enter your username or email" required>
+                                </div>
+                                <span id="username_feedback" class="input-feedback"></span>
+                            </div>
+
+                            <div class="mb-20">
+                                <label class="form-label">Password <span class="text-danger">*</span></label>
+                                <div class="password-input-group">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                        <input type="password" name="password" id="password" class="form-control" placeholder="Enter your password" required>
+                                        <button type="button" class="btn toggle-password-btn" onclick="togglePassword('password')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Remember Me Checkbox -->
+                        <div class="mb-20">
+                            <div class="form-check">
+                                <input type="checkbox" name="remember_me" id="remember_me" class="form-check-input" value="on">
+                                <label class="form-check-label" for="remember_me">
+                                    Remember me for 30 days
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Login Button -->
+                        <div class="login-form-actions mb-20">
+                            <button type="submit" class="tp-btn-h1 w-100">
+                                <i class="fas fa-sign-in-alt"></i> Login to Account
+                            </button>
+                        </div>
+
+                            <!-- Forgot Password Link -->
+                            <div class="forgot-password-section text-center mb-20">
+                                <a href="{% url 'password_reset' %}" class="forgot-password-link">
+                                    <i class="fas fa-key"></i> Forgot Password?
+                                </a>
+                            </div>
+
+                        <!-- Signup Section -->
+                        <div class="signup-section text-center">
+                            <p class="mb-0">Don't have an account? 
+                                <a href="{% url 'register' %}" class="signup-highlight">
+                                    <i class="fas fa-arrow-right"></i> Sign up now
+                                </a>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- Login Area End -->
+
+<!-- Custom Styles -->
+<style>
+    .login-form-wrapper {
+        background: #fff;
+        padding: 40px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .login-form-header {
+        margin-bottom: 40px;
+    }
+
+    .login-form-header h3 {
+        color: #333;
+        font-weight: 700;
+        font-size: 28px;
+    }
+
+    .login-form-header p {
+        font-size: 14px;
+    }
+
+    .form-section {
+        background: #fffbf0;
+        padding: 20px;
+        border-radius: 6px;
+        border-left: 4px solid #f4a800;
+    }
+
+    .form-section h6 {
+        color: #333;
+        font-weight: 600;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .form-section h6 i {
+        color: #f4a800;
+        margin-right: 8px;
+    }
+
+    .form-check {
+        display: flex;
+        align-items: center;
+    }
+
+    .form-check-input {
+        width: 18px;
+        height: 18px;
+        margin-right: 8px;
+        cursor: pointer;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        transition: all 0.3s ease;
+    }
+
+    .form-check-input:checked {
+        background-color: #f4a800;
+        border-color: #f4a800;
+    }
+
+    .form-check-label {
+        cursor: pointer;
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 0;
+    }
+
+    .input-feedback {
+        display: none;
+        font-size: 12px;
+        margin-top: 4px;
+    }
+
+    .input-feedback.error {
+        color: #e74c3c;
+        display: block;
+    }
+
+    .input-feedback.success {
+        color: #27ae60;
+        display: block;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #333;
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+
+    .form-control, select {
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 10px 12px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus, select:focus {
+        border-color: #f4a800;
+        box-shadow: 0 0 0 3px rgba(244, 168, 0, 0.1);
+    }
+
+    .input-group-text {
+        background: #f9f9f9;
+        border: 1px solid #ddd;
+        color: #f4a800;
+    }
+
+    .input-group-text i {
+        font-size: 14px;
+    }
+
+    .toggle-password-btn {
+        border: 1px solid #ddd;
+        background: #f9f9f9;
+        color: #f4a800;
+        padding: 0 15px;
+        transition: all 0.3s ease;
+    }
+
+    .toggle-password-btn:hover {
+        background: #f4a800;
+        color: white;
+        border-color: #f4a800;
+    }
+
+    .password-input-group {
+        position: relative;
+    }
+
+    .text-danger {
+        color: #e74c3c;
+    }
+
+    .text-muted {
+        color: #999;
+        font-size: 13px;
+    }
+
+    .border-bottom {
+        border-bottom: 1px solid #ddd !important;
+    }
+
+    .login-form-actions {
+        margin-top: 30px;
+    }
+
+    .tp-btn-h1 {
+        background: linear-gradient(135deg, #f4a800 0%, #f7c047 100%);
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        font-weight: 600;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+        font-size: 16px;
+    }
+
+    .tp-btn-h1:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(244, 168, 0, 0.3);
+        color: #fff;
+        background: linear-gradient(135deg, #f4a800 0%, #f7c047 100%);
+        border-color: transparent;
+    }
+
+    .tp-btn-h1 i {
+        margin-right: 8px;
+    }
+
+    .login-additional-links {
+        margin-top: 20px;
+        padding: 20px 0;
+        border-top: 1px solid #ddd;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .forgot-password-link, .signup-link {
+        color: #f4a800;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        display: inline-block;
+    }
+
+    .forgot-password-link:hover, .signup-link:hover {
+        color: #d98600;
+        transform: translateX(3px);
+    }
+
+    .forgot-password-link i, .signup-link i {
+        margin-right: 5px;
+    }
+
+    .signup-section {
+        padding-top: 20px;
+        margin-top: 20px;
+    }
+
+    .signup-highlight {
+        color: #f4a800;
+        text-decoration: none;
+        font-weight: 700;
+        transition: all 0.3s ease;
+    }
+
+    .signup-highlight:hover {
+        color: #d98600;
+    }
+
+    .signup-highlight i {
+        margin-right: 5px;
+    }
+
+    .text-end {
+        text-align: right;
+    }
+</style>
+
+<!-- Scripts for Password Toggle, Validation & Security -->
+<script>
+    // Password Toggle Function
+    function togglePassword(id) {
+        const input = document.getElementById(id);
+        const button = input.parentElement.querySelector('.toggle-password-btn i');
+        
+        if (input.type === \"password\") {
+            input.type = \"text\";
+            button.classList.remove('fa-eye');
+            button.classList.add('fa-eye-slash');
+        } else {
+            input.type = \"password\";
+            button.classList.remove('fa-eye-slash');
+            button.classList.add('fa-eye');
+        }
+    }
+
+    // Real-time Username/Email Validation
+    document.getElementById('username').addEventListener('blur', function() {
+        const feedback = document.getElementById('username_feedback');
+        const value = this.value.trim();
+        
+        if (value === '') {
+            feedback.textContent = '';
+            feedback.className = '';
+            return;
+        }
+        
+        // Check if it's an email format
+        const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+        
+        if (emailRegex.test(value)) {
+            feedback.textContent = '✓ Valid email format';
+            feedback.className = 'input-feedback success';
+        } else if (value.length >= 3) {
+            feedback.textContent = '✓ Valid username format';
+            feedback.className = 'input-feedback success';
+        } else {
+            feedback.textContent = '✗ Username must be at least 3 characters';
+            feedback.className = 'input-feedback error';
+        }
+    });
+
+    // Rate limiting: Disable submit button for 3 seconds after submission
+    const loginForm = document.querySelector('form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function() {
+            const submitBtn = this.querySelector('button[type=\"submit\"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class=\"fas fa-spinner fa-spin\"></i> Logging in...';
+            
+            // Re-enable after 3 seconds (for security against brute force)
+            setTimeout(function() {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class=\"fas fa-sign-in-alt\"></i> Login to Account';
+            }, 3000);
+        });
+    }
+
+    // Remember Me - Store username in localStorage if checked
+    document.addEventListener('DOMContentLoaded', function() {
+        const rememberCheckbox = document.getElementById('remember_me');
+        const usernameInput = document.getElementById('username');
+        
+        // Load saved username if exists
+        const savedUsername = localStorage.getItem('vibemall_remember_me');
+        if (savedUsername) {
+            usernameInput.value = savedUsername;
+            rememberCheckbox.checked = true;
+        }
+        
+        // Save on form submission
+        if (loginForm) {
+            loginForm.addEventListener('submit', function() {
+                if (rememberCheckbox.checked) {
+                    localStorage.setItem('vibemall_remember_me', usernameInput.value);
+                } else {
+                    localStorage.removeItem('vibemall_remember_me');
+                }
+            });
+        }
+    });
+</script>
+
+{% endblock content %}

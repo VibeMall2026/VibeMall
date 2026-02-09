@@ -1,0 +1,261 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Analyse Data - FashioHub Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    .dashboard-title {
+        font-size: 22px;
+        margin: 0 0 4px;
+        color: #0f172a;
+    }
+    .dashboard-subtitle {
+        color: #64748b;
+        margin: 0;
+        font-size: 14px;
+    }
+    .metric-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: 0 12px 25px rgba(15, 23, 42, 0.08);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .metric-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+    }
+    .metric-title {
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    .metric-value {
+        font-size: 22px;
+        font-weight: 700;
+        color: #0f172a;
+        margin-top: 6px;
+    }
+    .metric-range {
+        background: #f1f5f9;
+        color: #475569;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    .metric-chart {
+        height: 90px;
+    }
+    .range-select {
+        min-width: 170px;
+        border-radius: 10px;
+    }
+    .section-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 12px 25px rgba(15, 23, 42, 0.08);
+        height: 100%;
+    }
+    .donut-wrap {
+        display: grid;
+        grid-template-columns: minmax(200px, 1fr) minmax(260px, 1.4fr);
+        gap: 24px;
+        align-items: center;
+    }
+    .donut-chart {
+        max-width: 320px;
+        margin: 0 auto;
+        height: 240px;
+    }
+    .donut-list {
+        display: grid;
+        gap: 10px;
+    }
+    .donut-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 14px;
+        color: #0f172a;
+    }
+    .donut-label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 600;
+    }
+    .donut-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="dashboard-header">
+        <div>
+            <h4 class="dashboard-title">Analyse Data</h4>
+            <p class="dashboard-subtitle">Here is a quick look at live business performance.</p>
+        </div>
+        <form method="get">
+            <select name="range" class="form-select range-select" onchange="this.form.submit()">
+                <option value="today" {% if range_key == 'today' %}selected{% endif %}>Today</option>
+                <option value="yesterday" {% if range_key == 'yesterday' %}selected{% endif %}>Yesterday</option>
+                <option value="this_week" {% if range_key == 'this_week' %}selected{% endif %}>This Week</option>
+                <option value="last_week" {% if range_key == 'last_week' %}selected{% endif %}>Last Week</option>
+                <option value="this_month" {% if range_key == 'this_month' %}selected{% endif %}>This Month</option>
+                <option value="this_year" {% if range_key == 'this_year' %}selected{% endif %}>This Year</option>
+            </select>
+        </form>
+    </div>
+
+    <div class="row g-3">
+        {% for card in cards %}
+        <div class="col-xl-3 col-lg-4 col-md-6">
+            <div class="metric-card">
+                <div class="metric-top">
+                    <div>
+                        <div class="metric-title">{{ card.title }}</div>
+                        <div class="metric-value">
+                            {% if card.is_money %}₹{{ card.value|floatformat:2 }}{% else %}{{ card.value }}{% endif %}
+                        </div>
+                    </div>
+                    <div class="metric-range">{{ range_label }}</div>
+                </div>
+                <div class="metric-chart">
+                    <canvas id="{{ card.chart_id }}"></canvas>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="row g-3 mt-1">
+        <div class="col-12">
+            <div class="section-card">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h5 class="mb-1">Orders by Category</h5>
+                        <div class="dashboard-subtitle">Category-wise distribution for {{ range_label|lower }}.</div>
+                    </div>
+                    <div class="metric-range">{{ range_label }}</div>
+                </div>
+                <div class="donut-wrap">
+                    <div class="donut-chart">
+                        <canvas id="categoryDonut"></canvas>
+                    </div>
+                    <div class="donut-list">
+                        {% for item in category_list %}
+                        <div class="donut-item">
+                            <div class="donut-label">
+                                <span class="donut-dot" style="background: {{ item.color }};"></span>
+                                <span>{{ item.label }}</span>
+                            </div>
+                            <span>{{ item.total }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    const chartLabels = {{ chart_labels|safe }};
+    const cardCharts = [
+        {% for card in cards %}
+        {
+            id: "{{ card.chart_id }}",
+            color: "{{ card.color }}",
+            data: {{ card.series|safe }}
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    const categoryLabels = {{ category_labels|safe }};
+    const categoryCounts = {{ category_counts|safe }};
+    const categoryColors = {{ category_colors|safe }};
+
+    cardCharts.forEach((card) => {
+        const ctx = document.getElementById(card.id);
+        if (!ctx) return;
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartLabels,
+                datasets: [
+                    {
+                        data: card.data,
+                        borderColor: card.color,
+                        backgroundColor: 'rgba(15, 23, 42, 0.08)',
+                        borderWidth: 2,
+                        tension: 0.35,
+                        pointRadius: 0,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: false }
+                },
+                scales: {
+                    x: { display: false },
+                    y: { display: false }
+                }
+            }
+        });
+    });
+
+    const donutCtx = document.getElementById('categoryDonut');
+    if (donutCtx) {
+        new Chart(donutCtx, {
+            type: 'doughnut',
+            data: {
+                labels: categoryLabels,
+                datasets: [
+                    {
+                        data: categoryCounts,
+                        backgroundColor: categoryColors,
+                        borderWidth: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                cutout: '68%'
+            }
+        });
+    }
+</script>
+{% endblock %}

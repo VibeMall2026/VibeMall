@@ -1,0 +1,285 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Edit Category - FashioHub Admin{% endblock %}
+
+{% block extra_css %}
+<!-- FontAwesome for category icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Edit Category: {{ category.name }}</h5>
+                <a href="{% url 'admin_categories' %}" class="btn btn-sm btn-secondary">
+                    <i class='bx bx-arrow-back'></i> Back to Categories
+                </a>
+            </div>
+            <div class="card-body">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label" for="name">Category Name *</label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ category.name }}" required>
+                        <div class="form-text">Display name shown to users</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label" for="category_key">Category Key *</label>
+                        <input type="text" class="form-control" id="category_key" name="category_key" value="{{ category.category_key }}" required>
+                        <div class="form-text">Must match Product.CATEGORY_CHOICES (UPPERCASE with underscores)</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Icon Type</label>
+                        <div class="btn-group w-100 mb-2" role="group">
+                            <input type="radio" class="btn-check" name="icon_type" id="icon_type_image" value="image" {% if category.icon_image %}checked{% endif %}>
+                            <label class="btn btn-outline-primary" for="icon_type_image">Upload Image</label>
+                            
+                            <input type="radio" class="btn-check" name="icon_type" id="icon_type_fontawesome" value="fontawesome" {% if not category.icon_image %}checked{% endif %}>
+                            <label class="btn btn-outline-primary" for="icon_type_fontawesome">FontAwesome Icon</label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3" id="image_upload_section" style="{% if not category.icon_image %}display: none;{% endif %}">
+                        <label class="form-label" for="icon_image">Icon Image</label>
+                        {% if category.icon_image %}
+                            <div class="mb-2">
+                                <img src="{{ category.icon_image.url }}" alt="Current icon" style="width: {{ category.icon_size|default:48 }}px; height: {{ category.icon_size|default:48 }}px; object-fit: contain; border: 1px solid #ddd; padding: 5px; border-radius: 5px;">
+                                <small class="d-block text-muted">Current icon</small>
+                            </div>
+                        {% endif %}
+                        <input type="file" class="form-control" id="icon_image" name="icon_image" accept="image/*">
+                        <div class="form-text">Upload PNG with transparent background (recommended size: match Icon Size)</div>
+                    </div>
+                    
+                    <div class="mb-3" id="fontawesome_section" style="{% if category.icon_image %}display: none;{% endif %}">
+                        <label class="form-label" for="icon_class">Icon Class</label>
+                        <input type="text" class="form-control" id="icon_class" name="icon_class" value="{{ category.icon_class }}">
+                        <div class="form-text">
+                            FontAwesome icon class. Browse icons at <a href="https://fontawesome.com/icons" target="_blank">FontAwesome.com</a>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3" id="icon_color_section" style="{% if category.icon_image %}display: none;{% endif %}">
+                        <label class="form-label" for="icon_color">Icon Color</label>
+                        <input type="color" class="form-control" id="icon_color" name="icon_color" value="{{ category.icon_color }}">
+                        <div class="form-text">Choose icon color (only for FontAwesome icons)</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label" for="background_gradient">Background Gradient</label>
+                        <input type="text" class="form-control" id="background_gradient" name="background_gradient" value="{{ category.background_gradient }}">
+                        <div class="form-text">CSS gradient for icon background</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="icon_size">Icon Size (px)</label>
+                        <input type="number" class="form-control" id="icon_size" name="icon_size" value="{{ category.icon_size|default:48 }}" min="16" max="128">
+                        <div class="form-text">Controls image size or FontAwesome size on the homepage</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label" for="order">Display Order</label>
+                        <input type="number" class="form-control" id="order" name="order" value="{{ category.order }}" min="0">
+                        <div class="form-text">Lower numbers appear first</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="is_active" name="is_active" {% if category.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="is_active">
+                                Active (show on homepage)
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class='bx bx-save'></i> Update Category
+                        </button>
+                        <a href="{% url 'admin_delete_category' category.id %}" class="btn btn-danger" 
+                           onclick="return confirm('Are you sure you want to delete this category?')">
+                            <i class='bx bx-trash'></i> Delete
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Live Preview</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <div id="preview-icon" style="display: inline-flex; align-items: center; justify-content: center; background: {{ category.background_gradient }}; padding: calc({{ category.icon_size|default:48 }}px * 0.45); border-radius: calc({{ category.icon_size|default:48 }}px * 0.3); margin-bottom: 8px; min-width: calc({{ category.icon_size|default:48 }}px * 2); min-height: calc({{ category.icon_size|default:48 }}px * 2);">
+                        {% if category.icon_image %}
+                            <img id="preview-icon-image" src="{{ category.icon_image.url }}" alt="{{ category.name }}" style="width: {{ category.icon_size|default:48 }}px; height: {{ category.icon_size|default:48 }}px; object-fit: contain;">
+                        {% else %}
+                            <i id="preview-icon-element" class="{{ category.icon_class }}" style="font-size: {{ category.icon_size|default:48 }}px; color: {{ category.icon_color }};"></i>
+                        {% endif %}
+                    </div>
+                    <h6 id="preview-name" style="color: #333; font-weight: 600; font-size: 12px;">{{ category.name }}</h6>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">Category Info</h5>
+            </div>
+            <div class="card-body">
+                <p class="small mb-2"><strong>ID:</strong> {{ category.id }}</p>
+                <p class="small mb-2"><strong>Created:</strong> {{ category.id }}</p>
+                <p class="small mb-2"><strong>Status:</strong> 
+                    {% if category.is_active %}
+                        <span class="badge bg-success">Active</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Inactive</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Icon type toggle
+    const iconTypeImage = document.getElementById('icon_type_image');
+    const iconTypeFontAwesome = document.getElementById('icon_type_fontawesome');
+    const imageUploadSection = document.getElementById('image_upload_section');
+    const fontAwesomeSection = document.getElementById('fontawesome_section');
+    const iconColorSection = document.getElementById('icon_color_section');
+    const iconImageInput = document.getElementById('icon_image');
+    const iconSizeInput = document.getElementById('icon_size');
+    const previewIcon = document.getElementById('preview-icon');
+    
+    function toggleIconType() {
+        if (iconTypeImage.checked) {
+            imageUploadSection.style.display = 'block';
+            fontAwesomeSection.style.display = 'none';
+            iconColorSection.style.display = 'none';
+        } else {
+            imageUploadSection.style.display = 'none';
+            fontAwesomeSection.style.display = 'block';
+            iconColorSection.style.display = 'block';
+        }
+    }
+    
+    if (iconTypeImage) iconTypeImage.addEventListener('change', toggleIconType);
+    if (iconTypeFontAwesome) iconTypeFontAwesome.addEventListener('change', toggleIconType);
+    
+    // Image preview
+    function applyIconSize() {
+        if (!iconSizeInput || !previewIcon) return;
+
+        const rawSize = parseInt(iconSizeInput.value, 10);
+        const size = Number.isFinite(rawSize) ? Math.max(16, Math.min(rawSize, 128)) : 48;
+        const padding = Math.round(size * 0.45);
+        const radius = Math.round(size * 0.3);
+
+        previewIcon.style.padding = padding + 'px';
+        previewIcon.style.borderRadius = radius + 'px';
+        previewIcon.style.minWidth = (size + padding * 2) + 'px';
+        previewIcon.style.minHeight = (size + padding * 2) + 'px';
+
+        const previewImage = document.getElementById('preview-icon-image');
+        if (previewImage) {
+            previewImage.style.width = size + 'px';
+            previewImage.style.height = size + 'px';
+        }
+
+        const previewIconElementLocal = document.getElementById('preview-icon-element');
+        if (previewIconElementLocal) {
+            previewIconElementLocal.style.fontSize = size + 'px';
+        }
+    }
+
+    if (iconSizeInput) {
+        iconSizeInput.addEventListener('input', applyIconSize);
+        applyIconSize();
+    }
+
+    if (iconImageInput) {
+        iconImageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const rawSize = iconSizeInput ? parseInt(iconSizeInput.value, 10) : 48;
+                    const size = Number.isFinite(rawSize) ? Math.max(16, Math.min(rawSize, 128)) : 48;
+                    previewIcon.innerHTML = '<img id="preview-icon-image" src="' + event.target.result + '" alt="Preview" style="width: ' + size + 'px; height: ' + size + 'px; object-fit: contain;">';
+                    applyIconSize();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+    
+    // Live preview update
+    const nameInput = document.getElementById('name');
+    const iconClassInput = document.getElementById('icon_class');
+    const iconColorInput = document.getElementById('icon_color');
+    const bgGradientInput = document.getElementById('background_gradient');
+    
+    const previewName = document.getElementById('preview-name');
+    const previewIconElement = document.getElementById('preview-icon-element');
+    
+    // Name change
+    if (nameInput && previewName) {
+        nameInput.addEventListener('input', function() {
+            previewName.textContent = this.value || 'Category Name';
+        });
+    }
+    
+    // Icon class change with debounce for better performance
+    if (iconClassInput && previewIconElement) {
+        let iconTimeout;
+        iconClassInput.addEventListener('input', function() {
+            clearTimeout(iconTimeout);
+            iconTimeout = setTimeout(() => {
+                // Remove all existing classes and add new ones
+                const newClasses = this.value.trim() || 'fas fa-mobile-alt';
+                previewIconElement.setAttribute('class', newClasses);
+                // Force icon refresh
+                previewIconElement.style.display = 'none';
+                setTimeout(() => {
+                    previewIconElement.style.display = '';
+                }, 10);
+            }, 300);
+        });
+    }
+    
+    // Icon color change
+    if (iconColorInput && previewIconElement) {
+        iconColorInput.addEventListener('input', function() {
+            previewIconElement.style.color = this.value;
+        });
+    }
+    
+    // Background gradient change
+    if (bgGradientInput && previewIcon) {
+        bgGradientInput.addEventListener('input', function() {
+            previewIcon.style.background = this.value;
+        });
+    }
+});
+</script>
+{% endblock %}

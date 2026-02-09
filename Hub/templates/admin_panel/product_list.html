@@ -1,0 +1,316 @@
+﻿{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Product List - FashioHub Admin{% endblock %}
+
+{% block content %}
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-label-primary me-3 p-2"><i class="bx bx-store"></i></span>
+                    <div>
+                        <small class="text-muted">In-store Sales</small>
+                        <h5 class="mb-0">₹{{ in_store_sales|floatformat:2 }}</h5>
+                        <small class="text-success">{{ in_store_orders_count }} orders</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-label-info me-3 p-2"><i class="bx bx-globe"></i></span>
+                    <div>
+                        <small class="text-muted">Website Sales</small>
+                        <h5 class="mb-0">₹{{ website_sales|floatformat:2 }}</h5>
+                        <small class="text-success">{{ website_orders_count }} orders</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-label-warning me-3 p-2"><i class="bx bx-gift"></i></span>
+                    <div>
+                        <small class="text-muted">Discount</small>
+                        <h5 class="mb-0">₹{{ discount_total|floatformat:2 }}</h5>
+                        <small class="text-danger">{{ discount_orders_count }} orders</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-label-success me-3 p-2"><i class="bx bx-user-check"></i></span>
+                    <div>
+                        <small class="text-muted">Affiliate</small>
+                        <h5 class="mb-0">₹{{ affiliate_sales|floatformat:2 }}</h5>
+                        <small class="text-muted">{{ affiliate_orders_count }} orders</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" id="filtersForm" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select class="form-select" name="status" onchange="this.form.submit()">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Category</label>
+                <select class="form-select" name="category" onchange="this.form.submit()">
+                    <option value="all" {% if category_filter == 'all' %}selected{% endif %}>All</option>
+                    {% for code, label in category_choices %}
+                        <option value="{{ code }}" {% if category_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Stock</label>
+                <select class="form-select" name="stock" onchange="this.form.submit()">
+                    <option value="all" {% if stock_filter == 'all' %}selected{% endif %}>All</option>
+                    <option value="in" {% if stock_filter == 'in' %}selected{% endif %}>In Stock</option>
+                    <option value="low" {% if stock_filter == 'low' %}selected{% endif %}>Low Stock</option>
+                    <option value="out" {% if stock_filter == 'out' %}selected{% endif %}>Out of Stock</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex justify-content-end">
+                <a class="btn btn-outline-secondary me-2" href="?{{ querystring }}&export=1">
+                    <i class="bx bx-upload"></i> Export
+                </a>
+                <a href="{% url 'admin_add_product' %}" class="btn btn-primary">
+                    <i class='bx bx-plus'></i> Add Product
+                </a>
+            </div>
+
+            <div class="col-md-4">
+                <input class="form-control" type="text" name="q" placeholder="Search Product" value="{{ search_query }}" />
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" name="per_page" onchange="this.form.submit()">
+                    <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+                    <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
+                    <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-primary" type="submit">Apply</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Product Table -->
+<div class="card">
+    <div class="table-responsive text-nowrap">
+        <table class="table align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 32px;"><input type="checkbox" class="form-check-input" id="selectAllProducts"></th>
+                    <th>Product</th>
+                    <th>Category</th>
+                    <th>Stock</th>
+                    <th>SKU</th>
+                    <th>Price</th>
+                    <th>Qty</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                <tr>
+                    <td><input type="checkbox" class="form-check-input product-checkbox" value="{{ product.id }}"></td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            {% if product.image %}
+                                <img src="{{ product.image.url }}" alt="{{ product.name }}" class="me-2" style="width: 36px; height: 36px; object-fit: cover; border-radius: 6px;">
+                            {% else %}
+                                <div class="me-2 bg-label-secondary" style="width: 36px; height: 36px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                                    <i class='bx bx-image' style="font-size: 18px;"></i>
+                                </div>
+                            {% endif %}
+                            <div>
+                                <div class="fw-semibold">{{ product.name|truncatewords:4 }}</div>
+                                <small class="text-muted">{{ product.brand|default:"" }}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-label-primary me-2" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px;">
+                                <i class="bx bx-category"></i>
+                            </span>
+                            <span>{{ product.get_category_display|default:"General" }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input stock-toggle" type="checkbox" data-product-id="{{ product.id }}" {% if product.stock > 0 %}checked{% endif %}>
+                        </div>
+                    </td>
+                    <td>{{ product.sku|default:"-" }}</td>
+                    <td>₹{{ product.price }}</td>
+                    <td>{{ product.stock }}</td>
+                    <td>
+                        {% if product.is_active %}
+                            <span class="badge bg-label-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-label-danger">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <div class="dropdown">
+                            <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                <i class="bx bx-dots-vertical-rounded"></i>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end">
+                                <a class="dropdown-item" href="{% url 'product-details' product.id %}" target="_blank">
+                                    <i class="bx bx-show me-1"></i> View
+                                </a>
+                                <a class="dropdown-item" href="{% url 'admin_edit_product' product.id %}">
+                                    <i class="bx bx-edit-alt me-1"></i> Edit
+                                </a>
+                                <a class="dropdown-item" href="{% url 'admin_delete_product' product.id %}" onclick="return confirm('Delete this product?')">
+                                    <i class="bx bx-trash me-1"></i> Delete
+                                </a>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="text-center py-5">
+                        <i class='bx bx-package' style="font-size: 48px; color: #ccc;"></i>
+                        <p class="text-muted mt-2">No products found. <a href="{% url 'admin_add_product' %}">Add your first product</a></p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if products.has_other_pages %}
+    <div class="card-footer">
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center mb-0">
+                {% if products.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if querystring %}&{{ querystring }}{% endif %}">First</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ products.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">Previous</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">Previous</span>
+                    </li>
+                {% endif %}
+
+                <li class="page-item active">
+                    <span class="page-link">
+                        Page {{ products.number }} of {{ products.paginator.num_pages }}
+                    </span>
+                </li>
+
+                {% if products.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ products.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">Next</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ products.paginator.num_pages }}{% if querystring %}&{{ querystring }}{% endif %}">Last</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">Next</span>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAll = document.getElementById('selectAllProducts');
+    const productCheckboxes = document.querySelectorAll('.product-checkbox');
+    const stockToggles = document.querySelectorAll('.stock-toggle');
+
+    if (!selectAll || productCheckboxes.length === 0) {
+        return;
+    }
+
+    selectAll.addEventListener('change', function() {
+        productCheckboxes.forEach(cb => {
+            cb.checked = selectAll.checked;
+        });
+    });
+
+    productCheckboxes.forEach(cb => {
+        cb.addEventListener('change', function() {
+            const allChecked = Array.from(productCheckboxes).every(item => item.checked);
+            const anyChecked = Array.from(productCheckboxes).some(item => item.checked);
+            selectAll.checked = allChecked;
+            selectAll.indeterminate = !allChecked && anyChecked;
+        });
+    });
+
+    const getCookie = (name) => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return '';
+    };
+
+    stockToggles.forEach(toggle => {
+        toggle.addEventListener('change', async function() {
+            const productId = toggle.getAttribute('data-product-id');
+            const previous = !toggle.checked;
+
+            try {
+                const response = await fetch(`/admin-panel/products/toggle-stock/${productId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to update stock');
+                }
+                const data = await response.json();
+                toggle.checked = data.stock > 0;
+            } catch (error) {
+                toggle.checked = previous;
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

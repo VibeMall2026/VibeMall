@@ -1,0 +1,200 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Add Category - FashioHub Admin{% endblock %}
+
+{% block extra_css %}
+<!-- FontAwesome for category icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Add New Category Icon</h5>
+                <a href="{% url 'admin_categories' %}" class="btn btn-sm btn-secondary">
+                    <i class='bx bx-arrow-back'></i> Back to Categories
+                </a>
+            </div>
+            <div class="card-body">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label" for="name">Category Name *</label>
+                        <input type="text" class="form-control" id="name" name="name" placeholder="e.g., Mobiles" required>
+                        <div class="form-text">Display name shown to users</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label" for="category_key">Category Key *</label>
+                        <input type="text" class="form-control" id="category_key" name="category_key" placeholder="e.g., MOBILES" required>
+                        <div class="form-text">Must match Product.CATEGORY_CHOICES (UPPERCASE with underscores)</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label" for="icon_class">Icon Class *</label>
+                        <input type="text" class="form-control" id="icon_class" name="icon_class" placeholder="e.g., fas fa-mobile-alt" required>
+                        <div class="form-text">
+                            FontAwesome icon class. Browse icons at <a href="https://fontawesome.com/icons" target="_blank">FontAwesome.com</a>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label" for="icon_color">Icon Color</label>
+                        <input type="color" class="form-control" id="icon_color" name="icon_color" value="#0288d1">
+                        <div class="form-text">Choose icon color</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label" for="background_gradient">Background Gradient</label>
+                        <input type="text" class="form-control" id="background_gradient" name="background_gradient" 
+                               value="linear-gradient(135deg, #e0f7ff 0%, #b3e5fc 100%)">
+                        <div class="form-text">CSS gradient for icon background</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="icon_size">Icon Size (px)</label>
+                        <input type="number" class="form-control" id="icon_size" name="icon_size" value="48" min="16" max="128">
+                        <div class="form-text">Controls FontAwesome size on the homepage</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label" for="order">Display Order</label>
+                        <input type="number" class="form-control" id="order" name="order" value="0" min="0">
+                        <div class="form-text">Lower numbers appear first</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+                            <label class="form-check-label" for="is_active">
+                                Active (show on homepage)
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class='bx bx-save'></i> Add Category
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Live Preview</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <div id="preview-icon" style="display: inline-block; background: linear-gradient(135deg, #e0f7ff 0%, #b3e5fc 100%); padding: calc(48px * 0.45); border-radius: calc(48px * 0.3); margin-bottom: 8px; min-width: calc(48px * 2); min-height: calc(48px * 2);">
+                        <i id="preview-icon-element" class="fas fa-mobile-alt" style="font-size: 48px; color: #0288d1;"></i>
+                    </div>
+                    <h6 id="preview-name" style="color: #333; font-weight: 600; font-size: 12px;">Mobiles</h6>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">Quick Tips</h5>
+            </div>
+            <div class="card-body">
+                <ul class="small">
+                    <li>Category Key must match exactly with Product categories</li>
+                    <li>Use FontAwesome icons for consistency</li>
+                    <li>Test different gradient combinations</li>
+                    <li>Lower order numbers display first</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Live preview update
+    const nameInput = document.getElementById('name');
+    const iconClassInput = document.getElementById('icon_class');
+    const iconColorInput = document.getElementById('icon_color');
+    const bgGradientInput = document.getElementById('background_gradient');
+    const iconSizeInput = document.getElementById('icon_size');
+    
+    const previewName = document.getElementById('preview-name');
+    const previewIcon = document.getElementById('preview-icon');
+    const previewIconElement = document.getElementById('preview-icon-element');
+
+    function applyIconSize() {
+        if (!iconSizeInput || !previewIcon || !previewIconElement) return;
+
+        const rawSize = parseInt(iconSizeInput.value, 10);
+        const size = Number.isFinite(rawSize) ? Math.max(16, Math.min(rawSize, 128)) : 48;
+        const padding = Math.round(size * 0.45);
+        const radius = Math.round(size * 0.3);
+
+        previewIcon.style.padding = padding + 'px';
+        previewIcon.style.borderRadius = radius + 'px';
+        previewIcon.style.minWidth = (size + padding * 2) + 'px';
+        previewIcon.style.minHeight = (size + padding * 2) + 'px';
+        previewIconElement.style.fontSize = size + 'px';
+    }
+
+    if (iconSizeInput) {
+        iconSizeInput.addEventListener('input', applyIconSize);
+        applyIconSize();
+    }
+    
+    // Name change
+    if (nameInput && previewName) {
+        nameInput.addEventListener('input', function() {
+            previewName.textContent = this.value || 'Category Name';
+        });
+    }
+    
+    // Icon class change with debounce for better performance
+    if (iconClassInput && previewIconElement) {
+        let iconTimeout;
+        iconClassInput.addEventListener('input', function() {
+            clearTimeout(iconTimeout);
+            iconTimeout = setTimeout(() => {
+                // Remove all existing classes and add new ones
+                const newClasses = this.value.trim() || 'fas fa-mobile-alt';
+                previewIconElement.setAttribute('class', newClasses);
+                // Force icon refresh
+                previewIconElement.style.display = 'none';
+                setTimeout(() => {
+                    previewIconElement.style.display = '';
+                }, 10);
+            }, 300);
+        });
+    }
+    
+    // Icon color change
+    if (iconColorInput && previewIconElement) {
+        iconColorInput.addEventListener('input', function() {
+            previewIconElement.style.color = this.value;
+        });
+    }
+    
+    // Background gradient change
+    if (bgGradientInput && previewIcon) {
+        bgGradientInput.addEventListener('input', function() {
+            previewIcon.style.background = this.value;
+        });
+    }
+});
+</script>
+{% endblock %}

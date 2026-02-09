@@ -1,0 +1,198 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Return Details - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold"><span class="text-muted fw-light">Returns /</span> #{{ return_request.id }}</h4>
+        <span class="badge bg-label-warning">{{ return_request.get_status_display }}</span>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Return Items</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Qty</th>
+                                    <th>Condition</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in return_request.items.all %}
+                                <tr>
+                                    <td>{{ item.order_item.product_name }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>{{ item.get_condition_display }}</td>
+                                    <td>{{ item.notes|default:"-" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">History</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group">
+                        {% for entry in history %}
+                        <li class="list-group-item d-flex justify-content-between flex-wrap gap-2">
+                            <span>{% if entry.new_status == 'APPROVED' %}R-Approved{% else %}{{ entry.new_status|title }}{% endif %}</span>
+                            <small class="text-muted">{{ entry.created_at|date:"d M Y, h:i A" }}</small>
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item">No updates yet.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Order</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>Order #:</strong> {{ return_request.order.order_number }}</p>
+                    <p class="mb-1"><strong>User:</strong> {{ return_request.user.username }}</p>
+                    <p class="mb-1"><strong>Reason:</strong> {{ return_request.get_reason_display }}</p>
+                    <p class="mb-1"><strong>Refund Method:</strong> {{ return_request.refund_method|default:"-" }}</p>
+                    {% if return_request.refund_amount %}
+                        <p class="mb-1"><strong>Refund Amount (Gross):</strong> ₹{{ return_request.refund_amount }}</p>
+                        <p class="mb-1"><strong>Return Fee:</strong> ₹{{ return_request.refund_fee|default:"0.00" }}</p>
+                        <p class="mb-1"><strong>Refund Amount (Net):</strong> ₹{{ return_request.refund_amount_net|default:"0.00" }}</p>
+                    {% endif %}
+                    {% if return_request.refund_method == 'BANK' %}
+                        <div class="border rounded p-2 mt-2" style="background: #f8fafc;">
+                            <p class="mb-1"><strong>Account Name:</strong> {{ return_request.bank_account_name|default:"-" }}</p>
+                            <p class="mb-1"><strong>Bank Name:</strong> {{ return_request.bank_name|default:"-" }}</p>
+                            <p class="mb-1"><strong>Account No:</strong> {{ return_request.bank_account_number|default:"-" }}</p>
+                            <p class="mb-0"><strong>IFSC:</strong> {{ return_request.bank_ifsc|default:"-" }}</p>
+                        </div>
+                    {% elif return_request.refund_method == 'RAZORPAY' %}
+                        <div class="border rounded p-2 mt-2" style="background: #f8fafc;">
+                            <p class="mb-0"><strong>UPI ID:</strong> {{ return_request.upi_id|default:"-" }}</p>
+                        </div>
+                    {% endif %}
+                    <p class="mb-0"><strong>Notes:</strong> {{ return_request.reason_notes|default:"-" }}</p>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Customer Details</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>Name:</strong> {{ return_request.user.get_full_name|default:return_request.user.username }}</p>
+                    <p class="mb-1"><strong>Email:</strong> {{ return_request.user.email|default:"-" }}</p>
+                    <p class="mb-1"><strong>Phone:</strong> {{ customer_profile.phone|default:customer_profile.mobile_number|default:"-" }}</p>
+                    <p class="mb-1"><strong>Address:</strong> {{ customer_profile.address|default:"-" }}</p>
+                    <p class="mb-1"><strong>Wallet Balance:</strong> ₹{{ customer_profile.wallet_balance|default:"0.00" }}</p>
+                    <div class="border rounded p-2 mt-2" style="background: #f8fafc;">
+                        <p class="mb-1"><strong>Shipping Address:</strong> {{ return_request.order.shipping_address|default:"-" }}</p>
+                        <p class="mb-0"><strong>Billing Address:</strong> {{ return_request.order.billing_address|default:"-" }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Update Status</h5>
+                </div>
+                <div class="card-body">
+                    {% if allowed_next %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Next Status</label>
+                            <select class="form-select" name="action" required>
+                                {% for status in allowed_next %}
+                                    <option value="{{ status }}">{% if status == 'APPROVED' %}R-Approved{% else %}{{ status|title }}{% endif %}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3" id="pickupFields" style="display: none;">
+                            <label class="form-label">Pickup Scheduled Date</label>
+                            <input type="date" class="form-control" name="pickup_scheduled_at">
+                            <small class="text-muted">Select a date (time defaults to 10:00 AM).</small>
+                        </div>
+                        <div class="mb-3" id="refundAmountFields" style="display: none;">
+                            <label class="form-label">Refund Amount</label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                class="form-control"
+                                name="refund_amount"
+                                id="refundAmountInput"
+                                data-half-amount="{{ half_refund_amount }}"
+                                value="{{ return_request.refund_amount|default_if_none:'' }}"
+                                placeholder="Optional"
+                            >
+                            <small class="text-muted">Rs.20 return fee will be deducted from this amount.</small>
+                            <small class="text-muted d-block" id="wrongReturnHint" style="display: none;">Half refund will be applied for wrong returns.</small>
+                        </div>
+                        <div class="mb-3" id="refundMethodFields" style="display: none;">
+                            <label class="form-label">Refund Method</label>
+                            <input type="text" class="form-control" name="refund_method" placeholder="RAZORPAY / COD / WALLET">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Admin Notes</label>
+                            <textarea class="form-control" name="notes" rows="3"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Update</button>
+                    </form>
+                    <script>
+                        (function () {
+                            const actionSelect = document.querySelector('select[name="action"]');
+                            const pickupFields = document.getElementById('pickupFields');
+                            const refundAmountFields = document.getElementById('refundAmountFields');
+                            const refundMethodFields = document.getElementById('refundMethodFields');
+                            const refundAmountInput = document.getElementById('refundAmountInput');
+                            const wrongReturnHint = document.getElementById('wrongReturnHint');
+                            if (!actionSelect) return;
+
+                            const showPickup = new Set(['PICKUP_SCHEDULED']);
+                            const showRefundAmount = new Set(['REFUNDED', 'WRONG_RETURN']);
+                            const showRefundMethod = new Set(['REFUNDED']);
+
+                            const updateVisibility = () => {
+                                const action = actionSelect.value;
+                                const isWrongReturn = action === 'WRONG_RETURN';
+
+                                pickupFields.style.display = showPickup.has(action) ? 'block' : 'none';
+                                refundAmountFields.style.display = showRefundAmount.has(action) ? 'block' : 'none';
+                                refundMethodFields.style.display = showRefundMethod.has(action) ? 'block' : 'none';
+                                wrongReturnHint.style.display = isWrongReturn ? 'block' : 'none';
+
+                                if (isWrongReturn && refundAmountInput && refundAmountInput.dataset.halfAmount) {
+                                    refundAmountInput.value = refundAmountInput.dataset.halfAmount;
+                                }
+                            };
+
+                            actionSelect.addEventListener('change', updateVisibility);
+                            updateVisibility();
+                        })();
+                    </script>
+                    {% else %}
+                        <div class="text-muted">No further actions available.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

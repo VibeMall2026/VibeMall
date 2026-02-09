@@ -1,0 +1,773 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Invoice & Inventory Management{% endblock %}
+
+{% block extra_css %}
+<style>
+  .stat-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f5f7fb 0%, #eef2f9 100%);
+    border: 1px solid #e2e8f0;
+    transition: all 0.25s ease;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+  }
+
+  .stat-card h6 {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    margin-bottom: 0.35rem;
+  }
+
+  .stat-card .stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  .stat-card .stat-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #2563eb;
+    background: rgba(37, 99, 235, 0.12);
+  }
+
+  .panel-card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 6px 12px rgba(15, 23, 42, 0.04);
+  }
+
+  .panel-card .card-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .panel-card .card-header h5 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #0f172a;
+  }
+
+  .panel-card .card-body {
+    padding: 1.5rem;
+  }
+
+  .filters-row {
+    gap: 1rem;
+  }
+
+  .filters-row .form-control,
+  .filters-row .form-select {
+    min-width: 180px;
+  }
+
+  .invoice-table thead th {
+    background: #f8fafc;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    color: #475569;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .invoice-table tbody td {
+    vertical-align: middle;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .badge-soft {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .badge-soft-success {
+    background: rgba(34, 197, 94, 0.12);
+    color: #16a34a;
+  }
+
+  .badge-soft-warning {
+    background: rgba(234, 179, 8, 0.15);
+    color: #b45309;
+  }
+
+  .badge-soft-danger {
+    background: rgba(248, 113, 113, 0.15);
+    color: #b91c1c;
+  }
+
+  .badge-soft-info {
+    background: rgba(14, 165, 233, 0.12);
+    color: #0ea5e9;
+  }
+
+  .inventory-badge {
+    min-width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #1d4ed8;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .inventory-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0;
+    border-bottom: 1px dashed #e2e8f0;
+  }
+
+  .inventory-list li:last-child {
+    border-bottom: none;
+  }
+
+  .inventory-list .title {
+    font-weight: 600;
+    color: #0f172a;
+  }
+
+  .inventory-list small {
+    color: #64748b;
+  }
+
+  .top-movers li {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+  }
+
+  .top-movers span {
+    font-weight: 600;
+    color: #0f172a;
+  }
+
+  .top-movers li:last-child {
+    border-bottom: none;
+  }
+
+  .progress-thin {
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .progress-thin .progress-bar {
+    background: linear-gradient(135deg, #6366f1 0%, #2563eb 100%);
+  }
+
+  .inventory-thumb {
+    width: 52px;
+    height: 52px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+  }
+
+  .inventory-form .form-control {
+    max-width: 110px;
+  }
+
+  .inventory-form .btn {
+    white-space: nowrap;
+  }
+
+  @media (max-width: 992px) {
+    .filters-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .filters-row .form-control,
+    .filters-row .form-select {
+      width: 100%;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">Dashboard</a></li>
+    <li class="breadcrumb-item active">Invoice & Inventory</li>
+  </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-bold mb-1">Invoice & Inventory Management</h4>
+    <p class="text-muted mb-0">Monitor billing health and warehouse readiness from one place.</p>
+  </div>
+  <a href="{% url 'admin_orders' %}" class="btn btn-primary"><i class="bx bx-list-ul"></i> View Orders</a>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-xl-3 col-sm-6">
+    <div class="stat-card">
+      <div>
+        <h6>Total Revenue</h6>
+        <div class="stat-value">₹{{ total_revenue|floatformat:2 }}</div>
+        <small class="text-muted">Paid invoices</small>
+      </div>
+      <div class="stat-icon"><i class="bx bx-rupee"></i></div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-sm-6">
+    <div class="stat-card">
+      <div>
+        <h6>Outstanding</h6>
+        <div class="stat-value text-danger">₹{{ outstanding_amount|floatformat:2 }}</div>
+        <small class="text-muted">Pending & failed invoices</small>
+      </div>
+      <div class="stat-icon" style="background: rgba(239, 68, 68, 0.15); color: #dc2626;">
+        <i class="bx bx-time"></i>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-sm-6">
+    <div class="stat-card">
+      <div>
+        <h6>Avg. Order Value</h6>
+        <div class="stat-value">₹{{ average_order_value|floatformat:2 }}</div>
+        <small class="text-muted">Across paid invoices</small>
+      </div>
+      <div class="stat-icon" style="background: rgba(16, 185, 129, 0.12); color: #0f766e;">
+        <i class="bx bx-trending-up"></i>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-sm-6">
+    <div class="stat-card">
+      <div>
+        <h6>Overdue Invoices</h6>
+        <div class="stat-value">{{ overdue_invoices }}</div>
+        <small class="text-muted">Awaiting payment status</small>
+      </div>
+      <div class="stat-icon" style="background: rgba(249, 115, 22, 0.15); color: #ea580c;">
+        <i class="bx bx-error"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="panel-card mb-4">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center">
+    <h5 class="mb-2 mb-sm-0">Invoice Overview</h5>
+    <div class="d-flex gap-3 text-muted small">
+      <span>Total: {{ invoice_total_count }}</span>
+      <span>Paid: {{ paid_invoice_count }}</span>
+      <span>Outstanding: {{ outstanding_invoice_count }}</span>
+    </div>
+  </div>
+  <div class="card-body">
+    <form method="get" class="row filters-row align-items-end mb-3">
+      <div class="col-lg-3 col-md-6">
+        <label class="form-label">Search</label>
+        <input type="text" name="search" class="form-control" placeholder="Order, customer, email" value="{{ search_query }}">
+      </div>
+      <div class="col-lg-2 col-md-4">
+        <label class="form-label">Status</label>
+        <select name="status" class="form-select">
+          <option value="all" {% if status_filter|lower == 'all' %}selected{% endif %}>All statuses</option>
+          {% for value, label in status_choices %}
+            <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-lg-2 col-md-4">
+        <label class="form-label">Payment</label>
+        <select name="payment" class="form-select">
+          <option value="all" {% if payment_filter|lower == 'all' %}selected{% endif %}>All payments</option>
+          {% for value, label in payment_status_choices %}
+            <option value="{{ value }}" {% if payment_filter == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-lg-2 col-md-4">
+        <label class="form-label">From</label>
+        <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+      </div>
+      <div class="col-lg-2 col-md-4">
+        <label class="form-label">To</label>
+        <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+      </div>
+      <div class="col-lg-1 col-md-4 d-flex gap-2">
+        <button class="btn btn-primary w-100" type="submit"><i class="bx bx-filter"></i></button>
+        <a href="{% url 'admin_invoice_inventory' %}" class="btn btn-light border w-100"><i class="bx bx-reset"></i></a>
+      </div>
+    </form>
+
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-2">
+        <label class="text-muted small">Show</label>
+        <select class="form-select form-select-sm" style="width: auto;" onchange="window.location.href='?per_page=' + this.value + '&{{ querystring }}'">
+          <option value="10" {% if items_per_page == 10 %}selected{% endif %}>10</option>
+          <option value="25" {% if items_per_page == 25 %}selected{% endif %}>25</option>
+          <option value="50" {% if items_per_page == 50 %}selected{% endif %}>50</option>
+          <option value="100" {% if items_per_page == 100 %}selected{% endif %}>100</option>
+        </select>
+        <span class="text-muted small">entries</span>
+      </div>
+      <div class="btn-group">
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover invoice-table align-middle">
+        <thead>
+          <tr>
+            <th>Order</th>
+            <th>Customer</th>
+            <th>Created</th>
+            <th>Items</th>
+            <th>Total</th>
+            <th>Payment</th>
+            <th>Status</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for invoice in invoices %}
+            <tr>
+              <td>
+                <a href="{% url 'admin_order_details' invoice.id %}" class="fw-semibold text-primary">{{ invoice.order_number }}</a>
+                <div class="text-muted small">{{ invoice.payment_method }}</div>
+              </td>
+              <td>
+                <div class="fw-semibold">{{ invoice.user.get_full_name|default:invoice.user.username }}</div>
+                <div class="text-muted small">{{ invoice.user.email }}</div>
+              </td>
+              <td>
+                <div>{{ invoice.created_at|date:'d M Y' }}</div>
+                <small class="text-muted">{{ invoice.created_at|date:'h:i A' }}</small>
+              </td>
+              <td>
+                {{ invoice.items.all|length }}
+                <div class="progress progress-thin mt-1">
+                  {% with sold=invoice.items.all|length total=invoice.items.all|length %}
+                    <div class="progress-bar" role="progressbar" style="width: 100%"></div>
+                  {% endwith %}
+                </div>
+              </td>
+              <td class="fw-semibold">₹{{ invoice.total_amount|floatformat:2 }}</td>
+              <td>
+                {% if invoice.payment_status == 'PAID' %}
+                  <span class="badge-soft badge-soft-success">Paid</span>
+                {% elif invoice.payment_status == 'PENDING' %}
+                  <span class="badge-soft badge-soft-warning">Pending</span>
+                {% elif invoice.payment_status == 'FAILED' %}
+                  <span class="badge-soft badge-soft-danger">Failed</span>
+                {% else %}
+                  <span class="badge-soft badge-soft-info">{{ invoice.payment_status|title }}</span>
+                {% endif %}
+              </td>
+              <td>
+                {% with latest_return=invoice.return_requests.first %}
+                  {% if latest_return %}
+                    <span class="badge-soft
+                      {% if latest_return.status == 'REQUESTED' %} badge-soft-warning
+                      {% elif latest_return.status == 'APPROVED' %} badge-soft-info
+                      {% elif latest_return.status == 'PICKUP_SCHEDULED' %} badge-soft-info
+                      {% elif latest_return.status == 'RECEIVED' %} badge-soft-info
+                      {% elif latest_return.status == 'UNABLE_TO_REACH' %} badge-soft-danger
+                      {% elif latest_return.status == 'RESCHEDULED' %} badge-soft-warning
+                      {% elif latest_return.status == 'QC_PENDING' %} badge-soft-warning
+                      {% elif latest_return.status == 'QC_PASSED' %} badge-soft-success
+                      {% elif latest_return.status == 'QC_FAILED' %} badge-soft-danger
+                      {% elif latest_return.status == 'REFUND_PENDING' %} badge-soft-info
+                      {% elif latest_return.status == 'WRONG_RETURN' %} badge-soft-danger
+                      {% elif latest_return.status == 'REFUNDED' %} badge-soft-success
+                      {% elif latest_return.status == 'REPLACED' %} badge-soft-success
+                      {% elif latest_return.status == 'REJECTED' %} badge-soft-danger
+                      {% elif latest_return.status == 'CANCELLED' %} badge-soft-warning
+                      {% else %} badge-soft-info{% endif %}">
+                      {{ latest_return.get_status_display }}
+                    </span>
+                  {% else %}
+                    {% if invoice.order_status == 'DELIVERED' %}
+                      <span class="badge-soft badge-soft-success">Delivered</span>
+                    {% elif invoice.order_status == 'SHIPPED' %}
+                      <span class="badge-soft badge-soft-info">Shipped</span>
+                    {% elif invoice.order_status == 'PROCESSING' %}
+                      <span class="badge-soft badge-soft-warning">Processing</span>
+                    {% elif invoice.order_status == 'PENDING' %}
+                      <span class="badge-soft badge-soft-warning">Pending</span>
+                    {% else %}
+                      <span class="badge-soft badge-soft-danger">Cancelled</span>
+                    {% endif %}
+                  {% endif %}
+                {% endwith %}
+              </td>
+              <td class="text-end">
+                <div class="btn-group btn-group-sm" role="group">
+                  <a href="{% url 'admin_order_details' invoice.id %}" class="btn btn-light border"><i class="bx bx-show"></i></a>
+                  <a href="{% url 'download_invoice' invoice.order_number %}" class="btn btn-primary"><i class="bx bx-download"></i></a>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="8" class="text-center py-4">
+                <div class="text-muted">No invoices match the current filters.</div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+      <nav class="mt-3">
+        <ul class="pagination pagination-sm justify-content-end mb-0">
+          {% if page_obj.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ page_obj.previous_page_number }}&{{ querystring }}">Prev</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">Prev</span></li>
+          {% endif %}
+
+          {% for num in page_obj.paginator.page_range %}
+            {% if num == page_obj.number %}
+              <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+              <li class="page-item"><a class="page-link" href="?page={{ num }}&{{ querystring }}">{{ num }}</a></li>
+            {% endif %}
+          {% endfor %}
+
+          {% if page_obj.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ page_obj.next_page_number }}&{{ querystring }}">Next</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">Next</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+    {% endif %}
+  </div>
+</div>
+
+<div class="panel-card mb-4">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center">
+    <div>
+      <h5 class="mb-1">Inventory Manager</h5>
+      <small class="text-muted">Edit stock for any product.</small>
+    </div>
+    <form class="d-flex gap-2 flex-wrap" method="get">
+      <input type="hidden" name="status" value="{{ status_filter }}">
+      <input type="hidden" name="payment" value="{{ payment_filter }}">
+      <input type="hidden" name="search" value="{{ search_query }}">
+      <input type="hidden" name="date_from" value="{{ date_from }}">
+      <input type="hidden" name="date_to" value="{{ date_to }}">
+      <input type="hidden" name="per_page" value="{{ items_per_page }}">
+      <div class="input-group">
+        <span class="input-group-text"><i class="bx bx-search"></i></span>
+        <input type="text" name="product_search" class="form-control" placeholder="Search product or SKU" value="{{ product_search_query }}">
+      </div>
+      <button class="btn btn-primary" type="submit">Search</button>
+      <a class="btn btn-outline-secondary" href="{% url 'admin_invoice_inventory' %}">Reset</a>
+    </form>
+  </div>
+  <div class="card-body">
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <label class="text-muted small">Show</label>
+      <select class="form-select form-select-sm" style="width: auto;" onchange="window.location.href='?product_per_page=' + this.value + '&{{ product_querystring }}'">
+        <option value="10" {% if product_items_per_page == 10 %}selected{% endif %}>10</option>
+        <option value="15" {% if product_items_per_page == 15 %}selected{% endif %}>15</option>
+        <option value="25" {% if product_items_per_page == 25 %}selected{% endif %}>25</option>
+        <option value="50" {% if product_items_per_page == 50 %}selected{% endif %}>50</option>
+      </select>
+      <span class="text-muted small">products</span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Category</th>
+            <th>Price</th>
+            <th class="text-end">Stock</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for product in inventory_products %}
+            <tr>
+              <td class="d-flex align-items-center gap-2">
+                {% if product.image %}
+                  <img src="{{ product.image.url }}" alt="{{ product.name }}" class="inventory-thumb" />
+                {% else %}
+                  <div class="inventory-thumb d-flex align-items-center justify-content-center text-muted">—</div>
+                {% endif %}
+                <div>
+                  <div class="fw-semibold">{{ product.name }}</div>
+                  <small class="text-muted">SKU: {{ product.sku|default:'N/A' }}</small>
+                </div>
+              </td>
+              <td>{{ product.get_category_display|default:'General' }}</td>
+              <td class="text-nowrap">₹{{ product.price|floatformat:2 }}</td>
+              <td class="text-end">
+                <form class="d-inline-flex gap-2 inventory-form justify-content-end" method="post" action="{% url 'admin_update_inventory' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="product_id" value="{{ product.id }}">
+                  <input type="hidden" name="next" value="{{ current_path }}">
+                  <input type="number" name="stock" class="form-control form-control-sm" min="0" value="{{ product.stock }}">
+                  <button class="btn btn-sm btn-primary" type="submit" name="action" value="save_stock">Save</button>
+                  <button class="btn btn-sm btn-outline-danger" type="submit" name="action" value="mark_out">Out</button>
+                </form>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4" class="text-center text-muted py-4">No products found.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if product_page_obj.paginator.num_pages > 1 %}
+      <nav class="mt-3">
+        <ul class="pagination pagination-sm justify-content-end mb-0">
+          {% if product_page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?product_page={{ product_page_obj.previous_page_number }}&{{ product_querystring }}">Prev</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">Prev</span></li>
+          {% endif %}
+
+          {% for num in product_page_obj.paginator.page_range %}
+            {% if num == product_page_obj.number %}
+              <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% elif num > product_page_obj.number|add:'-3' and num < product_page_obj.number|add:'3' %}
+              <li class="page-item"><a class="page-link" href="?product_page={{ num }}&{{ product_querystring }}">{{ num }}</a></li>
+            {% endif %}
+          {% endfor %}
+
+          {% if product_page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?product_page={{ product_page_obj.next_page_number }}&{{ product_querystring }}">Next</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">Next</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xxl-6">
+    <div class="panel-card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Low Stock Alerts</h5>
+        <span class="inventory-badge">{{ low_stock_count }}</span>
+      </div>
+      <div class="card-body">
+        {% if low_stock_products %}
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-2">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Stock</th>
+                  <th>Value</th>
+                  <th class="text-end">Update</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for product in low_stock_products %}
+                  <tr>
+                    <td class="d-flex align-items-center gap-2">
+                      {% if product.image %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}" class="inventory-thumb" />
+                      {% else %}
+                        <div class="inventory-thumb d-flex align-items-center justify-content-center text-muted">—</div>
+                      {% endif %}
+                      <div>
+                        <div class="fw-semibold">{{ product.name }}</div>
+                        <small class="text-muted">SKU: {{ product.sku|default:'N/A' }}</small>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="fw-semibold text-warning">{{ product.stock }} in stock</div>
+                      <small class="text-muted">Threshold {{ low_stock_threshold }}</small>
+                    </td>
+                    <td class="text-nowrap">₹{{ product.value|default:0|floatformat:2 }}</td>
+                    <td class="text-end">
+                      <form class="d-inline-flex gap-2 inventory-form" method="post" action="{% url 'admin_update_inventory' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="product_id" value="{{ product.id }}">
+                        <input type="hidden" name="next" value="{{ current_path }}">
+                        <input type="number" name="stock" class="form-control form-control-sm" min="0" value="{{ product.stock }}">
+                        <button class="btn btn-sm btn-primary" type="submit" name="action" value="save_stock">Save</button>
+                        <button class="btn btn-sm btn-outline-danger" type="submit" name="action" value="mark_out">Out of stock</button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <small class="text-muted d-block mt-1">Threshold: {{ low_stock_threshold }} units · Critical when ≤ {{ critical_stock_threshold }}</small>
+        {% else %}
+          <div class="text-center text-muted py-4">All stocked items are above the low stock threshold.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-xxl-6">
+    <div class="panel-card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Stock Out Items</h5>
+        <span class="inventory-badge" style="background: #dc2626;">{{ out_of_stock_count }}</span>
+      </div>
+      <div class="card-body">
+        {% if out_of_stock_products %}
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-2">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Status</th>
+                  <th class="text-end">Restock</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for product in out_of_stock_products %}
+                  <tr>
+                    <td class="d-flex align-items-center gap-2">
+                      {% if product.image %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}" class="inventory-thumb" />
+                      {% else %}
+                        <div class="inventory-thumb d-flex align-items-center justify-content-center text-muted">—</div>
+                      {% endif %}
+                      <div>
+                        <div class="fw-semibold">{{ product.name }}</div>
+                        <small class="text-muted">SKU: {{ product.sku|default:'N/A' }}</small>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge-soft badge-soft-danger">Out of stock</span>
+                      <div class="text-muted small">{{ product.get_category_display|default:'General' }}</div>
+                    </td>
+                    <td class="text-end">
+                      <form class="d-inline-flex gap-2 inventory-form" method="post" action="{% url 'admin_update_inventory' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="product_id" value="{{ product.id }}">
+                        <input type="hidden" name="next" value="{{ current_path }}">
+                        <input type="number" name="stock" class="form-control form-control-sm" min="0" value="0" placeholder="Qty">
+                        <button class="btn btn-sm btn-success" type="submit" name="action" value="save_stock">Add stock</button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="text-center text-muted py-4">Great job! Nothing is currently out of stock.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mt-1 mb-5">
+  <div class="col-xl-6">
+    <div class="panel-card h-100">
+      <div class="card-header">
+        <h5 class="mb-0">Inventory Snapshot</h5>
+      </div>
+      <div class="card-body">
+        <div class="row text-center">
+          <div class="col-4">
+            <div class="text-muted small">Active SKUs</div>
+            <div class="h4 mb-0">{{ total_skus }}</div>
+          </div>
+          <div class="col-4">
+            <div class="text-muted small">Units On Hand</div>
+            <div class="h4 mb-0">{{ total_units }}</div>
+          </div>
+          <div class="col-4">
+            <div class="text-muted small">Inventory Value</div>
+            <div class="h4 mb-0">₹{{ total_inventory_value|floatformat:2 }}</div>
+          </div>
+        </div>
+        <hr>
+        <h6 class="text-muted text-uppercase small">Top Movers</h6>
+        {% if top_movers %}
+          <ul class="top-movers">
+            {% for product in top_movers %}
+              <li>
+                <span>{{ product.name }}</span>
+                <div class="text-end">
+                  <div class="fw-semibold">{{ product.total_sold|default:0 }} sold</div>
+                  <small class="text-muted">Stock: {{ product.stock }}</small>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="text-muted">Sales data will appear here once orders are recorded.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-6">
+    <div class="panel-card h-100">
+      <div class="card-header">
+        <h5 class="mb-0">Recent Restock Activity</h5>
+      </div>
+      <div class="card-body">
+        {% if recent_restock %}
+          <ul class="inventory-list">
+            {% for product in recent_restock %}
+              <li>
+                <div>
+                  <div class="title">{{ product.name }}</div>
+                  <small>Updated: {{ product.updated_at|date:'d M Y h:i A' }}</small>
+                </div>
+                <div class="text-end">
+                  <div class="fw-semibold">{{ product.stock }} units</div>
+                  <small class="text-muted">Value: ₹{{ product.value|default:0|floatformat:2 }}</small>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="text-muted">Keep your catalog updated. Fresh restock activity will display in this area.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

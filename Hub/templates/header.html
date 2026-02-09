@@ -1,0 +1,424 @@
+﻿{% load static %}
+<header class="header d-blue-bg">
+    
+    <div class="header-top">
+        <div class="container">
+            <div class="header-inner">
+                <div class="row align-items-center">
+                    <div class="col-xl-6 col-lg-7">
+                       
+                    </div>
+                    <div class="col-xl-6 col-lg-5 d-none d-lg-block">
+                        <div class="header-inner-end text-md-end">
+                            <div class="ovic-menu-wrapper">
+                                <ul>
+                                    {% for link in header_links %}
+                                        <li><a href="{% url link.url_name %}">{{ link.label }}</a></li>
+                                    {% endfor %}
+                                    {% if user.is_authenticated %}
+                                        <li><a href="{% url 'logout' %}">Logout</a></li>
+                                        {% endif %}
+
+                                </ul>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="header-mid">
+        <div class="container">
+            <div class="heade-mid-inner">
+                <div class="row align-items-center">
+                    <div class="col-xl-3 col-lg-3 col-md-4 col-sm-4">
+                        <div class="header__info">
+                            <a href="{% url 'index' %}" class="logo" style="display: inline-block !important; text-decoration: none !important;">
+                                {% if site_settings and site_settings.site_logo %}
+                                    <img src="{{ site_settings.site_logo.url }}" alt="{{ site_settings.site_name }}" style="height: 60px !important; width: auto !important; max-width: 280px !important; object-fit: contain !important; display: block !important; margin: 0 !important; padding: 0 !important;">
+                                {% else %}
+                                    <h1 style="color: white !important; margin: 0 !important; font-size: 32px !important; font-weight: 700 !important;">{{ site_settings.site_name|default:"VibeMall" }}</h1>
+                                {% endif %}
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-xl-5 col-lg-4 d-none d-lg-block">
+                        <div class="header__search">
+                            <form action="{% url 'shop' %}" method="get">
+                                <div class="header__search-box search-suggest">
+                                    <input
+                                        class="search-input"
+                                        id="mainSearchInput"
+                                        name="q"
+                                        type="text"
+                                        placeholder="I'm shopping for..."
+                                        autocomplete="off"
+                                        data-search-url="{% url 'product_search_api' %}"
+                                        data-placeholder-image="{% static 'assets/img/product/tp-1.jpg' %}">
+                                    <button class="button" type="submit"><i class="far fa-search"></i></button>
+                                    <div id="mainSearchResults" class="search-results"></div>
+                                </div>
+                                <div class="header__search-cat">
+                                    <select>
+                                        <option value="">All Categories</option>
+                                        {% for category in header_categories %}
+                                            <option value="{{ category.key }}">{{ category.label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="col-xl-4 col-lg-5 col-md-8 col-sm-8">
+                        <div class="header-action" style="display: flex; gap: 20px; justify-content: flex-end; align-items: center;">
+                    <div class="block-userlink">
+                            {% if user.is_authenticated %}
+                                <a class="icon-link" href="{% url 'profile' %}" style="display: flex; align-items: center; gap: 8px;">
+                                    {% if user.userprofile.profile_image and 'default.png' not in user.userprofile.profile_image.url %}
+                                        <img src="{{ user.userprofile.profile_image.url }}" alt="{{ user.username }}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+                                    {% else %}
+                                        <i class="flaticon-user"></i>
+                                    {% endif %}
+                                    <span class="text">
+                                        <span class="sub">{{ user.username }}</span>
+                                        My Account
+                                    </span>
+                                </a>
+                            {% else %}
+                                <a class="icon-link" href="{% url 'login' %}" style="display: flex; align-items: center; gap: 8px;">
+                                    <i class="flaticon-user"></i>
+                                    <span class="text">
+                                        <span class="sub">Login</span>
+                                        My Account
+                                    </span>
+                                </a>
+                            {% endif %}
+                    </div>
+
+                            <div class="block-wishlist action">
+                                <a class="icon-link" href="{% url 'wishlist' %}" style="display: flex; align-items: center; gap: 8px;">
+                                <i class="flaticon-heart"></i>
+                                <span class="count wishlist-count">{{ wishlist_count|default:"0" }}</span>
+                                <span class="text">
+                                <span class="sub">Favorite</span>
+                                My Wishlist </span>
+                                </a>
+                            </div>
+                            <div class="block-cart action">
+                                <a class="icon-link" href="{% url 'cart' %}" style="display: flex; align-items: center; gap: 8px;">
+                                <i class="flaticon-shopping-bag"></i>
+                                <span class="count cart-count">{{ cart_count }}</span>
+                                <span class="text">
+                                <span class="sub">Your Cart:</span>
+                                &#8377;<span class="cart-total">{{ cart_total|default:"0.00" }}</span> </span>
+                                </a>
+                                <div class="cart">
+                                    <div class="cart__mini" id="miniCartContent">
+                                        {% include 'partials/mini_cart.html' %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="header__bottom">
+        <div class="container">
+            <div class="row g-0 align-items-center">
+                <div class="col-lg-3">                       
+                    <div class="cat__menu-wrapper side-border d-none d-lg-block">
+                        <div class="cat-toggle">
+                            <button type="button" class="cat-toggle-btn cat-toggle-btn-1"><i class="fal fa-bars"></i> Shop by department</button>
+                            <div class="cat__menu">
+                                <nav id="mobile-menu" style="display: block;">
+                                    <ul>
+                                        <li>
+                                            <a href="{% url 'shop' %}">All Categories</a>
+                                        </li>
+                                        {% for category in header_categories %}
+                                        <li>
+                                            <a href="{% url 'shop' %}?category={{ category.key }}">
+                                                {{ category.label }}
+                                                {% if category.badge_text %}
+                                                    <span class="cat-label{% if category.badge_class %} {{ category.badge_class }}{% endif %}">{{ category.badge_text|lower }}</span>
+                                                {% endif %}
+                                                {% if category.has_children %}
+                                                    <i class="far fa-angle-down"></i>
+                                                {% endif %}
+                                            </a>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-9 col-md-6 col-3">
+                    <div class="header__bottom-left d-flex d-xl-block align-items-center">
+                        <div class="side-menu d-lg-none mr-20">
+                            <button type="button" class="side-menu-btn offcanvas-toggle-btn"><i class="fas fa-bars"></i></button>
+                        </div>
+                        <div class="main-menu d-none d-lg-block">
+                            <nav>
+                                <ul>
+                                    <li>
+                                        <a href="{% url 'index' %}" class="active">Home </a>
+                                    </li>
+                                    <li><a href="{% url 'about' %}">About Us</a></li>
+                                    <li class="has-mega"><a href="{% url 'shop' %}">Shop <i class="far fa-angle-down"></i></a>
+                                        <div class="mega-menu">
+                                            <div class="container container-mega">
+                                                <ul>
+                                                    <li>
+                                                        <ul>
+                                                        <li class="title"><a href="{% url 'shop' %}">SHOP LAYOUT</a></li>
+                                                        <li><a href="{% url 'shop' %}">Pagination</a></li>
+                                                        <li><a href="{% url 'shop' %}">Ajax Load More</a></li>
+                                                        <li><a href="{% url 'shop' %}">Infinite Scroll</a></li>
+                                                        <li><a href="{% url 'shop' %}">Sidebar Right</a></li>
+                                                        <li><a href="{% url 'shop' %}">Sidebar Left</a></li>
+                                                        </ul>
+                                                    </li>
+                                                    <li>
+                                                        <ul>
+                                                        <li class="title"><a href="{% url 'shop' %}">SHOP PAGES</a></li>
+                                                        <li><a href="{% url 'shop' %}">List View</a></li>
+                                                        <li><a href="{% url 'shop' %}">Small Products</a></li>
+                                                        <li><a href="{% url 'shop' %}">Large Products</a></li>
+                                                        <li><a href="{% url 'shop' %}">Shop — 3 Items</a></li>
+                                                        <li><a href="{% url 'shop' %}">Shop — 4 Items</a></li>
+                                                        <li><a href="{% url 'shop' %}">Shop — 5 Items</a></li>
+                                                        </ul>
+                                                    </li>
+                                                    <li>
+                                                        <ul>
+                                                        <li class="title"><a href="{% url 'shop' %}">PRODUCT LAYOUT</a></li>
+                                                        <li><a href="{% url 'shop' %}">Description Sticky</a></li>
+                                                        <li><a href="{% url 'shop' %}">Product Carousel</a></li>
+                                                        <li><a href="{% url 'shop' %}">Gallery Modern</a></li>
+                                                        <li><a href="{% url 'shop' %}">Thumbnail Left</a></li>
+                                                        <li><a href="{% url 'shop' %}">Thumbnail Right</a></li>
+                                                        <li><a href="{% url 'shop' %}">Thumbnail Botttom</a></li>
+                                                        </ul>
+                                                    </li>
+                                                    <li>
+                                                        <ul>
+                                                        <li class="title"><a href="{% url 'shop' %}">Basketball</a></li>
+                                                        <li><a href="{% url 'shop' %}">East Hampton Fleece</a></li>
+                                                        <li><a href="{% url 'shop' %}">Faxon Canvas Low</a></li>
+                                                        <li><a href="{% url 'shop' %}">Habitasse Dictumst</a></li>
+                                                        <li><a href="{% url 'shop' %}">Kaoreet Lobortis</a></li>
+                                                        <li><a href="{% url 'shop' %}">NikeCourt Zoom</a></li>
+                                                        <li><a href="{% url 'shop' %}">NikeCourts Air Zoom</a></li>
+                                                        </ul>
+                                                    </li>
+                                                    <li>
+                                                        <ul>
+                                                        <li class="title"><a href="{% url 'shop' %}">Basketball</a></li>
+                                                        <li><a href="{% url 'shop' %}">East Hampton Fleece</a></li>
+                                                        <li><a href="{% url 'shop' %}">Faxon Canvas Low</a></li>
+                                                        <li><a href="{% url 'shop' %}">Habitasse Dictumst</a></li>
+                                                        <li><a href="{% url 'shop' %}">Kaoreet Lobortis</a></li>
+                                                        <li><a href="{% url 'shop' %}">NikeCourt Zoom</a></li>
+                                                        <li><a href="{% url 'shop' %}">NikeCourts Air Zoom</a></li>
+                                                        </ul>
+                                                    </li>
+                                                    <li class="mega-image hover-effect" style="background-image: url({% static 'assets/img/bg/menu-item.jpg' %});"> 
+                                                        <ul>
+                                                            <li><a href="{% url 'shop' %}">
+                                                                <h4>Top Cameras <br> Bestseller Products</h4>
+                                                                <h5>4K</h5>
+                                                                <h6>Sale Up To <span>60% Off</span></h6>
+                                                            </a></li>
+                                                        </ul>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                            <div class="offer mt-40">
+                                                <p><b>30% OFF</b> the shipping of your first order with the code: <b>DUKA-SALE30</b></p>
+                                            </div>
+                                        </div>
+                                    </li>
+                                    <li><a href="{% url 'blog' %}">Blog <i class="far fa-angle-down"></i></a>
+                                        <ul class="submenu">
+                                            <li><a href="{% url 'blog' %}">Blog</a></li>
+                                            <li><a href="{% url 'blog-details' %}">Blog Details</a></li>
+                                        </ul>
+                                    </li>
+                                    <li><a href="{% url 'order_list' %}">My Orders</a></li>
+                                    <li>
+                                        <a href="{% url 'about' %}">Pages <i class="far fa-angle-down"></i></a>
+                                        <ul class="submenu">
+                                            <li><a href="{% url 'profile' %}">My Account</a></li>
+                                            <li><a href="{% url 'product-details' %}">Product Details</a></li>
+                                            <li><a href="{% url 'faq' %}">FAQs pages</a></li>
+                                            <li><a href="{% url 'cart' %}">Cart</a></li>
+                                            <li><a href="{% url 'wishlist' %}">Wishlist</a></li>
+                                            <li><a href="{% url 'checkout' %}">Checkout</a></li>
+                                            <li><a href="{% url 'contact' %}">Contact Us</a></li>
+                                            <li><a href="{% url '404' %}">404 Error</a></li>
+                                        </ul>
+                                    </li>
+                                    {% if user.is_staff %}
+                                    <li>
+                                        <a href="javascript:void(0);">Admin <i class="far fa-angle-down"></i></a>
+                                        <ul class="submenu">
+                                            <li><a href="{% url 'admin_dashboard' %}"><i class="fal fa-tachometer-alt"></i> Dashboard</a></li>
+                                            <li><a href="{% url 'admin_add_product' %}"><i class="fal fa-plus-circle"></i> Add Product</a></li>
+                                            <li><a href="{% url 'admin_product_list' %}"><i class="fal fa-list"></i> Product List</a></li>
+                                            <li><a href="{% url 'admin_reviews' %}"><i class="fal fa-star"></i> Manage Reviews</a></li>
+                                        </ul>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 col-9">
+                    <div class="shopeing-text text-sm-end">
+                        <p>&nbsp;</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<style>
+    .search-suggest { position: relative; }
+    .search-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.15);
+        margin-top: 8px;
+        max-height: 360px;
+        overflow-y: auto;
+        z-index: 2000;
+        display: none;
+    }
+    .search-results.is-open { display: block; }
+    .search-item {
+        display: flex;
+        gap: 12px;
+        padding: 10px 12px;
+        border-bottom: 1px solid #f1f5f9;
+        text-decoration: none;
+        color: #0f172a;
+    }
+    .search-item:last-child { border-bottom: none; }
+    .search-item:hover { background: #f8fafc; }
+    .search-thumb {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        background: #f1f5f9;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+    .search-meta { display: flex; flex-direction: column; gap: 2px; }
+    .search-name { font-weight: 600; font-size: 14px; }
+    .search-price { font-size: 12px; color: #475569; }
+    .search-empty { padding: 12px; color: #64748b; font-size: 13px; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const input = document.getElementById('mainSearchInput');
+    const resultsBox = document.getElementById('mainSearchResults');
+    if (!input || !resultsBox) return;
+
+    const searchUrl = input.dataset.searchUrl;
+    const placeholderImage = input.dataset.placeholderImage;
+    let debounceTimer;
+
+    const clearResults = () => {
+        resultsBox.innerHTML = '';
+        resultsBox.classList.remove('is-open');
+    };
+
+    const renderResults = (items) => {
+        if (!items.length) {
+            resultsBox.innerHTML = '<div class="search-empty">No products found.</div>';
+            resultsBox.classList.add('is-open');
+            return;
+        }
+
+        resultsBox.innerHTML = items.map((item) => {
+            const imageUrl = item.image_url || placeholderImage;
+            return `
+                <a class="search-item" href="${item.url}">
+                    <img class="search-thumb" src="${imageUrl}" alt="${item.name}">
+                    <span class="search-meta">
+                        <span class="search-name">${item.name}</span>
+                        <span class="search-price">&#8377;${item.price_display}</span>
+                    </span>
+                </a>
+            `;
+        }).join('');
+        resultsBox.classList.add('is-open');
+    };
+
+    input.addEventListener('input', function () {
+        const query = input.value.trim();
+        if (query.length < 2) {
+            clearResults();
+            return;
+        }
+
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            fetch(`${searchUrl}?q=${encodeURIComponent(query)}`)
+                .then((response) => response.json())
+                .then((data) => renderResults(data.results || []))
+                .catch(() => {
+                    resultsBox.innerHTML = '<div class="search-empty">Unable to search right now.</div>';
+                    resultsBox.classList.add('is-open');
+                });
+        }, 250);
+    });
+
+    document.addEventListener('click', function (event) {
+        if (!resultsBox.contains(event.target) && event.target !== input) {
+            clearResults();
+        }
+    });
+});
+</script>
+
+<div class="offcanvas__area">
+        <div class="offcanvas__wrapper">
+        <div class="offcanvas__close">
+            <button class="offcanvas__close-btn" id="offcanvas__close-btn">
+                <i class="fal fa-times"></i>
+            </button>
+        </div>
+        <div class="offcanvas__content">
+            <div class="offcanvas__logo mb-40">
+                <a href="{% url 'index' %}">
+                <img src="{% static 'assets/img/logo/logo-white.png' %}" alt="logo">
+                </a>
+            </div>
+            <div class="offcanvas__search mb-25">
+                <form action="#">
+                    <input type="text" placeholder="What are you searching for?">
+                    <button type="submit" ><i class="far fa-search"></i></button>
+                </form>
+            </div>
+            <div class="mobile-menu fix"></div>
+            <div class="offcanvas__action">
+
+            </div>
+        </div>
+        </div>
+    </div>
+    <div class="body-overlay"></div>

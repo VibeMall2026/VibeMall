@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Return Status - VibeMall{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <a href="{% url 'order_details' return_request.order.order_number %}" class="btn btn-outline-secondary mb-3">
+                <i class="fas fa-arrow-left"></i> Back to Order
+            </a>
+
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <div class="d-flex justify-content-between flex-wrap gap-2">
+                        <div>
+                            <h4 class="mb-0">Return Status</h4>
+                            <small>Order #{{ return_request.order.order_number }}</small>
+                        </div>
+                        <div>
+                            <span class="badge bg-warning text-dark">{{ return_request.get_status_display }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6 class="text-muted">Reason</h6>
+                        <p class="mb-0">{{ return_request.get_reason_display }}{% if return_request.reason_notes %} - {{ return_request.reason_notes }}{% endif %}</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-muted">Items</h6>
+                        <ul class="list-group">
+                            {% for item in return_request.items.all %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>{{ item.order_item.product_name }} (x{{ item.quantity }})</span>
+                                <span class="badge bg-secondary">{{ item.get_condition_display }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    {% if return_request.refund_amount %}
+                    <div class="alert alert-success">
+                        Refund Amount: &#8377;{{ return_request.refund_amount_net|default:return_request.refund_amount }}{% if return_request.refund_method %} via {{ return_request.refund_method }}{% endif %}
+                        {% if return_request.refund_fee %}
+                            <div class="small text-muted mt-1">Return fee: &#8377;{{ return_request.refund_fee }}</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <div>
+                        <h6 class="text-muted">History</h6>
+                        <ul class="list-group">
+                            {% for entry in history %}
+                            <li class="list-group-item d-flex justify-content-between flex-wrap gap-2">
+                                <span>{% if entry.new_status == 'APPROVED' %}R-Approved{% else %}{{ entry.new_status|title }}{% endif %}</span>
+                                <small class="text-muted">{{ entry.created_at|date:"d M Y, h:i A" }}</small>
+                            </li>
+                            {% empty %}
+                            <li class="list-group-item">No updates yet.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Return Update - VibeMall</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            text-align: center;
+            color: white;
+        }
+        .header h1 {
+            font-size: 22px;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+        .header p {
+            font-size: 14px;
+            opacity: 0.95;
+        }
+        .content { padding: 30px 20px; }
+        .greeting { font-size: 16px; color: #333; margin-bottom: 18px; }
+        .status-message {
+            background: #e0f2fe;
+            border-left: 4px solid #2563eb;
+            padding: 15px;
+            margin-bottom: 22px;
+            border-radius: 4px;
+            color: #0f172a;
+        }
+        .info-card {
+            background: #f9fafb;
+            border-left: 4px solid #2563eb;
+            padding: 15px;
+            margin-bottom: 22px;
+            border-radius: 4px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .info-row:last-child { margin-bottom: 0; }
+        .info-label { color: #6b7280; font-weight: 500; }
+        .info-value { color: #111827; font-weight: 600; }
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #111827;
+            margin: 20px 0 12px;
+        }
+        .item-row {
+            display: flex;
+            align-items: center;
+            background: #f9fafb;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+        .item-image {
+            width: 64px;
+            height: 64px;
+            border-radius: 6px;
+            object-fit: cover;
+            margin-right: 12px;
+            background: #f3f4f6;
+            flex-shrink: 0;
+        }
+        .item-name { font-size: 14px; font-weight: 600; color: #111827; }
+        .item-meta { font-size: 13px; color: #6b7280; margin-top: 4px; }
+        .action-button {
+            display: block;
+            background: #2563eb;
+            color: white;
+            text-align: center;
+            padding: 14px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 15px;
+            margin: 22px 0;
+        }
+        .footer {
+            background: #1f2937;
+            padding: 30px 20px;
+            text-align: center;
+            color: #9ca3af;
+        }
+        .footer-logo {
+            font-size: 22px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 10px;
+        }
+        .footer-note {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h1>Return Update</h1>
+            <p>Status: {{ status_label }}</p>
+        </div>
+
+        <div class="content">
+            <p class="greeting">Hi {{ return_request.user.first_name|default:return_request.user.username }},</p>
+
+            <div class="status-message">
+                {{ message }}
+            </div>
+
+            <div class="info-card">
+                <div class="info-row">
+                    <span class="info-label">Return Number:</span>
+                    <span class="info-value">{{ return_request.return_number }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Order Number:</span>
+                    <span class="info-value">{{ return_request.order.order_number }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Reason:</span>
+                    <span class="info-value">{{ return_request.get_reason_display }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Status:</span>
+                    <span class="info-value">{{ status_label }}</span>
+                </div>
+            </div>
+
+            <div class="section-title">Returned Items</div>
+            {% for item in return_request.items.all %}
+            <div class="item-row">
+                {% if item.order_item.product_image %}
+                <img src="{{ item.order_item.product_image }}" alt="{{ item.order_item.product_name }}" class="item-image">
+                {% else %}
+                <div class="item-image" style="display: flex; align-items: center; justify-content: center; color: #9ca3af;">📦</div>
+                {% endif %}
+                <div>
+                    <div class="item-name">{{ item.order_item.product_name }}</div>
+                    <div class="item-meta">Qty: {{ item.quantity }} | Condition: {{ item.get_condition_display }}</div>
+                </div>
+            </div>
+            {% endfor %}
+
+            <a href="{{ status_url }}" class="action-button">View Return Status</a>
+        </div>
+
+        <div class="footer">
+            <div class="footer-logo">{{ site_settings.site_name|default:"VibeMall" }}</div>
+            <div>We will keep you updated on your return.</div>
+            <div class="footer-note">Please reply to this email if you need help.</div>
+        </div>
+    </div>
+</body>
+</html>

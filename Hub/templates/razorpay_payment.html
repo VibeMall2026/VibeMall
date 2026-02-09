@@ -1,0 +1,115 @@
+﻿{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}Payment - VibeMall{% endblock %}
+
+{% block content %}
+
+<!-- page-banner-area-start -->
+<div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
+    <div class="container">
+        <div class="row">
+            <div class="col-xl-12">
+                <div class="page-banner-content text-center">
+                    <h4 class="breadcrumb-title">Payment</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- page-banner-area-end -->
+
+<!-- payment-area-start -->
+<section class="payment-area pt-120 pb-120">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-6 mx-auto">
+                <div class="payment-card text-center" style="background: #f9f9f9; padding: 40px; border-radius: 10px;">
+                    <h3 class="mb-4">Complete Your Payment</h3>
+                    
+                    <div class="order-summary mb-4">
+                        <p><strong>Order #:</strong> {{ order.order_number }}</p>
+                        <h4 class="mt-3">Amount to Pay: <span class="text-success">&#8377;{{ order.total_amount }}</span></h4>
+                    </div>
+                    
+                    <button id="rzp-button" class="tp-btn-h1" style="background-color: #528ff0;">
+                        <i class="fas fa-lock"></i> Pay with Razorpay
+                    </button>
+                    <p class="mt-3 text-muted mb-0">
+                        <small>Secure payment powered by Razorpay</small>
+                    </p>
+                    <div id="rzp-status" class="small mt-2 text-muted"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- payment-area-end -->
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+const payBtn = document.getElementById('rzp-button');
+const statusEl = document.getElementById('rzp-status');
+
+function setStatus(msg, isError=false) {
+    if (!statusEl) return;
+    statusEl.textContent = msg;
+    statusEl.className = 'small mt-2 ' + (isError ? 'text-danger' : 'text-muted');
+}
+
+payBtn.onclick = function(e){
+    e.preventDefault();
+    payBtn.disabled = true;
+    setStatus('Opening secure payment...');
+    
+    const options = {
+        key: "{{ razorpay_key }}",
+        amount: {{ order_amount }}, // paise
+        currency: "INR",
+        name: "VibeMall",
+        description: "Order #{{ order.order_number }}",
+        order_id: "{{ order.razorpay_order_id }}",
+        prefill: {
+            name: "{{ user.get_full_name }}",
+            email: "{{ user.email }}",
+        },
+        theme: { color: "#f67828" },
+        handler: function (response){
+            setStatus('Confirming payment...');
+            fetch("{% url 'razorpay_payment_success' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: new URLSearchParams({
+                    'order_id': '{{ order.id }}',
+                    'payment_id': response.razorpay_payment_id,
+                    'signature': response.razorpay_signature
+                })
+            }).then(function(res) {
+                if (res.ok) {
+                    window.location.href = "{% url 'order_confirmation' order.id %}";
+                } else {
+                    setStatus('Payment verification failed. Please check Orders and retry.', true);
+                    payBtn.disabled = false;
+                }
+            }).catch(function(){
+                setStatus('Could not reach server. Please check network.', true);
+                payBtn.disabled = false;
+            });
+        }
+    };
+    
+    const rzp = new Razorpay(options);
+    rzp.on('payment.failed', function (response){
+        setStatus('Payment failed: ' + (response.error && response.error.description ? response.error.description : 'Please try again'), true);
+        payBtn.disabled = false;
+        window.location.href = "{% url 'razorpay_payment_cancel' order.id %}";
+    });
+    rzp.open();
+};
+</script>
+
+{% endblock content %}

@@ -1,0 +1,202 @@
+﻿{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Add Banner - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="fw-bold py-3 mb-4">
+        <span class="text-muted fw-light">Content / Banners /</span> Add New Banner
+    </h4>
+
+    <!-- Display messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="row">
+            <!-- Left Column - Basic Info -->
+            <div class="col-xl-8">
+                <!-- Basic Information Card -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">📋 Basic Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="title">Banner Title *</label>
+                            <input type="text" class="form-control" id="title" name="title" 
+                                   placeholder="e.g., Sale 30% Off <br> Top Computer Case Gaming" required />
+                            <small class="text-muted">Tip: Use &lt;br&gt; for line breaks</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="subtitle">Subtitle</label>
+                            <input type="text" class="form-control" id="subtitle" name="subtitle" 
+                                   placeholder="e.g., Laptop, Computer, Smartphone, Gampad" />
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="badge_text">Badge Text</label>
+                                <input type="text" class="form-control" id="badge_text" name="badge_text" 
+                                       placeholder="e.g., HOT DEALS" />
+                                <small class="text-muted">Short promotional text</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="banner_type">Banner Type *</label>
+                                <select class="form-select" id="banner_type" name="banner_type" required>
+                                    <option value="LARGE">Large Banner</option>
+                                    <option value="MEDIUM">Medium Banner</option>
+                                    <option value="SMALL">Small Banner</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="page_type">Show Banner On *</label>
+                            <select class="form-select" id="page_type" name="page_type" required>
+                                <option value="HOME" selected>Home Page Only</option>
+                                <option value="SHOP">Shop Page Only</option>
+                                <option value="BOTH">Both Home & Shop Pages</option>
+                            </select>
+                            <small class="text-muted">Choose where this banner should appear</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action & Link Card -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">🔗 Link & Button</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="link_url">Link URL</label>
+                            <input type="text" class="form-control" id="link_url" name="link_url" 
+                                   value="#" placeholder="e.g., /shop/?category=TOP_DEALS" />
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="button_text">Button Text</label>
+                                <input type="text" class="form-control" id="button_text" name="button_text" 
+                                       placeholder="e.g., Shop Deals" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="button_style">Button Style</label>
+                                <select class="form-select" id="button_style" name="button_style">
+                                    <option value="none">No Button</option>
+                                    <option value="st-btn">Yellow Button (HOT DEALS)</option>
+                                    <option value="st-btn-3 b-radius">White Button (Shop Deals)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Image Upload Card -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">🖼️ Banner Image</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="image">Upload Image *</label>
+                            <input type="file" class="form-control" id="image" name="image" 
+                                   accept="image/*" required onchange="previewImage(event)" />
+                            <small class="text-muted">Recommended: 1200x400px (JPEG/PNG)</small>
+                        </div>
+
+                        <div id="image-preview" style="display: none;">
+                            <label class="form-label">Preview:</label>
+                            <div>
+                                <img id="preview-img" src="" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #ddd;" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3 mt-3">
+                            <label class="form-label" for="background_color">Background Color Overlay (Optional)</label>
+                            <input type="text" class="form-control" id="background_color" name="background_color" 
+                                   placeholder="e.g., rgba(255,0,0,0.1)" />
+                            <small class="text-muted">CSS color value for overlay effect</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Settings -->
+            <div class="col-xl-4">
+                <!-- Settings Card -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">⚙️ Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="order">Display Order</label>
+                            <input type="number" class="form-control" id="order" name="order" 
+                                   value="0" min="0" />
+                            <small class="text-muted">Lower number = shown first</small>
+                        </div>
+
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked />
+                            <label class="form-check-label" for="is_active">
+                                Active (Show on website)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="card">
+                    <div class="card-body">
+                        <button type="submit" class="btn btn-primary w-100 mb-2">
+                            <i class="bx bx-check me-1"></i> Add Banner
+                        </button>
+                        <a href="{% url 'admin_banners' %}" class="btn btn-outline-secondary w-100">
+                            <i class="bx bx-x me-1"></i> Cancel
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Help Card -->
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h6 class="card-title">💡 Tips</h6>
+                        <ul class="small mb-0 ps-3">
+                            <li>Use high-quality images</li>
+                            <li>Keep titles short and catchy</li>
+                            <li>Test on mobile devices</li>
+                            <li>Set proper display order</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+function previewImage(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('preview-img').src = e.target.result;
+            document.getElementById('image-preview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+}
+</script>
+{% endblock %}

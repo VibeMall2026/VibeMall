@@ -1,0 +1,180 @@
+﻿{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Track Order - FashioHub{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <h2 class="mb-4 text-center">Track Your Order</h2>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h5 class="mb-3">Order #{{ order.order_number }}</h5>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Status:</span>
+                            <span class="badge bg-{{ order.get_status_color }} fs-6">{{ order.get_order_status_display }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Order Timeline -->
+                    <div class="timeline">
+                        <!-- Pending -->
+                        <div class="timeline-item {% if order.order_status in 'PENDING,PROCESSING,SHIPPED,DELIVERED' %}completed{% endif %}">
+                            <div class="timeline-marker {% if order.order_status in 'PENDING,PROCESSING,SHIPPED,DELIVERED' %}bg-success{% else %}bg-secondary{% endif %}">
+                                <i class="fas fa-clipboard-list"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6>Order Confirmed</h6>
+                                <p class="text-muted mb-1">{{ order.order_date|date:"d M Y, H:i" }}</p>
+                                <small>Your order has been received and confirmed</small>
+                            </div>
+                        </div>
+
+                        <!-- Processing -->
+                        <div class="timeline-item {% if order.order_status in 'PROCESSING,SHIPPED,DELIVERED' %}completed{% endif %}">
+                            <div class="timeline-marker {% if order.order_status in 'PROCESSING,SHIPPED,DELIVERED' %}bg-success{% else %}bg-secondary{% endif %}">
+                                <i class="fas fa-box"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6>Processing</h6>
+                                <small>We're preparing your order for shipment</small>
+                            </div>
+                        </div>
+
+                        <!-- Shipped -->
+                        <div class="timeline-item {% if order.order_status in 'SHIPPED,DELIVERED' %}completed{% endif %}">
+                            <div class="timeline-marker {% if order.order_status in 'SHIPPED,DELIVERED' %}bg-success{% else %}bg-secondary{% endif %}">
+                                <i class="fas fa-truck"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6>In Transit</h6>
+                                <small>Your order is on its way to you</small>
+                                {% if order.tracking_number %}
+                                <p class="mb-0 mt-2"><strong>Tracking #:</strong> {{ order.tracking_number }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Delivered -->
+                        <div class="timeline-item {% if order.order_status == 'DELIVERED' %}completed{% endif %}">
+                            <div class="timeline-marker {% if order.order_status == 'DELIVERED' %}bg-success{% else %}bg-secondary{% endif %}">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6>Delivered</h6>
+                                {% if order.delivery_date %}
+                                <p class="text-muted mb-1">{{ order.delivery_date|date:"d M Y" }}</p>
+                                {% endif %}
+                                <small>Your order has been delivered</small>
+                            </div>
+                        </div>
+
+                        <!-- Cancelled -->
+                        {% if order.order_status == 'CANCELLED' %}
+                        <div class="timeline-item completed">
+                            <div class="timeline-marker bg-danger">
+                                <i class="fas fa-times-circle"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6>Order Cancelled</h6>
+                                <small>Your order was cancelled</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Order Details -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted">Order Date</small>
+                            <p class="mb-0">{{ order.order_date|date:"d M Y" }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted">Total Amount</small>
+                            <p class="mb-0"><strong>&#8377;{{ order.total_amount|floatformat:2 }}</strong></p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted">Payment Status</small>
+                            <p class="mb-0"><span class="badge bg-{{ order.get_payment_status_color }}">{{ order.get_payment_status_display }}</span></p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted">Payment Method</small>
+                            <p class="mb-0">{{ order.get_payment_method_display }}</p>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Actions -->
+                    <div class="d-grid gap-2 d-sm-flex">
+                        <a href="{% url 'order_details' order.order_number %}" class="btn btn-primary">
+                            <i class="fas fa-eye"></i> View Full Details
+                        </a>
+                        <a href="{% url 'download_invoice' order.order_number %}" class="btn btn-secondary">
+                            <i class="fas fa-file-pdf"></i> Download Invoice
+                        </a>
+                        <a href="{% url 'order_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding: 20px 0;
+}
+
+.timeline-item {
+    display: flex;
+    margin-bottom: 30px;
+    position: relative;
+}
+
+.timeline-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 60px;
+    width: 2px;
+    height: calc(100% + 10px);
+    background: #e9ecef;
+}
+
+.timeline-item.completed::before {
+    background: #198754;
+}
+
+.timeline-marker {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    margin-right: 20px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+}
+
+.timeline-content {
+    flex: 1;
+}
+
+.timeline-content h6 {
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+</style>
+{% endblock %}

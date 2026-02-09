@@ -1,0 +1,558 @@
+﻿{% load static %}
+{% load hub_filters %}
+<!-- Enhanced Reviews & Questions Section -->
+<div class="product__details-review">
+    <style>
+            /* Tabs */
+            .review-tabs { border-bottom: 2px solid #e5e7eb; margin-bottom: 30px; }
+            .review-tabs ul { list-style: none; padding: 0; margin: 0; display: flex; gap: 30px; }
+            .review-tabs li { position: relative; }
+            .review-tabs a { display: inline-block; padding: 15px 5px; color: #6b7280; font-weight: 600; text-decoration: none; transition: color 0.2s; }
+            .review-tabs a:hover { color: #111827; }
+            .review-tabs .active a { color: #111827; }
+            .review-tabs .active::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 2px; background: #111827; }
+            
+            .tab-content { display: none; }
+            .tab-content.active { display: block; }
+            
+            /* Rating Breakdown */
+            .rating-summary { background: #f9fafb; padding: 30px; border-radius: 8px; margin-bottom: 30px; }
+            .rating-summary-main { display: flex; align-items: center; gap: 30px; margin-bottom: 25px; }
+            .avg-rating { text-align: center; }
+            .avg-rating-number { font-size: 48px; font-weight: 700; color: #111827; margin-bottom: 5px; }
+            .avg-rating-stars { color: #f59e0b; font-size: 20px; margin-bottom: 5px; }
+            .total-reviews { color: #6b7280; font-size: 14px; }
+            .rating-bars { flex: 1; }
+            .rating-bar-item { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+            .rating-bar-label { min-width: 70px; color: #6b7280; font-size: 14px; }
+            .rating-bar-container { flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+            .rating-bar-fill { height: 100%; background: #f59e0b; transition: width 0.3s ease; }
+            .rating-bar-count { min-width: 40px; text-align: right; color: #6b7280; font-size: 14px; }
+            
+            /* Filter & Sort */
+            .review-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px; }
+            .review-filter-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+            .filter-btn { padding: 8px 16px; border: 1px solid #d1d5db; background: white; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+            .filter-btn:hover, .filter-btn.active { background: #111827; color: white; border-color: #111827; }
+            .review-sort select { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; cursor: pointer; }
+            
+            /* Review Item */
+            .review-item { padding: 25px 0; border-bottom: 1px solid #e5e7eb; }
+            .review-item:last-child { border-bottom: none; }
+            .review-header { display: flex; align-items: flex-start; gap: 15px; margin-bottom: 15px; }
+            .review-avatar { width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: grid; place-items: center; font-weight: 700; color: white; flex-shrink: 0; }
+            .review-meta { flex: 1; }
+            .review-author { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+            .review-author h6 { margin: 0; font-weight: 600; color: #111827; }
+            .verified-badge { display: inline-flex; align-items: center; gap: 4px; background: #d1fae5; color: #065f46; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+            .verified-badge i { font-size: 10px; }
+            .review-stars { color: #f59e0b; margin-bottom: 8px; font-size: 16px; }
+            .review-date { color: #6b7280; font-size: 13px; }
+            .review-comment { color: #4b5563; line-height: 1.7; margin-bottom: 15px; }
+            
+            /* Review Images */
+            .review-images { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+            .review-image { width: 80px; height: 80px; border-radius: 8px; overflow: hidden; cursor: pointer; border: 2px solid #e5e7eb; transition: all 0.2s; }
+            .review-image:hover { border-color: #111827; transform: scale(1.05); }
+            .review-image img { width: 100%; height: 100%; object-fit: cover; }
+            
+            /* Helpfulness Voting */
+            .review-helpful { display: flex; align-items: center; gap: 15px; }
+            .helpful-text { color: #6b7280; font-size: 14px; }
+            .helpful-btns { display: flex; gap: 8px; }
+            .helpful-btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border: 1px solid #d1d5db; background: white; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+            .helpful-btn:hover { background: #f3f4f6; }
+            .helpful-btn.voted { background: #111827; color: white; border-color: #111827; }
+            .helpful-btn i { font-size: 12px; }
+            
+            /* No Reviews */
+            .no-reviews { text-align: center; padding: 60px 20px; }
+            .no-reviews i { font-size: 64px; color: #d1d5db; margin-bottom: 15px; display: block; }
+            .no-reviews p { color: #6b7280; font-size: 16px; }
+            
+            /* Q&A Section */
+            .qa-section { margin-top: 40px; padding-top: 40px; border-top: 2px solid #e5e7eb; }
+            .qa-item { padding: 20px; background: #f9fafb; border-radius: 8px; margin-bottom: 15px; }
+            .qa-question { font-weight: 600; color: #111827; margin-bottom: 10px; }
+            .qa-question-icon { color: #f59e0b; margin-right: 8px; }
+            .qa-answer { color: #4b5563; padding-left: 28px; margin-top: 10px; }
+            .qa-answer-icon { color: #10b981; margin-right: 8px; }
+            .qa-meta { font-size: 12px; color: #9ca3af; padding-left: 28px; margin-top: 5px; }
+            .qa-form { background: #f9fafb; padding: 25px; border-radius: 8px; margin-bottom: 25px; }
+            .qa-form-title { font-size: 18px; font-weight: 600; margin-bottom: 15px; color: #111827; }
+            .qa-form textarea { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 6px; resize: vertical; min-height: 100px; font-family: inherit; }
+            .qa-submit-btn { background: #111827; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; margin-top: 10px; }
+            .qa-submit-btn:hover { background: #374151; }
+        </style>
+        
+        <!-- Tabs Navigation -->
+        <nav class="review-tabs">
+            <ul>
+                <li class="active"><a href="#reviews-tab" data-tab="reviews-tab">Customer Reviews ({{ total_reviews }})</a></li>
+                <li><a href="#questions-tab" data-tab="questions-tab">Questions & Answers ({{ total_questions }})</a></li>
+            </ul>
+        </nav>
+
+        <!-- Reviews Tab Content -->
+        <div id="reviews-tab" class="tab-content active">
+        <!-- Rating Summary -->
+        <div class="rating-summary">
+            <div class="rating-summary-main">
+                <div class="avg-rating">
+                    <div class="avg-rating-number">{{ avg_rating }}</div>
+                    <div class="avg-rating-stars">
+                        {% for i in "12345" %}
+                            {% if i|add:"0" <= avg_rating %}
+                                <i class="fas fa-star"></i>
+                            {% elif i|add:"0"|add:"-0.5" <= avg_rating %}
+                                <i class="fas fa-star-half-alt"></i>
+                            {% else %}
+                                <i class="fal fa-star"></i>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    <div class="total-reviews">{{ total_reviews }} review{{ total_reviews|pluralize }}</div>
+                </div>
+                
+                <div class="rating-bars">
+                    {% for rating in "54321" %}
+                    <div class="rating-bar-item">
+                        <span class="rating-bar-label">{{ rating }} <i class="fas fa-star" style="color: #f59e0b; font-size: 12px;"></i></span>
+                        <div class="rating-bar-container">
+                            <div class="rating-bar-fill" style="width: {{ rating_percentages|get_item:rating }}%"></div>
+                        </div>
+                        <span class="rating-bar-count">{{ rating_breakdown|get_item:rating }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Filter & Sort Controls -->
+        <div class="review-controls">
+            <div class="review-filter-btns">
+                <button type="button" class="filter-btn {% if rating_filter == 'all' %}active{% endif %}" onclick="filterReviews('all')">All</button>
+                <button type="button" class="filter-btn {% if rating_filter == '5' %}active{% endif %}" onclick="filterReviews('5')">5 ⭐</button>
+                <button type="button" class="filter-btn {% if rating_filter == '4' %}active{% endif %}" onclick="filterReviews('4')">4 ⭐</button>
+                <button type="button" class="filter-btn {% if rating_filter == '3' %}active{% endif %}" onclick="filterReviews('3')">3 ⭐</button>
+                <button type="button" class="filter-btn {% if rating_filter == '2' %}active{% endif %}" onclick="filterReviews('2')">2 ⭐</button>
+                <button type="button" class="filter-btn {% if rating_filter == '1' %}active{% endif %}" onclick="filterReviews('1')">1 ⭐</button>
+            </div>
+            
+            <div class="review-sort">
+                <select id="sortSelect" onchange="sortReviews(this.value)">
+                    <option value="recent" {% if sort_by == 'recent' %}selected{% endif %}>Most Recent</option>
+                    <option value="rating_high" {% if sort_by == 'rating_high' %}selected{% endif %}>Highest Rating</option>
+                    <option value="rating_low" {% if sort_by == 'rating_low' %}selected{% endif %}>Lowest Rating</option>
+                    <option value="helpful" {% if sort_by == 'helpful' %}selected{% endif %}>Most Helpful</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Reviews List -->
+        <div class="reviews-list" id="reviewsList">
+            {% if reviews %}
+                {% for review in reviews %}
+                <div class="review-item">
+                    <div class="review-header">
+                        <div class="review-avatar">{{ review.name|first|upper }}</div>
+                        <div class="review-meta">
+                            <div class="review-author">
+                                <h6>{{ review.name }}</h6>
+                                {% if review.is_verified_purchase %}
+                                <span class="verified-badge">
+                                    <i class="fas fa-check-circle"></i> Verified Purchase
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div class="review-stars">
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= review.rating %}
+                                        <i class="fas fa-star"></i>
+                                    {% else %}
+                                        <i class="fal fa-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            <div class="review-date">{{ review.created_at|date:"F d, Y" }}</div>
+                        </div>
+                    </div>
+                    
+                    {% if review.comment %}
+                    <p class="review-comment">{{ review.comment }}</p>
+                    {% endif %}
+                    
+                    <!-- Review Images -->
+                    {% if review.images.all %}
+                    <div class="review-images">
+                        {% for image in review.images.all %}
+                        <div class="review-image" onclick="window.open('{{ image.image.url }}', '_blank')">
+                            <img src="{{ image.image.url }}" alt="Review image">
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Helpfulness Voting -->
+                    <div class="review-helpful">
+                        <span class="helpful-text">Was this helpful?</span>
+                        <div class="helpful-btns">
+                            {% if user.is_authenticated %}
+                                <button class="helpful-btn {% if user_votes|get_item:review.id %}voted{% endif %}" 
+                                        onclick="voteReview({{ review.id }}, true, this)" 
+                                        data-review-id="{{ review.id }}">
+                                    <i class="fas fa-thumbs-up"></i>
+                                    <span class="helpful-count">{{ review.helpful_count }}</span>
+                                </button>
+                                <button class="helpful-btn {% if user_votes|get_item:review.id == False %}voted{% endif %}" 
+                                        onclick="voteReview({{ review.id }}, false, this)"
+                                        data-review-id="{{ review.id }}">
+                                    <i class="fas fa-thumbs-down"></i>
+                                    <span class="not-helpful-count">{{ review.not_helpful_count }}</span>
+                                </button>
+                            {% else %}
+                                <span class="text-muted small">
+                                    <a href="{% url 'login' %}?next={{ request.path }}">Login</a> to vote
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-reviews">
+                    <i class="fal fa-comments"></i>
+                    <p>No reviews yet. Be the first to review this product!</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Q&A Section -->
+        <div class="qa-section">
+            <h4 class="mb-4">Questions & Answers</h4>
+            
+            {% if user.is_authenticated %}
+            <div class="qa-form">
+                <h6 class="mb-3">Have a question about this product?</h6>
+                <form method="POST" action="{% url 'submit_question' product.id %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <textarea name="question" class="form-control" rows="3" placeholder="Ask your question here..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit Question</button>
+                </form>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <a href="{% url 'login' %}?next={{ request.path }}">Login</a> to ask a question about this product.
+            </div>
+            {% endif %}
+            
+            {% if questions %}
+                {% for qa in questions %}
+                <div class="qa-item">
+                    <div class="qa-question">
+                        <i class="fas fa-question-circle qa-question-icon"></i>
+                        {{ qa.question }}
+                    </div>
+                    <div class="qa-meta">
+                        Asked by {{ qa.user.username }} on {{ qa.created_at|date:"M d, Y" }}
+                    </div>
+                    {% if qa.is_answered %}
+                    <div class="qa-answer">
+                        <i class="fas fa-check-circle qa-answer-icon"></i>
+                        {{ qa.answer }}
+                    </div>
+                    <div class="qa-meta">
+                        Answered on {{ qa.answered_at|date:"M d, Y" }}
+                    </div>
+                    {% else %}
+                    <div class="qa-meta text-muted">
+                        <em>Awaiting answer from our team...</em>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted text-center py-4">No questions yet. Be the first to ask!</p>
+            {% endif %}
+        </div>
+        
+        <!-- Write Review Form - Hidden for future implementation (will show after order delivered) -->
+        {% comment %}
+        <div class="row mt-5" style="display: none;">
+            <div class="col-xl-12">
+                <div class="product__details-comment">
+                    <div class="comment-title mb-20">
+                       <h3>Write a Review</h3>
+                       <p>Share your thoughts with other customers</p>
+                       {% if not user.is_authenticated %}
+                           <p class="text-danger"><strong>Please <a href="{% url 'login' %}?next={{ request.path }}">login</a> to submit a review.</strong></p>
+                       {% endif %}
+                    </div>
+                    
+                    {% if user.is_authenticated %}
+                    <div class="comment-input-box">
+                       <form method="POST" action="{% url 'submit_review' product.id %}" enctype="multipart/form-data">
+                          {% csrf_token %}
+                          <div class="row">
+                            <div class="col-xxl-12 mb-3">
+                                <label class="form-label fw-bold">Overall rating *</label>
+                                <div class="rating-selector" style="display: flex; gap: 8px; font-size: 32px;">
+                                    <input type="radio" name="rating" value="5" id="star5" checked style="display: none;">
+                                    <label for="star5" style="cursor: pointer; color: #d1d5db;"><i class="fas fa-star"></i></label>
+                                    <input type="radio" name="rating" value="4" id="star4" style="display: none;">
+                                    <label for="star4" style="cursor: pointer; color: #d1d5db;"><i class="fas fa-star"></i></label>
+                                    <input type="radio" name="rating" value="3" id="star3" style="display: none;">
+                                    <label for="star3" style="cursor: pointer; color: #d1d5db;"><i class="fas fa-star"></i></label>
+                                    <input type="radio" name="rating" value="2" id="star2" style="display: none;">
+                                    <label for="star2" style="cursor: pointer; color: #d1d5db;"><i class="fas fa-star"></i></label>
+                                    <input type="radio" name="rating" value="1" id="star1" style="display: none;">
+                                    <label for="star1" style="cursor: pointer; color: #d1d5db;"><i class="fas fa-star"></i></label>
+                                </div>
+                            </div>
+                            <div class="col-xxl-6 col-xl-6">
+                                <div class="comment-input">
+                                   <input type="text" name="name" placeholder="Your Name *" required value="{{ user.get_full_name|default:user.username }}" class="form-control">
+                                </div>
+                             </div>
+                             <div class="col-xxl-6 col-xl-6">
+                                <div class="comment-input">
+                                   <input type="email" name="email" placeholder="Your Email *" required value="{{ user.email }}" class="form-control">
+                                </div>
+                             </div>
+                             <div class="col-xxl-12 mb-3">
+                                   <textarea name="comment" placeholder="Your review (optional)" class="form-control" rows="5"></textarea>
+                             </div>
+                             <div class="col-xxl-12 mb-3">
+                                <label class="form-label">Add Photos (Optional - Max 5)</label>
+                                <input type="file" name="review_images" class="form-control" multiple accept="image/*" onchange="previewImages(this)">
+                                <div id="imagePreview" style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;"></div>
+                             </div>
+                             <div class="col-xxl-12">
+                                <div class="comment-submit">
+                                   <button type="submit" class="btn btn-dark px-4 py-2">Submit Review</button>
+                                   <p class="text-muted small mt-2">Your review will be visible after admin approval.</p>
+                                </div>
+                             </div>
+                          </div>
+                       </form>
+                    </div>
+                    {% endif %}
+                 </div>
+            </div>
+        </div>
+        {% endcomment %}
+</div>
+
+<script>
+// Star rating selector
+document.querySelectorAll('.rating-selector label').forEach(label => {
+    label.addEventListener('click', function() {
+        const stars = this.parentElement.querySelectorAll('label');
+        const index = Array.from(stars).indexOf(this);
+        
+        stars.forEach((star, i) => {
+            if (i <= index) {
+                star.style.color = '#f59e0b';
+            } else {
+                star.style.color = '#d1d5db';
+            }
+        });
+    });
+});
+
+// Image preview
+function previewImages(input) {
+    const preview = document.getElementById('imagePreview');
+    preview.innerHTML = '';
+    
+    if (input.files) {
+        Array.from(input.files).slice(0, 5).forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.width = '80px';
+                img.style.height = '80px';
+                img.style.objectFit = 'cover';
+                img.style.borderRadius = '8px';
+                img.style.border = '2px solid #e5e7eb';
+                preview.appendChild(img);
+            }
+            reader.readAsDataURL(file);
+        });
+    }
+}
+
+// Review voting
+function voteReview(reviewId, isHelpful, button) {
+    fetch(`/review/${reviewId}/vote/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: `is_helpful=${isHelpful}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update counts
+            const container = button.closest('.review-helpful');
+            container.querySelector('.helpful-count').textContent = data.helpful_count;
+            container.querySelector('.not-helpful-count').textContent = data.not_helpful_count;
+            
+            // Update button states
+            container.querySelectorAll('.helpful-btn').forEach(btn => btn.classList.remove('voted'));
+            button.classList.add('voted');
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+// Global variables for current filter and sort
+let currentRating = '{{ rating_filter|default:"all" }}';
+let currentSort = '{{ sort_by|default:"recent" }}';
+
+// Filter reviews by rating without page reload
+function filterReviews(rating) {
+    currentRating = rating;
+    loadReviews();
+    
+    // Update active button state
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+}
+
+// Sort reviews without page reload
+function sortReviews(sort) {
+    currentSort = sort;
+    loadReviews();
+}
+
+// Load reviews via AJAX
+function loadReviews() {
+    const productId = {{ product.id }};
+    const url = `/product-details/${productId}/?rating=${currentRating}&sort=${currentSort}`;
+    
+    // Show loading state
+    const reviewsList = document.getElementById('reviewsList');
+    reviewsList.style.opacity = '0.5';
+    reviewsList.style.pointerEvents = 'none';
+    
+    fetch(url, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.text())
+    .then(html => {
+        // Parse the HTML and extract only the reviews list content
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const newReviewsList = doc.getElementById('reviewsList');
+        
+        if (newReviewsList) {
+            reviewsList.innerHTML = newReviewsList.innerHTML;
+        }
+        
+        // Restore interactive state
+        reviewsList.style.opacity = '1';
+        reviewsList.style.pointerEvents = 'auto';
+        
+        // Update URL without page reload
+        const newUrl = `/product-details/${productId}/?rating=${currentRating}&sort=${currentSort}`;
+        window.history.pushState({}, '', newUrl);
+    })
+    .catch(error => {
+        console.error('Error loading reviews:', error);
+        reviewsList.style.opacity = '1';
+        reviewsList.style.pointerEvents = 'auto';
+    });
+}
+
+// Tab switching functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const tabLinks = document.querySelectorAll('.review-tabs a');
+    
+    tabLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.review-tabs li').forEach(li => li.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Add active class to clicked tab
+            this.parentElement.classList.add('active');
+            const tabId = this.getAttribute('data-tab');
+            document.getElementById(tabId).classList.add('active');
+        });
+    });
+});
+</script>
+
+</div> <!-- End Reviews Tab -->
+
+<!-- Questions Tab Content -->
+<div id="questions-tab" class="tab-content">
+    <div class="qa-section">
+        <h4 style="margin-bottom: 25px; font-size: 22px; font-weight: 600;">Product Questions & Answers</h4>
+        
+        <!-- Question Submission Form -->
+        <div class="qa-form">
+            <h5 class="qa-form-title">Have a question about this product?</h5>
+            <form method="POST" action="{% url 'submit_question' product.id %}">
+                {% csrf_token %}
+                <textarea name="question" placeholder="Type your question here..." required></textarea>
+                <button type="submit" class="qa-submit-btn">
+                    <i class="fas fa-paper-plane"></i> Submit Question
+                </button>
+            </form>
+            {% if user.is_authenticated %}
+                <p style="margin-top: 10px; font-size: 13px; color: #6b7280;">
+                    <i class="fas fa-info-circle"></i> Your question will be reviewed by our team before appearing here.
+                </p>
+            {% else %}
+                <p style="margin-top: 10px; font-size: 13px; color: #dc2626;">
+                    <i class="fas fa-exclamation-circle"></i> Please <a href="{% url 'login' %}?next={{ request.path }}" style="color: #dc2626; text-decoration: underline;">login</a> to submit a question.
+                </p>
+            {% endif %}
+        </div>
+        
+        <!-- Approved Questions List -->
+        {% if approved_questions %}
+            <div class="qa-list">
+                {% for question in approved_questions %}
+                <div class="qa-item">
+                    <div class="qa-question">
+                        <i class="fas fa-question-circle qa-question-icon"></i>
+                        {{ question.question }}
+                    </div>
+                    <div class="qa-meta">
+                        Asked by {{ question.user.username }} on {{ question.created_at|date:"M d, Y" }}
+                    </div>
+                    
+                    {% if question.answer %}
+                    <div class="qa-answer">
+                        <i class="fas fa-check-circle qa-answer-icon"></i>
+                        <strong>Answer:</strong> {{ question.answer }}
+                    </div>
+                    <div class="qa-meta">
+                        Answered by {{ question.answered_by.username }} on {{ question.answered_at|date:"M d, Y" }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="no-reviews">
+                <i class="fas fa-comments"></i>
+                <p>No questions yet. Be the first to ask!</p>
+            </div>
+        {% endif %}
+    </div>
+</div> <!-- End Questions Tab -->
+
+</div> <!-- End product__details-review -->

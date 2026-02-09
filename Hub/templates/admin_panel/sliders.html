@@ -1,0 +1,96 @@
+﻿{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Sliders - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold"><span class="text-muted fw-light">Content /</span> Homepage Sliders</h4>
+        <a href="{% url 'admin_add_slider' %}" class="btn btn-primary">
+            <i class="bx bx-plus me-1"></i> Add New Slider
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">All Sliders ({{ sliders.count }})</h5>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Order</th>
+                        <th>Image</th>
+                        <th>Title</th>
+                        <th>Button</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for slider in sliders %}
+                    <tr>
+                        <td><span class="badge bg-label-primary">{{ slider.order }}</span></td>
+                        <td>
+                            {% if slider.image %}
+                            <img src="{{ slider.image.url }}" alt="{{ slider.title }}" 
+                                 style="width: 100px; height: 60px; object-fit: cover; border-radius: 4px;">
+                            {% else %}
+                            <div style="width: 100px; height: 60px; background: #f0f0f0; border-radius: 4px;"></div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="fw-semibold">{{ slider.title }}</div>
+                            {% if slider.subtitle %}<small class="text-muted">{{ slider.subtitle|truncatewords:10 }}</small>{% endif %}
+                        </td>
+                        <td>
+                            {% if slider.top_button_text %}
+                                <span class="badge bg-label-info">{{ slider.top_button_text }}</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if slider.is_active %}
+                                <span class="badge bg-label-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-label-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="dropdown">
+                                <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                    <i class="bx bx-dots-vertical-rounded"></i>
+                                </button>
+                                <div class="dropdown-menu">
+                                    <a class="dropdown-item" href="{% url 'admin_edit_slider' slider.id %}">
+                                        <i class="bx bx-edit-alt me-1"></i> Edit
+                                    </a>
+                                    <a class="dropdown-item" href="#" 
+                                       onclick="event.preventDefault(); if(confirm('Delete this slider?')) { document.getElementById('delete-form-{{ slider.id }}').submit(); }">
+                                        <i class="bx bx-trash me-1"></i> Delete
+                                    </a>
+                                </div>
+                            </div>
+                            <form id="delete-form-{{ slider.id }}" method="POST" action="{% url 'admin_delete_slider' slider.id %}" style="display: none;">
+                                {% csrf_token %}
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <i class="bx bx-slideshow" style="font-size: 48px; color: #ddd;"></i>
+                            <p class="text-muted">No sliders added yet</p>
+                            <a href="{% url 'admin_add_slider' %}" class="btn btn-sm btn-primary">Add First Slider</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

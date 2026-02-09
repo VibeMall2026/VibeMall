@@ -1,0 +1,540 @@
+﻿{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Add Product - VibeMall{% endblock %}
+
+{% block content %}
+<style>
+    .product-form-section {
+        background: #f9f9f9;
+        border-radius: 8px;
+        padding: 30px;
+        margin-bottom: 30px;
+        border: 1px solid #efefef;
+        transition: all 0.3s ease;
+    }
+    
+    .product-form-section:hover {
+        background: #ffffff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    
+    .section-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1f1f1f;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 3px solid #fcbe00;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .section-title span {
+        font-size: 20px;
+    }
+    
+    .form-group {
+        margin-bottom: 22px;
+    }
+    
+    .form-group label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: #333333;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .form-group input[type="text"],
+    .form-group input[type="number"],
+    .form-group input[type="file"],
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 12px 15px;
+        border: 1px solid #e5e5e5;
+        border-radius: 4px;
+        font-size: 13px;
+        font-family: inherit;
+        transition: all 0.3s ease;
+        background-color: #ffffff;
+    }
+    
+    .form-group input[type="text"]:focus,
+    .form-group input[type="number"]:focus,
+    .form-group input[type="file"]:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        border-color: #fcbe00;
+        box-shadow: 0 0 0 3px rgba(252, 190, 0, 0.1);
+        outline: none;
+        background-color: #fffef5;
+    }
+    
+    .form-group textarea {
+        resize: vertical;
+        min-height: 120px;
+        font-family: inherit;
+    }
+    
+    .form-group input[type="file"] {
+        padding: 15px;
+        border: 2px dashed #e5e5e5;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+    
+    .form-group input[type="file"]::-webkit-file-upload-button {
+        padding: 8px 16px;
+        background: #fcbe00;
+        color: #000;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 12px;
+    }
+    
+    .form-group-checkbox {
+        margin-bottom: 15px;
+    }
+    
+    .form-group-checkbox label {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0;
+        font-weight: 500;
+        text-transform: none;
+        letter-spacing: normal;
+    }
+    
+    .form-group-checkbox input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        margin-right: 10px;
+        cursor: pointer;
+        accent-color: #fcbe00;
+    }
+    
+    .field-hint {
+        font-size: 12px;
+        color: #999;
+        margin-top: 6px;
+        font-weight: 400;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 25px;
+    }
+    
+    .form-row-2 {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 25px;
+    }
+    
+    .form-row-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 25px;
+    }
+    
+    .form-row-4 {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 25px;
+    }
+    
+    .submit-btn {
+        background: linear-gradient(135deg, #fcbe00 0%, #ffb700 100%);
+        color: #000;
+        padding: 16px 50px;
+        font-size: 14px;
+        font-weight: 700;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        width: 100%;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(252, 190, 0, 0.3);
+    }
+    
+    .submit-btn:hover {
+        background: linear-gradient(135deg, #ffb700 0%, #fcbe00 100%);
+        box-shadow: 0 6px 20px rgba(252, 190, 0, 0.4);
+        transform: translateY(-2px);
+    }
+    
+    .table-section {
+        background: #f9f9f9;
+        border-radius: 8px;
+        padding: 30px;
+        border: 1px solid #efefef;
+    }
+    
+    .table-section h3 {
+        margin-bottom: 25px;
+        font-size: 18px;
+        font-weight: 700;
+        color: #1f1f1f;
+    }
+    
+    @media (max-width: 992px) {
+        .form-row-3,
+        .form-row-4 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .form-row,
+        .form-row-2,
+        .form-row-3,
+        .form-row-4 {
+            grid-template-columns: 1fr;
+        }
+        
+        .product-form-section {
+            padding: 20px;
+        }
+    }
+</style>
+
+<main>
+    <!-- Page Banner -->
+    <div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
+        <div class="container">
+            <div class="row">
+                <div class="col-xl-12">
+                    <div class="page-banner-content text-center">
+                        <h4 class="breadcrumb-title">Add New Product</h4>
+                        <div class="breadcrumb-two">
+                            <nav>
+                                <nav class="breadcrumb-trail breadcrumbs">
+                                    <ul class="breadcrumb-menu">
+                                        <li class="breadcrumb-trail">
+                                            <a href="{% url 'index' %}"><span>Home</span></a>
+                                        </li>
+                                        <li class="trail-item">
+                                            <span>Add Product</span>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Product Form -->
+    <section class="contact-area pt-100 pb-100">
+        <div class="container">
+            
+            <!-- Messages -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{% if message.tags %}{{ message.tags }}{% else %}info{% endif %} alert-dismissible fade show mb-40" role="alert">
+                        <strong>{{ message }}</strong>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="row">
+                <div class="col-xl-12">
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <!-- 1. Basic Information Section -->
+                        <div class="product-form-section">
+                            <div class="section-title">
+                                <span>📋</span>
+                                <span>Basic Information</span>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="name">Product Name *</label>
+                                    <input type="text" name="name" id="name" placeholder="Enter product name" required>
+                                    <div class="field-hint">Required - Must be unique and descriptive</div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="sku">SKU (Stock Keeping Unit)</label>
+                                    <input type="text" name="sku" id="sku" placeholder="e.g., USB-HUB-7PORT">
+                                    <div class="field-hint">Optional - Used for inventory tracking</div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="brand">Brand</label>
+                                    <input type="text" name="brand" id="brand" placeholder="e.g., Samsung, Apple">
+                                    <div class="field-hint">Product manufacturer or brand name</div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="category">Category</label>
+                                <select name="category" id="category" required>
+                                    <option value="">-- Select Category --</option>
+                                    <option value="TOP_DEALS">Top Deals Of The Day</option>
+                                    <option value="TOP_SELLING">Top Selling Products</option>
+                                    <option value="TOP_FEATURED">Top Featured Products</option>
+                                    <option value="RECOMMENDED">Recommended For You</option>
+                                    <option value="MOBILES">Mobiles</option>
+                                    <option value="FOOD_HEALTH">Food & Health</option>
+                                    <option value="HOME_KITCHEN">Home & Kitchen</option>
+                                    <option value="AUTO_ACC">Auto Acc</option>
+                                    <option value="FURNITURE">Furniture</option>
+                                    <option value="SPORTS">Sports</option>
+                                    <option value="GENZ_TRENDS">GenZ Trends</option>
+                                    <option value="NEXT_GEN">Next Gen</option>
+                                </select>
+                                <div class="field-hint">Choose where to display this product</div>
+                            </div>
+
+                            <div class="form-row">
+                            </div>
+                        </div>
+
+                        <!-- 2. Pricing & Inventory Section -->
+                        <div class="product-form-section">
+                            <div class="section-title">
+                                <span>💰</span>
+                                <span>Pricing & Inventory</span>
+                            </div>
+                            
+                            <div class="form-row-2">
+                                <div class="form-group">
+                                    <label for="price">Price *</label>
+                                    <input type="number" step="0.01" name="price" id="price" placeholder="0.00" required>
+                                    <div class="field-hint">Selling price (required)</div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="old_price">Old Price</label>
+                                    <input type="number" step="0.01" name="old_price" id="old_price" placeholder="0.00">
+                                    <div class="field-hint">Original price for discount display</div>
+                                </div>
+                            </div>
+
+                            <div class="form-row-2">
+                                <div class="form-group">
+                                    <label for="stock">Stock Quantity *</label>
+                                    <input type="number" name="stock" id="stock" placeholder="0" required>
+                                    <div class="field-hint">Available units (required)</div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="rating">Rating</label>
+                                    <input type="number" step="0.1" name="rating" id="rating" placeholder="0.0" min="0" max="5" value="0">
+                                    <div class="field-hint">Customer rating (0-5 stars)</div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="review_count">Review Count</label>
+                                <input type="number" name="review_count" id="review_count" placeholder="0" value="0">
+                                <div class="field-hint">Number of customer reviews</div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Product Images Section -->
+                        <div class="product-form-section">
+                            <div class="section-title">
+                                <span>🖼️</span>
+                                <span>Product Images</span>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="image">Main Product Image *</label>
+                                <input type="file" name="image" id="image" accept="image/*" required>
+                                <div class="field-hint">Required - Recommended size: 400×400px, Max 5MB</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="gallery_images">Additional Gallery Images</label>
+                                <input type="file" name="gallery_images" id="gallery_images" accept="image/*" multiple>
+                                <div class="field-hint">Optional - Upload 3-5 more images for product gallery. Hold Ctrl/Cmd to select multiple files</div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Product Description Section -->
+                        <div class="product-form-section">
+                            <div class="section-title">
+                                <span>📝</span>
+                                <span>Product Description</span>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="description">Description</label>
+                                <textarea name="description" id="description" placeholder="Enter detailed product description including features, benefits, specifications, and usage instructions..."></textarea>
+                                <div class="field-hint">Helps customers understand the product better and improves SEO</div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="descriptionImage">Description Image (Large Display Image)</label>
+                                <input type="file" name="descriptionImage" id="descriptionImage" accept="image/*">
+                                <div class="field-hint">Upload a large image to display below product description (Recommended: 1200x800px)</div>
+                            </div>
+                        </div>
+
+                        <!-- 5. Product Specifications Section -->
+                        <div class="product-form-section">
+                            <div class="section-title">
+                                <span>📏</span>
+                                <span>Product Specifications</span>
+                            </div>
+                            
+                            <div class="form-row-3">
+                                <div class="form-group">
+                                    <label for="weight">Weight</label>
+                                    <input type="text" name="weight" id="weight" placeholder="e.g., 2 lbs">
+                                    <div class="field-hint">With unit (lbs, kg, oz)</div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="color">Available Colors</label>
+                                    <input type="text" name="color" id="color" placeholder="e.g., Gray, Black, White">
+                                    <div class="field-hint">Separate with commas</div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Available Sizes (Select Multiple)</label>
+                                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 10px;">
+                                    <div style="display: flex; align-items: center;">
+                                        <input type="checkbox" name="size" value="Un Stitched" id="size_un_stitched" style="margin-right: 8px;">
+                                        <label for="size_un_stitched" style="margin: 0;">Un Stitched</label>
+                                    </div>
+                                    <div style="display: flex; align-items: center;">
+                                        <input type="checkbox" name="size" value="Semi Stitched" id="size_semi_stitched" style="margin-right: 8px;">
+                                        <label for="size_semi_stitched" style="margin: 0;">Semi Stitched</label>
+                                    </div>
+                                    <div style="display: flex; align-items: center;">
+                                        <input type="checkbox" name="size" value="Free Size" id="size_free" style="margin-right: 8px;">
+                                        <label for="size_free" style="margin: 0;">Free Size</label>
+                                    </div>
+                                    <div style="display: flex; align-items: center;">
+                                        <input type="checkbox" name="size" value="XS" id="size_xs" style="margin-right: 8px;">
+                                        <label for="size_xs" style="margin: 0;">XS</label>
+                                    </div>
+                                    <div style="display: flex; align-items: center;">
+                                        <input type="checkbox" name="size" value="S" id="size_s" style="margin-right: 8px;">
+                                        <label for="size_s" style="margin: 0;">S</label>
+                                    </div>
+                                    <div style="display: flex; align-items: center;">
+                                        <input type="checkbox" name="size" value="M" id="size_m" style="margin-right: 8px;">
+                                        <label for="size_m" style="margin: 0;">M</label>
+                                    </div>
+                                    <div style="display: flex; align-items: center;">
+                                        <input type="checkbox" name="size" value="L" id="size_l" style="margin-right: 8px;">
+                                        <label for="size_l" style="margin: 0;">L</label>
+                                    </div>
+                                    <div style="display: flex; align-items: center;">
+                                        <input type="checkbox" name="size" value="XL" id="size_xl" style="margin-right: 8px;">
+                                        <label for="size_xl" style="margin: 0;">XL</label>
+                                    </div>
+                                    <div style="display: flex; align-items: center;">
+                                        <input type="checkbox" name="size" value="XXL" id="size_xxl" style="margin-right: 8px;">
+                                        <label for="size_xxl" style="margin: 0;">XXL</label>
+                                    </div>
+                                    <div style="display: flex; align-items: center;">
+                                        <input type="checkbox" name="size" value="3XL" id="size_3xl" style="margin-right: 8px;">
+                                        <label for="size_3xl" style="margin: 0;">3XL</label>
+                                    </div>
+                                    <div style="display: flex; align-items: center;">
+                                        <input type="checkbox" name="size" value="4XL" id="size_4xl" style="margin-right: 8px;">
+                                        <label for="size_4xl" style="margin: 0;">4XL</label>
+                                    </div>
+                                    <div style="display: flex; align-items: center;">
+                                        <input type="checkbox" name="size" value="5XL" id="size_5xl" style="margin-right: 8px;">
+                                        <label for="size_5xl" style="margin: 0;">5XL</label>
+                                    </div>
+                                    <div style="display: flex; align-items: center;">
+                                        <input type="checkbox" name="size" value="6XL" id="size_6xl" style="margin-right: 8px;">
+                                        <label for="size_6xl" style="margin: 0;">6XL</label>
+                                    </div>
+                                </div>
+                                <div class="field-hint">Select all applicable sizes for this product</div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div style="margin-top: 40px; padding-top: 30px; border-top: 1px solid #e5e5e5;">
+                            <button type="submit" class="submit-btn">
+                                ✓ Add Product to Store
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Recent Products Section -->
+            {% if products %}
+            <div class="table-section" style="margin-top: 60px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3>📊 Recently Added Products</h3>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th style="text-align: center;">ID</th>
+                                <th>Product Name</th>
+                                <th style="text-align: center;">Price</th>
+                                <th style="text-align: center;">Stock</th>
+                                <th style="text-align: center;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in products %}
+                            <tr>
+                                <td style="text-align: center; font-weight: 600; color: #fcbe00;">#{{ product.id }}</td>
+                                <td>
+                                    <strong>{{ product.name }}</strong>
+                                    {% if product.sku %}
+                                    <br><small style="color: #999;">SKU: {{ product.sku }}</small>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: center; font-weight: 600;">&#8377;{{ product.price }}</td>
+                                <td style="text-align: center;">
+                                    {% if product.stock > 20 %}
+                                        <span style="background: #d4edda; color: #155724; padding: 4px 10px; border-radius: 4px; font-weight: 600; font-size: 12px;">{{ product.stock }} units</span>
+                                    {% elif product.stock > 5 %}
+                                        <span style="background: #fff3cd; color: #856404; padding: 4px 10px; border-radius: 4px; font-weight: 600; font-size: 12px;">{{ product.stock }} units</span>
+                                    {% else %}
+                                        <span style="background: #f8d7da; color: #721c24; padding: 4px 10px; border-radius: 4px; font-weight: 600; font-size: 12px;">{{ product.stock }} units</span>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: center;">
+                                    {% if product.is_active %}
+                                        <span style="color: #28a745; font-size: 18px; vertical-align: middle;">●</span>
+                                        <span style="color: #28a745; font-weight: 600; font-size: 12px;">Active</span>
+                                    {% else %}
+                                        <span style="color: #dc3545; font-size: 18px; vertical-align: middle;">●</span>
+                                        <span style="color: #dc3545; font-weight: 600; font-size: 12px;">Inactive</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </section>
+</main>
+{% endblock content %}

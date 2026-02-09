@@ -1,0 +1,194 @@
+{% extends 'admin_panel/base_admin.html' %}
+
+{% block title %}Chat Thread - FashioHub Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chat-board-wrap {
+        background: transparent;
+        border-radius: 18px;
+    }
+    .chat-device {
+        width: 100%;
+        background: #ffffff;
+        border: 1px solid #e7e5df;
+        border-radius: 18px;
+        padding: 18px;
+        box-shadow: 0 16px 30px rgba(30, 30, 30, 0.08);
+    }
+    .chat-device-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #3f3a32;
+        color: #f7f6f2;
+        border-radius: 14px;
+        padding: 12px 16px;
+        margin-bottom: 16px;
+    }
+    .chat-device-title {
+        display: grid;
+        gap: 2px;
+    }
+    .chat-device-title .chat-name {
+        font-weight: 600;
+        font-size: 14px;
+    }
+    .chat-device-title .chat-status {
+        font-size: 11px;
+        color: #d6d2c7;
+    }
+    .chat-device-body {
+        height: 55vh;
+        min-height: 320px;
+        overflow-y: auto;
+        padding: 14px;
+        background: #f6f5f1;
+        border-radius: 14px;
+        margin-bottom: 14px;
+    }
+    .chat-row {
+        display: flex;
+        margin-bottom: 10px;
+    }
+    .chat-row.right {
+        justify-content: flex-end;
+    }
+    .chat-bubble {
+        max-width: 65%;
+        padding: 12px 14px;
+        border-radius: 14px;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+    .chat-bubble.user {
+        background: #ffffff;
+        color: #2f2a21;
+        border: 1px solid #ebe7df;
+    }
+    .chat-bubble.admin {
+        background: #c5cf9b;
+        color: #2a271d;
+    }
+    .chat-time {
+        font-size: 10px;
+        color: #6c6658;
+        margin-top: 4px;
+        text-align: right;
+    }
+    .chat-attachments {
+        display: grid;
+        gap: 6px;
+        margin-top: 8px;
+    }
+    .chat-attachment {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 8px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.6);
+        font-size: 12px;
+        color: #2f2a21;
+        text-decoration: none;
+    }
+    .chat-attachment img {
+        width: 120px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 1px solid #e5e2d8;
+        background: #fff;
+    }
+    .chat-device-footer {
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 12px;
+        border: 1px solid #ebe7df;
+    }
+    .chat-form {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+    .chat-form textarea {
+        flex: 1;
+        border: 1px solid #ded9ca;
+        border-radius: 12px;
+        padding: 12px;
+        font-size: 13px;
+        resize: none;
+        background: #ffffff;
+        min-height: 48px;
+    }
+    .chat-form button {
+        align-self: center;
+        background: #5b5fe6;
+        border: none;
+        color: #fff;
+        border-radius: 12px;
+        padding: 10px 20px;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold">Chat with {{ thread.display_name }}</h4>
+            <div class="text-muted">{{ thread.guest_email|default:thread.user.email }}</div>
+        </div>
+        <a href="{% url 'admin_chat_list' %}" class="btn btn-outline-secondary">Back</a>
+    </div>
+
+    <div class="chat-board-wrap">
+        <div class="chat-device">
+            <div class="chat-device-header">
+                <div class="chat-device-title">
+                    <div class="chat-name">{{ thread.display_name }}</div>
+                    <div class="chat-status">Online</div>
+                </div>
+            </div>
+
+            <div class="chat-device-body">
+                {% for msg in messages_list %}
+                    <div class="chat-row {% if msg.sender_type == 'ADMIN' %}right{% endif %}">
+                        <div class="chat-bubble {% if msg.sender_type == 'ADMIN' %}admin{% else %}user{% endif %}">
+                            <div class="chat-text">{{ msg.message }}</div>
+                            {% if msg.attachments.all %}
+                                <div class="chat-attachments">
+                                    {% for attachment in msg.attachments.all %}
+                                        {% if attachment.content_type|slice:':5' == 'image' %}
+                                            <a class="chat-attachment" href="{{ attachment.file.url }}" target="_blank">
+                                                <img src="{{ attachment.file.url }}" alt="{{ attachment.original_name }}">
+                                            </a>
+                                        {% else %}
+                                            <a class="chat-attachment" href="{{ attachment.file.url }}" target="_blank">
+                                                {{ attachment.original_name }}
+                                            </a>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="chat-time">{{ msg.created_at|date:"d M, h:i A" }}</div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="text-muted">No messages yet.</div>
+                {% endfor %}
+            </div>
+
+            <div class="chat-device-footer">
+                <form method="post" class="chat-form" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <textarea name="message" rows="2" placeholder="Type your reply..."></textarea>
+                    <input type="file" name="attachments" multiple accept="image/*,video/mp4,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+                    <button type="submit">Send Reply</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,169 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Site Settings - VibeMall Admin{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="row">
+        <div class="col-md-12">
+            <h4 class="fw-bold py-3 mb-4">
+                <span class="text-muted fw-light">Settings /</span> Site Settings
+            </h4>
+
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">🎨 Site Branding & Settings</h5>
+                    <small class="text-muted">Upload logo and update site information</small>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data" id="siteSettingsForm">
+                        {% csrf_token %}
+                        
+                        <!-- Site Name -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="site_name">Site Name *</label>
+                                <input type="text" class="form-control" id="site_name" name="site_name" value="{{ settings.site_name }}" required>
+                                <div class="form-text">Name displayed across the website</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="tagline">Tagline</label>
+                                <input type="text" class="form-control" id="tagline" name="tagline" value="{{ settings.tagline }}" placeholder="Your one-stop shop...">
+                                <div class="form-text">Optional tagline/slogan</div>
+                            </div>
+                        </div>
+
+                        <!-- Logos Section -->
+                        <h5 class="mb-3 mt-4">📸 Logo Images</h5>
+                        <div class="row mb-3">
+                            <!-- Main Site Logo -->
+                            <div class="col-md-4">
+                                <label class="form-label">Main Site Logo (with Brand Name)</label>
+                                {% if settings.site_logo %}
+                                <div class="mb-2">
+                                    <img src="{{ settings.site_logo.url }}" alt="Site Logo" style="max-width: 200px; max-height: 80px; border: 1px solid #ddd; padding: 5px; background: white;">
+                                </div>
+                                {% endif %}
+                                <input type="file" class="form-control" name="site_logo" accept="image/*">
+                                <div class="form-text">Upload logo with brand name included. Recommended: 600x150px PNG</div>
+                            </div>
+
+                            <!-- Favicon -->
+                            <div class="col-md-4">
+                                <label class="form-label">Favicon</label>
+                                {% if settings.site_favicon %}
+                                <div class="mb-2">
+                                    <img src="{{ settings.site_favicon.url }}" alt="Favicon" style="max-width: 32px; max-height: 32px; border: 1px solid #ddd; padding: 2px; background: white;">
+                                </div>
+                                {% endif %}
+                                <input type="file" class="form-control" name="site_favicon" accept="image/*">
+                                <div class="form-text">Recommended: 32x32px PNG</div>
+                            </div>
+
+                            <!-- Admin Logo -->
+                            <div class="col-md-4">
+                                <label class="form-label">Admin Panel Logo</label>
+                                {% if settings.admin_logo %}
+                                <div class="mb-2">
+                                    <img src="{{ settings.admin_logo.url }}" alt="Admin Logo" style="max-width: 120px; max-height: 40px; border: 1px solid #ddd; padding: 5px; background: white;">
+                                </div>
+                                {% endif %}
+                                <input type="file" class="form-control" name="admin_logo" accept="image/*">
+                                <div class="form-text">Recommended: 120x40px PNG</div>
+                            </div>
+                        </div>
+
+                        <!-- Contact Information -->
+                        <h5 class="mb-3 mt-4">📞 Contact Information</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="contact_email">Contact Email</label>
+                                <input type="email" class="form-control" id="contact_email" name="contact_email" value="{{ settings.contact_email }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="contact_phone">Contact Phone</label>
+                                <input type="text" class="form-control" id="contact_phone" name="contact_phone" value="{{ settings.contact_phone }}">
+                            </div>
+                        </div>
+
+                        <!-- Social Media Links -->
+                        <h5 class="mb-3 mt-4">🌐 Social Media Links</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="facebook_url">
+                                    <i class='bx bxl-facebook-circle'></i> Facebook URL
+                                </label>
+                                <input type="url" class="form-control" id="facebook_url" name="facebook_url" value="{{ settings.facebook_url }}" placeholder="https://facebook.com/yourpage">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="instagram_url">
+                                    <i class='bx bxl-instagram'></i> Instagram URL
+                                </label>
+                                <input type="url" class="form-control" id="instagram_url" name="instagram_url" value="{{ settings.instagram_url }}" placeholder="https://instagram.com/yourpage">
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="twitter_url">
+                                    <i class='bx bxl-twitter'></i> Twitter URL
+                                </label>
+                                <input type="url" class="form-control" id="twitter_url" name="twitter_url" value="{{ settings.twitter_url }}" placeholder="https://twitter.com/yourpage">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="youtube_url">
+                                    <i class='bx bxl-youtube'></i> YouTube URL
+                                </label>
+                                <input type="url" class="form-control" id="youtube_url" name="youtube_url" value="{{ settings.youtube_url }}" placeholder="https://youtube.com/yourchannel">
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class='bx bx-save'></i> Save Settings
+                            </button>
+                            <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">
+                                <i class='bx bx-x'></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Preview Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">👁️ Preview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Current Site Logo:</h6>
+                            {% if settings.site_logo %}
+                            <div class="p-3 bg-light border rounded">
+                                <img src="{{ settings.site_logo.url }}" alt="{{ settings.site_name }}" style="max-width: 300px;">
+                            </div>
+                            {% else %}
+                            <div class="alert alert-warning">No logo uploaded yet. Please upload a logo with your brand name included.</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Site Information:</h6>
+                            <p><strong>Site Name:</strong> {{ settings.site_name }}</p>
+                            {% if settings.tagline %}
+                            <p><strong>Tagline:</strong> {{ settings.tagline }}</p>
+                            {% endif %}
+                            <p class="mt-3">
+                                <strong>Contact:</strong><br>
+                                📧 {{ settings.contact_email }}<br>
+                                📞 {{ settings.contact_phone }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

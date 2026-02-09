@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Rejected - VibeMall</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            text-align: center;
+            color: white;
+        }
+        .header .icon {
+            width: 60px;
+            height: 60px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-size: 32px;
+            color: #667eea;
+        }
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        .header p {
+            font-size: 14px;
+            opacity: 0.95;
+        }
+        .content {
+            padding: 30px 20px;
+        }
+        .greeting {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .error-message {
+            background: #fee2e2;
+            border-left: 4px solid #ef4444;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 4px;
+            color: #991b1b;
+        }
+        .order-info {
+            background: #f9fafb;
+            border-left: 4px solid #ef4444;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 4px;
+        }
+        .order-info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .order-info-row:last-child {
+            margin-bottom: 0;
+        }
+        .order-info-label {
+            color: #6b7280;
+            font-weight: 500;
+        }
+        .order-info-value {
+            color: #111827;
+            font-weight: 600;
+        }
+        .rejection-reason {
+            background: #fef2f2;
+            border: 2px dashed #fca5a5;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 8px;
+        }
+        .rejection-reason h3 {
+            color: #991b1b;
+            font-size: 16px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        .rejection-reason h3:before {
+            content: "⚠️";
+            margin-right: 8px;
+        }
+        .rejection-reason p {
+            color: #7f1d1d;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .help-section {
+            background: #f0f9ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 25px 0;
+            text-align: center;
+        }
+        .help-section h3 {
+            color: #0c4a6e;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        .help-section p {
+            color: #075985;
+            font-size: 14px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #111827;
+            margin: 25px 0 15px;
+        }
+        .order-items {
+            margin: 20px 0;
+        }
+        .order-item {
+            display: flex;
+            background: #f9fafb;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+        .item-image {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        .item-details {
+            flex: 1;
+        }
+        .item-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 5px;
+        }
+        .item-price {
+            font-size: 13px;
+            color: #6b7280;
+        }
+        .item-qty {
+            font-size: 13px;
+            color: #6b7280;
+            margin-top: 3px;
+        }
+        .contact-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            text-align: center;
+            padding: 12px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            margin-top: 15px;
+        }
+        .footer {
+            background: #1f2937;
+            padding: 30px 20px;
+            text-align: center;
+            color: #9ca3af;
+        }
+        .footer-logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 15px;
+        }
+        .footer-note {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="icon">❌</div>
+            <h1>Order Rejected</h1>
+            <p>Unfortunately, we couldn't process your order</p>
+        </div>
+        
+        <!-- Content -->
+        <div class="content">
+            <p class="greeting">
+                Hi {{ order.user.first_name|default:order.user.username }},
+            </p>
+            
+            <div class="error-message">
+                We regret to inform you that your order <strong>#{{ order.order_number }}</strong> has been rejected and will not be processed.
+            </div>
+
+            <!-- Order Info -->
+            <div class="order-info">
+                <div class="order-info-row">
+                    <span class="order-info-label">📋 Order Number:</span>
+                    <span class="order-info-value">#{{ order.order_number }}</span>
+                </div>
+                <div class="order-info-row">
+                    <span class="order-info-label">💰 Total Amount:</span>
+                    <span class="order-info-value">₹{{ order.total_amount|floatformat:2 }}</span>
+                </div>
+                <div class="order-info-row">
+                    <span class="order-info-label">📊 Status:</span>
+                    <span class="order-info-value" style="color: #ef4444;">Rejected</span>
+                </div>
+            </div>
+
+            <!-- Product List -->
+            <h3 class="section-title">📦 Order Items</h3>
+            <div class="order-items">
+                {% for item in order.items.all %}
+                <div class="order-item">
+                    {% if item.product_image %}
+                    <img src="{{ item.product_image }}" alt="{{ item.product_name }}" class="item-image" style="display: block; max-width: 80px; height: 80px; object-fit: cover;">
+                    {% else %}
+                    <div class="item-image" style="width: 80px; height: 80px; background: #e5e7eb; display: flex; align-items: center; justify-content: center; font-size: 32px; color: #9ca3af; border-radius: 6px;">📦</div>
+                    {% endif %}
+                    <div class="item-details">
+                        <div class="item-name">{{ item.product_name }}</div>
+                        <div class="item-price">₹{{ item.product_price|floatformat:2 }} × {{ item.quantity }}</div>
+                        <div class="item-qty"><strong>Subtotal:</strong> ₹{{ item.subtotal|floatformat:2 }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Rejection Reason -->
+            <div class="rejection-reason">
+                <h3>Reason for Rejection</h3>
+                <p>{{ rejection_reason }}</p>
+                {% if additional_notes %}
+                <p style="margin-top: 10px; font-style: italic;">
+                    <strong>Additional Information:</strong> {{ additional_notes }}
+                </p>
+                {% endif %}
+            </div>
+
+            <p style="color: #6b7280; font-size: 14px; margin-bottom: 20px;">
+                {% if order.payment_status == 'Paid' %}
+                If you have already made a payment, a refund will be initiated within 5-7 business days.
+                {% else %}
+                No payment has been deducted from your account.
+                {% endif %}
+            </p>
+
+            <!-- Help Section -->
+            <div class="help-section">
+                <h3>Need Help?</h3>
+                <p>
+                    If you have any questions or need assistance,<br>
+                    our customer support team is here to help.
+                </p>
+                <a href="mailto:{{ site_settings.contact_email }}" class="contact-button">
+                    📧 Contact Support
+                </a>
+            </div>
+
+            <p style="color: #6b7280; font-size: 13px; text-align: center;">
+                We're sorry for the inconvenience. We hope to serve you better next time.
+            </p>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div class="footer-logo">{{ site_settings.site_name|default:"VibeMall" }}</div>
+            <p class="footer-note">
+                This is an automated email. Please do not reply to this message.<br>
+                © 2026 {{ site_settings.site_name|default:"VibeMall" }}. All rights reserved.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

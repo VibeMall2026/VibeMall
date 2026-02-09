@@ -1,0 +1,766 @@
+﻿{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}{{ customer.get_full_name|default:customer.username }} - Customer Details{% endblock %}
+
+{% block content %}
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% url 'admin_customers' %}">Customers</a>
+            </li>
+            <li class="breadcrumb-item active">Customer Details</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold mb-0">
+            <span class="text-muted fw-light">Customers /</span> Customer Details
+        </h4>
+        <a href="{% url 'admin_customers' %}" class="btn btn-outline-secondary">
+            <i class="bx bx-left-arrow-alt me-1"></i> Back to List
+        </a>
+    </div>
+
+    <!-- Display messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row">
+        <!-- Left Sidebar - Customer Profile -->
+        <div class="col-xl-4 col-lg-5 col-md-5">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="customer-avatar-section">
+                        <div class="d-flex align-items-center flex-column">
+                            {% if profile.profile_image %}
+                                <img class="img-fluid rounded-circle mb-3" 
+                                     src="{{ profile.profile_image.url }}" 
+                                     alt="Customer Avatar" 
+                                     style="height: 120px; width: 120px; object-fit: cover;">
+                            {% else %}
+                                <div class="avatar avatar-xl mb-3">
+                                    <span class="avatar-initial rounded-circle bg-label-primary" style="width: 120px; height: 120px; font-size: 48px; line-height: 120px;">
+                                        {{ customer.first_name|first|upper|default:customer.username|first|upper }}
+                                    </span>
+                                </div>
+                            {% endif %}
+                            <div class="customer-info text-center">
+                                <h4 class="mb-1">{{ customer.get_full_name|default:customer.username }}</h4>
+                                <small class="text-muted">@{{ customer.username }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-around flex-wrap my-4 py-3 border-top border-bottom">
+                        <div class="d-flex align-items-center me-4 mt-3 gap-3">
+                            <div class="avatar">
+                                <div class="avatar-initial bg-label-primary rounded">
+                                    <i class="bx bx-package fs-4"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <h5 class="mb-0">{{ total_orders }}</h5>
+                                <small>Orders</small>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center mt-3 gap-3">
+                            <div class="avatar">
+                                <div class="avatar-initial bg-label-success rounded">
+                                    <i class="bx bx-rupee fs-4"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <h5 class="mb-0">₹{{ total_spent|floatformat:2 }}</h5>
+                                <small>Spent</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-container">
+                        <h5 class="pb-2 border-bottom mb-3">Details</h5>
+                        <ul class="list-unstyled">
+                            <li class="mb-3">
+                                <span class="fw-semibold me-2">Username:</span>
+                                <span>{{ customer.username }}</span>
+                            </li>
+                            <li class="mb-3">
+                                <span class="fw-semibold me-2">Email:</span>
+                                <span>{{ customer.email }}</span>
+                            </li>
+                            <li class="mb-3">
+                                <span class="fw-semibold me-2">Status:</span>
+                                {% if profile.is_blocked %}
+                                    <span class="badge bg-label-danger">Blocked</span>
+                                {% else %}
+                                    <span class="badge bg-label-success">Active</span>
+                                {% endif %}
+                            </li>
+                            <li class="mb-3">
+                                <span class="fw-semibold me-2">Role:</span>
+                                {% if customer.is_staff %}
+                                    <span class="badge bg-label-primary">Admin User</span>
+                                {% else %}
+                                    <span class="badge bg-label-info">Customer</span>
+                                {% endif %}
+                            </li>
+                            <li class="mb-3">
+                                <span class="fw-semibold me-2">Segment:</span>
+                                <span class="badge 
+                                    {% if profile.customer_segment == 'VIP' %}bg-label-warning
+                                    {% elif profile.customer_segment == 'ADMIN' %}bg-label-primary
+                                    {% elif profile.customer_segment == 'REGULAR' %}bg-label-info
+                                    {% else %}bg-label-secondary{% endif %}">
+                                    {{ profile.get_customer_segment_display }}
+                                </span>
+                            </li>
+                        </ul>
+
+                        <h5 class="pb-2 border-bottom mt-4 mb-3">Contact Information</h5>
+                        <ul class="list-unstyled mb-4">
+                            <li class="mb-3">
+                                <span class="fw-semibold me-2"><i class="bx bx-envelope me-1"></i>Email:</span>
+                                <span>{{ customer.email }}</span>
+                            </li>
+                            <li class="mb-3">
+                                <span class="fw-semibold me-2"><i class="bx bx-phone me-1"></i>Phone:</span>
+                                <span>{{ profile.mobile_number|default:"Not provided" }}</span>
+                            </li>
+                            <li class="mb-3">
+                                <span class="fw-semibold me-2"><i class="bx bx-map me-1"></i>Address:</span>
+                                <span>{{ profile.address|default:"Not provided" }}</span>
+                            </li>
+                            <li class="mb-3">
+                                <span class="fw-semibold me-2"><i class="bx bx-calendar me-1"></i>Joined:</span>
+                                <span>{{ customer.date_joined|date:"F d, Y" }}</span>
+                            </li>
+                        </ul>
+
+                        <div class="d-flex flex-column gap-2">
+                            <form method="post" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="toggle_block">
+                                {% if profile.is_blocked %}
+                                    <button type="submit" class="btn btn-success w-100">
+                                        <i class="bx bx-check-circle me-1"></i> Unblock Customer
+                                    </button>
+                                {% else %}
+                                    <button type="submit" class="btn btn-danger w-100" 
+                                            onclick="return confirm('Are you sure you want to block this customer?')">
+                                        <i class="bx bx-block me-1"></i> Block Customer
+                                    </button>
+                                {% endif %}
+                            </form>
+
+                            <button type="button" class="btn btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#updateSegmentModal">
+                                <i class="bx bx-edit me-1"></i> Update Segment
+                            </button>
+
+                            <form method="post" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="toggle_admin">
+                                {% if customer.is_staff or profile.customer_segment == 'ADMIN' %}
+                                    <button type="submit" class="btn btn-outline-warning w-100" 
+                                            onclick="return confirm('Revoke admin access?')">
+                                        <i class="bx bx-user-minus me-1"></i> Revoke Admin Access
+                                    </button>
+                                {% else %}
+                                    <button type="submit" class="btn btn-outline-success w-100" 
+                                            onclick="return confirm('Grant admin panel access to this customer?')">
+                                        <i class="bx bx-user-check me-1"></i> Grant Admin Access
+                                    </button>
+                                {% endif %}
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Content - Stats & Tabs -->
+        <div class="col-xl-8 col-lg-7 col-md-7">
+            <!-- Stats Cards -->
+            <div class="row mb-4">
+                <div class="col-xl-3 col-md-6 col-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="card-title d-flex align-items-start justify-content-between">
+                                <div class="avatar flex-shrink-0">
+                                    <div class="avatar-initial bg-label-primary rounded">
+                                        <i class="bx bx-rupee"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="fw-semibold d-block mb-1">Total Spent</span>
+                            <h3 class="card-title mb-2">₹{{ total_spent|floatformat:2 }}</h3>
+                            <small class="text-success fw-semibold">
+                                <i class="bx bx-up-arrow-alt"></i> {{ paid_orders_count }} Paid Orders
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6 col-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="card-title d-flex align-items-start justify-content-between">
+                                <div class="avatar flex-shrink-0">
+                                    <div class="avatar-initial bg-label-danger rounded">
+                                        <i class="bx bx-heart"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="fw-semibold d-block mb-1">Wishlist Items</span>
+                            <h3 class="card-title mb-2">{{ total_wishlist }}</h3>
+                            <small class="text-muted">Saved favorite products</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6 col-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="card-title d-flex align-items-start justify-content-between">
+                                <div class="avatar flex-shrink-0">
+                                    <div class="avatar-initial bg-label-info rounded">
+                                        <i class="bx bx-shopping-bag"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="fw-semibold d-block mb-1">Cart Value</span>
+                            <h3 class="card-title mb-2">₹{{ total_cart_value|floatformat:2 }}</h3>
+                            <small class="text-muted">{{ cart_items.count }} items in cart</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6 col-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="card-title d-flex align-items-start justify-content-between">
+                                <div class="avatar flex-shrink-0">
+                                    <div class="avatar-initial bg-label-warning rounded">
+                                        <i class="bx bx-message-square-detail"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="fw-semibold d-block mb-1">Reviews</span>
+                            <h3 class="card-title mb-2">{{ total_reviews }}</h3>
+                            <small class="text-success fw-semibold">{{ approved_reviews }} / {{ total_reviews }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs Navigation -->
+            <div class="nav-align-top mb-4">
+                <ul class="nav nav-pills mb-3" role="tablist">
+                    <li class="nav-item">
+                        <button type="button" class="nav-link active" role="tab" data-bs-toggle="tab" 
+                                data-bs-target="#wishlist" aria-controls="wishlist" aria-selected="true">
+                            <i class="bx bx-heart me-1"></i> Wishlist
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button type="button" class="nav-link" role="tab" data-bs-toggle="tab" 
+                                data-bs-target="#cart" aria-controls="cart" aria-selected="false">
+                            <i class="bx bx-shopping-bag me-1"></i> Cart
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button type="button" class="nav-link" role="tab" data-bs-toggle="tab" 
+                                data-bs-target="#reviews" aria-controls="reviews" aria-selected="false">
+                            <i class="bx bx-message-square-detail me-1"></i> Reviews
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button type="button" class="nav-link" role="tab" data-bs-toggle="tab" 
+                                data-bs-target="#activity" aria-controls="activity" aria-selected="false">
+                            <i class="bx bx-time-five me-1"></i> Activity Log
+                        </button>
+                    </li>
+                </ul>
+                <div class="tab-content p-0">
+                    <!-- Wishlist Tab -->
+                    <div class="tab-pane fade show active" id="wishlist" role="tabpanel">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title mb-3">Wishlist Items ({{ total_wishlist }})</h5>
+                                {% if wishlist_items %}
+                                <div style="max-height: 500px; overflow-y: auto; overflow-x: hidden;" class="activity-scroll">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Product</th>
+                                                    <th>Price</th>
+                                                    <th>Stock</th>
+                                                    <th>Added</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for item in wishlist_items %}
+                                                <tr>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            {% if item.product.main_image %}
+                                                                <img src="{{ item.product.main_image.url }}" 
+                                                                     alt="{{ item.product.name }}" 
+                                                                     class="rounded me-3" 
+                                                                     style="width: 50px; height: 50px; object-fit: cover;">
+                                                            {% endif %}
+                                                            <div>
+                                                                <h6 class="mb-0">{{ item.product.name }}</h6>
+                                                                <small class="text-muted">{{ item.product.get_category_display }}</small>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td class="fw-semibold">₹{{ item.product.price }}</td>
+                                                    <td>
+                                                        {% if item.product.stock > 0 %}
+                                                            <span class="badge bg-label-success">In Stock ({{ item.product.stock }})</span>
+                                                        {% else %}
+                                                            <span class="badge bg-label-danger">Out of Stock</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ item.added_at|date:"M d, Y" }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                {% else %}
+                                    <div class="text-center py-4">
+                                        <i class="bx bx-heart fs-1 text-muted"></i>
+                                        <p class="text-muted">No items in wishlist</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cart Tab -->
+                    <div class="tab-pane fade" id="cart" role="tabpanel">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title mb-3">Cart Items ({{ cart_items.count }})</h5>
+                                {% if cart_items %}
+                                <div style="max-height: 500px; overflow-y: auto; overflow-x: hidden;" class="activity-scroll">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Product</th>
+                                                    <th>Price</th>
+                                                    <th>Quantity</th>
+                                                    <th>Total</th>
+                                                    <th>Added</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for item in cart_items %}
+                                                <tr>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            {% if item.product.main_image %}
+                                                                <img src="{{ item.product.main_image.url }}" 
+                                                                     alt="{{ item.product.name }}" 
+                                                                     class="rounded me-3" 
+                                                                     style="width: 50px; height: 50px; object-fit: cover;">
+                                                            {% endif %}
+                                                            <div>
+                                                                <h6 class="mb-0">{{ item.product.name }}</h6>
+                                                                <small class="text-muted">{{ item.product.get_category_display }}</small>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td class="fw-semibold">₹{{ item.product.price }}</td>
+                                                    <td>
+                                                        <span class="badge bg-label-primary">{{ item.quantity }}</span>
+                                                    </td>
+                                                    <td class="fw-semibold">₹{{ item.get_total_price|floatformat:2 }}</td>
+                                                    <td>{{ item.added_at|date:"M d, Y" }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                            <tfoot>
+                                                <tr>
+                                                    <td colspan="3" class="text-end fw-semibold">Total Cart Value:</td>
+                                                    <td colspan="2" class="fw-bold text-primary">₹{{ total_cart_value|floatformat:2 }}</td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                </div>
+                                {% else %}
+                                    <div class="text-center py-4">
+                                        <i class="bx bx-shopping-bag fs-1 text-muted"></i>
+                                        <p class="text-muted">Cart is empty</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reviews Tab -->
+                    <div class="tab-pane fade" id="reviews" role="tabpanel">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title mb-3">Product Reviews ({{ total_reviews }})</h5>
+                                {% if reviews %}
+                                <div style="max-height: 500px; overflow-y: auto; overflow-x: hidden;" class="activity-scroll">
+                                    <div class="list-group list-group-flush">
+                                        {% for review in reviews %}
+                                        <div class="list-group-item px-0">
+                                            <div class="d-flex align-items-start">
+                                                {% if review.product.main_image %}
+                                                    <img src="{{ review.product.main_image.url }}" 
+                                                         alt="{{ review.product.name }}" 
+                                                         class="rounded me-3" 
+                                                         style="width: 60px; height: 60px; object-fit: cover;">
+                                                {% endif %}
+                                                <div class="flex-grow-1">
+                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                        <div>
+                                                            <h6 class="mb-0">{{ review.product.name }}</h6>
+                                                            <div class="text-warning mb-1">
+                                                                {% for i in "12345" %}
+                                                                    {% if forloop.counter <= review.rating %}
+                                                                        <i class="bx bxs-star"></i>
+                                                                    {% else %}
+                                                                        <i class="bx bx-star"></i>
+                                                                    {% endif %}
+                                                                {% endfor %}
+                                                            </div>
+                                                        </div>
+                                                        <div class="text-end">
+                                                            {% if review.is_approved %}
+                                                                <span class="badge bg-label-success mb-1">Approved</span>
+                                                            {% else %}
+                                                                <span class="badge bg-label-warning mb-1">Pending</span>
+                                                            {% endif %}
+                                                            <br>
+                                                            <small class="text-muted">{{ review.created_at|date:"M d, Y" }}</small>
+                                                        </div>
+                                                    </div>
+                                                    <p class="mb-0 text-muted">{{ review.comment|truncatewords:30 }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% else %}
+                                    <div class="text-center py-4">
+                                        <i class="bx bx-message-square-detail fs-1 text-muted"></i>
+                                        <p class="text-muted">No reviews submitted yet</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Activity Log Tab -->
+                    <div class="tab-pane fade" id="activity" role="tabpanel">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title mb-3">Recent Activity ({{ recent_activities|length }})</h5>
+                                <div style="max-height: 500px; overflow-y: auto; overflow-x: hidden;" class="activity-scroll">
+                                    <ul class="timeline mb-0">
+                                        {% for activity in recent_activities %}
+                                        <li class="timeline-item timeline-item-transparent">
+                                            <span class="timeline-point timeline-point-{{ activity.color }}"></span>
+                                            <div class="timeline-event">
+                                                <div class="timeline-header mb-1">
+                                                    <h6 class="mb-0">
+                                                        <i class="{{ activity.icon }} me-1"></i>
+                                                        {{ activity.title }}
+                                                    </h6>
+                                                    <small class="text-muted">{{ activity.timestamp|timesince }} ago</small>
+                                                </div>
+                                                <p class="mb-0">{{ activity.description }}</p>
+                                            </div>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Orders & Profit Section -->
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between">
+                            <h5 class="card-title mb-0">Orders & Profit Analysis</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-3 col-6 mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="badge rounded-pill bg-label-primary me-3 p-2">
+                                            <i class="bx bx-package fs-5"></i>
+                                        </div>
+                                        <div>
+                                            <p class="mb-0 text-muted small">Total Orders</p>
+                                            <h5 class="mb-0">{{ total_orders }}</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6 mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="badge rounded-pill bg-label-success me-3 p-2">
+                                            <i class="bx bx-trending-up fs-5"></i>
+                                        </div>
+                                        <div>
+                                            <p class="mb-0 text-muted small">Total Profit</p>
+                                            <h5 class="mb-0 text-success">₹{{ total_profit|floatformat:2 }}</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6 mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="badge rounded-pill bg-label-info me-3 p-2">
+                                            <i class="bx bx-shopping-bag fs-5"></i>
+                                        </div>
+                                        <div>
+                                            <p class="mb-0 text-muted small">Products Bought</p>
+                                            <h5 class="mb-0">{{ unique_products }}</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6 mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="badge rounded-pill bg-label-warning me-3 p-2">
+                                            <i class="bx bx-box fs-5"></i>
+                                        </div>
+                                        <div>
+                                            <p class="mb-0 text-muted small">Total Items</p>
+                                            <h5 class="mb-0">{{ total_items_purchased }}</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Order Status Summary -->
+                            <div class="border rounded p-3 mb-3" style="background-color: #f8f9fa;">
+                                <h6 class="mb-3">Order Status Breakdown</h6>
+                                <div class="row text-center">
+                                    <div class="col">
+                                        <small class="text-muted d-block">Pending</small>
+                                        <span class="badge bg-warning">{{ pending_orders }}</span>
+                                    </div>
+                                    <div class="col">
+                                        <small class="text-muted d-block">Processing</small>
+                                        <span class="badge bg-info">{{ processing_orders }}</span>
+                                    </div>
+                                    <div class="col">
+                                        <small class="text-muted d-block">Shipped</small>
+                                        <span class="badge bg-primary">{{ shipped_orders }}</span>
+                                    </div>
+                                    <div class="col">
+                                        <small class="text-muted d-block">Delivered</small>
+                                        <span class="badge bg-success">{{ delivered_orders }}</span>
+                                    </div>
+                                    <div class="col">
+                                        <small class="text-muted d-block">Cancelled</small>
+                                        <span class="badge bg-danger">{{ cancelled_orders }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Recent Orders Table -->
+                            <h6 class="mb-3">Recent Orders</h6>
+                            {% if orders %}
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Order #</th>
+                                                <th>Date</th>
+                                                <th>Amount</th>
+                                                <th>Payment</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for order in orders %}
+                                            <tr>
+                                                <td><a href="{% url 'admin_order_details' order.id %}" class="text-primary">#{{ order.order_number }}</a></td>
+                                                <td>{{ order.created_at|date:"M d, Y" }}</td>
+                                                <td class="fw-semibold">₹{{ order.total_amount }}</td>
+                                                <td>
+                                                    <span class="badge bg-label-{{ order.get_payment_status_color }}">
+                                                        {{ order.get_payment_status_display }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-label-{{ order.get_status_color }}">
+                                                        {{ order.get_order_status_display }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-3">
+                                    <p class="text-muted mb-0">No orders yet</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Products Section -->
+                <div class="col-12 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Top Purchased Products</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if top_products %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Product</th>
+                                                <th>Category</th>
+                                                <th>Times Purchased</th>
+                                                <th>Total Quantity</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in top_products %}
+                                            <tr>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        {% if item.product.main_image %}
+                                                            <img src="{{ item.product.main_image.url }}" 
+                                                                 alt="{{ item.product.name }}" 
+                                                                 class="rounded me-3" 
+                                                                 style="width: 40px; height: 40px; object-fit: cover;">
+                                                        {% endif %}
+                                                        <span>{{ item.product.name }}</span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-label-info">{{ item.product.get_category_display }}</span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-label-primary">{{ item.count }} times</span>
+                                                </td>
+                                                <td class="fw-semibold">{{ item.count }} units</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-3">
+                                    <i class="bx bx-package fs-1 text-muted"></i>
+                                    <p class="text-muted mb-0">No products purchased yet</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Update Segment Modal -->
+<div class="modal fade" id="updateSegmentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Update Customer Segment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="update_segment">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="segment" class="form-label">Select Segment</label>
+                        <select class="form-select" id="segment" name="segment" required>
+                            {% for value, label in segment_choices %}
+                                <option value="{{ value }}" {% if profile.customer_segment == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text mt-2">
+                            <ul class="mb-0 ps-3">
+                                <li><strong>NEW:</strong> First-time or recent customers</li>
+                                <li><strong>REGULAR:</strong> Returning customers with multiple orders</li>
+                                <li><strong>VIP:</strong> High-value customers with premium benefits</li>
+                                <li><strong>ADMIN:</strong> Internal users with special privileges</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Segment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Custom scrollbar for activity log */
+    .activity-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: #d1d5db #f3f4f6;
+    }
+    
+    .activity-scroll::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .activity-scroll::-webkit-scrollbar-track {
+        background: #f3f4f6;
+        border-radius: 10px;
+    }
+    
+    .activity-scroll::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 10px;
+        transition: background 0.3s ease;
+    }
+    
+    .activity-scroll::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
+    }
+    
+    /* Smooth scroll behavior */
+    .activity-scroll {
+        scroll-behavior: smooth;
+    }
+    
+    /* Add subtle shadow at top/bottom to indicate scrollable content */
+    .activity-scroll {
+        background: 
+            linear-gradient(white 30%, rgba(255,255,255,0)),
+            linear-gradient(rgba(255,255,255,0), white 70%) 0 100%,
+            radial-gradient(farthest-side at 50% 0, rgba(0,0,0,.15), rgba(0,0,0,0)),
+            radial-gradient(farthest-side at 50% 100%, rgba(0,0,0,.15), rgba(0,0,0,0)) 0 100%;
+        background-repeat: no-repeat;
+        background-color: white;
+        background-size: 100% 40px, 100% 40px, 100% 14px, 100% 14px;
+        background-attachment: local, local, scroll, scroll;
+    }
+</style>
+{% endblock %}

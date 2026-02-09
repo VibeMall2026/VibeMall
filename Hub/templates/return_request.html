@@ -1,0 +1,506 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Request Return - VibeMall{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <a href="{% url 'order_details' order.order_number %}" class="btn btn-outline-secondary mb-3">
+                <i class="fas fa-arrow-left"></i> Back to Order
+            </a>
+
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <div class="d-flex justify-content-between flex-wrap gap-2">
+                        <div>
+                            <h4 class="mb-0">Return Request</h4>
+                            <small>Order #{{ order.order_number }}</small>
+                        </div>
+                        {% if return_deadline %}
+                        <div>
+                            <span class="badge bg-warning text-dark">Return window ends {{ return_deadline|date:"d M Y" }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if not is_eligible %}
+                        <div class="alert alert-warning mb-0">
+                            <i class="fas fa-info-circle"></i> {{ ineligible_reason }}
+                        </div>
+                    {% else %}
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+
+                            <div class="mb-4">
+                                <h6 class="text-muted">Select items to return</h6>
+                                <div class="table-responsive">
+                                    <table class="table align-middle">
+                                        <thead>
+                                            <tr>
+                                                <th>Select</th>
+                                                <th>Item</th>
+                                                <th>Qty</th>
+                                                <th>Condition</th>
+                                                <th>Notes</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in eligible_items %}
+                                            <tr>
+                                                <td>
+                                                    <input type="checkbox" name="item_{{ item.id }}_selected">
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex align-items-center gap-3">
+                                                        {% if item.product_image %}
+                                                            <img src="{{ item.product_image }}" alt="{{ item.product_name }}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px;">
+                                                        {% endif %}
+                                                        <div>
+                                                            <strong>{{ item.product_name }}</strong><br>
+                                                            <small class="text-muted">Ordered: {{ item.quantity }}</small>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <input type="number" class="form-control" name="item_{{ item.id }}_qty" min="1" max="{{ item.quantity }}" value="{{ item.quantity }}" style="max-width: 100px;" data-item-id="{{ item.id }}" data-item-price="{{ item.product_price }}">
+                                                </td>
+                                                <td>
+                                                    <select class="form-select" name="item_{{ item.id }}_condition" style="max-width: 160px;">
+                                                        {% for value,label in condition_choices %}
+                                                            <option value="{{ value }}">{{ label }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <input type="text" class="form-control" name="item_{{ item.id }}_notes" placeholder="Optional notes">
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="card mb-4" id="returnSummaryCard" style="display: none;">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">Return Summary</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="returnSummaryItems"></div>
+                                    <div class="d-flex justify-content-between mt-3">
+                                        <strong>Subtotal</strong>
+                                        <strong>&#8377;<span id="returnSubtotal">0.00</span></strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span>Return fee</span>
+                                        <span>- &#8377;<span id="returnFee">20.00</span></span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mt-2">
+                                        <strong>Net refund</strong>
+                                        <strong>&#8377;<span id="returnNet">0.00</span></strong>
+                                    </div>
+                                    <small class="text-muted d-block mt-2">Net refund is calculated after Rs.20 return fee.</small>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Return reason</label>
+                                <select class="form-select" name="reason" required>
+                                    {% for value,label in reason_choices %}
+                                        <option value="{{ value }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Reason details</label>
+                                <textarea class="form-control" name="reason_notes" rows="3" placeholder="Explain the issue (optional)"></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Refund method</label>
+                                <select class="form-select" name="refund_method" id="refundMethodSelect" required>
+                                    <option value="" disabled selected>Select refund method</option>
+                                    {% for value,label in refund_options %}
+                                        <option value="{{ value }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Choose where you want the refund to be credited. Rs.20 return fee applies.</small>
+                            </div>
+
+                            <div id="bankDetailsBlock" class="mb-3" style="display: none;">
+                                <label class="form-label">Bank transfer details</label>
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" name="bank_account_name" id="bankAccountName" placeholder="Account holder name" maxlength="100">
+                                        <div class="form-text text-muted" id="bankAccountNameHint">As per bank records.</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" name="bank_name" id="bankName" placeholder="Bank name" maxlength="100">
+                                        <div class="form-text text-muted" id="bankNameHint">Enter the full bank name.</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" name="bank_account_number" id="bankAccountNumber" placeholder="Account number" inputmode="numeric" pattern="[0-9]{6,34}" maxlength="34">
+                                        <div class="form-text" id="bankAccountNumberHint"></div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" name="bank_ifsc" id="bankIfsc" placeholder="IFSC code" pattern="[A-Z]{4}0[A-Z0-9]{6}" maxlength="11" style="text-transform: uppercase;">
+                                        <div class="form-text" id="bankIfscHint"></div>
+                                        <div class="form-text" id="bankIfscNameHint"></div>
+                                    </div>
+                                </div>
+                                <small class="text-muted">Required only for Direct Bank Transfer.</small>
+                            </div>
+
+                            <div id="upiDetailsBlock" class="mb-3" style="display: none;">
+                                <label class="form-label">UPI ID (RazorPay)</label>
+                                <input type="text" class="form-control" name="upi_id" id="upiId" placeholder="yourname@bank" pattern="[a-zA-Z0-9._-]{2,256}@[a-zA-Z]{2,64}" maxlength="200">
+                                <div class="form-text" id="upiHint"></div>
+                                <div class="form-text" id="upiName"></div>
+                                <input type="hidden" name="upi_name" id="upiNameValue" value="">
+                                <small class="text-muted">Required only for RazorPay refunds.</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Upload photos (optional)</label>
+                                <input class="form-control" type="file" name="attachments" multiple accept="image/*">
+                                <small class="text-muted">Add photos of the item condition.</small>
+                            </div>
+
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-undo"></i> Submit Return Request
+                            </button>
+                        </form>
+                        <script>
+                            (function () {
+                                const returnSummaryCard = document.getElementById('returnSummaryCard');
+                                const returnSummaryItems = document.getElementById('returnSummaryItems');
+                                const returnSubtotal = document.getElementById('returnSubtotal');
+                                const returnFee = document.getElementById('returnFee');
+                                const returnNet = document.getElementById('returnNet');
+                                const refundSelect = document.getElementById('refundMethodSelect');
+                                const bankBlock = document.getElementById('bankDetailsBlock');
+                                const upiBlock = document.getElementById('upiDetailsBlock');
+                                const bankFields = [
+                                    document.getElementById('bankAccountName'),
+                                    document.getElementById('bankName'),
+                                    document.getElementById('bankAccountNumber'),
+                                    document.getElementById('bankIfsc')
+                                ];
+                                const upiField = document.getElementById('upiId');
+                                const bankAccountHint = document.getElementById('bankAccountNumberHint');
+                                const bankIfscHint = document.getElementById('bankIfscHint');
+                                const bankIfscNameHint = document.getElementById('bankIfscNameHint');
+                                const upiHint = document.getElementById('upiHint');
+                                const upiName = document.getElementById('upiName');
+                                const upiNameValue = document.getElementById('upiNameValue');
+                                if (!refundSelect || !bankBlock) return;
+
+                                const formatMoney = (value) => value.toFixed(2);
+                                const updateReturnSummary = () => {
+                                    const selectedRows = [];
+                                    let subtotal = 0;
+                                    document.querySelectorAll('input[type="checkbox"][name$="_selected"]').forEach((checkbox) => {
+                                        if (!checkbox.checked) return;
+                                        const row = checkbox.closest('tr');
+                                        if (!row) return;
+                                        const qtyInput = row.querySelector('input[data-item-id]');
+                                        const qty = qtyInput ? parseInt(qtyInput.value || '0', 10) : 0;
+                                        const price = qtyInput ? parseFloat(qtyInput.getAttribute('data-item-price') || '0') : 0;
+                                        const name = row.querySelector('strong') ? row.querySelector('strong').textContent.trim() : '';
+                                        const image = row.querySelector('img') ? row.querySelector('img').getAttribute('src') : '';
+                                        const lineTotal = Math.max(0, qty) * Math.max(0, price);
+                                        subtotal += lineTotal;
+                                        selectedRows.push({ name, image, qty, lineTotal });
+                                    });
+
+                                    if (!returnSummaryCard || !returnSummaryItems) return;
+                                    if (selectedRows.length === 0) {
+                                        returnSummaryCard.style.display = 'none';
+                                        returnSummaryItems.innerHTML = '';
+                                        returnSubtotal.textContent = '0.00';
+                                        returnNet.textContent = '0.00';
+                                        returnFee.textContent = '20.00';
+                                        return;
+                                    }
+
+                                    returnSummaryItems.innerHTML = selectedRows.map((row) => {
+                                        const imageHtml = row.image ? `<img src="${row.image}" alt="${row.name}" style="width: 44px; height: 44px; object-fit: cover; border-radius: 6px; margin-right: 10px;">` : '';
+                                        return `
+                                            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
+                                                <div style="display:flex; align-items:center; gap:10px;">
+                                                    ${imageHtml}
+                                                    <div>
+                                                        <div style="font-weight:600;">${row.name}</div>
+                                                        <div style="font-size:12px; color:#6b7280;">Qty: ${row.qty}</div>
+                                                    </div>
+                                                </div>
+                                                <div style="font-weight:600;">&#8377;${formatMoney(row.lineTotal)}</div>
+                                            </div>
+                                        `;
+                                    }).join('');
+
+                                    const fee = 20;
+                                    const net = Math.max(0, subtotal - fee);
+                                    returnSummaryCard.style.display = 'block';
+                                    returnSubtotal.textContent = formatMoney(subtotal);
+                                    returnFee.textContent = formatMoney(fee);
+                                    returnNet.textContent = formatMoney(net);
+                                };
+
+                                const markHint = (node, ok, message) => {
+                                    if (!node) return;
+                                    node.textContent = message;
+                                    node.className = ok ? 'form-text text-success' : 'form-text text-danger';
+                                };
+
+                                const validateBankAccount = () => {
+                                    if (!bankFields[2]) return true;
+                                    const value = (bankFields[2].value || '').trim();
+                                    if (!value) {
+                                        markHint(bankAccountHint, false, 'Account number is required.');
+                                        return false;
+                                    }
+                                    const ok = /^[0-9]{6,34}$/.test(value);
+                                    markHint(bankAccountHint, ok, ok ? 'Account number looks valid.' : 'Use 6-34 digits only.');
+                                    return ok;
+                                };
+
+                                const validateIfsc = () => {
+                                    if (!bankFields[3]) return true;
+                                    const value = (bankFields[3].value || '').trim().toUpperCase();
+                                    bankFields[3].value = value;
+                                    if (!value) {
+                                        markHint(bankIfscHint, false, 'IFSC is required.');
+                                        if (bankIfscNameHint) bankIfscNameHint.textContent = '';
+                                        return false;
+                                    }
+                                    const ok = /^[A-Z]{4}0[A-Z0-9]{6}$/.test(value);
+                                    markHint(bankIfscHint, ok, ok ? 'IFSC looks valid.' : 'Format should be ABCD0XXXXXX.');
+                                    if (!ok && bankIfscNameHint) bankIfscNameHint.textContent = '';
+                                    return ok;
+                                };
+
+                                let ifscTimer;
+
+                                const lookupIfsc = () => {
+                                    if (!bankFields[3] || !validateIfsc()) return;
+                                    if (bankIfscNameHint) {
+                                        bankIfscNameHint.className = 'form-text text-muted';
+                                        bankIfscNameHint.textContent = 'Fetching bank details...';
+                                    }
+                                    fetch('{% url "lookup_ifsc" %}', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/x-www-form-urlencoded',
+                                            'X-CSRFToken': getCookie('csrftoken')
+                                        },
+                                        body: `ifsc=${encodeURIComponent(bankFields[3].value)}`
+                                    })
+                                        .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+                                        .then(({ ok, data }) => {
+                                            if (!ok || !data.valid) {
+                                                markHint(bankIfscNameHint, false, data.message || 'IFSC details not found.');
+                                                return;
+                                            }
+                                            const bankLabel = data.bank || 'Bank';
+                                            const branchLabel = data.branch || 'Branch';
+                                            if (bankIfscNameHint) {
+                                                bankIfscNameHint.className = 'form-text text-success';
+                                                bankIfscNameHint.textContent = `Bank: ${bankLabel} | Branch: ${branchLabel}`;
+                                            }
+                                            if (bankFields[1] && data.bank && !bankFields[1].value.trim()) {
+                                                bankFields[1].value = data.bank;
+                                            }
+                                        })
+                                        .catch(() => {
+                                            markHint(bankIfscNameHint, false, 'Unable to fetch IFSC details.');
+                                        });
+                                };
+
+                                let upiValid = false;
+                                let upiTimer;
+
+                                const validateUpi = () => {
+                                    if (!upiField) return true;
+                                    const value = (upiField.value || '').trim().toLowerCase();
+                                    upiField.value = value;
+                                    if (!value) {
+                                        markHint(upiHint, false, 'UPI ID is required.');
+                                        if (upiName) upiName.textContent = '';
+                                        if (upiNameValue) upiNameValue.value = '';
+                                        upiValid = false;
+                                        return false;
+                                    }
+                                    const ok = /^[a-z0-9._-]{2,256}@[a-z]{2,64}$/.test(value);
+                                    markHint(upiHint, ok, ok ? 'UPI ID looks valid.' : 'Format should be name@bank.');
+                                    if (!ok) {
+                                        if (upiName) upiName.textContent = '';
+                                        if (upiNameValue) upiNameValue.value = '';
+                                        upiValid = false;
+                                    }
+                                    return ok;
+                                };
+
+                                const getCsrfToken = () => {
+                                    if (typeof getCookie === 'function') {
+                                        return getCookie('csrftoken');
+                                    }
+                                    const tokenInput = document.querySelector('input[name=csrfmiddlewaretoken]');
+                                    return tokenInput ? tokenInput.value : '';
+                                };
+
+                                const verifyUpiRemote = () => {
+                                    if (!upiField || !validateUpi()) return;
+                                    if (upiHint) {
+                                        upiHint.className = 'form-text text-muted';
+                                        upiHint.textContent = 'Verifying UPI ID...';
+                                    }
+                                    const controller = new AbortController();
+                                    const timeoutId = setTimeout(() => controller.abort(), 8000);
+                                    fetch('{% url "validate_upi_id" %}', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/x-www-form-urlencoded',
+                                            'X-CSRFToken': getCsrfToken()
+                                        },
+                                        body: `upi_id=${encodeURIComponent(upiField.value)}`,
+                                        signal: controller.signal
+                                    })
+                                        .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+                                        .then(({ ok, data }) => {
+                                            if (!ok || !data.valid) {
+                                                markHint(upiHint, false, data.message || 'UPI ID not found.');
+                                                if (upiName) upiName.textContent = '';
+                                                if (upiNameValue) upiNameValue.value = '';
+                                                upiValid = false;
+                                                return;
+                                            }
+                                            markHint(upiHint, true, 'UPI ID verified.');
+                                            if (upiName) {
+                                                upiName.className = 'form-text text-success';
+                                                if (data.name) {
+                                                    upiName.textContent = `UPI Name: ${data.name}`;
+                                                } else {
+                                                    upiName.textContent = 'UPI name not returned by bank.';
+                                                }
+                                            }
+                                            if (upiNameValue) upiNameValue.value = data.name || '';
+                                            upiValid = true;
+                                        })
+                                        .catch((error) => {
+                                            if (error && error.name === 'AbortError') {
+                                                markHint(upiHint, false, 'UPI verification timed out.');
+                                            } else {
+                                                markHint(upiHint, false, 'Unable to verify UPI ID.');
+                                            }
+                                            if (upiName) upiName.textContent = '';
+                                            if (upiNameValue) upiNameValue.value = '';
+                                            upiValid = false;
+                                        })
+                                        .finally(() => {
+                                            clearTimeout(timeoutId);
+                                        });
+                                };
+
+                                const toggleRefundFields = () => {
+                                    const showBank = refundSelect.value === 'BANK';
+                                    const showUpi = refundSelect.value === 'RAZORPAY';
+                                    bankBlock.style.display = showBank ? 'block' : 'none';
+                                    if (upiBlock) {
+                                        upiBlock.style.display = showUpi ? 'block' : 'none';
+                                    }
+                                    bankFields.forEach((field) => {
+                                        if (!field) return;
+                                        field.required = showBank;
+                                    });
+                                    if (upiField) {
+                                        upiField.required = showUpi;
+                                    }
+                                    if (showBank) {
+                                        validateBankAccount();
+                                        validateIfsc();
+                                    } else {
+                                        markHint(bankAccountHint, true, '');
+                                        markHint(bankIfscHint, true, '');
+                                        if (bankIfscNameHint) bankIfscNameHint.textContent = '';
+                                    }
+                                    if (showUpi) {
+                                        validateUpi();
+                                    } else {
+                                        markHint(upiHint, true, '');
+                                        if (upiName) upiName.textContent = '';
+                                        if (upiNameValue) upiNameValue.value = '';
+                                        upiValid = false;
+                                    }
+                                };
+
+                                refundSelect.addEventListener('change', toggleRefundFields);
+                                document.addEventListener('click', (event) => {
+                                    const option = event.target.closest('.nice-select .option');
+                                    if (option && refundSelect) {
+                                        setTimeout(toggleRefundFields, 0);
+                                    }
+                                });
+
+                                if (bankFields[2]) {
+                                    bankFields[2].addEventListener('input', validateBankAccount);
+                                    bankFields[2].addEventListener('blur', validateBankAccount);
+                                }
+                                if (bankFields[3]) {
+                                    bankFields[3].addEventListener('input', () => {
+                                        validateIfsc();
+                                        clearTimeout(ifscTimer);
+                                        ifscTimer = setTimeout(lookupIfsc, 450);
+                                    });
+                                    bankFields[3].addEventListener('blur', () => {
+                                        validateIfsc();
+                                        clearTimeout(ifscTimer);
+                                        ifscTimer = setTimeout(lookupIfsc, 0);
+                                    });
+                                }
+                                if (upiField) {
+                                    upiField.addEventListener('input', () => {
+                                        validateUpi();
+                                        clearTimeout(upiTimer);
+                                        upiTimer = setTimeout(verifyUpiRemote, 450);
+                                    });
+                                    upiField.addEventListener('blur', () => {
+                                        validateUpi();
+                                        clearTimeout(upiTimer);
+                                        upiTimer = setTimeout(verifyUpiRemote, 0);
+                                    });
+                                }
+
+                                const form = refundSelect.closest('form');
+                                if (form) {
+                                    form.addEventListener('submit', (event) => {
+                                        if (refundSelect.value === 'RAZORPAY' && !upiValid) {
+                                            event.preventDefault();
+                                            markHint(upiHint, false, 'Please verify a valid UPI ID.');
+                                        }
+                                    });
+                                }
+
+                                document.querySelectorAll('input[type="checkbox"][name$="_selected"]').forEach((checkbox) => {
+                                    checkbox.addEventListener('change', updateReturnSummary);
+                                });
+                                document.querySelectorAll('input[data-item-id]').forEach((qtyInput) => {
+                                    qtyInput.addEventListener('input', updateReturnSummary);
+                                    qtyInput.addEventListener('blur', updateReturnSummary);
+                                });
+
+                                toggleRefundFields();
+                                updateReturnSummary();
+                            })();
+                        </script>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

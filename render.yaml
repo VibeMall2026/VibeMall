@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: vibemall
+    env: python
+    region: singapore
+    plan: free
+    buildCommand: bash build.sh
+    startCommand: gunicorn VibeMall.wsgi:application
+    envVars:
+      - key: DEBUG
+        value: false
+      - key: PYTHON_VERSION
+        value: 3.11.7

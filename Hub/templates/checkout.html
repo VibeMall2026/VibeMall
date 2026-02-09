@@ -1,0 +1,581 @@
+﻿{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}Checkout - VibeMall{% endblock %}
+
+{% block content %}
+
+<!-- page-banner-area-start -->
+<div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
+    <div class="container">
+        <div class="row">
+            <div class="col-xl-12">
+                <div class="page-banner-content text-center">
+                    <h4 class="breadcrumb-title">Checkout</h4>
+                    <div class="breadcrumb-two">
+                        <nav>
+                           <nav class="breadcrumb-trail breadcrumbs">
+                              <ul class="breadcrumb-menu">
+                                 <li class="breadcrumb-trail">
+                                    <a href="{% url 'index' %}"><span>Home</span></a>
+                                 </li>
+                                 <li class="trail-item">
+                                    <span>Checkout</span>
+                                 </li>
+                              </ul>
+                           </nav> 
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- page-banner-area-end -->
+
+<!-- checkout-area-start -->
+<section class="checkout-area pt-120 pb-85">
+    <div class="container">
+        <!-- Messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{% if message.tags %}{{ message.tags }}{% else %}info{% endif %} alert-dismissible fade show mb-30" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if cart_items %}
+        <form action="{% url 'checkout' %}" method="POST" id="checkoutForm">
+            {% csrf_token %}
+            <input type="hidden" name="pincode_valid" id="pincodeValid" value="0">
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="checkbox-form">
+                        <h3>Billing Details</h3>
+                        {% if default_address %}
+                        <div class="alert alert-light border d-flex align-items-center justify-content-between" style="gap: 10px;">
+                            <div>
+                                <strong>Default Address</strong><br>
+                                <small class="text-muted">{{ default_address.full_name }} - {{ default_address.city }}, {{ default_address.state }} {{ default_address.pincode }}</small>
+                            </div>
+                            <label class="d-flex align-items-center gap-2 mb-0">
+                                <input
+                                    type="checkbox"
+                                    name="use_default_address"
+                                    id="useDefaultAddress"
+                                    {% if checkout_form.use_default_address %}checked{% endif %}
+                                    data-full-name="{{ default_address.full_name }}"
+                                    data-phone="{{ default_address.mobile_number }}"
+                                    data-address1="{{ default_address.address_line1 }}"
+                                    data-address2="{{ default_address.address_line2 }}"
+                                    data-city="{{ default_address.city }}"
+                                    data-state="{{ default_address.state }}"
+                                    data-pincode="{{ default_address.pincode }}"
+                                    data-country="{{ default_address.country }}"
+                                >
+                                <span>Use default address</span>
+                            </label>
+                        </div>
+                        {% endif %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="checkout-form-list mb-3">
+                                    <label>First Name <span class="required">*</span></label>
+                                    <input type="text" id="firstNameField" name="first_name" value="{{ checkout_form.first_name|default:user.first_name }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="checkout-form-list mb-3">
+                                    <label>Last Name <span class="required">*</span></label>
+                                    <input type="text" id="lastNameField" name="last_name" value="{{ checkout_form.last_name|default:user.last_name }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="checkout-form-list mb-3">
+                                    <label>Email Address <span class="required">*</span></label>
+                                    <input type="email" id="emailField" name="email" value="{{ checkout_form.email|default:user.email }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="checkout-form-list mb-3">
+                                    <label>Phone <span class="required">*</span></label>
+                                    <input type="text" id="phoneField" name="phone" value="{{ checkout_form.phone|default:user_profile.mobile_number|default:'' }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-12">
+                                <div class="country-select mb-3">
+                                    <label>Country <span class="required">*</span></label>
+                                    <select name="country" required>
+                                        <option value="India" {% if checkout_form.country == 'India' or not checkout_form.country %}selected{% endif %}>India</option>
+                                        <option value="USA" {% if checkout_form.country == 'USA' %}selected{% endif %}>USA</option>
+                                        <option value="UK" {% if checkout_form.country == 'UK' %}selected{% endif %}>UK</option>
+                                        <option value="Canada" {% if checkout_form.country == 'Canada' %}selected{% endif %}>Canada</option>
+                                        <option value="Australia" {% if checkout_form.country == 'Australia' %}selected{% endif %}>Australia</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-12">
+                                <div class="checkout-form-list mb-3">
+                                    <label>Address <span class="required">*</span></label>
+                                    <input type="text" id="addressField" name="address" value="{{ checkout_form.address|default:'' }}" placeholder="Street address" required>
+                                </div>
+                            </div>
+                            <div class="col-md-12">
+                                <div class="checkout-form-list mb-3">
+                                    <label>Town / City <span class="required">*</span></label>
+                                    <input type="text" name="city" id="cityField" value="{{ checkout_form.city|default:'' }}" placeholder="Town / City" required>
+                                    <small class="text-muted" id="cityHint"></small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="checkout-form-list mb-3">
+                                    <label>State / County <span class="required">*</span></label>
+                                    <input type="text" id="stateField" name="state" value="{{ checkout_form.state|default:'' }}" placeholder="State" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="checkout-form-list mb-3">
+                                    <label>Postcode / Zip <span class="required">*</span></label>
+                                    <input type="text" name="postcode" id="postcodeField" value="{{ checkout_form.postcode|default:'' }}" placeholder="Postcode / Zip" required>
+                                    <small class="text-danger" id="pincodeError"></small>
+                                </div>
+                            </div>
+                            <div class="col-md-12">
+                                <div class="order-notes">
+                                    <div class="checkout-form-list">
+                                        <label>Order Notes (Optional)</label>
+                                        <textarea name="customer_notes" cols="30" rows="5" placeholder="Notes about your order, e.g. special notes for delivery."></textarea>
+                                        <label class="d-flex align-items-center gap-2 mt-2">
+                                            <input type="checkbox" name="set_default_address" {% if checkout_form.set_default_address %}checked{% endif %}>
+                                            <span>Set as default address</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-12 mt-3">
+                                <div class="checkout-form-list create-acc">
+                                    <input type="checkbox" id="is_resell" name="is_resell" {% if checkout_form.is_resell %}checked{% endif %}>
+                                    <label for="is_resell" style="display: inline; margin-left: 5px;">
+                                        <strong>🔄 Is this a Resell Order?</strong> (Check if you're reselling this product)
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Resell FROM Details (Hidden by default) -->
+                            <div id="resell_from_section" style="display: none;" class="col-md-12 mt-3">
+                                <div class="card" style="background-color: #f8f9fa; border: 2px dashed #007bff;">
+                                    <div class="card-body">
+                                        <h6 class="mb-3" style="color: #007bff;">
+                                            <i class="fas fa-user-tie"></i> FROM Details (Original Seller)
+                                        </h6>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label>FROM Name <span class="required">*</span></label>
+                                                <input type="text" id="from_name" name="from_name" value="{{ checkout_form.from_name|default:user.get_full_name }}" class="form-control">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label>FROM Phone <span class="required">*</span></label>
+                                                <input type="text" id="from_phone" name="from_phone" value="{{ checkout_form.from_phone|default:user_profile.mobile_number|default:'' }}" class="form-control">
+                                            </div>
+                                        </div>
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle"></i> These details will appear on the invoice as the original seller. You can edit them if needed.
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6">
+                    <div class="your-order mb-30">
+                        <h3>Your order</h3>
+                        <div class="your-order-table table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th class="product-name">Product</th>
+                                        <th class="product-total">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in cart_items %}
+                                    <tr class="cart_item">
+                                        <td class="product-name">
+                                            <div class="d-flex align-items-center">
+                                                {% if item.product.image %}
+                                                    <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px; margin-right: 10px;">
+                                                {% endif %}
+                                                <div>
+                                                    {{ item.product.name }}
+                                                    <strong class="product-quantity"> × {{ item.quantity }}</strong>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="product-total">
+                                            <span class="amount">&#8377;{{ item.get_total_price|floatformat:2 }}</span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="cart-subtotal">
+                                        <th>Cart Subtotal</th>
+                                        <td><span class="amount">&#8377;{{ total_price|floatformat:2 }}</span></td>
+                                    </tr>
+                                    <tr class="tax">
+                                        <th>Tax (5%)</th>
+                                        <td><span class="amount">&#8377;{{ tax_amount|floatformat:2 }}</span></td>
+                                    </tr>
+                                    <tr class="shipping">
+                                        <th>Shipping</th>
+                                        <td>
+                                            {% if total_price > 500 %}
+                                                <span class="amount" style="color: green;">FREE</span>
+                                            {% else %}
+                                                <span class="amount">&#8377;50.00</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- Loyalty Points Redemption -->
+                                    {% if user.is_authenticated and loyalty_account and loyalty_account.points_available > 0 %}
+                                    <tr class="loyalty-points-row">
+                                        <th colspan="2">
+                                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                                <span>
+                                                    <i class="fas fa-star" style="color: #ffc107;"></i> Loyalty Points Available
+                                                </span>
+                                                <span style="font-weight: 600; color: #ffc107;">{{ loyalty_account.points_available }} Points</span>
+                                            </div>
+                                        </th>
+                                    </tr>
+                                    <tr class="loyalty-redeem-row">
+                                        <th colspan="2">
+                                            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                                <label style="display: flex; align-items: center; gap: 8px; margin: 0; cursor: pointer;">
+                                                    <input type="checkbox" name="redeem_points" id="redeem_points" value="1">
+                                                    <span>Use loyalty points for this order</span>
+                                                </label>
+                                                <small style="color: #666; display: block; width: 100%; margin-left: 28px;">
+                                                    ₹1 = 33 points earned | 1 point = ₹0.03 discount | Max discount: ₹{% widthratio loyalty_account.points_available 100 3 %}
+                                                </small>
+                                            </div>
+                                        </th>
+                                    </tr>
+                                    <tr class="points-discount-row" id="points_discount_row" style="display: none;">
+                                        <th>Points Discount</th>
+                                        <td>
+                                            <div style="display: flex; gap: 10px; align-items: center;">
+                                                <span class="amount" id="points_discount_amount">-₹0.00</span>
+                                                <input type="number" name="points_to_redeem" id="points_to_redeem" min="0" max="{{ loyalty_account.points_available }}" value="0" style="width: 80px; padding: 5px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;" placeholder="Points">
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                    
+                                    <tr class="order-total">
+                                        <th>Order Total</th>
+                                        <td><strong><span class="amount" id="final_total_display">&#8377;{{ final_total|floatformat:2 }}</span></strong></td>
+                                    </tr>
+                                
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <div class="payment-method mt-4">
+                            <h4 class="mb-3">Select Payment Method</h4>
+                            <div class="accordion" id="checkoutAccordion">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="codHeader">
+                                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#codPayment" aria-expanded="true" aria-controls="codPayment">
+                                            <input type="radio" name="payment_method" value="COD" id="cod_payment" {% if checkout_form.payment_method == 'COD' or not checkout_form.payment_method %}checked{% endif %} style="margin-right: 10px;">
+                                            Cash on Delivery (COD)
+                                        </button>
+                                    </h2>
+                                    <div id="codPayment" class="accordion-collapse collapse show" aria-labelledby="codHeader" data-bs-parent="#checkoutAccordion">
+                                        <div class="accordion-body">
+                                            <p>Pay with cash upon delivery. Your order will be dispatched within 1-2 business days.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="razorpayHeader">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#razorpayPayment" aria-expanded="false" aria-controls="razorpayPayment">
+                                            <input type="radio" name="payment_method" value="RAZORPAY" id="razorpay_payment" {% if checkout_form.payment_method == 'RAZORPAY' %}checked{% endif %} style="margin-right: 10px;">
+                                            Razorpay (Cards, UPI, Wallets)
+                                        </button>
+                                    </h2>
+                                    <div id="razorpayPayment" class="accordion-collapse collapse" aria-labelledby="razorpayHeader" data-bs-parent="#checkoutAccordion">
+                                        <div class="accordion-body">
+                                            <p>Pay securely with Razorpay using Credit Card, Debit Card, UPI, Net Banking, or Digital Wallets.</p>
+                                            <img src="https://razorpay.com/assets/razorpay-glyph.svg" alt="Razorpay" style="width: 120px;">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="order-button-payment mt-20">
+                                <button type="submit" class="tp-btn-h1" id="placeOrderButton">Place Order</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+        {% else %}
+        <div class="row">
+            <div class="col-12 text-center">
+                <h3>Your cart is empty!</h3>
+                <p class="mt-3">Add some items to your cart to proceed to checkout.</p>
+                <a href="{% url 'index' %}" class="tp-btn-h1 mt-3">Continue Shopping</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+<!-- checkout-area-end -->
+
+<script>
+// Show/hide resell FROM section when checkbox is toggled
+document.getElementById('is_resell').addEventListener('change', function() {
+    const resellSection = document.getElementById('resell_from_section');
+    if (this.checked) {
+        resellSection.style.display = 'block';
+    } else {
+        resellSection.style.display = 'none';
+    }
+});
+
+// Show resell section on load if already checked
+(function () {
+    const resellCheckbox = document.getElementById('is_resell');
+    const resellSection = document.getElementById('resell_from_section');
+    if (resellCheckbox && resellSection && resellCheckbox.checked) {
+        resellSection.style.display = 'block';
+    }
+})();
+
+// Sync radio button with accordion
+document.querySelectorAll('.accordion-button').forEach(button => {
+    button.addEventListener('click', function() {
+        const radioId = this.querySelector('input[type="radio"]')?.id;
+        if (radioId) {
+            document.getElementById(radioId).checked = true;
+        }
+    });
+});
+
+// Also allow clicking on the radio button itself
+document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
+    radio.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+});
+
+// ===== Loyalty Points Redemption =====
+{% if user.is_authenticated and loyalty_account and loyalty_account.points_available > 0 %}
+const redeemCheckbox = document.getElementById('redeem_points');
+const pointsToRedeemInput = document.getElementById('points_to_redeem');
+const pointsDiscountRow = document.getElementById('points_discount_row');
+const pointsDiscountAmount = document.getElementById('points_discount_amount');
+const finalTotalDisplay = document.getElementById('final_total_display');
+
+const baseTotal = {{ final_total }};
+const maxPoints = {{ loyalty_account.points_available }};
+
+if (redeemCheckbox) {
+    redeemCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            pointsDiscountRow.style.display = 'table-row';
+            pointsToRedeemInput.value = Math.min(maxPoints, Math.floor(baseTotal)); // Max discount = total amount
+        } else {
+            pointsDiscountRow.style.display = 'none';
+            pointsToRedeemInput.value = 0;
+            updateTotal(0);
+        }
+    });
+
+    if (pointsToRedeemInput) {
+        pointsToRedeemInput.addEventListener('input', function() {
+            let points = parseInt(this.value) || 0;
+            // Limit points to not exceed order total
+            const maxDiscount = Math.floor(baseTotal);
+            points = Math.min(points, maxPoints);
+            points = Math.min(points, maxDiscount);
+            
+            this.value = points;
+            updateTotal(points);
+        });
+    }
+}
+
+function updateTotal(pointsRedeemed) {
+    const discount = pointsRedeemed * 0.03; // 1 point = ₹0.03
+    const newTotal = baseTotal - discount;
+    
+    pointsDiscountAmount.textContent = `-₹${discount.toFixed(2)}`;
+    finalTotalDisplay.textContent = `₹${newTotal.toFixed(2)}`;
+}
+{% endif %}
+
+// ===== Pincode to City Auto-Detect (India) =====
+(function () {
+    const postcodeField = document.getElementById('postcodeField');
+    const cityField = document.getElementById('cityField');
+    const cityHint = document.getElementById('cityHint');
+    const pincodeError = document.getElementById('pincodeError');
+    const addressField = document.getElementById('addressField');
+    const stateField = document.getElementById('stateField');
+    const firstNameField = document.getElementById('firstNameField');
+    const lastNameField = document.getElementById('lastNameField');
+    const phoneField = document.getElementById('phoneField');
+    const useDefaultAddress = document.getElementById('useDefaultAddress');
+    const countryField = document.querySelector('select[name="country"]');
+    const pincodeValidField = document.getElementById('pincodeValid');
+    const placeOrderButton = document.getElementById('placeOrderButton');
+    const checkoutForm = document.getElementById('checkoutForm');
+    if (!postcodeField || !cityField) return;
+
+    let lookupTimer = null;
+
+    const setHint = (text, isError) => {
+        if (!cityHint) return;
+        cityHint.textContent = text;
+        cityHint.style.color = isError ? '#dc3545' : '#6c757d';
+    };
+
+    const setPincodeError = (text) => {
+        if (!pincodeError) return;
+        pincodeError.textContent = text;
+    };
+
+    const updateSubmitState = (isValid) => {
+        if (pincodeValidField) {
+            pincodeValidField.value = isValid ? '1' : '0';
+        }
+        if (placeOrderButton) {
+            placeOrderButton.disabled = !isValid && isIndia();
+            placeOrderButton.title = !isValid && isIndia() ? 'Enter a valid pincode to place the order.' : '';
+        }
+    };
+
+    const isIndia = () => {
+        return (countryField?.value || '').toLowerCase() === 'india';
+    };
+
+    const fetchCity = async (pincode) => {
+        try {
+            setHint('Detecting city...', false);
+            const response = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+            const data = await response.json();
+            const result = Array.isArray(data) ? data[0] : null;
+            if (!result || result.Status !== 'Success' || !result.PostOffice || !result.PostOffice.length) {
+                setHint('City not found for this pincode.', true);
+                setPincodeError('Invalid pincode. Please enter a valid 6-digit pincode.');
+                updateSubmitState(false);
+                return;
+            }
+            const office = result.PostOffice[0];
+            if (office && office.District) {
+                cityField.value = office.District;
+                setHint(`Detected: ${office.District}`, false);
+                setPincodeError('');
+                updateSubmitState(true);
+            } else {
+                setHint('City not found for this pincode.', true);
+                setPincodeError('Invalid pincode. Please enter a valid 6-digit pincode.');
+                updateSubmitState(false);
+            }
+        } catch (error) {
+            setHint('Unable to detect city right now.', true);
+            setPincodeError('Unable to validate pincode right now.');
+            updateSubmitState(false);
+        }
+    };
+
+    const applyDefaultAddress = () => {
+        if (!useDefaultAddress || !useDefaultAddress.checked) return;
+        const fullName = useDefaultAddress.dataset.fullName || '';
+        const parts = fullName.trim().split(' ');
+        const first = parts.shift() || '';
+        const last = parts.join(' ');
+        if (firstNameField) firstNameField.value = first;
+        if (lastNameField) lastNameField.value = last;
+        if (phoneField) phoneField.value = useDefaultAddress.dataset.phone || '';
+        if (addressField) addressField.value = (useDefaultAddress.dataset.address1 || '').trim();
+        if (cityField) cityField.value = useDefaultAddress.dataset.city || '';
+        if (stateField) stateField.value = useDefaultAddress.dataset.state || '';
+        if (postcodeField) postcodeField.value = useDefaultAddress.dataset.pincode || '';
+        if (countryField && useDefaultAddress.dataset.country) {
+            countryField.value = useDefaultAddress.dataset.country;
+        }
+
+        const pinValue = (postcodeField.value || '').trim();
+        if (/^[0-9]{6}$/.test(pinValue)) {
+            fetchCity(pinValue);
+        } else {
+            updateSubmitState(!isIndia());
+        }
+    };
+
+    postcodeField.addEventListener('input', () => {
+        const value = (postcodeField.value || '').trim();
+        if (lookupTimer) clearTimeout(lookupTimer);
+        if (!/^[0-9]{6}$/.test(value)) {
+            setHint('', false);
+            setPincodeError(value ? 'Invalid pincode. Please enter a 6-digit pincode.' : '');
+            updateSubmitState(false);
+            return;
+        }
+        lookupTimer = setTimeout(() => fetchCity(value), 350);
+    });
+
+    if (countryField) {
+        countryField.addEventListener('change', () => {
+            if (!isIndia()) {
+                setHint('', false);
+                setPincodeError('');
+                updateSubmitState(true);
+            } else if (/^[0-9]{6}$/.test((postcodeField.value || '').trim())) {
+                updateSubmitState(pincodeValidField?.value === '1');
+            } else {
+                setPincodeError('Invalid pincode. Please enter a 6-digit pincode.');
+                updateSubmitState(false);
+            }
+        });
+    }
+
+    if (useDefaultAddress) {
+        useDefaultAddress.addEventListener('change', applyDefaultAddress);
+        if (useDefaultAddress.checked) {
+            applyDefaultAddress();
+        }
+    }
+
+    if (checkoutForm) {
+        checkoutForm.addEventListener('submit', (event) => {
+            if (isIndia() && pincodeValidField?.value !== '1') {
+                event.preventDefault();
+                setHint('Please enter a valid pincode before submitting.', true);
+                setPincodeError('Invalid pincode. Please enter a valid 6-digit pincode.');
+            }
+        });
+    }
+
+    const initialPin = (postcodeField.value || '').trim();
+    if (isIndia() && /^[0-9]{6}$/.test(initialPin)) {
+        fetchCity(initialPin);
+    } else {
+        setPincodeError(isIndia() && initialPin ? 'Invalid pincode. Please enter a 6-digit pincode.' : '');
+        updateSubmitState(isIndia() ? false : true);
+    }
+})();
+</script>
+
+{% endblock content %}

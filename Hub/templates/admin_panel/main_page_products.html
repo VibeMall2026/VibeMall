@@ -1,0 +1,208 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}Main Page Products - FashioHub Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .category-section {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-left: 4px solid #007bff;
+    }
+    .category-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 15px;
+        color: #333;
+    }
+    .product-item {
+        background: #f8f9fa;
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .product-info {
+        flex: 1;
+    }
+    .product-name {
+        font-weight: 500;
+        color: #333;
+    }
+    .product-price {
+        font-size: 12px;
+        color: #666;
+    }
+    .order-input {
+        width: 60px;
+        padding: 5px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        text-align: center;
+    }
+    .remove-btn {
+        margin-left: 10px;
+    }
+    .empty-message {
+        color: #999;
+        font-style: italic;
+        padding: 10px;
+    }
+    .add-product-form {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+    }
+    .form-group-inline {
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+    }
+    .form-group-inline .form-select,
+    .form-group-inline .form-control {
+        margin-bottom: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold">🏠 Main Page Categories Management</h4>
+    </div>
+
+    {% if messages %}
+    <div class="alert-container mb-3">
+        {% for message in messages %}
+        <div class="alert alert-{% if message.tags %}{{ message.tags }}{% else %}info{% endif %} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Add Product Form -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title mb-3">➕ Add Product to Main Page</h5>
+            <form method="POST" action="{% url 'admin_main_page_products' %}" class="add-product-form">
+                {% csrf_token %}
+                <div class="form-group-inline">
+                    <div class="flex-grow-1">
+                        <label class="form-label mb-2">Select Product</label>
+                        <select name="product_id" class="form-select" required>
+                            <option value="">-- Choose a product --</option>
+                            {% for product in available_products %}
+                            <option value="{{ product.id }}">{{ product.name }} (₹{{ product.price }})</option>
+                            {% empty %}
+                            <option value="" disabled>No products available</option>
+                            {% endfor %}
+                        </select>
+                        {% if available_products.count == 0 and all_products_count > 0 %}
+                        <small class="text-muted d-block mt-2">All products are already added to main page</small>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="form-label mb-2">Select Category</label>
+                        <select name="category" class="form-select" required style="min-width: 150px;">
+                            {% for cat_key, cat_name in categories %}
+                            <option value="{{ cat_key }}">{{ cat_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" name="action" value="add" class="btn btn-primary">
+                        <i class='bx bx-plus'></i> Add to Category
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Categories and Products -->
+    <form id="update-order-form" method="POST" action="{% url 'admin_main_page_products' %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update_order">
+    </form>
+
+    {% for cat_key, cat_name in categories %}
+    <div class="category-section">
+        <div class="category-title">{{ cat_name }}</div>
+        
+        {% with cat=category_products|get_item:cat_key %}
+            {% if cat and cat.products %}
+                <div class="products-list">
+                    {% for item in cat.products %}
+                    <div class="product-item">
+                        <div class="product-info">
+                            <div class="product-name">
+                                <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" 
+                                     style="width: 30px; height: 30px; object-fit: cover; border-radius: 4px; margin-right: 10px;">
+                                {{ item.product.name }}
+                            </div>
+                            <div class="product-price">
+                                SKU: {{ item.product.sku|default:"N/A" }} | Price: ₹{{ item.product.price }}
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="mb-0 me-2">Order:</label>
+                            <input type="number" name="order_{{ item.id }}" class="order-input" 
+                                   value="{{ item.order }}" min="0" form="update-order-form">
+                            <form method="POST" action="{% url 'admin_main_page_products' %}" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="remove">
+                                <input type="hidden" name="item_id" value="{{ item.id }}">
+                                <button type="submit" class="btn btn-sm btn-danger remove-btn" 
+                                        onclick="return confirm('Remove this product?');">
+                                    <i class='bx bx-trash'></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-message">No products in this category yet</div>
+            {% endif %}
+        {% endwith %}
+    </div>
+    {% endfor %}
+
+    <!-- Update Order Button -->
+    <div class="mt-4">
+        <button type="submit" name="action" value="update_order" class="btn btn-success" form="update-order-form">
+            <i class='bx bx-save'></i> Save Display Order
+        </button>
+    </div>
+
+    <!-- Info Section -->
+    <div class="alert alert-info mt-4">
+        <h6 class="alert-heading">ℹ️ How to use:</h6>
+        <ul class="mb-0">
+            <li>Select a product and category, then click <strong>"Add to Category"</strong></li>
+            <li>Use the <strong>"Order"</strong> numbers to set display position (lower = appears first)</li>
+            <li>Click <strong>"Save Display Order"</strong> to apply changes</li>
+            <li>These 4 categories will appear on the main page homepage</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+// Helper function to get item from dict
+function getItem(dict, key) {
+    return dict[key];
+}
+</script>
+
+<!-- Template filter for dict access in Django -->
+<style>
+    [x-cloak] { display: none; }
+</style>
+{% endblock %}

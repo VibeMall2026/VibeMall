@@ -1,0 +1,319 @@
+﻿{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <!-- Back Button -->
+            <a href="{% url 'order_list' %}" class="btn btn-outline-secondary mb-3">
+                <i class="fas fa-arrow-left"></i> Back to Orders
+            </a>
+            
+            <!-- Order Header -->
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h4 class="mb-0">Order #{{ order.order_number }}</h4>
+                            <small>Placed on {{ order.created_at|date:"d F Y, h:i A" }}</small>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            {% if order.is_resell %}
+                                <span class="badge bg-purple fs-6" style="background-color: #6f42c1;">
+                                    <i class="fas fa-recycle"></i> Resell Order
+                                </span>
+                            {% endif %}
+                            <a href="{% url 'order_tracking' order.order_number %}" class="btn btn-info btn-sm ms-2">
+                                <i class="fas fa-map-marker-alt"></i> Track Order
+                            </a>
+                            <a href="{% url 'download_invoice' order.order_number %}" class="btn btn-success btn-sm ms-2">
+                                <i class="fas fa-download"></i> Download Invoice
+                            </a>
+                            {% if active_return %}
+                                <a href="{% url 'return_status' active_return.id %}" class="btn btn-outline-warning btn-sm ms-2">
+                                    <i class="fas fa-undo"></i> Return: {{ active_return.status|title }}
+                                </a>
+                            {% elif is_return_eligible %}
+                                <a href="{% url 'return_request' order.id %}" class="btn btn-warning btn-sm ms-2">
+                                    <i class="fas fa-undo"></i> Request Return
+                                </a>
+                            {% endif %}
+                            {% if cancel_request %}
+                                <span class="badge bg-secondary fs-6 ms-2">Cancel: {{ cancel_request.get_status_display }}</span>
+                            {% elif cancel_eligible %}
+                                <button type="button" class="btn btn-danger btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#cancelOrderModal">
+                                    <i class="fas fa-ban"></i> Request Cancel
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-muted">Order Status</h6>
+                            <h5>
+                                {% if order.order_status == 'PENDING' %}
+                                    <span class="badge bg-warning">Pending</span>
+                                {% elif order.order_status == 'PROCESSING' %}
+                                    <span class="badge bg-info">Processing</span>
+                                {% elif order.order_status == 'SHIPPED' %}
+                                    <span class="badge bg-primary">Shipped</span>
+                                {% elif order.order_status == 'DELIVERED' %}
+                                    <span class="badge bg-success">Delivered</span>
+                                {% elif order.order_status == 'CANCELLED' %}
+                                    <span class="badge bg-danger">Cancelled</span>
+                                {% endif %}
+                            </h5>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-muted">Payment Status</h6>
+                            <h5>
+                                {% if order.payment_method == 'COD' and order.order_status == 'DELIVERED' %}
+                                    <span class="badge bg-success">Paid (COD)</span>
+                                {% elif order.payment_status == 'PAID' %}
+                                    <span class="badge bg-success">Paid</span>
+                                {% elif order.payment_status == 'PENDING' %}
+                                    <span class="badge bg-warning">Pending</span>
+                                {% elif order.payment_status == 'REFUNDED' %}
+                                    <span class="badge bg-info">Refunded</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Failed</span>
+                                {% endif %}
+                            </h5>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-muted">Payment Method</h6>
+                            <p>{{ order.payment_method|upper }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-muted">Total Amount</h6>
+                            <h5 class="text-success">&#8377;{{ order.total_amount }}</h5>
+                        </div>
+                    </div>
+                    {% if not active_return and not is_return_eligible and return_reason %}
+                        <div class="alert alert-light border mt-2 mb-0">
+                            <i class="fas fa-info-circle"></i> {{ return_reason }}
+                        </div>
+                    {% elif is_return_eligible and return_deadline %}
+                        <div class="alert alert-success border mt-2 mb-0">
+                            <i class="fas fa-check-circle"></i> Return eligible until {{ return_deadline|date:"d M Y" }}
+                        </div>
+                    {% endif %}
+                    {% if not cancel_eligible and cancel_reason %}
+                        <div class="alert alert-light border mt-2 mb-0">
+                            <i class="fas fa-info-circle"></i> {{ cancel_reason }}
+                        </div>
+                    {% elif cancel_eligible and cancel_deadline %}
+                        <div class="alert alert-success border mt-2 mb-0">
+                            <i class="fas fa-check-circle"></i> Cancellation available until {{ cancel_deadline|date:"d M Y, h:i A" }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Shipping & Resell Information -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Shipping Address</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0" style="white-space: pre-line;">{{ order.shipping_address }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if order.is_resell and order.resell_from_name %}
+                <div class="col-md-6">
+                    <div class="card h-100 border-purple" style="border-color: #6f42c1 !important;">
+                        <div class="card-header" style="background-color: #6f42c1; color: white;">
+                            <h5 class="mb-0">
+                                <i class="fas fa-user"></i> FROM (Original Sender)
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-1"><strong>Name:</strong> {{ order.resell_from_name }}</p>
+                            {% if order.resell_from_phone %}
+                            <p class="mb-1"><strong>Phone:</strong> {{ order.resell_from_phone }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Order Items -->
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Order Items</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Size</th>
+                                    <th>Color</th>
+                                    <th>Quantity</th>
+                                    <th>Price</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order_items %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-3">
+                                            {% if item.product_image %}
+                                            <img src="{{ item.product_image }}" alt="{{ item.product_name }}" 
+                                                 style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px; border: 2px solid #f0f0f0;">
+                                            {% elif item.product and item.product.image %}
+                                            <img src="{{ item.product.image.url }}" alt="{{ item.product_name }}" 
+                                                 style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px; border: 2px solid #f0f0f0;">
+                                            {% else %}
+                                            <div style="width: 70px; height: 70px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                                <i class="fas fa-box" style="font-size: 30px; color: white;"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div>
+                                                <strong style="font-size: 15px;">{{ item.product_name }}</strong>
+                                                {% if item.product %}
+                                                <br>
+                                                <a href="{% url 'product-details' item.product.id %}" class="btn btn-sm btn-outline-primary mt-1" style="font-size: 11px;">
+                                                    <i class="fas fa-eye"></i> View Product
+                                                </a>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ item.size|default:"N/A" }}</td>
+                                    <td>{{ item.color|default:"N/A" }}</td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ item.quantity }}</span>
+                                    </td>
+                                    <td>&#8377;{{ item.product_price }}</td>
+                                    <td><strong>&#8377;{{ item.subtotal }}</strong></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td colspan="5" class="text-end"><strong>Subtotal (Incl. Tax):</strong></td>
+                                    <td><strong>&#8377;{{ order.subtotal }}</strong></td>
+                                </tr>
+                                {% if order.shipping_cost %}
+                                <tr>
+                                    <td colspan="5" class="text-end"><strong>Shipping:</strong></td>
+                                    <td><strong>&#8377;{{ order.shipping_cost }}</strong></td>
+                                </tr>
+                                <tr class="table-success">
+                                    <td colspan="5" class="text-end"><strong>Grand Total:</strong></td>
+                                    <td><strong>&#8377;{{ order.total_amount }}</strong></td>
+                                </tr>
+                                {% else %}
+                                <tr class="table-success">
+                                    <td colspan="5" class="text-end"><strong>Grand Total:</strong></td>
+                                    <td><strong>&#8377;{{ order.total_amount }}</strong></td>
+                                </tr>
+                                {% endif %}
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Order Modal -->
+<div class="modal fade" id="cancelOrderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Request Order Cancellation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'customer_cancel_order' order.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Reason (Optional)</label>
+                        <input type="text" name="reason" class="form-control" placeholder="Reason for cancellation">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes (Optional)</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Any extra details"></textarea>
+                    </div>
+                    {% if order.payment_method != 'COD' and order.payment_status == 'PAID' %}
+                    <div class="mb-3">
+                        <label class="form-label">Refund Method</label>
+                        <select name="refund_method" id="cancelRefundMethod" class="form-select" required>
+                            <option value="">Select refund method</option>
+                            <option value="WALLET">VibeMall Wallet</option>
+                            <option value="BANK">Direct Bank Transfer</option>
+                            <option value="RAZORPAY">RazorPay (UPI)</option>
+                        </select>
+                    </div>
+                    <div id="cancelBankFields" style="display: none;">
+                        <div class="mb-2">
+                            <label class="form-label">Account Name</label>
+                            <input type="text" name="bank_account_name" class="form-control">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Account Number</label>
+                            <input type="text" name="bank_account_number" class="form-control">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">IFSC Code</label>
+                            <input type="text" name="bank_ifsc" class="form-control">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Bank Name</label>
+                            <input type="text" name="bank_name" class="form-control">
+                        </div>
+                    </div>
+                    <div id="cancelUpiFields" style="display: none;">
+                        <div class="mb-2">
+                            <label class="form-label">UPI ID</label>
+                            <input type="text" name="upi_id" class="form-control">
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info mb-0">
+                        Refund is not applicable for COD or unpaid orders.
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-danger">Submit Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% if order.payment_method != 'COD' and order.payment_status == 'PAID' %}
+<script>
+    (function () {
+        const methodSelect = document.getElementById('cancelRefundMethod');
+        if (!methodSelect) return;
+        const bankFields = document.getElementById('cancelBankFields');
+        const upiFields = document.getElementById('cancelUpiFields');
+
+        const toggleFields = () => {
+            const value = methodSelect.value;
+            bankFields.style.display = value === 'BANK' ? 'block' : 'none';
+            upiFields.style.display = value === 'RAZORPAY' ? 'block' : 'none';
+        };
+
+        methodSelect.addEventListener('change', toggleFields);
+        toggleFields();
+    })();
+</script>
+{% endif %}
+{% endblock %}

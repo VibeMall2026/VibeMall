@@ -1,0 +1,750 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Track Order #{{ order.order_number }} - FashioHub{% endblock %}
+
+{% block content %}
+
+<!-- Page Banner Start -->
+<div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
+    <div class="container">
+        <div class="row">
+            <div class="col-xl-12">
+                <div class="page-banner-content text-center">
+                    <h4 class="breadcrumb-title">Track Your Order</h4>
+                    <div class="breadcrumb-two">
+                        <nav>
+                            <nav class="breadcrumb-trail breadcrumbs">
+                                <ul class="breadcrumb-menu">
+                                    <li class="breadcrumb-trail">
+                                        <a href="{% url 'index' %}"><span>Home</span></a>
+                                    </li>
+                                    <li class="breadcrumb-trail">
+                                        <a href="{% url 'order_list' %}"><span>My Orders</span></a>
+                                    </li>
+                                    <li class="trail-item">
+                                        <span>Track Order</span>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Page Banner End -->
+
+<style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .tracking-section {
+            padding: 80px 0;
+            background: #f8f9fa;
+        }
+
+        .tracking-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .tracking-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .tracking-header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            animation: fadeInDown 0.6s ease;
+        }
+
+        .order-number {
+            font-size: 18px;
+            opacity: 0.9;
+            animation: fadeInUp 0.6s ease;
+        }
+
+        .tracking-content {
+            padding: 50px 40px;
+        }
+        
+        .back-to-orders {
+            margin-bottom: 30px;
+        }
+        
+        .back-to-orders a {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .back-to-orders a:hover {
+            color: #764ba2;
+            transform: translateX(-5px);
+        }
+
+        .order-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 50px;
+            animation: fadeIn 0.8s ease;
+        }
+
+        .info-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-card .label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .info-card .value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .timeline {
+            position: relative;
+            padding: 0;
+            list-style: none;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 40px;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: #e9ecef;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-left: 100px;
+            margin-bottom: 50px;
+            animation: slideInLeft 0.6s ease backwards;
+        }
+
+        .timeline-item:nth-child(1) { animation-delay: 0.1s; }
+        .timeline-item:nth-child(2) { animation-delay: 0.2s; }
+        .timeline-item:nth-child(3) { animation-delay: 0.3s; }
+        .timeline-item:nth-child(4) { animation-delay: 0.4s; }
+        .timeline-item:nth-child(5) { animation-delay: 0.5s; }
+        .timeline-item:nth-child(6) { animation-delay: 0.6s; }
+
+        .timeline-icon {
+            position: absolute;
+            left: 0;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .timeline-item.completed .timeline-icon {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        .timeline-item.active .timeline-icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            animation: bounce 1s infinite;
+        }
+
+        .timeline-item.pending .timeline-icon {
+            background: #e9ecef;
+            color: #adb5bd;
+        }
+
+        .timeline-content {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+
+        .timeline-item.completed .timeline-content,
+        .timeline-item.active .timeline-content {
+            border-left: 4px solid #667eea;
+        }
+
+        .timeline-content:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+        }
+
+        .timeline-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .timeline-item.completed .timeline-title {
+            color: #11998e;
+        }
+
+        .timeline-item.active .timeline-title {
+            color: #667eea;
+        }
+
+        .timeline-date {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .timeline-description {
+            font-size: 14px;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 10px;
+        }
+
+        .status-badge.completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.active {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        .status-badge.pending {
+            background: #f8f9fa;
+            color: #6c757d;
+        }
+
+        .products-section {
+            margin-top: 50px;
+            padding-top: 40px;
+            border-top: 2px solid #e9ecef;
+        }
+
+        .products-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .product-card {
+            display: flex;
+            gap: 20px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .product-card:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .product-image {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .product-details {
+            flex: 1;
+        }
+
+        .product-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .product-meta {
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 40px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 14px 35px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 6px 25px rgba(17, 153, 142, 0.4);
+            }
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .tracking-content {
+                padding: 30px 20px;
+            }
+
+            .timeline-item {
+                padding-left: 80px;
+            }
+
+            .timeline-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 22px;
+            }
+
+            .timeline::before {
+                left: 30px;
+            }
+
+            .order-info {
+                grid-template-columns: 1fr;
+            }
+
+            .product-card {
+                flex-direction: column;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+</style>
+
+<!-- Order Tracking Section Start -->
+<section class="tracking-section">
+    <div class="container">
+        <div class="back-to-orders">
+            <a href="{% url 'order_list' %}">
+                <i class="fas fa-arrow-left"></i> Back to My Orders
+            </a>
+        </div>
+        
+        <div class="tracking-container">
+            <div class="tracking-header">
+                <h1><i class="fas fa-box-open"></i> Track Your Order</h1>
+                <p class="order-number">Order #{{ order.order_number }}</p>
+            </div>
+
+            <div class="tracking-content">
+            <!-- Order Information Cards -->
+            <div class="order-info">
+                <div class="info-card">
+                    <div class="label">Order Date</div>
+                    <div class="value">{{ order.created_at|date:"d M, Y" }}</div>
+                </div>
+                <div class="info-card">
+                    <div class="label">Total Amount</div>
+                    <div class="value">₹{{ order.total_amount }}</div>
+                </div>
+                <div class="info-card">
+                    <div class="label">Payment Method</div>
+                    <div class="value">{{ order.get_payment_method_display }}</div>
+                </div>
+                <div class="info-card">
+                    <div class="label">Payment Status</div>
+                    <div class="value">
+                        {% if order.payment_method == 'COD' and order.order_status == 'DELIVERED' %}
+                            Paid (COD)
+                        {% else %}
+                            {{ order.get_payment_status_display }}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Timeline -->
+            <ul class="timeline">
+                <!-- Order Placed -->
+                <li class="timeline-item completed">
+                    <div class="timeline-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="timeline-content">
+                        <h3 class="timeline-title">Order Placed</h3>
+                        <div class="timeline-date">
+                            <i class="far fa-calendar-alt"></i>
+                            {{ order.created_at|date:"d M, Y - h:i A" }}
+                        </div>
+                        <p class="timeline-description">
+                            Your order has been successfully placed. You will receive a confirmation email shortly.
+                        </p>
+                        <span class="status-badge completed">Completed</span>
+                    </div>
+                </li>
+
+                <!-- Payment Confirmed -->
+                <li class="timeline-item {% if order.payment_status == 'PAID' or order.payment_status == 'PENDING' %}completed{% elif order.payment_method == 'COD' and order.order_status == 'DELIVERED' %}completed{% else %}pending{% endif %}">
+                    <div class="timeline-icon">
+                        <i class="fas fa-credit-card"></i>
+                    </div>
+                    <div class="timeline-content">
+                        <h3 class="timeline-title">Payment Confirmed</h3>
+                        <div class="timeline-date">
+                            <i class="far fa-calendar-alt"></i>
+                            {% if order.payment_status == 'PAID' or order.payment_status == 'PENDING' %}
+                                {{ order.updated_at|date:"d M, Y - h:i A" }}
+                            {% elif order.payment_method == 'COD' and order.order_status == 'DELIVERED' %}
+                                {{ order.updated_at|date:"d M, Y - h:i A" }}
+                            {% else %}
+                                Awaiting confirmation
+                            {% endif %}
+                        </div>
+                        <p class="timeline-description">
+                            {% if order.payment_method == 'COD' and order.order_status == 'DELIVERED' %}
+                                Cash on Delivery - Payment collected at delivery.
+                            {% elif order.payment_method == 'COD' %}
+                                Cash on Delivery - Payment will be collected at the time of delivery.
+                            {% elif order.payment_status == 'PAID' %}
+                                Payment received successfully via {{ order.get_payment_method_display }}.
+                            {% else %}
+                                Waiting for payment confirmation.
+                            {% endif %}
+                        </p>
+                        <span class="status-badge {% if order.payment_status == 'PAID' or order.payment_status == 'PENDING' %}completed{% elif order.payment_method == 'COD' and order.order_status == 'DELIVERED' %}completed{% else %}pending{% endif %}">
+                            {% if order.payment_status == 'PAID' or order.payment_status == 'PENDING' %}Completed{% elif order.payment_method == 'COD' and order.order_status == 'DELIVERED' %}Completed{% else %}Pending{% endif %}
+                        </span>
+                    </div>
+                </li>
+
+                <!-- Processing -->
+                <li class="timeline-item {% if order.order_status == 'PROCESSING' or order.order_status == 'PACKED' or order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}completed{% elif order.order_status == 'PENDING' %}active{% else %}pending{% endif %}">
+                    <div class="timeline-icon">
+                        <i class="fas fa-cog fa-spin"></i>
+                    </div>
+                    <div class="timeline-content">
+                        <h3 class="timeline-title">Processing</h3>
+                        <div class="timeline-date">
+                            <i class="far fa-calendar-alt"></i>
+                            {% if order.processing_at %}
+                                {{ order.processing_at|date:"d M, Y - h:i A" }}
+                            {% elif order.order_status == 'PROCESSING' or order.order_status == 'PACKED' or order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}
+                                {{ order.updated_at|date:"d M, Y - h:i A" }}
+                            {% else %}
+                                Estimated: {{ order.created_at|date:"d M, Y" }}
+                            {% endif %}
+                        </div>
+                        <p class="timeline-description">
+                            We are preparing your order for shipment. This may take 1-2 business days.
+                        </p>
+                        <span class="status-badge {% if order.order_status == 'PROCESSING' or order.order_status == 'PACKED' or order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}completed{% elif order.order_status == 'PENDING' %}active{% else %}pending{% endif %}">
+                            {% if order.order_status == 'PROCESSING' or order.order_status == 'PACKED' or order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}Completed{% elif order.order_status == 'PENDING' %}In Progress{% else %}Pending{% endif %}
+                        </span>
+                    </div>
+                </li>
+
+                <!-- Packed -->
+                <li class="timeline-item {% if order.order_status == 'PACKED' or order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}completed{% elif order.order_status == 'PROCESSING' %}active{% else %}pending{% endif %}">
+                    <div class="timeline-icon">
+                        <i class="fas fa-box"></i>
+                    </div>
+                    <div class="timeline-content">
+                        <h3 class="timeline-title">Packed</h3>
+                        <div class="timeline-date">
+                            <i class="far fa-calendar-alt"></i>
+                            {% if order.packed_at %}
+                                {{ order.packed_at|date:"d M, Y - h:i A" }}
+                            {% elif order.order_status == 'PACKED' or order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}
+                                {{ order.updated_at|date:"d M, Y - h:i A" }}
+                            {% else %}
+                                Awaiting packing
+                            {% endif %}
+                        </div>
+                        <p class="timeline-description">
+                            Your order has been carefully packed and is ready for dispatch.
+                        </p>
+                        <span class="status-badge {% if order.order_status == 'PACKED' or order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}completed{% elif order.order_status == 'PROCESSING' %}active{% else %}pending{% endif %}">
+                            {% if order.order_status == 'PACKED' or order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}Completed{% elif order.order_status == 'PROCESSING' %}In Progress{% else %}Pending{% endif %}
+                        </span>
+                    </div>
+                </li>
+
+                <!-- Shipped -->
+                <li class="timeline-item {% if order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}completed{% elif order.order_status == 'PACKED' %}active{% else %}pending{% endif %}">
+                    <div class="timeline-icon">
+                        <i class="fas fa-truck"></i>
+                    </div>
+                    <div class="timeline-content">
+                        <h3 class="timeline-title">Shipped</h3>
+                        <div class="timeline-date">
+                            <i class="far fa-calendar-alt"></i>
+                            {% if order.shipped_at %}
+                                {{ order.shipped_at|date:"d M, Y - h:i A" }}
+                            {% elif order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}
+                                {{ order.updated_at|date:"d M, Y - h:i A" }}
+                            {% else %}
+                                Awaiting shipment
+                            {% endif %}
+                        </div>
+                        <p class="timeline-description">
+                            Your order is on its way! {% if order.tracking_number %}Tracking Number: <strong>{{ order.tracking_number }}</strong>{% endif %}
+                        </p>
+                        <span class="status-badge {% if order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}completed{% elif order.order_status == 'PACKED' %}active{% else %}pending{% endif %}">
+                            {% if order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}Completed{% elif order.order_status == 'PACKED' %}In Progress{% else %}Pending{% endif %}
+                        </span>
+                    </div>
+                </li>
+
+                <!-- Delivered -->
+                <li class="timeline-item {% if order.order_status == 'DELIVERED' %}completed{% elif order.order_status == 'SHIPPED' %}active{% else %}pending{% endif %}">
+                    <div class="timeline-icon">
+                        <i class="fas fa-home"></i>
+                    </div>
+                    <div class="timeline-content">
+                        <h3 class="timeline-title">Delivered</h3>
+                        <div class="timeline-date">
+                            <i class="far fa-calendar-alt"></i>
+                            {% if order.delivered_at %}
+                                {{ order.delivered_at|date:"d M, Y - h:i A" }}
+                            {% elif order.order_status == 'DELIVERED' %}
+                                {{ order.updated_at|date:"d M, Y - h:i A" }}
+                            {% else %}
+                                Expected delivery in 3-5 days
+                            {% endif %}
+                        </div>
+                        <p class="timeline-description">
+                            {% if order.order_status == 'DELIVERED' %}
+                                Your order has been successfully delivered. Thank you for shopping with us!
+                            {% else %}
+                                Your order will be delivered soon to your shipping address.
+                            {% endif %}
+                        </p>
+                        <span class="status-badge {% if order.order_status == 'DELIVERED' %}completed{% elif order.order_status == 'SHIPPED' %}active{% else %}pending{% endif %}">
+                            {% if order.order_status == 'DELIVERED' %}Completed{% elif order.order_status == 'SHIPPED' %}In Progress{% else %}Pending{% endif %}
+                        </span>
+                    </div>
+                </li>
+            </ul>
+
+            {% if return_request %}
+            <div class="products-section">
+                <h2 class="products-title"><i class="fas fa-undo"></i> Return Tracking</h2>
+                <div class="product-card" style="align-items: flex-start;">
+                    <div class="product-details">
+                        <div class="product-name">Current Status: {{ return_request.get_status_display }}</div>
+                        {% if return_request.refund_amount %}
+                        <div class="product-meta">Refund: ₹{{ return_request.refund_amount }}{% if return_request.refund_method %} via {{ return_request.refund_method }}{% endif %}</div>
+                        {% endif %}
+                        <div class="product-meta" style="margin-top: 10px;">
+                            <a href="{% url 'return_status' return_request.id %}">View full return details</a>
+                        </div>
+                    </div>
+                </div>
+
+                <ul class="timeline" style="margin-top: 30px;">
+                    {% for entry in return_history %}
+                    <li class="timeline-item completed">
+                        <div class="timeline-icon">
+                            <i class="fas fa-history"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <h3 class="timeline-title">{% if entry.new_status == 'APPROVED' %}R-Approved{% else %}{{ entry.new_status|title }}{% endif %}</h3>
+                            <div class="timeline-date">
+                                <i class="far fa-calendar-alt"></i>
+                                {{ entry.created_at|date:"d M, Y - h:i A" }}
+                            </div>
+                            <p class="timeline-description">{{ entry.note|default:"Return updated." }}</p>
+                            <span class="status-badge completed">Completed</span>
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li class="timeline-item active">
+                        <div class="timeline-icon">
+                            <i class="fas fa-hourglass-half"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <h3 class="timeline-title">Return Requested</h3>
+                            <div class="timeline-date">
+                                <i class="far fa-calendar-alt"></i>
+                                {{ return_request.requested_at|date:"d M, Y - h:i A" }}
+                            </div>
+                            <p class="timeline-description">We have received your return request.</p>
+                            <span class="status-badge active">In Progress</span>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Products Section -->
+            <div class="products-section">
+                <h2 class="products-title"><i class="fas fa-shopping-bag"></i> Order Items</h2>
+                {% for item in order_items %}
+                <div class="product-card">
+                    {% if item.product_image %}
+                    <img src="{{ item.product_image }}" alt="{{ item.product_name }}" class="product-image">
+                    {% else %}
+                    <img src="{% static 'assets/images/placeholder.png' %}" alt="{{ item.product_name }}" class="product-image">
+                    {% endif %}
+                    <div class="product-details">
+                        <div class="product-name">{{ item.product_name }}</div>
+                        <div class="product-meta">
+                            Quantity: {{ item.quantity }} | Price: ₹{{ item.product_price }}
+                            {% if item.size %} | Size: {{ item.size }}{% endif %}
+                            {% if item.color %} | Color: {{ item.color }}{% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <a href="{% url 'download_invoice' order.order_number %}" class="btn btn-primary">
+                    <i class="fas fa-download"></i> Download Invoice
+                </a>
+                <a href="{% url 'order_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-list"></i> View All Orders
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- Order Tracking Section End -->
+
+{% endblock %}

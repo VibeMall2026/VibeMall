@@ -1,0 +1,926 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Orders Management - FashioHub Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-card {
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .stats-card h3 {
+        font-size: 28px;
+        font-weight: 600;
+        margin: 0;
+    }
+    .stats-card p {
+        margin: 5px 0 0;
+        color: #6c757d;
+        font-size: 14px;
+    }
+    .badge-status {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    .order-table {
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .filter-section {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .action-dropdown {
+        min-width: 140px;
+    }
+    .customer-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-right: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold">📦 Orders Management</h4>
+        <div>
+            <a href="?export=csv{{ request.GET.urlencode|safe|slice:'1:' }}" class="btn btn-outline-success btn-sm me-2">
+                <i class='bx bx-download'></i> Export CSV
+            </a>
+            <a href="?export=excel{{ request.GET.urlencode|safe|slice:'1:' }}" class="btn btn-success btn-sm">
+                <i class='bx bx-file'></i> Export Excel
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row">
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-4">
+            <div class="card stats-card bg-primary text-white">
+                <h3>{{ total_orders }}</h3>
+                <p class="text-white">Total Orders</p>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-4">
+            <div class="card stats-card bg-warning text-white">
+                <h3>{{ pending_orders }}</h3>
+                <p class="text-white">Pending</p>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-4">
+            <div class="card stats-card bg-info text-white">
+                <h3>{{ processing_orders }}</h3>
+                <p class="text-white">Processing</p>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-4">
+            <div class="card stats-card bg-secondary text-white">
+                <h3>{{ shipped_orders }}</h3>
+                <p class="text-white">Shipped</p>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-4">
+            <div class="card stats-card bg-success text-white">
+                <h3>{{ delivered_orders }}</h3>
+                <p class="text-white">Delivered</p>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-4">
+            <div class="card stats-card bg-danger text-white">
+                <h3>{{ cancelled_orders }}</h3>
+                <p class="text-white">Cancelled</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Approval Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar flex-shrink-0 me-3">
+                            <span class="avatar-initial rounded bg-label-warning"><i class='bx bx-time-five'></i></span>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block">Pending Approval</small>
+                            <h5 class="mb-0">{{ pending_approval_orders }}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar flex-shrink-0 me-3">
+                            <span class="avatar-initial rounded bg-label-success"><i class='bx bx-check-circle'></i></span>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block">Approved Orders</small>
+                            <h5 class="mb-0">{{ approved_orders }}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar flex-shrink-0 me-3">
+                            <span class="avatar-initial rounded bg-label-danger"><i class='bx bx-x-circle'></i></span>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block">Rejected Orders</small>
+                            <h5 class="mb-0">{{ rejected_orders }}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar flex-shrink-0 me-3">
+                            <span class="avatar-initial rounded bg-label-danger"><i class='bx bx-error'></i></span>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block">Suspicious Orders</small>
+                            <h5 class="mb-0">{{ suspicious_orders }}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revenue & Profit Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar flex-shrink-0 me-3">
+                            <span class="avatar-initial rounded bg-label-success"><i class='bx bx-dollar'></i></span>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block">Total Revenue</small>
+                            <h5 class="mb-0">₹{{ total_revenue|floatformat:2 }}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar flex-shrink-0 me-3">
+                            <span class="avatar-initial rounded bg-label-warning"><i class='bx bx-trending-up'></i></span>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block">Total Profit (30%)</small>
+                            <h5 class="mb-0">₹{{ total_profit|floatformat:2 }}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar flex-shrink-0 me-3">
+                            <span class="avatar-initial rounded bg-label-info"><i class='bx bx-calendar-today'></i></span>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block">Today's Revenue</small>
+                            <h5 class="mb-0">₹{{ today_revenue|floatformat:2 }}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar flex-shrink-0 me-3">
+                            <span class="avatar-initial rounded bg-label-primary"><i class='bx bx-calendar-week'></i></span>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block">This Month</small>
+                            <h5 class="mb-0">₹{{ this_month_revenue|floatformat:2 }}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Date Filters -->
+    <div class="card mb-3">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-center gap-2">
+                <label class="mb-0 me-2 fw-semibold">Quick Filters:</label>
+                <a href="?date_range=today" class="btn btn-sm {% if date_range == 'today' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    <i class='bx bx-calendar-check'></i> આજ (Today)
+                </a>
+                <a href="?date_range=yesterday" class="btn btn-sm {% if date_range == 'yesterday' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    <i class='bx bx-calendar-minus'></i> ગઈકાલે (Yesterday)
+                </a>
+                <a href="?date_range=last_week" class="btn btn-sm {% if date_range == 'last_week' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    <i class='bx bx-calendar-week'></i> છેલ્લું અઠવાડિયું (Last Week)
+                </a>
+                {% if date_range %}
+                <a href="{% url 'admin_orders' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class='bx bx-x'></i> Clear
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="filter-section">
+        <form method="GET" action="{% url 'admin_orders' %}">
+            <div class="row">
+                <div class="col-md-2 mb-3">
+                    <label class="form-label">Order Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All Status</option>
+                        <option value="PENDING" {% if status_filter == 'PENDING' %}selected{% endif %}>Pending</option>
+                        <option value="PROCESSING" {% if status_filter == 'PROCESSING' %}selected{% endif %}>Processing</option>
+                        <option value="SHIPPED" {% if status_filter == 'SHIPPED' %}selected{% endif %}>Shipped</option>
+                        <option value="DELIVERED" {% if status_filter == 'DELIVERED' %}selected{% endif %}>Delivered</option>
+                        <option value="CANCELLED" {% if status_filter == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label class="form-label">Payment Status</label>
+                    <select name="payment" class="form-select">
+                        <option value="">All Payment</option>
+                        <option value="PENDING" {% if payment_filter == 'PENDING' %}selected{% endif %}>Pending</option>
+                        <option value="PAID" {% if payment_filter == 'PAID' %}selected{% endif %}>Paid</option>
+                        <option value="FAILED" {% if payment_filter == 'FAILED' %}selected{% endif %}>Failed</option>
+                        <option value="REFUNDED" {% if payment_filter == 'REFUNDED' %}selected{% endif %}>Refunded</option>
+                    </select>
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label class="form-label">Approval Status</label>
+                    <select name="approval" class="form-select">
+                        <option value="">All Approval</option>
+                        <option value="PENDING_APPROVAL" {% if approval_filter == 'PENDING_APPROVAL' %}selected{% endif %}>⏳ Pending</option>
+                        <option value="APPROVED" {% if approval_filter == 'APPROVED' %}selected{% endif %}>✅ Approved</option>
+                        <option value="REJECTED" {% if approval_filter == 'REJECTED' %}selected{% endif %}>❌ Rejected</option>
+                        <option value="AUTO_APPROVED" {% if approval_filter == 'AUTO_APPROVED' %}selected{% endif %}>🤖 Auto-Approved</option>
+                    </select>
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label class="form-label">Payment Method</label>
+                    <select name="payment_method" class="form-select">
+                        <option value="">All Methods</option>
+                        <option value="COD" {% if payment_method_filter == 'COD' %}selected{% endif %}>COD</option>
+                        <option value="RAZORPAY" {% if payment_method_filter == 'RAZORPAY' %}selected{% endif %}>RAZORPAY</option>
+                    </select>
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label class="form-label">Fraud Filter</label>
+                    <select name="suspicious" class="form-select">
+                        <option value="">All Orders</option>
+                        <option value="1" {% if suspicious_filter == '1' %}selected{% endif %}>🚨 Suspicious Only</option>
+                        <option value="0" {% if suspicious_filter == '0' %}selected{% endif %}>✓ Safe Only</option>
+                    </select>
+                </div>
+                
+                <!-- Quick Date Filters -->
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">Quick Date Filters</label>
+                    <div class="btn-group d-block" role="group">
+                        <a href="?date_range=today{% if status_filter %}&status={{ status_filter }}{% endif %}{% if payment_filter %}&payment={{ payment_filter }}{% endif %}{% if approval_filter %}&approval={{ approval_filter }}{% endif %}{% if payment_method_filter %}&payment_method={{ payment_method_filter }}{% endif %}{% if suspicious_filter %}&suspicious={{ suspicious_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" 
+                           class="btn {% if date_range == 'today' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                            <i class='bx bx-calendar-today'></i> Today
+                        </a>
+                        <a href="?date_range=yesterday{% if status_filter %}&status={{ status_filter }}{% endif %}{% if payment_filter %}&payment={{ payment_filter }}{% endif %}{% if approval_filter %}&approval={{ approval_filter }}{% endif %}{% if payment_method_filter %}&payment_method={{ payment_method_filter }}{% endif %}{% if suspicious_filter %}&suspicious={{ suspicious_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" 
+                           class="btn {% if date_range == 'yesterday' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                            <i class='bx bx-calendar-minus'></i> Yesterday
+                        </a>
+                        <a href="?date_range=last_week{% if status_filter %}&status={{ status_filter }}{% endif %}{% if payment_filter %}&payment={{ payment_filter }}{% endif %}{% if approval_filter %}&approval={{ approval_filter }}{% endif %}{% if payment_method_filter %}&payment_method={{ payment_method_filter }}{% endif %}{% if suspicious_filter %}&suspicious={{ suspicious_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" 
+                           class="btn {% if date_range == 'last_week' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                            <i class='bx bx-calendar-week'></i> Last Week
+                        </a>
+                        {% if date_range %}
+                        <a href="?{% if status_filter %}status={{ status_filter }}&{% endif %}{% if payment_filter %}payment={{ payment_filter }}&{% endif %}{% if approval_filter %}approval={{ approval_filter }}&{% endif %}{% if payment_method_filter %}payment_method={{ payment_method_filter }}&{% endif %}{% if suspicious_filter %}suspicious={{ suspicious_filter }}&{% endif %}{% if search_query %}search={{ search_query }}&{% endif %}" 
+                           class="btn btn-outline-danger">
+                            <i class='bx bx-x'></i> Clear Date Filter
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="col-md-2 mb-3">
+                    <label class="form-label">Date From</label>
+                    <input type="date" name="date_from" class="form-control" value="{{ date_from }}" {% if date_range %}disabled{% endif %}>
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label class="form-label">Date To</label>
+                    <input type="date" name="date_to" class="form-control" value="{{ date_to }}" {% if date_range %}disabled{% endif %}>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Search</label>
+                    <input type="text" name="search" class="form-control" placeholder="Order #, Name, Email, Phone..." value="{{ search_query }}">
+                </div>
+                <div class="col-md-1 mb-3">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class='bx bx-search'></i>
+                    </button>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-2">
+                    <label class="form-label">Sort By</label>
+                    <select name="sort" class="form-select" onchange="this.form.submit()">
+                        <option value="-created_at" {% if sort_by == '-created_at' %}selected{% endif %}>Newest First</option>
+                        <option value="created_at" {% if sort_by == 'created_at' %}selected{% endif %}>Oldest First</option>
+                        <option value="-total_amount" {% if sort_by == '-total_amount' %}selected{% endif %}>Highest Amount</option>
+                        <option value="total_amount" {% if sort_by == 'total_amount' %}selected{% endif %}>Lowest Amount</option>
+                        <option value="order_status" {% if sort_by == 'order_status' %}selected{% endif %}>Status</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Per Page</label>
+                    <select name="page_size" class="form-select" onchange="this.form.submit()">
+                        <option value="20" {% if page_size == 20 %}selected{% endif %}>20</option>
+                        <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
+                        <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
+                    </select>
+                </div>
+                <div class="col-md-8 text-end">
+                    <label class="form-label">&nbsp;</label>
+                    <div>
+                        <a href="{% url 'admin_orders' %}" class="btn btn-outline-secondary">
+                            <i class='bx bx-reset'></i> Clear Filters
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="card order-table">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Order List ({{ orders.paginator.count }} orders)</h5>
+            <div>
+                <button type="button" class="btn btn-sm btn-primary" onclick="selectAllOrders()">
+                    <i class='bx bx-check-square'></i> Select All
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="deselectAllOrders()">
+                    <i class='bx bx-square'></i> Deselect All
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <form method="POST" id="bulkActionForm">
+                {% csrf_token %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="40">
+                                    <input type="checkbox" id="selectAll" onclick="toggleAllCheckboxes(this)">
+                                </th>
+                                <th>Products</th>
+                                <th>Order #</th>
+                                <th>Customer</th>
+                                <th>Contact</th>
+                                <th>Total</th>
+                                <th>Approval</th>
+                                <th>Risk</th>
+                                <th>Status</th>
+                                <th>Payment</th>
+                                <th>Date</th>
+                                <th width="180">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in orders %}
+                            <tr>
+                                <td>
+                                    <input type="checkbox" name="selected_orders" value="{{ item.order.id }}" class="order-checkbox">
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        {% if item.product_image %}
+                                        <img src="{{ item.product_image }}" alt="{{ item.product_name }}" 
+                                             style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 2px solid #f0f0f0;">
+                                        {% elif item.product and item.product.image %}
+                                        <img src="{{ item.product.image.url }}" alt="{{ item.product_name }}" 
+                                             style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 2px solid #f0f0f0;">
+                                        {% else %}
+                                        <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                            <i class='bx bx-package' style="font-size: 24px; color: white;"></i>
+                                        </div>
+                                        {% endif %}
+                                        <div style="max-width: 200px;">
+                                            <div style="font-size: 13px; font-weight: 600; color: #566a7f; margin-bottom: 2px;">
+                                                {{ item.product_name|truncatewords:5 }}
+                                            </div>
+                                            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                                <small class="text-muted"><i class='bx bx-purchase-tag'></i> ₹{{ item.product_price }}</small>
+                                                <small class="badge bg-label-primary">Qty: {{ item.quantity }}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <a href="{% url 'admin_order_details' item.order.id %}" class="text-primary fw-bold">
+                                        {{ item.order.order_number }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        {% if item.order.user.userprofile.profile_image and item.order.user.userprofile.profile_image.name != 'profile_images/default.png' %}
+                                        <img src="{{ item.order.user.userprofile.profile_image.url }}" alt="{{ item.order.user.username }}" class="customer-avatar">
+                                        {% else %}
+                                        <span class="avatar-initial rounded-circle bg-label-primary customer-avatar d-flex align-items-center justify-content-center">
+                                            {{ item.order.user.username|slice:":1"|upper }}
+                                        </span>
+                                        {% endif %}
+                                        <div>
+                                            <strong>{{ item.order.user.username }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ item.order.user.first_name }} {{ item.order.user.last_name }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div>
+                                        <i class='bx bx-envelope'></i> {{ item.order.user.email }}
+                                        <br>
+                                        {% if item.order.user.userprofile.mobile_number %}
+                                        <i class='bx bx-phone'></i> {{ item.order.user.userprofile.country_code }} {{ item.order.user.userprofile.mobile_number }}
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <strong>₹{{ item.subtotal|floatformat:2 }}</strong>
+                                </td>
+                                <td>
+                                    {% if item.order.approval_status == 'PENDING_APPROVAL' %}
+                                    <span class="badge bg-warning">
+                                        ⏳ Pending
+                                    </span>
+                                    {% elif item.order.approval_status == 'APPROVED' %}
+                                    <span class="badge bg-success">
+                                        ✅ Approved
+                                    </span>
+                                    {% elif item.order.approval_status == 'REJECTED' %}
+                                    <span class="badge bg-danger">
+                                        ❌ Rejected
+                                    </span>
+                                    {% elif item.order.approval_status == 'AUTO_APPROVED' %}
+                                    <span class="badge bg-info">
+                                        🤖 Auto
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.order.is_suspicious %}
+                                    <span class="badge bg-danger" title="{{ item.order.suspicious_reason }}">
+                                        🚨 {{ item.order.risk_score }}%
+                                    </span>
+                                    {% elif item.order.risk_score > 50 %}
+                                    <span class="badge bg-warning">
+                                        ⚠️ {{ item.order.risk_score }}%
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-success">
+                                        ✓ Safe
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% with latest_return=item.order.return_requests.first %}
+                                        {% if latest_return %}
+                                        <span class="badge
+                                            {% if latest_return.status == 'REQUESTED' %}bg-warning
+                                            {% elif latest_return.status == 'APPROVED' %}bg-info
+                                            {% elif latest_return.status == 'PICKUP_SCHEDULED' %}bg-primary
+                                            {% elif latest_return.status == 'RECEIVED' %}bg-info
+                                            {% elif latest_return.status == 'UNABLE_TO_REACH' %}bg-danger
+                                            {% elif latest_return.status == 'RESCHEDULED' %}bg-warning
+                                            {% elif latest_return.status == 'QC_PENDING' %}bg-warning
+                                            {% elif latest_return.status == 'QC_PASSED' %}bg-success
+                                            {% elif latest_return.status == 'QC_FAILED' %}bg-danger
+                                            {% elif latest_return.status == 'REFUND_PENDING' %}bg-info
+                                            {% elif latest_return.status == 'WRONG_RETURN' %}bg-danger
+                                            {% elif latest_return.status == 'REFUNDED' %}bg-success
+                                            {% elif latest_return.status == 'REPLACED' %}bg-success
+                                            {% elif latest_return.status == 'REJECTED' %}bg-danger
+                                            {% elif latest_return.status == 'CANCELLED' %}bg-secondary
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ latest_return.get_status_display }}
+                                        </span>
+                                        {% else %}
+                                            {% if item.order.order_status == 'PENDING' %}
+                                            <span class="badge bg-warning">
+                                                <i class='bx bx-time-five'></i> {{ item.order.get_order_status_display }}
+                                            </span>
+                                            {% elif item.order.order_status == 'PROCESSING' %}
+                                            <span class="badge bg-info">
+                                                <i class='bx bx-package'></i> {{ item.order.get_order_status_display }}
+                                            </span>
+                                            {% elif item.order.order_status == 'SHIPPED' %}
+                                            <span class="badge bg-secondary">
+                                                <i class='bx bx-car'></i> {{ item.order.get_order_status_display }}
+                                            </span>
+                                            {% elif item.order.order_status == 'DELIVERED' %}
+                                            <span class="badge bg-success">
+                                                <i class='bx bx-check-circle'></i> {{ item.order.get_order_status_display }}
+                                            </span>
+                                            {% elif item.order.order_status == 'CANCELLED' %}
+                                            <span class="badge bg-danger">
+                                                <i class='bx bx-x-circle'></i> {{ item.order.get_order_status_display }}
+                                            </span>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endwith %}
+                                    {% if item.order.cancellation_request and item.order.cancellation_request.status == 'REQUESTED' %}
+                                        <div class="mt-1">
+                                            <span class="badge bg-secondary">Cancel Requested</span>
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.order.payment_status == 'PAID' %}
+                                    <span class="badge bg-success">
+                                        <i class='bx bx-check-double'></i> {{ item.order.get_payment_status_display }}
+                                    </span>
+                                    {% elif item.order.payment_status == 'PENDING' %}
+                                    <span class="badge bg-warning">
+                                        <i class='bx bx-time'></i> {{ item.order.get_payment_status_display }}
+                                    </span>
+                                    {% elif item.order.payment_status == 'FAILED' %}
+                                    <span class="badge bg-danger">
+                                        <i class='bx bx-error'></i> {{ item.order.get_payment_status_display }}
+                                    </span>
+                                    {% elif item.order.payment_status == 'REFUNDED' %}
+                                    <span class="badge bg-secondary">
+                                        <i class='bx bx-revision'></i> {{ item.order.get_payment_status_display }}
+                                    </span>
+                                    {% endif %}
+                                    <br>
+                                    <small class="text-muted"><i class='bx bx-credit-card'></i> {{ item.order.get_payment_method_display }}</small>
+                                </td>
+                                <td>
+                                    <div>
+                                        {{ item.order.created_at|date:"d M, Y" }}
+                                        <br>
+                                        <small class="text-muted">{{ item.order.created_at|date:"h:i A" }}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        {% if item.order.approval_status == 'PENDING_APPROVAL' %}
+                                        <button type="button" class="btn btn-sm btn-success" title="Approve Order" data-bs-toggle="modal" data-bs-target="#approveModal{{ item.id }}">
+                                            <i class='bx bx-check'></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-danger" title="Reject Order" data-bs-toggle="modal" data-bs-target="#rejectModal{{ item.id }}">
+                                            <i class='bx bx-x'></i>
+                                        </button>
+                                        {% endif %}
+                                        <a href="{% url 'admin_order_details' item.order.id %}" class="btn btn-sm btn-primary" title="View Details">
+                                            <i class='bx bx-show'></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            {% empty %}
+                            <tr>
+                                <td colspan="10" class="text-center py-5">
+                                    <i class='bx bx-package' style="font-size: 48px; color: #ccc;"></i>
+                                    <p class="text-muted mt-2">No orders found</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Bulk Actions Bar -->
+                <div class="p-3 border-top bg-light">
+                    <div class="row align-items-center">
+                        <div class="col-md-4">
+                            <span id="selectedCount">0 orders selected</span>
+                        </div>
+                        <div class="col-md-8 text-end">
+                            <select name="action" class="form-select d-inline-block me-2" style="width: auto;">
+                                <option value="">Bulk Actions</option>
+                                <option value="status_update">Update Status</option>
+                                <option value="delete">Delete Orders</option>
+                            </select>
+                            <select name="new_status" class="form-select d-inline-block me-2" style="width: auto;" id="statusSelect">
+                                <option value="">Select Status</option>
+                                <option value="PENDING">Pending</option>
+                                <option value="PROCESSING">Processing</option>
+                                <option value="SHIPPED">Shipped</option>
+                                <option value="DELIVERED">Delivered</option>
+                                <option value="CANCELLED">Cancelled</option>
+                            </select>
+                            <button type="submit" class="btn btn-primary" onclick="return confirmBulkAction()">
+                                <i class='bx bx-check'></i> Apply
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        {% for item in orders %}
+        <!-- Approve Order Modal -->
+        <div class="modal fade" id="approveModal{{ item.id }}" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title">✅ Approve Order #{{ item.order.order_number }}</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="POST" action="{% url 'admin_approve_order' item.order.id %}">
+                        {% csrf_token %}
+                        <div class="modal-body">
+                            <div class="alert alert-success">
+                                <i class='bx bx-check-circle'></i> આ order approve કરો અને processing શરૂ કરો.
+                            </div>
+                            
+                            <div class="card bg-light-success p-3 mb-3">
+                                <h6 class="mb-2">Order Details:</h6>
+                                <p class="mb-1"><strong>Customer:</strong> {{ item.order.user.get_full_name|default:item.order.user.username }}</p>
+                                <p class="mb-1"><strong>Email:</strong> {{ item.order.user.email }}</p>
+                                <p class="mb-1"><strong>Total Amount:</strong> ₹{{ item.order.total_amount }}</p>
+                                <p class="mb-1"><strong>Payment:</strong> {{ item.order.get_payment_method_display }} - {{ item.order.get_payment_status_display }}</p>
+                                {% if item.order.is_suspicious %}
+                                <p class="mb-0 text-danger"><strong>⚠️ Risk Score:</strong> {{ item.order.risk_score }}%</p>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Approval Notes (Optional):</label>
+                                <textarea name="approval_notes" class="form-control" rows="2" placeholder="Add any notes about this approval..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class='bx bx-x'></i> Cancel
+                            </button>
+                            <button type="submit" class="btn btn-success">
+                                <i class='bx bx-check-circle'></i> Confirm Approval
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reject Order Modal -->
+        <div class="modal fade" id="rejectModal{{ item.id }}" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">❌ Reject Order #{{ item.order.order_number }}</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="POST" action="{% url 'admin_reject_order' item.order.id %}">
+                        {% csrf_token %}
+                        <div class="modal-body">
+                            <div class="alert alert-warning">
+                                <i class='bx bx-error-circle'></i> આ order reject કરવાનું confirm કરો. આ action undo નહીં થઈ શકે.
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Rejection Reason: <span class="text-danger">*</span></label>
+                                <select name="rejection_reason" class="form-select" required>
+                                    <option value="">-- Select Reason --</option>
+                                    <option value="Not delivered in your area">🚫 Not delivered in your area</option>
+                                    <option value="Out of stock">📦 Out of stock</option>
+                                    <option value="Suspicious order detected">🚨 Suspicious order detected</option>
+                                    <option value="Payment verification failed">💳 Payment verification failed</option>
+                                    <option value="Customer requested cancellation">👤 Customer requested cancellation</option>
+                                    <option value="Duplicate order">🔄 Duplicate order</option>
+                                    <option value="Invalid address">📍 Invalid address</option>
+                                    <option value="Other">📝 Other</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Additional Notes (Optional):</label>
+                                <textarea name="additional_notes" class="form-control" rows="3" placeholder="Add any additional comments..."></textarea>
+                            </div>
+
+                            <div class="card bg-light-danger p-3">
+                                <h6 class="mb-2">Order Details:</h6>
+                                <p class="mb-1"><strong>Customer:</strong> {{ item.order.user.get_full_name|default:item.order.user.username }}</p>
+                                <p class="mb-1"><strong>Total Amount:</strong> ₹{{ item.order.total_amount }}</p>
+                                <p class="mb-0"><strong>Payment:</strong> {{ item.order.get_payment_method_display }}</p>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class='bx bx-x'></i> Cancel
+                            </button>
+                            <button type="submit" class="btn btn-danger">
+                                <i class='bx bx-error-circle'></i> Confirm Rejection
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer Details Modal -->
+        <div class="modal fade" id="customerModal{{ item.order.id }}" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Customer Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="text-center mb-3">
+                            {% if item.order.user.userprofile.profile_image and item.order.user.userprofile.profile_image.name != 'profile_images/default.png' %}
+                            <img src="{{ item.order.user.userprofile.profile_image.url }}" alt="{{ item.order.user.username }}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">
+                            {% else %}
+                            <div style="width: 80px; height: 80px; border-radius: 50%; background: #696cff; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 32px;">
+                                {{ item.order.user.username|slice:":1"|upper }}
+                            </div>
+                            {% endif %}
+                            <h5 class="mt-2">{{ item.order.user.first_name }} {{ item.order.user.last_name }}</h5>
+                            <p class="text-muted">@{{ item.order.user.username }}</p>
+                        </div>
+                        <hr>
+                        <div class="mb-2">
+                            <strong><i class='bx bx-envelope'></i> Email:</strong>
+                            <p class="mb-0">{{ item.order.user.email }}</p>
+                        </div>
+                        {% if item.order.user.userprofile.mobile_number %}
+                        <div class="mb-2">
+                            <strong><i class='bx bx-phone'></i> Phone:</strong>
+                            <p class="mb-0">{{ item.order.user.userprofile.country_code }} {{ item.order.user.userprofile.mobile_number }}</p>
+                        </div>
+                        {% endif %}
+                        <div class="mb-2">
+                            <strong><i class='bx bx-calendar'></i> Member Since:</strong>
+                            <p class="mb-0">{{ item.order.user.date_joined|date:"d M, Y" }}</p>
+                        </div>
+                        <div class="mb-2">
+                            <strong><i class='bx bx-shopping-bag'></i> Total Orders:</strong>
+                            <p class="mb-0">{{ item.order.user.order_set.count }}</p>
+                        </div>
+                        <hr>
+                        <div class="mb-2">
+                            <strong><i class='bx bx-map'></i> Shipping Address:</strong>
+                            <p class="mb-0">{{ item.order.shipping_address }}</p>
+                        </div>
+                        <div class="mb-2">
+                            <strong><i class='bx bx-credit-card'></i> Billing Address:</strong>
+                            <p class="mb-0">{{ item.order.billing_address }}</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Pagination -->
+        {% if orders.has_other_pages %}
+        <div class="card-footer">
+            <nav>
+                <ul class="pagination justify-content-center mb-0">
+                    {% if orders.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if status_filter %}&status={{ status_filter }}{% endif %}{% if payment_filter %}&payment={{ payment_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if page_size %}&page_size={{ page_size }}{% endif %}">First</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ orders.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if payment_filter %}&payment={{ payment_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if page_size %}&page_size={{ page_size }}{% endif %}">Previous</a>
+                    </li>
+                    {% endif %}
+
+                    <li class="page-item active">
+                        <span class="page-link">Page {{ orders.number }} of {{ orders.paginator.num_pages }}</span>
+                    </li>
+
+                    {% if orders.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ orders.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if payment_filter %}&payment={{ payment_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if page_size %}&page_size={{ page_size }}{% endif %}">Next</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ orders.paginator.num_pages }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if payment_filter %}&payment={{ payment_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if page_size %}&page_size={{ page_size }}{% endif %}">Last</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Toggle all checkboxes
+    function toggleAllCheckboxes(source) {
+        const checkboxes = document.querySelectorAll('.order-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = source.checked;
+        });
+        updateSelectedCount();
+    }
+
+    // Select all orders
+    function selectAllOrders() {
+        const checkboxes = document.querySelectorAll('.order-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = true;
+        });
+        document.getElementById('selectAll').checked = true;
+        updateSelectedCount();
+    }
+
+    // Deselect all orders
+    function deselectAllOrders() {
+        const checkboxes = document.querySelectorAll('.order-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        document.getElementById('selectAll').checked = false;
+        updateSelectedCount();
+    }
+
+    // Update selected count
+    function updateSelectedCount() {
+        const checkedBoxes = document.querySelectorAll('.order-checkbox:checked');
+        const count = checkedBoxes.length;
+        document.getElementById('selectedCount').textContent = count + ' order' + (count !== 1 ? 's' : '') + ' selected';
+    }
+
+    // Confirm bulk action
+    function confirmBulkAction() {
+        const checkedBoxes = document.querySelectorAll('.order-checkbox:checked');
+        if (checkedBoxes.length === 0) {
+            alert('Please select at least one order');
+            return false;
+        }
+
+        const actionSelect = document.querySelector('select[name="action"]');
+        const action = actionSelect.value;
+
+        if (!action) {
+            alert('Please select an action');
+            return false;
+        }
+
+        if (action === 'status_update') {
+            const statusSelect = document.getElementById('statusSelect');
+            if (!statusSelect.value) {
+                alert('Please select a status');
+                return false;
+            }
+            return confirm(`Update status for ${checkedBoxes.length} order(s) to ${statusSelect.options[statusSelect.selectedIndex].text}?`);
+        }
+
+        if (action === 'delete') {
+            return confirm(`Are you sure you want to delete ${checkedBoxes.length} order(s)? This action cannot be undone.`);
+        }
+
+        return true;
+    }
+
+    // Listen to checkbox changes
+    document.addEventListener('DOMContentLoaded', function() {
+        const checkboxes = document.querySelectorAll('.order-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateSelectedCount);
+        });
+        updateSelectedCount();
+    });
+</script>
+{% endblock %}

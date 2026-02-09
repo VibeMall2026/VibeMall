@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Track Order - VibeMall{% endblock %}
+
+{% block content %}
+<div class="breadcrumb__area grey-bg pt-5 pb-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="tp-breadcrumb__content">
+                    <div class="tp-breadcrumb__list">
+                        <span class="tp-breadcrumb__active"><a href="{% url 'index' %}">Home</a></span>
+                        <span class="dvdr">/</span>
+                        <span>Track Order</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="track-order-section pt-120 pb-120">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-6 col-md-8">
+                <div class="track-order-card">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-shipping-fast" style="font-size: 60px; color: #3B4CB8;"></i>
+                        <h2 class="mt-3 mb-2">Track Your Order</h2>
+                        <p class="text-muted">Enter your order number to track your shipment</p>
+                    </div>
+
+                    <form method="POST" action="{% url 'track_order' %}">
+                        {% csrf_token %}
+                        <div class="form-group mb-3">
+                            <label for="order_number" class="form-label">Order Number</label>
+                            <input type="text" 
+                                   class="form-control form-control-lg" 
+                                   id="order_number" 
+                                   name="order_number" 
+                                   placeholder="e.g., ORD-20260202-1234567" 
+                                   required
+                                   style="border: 2px solid #ddd; border-radius: 8px; padding: 15px;">
+                            <small class="text-muted">You can find your order number in the order confirmation email</small>
+                        </div>
+
+                        <button type="submit" 
+                                class="btn btn-primary w-100 btn-lg mt-3" 
+                                style="background: #3B4CB8; border: none; border-radius: 8px; padding: 15px; font-weight: 600;">
+                            <i class="fas fa-search me-2"></i>Track Order
+                        </button>
+                    </form>
+
+                    <div class="mt-4 text-center">
+                        <p class="mb-2">Need help?</p>
+                        <a href="{% url 'contact' %}" class="text-decoration-none" style="color: #3B4CB8; font-weight: 500;">
+                            <i class="fas fa-headset me-1"></i>Contact Support
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+.track-order-card {
+    background: white;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+.track-order-section {
+    background: #f8f9fa;
+    min-height: 60vh;
+}
+
+.form-control:focus {
+    border-color: #3B4CB8 !important;
+    box-shadow: 0 0 0 0.2rem rgba(59, 76, 184, 0.15) !important;
+}
+
+.btn-primary:hover {
+    background: #2d3a8c !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 76, 184, 0.3);
+    transition: all 0.3s ease;
+}
+
+@media (max-width: 768px) {
+    .track-order-card {
+        padding: 30px 20px;
+    }
+}
+</style>
+{% endblock %}

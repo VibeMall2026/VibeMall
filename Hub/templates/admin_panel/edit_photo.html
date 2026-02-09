@@ -1,0 +1,271 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Edit Photo - FashioHub Admin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.css" />
+{% endblock %}
+
+{% block content %}
+<h4 class="fw-bold py-3 mb-4"><span class="text-muted fw-light">Tools /</span> Edit Photo</h4>
+
+<div class="row">
+    <div class="col-xl-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Convert Image URLs to PNG</h5>
+                <small class="text-muted">Admin tool</small>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info" role="alert">
+                    Step 1: Convert all URLs to PNG. Step 2: Select one image, crop it, and apply the same crop to all PNGs.
+                </div>
+
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="convert">
+
+                    <div id="url-list">
+                        <div class="input-group mb-2 url-item">
+                            <span class="input-group-text">URL</span>
+                            <input type="url" name="image_urls" class="form-control" placeholder="https://example.com/image.jpg" required>
+                            <button type="button" class="btn btn-outline-secondary remove-url" disabled>Remove</button>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <button type="button" class="btn btn-outline-primary" id="add-url">+ Add another</button>
+                        <button type="submit" class="btn btn-primary">Convert to PNG</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if errors %}
+        <div class="card mb-4">
+            <div class="card-body">
+                <h6 class="text-danger mb-3">Errors</h6>
+                <ul class="mb-0">
+                    {% for error in errors %}
+                        <li class="text-danger small">{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if results and not show_downloads %}
+        <div class="card mb-4" id="converted-images">
+            <div class="card-header">
+                <h5 class="mb-0">Step 2: Select and Crop</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="apply-crop-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="apply_crop">
+                    <input type="hidden" name="selected_url" id="selected_url" />
+                    <input type="hidden" name="crop_ratio_x" id="crop_ratio_x" />
+                    <input type="hidden" name="crop_ratio_y" id="crop_ratio_y" />
+                    <input type="hidden" name="crop_ratio_w" id="crop_ratio_w" />
+                    <input type="hidden" name="crop_ratio_h" id="crop_ratio_h" />
+
+                    {% for item in results %}
+                        <input type="hidden" name="converted_urls" value="{{ item.url }}" />
+                    {% endfor %}
+
+                    <div class="row g-3">
+                        <div class="col-lg-6">
+                            <div class="border rounded p-2 mb-3" id="crop-preview" style="min-height: 300px;">
+                                <img id="crop-image" alt="Crop Preview" style="max-width: 100%; display: block;">
+                                <div id="crop-status" class="text-muted small mt-2" style="display: none;"></div>
+                            </div>
+                            <button type="submit" class="btn btn-success">Apply Crop to All</button>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="row g-3">
+                                {% for item in results %}
+                                <div class="col-6">
+                                    <label class="border rounded p-2 h-100 d-block" style="cursor: pointer;">
+                                        <input type="radio" name="select_image" class="form-check-input me-2 select-image" value="{{ item.url }}" {% if forloop.first %}checked{% endif %}>
+                                        <img src="{{ item.url }}" alt="Converted image" class="img-fluid rounded" style="max-height: 140px; object-fit: contain; width: 100%;">
+                                        <div class="text-muted small mt-1">{{ item.filename }}</div>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if results and show_downloads %}
+        <div class="card mb-4" id="download-images">
+            <div class="card-header">
+                <h5 class="mb-0">Step 3: Download (1, 2, 3...)</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    {% for item in results %}
+                    <div class="col-md-6 col-lg-4">
+                        <div class="border rounded p-2 h-100">
+                            <img src="{{ item.url }}" alt="Cropped image" class="img-fluid rounded" style="max-height: 220px; object-fit: contain; width: 100%;">
+                            <div class="mt-2 small">
+                                <div class="text-muted">{{ item.download_name }}</div>
+                                <a href="{{ item.url }}" class="btn btn-sm btn-outline-primary mt-2 download-btn" download="{{ item.download_name }}">Download PNG</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-xl-4">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h6 class="card-title">How it works</h6>
+                <p class="text-muted small mb-2">1. Paste one or more image URLs.</p>
+                <p class="text-muted small mb-2">2. Click Convert to PNG.</p>
+                <p class="text-muted small mb-0">3. Download the converted PNG files.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const urlList = document.getElementById('url-list');
+    const addBtn = document.getElementById('add-url');
+
+    if (!urlList || !addBtn) return;
+
+    const updateRemoveState = () => {
+        const items = urlList.querySelectorAll('.url-item');
+        items.forEach((item) => {
+            const removeBtn = item.querySelector('.remove-url');
+            if (removeBtn) {
+                removeBtn.disabled = items.length === 1;
+            }
+        });
+    };
+
+    addBtn.addEventListener('click', () => {
+        const item = document.createElement('div');
+        item.className = 'input-group mb-2 url-item';
+        item.innerHTML = `
+            <span class="input-group-text">URL</span>
+            <input type="url" name="image_urls" class="form-control" placeholder="https://example.com/image.jpg" required>
+            <button type="button" class="btn btn-outline-secondary remove-url">Remove</button>
+        `;
+        urlList.appendChild(item);
+        updateRemoveState();
+    });
+
+    urlList.addEventListener('click', (event) => {
+        if (!event.target.classList.contains('remove-url')) return;
+        const item = event.target.closest('.url-item');
+        if (item) {
+            item.remove();
+            updateRemoveState();
+        }
+    });
+
+    updateRemoveState();
+
+    const resultsBlock = document.getElementById('converted-images');
+    const downloadBlock = document.getElementById('download-images');
+    if (downloadBlock) {
+        downloadBlock.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (resultsBlock) {
+        resultsBlock.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const cropImage = document.getElementById('crop-image');
+    const cropStatus = document.getElementById('crop-status');
+    const selectedUrlInput = document.getElementById('selected_url');
+    const ratioInputs = {
+        x: document.getElementById('crop_ratio_x'),
+        y: document.getElementById('crop_ratio_y'),
+        w: document.getElementById('crop_ratio_w'),
+        h: document.getElementById('crop_ratio_h'),
+    };
+    let cropper = null;
+
+    const setRatioFromCropper = () => {
+        if (!cropper) return;
+        const data = cropper.getData(true);
+        const imageData = cropper.getImageData();
+        if (!data || !imageData || !imageData.naturalWidth || !imageData.naturalHeight) {
+            return;
+        }
+        ratioInputs.x.value = (data.x / imageData.naturalWidth).toFixed(6);
+        ratioInputs.y.value = (data.y / imageData.naturalHeight).toFixed(6);
+        ratioInputs.w.value = (data.width / imageData.naturalWidth).toFixed(6);
+        ratioInputs.h.value = (data.height / imageData.naturalHeight).toFixed(6);
+    };
+
+    const initCropper = (url) => {
+        if (!cropImage) return;
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
+        if (!url) return;
+        cropImage.src = url;
+        if (cropStatus) {
+            cropStatus.style.display = 'none';
+            cropStatus.textContent = '';
+        }
+        cropImage.onload = () => {
+            cropper = new Cropper(cropImage, {
+                viewMode: 1,
+                autoCropArea: 1,
+                responsive: true,
+                background: false,
+                crop: setRatioFromCropper,
+            });
+        };
+        cropImage.onerror = () => {
+            if (cropStatus) {
+                cropStatus.textContent = 'Preview load failed.';
+                cropStatus.style.display = 'block';
+            }
+        };
+    };
+
+    document.querySelectorAll('.select-image').forEach((radio) => {
+        radio.addEventListener('change', () => {
+            if (selectedUrlInput) {
+                selectedUrlInput.value = radio.value;
+            }
+            initCropper(radio.value);
+        });
+        if (radio.checked && selectedUrlInput) {
+            selectedUrlInput.value = radio.value;
+            initCropper(radio.value);
+        }
+    });
+
+    document.querySelectorAll('.download-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const card = btn.closest('.border');
+            if (card) {
+                card.remove();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

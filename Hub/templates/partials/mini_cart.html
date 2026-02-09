@@ -1,0 +1,55 @@
+{% load static %}
+<ul>
+    <li>
+        <div class="cart__title">
+            <h4>Your Cart</h4>
+            <span>(<span class="cart-mini-count">{{ cart_count }}</span> Item{% if cart_count != 1 %}s{% endif %} in Cart)</span>
+        </div>
+    </li>
+    {% if cart_items %}
+        {% for item in cart_items %}
+        <li>
+            <div class="cart__item d-flex justify-content-between align-items-center">
+                <div class="cart__inner d-flex">
+                    <div class="cart__thumb">
+                        <a href="{% url 'product-details' item.product.id %}">
+                            {% if item.product.image %}
+                                <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="max-width: 60px; height: auto;">
+                            {% else %}
+                                <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.product.name }}" style="max-width: 60px; height: auto; background-color: #f0f0f0;">
+                            {% endif %}
+                        </a>
+                    </div>
+                    <div class="cart__details">
+                        <h6><a href="{% url 'product-details' item.product.id %}">{{ item.product.name }} x{{ item.quantity }}</a></h6>
+                        <div class="cart__price">
+                            <span>&#8377;{{ item.get_total_price }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="cart__del">
+                    {% if item.id %}
+                        <a href="{% url 'remove_from_cart' item.id %}"><i class="fal fa-times"></i></a>
+                    {% endif %}
+                </div>
+            </div>
+        </li>
+        {% endfor %}
+    {% else %}
+        <li>
+            <div class="cart__item">
+                <p style="text-align: center; padding: 15px; color: #999;">Your cart is empty</p>
+            </div>
+        </li>
+    {% endif %}
+    <li>
+        <div class="cart__sub d-flex justify-content-between align-items-center">
+            <h6>Subtotal</h6>
+            <span class="cart__sub-total cart-subtotal">&#8377;{{ cart_total|default:"0.00" }}</span>
+        </div>
+    </li>
+    <li>
+        <a href="{% url 'cart' %}" class="wc-cart mb-10">View cart</a>
+        <a href="{% url 'checkout' %}" class="wc-checkout">Checkout</a>
+    </li>
+</ul>

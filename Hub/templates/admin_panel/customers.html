@@ -1,0 +1,376 @@
+﻿{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Customer Management - FashioHub Admin{% endblock %}
+
+{% block content %}
+<h4 class="fw-bold py-3 mb-4">
+    <span class="text-muted fw-light">Customers /</span> Customer Management
+</h4>
+
+<!-- Display messages -->
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="card-title d-flex align-items-start justify-content-between">
+                    <div class="avatar flex-shrink-0">
+                        <img src="{% static 'admin/assets/img/icons/unicons/chart-success.png' %}" alt="Total" class="rounded" />
+                    </div>
+                </div>
+                <span class="fw-semibold d-block mb-1">Total Customers</span>
+                <h3 class="card-title mb-2">{{ total_customers }}</h3>
+                <small class="text-muted">All registered users</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="card-title d-flex align-items-start justify-content-between">
+                    <div class="avatar flex-shrink-0">
+                        <img src="{% static 'admin/assets/img/icons/unicons/cc-success.png' %}" alt="Active" class="rounded" />
+                    </div>
+                </div>
+                <span class="fw-semibold d-block mb-1">Active Customers</span>
+                <h3 class="card-title text-nowrap mb-1">{{ active_customers }}</h3>
+                <small class="text-success fw-semibold">Not blocked</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="card-title d-flex align-items-start justify-content-between">
+                    <div class="avatar flex-shrink-0">
+                        <img src="{% static 'admin/assets/img/icons/unicons/wallet-info.png' %}" alt="Blocked" class="rounded" />
+                    </div>
+                </div>
+                <span class="fw-semibold d-block mb-1">Blocked Customers</span>
+                <h3 class="card-title text-nowrap mb-1">{{ blocked_customers }}</h3>
+                <small class="text-danger fw-semibold">Access restricted</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="card-title d-flex align-items-start justify-content-between">
+                    <div class="avatar flex-shrink-0">
+                        <img src="{% static 'admin/assets/img/icons/unicons/cc-primary.png' %}" alt="VIP" class="rounded" />
+                    </div>
+                </div>
+                <span class="fw-semibold d-block mb-1">VIP Customers</span>
+                <h3 class="card-title text-nowrap mb-1">{{ vip_customers }}</h3>
+                <small class="text-primary fw-semibold">Premium tier</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Segment Stats -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card bg-label-success">
+            <div class="card-body text-center">
+                <h4 class="mb-1">{{ new_customers }}</h4>
+                <span>New Customers</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-label-info">
+            <div class="card-body text-center">
+                <h4 class="mb-1">{{ regular_customers }}</h4>
+                <span>Regular Customers</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-label-warning">
+            <div class="card-body text-center">
+                <h4 class="mb-1">{{ vip_customers }}</h4>
+                <span>VIP Customers</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-label-dark">
+            <div class="card-body text-center">
+                <h4 class="mb-1">{{ admin_customers }}</h4>
+                <span>Admin Users</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Customers Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">All Customers</h5>
+    </div>
+    
+    <div class="card-body">
+        <!-- Search and Filters -->
+        <form method="GET" class="mb-4">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" name="search" class="form-control" placeholder="Search by name, email, username..." value="{{ search_query }}">
+                </div>
+                <div class="col-md-3">
+                    <select name="segment" class="form-select">
+                        <option value="all" {% if segment_filter == 'all' %}selected{% endif %}>All Segments</option>
+                        <option value="NEW" {% if segment_filter == 'NEW' %}selected{% endif %}>New Customers</option>
+                        <option value="REGULAR" {% if segment_filter == 'REGULAR' %}selected{% endif %}>Regular Customers</option>
+                        <option value="VIP" {% if segment_filter == 'VIP' %}selected{% endif %}>VIP Customers</option>
+                        <option value="ADMIN" {% if segment_filter == 'ADMIN' %}selected{% endif %}>Admin Users</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="status" class="form-select">
+                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+                        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                        <option value="blocked" {% if status_filter == 'blocked' %}selected{% endif %}>Blocked</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class='bx bx-search'></i> Filter
+                    </button>
+                </div>
+            </div>
+        </form>
+        
+        <form method="POST" id="bulkActionForm">
+            {% csrf_token %}
+            
+            <!-- Bulk Actions -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <select name="action" class="form-select" style="max-width: 200px;">
+                            <option value="">Bulk Actions</option>
+                            <option value="block">Block Selected</option>
+                            <option value="unblock">Unblock Selected</option>
+                            <option value="NEW">Set as New</option>
+                            <option value="REGULAR">Set as Regular</option>
+                            <option value="VIP">Set as VIP</option>
+                            <option value="ADMIN">Set as Admin</option>
+                            <option value="delete" class="text-danger">Delete Selected</option>
+                        </select>
+                        <button type="submit" class="btn btn-primary" onclick="return confirm('Are you sure you want to perform this action?')">Apply</button>
+                    </div>
+                </div>
+                <div class="col-md-6 text-end">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectAll()">
+                        <i class='bx bx-check-square'></i> Select All
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAll()">
+                        <i class='bx bx-square'></i> Deselect All
+                    </button>
+                </div>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="selectAllCheckbox" onclick="toggleAll(this)"></th>
+                            <th>ID</th>
+                            <th>Customer</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Segment</th>
+                            <th>Total Spent</th>
+                            <th>Status</th>
+                            <th>Joined</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for customer in customers %}
+                        <tr>
+                            <td>
+                                <input type="checkbox" name="customer_ids" value="{{ customer.id }}" class="customer-checkbox">
+                            </td>
+                            <td><strong>#{{ customers.start_index|add:forloop.counter0 }}</strong></td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if customer.userprofile.profile_image %}
+                                        <img src="{{ customer.userprofile.profile_image.url }}" alt="{{ customer.username }}" class="me-2 rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+                                    {% else %}
+                                        <div class="avatar avatar-sm me-2">
+                                            <span class="avatar-initial rounded-circle bg-label-primary">{{ customer.username.0|upper }}</span>
+                                        </div>
+                                    {% endif %}
+                                    <div>
+                                        <strong>{{ customer.get_full_name|default:customer.username }}</strong><br>
+                                        <small class="text-muted">@{{ customer.username }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ customer.email }}</td>
+                            <td>{{ customer.userprofile.mobile_number|default:"N/A" }}</td>
+                            <td>
+                                {% if customer.userprofile.customer_segment == 'NEW' %}
+                                    <span class="badge bg-label-success">New</span>
+                                {% elif customer.userprofile.customer_segment == 'REGULAR' %}
+                                    <span class="badge bg-label-info">Regular</span>
+                                {% elif customer.userprofile.customer_segment == 'VIP' %}
+                                    <span class="badge bg-label-warning">VIP</span>
+                                {% elif customer.userprofile.customer_segment == 'ADMIN' %}
+                                    <span class="badge bg-label-dark">Admin</span>
+                                {% endif %}
+                            </td>
+                            <td><strong>&#8377;{{ customer.userprofile.total_spent }}</strong></td>
+                            <td>
+                                {% if customer.userprofile.is_blocked %}
+                                    <span class="badge bg-label-danger">Blocked</span>
+                                {% else %}
+                                    <span class="badge bg-label-success">Active</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>{{ customer.date_joined|date:"M d, Y" }}</small>
+                            </td>
+                            <td>
+                                <div class="dropdown">
+                                    <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                        <i class="bx bx-dots-vertical-rounded"></i>
+                                    </button>
+                                    <div class="dropdown-menu">
+                                        <a class="dropdown-item" href="{% url 'admin_customer_details' customer.id %}">
+                                            <i class="bx bx-show me-1"></i> View Details
+                                        </a>
+                                        {% if customer.userprofile.is_blocked %}
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="quickAction({{ customer.id }}, 'unblock')">
+                                            <i class="bx bx-check me-1"></i> Unblock
+                                        </a>
+                                        {% else %}
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="quickAction({{ customer.id }}, 'block')">
+                                            <i class="bx bx-block me-1"></i> Block
+                                        </a>
+                                        {% endif %}
+                                        <div class="dropdown-divider"></div>
+                                        <a class="dropdown-item text-danger" href="javascript:void(0);" onclick="deleteCustomer({{ customer.id }})">
+                                            <i class="bx bx-trash me-1"></i> Delete
+                                        </a>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="10" class="text-center py-5">
+                                <i class='bx bx-user-x' style="font-size: 48px; color: #ccc;"></i>
+                                <p class="text-muted mt-2">No customers found.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Pagination -->
+    {% if customers.has_other_pages %}
+    <div class="card-footer">
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center mb-0">
+                {% if customers.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?segment={{ segment_filter }}&status={{ status_filter }}&search={{ search_query }}&page=1">First</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?segment={{ segment_filter }}&status={{ status_filter }}&search={{ search_query }}&page={{ customers.previous_page_number }}">Previous</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">Previous</span>
+                    </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">
+                        Page {{ customers.number }} of {{ customers.paginator.num_pages }}
+                    </span>
+                </li>
+                
+                {% if customers.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?segment={{ segment_filter }}&status={{ status_filter }}&search={{ search_query }}&page={{ customers.next_page_number }}">Next</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?segment={{ segment_filter }}&status={{ status_filter }}&search={{ search_query }}&page={{ customers.paginator.num_pages }}">Last</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">Next</span>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleAll(source) {
+    const checkboxes = document.querySelectorAll('.customer-checkbox');
+    checkboxes.forEach(checkbox => checkbox.checked = source.checked);
+}
+
+function selectAll() {
+    document.querySelectorAll('.customer-checkbox').forEach(cb => cb.checked = true);
+    document.getElementById('selectAllCheckbox').checked = true;
+}
+
+function deselectAll() {
+    document.querySelectorAll('.customer-checkbox').forEach(cb => cb.checked = false);
+    document.getElementById('selectAllCheckbox').checked = false;
+}
+
+function quickAction(customerId, action) {
+    const actionText = action === 'block' ? 'block' : 'unblock';
+    if (confirm(`Are you sure you want to ${actionText} this customer?`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.innerHTML = `
+            {% csrf_token %}
+            <input type="hidden" name="action" value="${action}">
+            <input type="hidden" name="customer_ids" value="${customerId}">
+        `;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function deleteCustomer(customerId) {
+    if (confirm('Are you sure you want to delete this customer? This action cannot be undone and will delete all their data including orders, reviews, and wishlist.')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.innerHTML = `
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="customer_ids" value="${customerId}">
+        `;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

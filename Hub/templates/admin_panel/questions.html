@@ -1,0 +1,133 @@
+﻿{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Product Questions - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="fw-bold py-3 mb-4"><span class="text-muted fw-light">Content /</span> Product Questions</h4>
+
+    <!-- Filter Tabs -->
+    <ul class="nav nav-pills mb-3" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link {% if not request.GET.status %}active{% endif %}" href="{% url 'admin_questions' %}">
+                All ({{ questions.count }})
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.GET.status == 'pending' %}active{% endif %}" href="?status=pending">
+                Pending
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.GET.status == 'answered' %}active{% endif %}" href="?status=answered">
+                Answered
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.GET.status == 'approved' %}active{% endif %}" href="?status=approved">
+                Approved
+            </a>
+        </li>
+    </ul>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Product</th>
+                        <th>User</th>
+                        <th>Question</th>
+                        <th>Answer</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for question in questions %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'product-details' question.product.id %}" target="_blank">
+                                {{ question.product.name|truncatewords:5 }}
+                            </a>
+                        </td>
+                        <td>
+                            <div class="fw-semibold">{{ question.user.get_full_name|default:question.user.username }}</div>
+                            <small class="text-muted">{{ question.user.email }}</small>
+                        </td>
+                        <td>{{ question.question|truncatewords:15 }}</td>
+                        <td>
+                            {% if question.answer %}
+                                <span class="text-success">✓ Answered</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if question.is_approved %}
+                                <span class="badge bg-label-success">Approved</span>
+                            {% elif question.answer %}
+                                <span class="badge bg-label-warning">Answered</span>
+                            {% else %}
+                                <span class="badge bg-label-secondary">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td><small>{{ question.created_at|date:"M d, Y" }}</small></td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#answerModal{{ question.id }}">
+                                <i class="bx bx-message-square-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger" 
+                                    onclick="if(confirm('Delete this question?')) { document.getElementById('delete-form-{{ question.id }}').submit(); }">
+                                <i class="bx bx-trash"></i>
+                            </button>
+                            <form id="delete-form-{{ question.id }}" method="POST" action="{% url 'admin_delete_question' question.id %}" style="display: none;">
+                                {% csrf_token %}
+                            </form>
+                        </td>
+                    </tr>
+
+                    <!-- Answer Modal -->
+                    <div class="modal fade" id="answerModal{{ question.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Answer Question</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <form method="POST" action="{% url 'admin_approve_question' question.id %}">
+                                    {% csrf_token %}
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">Question:</label>
+                                            <p>{{ question.question }}</p>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Your Answer *</label>
+                                            <textarea class="form-control" name="answer" rows="4" required>{{ question.answer }}</textarea>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn btn-primary">Answer & Approve</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5">
+                            <i class="bx bx-help-circle" style="font-size: 48px; color: #ddd;"></i>
+                            <p class="text-muted">No questions yet</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

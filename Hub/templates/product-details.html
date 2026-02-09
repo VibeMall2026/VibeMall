@@ -1,0 +1,772 @@
+﻿{% extends "base.html" %}
+
+{% load static %}
+{% load hub_filters %}
+
+
+{% block title %}Product Details - VibeMall{% endblock %}
+
+{% block content %}
+
+<style>
+    .pd-cta-wrap { display: flex; flex-direction: column; gap: 12px; }
+    .qty-control { display: inline-flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid #e5e7eb; border-radius: 12px; background: #f9fafb; }
+    .qty-input { width: 64px; text-align: center; border: 1px solid #e5e7eb; border-radius: 10px; padding: 8px; font-weight: 600; }
+    .qty-input::-webkit-outer-spin-button, .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .qty-input { -moz-appearance: textfield; appearance: textfield; }
+    .qty-btn { width: 36px; height: 36px; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; font-weight: 700; color: #111827; transition: background 120ms ease, color 120ms ease, border-color 120ms ease, box-shadow 120ms ease; }
+    .qty-btn:hover { background: #111827; color: #fff; border-color: #111827; box-shadow: 0 8px 20px rgba(17, 24, 39, 0.18); }
+    .details-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
+    .action-chip { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; color: #111827; font-weight: 600; text-decoration: none; transition: background 120ms ease, color 120ms ease, border-color 120ms ease, box-shadow 120ms ease; }
+    .action-chip:hover { background: #111827; color: #fff; border-color: #111827; box-shadow: 0 10px 26px rgba(17, 24, 39, 0.18); }
+    .action-chip .icon { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #f3f4f6; color: #111827; transition: background 120ms ease, color 120ms ease; }
+    .action-chip:hover .icon { background: rgba(255, 255, 255, 0.16); color: #fff; }
+    .action-chip.wishlisted { background: #111827; color: #fff; border-color: #111827; }
+    .action-chip.wishlisted .icon { background: rgba(255, 255, 255, 0.16); color: #fff; }
+    .details-meta { border-top: 1px solid #e5e7eb; padding-top: 12px; margin-top: 8px; }
+    .pd-title { font-size: 24px; font-weight: 700; color: #111827; margin-bottom: 8px; }
+    
+    /* Fix for product image display */
+    .product__details-nav-thumb { 
+        background: #fff !important; 
+        min-height: 400px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 20px !important;
+    }
+    .product__details-nav-thumb img { 
+        width: 100% !important; 
+        height: auto !important; 
+        display: block !important; 
+        background: #fff !important; 
+        object-fit: contain !important;
+        max-height: 500px !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    .w-img { 
+        width: 100% !important; 
+        position: relative !important;
+        overflow: visible !important;
+        display: block !important;
+    }
+    .w-img img {
+        width: 100% !important;
+        display: block !important;
+    }
+    .product__details-thumb {
+        width: 100% !important;
+        max-width: 600px !important;
+        display: block !important;
+    }
+    .tab-content {
+        width: 100% !important;
+    }
+    .tab-pane {
+        width: 100% !important;
+    }
+    .tab-pane.show {
+        display: block !important;
+    }
+    .tab-pane.active {
+        display: block !important;
+    }
+    .product__details-thumb .tab-pane {
+        min-height: 400px;
+    }
+    #mainProductImage {
+        display: block !important;
+        width: 100% !important;
+        height: auto !important;
+        max-height: 500px !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    .product__details-nav .nav-link {
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+    .product__details-nav .nav-link img {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    /* Buy Now Button */
+    .buy-now-btn {
+        padding: 12px 24px;
+        background: linear-gradient(135deg, #fcbe00 0%, #ffa500 100%);
+        color: #111827;
+        border: none;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 15px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(252, 190, 0, 0.3);
+    }
+    .buy-now-btn:hover {
+        background: linear-gradient(135deg, #ffa500 0%, #fcbe00 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(252, 190, 0, 0.4);
+    }
+    .buy-now-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    /* Hide any URL display in breadcrumb - aggressive fix */
+    .breadcrumb-item a::after,
+    .breadcrumb-item a::before,
+    .breadcrumb a::after,
+    .breadcrumb a::before,
+    .breadcrumb *::after,
+    .breadcrumb *::before {
+        content: none !important;
+        display: none !important;
+    }
+    .breadcrumb a {
+        text-decoration: none !important;
+    }
+    @media print {
+        .breadcrumb a::after,
+        .breadcrumb-item a::after {
+            content: none !important;
+            display: none !important;
+        }
+    }
+</style>
+
+    <!-- breadcrumb__area-start -->
+        <section class="breadcrumb__area box-plr-75">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xxl-12">
+                        <div class="breadcrumb__wrapper">
+                            <nav aria-label="breadcrumb">
+                                <ol class="breadcrumb">
+                                  <li class="breadcrumb-item"><a href="{% url 'index' %}">Home</a></li>
+                                  <li class="breadcrumb-item"><a href="{% url 'shop' %}">Shop</a></li>
+                                  <li class="breadcrumb-item active" aria-current="page">{{ product.name|truncatewords:5 }}</li>
+                                </ol>
+                              </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- breadcrumb__area-end -->
+
+        <!-- product-details-start -->
+        <div class="product-details">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xl-6">
+                        <div class="product__details-nav d-sm-flex align-items-start" style="gap: 15px;">
+                            <!-- Thumbnail Navigation -->
+                            <ul class="nav nav-tabs flex-sm-column" id="productThumbTab" role="tablist" style="gap: 10px; min-width: 100px;">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active p-2 border rounded product-thumb-button" id="thumbOne-tab"
+                                            type="button"
+                                            data-large-src="{% if product.image and product.image.name %}{{ product.image.url }}{% else %}{% static 'assets/img/product/tp-1.jpg' %}{% endif %}"
+                                            style="width: 100px; height: 100px; padding: 5px !important; display: flex; align-items: center; justify-content: center;">
+                                        {% if product.image and product.image.name %}
+                                            <img src="{{ product.image.url }}" alt="{{ product.name }}" 
+                                                 style="width: 90px; height: 90px; object-fit: cover; display: block;">
+                                        {% else %}
+                                            <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}" 
+                                                 style="width: 90px; height: 90px; object-fit: cover; display: block;">
+                                        {% endif %}
+                                    </button>
+                                </li>
+                                {% for additional_image in product.additional_images.all %}
+                                    {% if additional_image.image and additional_image.image.name %}
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link p-2 border rounded product-thumb-button" id="thumb{{ forloop.counter }}-tab"
+                                                type="button"
+                                                data-large-src="{{ additional_image.image.url }}"
+                                                style="width: 100px; height: 100px; padding: 5px !important; display: flex; align-items: center; justify-content: center;">
+                                            <img src="{{ additional_image.image.url }}" alt="{{ product.name }}" 
+                                                 style="width: 90px; height: 90px; object-fit: cover; display: block;">
+                                        </button>
+                                    </li>
+                                    {% endif %}
+                                {% endfor %}
+                            </ul>
+                            
+                            <!-- Main Image Display -->
+                            <div class="product__details-thumb flex-grow-1">
+                                <div class="product__details-nav-thumb" style="background: #ffffff; padding: 30px; border: 2px solid #eee; border-radius: 12px; min-height: 400px; display: flex !important; align-items: center; justify-content: center;">
+                                    {% if product.image and product.image.name %}
+                                        <img id="mainProductImage" src="{{ product.image.url }}" 
+                                             alt="{{ product.name }}"
+                                             style="display: block !important; width: 100% !important; height: auto !important; max-height: 500px !important; object-fit: contain !important; visibility: visible !important; opacity: 1 !important;"
+                                             onload="console.log('Main image loaded successfully:', this.src);"
+                                             onerror="console.error('MAIN IMAGE FAILED TO LOAD:', this.src); this.src='{% static 'assets/img/product/tp-1.jpg' %}'; this.style.backgroundColor='#ffcccc';">
+                                    {% else %}
+                                        <img id="mainProductImage" src="{% static 'assets/img/product/tp-1.jpg' %}" 
+                                             alt="{{ product.name }}"
+                                             style="display: block !important; width: 100% !important; height: auto !important; max-height: 500px !important; object-fit: contain !important; background-color: #f0f0f0;">
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-6">
+                        <div class="product__details-content">
+                            <h3 class="pd-title">{{ product.name }}</h3>
+                            <div class="pd-rating mb-10">
+                                <ul class="rating">
+                                    {% for i in "12345" %}
+                                        {% if i|add:"0" <= avg_rating %}
+                                            <li><a href="#"><i class="fas fa-star"></i></a></li>
+                                        {% else %}
+                                            <li><a href="#"><i class="fal fa-star"></i></a></li>
+                                        {% endif %}
+                                    {% endfor %}
+                                </ul>
+                                <span>({{ total_reviews }} review{% if total_reviews != 1 %}s{% endif %})</span>
+                                <span><a href="#">Add your review</a></span>
+                            </div>
+                            <div class="price mb-10">
+                                <span>&#8377;{{ product.price }}</span>
+                                {% if product.old_price %}
+                                    <span style="text-decoration: line-through; color: #999; margin-left: 10px;">&#8377;{{ product.old_price }}</span>
+                                {% endif %}
+                            </div>
+                            {% if product.stock == 0 %}
+                            <div class="mb-10">
+                                <span class="badge bg-danger">Sold out</span>
+                            </div>
+                            {% endif %}
+                            <div class="features-des mb-20 mt-10">
+                                <ul>
+                                    <li><a href="#"><i class="fas fa-circle"></i> High Quality Product</a></li>
+                                    <li><a href="#"><i class="fas fa-circle"></i> Fast Shipping Available</a></li>
+                                    <li><a href="#"><i class="fas fa-circle"></i> Easy Returns & Exchanges</a></li>
+                                    <li><a href="#"><i class="fas fa-circle"></i> 100% Authentic Guarantee</a></li>
+                                </ul>
+                            </div>
+                            <div class="cart-option mb-15">
+                                <form method="POST" action="{% url 'add_to_cart' %}" class="pd-cta-wrap">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                                    <div class="d-flex flex-wrap align-items-center gap-3">
+                                        <div class="qty-control" data-max="{{ product.stock|default:999 }}">
+                                            <button type="button" class="qty-btn" data-step="-1" aria-label="Decrease quantity">-</button>
+                                            <input class="qty-input" type="number" name="quantity" value="1" min="1" max="{{ product.stock }}" inputmode="numeric" aria-label="Quantity">
+                                            <button type="button" class="qty-btn" data-step="1" aria-label="Increase quantity">+</button>
+                                        </div>
+                                        <button type="submit" class="cart-btn" {% if product.stock == 0 %}disabled{% endif %}>
+                                            <i class="fas fa-shopping-cart"></i> Add to Cart
+                                        </button>
+                                        <button type="button" class="buy-now-btn" onclick="buyNow({{ product.id }}, this.closest('form').querySelector('.qty-input').value)" {% if product.stock == 0 %}disabled{% endif %}>
+                                            <i class="fas fa-bolt"></i> Buy Now
+                                        </button>
+                                    </div>
+                                    <p class="text-muted small mb-0">Quantity updates instantly — no tiny spinners.</p>
+                                </form>
+                            </div>
+                            {% if product.stock == 0 %}
+                            <div class="mb-15">
+                                <form method="POST" action="{% url 'request_stock_notification' product.id %}" class="d-flex flex-wrap gap-2 align-items-center">
+                                    {% csrf_token %}
+                                    {% if user.is_authenticated and user.email %}
+                                        <input type="hidden" name="email" value="{{ user.email }}">
+                                    {% else %}
+                                        <input type="email" name="email" class="form-control" placeholder="Your email" required style="max-width: 280px;">
+                                    {% endif %}
+                                    <button type="submit" class="btn btn-outline-dark">Notify me</button>
+                                </form>
+                                <p class="text-muted small mb-0">We will email you when this item is back in stock.</p>
+                            </div>
+                            {% endif %}
+                            <div class="details-meta">
+                                <div class="details-actions">
+                                    <button type="button" class="action-chip wishlist-chip {% if in_wishlist %}wishlisted{% endif %}" data-product-id="{{ product.id }}" data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}" onclick="handlePdWishlistClick(this);">
+                                        <span class="icon"><i class="{% if in_wishlist %}fas{% else %}fal{% endif %} fa-heart"></i></span>
+                                        <span>{% if in_wishlist %}In wishlist{% else %}Add to wishlist{% endif %}</span>
+                                    </button>
+                                    <button type="button" class="action-chip" onclick="shareProduct();">
+                                        <span class="icon"><i class="fal fa-share-alt"></i></span>
+                                        <span>Share</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- product-details-des-start -->
+        <div class="product-details-des mt-40 mb-60">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xl-12">
+                        <div class="product__details-des-wrapper">
+                            <h4 class="mb-30">Description</h4>
+                            {% if product.description %}
+                                {{ product.description|linebreaks }}
+                            {% else %}
+                                <p class="des-text mb-35">No description available for this product.</p>
+                            {% endif %}
+                            
+                            {% if product.descriptionImage and product.descriptionImage.name %}
+                            <div class="features-des-image text-center my-50">
+                                <img src="{{ product.descriptionImage.url }}" alt="{{ product.name }}" style="max-width: 100%; height: auto; border-radius: 8px;">
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="product__desc-info mt-50 mb-50">
+                            <h4 class="mb-30">Additional Information</h4>
+                            <ul>
+                               {% if product.weight %}
+                               <li>
+                                  <h6>Weight</h6>
+                                  <span>{{ product.weight }}</span>
+                               </li>
+                               {% endif %}
+                               {% if product.dimensions %}
+                               <li>
+                                  <h6>Dimensions</h6>
+                                  <span>{{ product.dimensions }}</span>
+                               </li>
+                               {% endif %}
+                               {% if product.color %}
+                               <li>
+                                  <h6>Color</h6>
+                                  <span>{{ product.color }}</span>
+                               </li>
+                               {% endif %}
+                               {% if product.size %}
+                               <li>
+                                  <h6>Size</h6>
+                                  <span>{{ product.size }}</span>
+                               </li>
+                               {% endif %}
+                               <li>
+                                  <h6>Model</h6>
+                                  <span>{{ product.name }}</span>
+                               </li>
+                               {% if product.shipping_info %}
+                               <li>
+                                  <h6>Shipping</h6>
+                                  <span>{{ product.shipping_info }}</span>
+                               </li>
+                               {% endif %}
+                               {% if product.care_info %}
+                               <li>
+                                  <h6>Care Info</h6>
+                                  <span>{{ product.care_info }}</span>
+                               </li>
+                               {% endif %}
+                               {% if product.brand %}
+                               <li>
+                                  <h6>Brand</h6>
+                                  <span>{{ product.brand }}</span>
+                               </li>
+                               {% endif %}
+                            </ul>
+                         </div>
+                         
+                         <div class="product__reviews-section mt-50">
+                            <h4 class="mb-30">Customer Reviews</h4>
+                            {% include 'review_enhanced.html' %}
+                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- product-details-des-end -->
+
+        <!-- shop modal start -->
+        <div class="modal fade" id="productModalId" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered product__modal" role="document">
+                <div class="modal-content">
+                    <div class="product__modal-wrapper p-relative">
+                        <div class="product__modal-close p-absolute">
+                            <button data-bs-dismiss="modal"><i class="fal fa-times"></i></button>
+                        </div>
+                        <div class="product__modal-inner">
+                            <div class="row">
+                            <div class="col-xl-6 col-lg-6 col-md-6 col-sm-12 col-12">
+                                <div class="product__modal-box">
+                                    <div class="tab-content" id="modalTabContent">
+                                        <div class="tab-pane fade show active" id="nav1" role="tabpanel" aria-labelledby="nav1-tab">
+                                            <div class="product__modal-img w-img">
+                                                <img src="{% static 'assets/img/quick-view/quick-view-1.jpg'%}" alt="">
+                                            </div>
+                                        </div>
+                                        <div class="tab-pane fade" id="nav2" role="tabpanel" aria-labelledby="nav2-tab">
+                                            <div class="product__modal-img w-img">
+                                                <img src="{% static 'assets/img/quick-view/quick-view-2.jpg'%}" alt="">
+                                            </div>
+                                        </div>
+                                        <div class="tab-pane fade" id="nav3" role="tabpanel" aria-labelledby="nav3-tab">
+                                            <div class="product__modal-img w-img">
+                                                <img src="{% static 'assets/img/quick-view/quick-view-3.jpg'%}" alt="">
+                                            </div>
+                                        </div>
+                                        <div class="tab-pane fade" id="nav4" role="tabpanel" aria-labelledby="nav4-tab">
+                                            <div class="product__modal-img w-img">
+                                                <img src="{% static 'assets/img/quick-view/quick-view-4.jpg'%}" alt="">
+                                            </div>
+                                        </div>
+                                        </div>
+                                    <ul class="nav nav-tabs" id="modalTab" role="tablist">
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link active" id="nav1-tab" data-bs-toggle="tab" data-bs-target="#nav1" type="button" role="tab" aria-controls="nav1" aria-selected="true">
+                                                <img src="{% static 'assets/img/quick-view/quick-nav-1.jpg'%}" alt="">
+                                            </button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="nav2-tab" data-bs-toggle="tab" data-bs-target="#nav2" type="button" role="tab" aria-controls="nav2" aria-selected="false">
+                                            <img src="{% static 'assets/img/quick-view/quick-nav-2.jpg'%}" alt="">
+                                            </button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="nav3-tab" data-bs-toggle="tab" data-bs-target="#nav3" type="button" role="tab" aria-controls="nav3" aria-selected="false">
+                                            <img src="{% static 'assets/img/quick-view/quick-nav-3.jpg'%}" alt="">
+                                            </button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="nav4-tab" data-bs-toggle="tab" data-bs-target="#nav4" type="button" role="tab" aria-controls="nav4" aria-selected="false">
+                                            <img src="{% static 'assets/img/quick-view/quick-nav-4.jpg'%}" alt="">
+                                            </button>
+                                        </li>
+                                        </ul>
+                                </div>
+                            </div>
+                            <div class="col-xl-6 col-lg-6 col-md-6 col-sm-12 col-12">
+                                <div class="product__modal-content">
+                                    <h4><a href="{% url 'product-details' %}">Samsung C49J89: £875, Debenhams Plus</a></h4>
+                                    <div class="product__review d-sm-flex">
+                                        <div class="rating rating__shop mb-10 mr-30">
+                                        <ul>
+                                            <li><a href="#"><i class="fal fa-star"></i></a></li>
+                                            <li><a href="#"><i class="fal fa-star"></i></a></li>
+                                            <li><a href="#"><i class="fal fa-star"></i></a></li>
+                                            <li><a href="#"><i class="fal fa-star"></i></a></li>
+                                            <li><a href="#"><i class="fal fa-star"></i></a></li>
+                                        </ul>
+                                        </div>
+                                        <div class="product__add-review mb-15">
+                                        <span>01 review</span>
+                                        </div>
+                                    </div>
+                                    <div class="product__price">
+                                        <span>&#8377;109.00 – &#8377;307.00</span>
+                                    </div>
+                                    <div class="product__modal-des mt-20 mb-15">
+                                        <ul>
+                                            <li><a href="#"><i class="fas fa-circle"></i> Bass and Stereo Sound.</a></li>
+                                            <li><a href="#"><i class="fas fa-circle"></i> Display with 3088 x 1440 pixels resolution.</a></li>
+                                            <li><a href="#"><i class="fas fa-circle"></i> Memory, Storage & SIM: 12GB RAM, 256GB.</a></li>
+                                            <li><a href="#"><i class="fas fa-circle"></i> Androi v10.0 Operating system.</a></li>
+                                        </ul>
+                                    </div>
+                                    <div class="product__stock mb-20">
+                                        <span class="mr-10">Availability :</span>
+                                        <span>1795 in stock</span>
+                                    </div>
+                                    <div class="product__modal-form">
+                                        <form action="#">
+                                        <div class="pro-quan-area d-lg-flex align-items-center">
+                                            <div class="product-quantity mr-20 mb-25">
+                                                <div class="cart-plus-minus p-relative"><input type="text" value="1" /></div>
+                                            </div>
+                                            <div class="pro-cart-btn mb-25">
+                                                <button class="cart-btn" type="submit">Add to cart</button>
+                                            </div>
+                                        </div>
+                                        </form>
+                                    </div>
+                                    <div class="product__stock mb-30">
+                                        <ul>
+                                            <li><a href="#">
+                                                <span class="sku mr-10">SKU:</span>
+                                                <span>Samsung C49J89: £875, Debenhams Plus</span></a>
+                                            </li>
+                                            <li><a href="#">
+                                                <span class="cat mr-10">Categories:</span>
+                                                <span>iPhone, Tablets</span></a>
+                                            </li>
+                                            <li><a href="#">
+                                                <span class="tag mr-10">Tags:</span>
+                                                <span>Smartphone, Tablets</span></a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- shop modal end -->
+
+        <script>
+        // Debug: Check if product images are loading
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('=== Product Image Debug ===');
+            
+            const mainImg = document.getElementById('mainProductImage');
+            const thumbButtons = document.querySelectorAll('.product-thumb-button');
+
+            thumbButtons.forEach((button) => {
+                button.addEventListener('click', function() {
+                    const newSrc = this.getAttribute('data-large-src');
+                    if (mainImg && newSrc) {
+                        mainImg.src = newSrc;
+                    }
+                    thumbButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+
+            // Check main image
+            if (mainImg) {
+                console.log('Main image found:', mainImg.src);
+                console.log('Main image computed style:', window.getComputedStyle(mainImg));
+                
+                mainImg.addEventListener('load', function() {
+                    console.log('✓ Main image loaded successfully');
+                    console.log('Image dimensions:', this.naturalWidth, 'x', this.naturalHeight);
+                });
+                
+                mainImg.addEventListener('error', function() {
+                    console.error('✗ Main image failed to load:', this.src);
+                });
+            } else {
+                console.error('✗ Main image element not found');
+            }
+            
+            // Check all thumbnail images
+            const thumbs = document.querySelectorAll('.nav-link img');
+            console.log('Thumbnail images found:', thumbs.length);
+            thumbs.forEach((img, index) => {
+                console.log(`Thumb ${index}:`, img.src);
+            });
+        });
+        </script>
+
+        <script>
+        // Quantity control buttons on product details page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Product Details: Quantity control script loaded');
+            
+            document.querySelectorAll('.qty-control').forEach(control => {
+                const input = control.querySelector('.qty-input');
+                const buttons = control.querySelectorAll('.qty-btn');
+                const min = parseInt(input.getAttribute('min')) || 1;
+                const max = parseInt(input.getAttribute('max')) || parseInt(control.dataset.max) || 999;
+
+                console.log('Quantity control found:', { min, max, buttons: buttons.length });
+
+                buttons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const step = parseInt(btn.dataset.step || '1');
+                        let value = parseInt(input.value) || min;
+                        value = Math.min(max, Math.max(min, value + step));
+                        input.value = value;
+                        console.log('Quantity changed to:', value);
+                    });
+                });
+
+                input.addEventListener('input', () => {
+                    let value = parseInt(input.value) || min;
+                    value = Math.min(max, Math.max(min, value));
+                    input.value = value;
+                });
+                
+                input.addEventListener('change', () => {
+                    let value = parseInt(input.value) || min;
+                    value = Math.min(max, Math.max(min, value));
+                    input.value = value;
+                });
+            });
+        });
+
+        // Wishlist functionality for product details - Toggle add/remove
+        function getCsrfTokenPd() {
+            const cookie = document.cookie.split('; ').find(row => row.startsWith('csrftoken='));
+            return cookie ? decodeURIComponent(cookie.split('=')[1]) : '';
+        }
+
+        async function handlePdWishlistClick(button) {
+            if (!button) return;
+            const loggedIn = button.dataset.loggedIn === '1';
+            const productId = button.dataset.productId;
+
+            if (!loggedIn) {
+                window.location.href = "{% url 'login' %}?next={{ request.path }}";
+                return;
+            }
+
+            if (!productId) return;
+
+            const url = `/wishlist/add/${productId}/`;
+            const csrftoken = getCsrfTokenPd();
+
+            button.disabled = true;
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const icon = button.querySelector('i');
+                    const text = button.querySelector('span:last-child');
+                    
+                    if (data.in_wishlist) {
+                        // Added to wishlist
+                        button.classList.add('wishlisted');
+                        if (icon) {
+                            icon.classList.remove('fal');
+                            icon.classList.add('fas');
+                        }
+                        if (text) text.textContent = 'In wishlist';
+                    } else {
+                        // Removed from wishlist
+                        button.classList.remove('wishlisted');
+                        if (icon) {
+                            icon.classList.remove('fas');
+                            icon.classList.add('fal');
+                        }
+                        if (text) text.textContent = 'Add to wishlist';
+                    }
+                }
+            } catch (error) {
+                console.error('Wishlist error', error);
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        // Compare functionality
+        function compareProduct(productId) {
+            let compareList = JSON.parse(localStorage.getItem('compareList') || '[]');
+            if (!compareList.includes(productId)) {
+                compareList.push(productId);
+                localStorage.setItem('compareList', JSON.stringify(compareList));
+                alert('Product added to compare list! (' + compareList.length + ' products)');
+            } else {
+                alert('Product already in compare list!');
+            }
+        }
+
+        // Buy Now functionality - Add to cart and redirect to checkout
+        async function buyNow(productId, quantity) {
+            // Check if user is logged in
+            {% if not user.is_authenticated %}
+                window.location.href = "{% url 'login' %}?next={{ request.path }}";
+                return;
+            {% endif %}
+
+            const url = `/buy-now/${productId}/`;
+            const csrftoken = getCsrfTokenPd();
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: `quantity=${quantity}`
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // Redirect to cart or checkout page
+                    window.location.href = data.redirect_url || '/cart/';
+                } else {
+                    alert(data.message || 'Failed to process order');
+                }
+            } catch (error) {
+                console.error('Buy Now error:', error);
+                alert('An error occurred. Please try again.');
+            }
+        }
+
+        // Share functionality
+        function shareProduct() {
+            if (navigator.share) {
+                navigator.share({
+                    title: '{{ product.name|escapejs }}',
+                    text: 'Check out this product: {{ product.name|escapejs }}',
+                    url: window.location.href
+                }).then(() => {
+                    console.log('Successfully shared');
+                }).catch((error) => {
+                    console.log('Error sharing', error);
+                    fallbackShare();
+                });
+            } else {
+                fallbackShare();
+            }
+        }
+
+        function fallbackShare() {
+            const shareUrl = window.location.href;
+            const shareText = 'Check out {{ product.name|escapejs }}: ';
+            
+            const shareOptions = [
+                { name: 'Facebook', url: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}` },
+                { name: 'Twitter', url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}` },
+                { name: 'WhatsApp', url: `https://wa.me/?text=${encodeURIComponent(shareText + shareUrl)}` },
+                { name: 'Copy Link', action: 'copy' }
+            ];
+            
+            let shareMenu = '<div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:20px;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.2);z-index:9999;min-width:250px;">';
+            shareMenu += '<h5 style="margin-bottom:15px;">Share this product</h5>';
+            shareOptions.forEach(option => {
+                if (option.action === 'copy') {
+                    shareMenu += `<button onclick="copyToClipboard('${shareUrl}'); closeShareMenu();" style="display:block;width:100%;padding:10px;margin:5px 0;border:1px solid #ddd;border-radius:5px;cursor:pointer;background:#f8f9fa;">${option.name}</button>`;
+                } else {
+                    shareMenu += `<a href="${option.url}" target="_blank" style="display:block;padding:10px;margin:5px 0;border:1px solid #ddd;border-radius:5px;text-decoration:none;color:#333;background:#f8f9fa;">${option.name}</a>`;
+                }
+            });
+            shareMenu += '<button onclick="closeShareMenu()" style="display:block;width:100%;padding:10px;margin-top:10px;border:1px solid #ddd;border-radius:5px;cursor:pointer;background:#e9ecef;">Close</button>';
+            shareMenu += '</div>';
+            shareMenu += '<div id="shareOverlay" onclick="closeShareMenu()" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9998;"></div>';
+            
+            const shareDiv = document.createElement('div');
+            shareDiv.id = 'shareMenu';
+            shareDiv.innerHTML = shareMenu;
+            document.body.appendChild(shareDiv);
+        }
+
+        function closeShareMenu() {
+            const shareMenu = document.getElementById('shareMenu');
+            if (shareMenu) {
+                shareMenu.remove();
+            }
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Link copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+        </script>
+        
+        {% endblock content %}

@@ -1,0 +1,67 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Returns - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold"><span class="text-muted fw-light">Orders /</span> Returns</h4>
+        <div class="text-muted">Refunded total: &#8377;{{ refund_total }}</div>
+    </div>
+
+    <form class="row g-2 mb-3" method="get">
+        <div class="col-md-4">
+            <input type="text" class="form-control" name="search" placeholder="Order #, username, email" value="{{ search_query }}">
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" name="status">
+                <option value="">All Status</option>
+                {% for value,label in status_choices %}
+                    <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-primary w-100" type="submit">Filter</button>
+        </div>
+    </form>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Return ID</th>
+                        <th>Order</th>
+                        <th>User</th>
+                        <th>Status</th>
+                        <th>Requested</th>
+                        <th>Refund</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ret in returns %}
+                    <tr>
+                        <td>#{{ ret.id }}</td>
+                        <td>{{ ret.order.order_number }}</td>
+                        <td>{{ ret.user.username }}</td>
+                        <td><span class="badge bg-label-warning">{{ ret.get_status_display }}</span></td>
+                        <td>{{ ret.requested_at|date:"d M Y" }}</td>
+                        <td>{% if ret.refund_amount %}&#8377;{{ ret.refund_amount }}{% else %}-{% endif %}</td>
+                        <td>
+                            <a href="{% url 'admin_return_detail' ret.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4">No return requests found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

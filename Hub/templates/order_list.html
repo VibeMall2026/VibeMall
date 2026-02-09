@@ -1,0 +1,165 @@
+﻿{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Orders - VibeMall{% endblock %}
+
+{% block content %}
+<!-- Page Banner Start -->
+<div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
+    <div class="container">
+        <div class="row">
+            <div class="col-xl-12">
+                <div class="page-banner-content text-center">
+                    <h4 class="breadcrumb-title">My Orders</h4>
+                    <div class="breadcrumb-two">
+                        <nav>
+                            <nav class="breadcrumb-trail breadcrumbs">
+                                <ul class="breadcrumb-menu">
+                                    <li class="breadcrumb-trail">
+                                        <a href="{% url 'index' %}"><span>Home</span></a>
+                                    </li>
+                                    <li class="trail-item">
+                                        <span>My Orders</span>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Page Banner End -->
+
+<!-- Orders Area Start -->
+<section class="account-area pt-100 pb-100">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <div class="orders-content">
+            
+            {% if orders %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Order #</th>
+                            <th>Date</th>
+                            <th>Products</th>
+                            <th>Total</th>
+                            <th>Payment</th>
+                            <th>Status</th>
+                            <th>Type</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'order_details' order.order_number %}" class="text-decoration-none">
+                                    <strong>{{ order.order_number }}</strong>
+                                </a>
+                            </td>
+                            <td>{{ order.created_at|date:"d M Y" }}</td>
+                            <td>
+                                <div style="display: flex; flex-direction: column; gap: 10px;">
+                                    {% for item in order.items.all %}
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        {% if item.product_image %}
+                                        <img src="{{ item.product_image }}" alt="{{ item.product_name }}" 
+                                             style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 2px solid #f0f0f0;">
+                                        {% elif item.product and item.product.image %}
+                                        <img src="{{ item.product.image.url }}" alt="{{ item.product_name }}" 
+                                             style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 2px solid #f0f0f0;">
+                                        {% else %}
+                                        <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-box" style="font-size: 22px; color: white;"></i>
+                                        </div>
+                                        {% endif %}
+                                        <div>
+                                            <div style="font-size: 0.9rem; font-weight: 600; color: #333;">
+                                                {{ item.product_name|truncatewords:4 }}
+                                            </div>
+                                            <small style="color: #666;">
+                                                <i class="fas fa-tag"></i> ₹{{ item.product_price }} × {{ item.quantity }}
+                                            </small>
+                                        </div>
+                                    </div>
+                                    {% empty %}
+                                    <span class="text-muted">No items</span>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td><strong>&#8377;{{ order.total_amount }}</strong></td>
+                            <td>
+                                {% if order.payment_method == 'COD' and order.order_status == 'DELIVERED' %}
+                                    <span class="badge bg-success">Paid (COD)</span>
+                                {% elif order.payment_status == 'PAID' %}
+                                    <span class="badge bg-success">Paid</span>
+                                {% elif order.payment_status == 'PENDING' %}
+                                    <span class="badge bg-warning">Pending</span>
+                                {% elif order.payment_status == 'REFUNDED' %}
+                                    <span class="badge bg-info">Refunded</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Failed</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if order.order_status == 'PENDING' %}
+                                    <span class="badge bg-warning">Pending</span>
+                                {% elif order.order_status == 'PROCESSING' %}
+                                    <span class="badge bg-info">Processing</span>
+                                {% elif order.order_status == 'SHIPPED' %}
+                                    <span class="badge bg-primary">Shipped</span>
+                                {% elif order.order_status == 'DELIVERED' %}
+                                    <span class="badge bg-success">Delivered</span>
+                                {% elif order.order_status == 'CANCELLED' %}
+                                    <span class="badge bg-danger">Cancelled</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if order.is_resell %}
+                                    <span class="badge bg-purple" style="background-color: #6f42c1;">Resell</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Normal</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'order_tracking' order.order_number %}" class="btn btn-sm btn-outline-info" title="Track Order">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                    </a>
+                                    <a href="{% url 'order_details' order.order_number %}" class="btn btn-sm btn-outline-primary" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'download_invoice' order.order_number %}" class="btn btn-sm btn-outline-success" title="Download Invoice">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                    {% if order.order_status == 'DELIVERED' %}
+                                    <a href="{% url 'return_request' order.id %}" class="btn btn-sm btn-outline-warning" title="Request Return">
+                                        <i class="fas fa-undo"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info text-center">
+                <h4>No orders yet</h4>
+                <p>You haven't placed any orders yet.</p>
+                <a href="{% url 'shop' %}" class="btn btn-primary">Start Shopping</a>
+            </div>
+            {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- Orders Area End -->
+{% endblock %}

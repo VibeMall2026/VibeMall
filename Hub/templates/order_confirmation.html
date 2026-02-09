@@ -1,0 +1,231 @@
+﻿{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}Order Confirmation - VibeMall{% endblock %}
+
+{% block content %}
+
+<!-- Celebration Animation Container -->
+<div id="celebration-container" style="position: fixed; top: 0; left: 0; width: 100%; height: 100vh; pointer-events: none; z-index: 1000;">
+    <!-- Fireworks -->
+    <div id="fireworks-container" style="position: absolute; width: 100%; height: 100%;"></div>
+</div>
+
+<!-- page-banner-area-start -->
+<div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
+    <div class="container">
+        <div class="row">
+            <div class="col-xl-12">
+                     <div class="page-banner-content text-center">
+                          <h4 class="breadcrumb-title">Order Confirmation</h4>
+                          <div class="breadcrumb-two">
+                                <nav>
+                                    <nav class="breadcrumb-trail breadcrumbs">
+                                        <ul class="breadcrumb-menu">
+                                            <li class="breadcrumb-trail">
+                                                <a href="{% url 'index' %}"><span>Home</span></a>
+                                            </li>
+                                            <li class="trail-item">
+                                                <span>Order Confirmation</span>
+                                            </li>
+                                        </ul>
+                                    </nav> 
+                                </nav>
+                          </div>
+                     </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- page-banner-area-end -->
+
+<!-- order-confirmation-area-start -->
+<section class="order-confirmation-area pt-120 pb-120">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <div class="order-confirmation-message text-center mb-50" id="success-message">
+                    <div style="animation: bounceInDown 0.8s ease-out;">
+                        <i class="fas fa-check-circle" style="font-size: 80px; color: #4caf50; animation: scaleIn 0.6s ease-out;"></i>
+                    </div>
+                    <h2 class="mt-3" style="animation: fadeInUp 0.8s ease-out 0.2s backwards;">Thank You for Your Order!</h2>
+                    <p class="mt-2" style="animation: fadeInUp 0.8s ease-out 0.4s backwards;">Your order has been successfully placed.</p>
+                    {% if order.is_resell %}
+                        <span class="badge bg-info" style="font-size: 16px; padding: 8px 15px; animation: fadeInUp 0.8s ease-out 0.6s backwards;">🔄 RESELL ORDER</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Loyalty Points Earned Section -->
+        <div class="row">
+            <div class="col-lg-8 mx-auto mb-4">
+                <div id="coins-earned-card" style="background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%); padding: 30px; border-radius: 15px; box-shadow: 0 8px 25px rgba(255, 193, 7, 0.3); color: white; text-align: center; animation: slideInUp 0.8s ease-out 0.8s backwards;">
+                    <i class="fas fa-coins" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
+                    <h4 style="margin: 0; font-weight: 700;">🎉 Congratulations!</h4>
+                    <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;">You've earned loyalty points on this order</p>
+                    <div style="margin-top: 20px; font-size: 36px; font-weight: 700; animation: scaleIn 0.6s ease-out 1.2s backwards;">
+                        +{{ loyalty_points_earned }} <span style="font-size: 20px;">Points</span>
+                    </div>
+                    <p style="margin-top: 10px; font-size: 12px; opacity: 0.85;">
+                        <i class="fas fa-info-circle"></i> ₹1 = 33 points earned | 1 point = ₹0.03 | Use on next purchase!
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <div class="order-details-card" style="background: #f9f9f9; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); animation: slideInUp 0.8s ease-out 1s backwards;">
+                    <h4 class="mb-4">Order Details</h4>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Order Number:</strong>
+                        </div>
+                        <div class="col-6 text-end">
+                            <span class="badge bg-primary" style="font-size: 14px;">{{ order.order_number }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Order Date:</strong>
+                        </div>
+                        <div class="col-6 text-end">
+                            {{ order.created_at|date:"F d, Y h:i A" }}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Payment Method:</strong>
+                        </div>
+                        <div class="col-6 text-end">
+                            {% if order.payment_method == 'COD' %}
+                                <span class="badge bg-warning">Cash on Delivery</span>
+                            {% elif order.payment_method == 'RAZORPAY' %}
+                                <span class="badge bg-success">Razorpay</span>
+                            {% else %}
+                                {{ order.get_payment_method_display }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Payment Status:</strong>
+                        </div>
+                        <div class="col-6 text-end">
+                            {% if order.payment_status == 'PAID' %}
+                                <span class="badge bg-success">Paid</span>
+                            {% elif order.payment_status == 'PENDING' %}
+                                <span class="badge bg-warning">Pending</span>
+                            {% elif order.payment_status == 'FAILED' %}
+                                <span class="badge bg-danger">Failed</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ order.payment_status }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="order-actions mt-4 text-center">
+                        <a href="{% url 'download_invoice' order.order_number %}" class="tp-btn-h1 me-2" style="background-color: #ff9800;">Download Invoice</a>
+                        <a href="{% url 'order_details' order.order_number %}" class="tp-btn-h1">View Order Details</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Animation Styles -->
+<style>
+@keyframes bounceInDown {
+    0% { opacity: 0; transform: translateY(-50px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInUp {
+    from { opacity: 0; transform: translateY(40px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+    0% { opacity: 0; transform: scale(0); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes coinFall {
+    0% { opacity: 1; transform: translate(0, -100vh) rotate(0deg); }
+    100% { opacity: 0; transform: translate(var(--tx), 100vh) rotate(720deg); }
+}
+</style>
+
+<!-- Coin Animation Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('celebration-container');
+    const pointsEarned = {{ loyalty_points_earned }};
+    
+    // Create falling coins
+    const coinCount = Math.min(Math.max(pointsEarned, 10), 40);
+    
+    for (let i = 0; i < coinCount; i++) {
+        setTimeout(() => {
+            const coin = document.createElement('div');
+            const randomX = Math.random() * 100 - 50;
+            const randomDelay = Math.random() * 0.3;
+            
+            coin.innerHTML = '<i class="fas fa-coins" style="font-size: 32px; color: #ffc107; filter: drop-shadow(0 0 10px rgba(255, 193, 7, 0.8));"></i>';
+            coin.style.cssText = `
+                position: absolute;
+                left: 50%;
+                top: -100px;
+                opacity: 1;
+                animation: coinFall 3s ease-in forwards;
+                --tx: ${randomX}px;
+                animation-delay: ${randomDelay}s;
+            `;
+            
+            container.appendChild(coin);
+            setTimeout(() => coin.remove(), 3300 + randomDelay * 1000);
+        }, i * 80);
+    }
+    
+    // Create confetti
+    const colors = ['#ffc107', '#ff9800', '#2196f3', '#4caf50', '#e91e63', '#9c27b0'];
+    for (let i = 0; i < 50; i++) {
+        const confetti = document.createElement('div');
+        const randomX = Math.random() * 100;
+        const randomDelay = Math.random() * 0.5;
+        const randomDuration = 2 + Math.random() * 1;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        
+        confetti.style.cssText = `
+            position: absolute;
+            left: ${randomX}%;
+            top: -10px;
+            width: 10px;
+            height: 10px;
+            background: ${color};
+            border-radius: 50%;
+            opacity: 0.7;
+            animation: coinFall ${randomDuration}s ease-in forwards;
+            --tx: ${(Math.random() - 0.5) * 200}px;
+            animation-delay: ${randomDelay}s;
+        `;
+        
+        container.appendChild(confetti);
+        setTimeout(() => confetti.remove(), (randomDuration + randomDelay) * 1000 + 500);
+    }
+});
+</script>
+
+{% endblock content %}

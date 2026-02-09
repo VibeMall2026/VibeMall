@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Chat Message - VibeMall</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f5f7fa;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 40px 20px;
+      text-align: center;
+      color: white;
+    }
+    .header h1 { font-size: 24px; margin-bottom: 5px; font-weight: 600; }
+    .header p { font-size: 14px; opacity: 0.95; }
+    .content { padding: 30px 20px; }
+    .section-title { font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 12px; }
+    .info-box {
+      background: #f9fafb;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      border-radius: 4px;
+      font-size: 14px;
+      color: #333;
+    }
+    .info-box p { margin-bottom: 6px; }
+    .info-box p:last-child { margin-bottom: 0; }
+    .footer {
+      background: #1f2937;
+      padding: 30px 20px;
+      text-align: center;
+      color: #9ca3af;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>New Chat Message</h1>
+      <p>A customer sent a new message</p>
+    </div>
+
+    <div class="content">
+      <div class="section-title">Message Details</div>
+      <div class="info-box">
+        <p><strong>Name:</strong> {{ thread.display_name }}</p>
+        <p><strong>Email:</strong> {% if thread.user and thread.user.email %}{{ thread.user.email }}{% else %}{{ thread.guest_email }}{% endif %}</p>
+        <p><strong>Message:</strong> {{ message }}</p>
+      </div>
+      <p style="margin-top: 16px; color: #6b7280; font-size: 12px;">Open the admin panel to reply.</p>
+    </div>
+
+    <div class="footer">
+      <div>Automated notification from {{ site_settings.site_name|default:"VibeMall" }}</div>
+    </div>
+  </div>
+</body>
+</html>

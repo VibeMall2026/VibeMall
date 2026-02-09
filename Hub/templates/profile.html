@@ -1,0 +1,627 @@
+﻿{% extends "base.html" %} {% load static %}
+{% block title %}My Profile - VibeMall{% endblock %}
+
+{% block content %}
+
+<!-- Page Banner Start -->
+<div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
+    <div class="container">
+        <div class="row">
+            <div class="col-xl-12">
+                <div class="page-banner-content text-center">
+                    <h4 class="breadcrumb-title">My Profile</h4>
+                    <div class="breadcrumb-two">
+                        <nav>
+                            <nav class="breadcrumb-trail breadcrumbs">
+                                <ul class="breadcrumb-menu">
+                                    <li class="breadcrumb-trail">
+                                        <a href="{% url 'index' %}"><span>Home</span></a>
+                                    </li>
+                                    <li class="trail-item">
+                                        <span>Profile</span>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Page Banner End -->
+
+<!-- Profile Area Start -->
+<section class="account-area pt-100 pb-100">
+    <div class="container">
+        <!-- Messages -->
+        {% if messages %}
+            <div class="row mb-30">
+                <div class="col-lg-12">
+                    {% for message in messages %}
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle"></i> {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="row">
+            <!-- Left Side - Profile Display -->
+            <div class="col-lg-4 mb-30">
+                <div class="profile-card border-1">
+                    <div class="profile-card-inner">
+                        <!-- Profile Image -->
+                        <div class="profile-img-wrapper text-center mb-30">
+                            {% if profile.profile_image and profile.profile_image.name != 'profile_images/default.png' %}
+                                <img src="{{ profile.profile_image.url }}" alt="{{ user.username }}" class="profile-image rounded-circle" style="width: 200px; height: 200px; object-fit: cover;">
+                            {% else %}
+                                <div class="profile-image-placeholder rounded-circle" style="width: 200px; height: 200px; background: linear-gradient(135deg, #f4a800 0%, #f7c047 100%); color: white; margin: 0 auto; box-shadow: 0 4px 12px rgba(244, 168, 0, 0.3); display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-user" style="font-size: 80px; line-height: 1;"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Profile Info Card -->
+                        <div class="profile-info-box">
+                            <div class="info-item mb-20">
+                                <label class="info-label">
+                                    <i class="fas fa-user"></i> Full Name
+                                </label>
+                                <p class="info-value">{{ user.first_name }} {{ user.last_name|default:'' }}</p>
+                            </div>
+
+                            <div class="info-item mb-20">
+                                <label class="info-label">
+                                    <i class="fas fa-envelope"></i> Email
+                                </label>
+                                <p class="info-value">{{ user.email }}</p>
+                            </div>
+
+                            <div class="info-item mb-20">
+                                <label class="info-label">
+                                    <i class="fas fa-phone"></i> Mobile
+                                </label>
+                                <p class="info-value">
+                                    {% if profile.mobile_number %}
+                                        {{ profile.country_code }} {{ profile.mobile_number }}
+                                    {% else %}
+                                        <span class="text-muted">Not added</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+
+                            <div class="info-item mb-30">
+                                <label class="info-label">
+                                    <i class="fas fa-calendar"></i> Member Since
+                                </label>
+                                <p class="info-value">{{ user.date_joined|date:"M d, Y" }}</p>
+                            </div>
+
+                            <!-- Edit Profile Button -->
+                            <button class="tp-btn-h1 w-100" data-bs-toggle="modal" data-bs-target="#profileModal">
+                                <i class="fas fa-edit"></i> Edit Profile
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side - Empty Space or Additional Info -->
+            <div class="col-lg-8">
+                <!-- Order Stats Section (Dynamic) -->
+                <div class="profile-details-box border-1 p-40 mb-30" id="profileStatsBox">
+                    <h5 class="mb-30">
+                        <i class="fas fa-chart-line"></i> Order Statistics
+                    </h5>
+
+                    <div class="row mb-30" id="profileStatsCards">
+                        <div class="col-md-3 col-sm-6 mb-20">
+                            <div class="stats-card text-center p-20 bg-light" style="border-radius: 12px;">
+                                <h3 class="mb-5" id="statsTotalOrders">0</h3>
+                                <p class="mb-0" style="font-size: 13px;">Total</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-20">
+                            <div class="stats-card text-center p-20 bg-success text-white" style="border-radius: 12px;">
+                                <h3 class="mb-5 text-white" id="statsDeliveredOrders">0</h3>
+                                <p class="mb-0" style="font-size: 13px;">Delivered</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-20">
+                            <div class="stats-card text-center p-20 bg-warning text-white" style="border-radius: 12px;">
+                                <h3 class="mb-5 text-white" id="statsPendingOrders">0</h3>
+                                <p class="mb-0" style="font-size: 13px;">In Progress</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-20">
+                            <div class="stats-card text-center p-20 bg-danger text-white" style="border-radius: 12px;">
+                                <h3 class="mb-5 text-white" id="statsCancelledOrders">0</h3>
+                                <p class="mb-0" style="font-size: 13px;">Cancelled</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6 class="mb-20">
+                        <i class="fas fa-receipt"></i> Recent Orders
+                    </h6>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead style="background: #f8f9fa;">
+                                <tr>
+                                    <th style="padding: 12px;">Order</th>
+                                    <th style="padding: 12px;">Status</th>
+                                    <th style="padding: 12px;">Amount</th>
+                                    <th style="padding: 12px;">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentOrdersBody">
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted" style="padding: 16px;">
+                                        Loading recent orders...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Loyalty Points Section -->
+                <div class="profile-details-box border-1 p-40 mb-30">
+                    <h5 class="mb-30">
+                        <i class="fas fa-star" style="color: #ffc107;"></i> Loyalty Points
+                    </h5>
+
+                    <div class="row mb-30">
+                        <div class="col-md-4 mb-20">
+                            <div class="points-stat-card text-center p-20" style="background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%); border-radius: 12px; box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);">
+                                <i class="fas fa-coins" style="font-size: 32px; color: white; margin-bottom: 10px;"></i>
+                                <h3 class="text-white mb-1">{{ loyalty_account.total_points|default:0 }}</h3>
+                                <p class="text-white mb-0" style="font-size: 13px;">Total Earned</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-20">
+                            <div class="points-stat-card text-center p-20" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border-radius: 12px; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);">
+                                <i class="fas fa-wallet" style="font-size: 32px; color: white; margin-bottom: 10px;"></i>
+                                <h3 class="text-white mb-1">{{ loyalty_account.points_available|default:0 }}</h3>
+                                <p class="text-white mb-0" style="font-size: 13px;">Available Points</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-20">
+                            <div class="points-stat-card text-center p-20" style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%); border-radius: 12px; box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);">
+                                <i class="fas fa-gift" style="font-size: 32px; color: white; margin-bottom: 10px;"></i>
+                                <h3 class="text-white mb-1">{{ loyalty_account.points_used|default:0 }}</h3>
+                                <p class="text-white mb-0" style="font-size: 13px;">Points Used</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-20">
+                            <div class="points-stat-card text-center p-20" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border-radius: 12px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);">
+                                <i class="fas fa-wallet" style="font-size: 32px; color: white; margin-bottom: 10px;"></i>
+                                <h3 class="text-white mb-1">₹{{ profile.wallet_balance|default:"0.00" }}</h3>
+                                <p class="text-white mb-0" style="font-size: 13px;">VibeMall Wallet</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6 class="mb-20">
+                        <i class="fas fa-history"></i> Transaction History
+                    </h6>
+
+                    {% if points_transactions %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead style="background: #f8f9fa;">
+                                    <tr>
+                                        <th style="padding: 12px;">Date</th>
+                                        <th style="padding: 12px;">Type</th>
+                                        <th style="padding: 12px;">Description</th>
+                                        <th style="padding: 12px; text-align: right;">Points</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in points_transactions %}
+                                    <tr>
+                                        <td style="padding: 12px; vertical-align: middle;">
+                                            <small style="color: #6c757d;">{{ transaction.created_at|date:"M d, Y" }}</small><br>
+                                            <small style="color: #adb5bd;">{{ transaction.created_at|time:"h:i A" }}</small>
+                                        </td>
+                                        <td style="padding: 12px; vertical-align: middle;">
+                                            {% if transaction.transaction_type == 'EARNED' %}
+                                                <span class="badge bg-success"><i class="fas fa-plus-circle"></i> Earned</span>
+                                            {% elif transaction.transaction_type == 'REDEEMED' %}
+                                                <span class="badge bg-danger"><i class="fas fa-minus-circle"></i> Redeemed</span>
+                                            {% elif transaction.transaction_type == 'EXPIRED' %}
+                                                <span class="badge bg-warning"><i class="fas fa-clock"></i> Expired</span>
+                                            {% else %}
+                                                <span class="badge bg-info"><i class="fas fa-sync"></i> Adjusted</span>
+                                            {% endif %}
+                                        </td>
+                                        <td style="padding: 12px; vertical-align: middle;">{{ transaction.description }}</td>
+                                        <td style="padding: 12px; vertical-align: middle; text-align: right;">
+                                            {% if transaction.transaction_type == 'EARNED' %}
+                                                <span style="color: #28a745; font-weight: 600;">+{{ transaction.points }}</span>
+                                            {% else %}
+                                                <span style="color: #dc3545; font-weight: 600;">-{{ transaction.points }}</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No transactions yet. Start earning points by placing orders!
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Account Information -->
+                <div class="profile-details-box border-1 p-40">
+                    <h5 class="mb-30">
+                        <i class="fas fa-info-circle"></i> Account Information
+                    </h5>
+
+                    <div class="info-section mb-40">
+                        <h6 class="mb-20">Username</h6>
+                        <p>{{ user.username }}</p>
+                    </div>
+
+                    <div class="info-section mb-40">
+                        <h6 class="mb-20">Account Status</h6>
+                        <p>
+                            {% if user.is_active %}
+                                <span class="badge bg-success"><i class="fas fa-check-circle"></i> Active</span>
+                            {% else %}
+                                <span class="badge bg-danger"><i class="fas fa-times-circle"></i> Inactive</span>
+                            {% endif %}
+                        </p>
+                    </div>
+
+                    <div class="info-section mb-40">
+                        <h6 class="mb-20">Email Verification</h6>
+                        <p>
+                            <span class="badge bg-info"><i class="fas fa-shield-alt"></i> Verified</span>
+                        </p>
+                    </div>
+
+                    <hr>
+
+                    <div class="mt-40">
+                        <h6 class="mb-20">Quick Actions</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-15">
+                                <a href="{% url 'wishlist' %}" class="tp-btn-h2 w-100 text-center">
+                                    <i class="fas fa-heart"></i> My Wishlist
+                                </a>
+                            </div>
+                            <div class="col-md-6 mb-15">
+                                <a href="{% url 'cart' %}" class="tp-btn-h2 w-100 text-center">
+                                    <i class="fas fa-shopping-bag"></i> My Cart
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- Profile Area End -->
+
+<!-- Update Profile Modal -->
+<div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-bottom-1 p-4">
+                <h5 class="modal-title" id="profileModalLabel">
+                    <i class="fas fa-user-edit"></i> Update Your Profile
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body p-40">
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <!-- Profile Image Section -->
+                    <div class="mb-30">
+                        <label class="form-label">
+                            <i class="fas fa-image"></i> Profile Image
+                        </label>
+                        <div class="profile-image-upload">
+                            <input type="file" name="profile_image" class="form-control" accept="image/*">
+                            <small class="text-muted">Recommended size: 200x200px</small>
+                        </div>
+                    </div>
+
+                    <!-- Personal Information Section -->
+                    <div class="form-section mb-30">
+                        <h6 class="mb-20 pb-2 border-bottom">
+                            <i class="fas fa-user-circle"></i> Personal Information
+                        </h6>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-20">
+                                <label class="form-label">First Name <span class="text-danger">*</span></label>
+                                <input type="text" name="first_name" value="{{ user.first_name }}" class="form-control" required>
+                            </div>
+
+                            <div class="col-md-6 mb-20">
+                                <label class="form-label">Last Name</label>
+                                <input type="text" name="last_name" value="{{ user.last_name }}" class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-20">
+                                <label class="form-label">Email Address <span class="text-danger">*</span></label>
+                                <input type="email" name="email" value="{{ user.email }}" class="form-control" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Information Section -->
+                    <div class="form-section mb-30">
+                        <h6 class="mb-20 pb-2 border-bottom">
+                            <i class="fas fa-phone"></i> Contact Information
+                        </h6>
+
+                        <div class="row">
+                            <div class="col-md-5 mb-20">
+                                <label class="form-label">Country Code <span class="text-danger">*</span></label>
+                                <input type="text" name="country_code" value="{{ profile.country_code|default:'' }}" class="form-control" placeholder="e.g., +91 (India)" required>
+                            </div>
+
+                            <div class="col-md-7 mb-20">
+                                <label class="form-label">Mobile Number <span class="text-danger">*</span></label>
+                                <input type="tel" name="mobile_number" value="{{ profile.mobile_number|default:'' }}" class="form-control" placeholder="Enter your mobile number" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="modal-footer border-top-1 p-0 pt-30 mt-30">
+                        <button type="button" class="tp-btn-h2" data-bs-dismiss="modal">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button type="submit" class="tp-btn-h1">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .border-1 {
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+    }
+
+    .border-bottom-1 {
+        border-bottom: 1px solid #e5e5e5 !important;
+    }
+
+    .border-top-1 {
+        border-top: 1px solid #e5e5e5 !important;
+    }
+
+    .profile-card {
+        padding: 40px 30px;
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .profile-card-inner {
+        width: 100%;
+    }
+
+    .profile-info-box {
+        background: #f9f9f9;
+        padding: 20px;
+        border-radius: 6px;
+        margin-top: 40px;
+    }
+
+    .info-item {
+        padding: 12px 0;
+    }
+
+    .info-label {
+        font-weight: 600;
+        color: #333;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    .info-label i {
+        margin-right: 8px;
+        color: #f4a800;
+    }
+
+    .profile-img-wrapper {
+        display: block !important;
+        margin-bottom: 50px !important;
+        text-align: center;
+        width: 100%;
+        padding-bottom: 20px;
+    }
+
+    .profile-image {
+        width: 200px;
+        height: 200px;
+        object-fit: cover;
+        border-radius: 50%;
+        display: block;
+        margin: 0 auto;
+    }
+
+    .profile-image-placeholder {
+        width: 200px;
+        height: 200px;
+        margin: 0 auto !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex-direction: column;
+    }
+
+    .info-value {
+        color: #666;
+        margin: 0;
+        font-size: 14px;
+    }
+
+    .profile-details-box {
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border-radius: 8px;
+    }
+
+    .profile-details-box h5 {
+        color: #333;
+        font-weight: 700;
+    }
+
+    .profile-details-box h6 {
+        color: #555;
+        font-weight: 600;
+    }
+
+    .form-section {
+        background: #f9f9f9;
+        padding: 20px;
+        border-radius: 6px;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #333;
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+
+    .alert {
+        border-radius: 6px;
+        border: none;
+    }
+
+    .alert i {
+        margin-right: 8px;
+    }
+
+    .badge {
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-weight: 500;
+    }
+
+    .p-40 {
+        padding: 40px;
+    }
+
+    .text-danger {
+        color: #e74c3c;
+    }
+
+    .tp-btn-h2 {
+        display: inline-block;
+        padding: 10px 20px;
+        background: #f0f0f0;
+        color: #333;
+        border-radius: 6px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        border: 1px solid #e5e5e5;
+    }
+
+    .tp-btn-h2:hover {
+        background: #f4a800;
+        color: white;
+        border-color: #f4a800;
+    }
+
+    @media (max-width: 768px) {
+        .profile-card {
+            margin-bottom: 30px;
+        }
+
+        .profile-image-wrapper {
+            margin-bottom: 30px;
+        }
+
+        .profile-details-box {
+            margin-top: 30px;
+        }
+    }
+
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const statsTotal = document.getElementById('statsTotalOrders');
+        const statsDelivered = document.getElementById('statsDeliveredOrders');
+        const statsPending = document.getElementById('statsPendingOrders');
+        const statsCancelled = document.getElementById('statsCancelledOrders');
+        const recentBody = document.getElementById('recentOrdersBody');
+
+        fetch('/api/profile/stats/')
+            .then(response => response.json())
+            .then(data => {
+                if (statsTotal) statsTotal.textContent = data.total_orders ?? 0;
+                if (statsDelivered) statsDelivered.textContent = data.delivered_orders ?? 0;
+                if (statsPending) statsPending.textContent = data.pending_orders ?? 0;
+                if (statsCancelled) statsCancelled.textContent = data.cancelled_orders ?? 0;
+
+                if (recentBody) {
+                    const orders = data.recent_orders || [];
+                    if (!orders.length) {
+                        recentBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted" style="padding: 16px;">No recent orders found.</td></tr>';
+                        return;
+                    }
+
+                    recentBody.innerHTML = orders.map(order => {
+                        const statusClass = order.status === 'DELIVERED'
+                            ? 'bg-success'
+                            : order.status === 'CANCELLED'
+                                ? 'bg-danger'
+                                : 'bg-warning';
+
+                        return `
+                            <tr style="cursor: pointer;" onclick="window.location.href='${order.detail_url}'">
+                                <td style="padding: 12px; vertical-align: middle;">
+                                    <strong>#${order.order_number}</strong>
+                                </td>
+                                <td style="padding: 12px; vertical-align: middle;">
+                                    <span class="badge ${statusClass}">${order.status}</span>
+                                </td>
+                                <td style="padding: 12px; vertical-align: middle;">
+                                    ₹${Number(order.total_amount).toFixed(2)}
+                                </td>
+                                <td style="padding: 12px; vertical-align: middle;">
+                                    ${order.created_at}
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            })
+            .catch(() => {
+                if (recentBody) {
+                    recentBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted" style="padding: 16px;">Unable to load stats right now.</td></tr>';
+                }
+            });
+    });
+</script>
+
+{% endblock content %}

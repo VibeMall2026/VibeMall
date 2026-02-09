@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Return Request - {{ return_request.return_number }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #f5f7fa; padding: 20px; line-height: 1.6; }
+        .email-container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 20px; text-align: center; }
+        .header h1 { font-size: 26px; margin-bottom: 8px; }
+        .header .return-number { font-size: 18px; opacity: 0.9; }
+        .content { padding: 30px; }
+        .alert-box { background: #fff7ed; border-left: 4px solid #f97316; padding: 15px; margin-bottom: 22px; border-radius: 4px; }
+        .alert-box p { color: #9a3412; font-weight: 600; margin-bottom: 5px; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 18px 0; }
+        .info-item { background: #f8f9fa; padding: 15px; border-radius: 8px; }
+        .info-item label { display: block; font-size: 12px; color: #6c757d; text-transform: uppercase; margin-bottom: 5px; font-weight: 600; }
+        .info-item .value { font-size: 15px; color: #212529; font-weight: 600; }
+        .section-title { font-size: 18px; font-weight: 700; color: #212529; margin: 22px 0 12px 0; border-bottom: 2px solid #e9ecef; padding-bottom: 8px; }
+        .item-card { background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #e5e7eb; }
+        .return-item { display: flex; align-items: center; gap: 12px; }
+        .return-item-image { width: 64px; height: 64px; border-radius: 6px; object-fit: cover; background: #f3f4f6; flex-shrink: 0; }
+        .item-name { font-weight: 600; color: #212529; margin-bottom: 4px; }
+        .item-meta { font-size: 13px; color: #6c757d; }
+        .action-buttons { display: flex; gap: 15px; margin: 28px 0 10px; }
+        .btn { flex: 1; padding: 14px; text-align: center; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px; }
+        .btn-details { background: #f97316; color: white; }
+        .btn-details:hover { background: #ea580c; }
+        .footer { background: #1f2937; padding: 30px 20px; text-align: center; font-size: 12px; color: #9ca3af; }
+        @media (max-width: 600px) {
+            .info-grid { grid-template-columns: 1fr; }
+            .action-buttons { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h1>New Return Request</h1>
+            <div class="return-number">Return {{ return_request.return_number }}</div>
+        </div>
+
+        <div class="content">
+            <div class="alert-box">
+                <p>Action Required</p>
+                <p style="font-weight: 400; margin-top: 5px;">A customer submitted a return request. Please review and update status.</p>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>Customer</label>
+                    <div class="value">{{ return_request.user.get_full_name|default:return_request.user.username }}</div>
+                </div>
+                <div class="info-item">
+                    <label>Email</label>
+                    <div class="value">{{ return_request.user.email }}</div>
+                </div>
+                <div class="info-item">
+                    <label>Order</label>
+                    <div class="value">{{ return_request.order.order_number }}</div>
+                </div>
+                <div class="info-item">
+                    <label>Reason</label>
+                    <div class="value">{{ return_request.get_reason_display }}</div>
+                </div>
+                <div class="info-item">
+                    <label>Status</label>
+                    <div class="value">{{ return_request.get_status_display }}</div>
+                </div>
+                <div class="info-item">
+                    <label>Requested At</label>
+                    <div class="value">{{ return_request.requested_at|date:"d M, Y H:i" }}</div>
+                </div>
+                <div class="info-item">
+                    <label>Refund Method</label>
+                    <div class="value">{{ return_request.refund_method|default:"-" }}</div>
+                </div>
+            </div>
+
+            {% if return_request.refund_method == 'BANK' %}
+            <div class="section-title">Bank Transfer Details</div>
+            <div class="item-card">
+                <div class="item-name">{{ return_request.bank_name|default:"-" }}</div>
+                <div class="item-meta">Account Name: {{ return_request.bank_account_name|default:"-" }}</div>
+                <div class="item-meta">Account Number: {{ return_request.bank_account_number|default:"-" }}</div>
+                <div class="item-meta">IFSC: {{ return_request.bank_ifsc|default:"-" }}</div>
+            </div>
+            {% endif %}
+
+            {% if return_request.reason_notes %}
+            <div class="section-title">Customer Notes</div>
+            <div class="item-card">{{ return_request.reason_notes }}</div>
+            {% endif %}
+
+            <div class="section-title">Return Items</div>
+            {% for item in return_request.items.all %}
+            <div class="item-card return-item">
+                {% if item.order_item.product_image %}
+                <img src="{{ item.order_item.product_image }}" alt="{{ item.order_item.product_name }}" class="return-item-image">
+                {% else %}
+                <div class="return-item-image" style="display: flex; align-items: center; justify-content: center; color: #9ca3af;">📦</div>
+                {% endif %}
+                <div>
+                    <div class="item-name">{{ item.order_item.product_name }}</div>
+                    <div class="item-meta">Qty: {{ item.quantity }} | Condition: {{ item.get_condition_display }}</div>
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="action-buttons">
+                <a href="{{ admin_return_url }}" class="btn btn-details">Open Return in Admin</a>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Automated notification from {{ site_settings.site_name|default:"VibeMall" }}</p>
+        </div>
+    </div>
+</body>
+</html>

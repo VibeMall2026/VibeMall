@@ -1,0 +1,593 @@
+﻿{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}Register - VibeMall{% endblock %}
+
+{% block content %}
+
+<!-- Page Banner Start -->
+<div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
+    <div class="container">
+        <div class="row">
+            <div class="col-xl-12">
+                <div class="page-banner-content text-center">
+                    <h4 class="breadcrumb-title">Create Account</h4>
+                    <div class="breadcrumb-two">
+                        <nav>
+                            <nav class="breadcrumb-trail breadcrumbs">
+                                <ul class="breadcrumb-menu">
+                                    <li class="breadcrumb-trail">
+                                        <a href="{% url 'index' %}"><span>Home</span></a>
+                                    </li>
+                                    <li class="trail-item">
+                                        <span>Register</span>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Page Banner End -->
+
+<!-- Registration Area Start -->
+<section class="register-area pt-100 pb-100">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <!-- Messages -->
+                {% if messages %}
+                    <div class="mb-30">
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags|default:'danger' }} alert-dismissible fade show" role="alert">
+                                <i class="fas fa-{% if message.tags == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i> 
+                                <strong>{% if message.tags == 'success' %}Success!{% else %}Error!{% endif %}</strong> {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <div class="register-form-wrapper">
+                    <div class="register-form-header text-center mb-40">
+                        <h3 class="mb-10">
+                            <i class="fas fa-user-plus"></i> Create Your Account
+                        </h3>
+                        <p class="text-muted">Join VibeMall and explore amazing deals</p>
+                    </div>
+
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <!-- Profile Image Section -->
+                        <div class="form-section mb-35">
+                            <h6 class="mb-20 pb-2 border-bottom">
+                                <i class="fas fa-image"></i> Profile Picture
+                            </h6>
+                            <div class="profile-image-upload">
+                                <div class="file-input-wrapper">
+                                    <input type="file" name="profile_image" id="profileImage" class="form-control" accept="image/*">
+                                    <label for="profileImage" class="file-label">
+                                        <i class="fas fa-cloud-upload-alt"></i> Choose Profile Image (Optional)
+                                    </label>
+                                    <small class="text-muted d-block mt-2">Recommended size: 200x200px</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Personal Information Section -->
+                        <div class="form-section mb-35">
+                            <h6 class="mb-20 pb-2 border-bottom">
+                                <i class="fas fa-user-circle"></i> Personal Information
+                            </h6>
+
+                            <div class="row">
+                                <div class="col-md-12 mb-20">
+                                    <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                        <input type="text" name="name" class="form-control" placeholder="Enter your full name" required maxlength="30">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Account Details Section -->
+                        <div class="form-section mb-35">
+                            <h6 class="mb-20 pb-2 border-bottom">
+                                <i class="fas fa-lock"></i> Account Details
+                            </h6>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-20">
+                                    <label class="form-label">Username <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-at"></i></span>
+                                        <input type="text" name="username" class="form-control" placeholder="Choose a username" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-20">
+                                    <label class="form-label">Email <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                        <input type="email" name="email" id="email" class="form-control" placeholder="Your email address" required>
+                                    </div>
+                                    <span id="email_feedback" class="input-feedback"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contact Information Section -->
+                        <div class="form-section mb-35">
+                            <h6 class="mb-20 pb-2 border-bottom">
+                                <i class="fas fa-phone"></i> Contact Information
+                            </h6>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-20">
+                                    <label class="form-label">Country Code <span class="text-muted">(Optional)</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-globe"></i></span>
+                                        <input type="text" name="country_code" class="form-control" placeholder="e.g., +91 (India)">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 mb-20">
+                                    <label class="form-label">Mobile Number <span class="text-muted">(Optional)</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-mobile-alt"></i></span>
+                                        <input type="text" name="mobile_number" class="form-control" placeholder="Your mobile number">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Password Section -->
+                        <div class="form-section mb-35">
+                            <h6 class="mb-20 pb-2 border-bottom">
+                                <i class="fas fa-key"></i> Password
+                            </h6>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-20">
+                                    <label class="form-label">Password <span class="text-danger">*</span></label>
+                                    <div class="password-input-group">
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                            <input type="password" name="password" id="password" class="form-control" placeholder="Create a strong password" required>
+                                            <button type="button" class="btn toggle-password-btn" onclick="togglePassword('password')">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </div>
+                                        <!-- Password Strength Indicator -->
+                                        <div class="password-strength-container mt-2" style="display: none;" id="strength_container">
+                                            <div class="password-strength-bar"><div id="strength_bar" class="strength-fill"></div></div>
+                                            <span id="strength_text" class="password-strength-text">Password strength: Weak</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 mb-20">
+                                    <label class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                                    <div class="password-input-group">
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                            <input type="password" name="confirm_password" id="confirm_password" class="form-control" placeholder="Confirm your password" required>
+                                            <button type="button" class="btn toggle-password-btn" onclick="togglePassword('confirm_password')">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <p id="password_error" class="text-danger mt-2" style="display:none;"></p>
+                        </div>
+
+                        <!-- Register Button -->
+                        <div class="register-form-actions">
+                            <button type="submit" class="tp-btn-h1 w-100">
+                                <i class="fas fa-check-circle"></i> Create Account
+                            </button>
+                        </div>
+
+                        <!-- Login Link -->
+                        <div class="login-link-section text-center">
+                            <p class="mb-0">Already have an account? 
+                                <a href="{% url 'login' %}" class="login-link">
+                                    <i class="fas fa-sign-in-alt"></i> Login here
+                                </a>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- Registration Area End -->
+
+<!-- Custom Styles -->
+<style>
+    .register-form-wrapper {
+        background: #fff;
+        padding: 40px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .register-form-header {
+        margin-bottom: 40px;
+    }
+
+    .register-form-header h3 {
+        color: #333;
+        font-weight: 700;
+        font-size: 28px;
+    }
+
+    .register-form-header p {
+        font-size: 14px;
+    }
+
+    .form-section {
+        background: #fffbf0;
+        padding: 20px;
+        border-radius: 6px;
+        border-left: 4px solid #f4a800;
+    }
+
+    .form-section h6 {
+        color: #333;
+        font-weight: 600;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .form-section h6 i {
+        color: #f4a800;
+        margin-right: 8px;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #333;
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+
+    .form-control, select {
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 10px 12px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus, select:focus {
+        border-color: #f4a800;
+        box-shadow: 0 0 0 3px rgba(244, 168, 0, 0.1);
+    }
+
+    .input-group-text {
+        background: #f9f9f9;
+        border: 1px solid #ddd;
+        color: #f4a800;
+    }
+
+    .input-group-text i {
+        font-size: 14px;
+    }
+
+    .toggle-password-btn {
+        border: 1px solid #ddd;
+        background: #f9f9f9;
+        color: #f4a800;
+        padding: 0 15px;
+        transition: all 0.3s ease;
+    }
+
+    .toggle-password-btn:hover {
+        background: #f4a800;
+        color: white;
+        border-color: #f4a800;
+    }
+
+    .file-input-wrapper {
+        position: relative;
+    }
+
+    .file-input-wrapper input[type="file"] {
+        display: none;
+    }
+
+    .file-label {
+        display: block;
+        padding: 15px;
+        background: linear-gradient(135deg, #f4a800 0%, #f7c047 100%);
+        color: white;
+        border-radius: 6px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 600;
+    }
+
+    .file-label:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(244, 168, 0, 0.3);
+    }
+
+    .file-label i {
+        margin-right: 8px;
+    }
+
+    .password-input-group {
+        position: relative;
+    }
+
+    .text-danger {
+        color: #e74c3c;
+    }
+
+    .text-muted {
+        color: #999;
+        font-size: 13px;
+    }
+
+    .border-bottom {
+        border-bottom: 1px solid #ddd !important;
+    }
+
+    .register-form-actions {
+        margin-top: 30px;
+    }
+
+    .tp-btn-h1 {
+        background: linear-gradient(135deg, #f4a800 0%, #f7c047 100%);
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        font-weight: 600;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+    }
+
+    .tp-btn-h1:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(244, 168, 0, 0.3);
+    }
+
+    .tp-btn-h1 i {
+        margin-right: 8px;
+    }
+
+    .password-strength-container {
+        margin-top: 8px;
+    }
+
+    .password-strength-bar {
+        width: 100%;
+        height: 6px;
+        background: #e5e7eb;
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 6px;
+    }
+
+    .strength-fill {
+        height: 100%;
+        width: 0%;
+        transition: width 0.3s ease, background-color 0.3s ease;
+        background-color: #e74c3c;
+    }
+
+    .strength-fill.weak {
+        width: 25%;
+        background-color: #e74c3c;
+    }
+
+    .strength-fill.fair {
+        width: 50%;
+        background-color: #f39c12;
+    }
+
+    .strength-fill.good {
+        width: 75%;
+        background-color: #3498db;
+    }
+
+    .strength-fill.strong {
+        width: 100%;
+        background-color: #27ae60;
+    }
+
+    .password-strength-text {
+        font-size: 12px;
+        color: #666;
+    }
+
+    .input-feedback {
+        display: none;
+        font-size: 12px;
+        margin-top: 4px;
+    }
+
+    .input-feedback.error {
+        color: #e74c3c;
+        display: block;
+    }
+
+    .input-feedback.success {
+        color: #27ae60;
+        display: block;
+    }
+
+    .input-feedback.warning {
+        color: #f39c12;
+        display: block;
+    }
+
+    .login-link-section {
+        padding-top: 20px;
+        border-top: 1px solid #ddd;
+        margin-top: 30px;
+    }
+
+    .login-link-section a {
+        color: #f4a800;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .login-link-section a:hover {
+        color: #d98600;
+    }
+
+    .login-link-section a i {
+        margin-right: 5px;
+    }
+</style>
+
+<!-- Scripts for Password Toggle -->
+<script>
+    function togglePassword(id) {
+        const input = document.getElementById(id);
+        const button = input.parentElement.querySelector('.toggle-password-btn i');
+        
+        if (input.type === "password") {
+            input.type = "text";
+            button.classList.remove('fa-eye');
+            button.classList.add('fa-eye-slash');
+        } else {
+            input.type = "password";
+            button.classList.remove('fa-eye-slash');
+            button.classList.add('fa-eye');
+        }
+    }
+
+    const password = document.getElementById('password');
+    const confirm_password = document.getElementById('confirm_password');
+    const password_error = document.getElementById('password_error');
+    const emailInput = document.getElementById('email');
+    const emailFeedback = document.getElementById('email_feedback');
+    const strengthBar = document.getElementById('strength_bar');
+    const strengthText = document.getElementById('strength_text');
+    const strengthContainer = document.getElementById('strength_container');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    // Email Validation
+    emailInput.addEventListener('blur', function() {
+        const value = this.value.trim();
+        if (value === '') {
+            emailFeedback.textContent = '';
+            emailFeedback.className = '';
+            return;
+        }
+        if (emailRegex.test(value)) {
+            emailFeedback.textContent = '✓ Valid email';
+            emailFeedback.className = 'input-feedback success';
+        } else {
+            emailFeedback.textContent = '✗ Invalid email';
+            emailFeedback.className = 'input-feedback error';
+        }
+    });
+
+    // Password Strength Calculation
+    function calculatePasswordStrength(pwd) {
+        let strength = 0;
+        if (pwd.length >= 8) strength++;
+        if (pwd.length >= 12) strength++;
+        if (/[a-z]/.test(pwd)) strength++;
+        if (/[A-Z]/.test(pwd)) strength++;
+        if (/[0-9]/.test(pwd)) strength++;
+        if (/[^a-zA-Z0-9]/.test(pwd)) strength++;
+        return strength;
+    }
+
+    // Password Strength Indicator
+    password.addEventListener('input', function() {
+        const value = this.value;
+        strengthContainer.style.display = value.length > 0 ? 'block' : 'none';
+        
+        if (value.length === 0) {
+            strengthBar.className = 'strength-fill';
+            strengthText.textContent = 'Password strength: Weak';
+            return;
+        }
+        
+        const strength = calculatePasswordStrength(value);
+        strengthBar.className = 'strength-fill';
+        
+        if (strength <= 2) {
+            strengthBar.classList.add('weak');
+            strengthText.textContent = '✗ Weak';
+            strengthText.style.color = '#e74c3c';
+        } else if (strength <= 3) {
+            strengthBar.classList.add('fair');
+            strengthText.textContent = '⚠ Fair';
+            strengthText.style.color = '#f39c12';
+        } else if (strength <= 4) {
+            strengthBar.classList.add('good');
+            strengthText.textContent = '✓ Good';
+            strengthText.style.color = '#3498db';
+        } else {
+            strengthBar.classList.add('strong');
+            strengthText.textContent = '✓ Strong';
+            strengthText.style.color = '#27ae60';
+        }
+    });
+
+    // Password Match Validation
+    if (confirm_password) {
+        confirm_password.addEventListener('keyup', () => {
+            if (password.value !== confirm_password.value) {
+                password_error.textContent = '✗ Passwords do not match';
+                password_error.style.display = 'block';
+                password_error.style.color = '#e74c3c';
+            } else if (password.value.length > 0) {
+                password_error.textContent = '✓ Passwords match';
+                password_error.style.display = 'block';
+                password_error.style.color = '#27ae60';
+            } else {
+                password_error.textContent = '';
+                password_error.style.display = 'none';
+            }
+        });
+    }
+
+    // Form Submission Validation
+    const registerForm = document.querySelector('form');
+    if (registerForm) {
+        registerForm.addEventListener('submit', function(e) {
+            const emailValue = emailInput.value.trim();
+            const passwordValue = password.value;
+            
+            if (!emailRegex.test(emailValue)) {
+                e.preventDefault();
+                emailFeedback.textContent = '✗ Invalid email';
+                emailFeedback.className = 'input-feedback error';
+                return false;
+            }
+            
+            if (calculatePasswordStrength(passwordValue) < 3) {
+                e.preventDefault();
+                alert('Password must be strong: Use uppercase, lowercase, numbers & special characters.');
+                return false;
+            }
+            
+            const submitBtn = this.querySelector('button[type=\"submit\"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class=\"fas fa-spinner fa-spin\"></i> Creating Account...';
+            }
+        });
+    }
+</script>
+
+{% endblock content %}

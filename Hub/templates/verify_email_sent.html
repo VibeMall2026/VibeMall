@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Verify Email - VibeMall{% endblock %}
+
+{% block content %}
+<div class="account-area mt-70 mb-70">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-6 col-md-8">
+                <div class="basic-login text-center">
+                    <h5 class="mb-30">Check Your Email</h5>
+                    <p>We sent a verification link to your email address. Please check your inbox and spam folder.</p>
+                    <div class="mt-30">
+                        <a href="{% url 'login' %}" class="tp-in-btn w-100">Back to Login</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

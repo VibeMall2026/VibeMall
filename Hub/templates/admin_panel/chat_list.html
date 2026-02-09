@@ -1,0 +1,62 @@
+{% extends 'admin_panel/base_admin.html' %}
+
+{% block title %}Chat Inbox - FashioHub Admin{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold">Chat Inbox</h4>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table">
+                <thead class="table-light">
+                    <tr>
+                        <th>Customer</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Messages</th>
+                        <th>Last Message</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for thread in threads %}
+                    <tr>
+                        <td>{{ thread.display_name }}</td>
+                        <td>
+                            {% if thread.user and thread.user.email %}
+                                {{ thread.user.email }}
+                            {% else %}
+                                {{ thread.guest_email|default:'-' }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-label-{% if thread.status == 'OPEN' %}success{% else %}secondary{% endif %}">
+                                {{ thread.status }}
+                            </span>
+                        </td>
+                        <td>{{ thread.messages.count }}</td>
+                        <td>
+                            {% if thread.last_message_at %}
+                                {{ thread.last_message_at|date:"d M, Y h:i A" }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'admin_chat_detail' thread.id %}" class="btn btn-sm btn-primary">Open</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4">No chats yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
