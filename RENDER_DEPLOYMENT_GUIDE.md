@@ -7,6 +7,17 @@ git commit -m "Prepare for Render deployment"
 git push origin main
 ```
 
+## Local Deploy Prep (Optional)
+Windows:
+```powershell
+scripts\deploy_prep.ps1
+```
+
+Mac/Linux:
+```bash
+bash scripts/deploy_prep.sh
+```
+
 ## Step 2: Render Account Banao
 1. https://render.com par ja
 2. GitHub account diye signup karo
