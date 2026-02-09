@@ -89,6 +89,219 @@ header.header::before {
     background-color: #263C97;
 }
 
+/* 3a. MOBILE HEADER LAYOUT */
+@media (max-width: 767px) {
+    .header-top {
+        display: none;
+    }
+
+    .header-mid {
+        padding: 8px 0;
+    }
+
+    .header-mid .row {
+        align-items: center;
+    }
+
+    .header__info .logo img {
+        height: 44px !important;
+        max-width: 160px !important;
+    }
+
+    .header-action {
+        gap: 10px !important;
+        justify-content: flex-end !important;
+    }
+
+    .header-action .icon-link .text,
+    .header-action .icon-link .sub {
+        display: none !important;
+    }
+
+    .header-action .icon-link i {
+        font-size: 18px !important;
+    }
+
+    .header-action .icon-link .count {
+        top: -6px !important;
+        right: -8px !important;
+    }
+
+    .header__bottom {
+        padding: 6px 0;
+    }
+}
+
+@media (max-width: 575px) {
+    .header-mid {
+        padding: 6px 0;
+    }
+
+    .header__info .logo img {
+        height: 38px !important;
+        max-width: 130px !important;
+    }
+
+    .header-action {
+        gap: 8px !important;
+    }
+}
+
+/* 4. NAVBAR RESPONSIVE BREAKPOINTS */
+@media (min-width: 320px) and (max-width: 359.98px) {
+    .header-mid {
+        padding: 6px 0;
+    }
+
+    .header__info .logo img {
+        height: 34px !important;
+        max-width: 120px !important;
+    }
+
+    .header-action {
+        gap: 6px !important;
+    }
+
+    .header-action .icon-link i {
+        font-size: 18px !important;
+    }
+}
+
+@media (min-width: 360px) and (max-width: 409.98px) {
+    .header-mid {
+        padding: 7px 0;
+    }
+
+    .header__info .logo img {
+        height: 36px !important;
+        max-width: 130px !important;
+    }
+
+    .header-action {
+        gap: 8px !important;
+    }
+
+    .header-action .icon-link i {
+        font-size: 19px !important;
+    }
+}
+
+@media (min-width: 410px) and (max-width: 479.98px) {
+    .header-mid {
+        padding: 8px 0;
+    }
+
+    .header__info .logo img {
+        height: 40px !important;
+        max-width: 150px !important;
+    }
+
+    .header-action {
+        gap: 10px !important;
+    }
+
+    .header-action .icon-link i {
+        font-size: 20px !important;
+    }
+}
+
+@media (min-width: 600px) and (max-width: 767.98px) {
+    .header-mid {
+        padding: 10px 0;
+    }
+
+    .header__info .logo img {
+        height: 46px !important;
+        max-width: 180px !important;
+    }
+
+    .header-action {
+        gap: 12px !important;
+    }
+
+    .header-action .icon-link i {
+        font-size: 19px !important;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 833.98px) {
+    .header-mid {
+        padding: 12px 0;
+    }
+
+    .header__info .logo img {
+        height: 52px !important;
+        max-width: 210px !important;
+    }
+
+    .header-action {
+        gap: 14px !important;
+    }
+
+    .header-action .icon-link i {
+        font-size: 20px !important;
+    }
+}
+
+@media (min-width: 834px) and (max-width: 1023.98px) {
+    .header-mid {
+        padding: 12px 0;
+    }
+
+    .header__info .logo img {
+        height: 56px !important;
+        max-width: 230px !important;
+    }
+
+    .header-action {
+        gap: 16px !important;
+    }
+
+    .header-action .icon-link i {
+        font-size: 21px !important;
+    }
+}
+
+/* 5. FEATURES STRIP - 4 IN ONE LINE ON SMALL PHONES */
+@media (max-width: 480px) {
+    .features__area .features-row {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+    }
+
+    .features__area .features-row > .col {
+        flex: 0 0 25% !important;
+        max-width: 25% !important;
+        width: 25% !important;
+    }
+
+    .features__item {
+        padding: 8px 4px !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        text-align: center !important;
+    }
+
+    .features__icon {
+        margin-right: 0 !important;
+        margin-bottom: 4px !important;
+    }
+
+    .features__icon i {
+        font-size: 20px !important;
+    }
+
+    .features__content h6 {
+        font-size: 9px !important;
+        line-height: 1.2 !important;
+    }
+
+    .features__content p {
+        font-size: 9px !important;
+        line-height: 1.2 !important;
+    }
+}
+
 header.header,
 header.header .header-top,
 header.header .header-mid,
