@@ -98,41 +98,6 @@
                         </div>
                     </div>
                     
-                    <div class="row mb-3">
-                        <div class="col-md-4">
-                            <label class="form-label" for="color">Color</label>
-                            <input type="text" class="form-control" id="color" name="color" value="{{ product.color|default:'' }}" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label" for="size">Size</label>
-                            <input type="text" class="form-control" id="size" name="size" value="{{ product.size|default:'' }}" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label" for="weight">Weight</label>
-                            <input type="text" class="form-control" id="weight" name="weight" value="{{ product.weight|default:'' }}" />
-                        </div>
-                    </div>
-                    
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label" for="dimensions">Dimensions</label>
-                            <input type="text" class="form-control" id="dimensions" name="dimensions" value="{{ product.dimensions|default:'' }}" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label" for="tags">Tags (comma separated)</label>
-                            <input type="text" class="form-control" id="tags" name="tags" value="{{ product.tags|default:'' }}" />
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label" for="shipping_info">Shipping Information</label>
-                        <textarea class="form-control" id="shipping_info" name="shipping_info" rows="2">{{ product.shipping_info|default:'' }}</textarea>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label" for="care_info">Care Instructions</label>
-                        <textarea class="form-control" id="care_info" name="care_info" rows="2">{{ product.care_info|default:'' }}</textarea>
-                    </div>
                     
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -142,6 +107,17 @@
                         <div class="col-md-6">
                             <label class="form-label" for="review_count">Review Count</label>
                             <input type="number" class="form-control" id="review_count" name="review_count" value="{{ product.review_count|default:'0' }}" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="color">Color</label>
+                            <input type="text" class="form-control" id="color" name="color" value="{{ product.color|default:'' }}" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="size">Size</label>
+                            <input type="text" class="form-control" id="size" name="size" value="{{ product.size|default:'' }}" />
                         </div>
                     </div>
                     
