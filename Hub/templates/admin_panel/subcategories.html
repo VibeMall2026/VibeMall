@@ -1,0 +1,323 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Manage Sub-Categories - FashioHub Admin{% endblock %}
+
+{% block extra_css %}
+<!-- FontAwesome for category icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Sub-Category Icon Management</h5>
+                <a href="{% url 'admin_categories' %}" class="btn btn-outline-secondary">
+                    <i class='bx bx-arrow-back'></i> Back to Categories
+                </a>
+            </div>
+
+            <div class="card-body">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST" action="{% url 'admin_save_subcategory_icon' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label" for="sub_category_parent">Category *</label>
+                    <select class="form-select" id="sub_category_parent" name="category_key" required>
+                        <option value="">Select category</option>
+                        {% for category in categories %}
+                            <option value="{{ category.category_key }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="sub_category_name">Sub-Category</label>
+                    <select class="form-select" id="sub_category_name" name="sub_category_name">
+                        <option value="">Select sub-category</option>
+                    </select>
+                    <div class="form-text">Pick from dropdown or add a new sub-category below.</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="sub_category_name_custom">Add New Sub-Category</label>
+                    <input type="text" class="form-control" id="sub_category_name_custom" name="sub_category_name_custom" placeholder="e.g., Lehnga Choli">
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label" for="sub_icon_image">Icon Image (optional)</label>
+                    <input type="file" class="form-control" id="sub_icon_image" name="icon_image" accept="image/*">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="sub_icon_class">Icon Class</label>
+                    <input type="text" class="form-control" id="sub_icon_class" name="icon_class" placeholder="e.g., fas fa-tshirt">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="sub_icon_color">Icon Color</label>
+                    <input type="color" class="form-control" id="sub_icon_color" name="icon_color" value="#0288d1">
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label" for="sub_icon_size">Icon Size (px)</label>
+                    <input type="number" class="form-control" id="sub_icon_size" name="icon_size" value="48" min="16" max="128">
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label" for="sub_background_gradient">Background Gradient</label>
+                    <input type="text" class="form-control" id="sub_background_gradient" name="background_gradient"
+                           value="linear-gradient(135deg, #e0f7ff 0%, #b3e5fc 100%)">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="sub_is_active" name="is_active" checked>
+                        <label class="form-check-label" for="sub_is_active">Active</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class='bx bx-save'></i> Save Sub-Category Icon
+                </button>
+            </div>
+        </form>
+
+        <div class="mt-4">
+            <h6 class="mb-3">Selected Category Sub-Categories</h6>
+            <div id="sub-category-preview-row" class="row g-3"></div>
+            <div id="sub-category-preview-empty" class="text-muted small" style="display: none;">No sub-categories found for this category.</div>
+        </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Live Preview</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <div id="sub-preview-icon" style="display: inline-flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #e0f7ff 0%, #b3e5fc 100%); padding: calc(48px * 0.45); border-radius: calc(48px * 0.3); margin-bottom: 8px; min-width: calc(48px * 2); min-height: calc(48px * 2);">
+                        <img id="sub-preview-image" src="" alt="" style="display: none; width: 48px; height: 48px; object-fit: contain;">
+                        <i id="sub-preview-icon-element" class="fas fa-tag" style="font-size: 48px; color: #0288d1;"></i>
+                    </div>
+                    <h6 id="sub-preview-name" style="color: #333; font-weight: 600; font-size: 12px;">Sub-Category</h6>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+ <script>
+ document.addEventListener('DOMContentLoaded', function() {
+     const subCategories = {{ sub_categories_json|safe }};
+     const categorySelect = document.getElementById('sub_category_parent');
+     const subCategorySelect = document.getElementById('sub_category_name');
+     const subCategoryCustom = document.getElementById('sub_category_name_custom');
+     const iconClassInput = document.getElementById('sub_icon_class');
+     const iconColorInput = document.getElementById('sub_icon_color');
+     const iconSizeInput = document.getElementById('sub_icon_size');
+     const gradientInput = document.getElementById('sub_background_gradient');
+     const activeCheckbox = document.getElementById('sub_is_active');
+    const previewIcon = document.getElementById('sub-preview-icon');
+    const previewImage = document.getElementById('sub-preview-image');
+    const previewIconElement = document.getElementById('sub-preview-icon-element');
+    const previewName = document.getElementById('sub-preview-name');
+    const previewRow = document.getElementById('sub-category-preview-row');
+    const previewEmpty = document.getElementById('sub-category-preview-empty');
+
+     function updateSubCategoryOptions() {
+         if (!categorySelect || !subCategorySelect) return;
+         const selectedKey = categorySelect.value;
+
+         subCategorySelect.innerHTML = '<option value="">Select sub-category</option>';
+
+         if (!selectedKey) return;
+
+         subCategories
+             .filter((item) => item.category_key === selectedKey)
+             .forEach((item) => {
+                 const option = document.createElement('option');
+                 option.value = item.name;
+                 option.textContent = item.name;
+                 subCategorySelect.appendChild(option);
+             });
+
+        renderSubCategoryPreview(selectedKey);
+     }
+
+     if (categorySelect) {
+         categorySelect.addEventListener('change', updateSubCategoryOptions);
+         updateSubCategoryOptions();
+     }
+
+    function applyIconSize() {
+        if (!iconSizeInput || !previewIcon || !previewIconElement) return;
+        const rawSize = parseInt(iconSizeInput.value, 10);
+        const size = Number.isFinite(rawSize) ? Math.max(16, Math.min(rawSize, 128)) : 48;
+        const padding = Math.round(size * 0.45);
+        const radius = Math.round(size * 0.3);
+
+        previewIcon.style.padding = padding + 'px';
+        previewIcon.style.borderRadius = radius + 'px';
+        previewIcon.style.minWidth = (size + padding * 2) + 'px';
+        previewIcon.style.minHeight = (size + padding * 2) + 'px';
+        previewIconElement.style.fontSize = size + 'px';
+        if (previewImage) {
+            previewImage.style.width = size + 'px';
+            previewImage.style.height = size + 'px';
+        }
+    }
+
+    function updatePreviewName() {
+        if (!previewName) return;
+        const custom = subCategoryCustom ? subCategoryCustom.value.trim() : '';
+        const selected = subCategorySelect ? subCategorySelect.value : '';
+        previewName.textContent = custom || selected || 'Sub-Category';
+    }
+
+    function updatePreviewGradient() {
+        if (!previewIcon || !gradientInput) return;
+        previewIcon.style.background = gradientInput.value;
+    }
+
+    function updatePreviewIcon() {
+        if (!previewIconElement || !iconClassInput) return;
+        const newClasses = iconClassInput.value.trim() || 'fas fa-tag';
+        previewIconElement.setAttribute('class', newClasses);
+    }
+
+    if (iconSizeInput) {
+        iconSizeInput.addEventListener('input', applyIconSize);
+        applyIconSize();
+    }
+
+    if (gradientInput) {
+        gradientInput.addEventListener('input', updatePreviewGradient);
+        updatePreviewGradient();
+    }
+
+    if (iconClassInput) {
+        iconClassInput.addEventListener('input', updatePreviewIcon);
+        updatePreviewIcon();
+    }
+
+    if (iconColorInput && previewIconElement) {
+        iconColorInput.addEventListener('input', function() {
+            previewIconElement.style.color = this.value;
+        });
+        previewIconElement.style.color = iconColorInput.value;
+    }
+
+    if (subCategorySelect) {
+        subCategorySelect.addEventListener('change', updatePreviewName);
+    }
+
+    if (subCategoryCustom) {
+        subCategoryCustom.addEventListener('input', updatePreviewName);
+    }
+
+    updatePreviewName();
+
+    const iconImageInput = document.getElementById('sub_icon_image');
+    if (iconImageInput && previewImage && previewIconElement) {
+        iconImageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) {
+                previewImage.style.display = 'none';
+                previewIconElement.style.display = '';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                previewImage.src = event.target.result;
+                previewImage.style.display = 'block';
+                previewIconElement.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function renderSubCategoryPreview(categoryKey) {
+        if (!previewRow || !previewEmpty) return;
+        previewRow.innerHTML = '';
+        if (!categoryKey) {
+            previewEmpty.style.display = 'block';
+            return;
+        }
+
+        const filtered = subCategories.filter(
+            (item) => item.category_key === categoryKey
+        );
+
+        if (!filtered.length) {
+            previewEmpty.style.display = 'block';
+            return;
+        }
+
+        previewEmpty.style.display = 'none';
+
+        filtered.forEach((item) => {
+            const col = document.createElement('div');
+            col.className = 'col-xl-3 col-lg-4 col-md-6 col-sm-6 col-6';
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'text-center';
+
+            const iconWrap = document.createElement('div');
+            const size = item.icon_size || 48;
+            const padding = Math.round(size * 0.45);
+            const radius = Math.round(size * 0.3);
+
+            iconWrap.style.background = item.background_gradient || 'linear-gradient(135deg, #e0f7ff 0%, #b3e5fc 100%)';
+            iconWrap.style.padding = padding + 'px';
+            iconWrap.style.borderRadius = radius + 'px';
+            iconWrap.style.minWidth = (size + padding * 2) + 'px';
+            iconWrap.style.minHeight = (size + padding * 2) + 'px';
+            iconWrap.style.display = 'inline-flex';
+            iconWrap.style.alignItems = 'center';
+            iconWrap.style.justifyContent = 'center';
+            iconWrap.style.marginBottom = '8px';
+
+            if (item.icon_image) {
+                const img = document.createElement('img');
+                img.src = '/media/' + item.icon_image;
+                img.alt = item.name;
+                img.style.width = size + 'px';
+                img.style.height = size + 'px';
+                img.style.objectFit = 'contain';
+                iconWrap.appendChild(img);
+            } else {
+                const icon = document.createElement('i');
+                icon.className = item.icon_class || 'fas fa-tag';
+                icon.style.fontSize = size + 'px';
+                icon.style.color = item.icon_color || '#0288d1';
+                iconWrap.appendChild(icon);
+            }
+
+            const name = document.createElement('h6');
+            name.textContent = item.name || 'Sub-Category';
+            name.style.color = '#333';
+            name.style.fontWeight = '600';
+            name.style.fontSize = '12px';
+
+            wrapper.appendChild(iconWrap);
+            wrapper.appendChild(name);
+            col.appendChild(wrapper);
+            previewRow.appendChild(col);
+        });
+    }
+
+    renderSubCategoryPreview(categorySelect ? categorySelect.value : '');
+ });
+ </script>
+{% endblock %}

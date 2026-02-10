@@ -107,7 +107,198 @@
         height: auto !important;
         object-fit: unset !important;
     }
+
+    .mobile-hero {
+        display: none;
+    }
+
+    @media (max-width: 480px) {
+        .slider-area {
+            display: none;
+        }
+
+        .mobile-hero {
+            display: block;
+            margin-bottom: 12px;
+        }
+
+        .mobile-hero__slide {
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            width: 100%;
+            aspect-ratio: 2 / 1;
+            min-height: 220px;
+            display: flex;
+            align-items: center;
+        }
+
+        .mobile-hero__content {
+            padding: 0 8px;
+        }
+
+        .mobile-hero .slider-top-btn a,
+        .mobile-hero .st-btn,
+        .mobile-hero .st-btn-b {
+            font-size: 11px;
+            padding: 6px 12px;
+            line-height: 1.2;
+        }
+
+        .mobile-hero .slider-title {
+            font-size: 16px;
+            line-height: 1.15;
+        }
+
+        .mobile-hero .slider_text {
+            display: none;
+        }
+
+        .mobile-hero .slider-top-btn {
+            margin-bottom: 8px;
+        }
+
+        .mobile-hero .slider-bottom-btn {
+            margin-top: 12px;
+        }
+
+        .slider-area,
+        .slider-area .swiper-container,
+        .slider-area .slider-wrapper,
+        .slider-area .swiper-slide {
+            height: 240px !important;
+        }
+
+        .slider-area .swiper-container {
+            overflow: hidden;
+        }
+
+        .slider-area .slider-wrapper {
+            transform: none !important;
+        }
+
+        .slider-area .swiper-slide {
+            display: none !important;
+            position: relative !important;
+        }
+
+        .slider-area .swiper-slide.swiper-slide-active {
+            display: flex !important;
+        }
+
+        .slider-area .slider-height {
+            min-height: 240px;
+            height: 240px;
+            padding: 16px 0;
+        }
+
+        .slider-area .single-slider {
+            background-size: contain !important;
+            background-position: center center !important;
+        }
+
+        .slider-area .slider-content {
+            padding: 0 8px;
+        }
+
+        .slider-area .slider-top-btn a,
+        .slider-area .st-btn,
+        .slider-area .st-btn-b {
+            font-size: 11px;
+            padding: 6px 12px;
+            line-height: 1.2;
+        }
+
+        .slider-area .slider-title {
+            font-size: 16px;
+            line-height: 1.15;
+        }
+
+        .slider-area .slider_text {
+            display: none;
+        }
+
+        .category__area .row.justify-content-between {
+            flex-wrap: nowrap !important;
+            justify-content: space-between !important;
+            gap: 4px !important;
+            overflow-x: auto;
+            padding-bottom: 6px;
+        }
+
+        .category__area .row.justify-content-between > div {
+            flex: 0 0 auto !important;
+            max-width: none !important;
+            min-width: 64px;
+        }
+
+        .category__area .category__icon {
+            padding: 6px !important;
+            border-radius: 6px !important;
+            margin-bottom: 6px !important;
+        }
+
+        .category__area .category__icon img {
+            width: 20px !important;
+            height: 20px !important;
+        }
+
+        .category__area .category__icon i {
+            font-size: 20px !important;
+        }
+
+        .category__area .category__item h6 {
+            font-size: 9px !important;
+            line-height: 1.2 !important;
+        }
+
+        .slider-area .slider-top-btn {
+            margin-bottom: 8px;
+        }
+
+        .slider-area .slider-bottom-btn {
+            margin-top: 16px;
+        }
+
+        .slider-area .slider-content h2,
+        .slider-area .slider-content p {
+            margin-bottom: 6px;
+        }
+    }
 </style>
+
+{% with mobile_slider=sliders|first %}
+<div class="mobile-hero">
+    <div class="mobile-hero__slide" style="background-image: url('{% static 'assets/img/banner/sl-banner.jpg' %}');">
+        <div class="container">
+            <div class="row">
+                <div class="col-12">
+                    <div class="slider-content mobile-hero__content">
+                        <div class="slider-top-btn">
+                            <a href="{{ mobile_slider.top_button_url|default:'#' }}" class="st-btn b-radius">
+                                {{ mobile_slider.top_button_text|default:'HOT DEALS' }}
+                            </a>
+                        </div>
+
+                        <h2 class="pt-15 slider-title pb-5">
+                            {{ mobile_slider.title|default:'' }} <br>
+                            {{ mobile_slider.subtitle|default:'' }}
+                        </h2>
+
+                        <p class="pr-20 slider_text">
+                            {{ mobile_slider.description|default:'' }}
+                        </p>
+
+                        <div class="slider-bottom-btn">
+                            <a href="/shop/" class="st-btn-b b-radius">Discover now</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endwith %}
 
 <div class="slider-area">
     <div class="swiper-container slider__active">

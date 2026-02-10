@@ -1686,7 +1686,16 @@ def admin_subcategories(request):
         'categories': categories,
         'sub_categories': sub_categories,
         'sub_categories_json': json.dumps(
-            list(sub_categories.values('category_key', 'name'))
+            list(sub_categories.values(
+                'category_key',
+                'name',
+                'icon_class',
+                'icon_color',
+                'icon_size',
+                'background_gradient',
+                'icon_image',
+                'is_active'
+            ))
         ),
     }
     return render(request, 'admin_panel/subcategories.html', context)
