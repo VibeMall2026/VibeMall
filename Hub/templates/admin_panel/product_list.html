@@ -64,6 +64,34 @@
     </div>
 </div>
 
+<!-- Add Sub-category -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h6 class="mb-3">Add Sub-Category</h6>
+        <form method="post" class="row g-3 align-items-end">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_sub_category">
+            <div class="col-md-4">
+                <label class="form-label">Category</label>
+                <select class="form-select" name="sub_category_key" required>
+                    <option value="">Select Category</option>
+                    {% for code, label in category_choices %}
+                        <option value="{{ code }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label">Sub-Category Name</label>
+                <input type="text" class="form-control" name="sub_category_name" placeholder="Enter sub-category" required>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">Add Sub-Category</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
 <!-- Filters -->
 <div class="card mb-4">
     <div class="card-body">
@@ -228,6 +256,7 @@
                         <span class="page-link">Previous</span>
                     </li>
                 {% endif %}
+
 
                 <li class="page-item active">
                     <span class="page-link">

@@ -88,11 +88,25 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="sub_category">Sub_Category</label>
+                            <select class="form-select" id="sub_category" name="sub_category" required>
+                                <option value="">Select Sub_Category</option>
+                                {% for item in sub_categories %}
+                                    {% if item.category_key == product.category %}
+                                        <option value="{{ item.name }}" {% if product.sub_category == item.name %}selected{% endif %}>{{ item.name }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
                             <label class="form-label" for="stock">Stock</label>
                             <input type="number" class="form-control" id="stock" name="stock" value="{{ product.stock }}" />
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-6">
                             <label class="form-label" for="sold">Sold</label>
                             <input type="number" class="form-control" id="sold" name="sold" value="{{ product.sold|default:'0' }}" />
                         </div>
@@ -343,6 +357,40 @@
         document.getElementById('addReviewForm').style.display = 'block';
         document.getElementById('reviewStatus').style.display = 'none';
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const categorySelect = document.getElementById('category');
+        const subCategorySelect = document.getElementById('sub_category');
+        if (!categorySelect || !subCategorySelect) return;
+
+        const subCategoryData = {{ sub_categories_json|safe }};
+
+        const buildSubOptions = () => {
+            const selected = (categorySelect.value || '').trim();
+            const currentValue = (subCategorySelect.value || '').trim();
+            const options = subCategoryData.filter((item) => item.category_key === selected);
+            subCategorySelect.innerHTML = '<option value="">Select Sub_Category</option>';
+            options.forEach((item) => {
+                const opt = document.createElement('option');
+                opt.value = item.name;
+                opt.textContent = item.name;
+                if (item.name === currentValue) {
+                    opt.selected = true;
+                }
+                subCategorySelect.appendChild(opt);
+            });
+            if (currentValue && !options.some((item) => item.name === currentValue)) {
+                const opt = document.createElement('option');
+                opt.value = currentValue;
+                opt.textContent = currentValue;
+                opt.selected = true;
+                subCategorySelect.appendChild(opt);
+            }
+        };
+
+        buildSubOptions();
+        categorySelect.addEventListener('change', buildSubOptions);
+    });
     
     // Load product reviews
     function loadProductReviews(productId) {

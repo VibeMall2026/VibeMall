@@ -222,7 +222,7 @@
                                                     </li>
                                                     <li>
                                                         <ul>
-                                                        <li class="title"><a href="{% url 'shop' %}">SHOP LAYOUT</a></li>
+                                                        <li class="title"><a href="{% url 'shop' %}">{% if header_categories|length > 0 %}{{ header_categories.0.label }}{% else %}SHOP LAYOUT{% endif %}</a></li>
                                                         <li><a href="{% url 'shop' %}">Pagination</a></li>
                                                         <li><a href="{% url 'shop' %}">Ajax Load More</a></li>
                                                         <li><a href="{% url 'shop' %}">Infinite Scroll</a></li>
@@ -232,7 +232,7 @@
                                                     </li>
                                                     <li>
                                                         <ul>
-                                                        <li class="title"><a href="{% url 'shop' %}">SHOP PAGES</a></li>
+                                                        <li class="title"><a href="{% url 'shop' %}">{% if header_categories|length > 1 %}{{ header_categories.1.label }}{% else %}SHOP PAGES{% endif %}</a></li>
                                                         <li><a href="{% url 'shop' %}">List View</a></li>
                                                         <li><a href="{% url 'shop' %}">Small Products</a></li>
                                                         <li><a href="{% url 'shop' %}">Large Products</a></li>
@@ -243,7 +243,7 @@
                                                     </li>
                                                     <li>
                                                         <ul>
-                                                        <li class="title"><a href="{% url 'shop' %}">PRODUCT LAYOUT</a></li>
+                                                        <li class="title"><a href="{% url 'shop' %}">{% if header_categories|length > 2 %}{{ header_categories.2.label }}{% else %}PRODUCT LAYOUT{% endif %}</a></li>
                                                         <li><a href="{% url 'shop' %}">Description Sticky</a></li>
                                                         <li><a href="{% url 'shop' %}">Product Carousel</a></li>
                                                         <li><a href="{% url 'shop' %}">Gallery Modern</a></li>
@@ -254,7 +254,7 @@
                                                     </li>
                                                     <li>
                                                         <ul>
-                                                        <li class="title"><a href="{% url 'shop' %}">Basketball</a></li>
+                                                        <li class="title"><a href="{% url 'shop' %}">{% if header_categories|length > 3 %}{{ header_categories.3.label }}{% else %}Basketball{% endif %}</a></li>
                                                         <li><a href="{% url 'shop' %}">East Hampton Fleece</a></li>
                                                         <li><a href="{% url 'shop' %}">Faxon Canvas Low</a></li>
                                                         <li><a href="{% url 'shop' %}">Habitasse Dictumst</a></li>
@@ -265,7 +265,7 @@
                                                     </li>
                                                     <li>
                                                         <ul>
-                                                        <li class="title"><a href="{% url 'shop' %}">Basketball</a></li>
+                                                        <li class="title"><a href="{% url 'shop' %}">{% if header_categories|length > 4 %}{{ header_categories.4.label }}{% else %}Basketball{% endif %}</a></li>
                                                         <li><a href="{% url 'shop' %}">East Hampton Fleece</a></li>
                                                         <li><a href="{% url 'shop' %}">Faxon Canvas Low</a></li>
                                                         <li><a href="{% url 'shop' %}">Habitasse Dictumst</a></li>

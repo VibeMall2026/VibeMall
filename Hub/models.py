@@ -64,6 +64,46 @@ class CategoryIcon(models.Model):
     def __str__(self):
         return self.name
 
+
+class SubCategory(models.Model):
+    category_key = models.CharField(max_length=50)
+    name = models.CharField(max_length=100)
+    icon_class = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="FontAwesome icon class (e.g., 'fas fa-tshirt')"
+    )
+    icon_image = models.ImageField(
+        upload_to='subcategory_icons/',
+        blank=True,
+        null=True,
+        help_text="Upload sub-category icon image (PNG recommended)"
+    )
+    background_gradient = models.CharField(
+        max_length=200,
+        default="linear-gradient(135deg, #e0f7ff 0%, #b3e5fc 100%)",
+        help_text="CSS gradient for icon background"
+    )
+    icon_color = models.CharField(
+        max_length=20,
+        default="#0288d1",
+        help_text="Icon color (hex code) - Only used for FontAwesome icons"
+    )
+    icon_size = models.PositiveIntegerField(
+        default=48,
+        help_text="Icon size in pixels (used for image width/height or FontAwesome size)"
+    )
+    is_active = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['order', 'name']
+        unique_together = ('category_key', 'name')
+
+    def __str__(self):
+        return f"{self.category_key} - {self.name}"
+
 class Slider(models.Model):
     title = models.CharField(max_length=200)
     subtitle = models.CharField(max_length=255, blank=True)
@@ -207,6 +247,12 @@ class Product(models.Model):
         choices=CATEGORY_CHOICES,
         blank=True,
         null=True
+    )
+
+    sub_category = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Optional sub-category label"
     )
 
     discount_percent = models.PositiveIntegerField(default=0)

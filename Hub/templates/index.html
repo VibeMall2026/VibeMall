@@ -42,6 +42,71 @@
     .modal-header .btn-close {
         cursor: pointer;
     }
+
+    /* Home product card alignment */
+    .product__item {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .product__thumb {
+        height: 280px;
+        overflow: hidden !important;
+    }
+
+    .product__thumb .product-image,
+    .product__thumb .product-image a {
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+
+    .product__thumb img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover;
+        display: block;
+    }
+
+    .product__content {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+    }
+
+    .product__content h6 {
+        min-height: 44px;
+    }
+
+    .product__content .rating {
+        min-height: 20px;
+    }
+
+    .product__content .price {
+        min-height: 22px;
+    }
+
+    .product__add-cart {
+        margin-top: auto;
+    }
+
+    /* Large featured card: keep original natural image size */
+    .product__item-d .product__thumb {
+        height: auto;
+        overflow: visible !important;
+        display: block;
+    }
+
+    .product__item-d .product__thumb .product-image,
+    .product__item-d .product__thumb .product-image a {
+        height: auto;
+    }
+
+    .product__item-d .product__thumb img {
+        height: auto !important;
+        object-fit: unset !important;
+    }
 </style>
 
 <div class="slider-area">

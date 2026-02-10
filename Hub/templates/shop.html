@@ -20,7 +20,7 @@
     .product-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 12px; position: relative; transition: transform 160ms ease, box-shadow 160ms ease; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06); }
     .product-card:hover { transform: translateY(-4px); box-shadow: 0 16px 38px rgba(15, 23, 42, 0.12); }
     .card-media { position: relative; border-radius: 12px; overflow: hidden; background: #f5f7fb; }
-    .card-media img { width: 100%; height: 240px; object-fit: cover; display: block; }
+    .card-media img { width: 100%; height: 280px; object-fit: cover; display: block; }
     .discount-badge { position: absolute; bottom: 10px; left: 10px; background: #5aab19; color: #fff; padding: 6px 10px; border-radius: 999px; font-weight: 700; font-size: 12px; }
     .quick-actions { position: absolute; top: 10px; right: 10px; display: flex; gap: 8px; }
     .action-btn { width: 34px; height: 34px; border-radius: 50%; border: 1px solid #e5e7eb; background: #fff; color: #0f172a; display: grid; place-items: center; transition: background 120ms ease, color 120ms ease, border-color 120ms ease; }
@@ -47,6 +47,54 @@
         }
     .product-toolbar { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px 16px; box-shadow: 0 8px 24px rgba(15,23,42,0.08); }
     .rating-inline i { color: #f59e0b; }
+
+    /* Shop grid card alignment */
+    .product__item {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .product__thumb {
+        height: 280px;
+        overflow: hidden !important;
+    }
+
+    .product__thumb .product-image,
+    .product__thumb .product-image a {
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+
+    .product__thumb img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover;
+        display: block;
+    }
+
+    .product__content {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+    }
+
+    .product__content h6 {
+        min-height: 44px;
+    }
+
+    .product__content .rating {
+        min-height: 20px;
+    }
+
+    .product__content .price {
+        min-height: 22px;
+    }
+
+    .product__add-cart {
+        margin-top: auto;
+    }
     .filter-form input[type="number"]::-webkit-outer-spin-button,
     .filter-form input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     .filter-form input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
@@ -142,6 +190,24 @@
                                 {% empty %}
                                     <p class="text-muted mb-0">No categories found.</p>
                                 {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="filter-block mb-20">
+                            <p class="filter-label mb-1">Sub-category</p>
+                            <div class="widget-category-list">
+                                {% if selected_category %}
+                                    {% for value,label,count in sub_category_data %}
+                                        <div class="single-widget-category">
+                                            <input type="radio" id="subcat-{{ forloop.counter }}" name="sub_category" value="{{ value }}" {% if selected_sub_category == value %}checked{% endif %}>
+                                            <label for="subcat-{{ forloop.counter }}">{{ label }} <span class="text-muted">({{ count }})</span></label>
+                                        </div>
+                                    {% empty %}
+                                        <p class="text-muted mb-0">No sub-categories found.</p>
+                                    {% endfor %}
+                                {% else %}
+                                    <p class="text-muted mb-0">Select a category first.</p>
+                                {% endif %}
                             </div>
                         </div>
 
@@ -460,6 +526,19 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('shopFiltersForm');
+    if (!form) return;
+    const categoryRadios = form.querySelectorAll('input[name="category"]');
+    categoryRadios.forEach((radio) => {
+        radio.addEventListener('change', () => {
+            form.submit();
+        });
+    });
+});
+</script>
 
 <div class="modal fade" id="productQuickView" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">

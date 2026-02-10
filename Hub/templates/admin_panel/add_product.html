@@ -83,11 +83,20 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="sub_category">Sub_Category</label>
+                            <select class="form-select" id="sub_category" name="sub_category" required>
+                                <option value="">Select Sub_Category</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
                             <label class="form-label" for="stock">Stock</label>
                             <input type="number" class="form-control" id="stock" name="stock" placeholder="Available quantity" />
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-6">
                             <label class="form-label" for="sold">Sold</label>
                             <input type="number" class="form-control" id="sold" name="sold" placeholder="0" value="0" />
                         </div>
@@ -211,6 +220,7 @@
                                 {% endfor %}
                             </div>
                             <input type="hidden" id="saved_main_category" value="{{ saved_info.main_category }}">
+                            <input type="hidden" id="saved_sub_category" value="{{ saved_info.sub_category }}">
                         </div>
                     </div>
                     {% endif %}
@@ -302,7 +312,10 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const mainCategory = document.getElementById('saved_main_category');
+    const savedSubCategory = document.getElementById('saved_sub_category');
+    const subCategoryData = {{ sub_categories_json|safe }};
     const categorySelect = document.getElementById('category');
+    const subCategoryInput = document.getElementById('sub_category');
     if (!mainCategory || !categorySelect) return;
     const target = (mainCategory.value || '').trim().toLowerCase();
     if (!target) return;
@@ -315,6 +328,41 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     if (match) {
         categorySelect.value = match.value;
+    }
+
+    const buildSubOptions = () => {
+        if (!subCategoryInput) return;
+        const selected = (categorySelect.value || '').trim();
+        const options = subCategoryData.filter((item) => item.category_key === selected);
+        subCategoryInput.innerHTML = '<option value="">Select Sub_Category</option>';
+        options.forEach((item) => {
+            const opt = document.createElement('option');
+            opt.value = item.name;
+            opt.textContent = item.name;
+            subCategoryInput.appendChild(opt);
+        });
+        if (savedSubCategory) {
+            const subValue = (savedSubCategory.value || '').trim();
+            if (subValue && !options.some((item) => item.name === subValue)) {
+                const opt = document.createElement('option');
+                opt.value = subValue;
+                opt.textContent = subValue;
+                subCategoryInput.appendChild(opt);
+            }
+        }
+    };
+
+    buildSubOptions();
+
+    categorySelect.addEventListener('change', () => {
+        buildSubOptions();
+    });
+
+    if (savedSubCategory && subCategoryInput && !subCategoryInput.value) {
+        const subValue = (savedSubCategory.value || '').trim();
+        if (subValue) {
+            subCategoryInput.value = subValue;
+        }
     }
 });
 </script>

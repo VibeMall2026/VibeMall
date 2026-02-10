@@ -61,7 +61,7 @@ RETURN_STATUS_FLOW = {
     'QC_FAILED': ['REFUND_PENDING', 'WRONG_RETURN', 'REFUNDED', 'REPLACED'],
 }
 
-from .models import CategoryIcon, Slider, Feature, Banner, Product, DealCountdown, UserProfile, Address, Cart, Wishlist, ProductImage, ProductReview, ReviewImage, ReviewVote, ProductQuestion, Order, OrderItem, OrderStatusHistory, OrderCancellationRequest, ReturnRequest, ReturnItem, ReturnHistory, ReturnAttachment, ReturnLabel, AdminEmailSettings, ProductStockNotification, BrandPartner, SiteSettings, LoyaltyPoints, PointsTransaction, MainPageProduct, ChatThread, ChatMessage, ChatAttachment
+from .models import CategoryIcon, SubCategory, Slider, Feature, Banner, Product, DealCountdown, UserProfile, Address, Cart, Wishlist, ProductImage, ProductReview, ReviewImage, ReviewVote, ProductQuestion, Order, OrderItem, OrderStatusHistory, OrderCancellationRequest, ReturnRequest, ReturnItem, ReturnHistory, ReturnAttachment, ReturnLabel, AdminEmailSettings, ProductStockNotification, BrandPartner, SiteSettings, LoyaltyPoints, PointsTransaction, MainPageProduct, ChatThread, ChatMessage, ChatAttachment
 from .email_utils import send_order_confirmation_email, send_order_status_update_email, send_admin_order_notification
 
 # ===== ADMIN PANEL VIEWS =====
@@ -1130,6 +1130,7 @@ def admin_add_product(request):
             
             # Get new fields
             category = request.POST.get('category')
+            sub_category = request.POST.get('sub_category', '').strip()
             sku = request.POST.get('sku', '')
             brand = request.POST.get('brand', '')
             description = request.POST.get('description', '')
@@ -1155,6 +1156,9 @@ def admin_add_product(request):
                     category_icon = CategoryIcon.objects.filter(name__iexact=main_category).first()
                     if category_icon:
                         category = category_icon.category_key
+
+                if not sub_category:
+                    sub_category = (saved_info.get('sub_category') or '').strip()
 
                 def file_from_path(path):
                     return File(open(path, 'rb'), name=os.path.basename(path))
@@ -1210,6 +1214,7 @@ def admin_add_product(request):
                 image=image,
                 descriptionImage=descriptionImage,
                 category=category if category else None,
+                sub_category=sub_category,
                 sku=sku,
                 brand=brand,
                 description=description,
@@ -1258,10 +1263,18 @@ def admin_add_product(request):
                 'exists': bool(path and os.path.isfile(path)),
             })
 
+    sub_categories = list(
+        SubCategory.objects.filter(is_active=True)
+        .order_by('order', 'name')
+        .values('category_key', 'name')
+    )
+
     return render(request, 'admin_panel/add_product.html', {
         'categories': categories,
         'saved_info': saved_info,
         'saved_images': saved_images,
+        'sub_categories': sub_categories,
+        'sub_categories_json': json.dumps(sub_categories),
     })
 
 
@@ -1364,6 +1377,23 @@ def generate_auto_reviews(product, review_total, target_avg, reviewer_user=None)
 @staff_member_required(login_url='login')
 def admin_product_list(request):
     """Admin Product List Page"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add_sub_category':
+            sub_name = (request.POST.get('sub_category_name') or '').strip()
+            sub_category_key = (request.POST.get('sub_category_key') or '').strip()
+            if sub_name and sub_category_key:
+                SubCategory.objects.get_or_create(
+                    category_key=sub_category_key,
+                    name=sub_name,
+                    defaults={'is_active': True}
+                )
+                messages.success(request, f'Sub-category "{sub_name}" added.')
+            else:
+                messages.error(request, 'Please select a category and enter sub-category name.')
+            return redirect('admin_product_list')
+
+
     products = Product.objects.all().order_by('-id')
 
     # Filters
@@ -1457,6 +1487,12 @@ def admin_product_list(request):
         .values_list('category_key', 'name')
     )
 
+    sub_categories = list(
+        SubCategory.objects.filter(is_active=True)
+        .order_by('order', 'name')
+        .values('category_key', 'name')
+    )
+
     context = {
         'products': products,
         'status_filter': status_filter,
@@ -1465,6 +1501,7 @@ def admin_product_list(request):
         'search_query': search_query,
         'per_page': per_page,
         'category_choices': category_choices,
+        'sub_categories': sub_categories,
 
         'in_store_sales': in_store_sales,
         'website_sales': website_sales,
@@ -1546,6 +1583,7 @@ def admin_edit_product(request, product_id):
             product.stock = request.POST.get('stock')
             product.sold = request.POST.get('sold') or 0
             product.category = request.POST.get('category') or None
+            product.sub_category = request.POST.get('sub_category', '').strip()
             product.rating = request.POST.get('rating', 0)
             product.review_count = request.POST.get('review_count', 0)
             product.is_active = request.POST.get('is_active') == 'on'
@@ -1601,6 +1639,16 @@ def admin_edit_product(request, product_id):
         'product': product,
         'base_price': base_price,
         'categories': CategoryIcon.objects.filter(is_active=True).order_by('order', 'id'),
+        'sub_categories': list(
+            SubCategory.objects.filter(is_active=True)
+            .order_by('order', 'name')
+            .values('category_key', 'name')
+        ),
+        'sub_categories_json': json.dumps(list(
+            SubCategory.objects.filter(is_active=True)
+            .order_by('order', 'name')
+            .values('category_key', 'name')
+        )),
     }
     return render(request, 'admin_panel/edit_product.html', context)
 
@@ -1625,6 +1673,77 @@ def admin_categories(request):
         'categories': categories,
     }
     return render(request, 'admin_panel/categories.html', context)
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_subcategories(request):
+    """Admin Sub-Category Management Page"""
+    categories = CategoryIcon.objects.all().order_by('order', 'id')
+    sub_categories = SubCategory.objects.all().order_by('category_key', 'order', 'name')
+
+    context = {
+        'categories': categories,
+        'sub_categories': sub_categories,
+        'sub_categories_json': json.dumps(
+            list(sub_categories.values('category_key', 'name'))
+        ),
+    }
+    return render(request, 'admin_panel/subcategories.html', context)
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+@require_POST
+def admin_save_subcategory_icon(request):
+    """Create or update sub-category icon settings."""
+    category_key = request.POST.get('category_key', '').strip()
+    sub_category_name = request.POST.get('sub_category_name', '').strip()
+    custom_name = request.POST.get('sub_category_name_custom', '').strip()
+    if custom_name:
+        sub_category_name = custom_name
+
+    if not category_key or not sub_category_name:
+        messages.error(request, 'Please select a category and sub-category.')
+        return redirect('admin_categories')
+
+    icon_class = request.POST.get('icon_class', '').strip()
+    icon_color = request.POST.get('icon_color', '#0288d1')
+    background_gradient = request.POST.get(
+        'background_gradient',
+        'linear-gradient(135deg, #e0f7ff 0%, #b3e5fc 100%)'
+    )
+    icon_size_raw = request.POST.get('icon_size', '').strip()
+    is_active = request.POST.get('is_active') == 'on'
+
+    try:
+        icon_size = int(icon_size_raw)
+    except (TypeError, ValueError):
+        icon_size = 48
+
+    icon_size = max(16, min(icon_size, 128))
+
+    sub_category, _ = SubCategory.objects.get_or_create(
+        category_key=category_key,
+        name=sub_category_name
+    )
+
+    sub_category.icon_class = icon_class
+    sub_category.icon_color = icon_color
+    sub_category.background_gradient = background_gradient
+    sub_category.icon_size = icon_size
+    sub_category.is_active = is_active
+
+    if request.FILES.get('icon_image'):
+        sub_category.icon_image = request.FILES['icon_image']
+
+    sub_category.save()
+
+    messages.success(
+        request,
+        f'Sub-category "{sub_category.name}" updated successfully!'
+    )
+    return redirect('admin_categories')
 
 @login_required(login_url='login')
 @staff_member_required(login_url='login')
@@ -4298,6 +4417,7 @@ def shop(request):
     max_price = request.GET.get('max_price')
     min_rating = request.GET.get('min_rating')
     selected_category = request.GET.get('category', '').strip()
+    selected_sub_category = request.GET.get('sub_category', '').strip()
 
     if min_price:
         try:
@@ -4339,6 +4459,11 @@ def shop(request):
     else:
         selected_category = ''
 
+    if selected_sub_category:
+        products = products.filter(sub_category__iexact=selected_sub_category)
+    else:
+        selected_sub_category = ''
+
     category_counts_qs = Product.objects.filter(is_active=True).values('category').annotate(total=Count('id'))
     category_counts = {row['category']: row['total'] for row in category_counts_qs}
     category_counts_norm = {
@@ -4353,6 +4478,20 @@ def shop(request):
         )
         for cat in category_icons
     ]
+
+    sub_category_data = []
+    if selected_category:
+        sub_category_qs = Product.objects.filter(is_active=True).filter(category__iexact=selected_category)
+        sub_category_counts_qs = (
+            sub_category_qs.exclude(sub_category='')
+            .values('sub_category')
+            .annotate(total=Count('id'))
+            .order_by('sub_category')
+        )
+        sub_category_data = [
+            (row['sub_category'], row['sub_category'], row['total'])
+            for row in sub_category_counts_qs
+        ]
 
     wishlist_product_ids = set()
     cart_product_ids = set()
@@ -4404,6 +4543,8 @@ def shop(request):
         query_params['max_price'] = max_price
     if min_rating:
         query_params['min_rating'] = min_rating
+    if selected_sub_category:
+        query_params['sub_category'] = selected_sub_category
     if search_query:
         query_params['q'] = search_query
 
@@ -4429,9 +4570,11 @@ def shop(request):
         'category_icons': category_icons,
         'category_data': category_data,
         'selected_category': selected_category,
+        'selected_sub_category': selected_sub_category,
         'min_price': min_price or '',
         'max_price': max_price or '',
         'selected_rating': min_rating or '',
+        'sub_category_data': sub_category_data,
         'search_query': search_query,
         'wishlist_product_ids': wishlist_product_ids,
         'cart_product_ids': cart_product_ids,
