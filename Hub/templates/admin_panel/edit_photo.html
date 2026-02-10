@@ -107,6 +107,64 @@
                 <h5 class="mb-0">Step 3: Download (1, 2, 3...)</h5>
             </div>
             <div class="card-body">
+                {% if saved_message %}
+                <div class="alert alert-success" role="alert">
+                    {{ saved_message }}
+                </div>
+                <a href="{% url 'admin_add_product' %}" class="btn btn-primary mb-3">
+                    Open Add Product
+                </a>
+                {% endif %}
+                <div class="alert alert-info" role="alert">
+                    Base path: {{ product_image_root }}
+                </div>
+                <form method="POST" id="save-images-form" class="mb-4">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save_to_folder">
+                    <input type="hidden" name="main_category" id="main_category_value">
+                    <input type="hidden" name="sub_category" id="sub_category_value">
+                    {% for item in results %}
+                        <input type="hidden" name="converted_urls" value="{{ item.url }}">
+                    {% endfor %}
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label" for="main_category_select">Main category</label>
+                            <select class="form-select" id="main_category_select" name="_main_category_select">
+                                <option value="">Select category</option>
+                                {% for name in category_options %}
+                                    <option value="{{ name }}">{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                            <input type="text" class="form-control mt-2" id="main_category_custom" placeholder="Or type new category">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="sub_category_select">Sub_Category</label>
+                            <select class="form-select" id="sub_category_select" name="_sub_category_select">
+                                <option value="">Select sub category</option>
+                            </select>
+                            <input type="text" class="form-control mt-2" id="sub_category_custom" placeholder="Or type new sub category">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="product_folder_select">Product_folder</label>
+                            <select class="form-select" id="product_folder_select">
+                                <option value="">Select folder number</option>
+                            </select>
+                            <input type="text" class="form-control mt-2" id="product_folder_input" name="product_folder" placeholder="Or type folder number">
+                            <div class="form-text" id="product_folder_hint"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" id="create_folder" name="create_folder" checked>
+                        <label class="form-check-label" for="create_folder">Create folder if missing</label>
+                    </div>
+
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-success">Save to Folder</button>
+                    </div>
+                </form>
+
                 <div class="row g-3">
                     {% for item in results %}
                     <div class="col-md-6 col-lg-4">
@@ -131,7 +189,8 @@
                 <h6 class="card-title">How it works</h6>
                 <p class="text-muted small mb-2">1. Paste one or more image URLs.</p>
                 <p class="text-muted small mb-2">2. Click Convert to PNG.</p>
-                <p class="text-muted small mb-0">3. Download the converted PNG files.</p>
+                <p class="text-muted small mb-2">3. Save to Folder (select Main category, Sub_Category, Product_folder).</p>
+                <p class="text-muted small mb-0">4. Click Open Add Product to auto-use 1.png, 2.png, 3.png.</p>
             </div>
         </div>
     </div>
@@ -186,6 +245,108 @@ document.addEventListener('DOMContentLoaded', function() {
         downloadBlock.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else if (resultsBlock) {
         resultsBlock.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const folderIndex = {{ folder_index_json|safe }};
+    const mainSelect = document.getElementById('main_category_select');
+    const subSelect = document.getElementById('sub_category_select');
+    const productSelect = document.getElementById('product_folder_select');
+    const productInput = document.getElementById('product_folder_input');
+    const mainCustom = document.getElementById('main_category_custom');
+    const subCustom = document.getElementById('sub_category_custom');
+    const mainValueField = document.getElementById('main_category_value');
+    const subValueField = document.getElementById('sub_category_value');
+    const hint = document.getElementById('product_folder_hint');
+
+    if (!mainSelect || !subSelect || !productSelect || !productInput) return;
+
+    const updateSubcategories = () => {
+        const mainValue = (mainCustom.value || mainSelect.value || '').trim();
+        if (mainValueField) {
+            mainValueField.value = mainValue;
+        }
+        subSelect.innerHTML = '<option value="">Select sub category</option>';
+        productSelect.innerHTML = '<option value="">Select folder number</option>';
+        if (!mainValue || !folderIndex[mainValue]) {
+            hint.textContent = '';
+            return;
+        }
+        Object.keys(folderIndex[mainValue]).forEach((sub) => {
+            const opt = document.createElement('option');
+            opt.value = sub;
+            opt.textContent = sub;
+            subSelect.appendChild(opt);
+        });
+    };
+
+    const updateProductFolders = () => {
+        const mainValue = (mainCustom.value || mainSelect.value || '').trim();
+        const subValue = (subCustom.value || subSelect.value || '').trim();
+        if (mainValueField) {
+            mainValueField.value = mainValue;
+        }
+        if (subValueField) {
+            subValueField.value = subValue;
+        }
+        productSelect.innerHTML = '<option value="">Select folder number</option>';
+        if (!mainValue || !subValue || !folderIndex[mainValue] || !folderIndex[mainValue][subValue]) {
+            hint.textContent = '';
+            return;
+        }
+        const numbers = folderIndex[mainValue][subValue] || [];
+        numbers.forEach((num) => {
+            const opt = document.createElement('option');
+            opt.value = String(num);
+            opt.textContent = String(num);
+            productSelect.appendChild(opt);
+        });
+        const next = numbers.length ? Math.max(...numbers) + 1 : 1;
+        hint.textContent = `Suggested next folder: ${next}`;
+        if (!productInput.value) {
+            productInput.value = String(next);
+        }
+    };
+
+    mainSelect.addEventListener('change', () => {
+        if (!mainCustom.value) {
+            updateSubcategories();
+            updateProductFolders();
+        }
+    });
+    subSelect.addEventListener('change', () => {
+        if (!subCustom.value) {
+            updateProductFolders();
+        }
+    });
+    mainCustom.addEventListener('input', () => {
+        updateSubcategories();
+        updateProductFolders();
+    });
+    subCustom.addEventListener('input', () => {
+        updateProductFolders();
+    });
+    productSelect.addEventListener('change', () => {
+        if (productSelect.value) {
+            productInput.value = productSelect.value;
+        }
+    });
+
+    const form = document.getElementById('save-images-form');
+    if (form) {
+        form.addEventListener('submit', () => {
+            const mainValue = (mainCustom.value || mainSelect.value || '').trim();
+            const subValue = (subCustom.value || subSelect.value || '').trim();
+            if (mainValueField) {
+                mainValueField.value = mainValue;
+            }
+            if (subValueField) {
+                subValueField.value = subValue;
+            }
+        });
     }
 });
 </script>

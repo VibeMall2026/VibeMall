@@ -22,6 +22,7 @@ from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
 from django.conf import settings
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.core.files import File
 from decimal import Decimal
 from datetime import timedelta, datetime, time
 from urllib.parse import urlencode, urlparse
@@ -32,6 +33,7 @@ import base64
 import os
 import uuid
 import requests
+import shutil
 from io import BytesIO
 from PIL import Image as PILImage, UnidentifiedImageError
 from urllib.request import Request, urlopen
@@ -1141,6 +1143,43 @@ def admin_add_product(request):
             image = crop_image_height(request.FILES.get('image'))
             descriptionImage = request.FILES.get('descriptionImage')
             gallery_images = [crop_image_height(img) for img in request.FILES.getlist('gallery_images')]
+
+            use_saved_images = request.POST.get('use_saved_images') == 'on'
+            saved_info = request.session.get('edit_photo_saved') if use_saved_images else None
+            if saved_info and not image:
+                base_path = saved_info.get('base_path')
+                target_dir = saved_info.get('target_dir')
+                main_category = saved_info.get('main_category')
+
+                if not category and main_category:
+                    category_icon = CategoryIcon.objects.filter(name__iexact=main_category).first()
+                    if category_icon:
+                        category = category_icon.category_key
+
+                def file_from_path(path):
+                    return File(open(path, 'rb'), name=os.path.basename(path))
+
+                main_path = os.path.join(target_dir, '1.png') if target_dir else None
+                gallery_path = os.path.join(target_dir, '2.png') if target_dir else None
+                desc_path = os.path.join(target_dir, '3.png') if target_dir else None
+
+                try:
+                    if main_path and os.path.isfile(main_path):
+                        image = file_from_path(main_path)
+                except Exception:
+                    pass
+
+                try:
+                    if gallery_path and os.path.isfile(gallery_path):
+                        gallery_images.append(file_from_path(gallery_path))
+                except Exception:
+                    pass
+
+                try:
+                    if desc_path and os.path.isfile(desc_path):
+                        descriptionImage = file_from_path(desc_path)
+                except Exception:
+                    pass
             
             def normalize_sku(raw_sku):
                 cleaned = (raw_sku or '').strip()
@@ -1191,6 +1230,10 @@ def admin_add_product(request):
             # Auto-generate approved reviews if rating/review_count provided
             if review_count > 0 and rating > 0:
                 generate_auto_reviews(product, review_count, rating, request.user)
+
+            if use_saved_images:
+                request.session.pop('edit_photo_saved', None)
+                request.session.modified = True
             
             messages.success(request, f'Product "{product.name}" added successfully with {len(gallery_images)} gallery images!')
             return redirect('admin_add_product')
@@ -1200,7 +1243,26 @@ def admin_add_product(request):
     
     # Get categories for dropdown
     categories = CategoryIcon.objects.filter(is_active=True).order_by('order', 'id')
-    return render(request, 'admin_panel/add_product.html', {'categories': categories})
+    saved_info = request.session.get('edit_photo_saved')
+    saved_images = None
+    if saved_info:
+        target_dir = saved_info.get('target_dir')
+        saved_images = []
+        for index, label in ((1, 'Main Product Image'), (2, 'Gallery Image'), (3, 'Description Image')):
+            filename = f"{index}.png"
+            path = os.path.join(target_dir, filename) if target_dir else ''
+            saved_images.append({
+                'label': label,
+                'filename': filename,
+                'path': path,
+                'exists': bool(path and os.path.isfile(path)),
+            })
+
+    return render(request, 'admin_panel/add_product.html', {
+        'categories': categories,
+        'saved_info': saved_info,
+        'saved_images': saved_images,
+    })
 
 
 def generate_auto_reviews(product, review_total, target_avg, reviewer_user=None):
@@ -1660,11 +1722,103 @@ def admin_edit_photo(request):
     results = []
     errors = []
     show_downloads = False
+    saved_message = ''
+
+    product_image_root = r"D:\VibeMallProduct\ProductImage"
+
+    def build_folder_index(root_path):
+        folder_index = {}
+        if not os.path.isdir(root_path):
+            return folder_index
+        for category_name in sorted(os.listdir(root_path)):
+            category_path = os.path.join(root_path, category_name)
+            if not os.path.isdir(category_path):
+                continue
+            sub_index = {}
+            for sub_name in sorted(os.listdir(category_path)):
+                sub_path = os.path.join(category_path, sub_name)
+                if not os.path.isdir(sub_path):
+                    continue
+                numbers = set()
+                for entry in os.listdir(sub_path):
+                    entry_path = os.path.join(sub_path, entry)
+                    name = os.path.splitext(entry)[0]
+                    if os.path.isdir(entry_path) and entry.isdigit():
+                        numbers.add(int(entry))
+                    elif name.isdigit():
+                        numbers.add(int(name))
+                sub_index[sub_name] = sorted(numbers)
+            folder_index[category_name] = sub_index
+        return folder_index
 
     if request.method == 'POST':
         action = request.POST.get('action') or 'convert'
 
-        if action == 'apply_crop':
+        if action == 'save_to_folder':
+            converted_urls = request.POST.getlist('converted_urls')
+            main_category = (request.POST.get('main_category') or '').strip()
+            sub_category = (request.POST.get('sub_category') or '').strip()
+            product_folder = (request.POST.get('product_folder') or '').strip()
+            create_folder = request.POST.get('create_folder') == 'on'
+
+            if not main_category or not sub_category or not product_folder:
+                errors.append('Please select Main category, Sub_Category, and Product_folder.')
+            elif not product_folder.isdigit():
+                errors.append('Product_folder must be a number like 1, 2, 3.')
+            else:
+                target_dir = os.path.normpath(
+                    os.path.join(product_image_root, main_category, sub_category, product_folder)
+                )
+                root_norm = os.path.normpath(product_image_root)
+                if os.path.commonpath([root_norm, target_dir]) != root_norm:
+                    errors.append('Invalid target folder path.')
+                else:
+                    if create_folder:
+                        os.makedirs(target_dir, exist_ok=True)
+                    if not os.path.isdir(target_dir):
+                        errors.append('Target folder does not exist. Enable create folder.')
+                    else:
+                        to_delete = []
+                        for idx, url in enumerate(converted_urls, start=1):
+                            safe_path, _ = _safe_edit_photo_path_from_url(url)
+                            if not safe_path:
+                                errors.append(f"{url}: Invalid converted image.")
+                                continue
+                            dest_path = os.path.join(target_dir, f"{idx}.png")
+                            try:
+                                shutil.copyfile(safe_path, dest_path)
+                                to_delete.append(safe_path)
+                            except Exception as exc:
+                                errors.append(f"{url}: {exc}")
+                        if not errors:
+                            saved_message = f"Saved {len(converted_urls)} images to {target_dir}"
+                            request.session['edit_photo_saved'] = {
+                                'main_category': main_category,
+                                'sub_category': sub_category,
+                                'product_folder': product_folder,
+                                'base_path': product_image_root,
+                                'target_dir': target_dir,
+                            }
+                            request.session.modified = True
+                            for path in to_delete:
+                                try:
+                                    if os.path.isfile(path):
+                                        os.remove(path)
+                                except Exception:
+                                    pass
+                            show_downloads = True
+
+            for url in converted_urls:
+                filename = os.path.basename(url)
+                results.append({
+                    'source': url,
+                    'url': url,
+                    'filename': filename,
+                    'download_name': filename,
+                })
+                show_downloads = True
+
+        elif action == 'apply_crop':
             converted_urls = request.POST.getlist('converted_urls')
             ratio_x = request.POST.get('crop_ratio_x')
             ratio_y = request.POST.get('crop_ratio_y')
@@ -1713,10 +1867,15 @@ def admin_edit_photo(request):
                 except Exception as exc:
                     errors.append(f"{url}: {exc}")
 
+    folder_index = build_folder_index(product_image_root)
     return render(request, 'admin_panel/edit_photo.html', {
         'results': results,
         'errors': errors,
         'show_downloads': show_downloads,
+        'saved_message': saved_message,
+        'folder_index_json': json.dumps(folder_index),
+        'category_options': sorted(folder_index.keys()),
+        'product_image_root': product_image_root,
     })
 
 
