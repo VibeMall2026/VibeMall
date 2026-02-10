@@ -2,7 +2,7 @@
 Context processors for FashioHub
 Adds cart and wishlist counts to every template
 """
-from .models import Cart, Wishlist, SiteSettings, LoyaltyPoints, CategoryIcon
+from .models import Cart, Wishlist, SiteSettings, LoyaltyPoints, CategoryIcon, Product
 from django.db.models import F, Sum
 
 
@@ -65,15 +65,29 @@ def header_menu_context(request):
     }
 
     header_categories = []
-    for icon in CategoryIcon.objects.filter(is_active=True).order_by('order', 'id'):
-        badge = badge_map.get(icon.category_key)
+    icon_categories = CategoryIcon.objects.filter(is_active=True).order_by('order', 'id')
+    for icon in icon_categories:
+        category_key = (icon.category_key or '').strip()
+        badge = badge_map.get(category_key)
         header_categories.append({
             'label': icon.name,
-            'key': icon.category_key,
+            'key': category_key,
             'badge_text': badge['text'] if badge else '',
             'badge_class': badge['class'] if badge else '',
             'has_children': False,
         })
+    if not header_categories:
+        excluded_categories = {'TOP_DEALS', 'TOP_SELLING', 'TOP_FEATURED', 'RECOMMENDED'}
+        for key, label in Product.CATEGORY_CHOICES:
+            if key in excluded_categories:
+                continue
+            header_categories.append({
+                'label': label,
+                'key': key,
+                'badge_text': '',
+                'badge_class': '',
+                'has_children': False,
+            })
 
     header_links = [
         {'label': 'About Us', 'url_name': 'about'},

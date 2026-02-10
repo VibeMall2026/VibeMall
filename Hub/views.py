@@ -955,7 +955,35 @@ def crop_image_height(file_obj, target_height=738):
     if not file_obj:
         return file_obj
 
+    try:
+        _register_heif_opener()
+        file_obj.seek(0)
+        image = PILImage.open(file_obj)
+        image.load()
+        width, height = image.size
 
+        if height > target_height:
+            image = image.crop((0, 0, width, target_height))
+
+        image = image.convert('RGBA')
+        output = BytesIO()
+        image.save(output, format='PNG')
+        output.seek(0)
+
+        base_name, _ = os.path.splitext(file_obj.name)
+        png_name = f"{base_name}.png"
+
+        return InMemoryUploadedFile(
+            output,
+            'ImageField',
+            png_name,
+            'image/png',
+            output.getbuffer().nbytes,
+            None,
+        )
+    except Exception:
+        file_obj.seek(0)
+        return file_obj
 def _register_heif_opener():
     try:
         import pillow_heif
@@ -1003,38 +1031,6 @@ def _crop_png_by_ratio(abs_path, ratio, index=None):
     public_url = f"{settings.MEDIA_URL}{rel_path.replace(os.sep, '/')}"
     return public_url, filename
 
-    try:
-        file_obj.seek(0)
-        image = PILImage.open(file_obj)
-        image.load()
-        width, height = image.size
-
-        if height > target_height:
-            image = image.crop((0, 0, width, target_height))
-
-        image = image.convert('RGBA')
-        output = BytesIO()
-        image.save(output, format='PNG')
-        output.seek(0)
-
-        base_name, _ = os.path.splitext(file_obj.name)
-        png_name = f"{base_name}.png"
-
-        return InMemoryUploadedFile(
-            output,
-            'ImageField',
-            png_name,
-            'image/png',
-            output.getbuffer().nbytes,
-            None,
-        )
-    except Exception:
-        try:
-            file_obj.seek(0)
-        except Exception:
-            pass
-        return file_obj
-
 
 def convert_url_to_png(image_url, crop_box=None, crop_ratio=None):
     response = requests.get(image_url, timeout=15)
@@ -1048,8 +1044,13 @@ def convert_url_to_png(image_url, crop_box=None, crop_ratio=None):
     try:
         image = PILImage.open(BytesIO(response.content))
         image.load()
-    except UnidentifiedImageError as exc:
-        raise ValueError('Unsupported image format. Try JPG or PNG.') from exc
+    except UnidentifiedImageError:
+        try:
+            import pillow_heif
+            heif = pillow_heif.read_heif(response.content)
+            image = heif.to_pillow()
+        except Exception as exc:
+            raise ValueError('Unsupported image format. Try JPG or PNG.') from exc
 
     if crop_box is None and crop_ratio:
         try:
@@ -3481,6 +3482,21 @@ def index(request):
     features = Feature.objects.filter(is_active=True)
     banners = Banner.objects.filter(is_active=True)
     categories = CategoryIcon.objects.filter(is_active=True)
+    if not categories.exists():
+        excluded_categories = {'TOP_DEALS', 'TOP_SELLING', 'TOP_FEATURED', 'RECOMMENDED'}
+        categories = [
+            {
+                'name': label,
+                'category_key': key,
+                'background_gradient': 'linear-gradient(135deg, #e0f7ff 0%, #b3e5fc 100%)',
+                'icon_image': None,
+                'icon_class': None,
+                'icon_color': '#0288d1',
+                'icon_size': 48,
+            }
+            for key, label in Product.CATEGORY_CHOICES
+            if key not in excluded_categories
+        ]
     
     # Get products from MainPageProduct model (4 categories)
     from .models import MainPageProduct
@@ -4152,17 +4168,30 @@ def shop(request):
 
     # Get categories from CategoryIcon (dynamic admin-managed categories)
     category_icons = CategoryIcon.objects.filter(is_active=True).order_by('order', 'id')
-    category_keys = {cat.category_key for cat in category_icons}
 
+    def normalize_category_key(raw_key):
+        return (raw_key or '').strip()
+
+    category_keys = {normalize_category_key(cat.category_key) for cat in category_icons}
+
+    selected_category = normalize_category_key(selected_category)
     if selected_category and selected_category in category_keys:
-        products = products.filter(category=selected_category)
+        products = products.filter(category__iexact=selected_category)
     else:
         selected_category = ''
 
     category_counts_qs = Product.objects.filter(is_active=True).values('category').annotate(total=Count('id'))
     category_counts = {row['category']: row['total'] for row in category_counts_qs}
+    category_counts_norm = {
+        normalize_category_key(key): total
+        for key, total in category_counts.items()
+    }
     category_data = [
-        (cat.category_key, cat.name, category_counts.get(cat.category_key, 0))
+        (
+            normalize_category_key(cat.category_key),
+            cat.name,
+            category_counts_norm.get(normalize_category_key(cat.category_key), 0),
+        )
         for cat in category_icons
     ]
 
