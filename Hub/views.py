@@ -5624,6 +5624,10 @@ def admin_add_review(request, product_id):
                 is_approved=True,
                 is_verified_purchase=False  # Admin reviews are not verified purchases
             )
+
+            review_images = request.FILES.getlist('review_images')
+            for image in review_images:
+                ReviewImage.objects.create(review=review, image=image)
             
             # Update product review count and rating
             product.review_count = ProductReview.objects.filter(product=product, is_approved=True).count()

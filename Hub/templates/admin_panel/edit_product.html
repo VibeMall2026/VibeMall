@@ -251,6 +251,12 @@
                         <label class="form-label" for="admin_comment">Review Comment (optional)</label>
                         <textarea class="form-control" id="admin_comment" rows="4" placeholder="Write a review comment..."></textarea>
                     </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="admin_review_images">Review Images (optional)</label>
+                        <input type="file" class="form-control" id="admin_review_images" accept="image/*" multiple>
+                        <small class="text-muted">Upload real product images for this review.</small>
+                    </div>
                     
                     <div class="alert alert-info" role="alert">
                         <i class='bx bx-info-circle'></i> This review will be automatically approved and visible to customers
@@ -307,6 +313,12 @@
         form.append('name', name);
         form.append('email', email);
         form.append('comment', comment);
+        const imageInput = document.getElementById('admin_review_images');
+        if (imageInput && imageInput.files.length) {
+            Array.from(imageInput.files).forEach((file) => {
+                form.append('review_images', file);
+            });
+        }
         form.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
         
         const statusDiv = document.getElementById('reviewStatus');
@@ -348,6 +360,10 @@
         document.getElementById('admin_name').value = '';
         document.getElementById('admin_email').value = '';
         document.getElementById('admin_comment').value = '';
+        const imageInput = document.getElementById('admin_review_images');
+        if (imageInput) {
+            imageInput.value = '';
+        }
         document.getElementById('addReviewForm').style.display = 'block';
         document.getElementById('reviewStatus').style.display = 'none';
     }

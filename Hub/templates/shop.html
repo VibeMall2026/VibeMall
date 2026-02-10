@@ -381,16 +381,8 @@
                                         {% endif %}
                                     </div>
 
-                                    <div class="progress mb-0">
-                                        <div class="progress-bar bg-danger" style="width: {% if product.stock == 0 %}100{% else %}{{ product.progress_percent }}{% endif %}%"></div>
-                                    </div>
-
                                     <div class="progress-rate">
-                                        {% if product.stock == 0 %}
-                                            <span>Sold out</span>
-                                        {% else %}
-                                            <span>Sold: {{ product.sold }}/{{ product.stock }}</span>
-                                        {% endif %}
+                                        <span>{{ product.sold|default:0 }} sold</span>
                                     </div>
                                 </div>
 
