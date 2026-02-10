@@ -4364,8 +4364,8 @@ def shop(request):
             Cart.objects.filter(user=request.user).values_list('product_id', flat=True)
         )
 
-    # Pagination - 16 products per page (4 columns x 4 rows)
-    paginator = Paginator(products, 16)
+    # Pagination - 9 products per page (3 columns x 3 rows)
+    paginator = Paginator(products, 9)
     page = request.GET.get('page', 1)
     
     try:
@@ -4374,6 +4374,40 @@ def shop(request):
         products_page = paginator.page(1)
     except EmptyPage:
         products_page = paginator.page(paginator.num_pages)
+
+    def build_page_links(current, total):
+        if total <= 1:
+            return [1]
+        if total <= 7:
+            return list(range(1, total + 1))
+
+        pages = {1, 2, total - 1, total, current - 1, current, current + 1}
+        pages = [p for p in pages if 1 <= p <= total]
+        pages = sorted(set(pages))
+        output = []
+        last = None
+        for p in pages:
+            if last is not None and p - last > 1:
+                output.append(None)
+            output.append(p)
+            last = p
+        return output
+
+    page_links = build_page_links(products_page.number, paginator.num_pages)
+
+    query_params = {}
+    if selected_category:
+        query_params['category'] = selected_category
+    if min_price:
+        query_params['min_price'] = min_price
+    if max_price:
+        query_params['max_price'] = max_price
+    if min_rating:
+        query_params['min_rating'] = min_rating
+    if search_query:
+        query_params['q'] = search_query
+
+    page_query = f"&{urlencode(query_params)}" if query_params else ''
 
     product_ids = [p.id for p in products_page.object_list]
     stats_qs = ProductReview.objects.filter(product_id__in=product_ids, is_approved=True).values('product_id').annotate(
@@ -4402,6 +4436,8 @@ def shop(request):
         'wishlist_product_ids': wishlist_product_ids,
         'cart_product_ids': cart_product_ids,
         'product_stats': product_stats,
+        'page_links': page_links,
+        'page_query': page_query,
     })
 
 

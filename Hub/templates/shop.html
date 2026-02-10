@@ -440,23 +440,19 @@
                     </style>
                     
                     {% if products.has_previous %}
-                        <a href="?page=1{% if selected_category %}&category={{ selected_category }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}{% if selected_rating %}&min_rating={{ selected_rating }}{% endif %}" class="page-link">
-                            <i class="fas fa-angle-double-left"></i>
-                        </a>
-                        <a href="?page={{ products.previous_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}{% if selected_rating %}&min_rating={{ selected_rating }}{% endif %}" class="page-link">
-                            <i class="fas fa-angle-left"></i>
-                        </a>
+                        <a href="?page={{ products.previous_page_number }}{{ page_query }}" class="page-link">Prev</a>
                     {% endif %}
 
-                    <span class="page-info">Page {{ products.number }} of {{ products.paginator.num_pages }}</span>
+                    {% for page_num in page_links %}
+                        {% if page_num %}
+                            <a href="?page={{ page_num }}{{ page_query }}" class="page-link{% if page_num == products.number %} active{% endif %}">{{ page_num }}</a>
+                        {% else %}
+                            <span class="page-info">...</span>
+                        {% endif %}
+                    {% endfor %}
 
                     {% if products.has_next %}
-                        <a href="?page={{ products.next_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}{% if selected_rating %}&min_rating={{ selected_rating }}{% endif %}" class="page-link">
-                            <i class="fas fa-angle-right"></i>
-                        </a>
-                        <a href="?page={{ products.paginator.num_pages }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}{% if selected_rating %}&min_rating={{ selected_rating }}{% endif %}" class="page-link">
-                            <i class="fas fa-angle-double-right"></i>
-                        </a>
+                        <a href="?page={{ products.next_page_number }}{{ page_query }}" class="page-link">Next</a>
                     {% endif %}
                 </div>
                 {% endif %}
