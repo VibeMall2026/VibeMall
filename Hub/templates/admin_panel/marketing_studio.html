@@ -1,0 +1,586 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Marketing Studio{% endblock %}
+
+{% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --studio-ink: #0f172a;
+    --studio-muted: #6b7280;
+    --studio-accent: #ff6b35;
+    --studio-accent-2: #0ea5a6;
+    --studio-bg: #f8fafc;
+  }
+
+  .studio-header h4 {
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 700;
+    color: var(--studio-ink);
+  }
+
+  .studio-subtext {
+    color: var(--studio-muted);
+  }
+
+  .studio-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+  }
+
+  .studio-card .card-header {
+    background: #ffffff;
+    border-bottom: 1px solid #eef2f7;
+  }
+
+  .studio-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--studio-ink);
+  }
+
+  .studio-input {
+    border-radius: 10px;
+  }
+
+  .studio-pill {
+    border-radius: 999px;
+    padding: 0.45rem 0.9rem;
+    font-weight: 600;
+  }
+
+  .studio-pill.active {
+    background: var(--studio-ink);
+    color: #ffffff;
+  }
+
+  .idea-output,
+  .copy-output {
+    min-height: 120px;
+    font-size: 0.9rem;
+  }
+
+  .template-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .template-btn {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #ffffff;
+    padding: 0.8rem;
+    text-align: left;
+    font-weight: 600;
+  }
+
+  .template-btn.active {
+    border-color: var(--studio-accent);
+    box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.18);
+  }
+
+  .ad-stage {
+    border-radius: 16px;
+    background: var(--studio-bg);
+    padding: 1rem;
+    overflow: auto;
+  }
+
+  .ad-canvas {
+    --canvas-w: 540px;
+    --canvas-h: 540px;
+    width: var(--canvas-w);
+    height: var(--canvas-h);
+    background: #ffffff;
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+    font-family: "Space Grotesk", sans-serif;
+    color: var(--studio-ink);
+  }
+
+  .ad-canvas .brand-logo {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+  }
+
+  .brand-logo img {
+    height: 32px;
+    width: auto;
+  }
+
+  .ad-title {
+    font-family: "Playfair Display", serif;
+    font-size: 2.1rem;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+
+  .ad-tagline {
+    font-size: 1rem;
+    color: var(--studio-muted);
+  }
+
+  .ad-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.55rem 1.1rem;
+    border-radius: 999px;
+    background: var(--studio-accent);
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+
+  .ad-price {
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+
+  .ad-badge {
+    position: absolute;
+    padding: 0.4rem 0.85rem;
+    border-radius: 999px;
+    font-weight: 700;
+    background: #0f172a;
+    color: #ffffff;
+    font-size: 0.85rem;
+  }
+
+  .ad-product-img {
+    width: 240px;
+    height: 320px;
+    object-fit: cover;
+    border-radius: 16px;
+    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.18);
+    background: #e2e8f0;
+  }
+
+  .shape {
+    position: absolute;
+    border-radius: 999px;
+    opacity: 0.9;
+  }
+
+  .t-1 .shape-one { background: #fde68a; width: 200px; height: 200px; top: -60px; right: -60px; }
+  .t-1 .shape-two { background: #d1fae5; width: 180px; height: 180px; bottom: -60px; left: -40px; }
+
+  .t-2 { background: linear-gradient(140deg, #fff7ed 0%, #fdf2f8 100%); }
+  .t-2 .shape-one { background: #f97316; width: 140px; height: 140px; top: 40px; right: 40px; }
+  .t-2 .shape-two { background: #0ea5a6; width: 160px; height: 160px; bottom: 30px; left: 30px; }
+
+  .t-3 { background: #0f172a; color: #ffffff; }
+  .t-3 .ad-tagline { color: #e2e8f0; }
+  .t-3 .ad-cta { background: #f97316; }
+  .t-3 .shape-one { background: #22d3ee; width: 220px; height: 220px; top: -80px; right: -70px; }
+  .t-3 .shape-two { background: #f59e0b; width: 120px; height: 120px; bottom: -20px; left: -20px; }
+
+  .t-4 { background: #f8fafc; }
+  .t-4 .ad-panel { background: #ffffff; border-radius: 16px; padding: 20px; box-shadow: 0 16px 32px rgba(15,23,42,0.1); }
+  .t-4 .shape-one { background: #fca5a5; width: 160px; height: 160px; top: -40px; right: 40px; }
+
+  .t-5 { background: linear-gradient(140deg, #ecfeff 0%, #fef3c7 100%); }
+  .t-5 .shape-one { background: #38bdf8; width: 190px; height: 190px; top: -50px; left: -50px; }
+  .t-5 .shape-two { background: #f59e0b; width: 160px; height: 160px; bottom: -60px; right: -30px; }
+
+  .t-6 { background: #fff1f2; }
+  .t-6 .shape-one { background: #fb7185; width: 140px; height: 140px; top: 20px; right: 30px; }
+  .t-6 .shape-two { background: #fda4af; width: 180px; height: 180px; bottom: -60px; left: -40px; }
+
+  .t-7 { background: #f0fdf4; }
+  .t-7 .shape-one { background: #22c55e; width: 160px; height: 160px; top: -30px; right: -30px; }
+  .t-7 .shape-two { background: #86efac; width: 180px; height: 180px; bottom: -60px; left: -40px; }
+
+  .t-8 { background: #fefce8; }
+  .t-8 .shape-one { background: #facc15; width: 140px; height: 140px; top: 30px; right: 50px; }
+  .t-8 .shape-two { background: #fde047; width: 170px; height: 170px; bottom: -50px; left: -40px; }
+
+  .t-9 { background: #eff6ff; }
+  .t-9 .shape-one { background: #38bdf8; width: 160px; height: 160px; top: -20px; right: -20px; }
+  .t-9 .shape-two { background: #f97316; width: 140px; height: 140px; bottom: -40px; left: -20px; }
+
+  .t-10 { background: #ffffff; }
+  .t-10 .shape-one { background: #111827; width: 140px; height: 140px; top: 24px; right: 24px; }
+  .t-10 .shape-two { background: #f97316; width: 180px; height: 180px; bottom: -60px; left: -40px; }
+
+  .ad-layout {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2rem;
+    padding: 90px 42px 42px;
+    align-items: center;
+  }
+
+  .ad-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .ad-features {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.95rem;
+  }
+
+  .ratio-pill {
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    padding: 0.35rem 0.8rem;
+    font-weight: 600;
+    background: #ffffff;
+  }
+
+  .ratio-pill.active {
+    background: var(--studio-ink);
+    color: #ffffff;
+  }
+
+  @media (max-width: 992px) {
+    .template-grid {
+      grid-template-columns: 1fr;
+    }
+    .ad-layout {
+      grid-template-columns: 1fr;
+      padding: 90px 32px 32px;
+    }
+    .ad-product-img {
+      width: 200px;
+      height: 260px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="studio-header d-flex flex-wrap justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="mb-1">Marketing Studio</h4>
+    <div class="studio-subtext">Generate Instagram banners, ad copy, and export PNG in one place.</div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="studio-card card mb-4">
+      <div class="card-header">
+        <strong>Brand + Product Inputs</strong>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="studio-label">Brand Name</label>
+          <input id="brandName" class="form-control studio-input" value="VibeMall" />
+        </div>
+        <div class="mb-3">
+          <label class="studio-label">Product Name</label>
+          <input id="productName" class="form-control studio-input" placeholder="Floral Co-ord Set" />
+        </div>
+        <div class="mb-3">
+          <label class="studio-label">Category</label>
+          <input id="productCategory" class="form-control studio-input" placeholder="Women Wear" />
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="studio-label">Price</label>
+            <input id="productPrice" class="form-control studio-input" placeholder="799" />
+          </div>
+          <div class="col-6">
+            <label class="studio-label">Discount</label>
+            <input id="productDiscount" class="form-control studio-input" placeholder="20% OFF" />
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="studio-label">Highlight</label>
+          <input id="productHighlight" class="form-control studio-input" placeholder="Soft cotton. All day comfort." />
+        </div>
+        <div class="mb-3">
+          <label class="studio-label">Tagline</label>
+          <input id="productTagline" class="form-control studio-input" placeholder="Own your everyday glam." />
+        </div>
+        <div class="mb-3">
+          <label class="studio-label">CTA</label>
+          <input id="productCTA" class="form-control studio-input" value="Shop Now" />
+        </div>
+        <div class="mb-3">
+          <label class="studio-label">Product Image</label>
+          <input id="productImageInput" type="file" accept="image/*" class="form-control studio-input" />
+        </div>
+        <div class="form-check">
+          <input id="toggleLogo" class="form-check-input" type="checkbox" checked />
+          <label class="form-check-label" for="toggleLogo">Show brand logo</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="studio-card card mb-4">
+      <div class="card-header">
+        <strong>Idea Generator</strong>
+      </div>
+      <div class="card-body">
+        <button id="generateIdeas" class="btn btn-outline-primary mb-3">Generate Ideas</button>
+        <textarea id="ideaOutput" class="form-control idea-output" readonly></textarea>
+      </div>
+    </div>
+
+    <div class="studio-card card">
+      <div class="card-header">
+        <strong>Ad Copy Generator</strong>
+      </div>
+      <div class="card-body">
+        <button id="generateCopy" class="btn btn-outline-dark mb-3">Generate Copy</button>
+        <textarea id="copyOutput" class="form-control copy-output" readonly></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="studio-card card mb-4">
+      <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
+        <strong>Templates</strong>
+        <div class="d-flex gap-2">
+          <button class="ratio-pill active" data-ratio="square">Square</button>
+          <button class="ratio-pill" data-ratio="portrait">Portrait</button>
+          <button class="ratio-pill" data-ratio="story">Story</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="template-grid" id="templateGrid">
+          <button class="template-btn active" data-template="t-1">Warm Editorial</button>
+          <button class="template-btn" data-template="t-2">Pop Contrast</button>
+          <button class="template-btn" data-template="t-3">Night Luxe</button>
+          <button class="template-btn" data-template="t-4">Minimal Split</button>
+          <button class="template-btn" data-template="t-5">Fresh Breeze</button>
+          <button class="template-btn" data-template="t-6">Soft Romance</button>
+          <button class="template-btn" data-template="t-7">Eco Chic</button>
+          <button class="template-btn" data-template="t-8">Sunrise Drop</button>
+          <button class="template-btn" data-template="t-9">City Glow</button>
+          <button class="template-btn" data-template="t-10">Bold Mono</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="studio-card card">
+      <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
+        <strong>Banner Preview</strong>
+        <div class="d-flex gap-2">
+          <button id="applyToPreview" class="btn btn-outline-secondary">Update Preview</button>
+          <button id="downloadBanner" class="btn btn-primary">Download PNG</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="ad-stage">
+          <div id="adCanvas" class="ad-canvas t-1">
+            <div class="shape shape-one"></div>
+            <div class="shape shape-two"></div>
+
+            <div class="brand-logo" id="brandLogoWrap">
+              {% if site_settings and site_settings.admin_logo %}
+              <img src="{{ site_settings.admin_logo.url }}" alt="{{ site_settings.site_name }}" />
+              {% elif site_settings and site_settings.site_logo %}
+              <img src="{{ site_settings.site_logo.url }}" alt="{{ site_settings.site_name }}" />
+              {% endif %}
+              <span id="brandText">VibeMall</span>
+            </div>
+
+            <div class="ad-badge" id="badgeDiscount">20% OFF</div>
+
+            <div class="ad-layout">
+              <div class="ad-stack">
+                <div class="ad-title" id="headlineText">Floral Co-ord Set</div>
+                <div class="ad-tagline" id="taglineText">Own your everyday glam.</div>
+                <div class="ad-features">
+                  <span id="categoryText">Women Wear</span>
+                  <span id="highlightText">Soft cotton. All day comfort.</span>
+                </div>
+                <div class="ad-price">Price: Rs <span id="priceText">799</span></div>
+                <div class="ad-cta" id="ctaText">Shop Now</div>
+              </div>
+              <div class="d-flex justify-content-center">
+                <img id="productImage" class="ad-product-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='320'><rect width='100%' height='100%' fill='%23e2e8f0'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%2394a3b8' font-family='Arial' font-size='16'>Upload Image</text></svg>" alt="Product" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <small class="text-muted d-block mt-2">Tip: Use a 1080px product image for best results.</small>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
+  const ideaOutput = document.getElementById("ideaOutput");
+  const copyOutput = document.getElementById("copyOutput");
+  const adCanvas = document.getElementById("adCanvas");
+
+  const fields = {
+    brand: document.getElementById("brandName"),
+    name: document.getElementById("productName"),
+    category: document.getElementById("productCategory"),
+    price: document.getElementById("productPrice"),
+    discount: document.getElementById("productDiscount"),
+    highlight: document.getElementById("productHighlight"),
+    tagline: document.getElementById("productTagline"),
+    cta: document.getElementById("productCTA")
+  };
+
+  const preview = {
+    brandText: document.getElementById("brandText"),
+    headline: document.getElementById("headlineText"),
+    category: document.getElementById("categoryText"),
+    price: document.getElementById("priceText"),
+    highlight: document.getElementById("highlightText"),
+    tagline: document.getElementById("taglineText"),
+    cta: document.getElementById("ctaText"),
+    badge: document.getElementById("badgeDiscount"),
+    image: document.getElementById("productImage"),
+    logoWrap: document.getElementById("brandLogoWrap")
+  };
+
+  const hooks = [
+    "Weekend-ready in 5 seconds",
+    "From desk to dinner",
+    "Soft on skin, sharp on style",
+    "Minimal effort, max impact",
+    "Genz approved, comfort powered"
+  ];
+  const benefits = [
+    "breathable fabric",
+    "easy fit",
+    "all-day comfort",
+    "statement detail",
+    "premium finish"
+  ];
+  const emotions = [
+    "confidence",
+    "ease",
+    "everyday glam",
+    "street-ready",
+    "vacay mood"
+  ];
+  const ctas = ["Shop Now", "Grab the Drop", "Style It Today", "Add to Closet", "Order Now"];
+
+  function buildIdeas() {
+    const product = fields.name.value || "your product";
+    const lines = [];
+    for (let i = 0; i < 6; i += 1) {
+      const idea = `${hooks[i % hooks.length]}: ${product} with ${benefits[i % benefits.length]} for ${emotions[i % emotions.length]}.`;
+      lines.push(`${i + 1}. ${idea}`);
+    }
+    ideaOutput.value = lines.join("\n");
+  }
+
+  function buildCopy() {
+    const product = fields.name.value || "New Arrival";
+    const category = fields.category.value || "Women Wear";
+    const price = fields.price.value || "799";
+    const discount = fields.discount.value || "20% OFF";
+    const pickCta = ctas[Math.floor(Math.random() * ctas.length)];
+
+    const headline = `${product}, made for ${emotions[Math.floor(Math.random() * emotions.length)]}`;
+    const caption = `${category} that feels like ${benefits[Math.floor(Math.random() * benefits.length)]}. Limited drop at Rs ${price}. ${discount}.`;
+
+    copyOutput.value = `Headline: ${headline}\nCaption: ${caption}\nCTA: ${pickCta}`;
+
+    if (!fields.tagline.value) fields.tagline.value = headline;
+    if (!fields.highlight.value) fields.highlight.value = caption;
+    if (!fields.cta.value) fields.cta.value = pickCta;
+    updatePreview();
+  }
+
+  function updatePreview() {
+    preview.brandText.textContent = fields.brand.value || "VibeMall";
+    preview.headline.textContent = fields.name.value || "Floral Co-ord Set";
+    preview.category.textContent = fields.category.value || "Women Wear";
+    preview.price.textContent = fields.price.value || "799";
+    preview.highlight.textContent = fields.highlight.value || "Soft cotton. All day comfort.";
+    preview.tagline.textContent = fields.tagline.value || "Own your everyday glam.";
+    preview.cta.textContent = fields.cta.value || "Shop Now";
+    preview.badge.textContent = fields.discount.value || "20% OFF";
+  }
+
+  function setTemplate(template) {
+    adCanvas.className = `ad-canvas ${template}`;
+    document.querySelectorAll(".template-btn").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.template === template);
+    });
+  }
+
+  function setRatio(ratio) {
+    let width = 540;
+    let height = 540;
+    if (ratio === "portrait") {
+      height = 675;
+    }
+    if (ratio === "story") {
+      height = 960;
+    }
+    adCanvas.style.setProperty("--canvas-w", `${width}px`);
+    adCanvas.style.setProperty("--canvas-h", `${height}px`);
+    document.querySelectorAll(".ratio-pill").forEach((pill) => {
+      pill.classList.toggle("active", pill.dataset.ratio === ratio);
+    });
+  }
+
+  document.getElementById("generateIdeas").addEventListener("click", buildIdeas);
+  document.getElementById("generateCopy").addEventListener("click", buildCopy);
+  document.getElementById("applyToPreview").addEventListener("click", updatePreview);
+
+  document.getElementById("templateGrid").addEventListener("click", (event) => {
+    const button = event.target.closest(".template-btn");
+    if (!button) return;
+    setTemplate(button.dataset.template);
+  });
+
+  document.querySelectorAll(".ratio-pill").forEach((pill) => {
+    pill.addEventListener("click", () => setRatio(pill.dataset.ratio));
+  });
+
+  document.getElementById("toggleLogo").addEventListener("change", (event) => {
+    preview.logoWrap.style.display = event.target.checked ? "flex" : "none";
+  });
+
+  document.getElementById("productImageInput").addEventListener("change", (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      preview.image.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.getElementById("downloadBanner").addEventListener("click", async () => {
+    updatePreview();
+    const canvas = await html2canvas(adCanvas, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: null
+    });
+    const link = document.createElement("a");
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    link.download = `banner-${timestamp}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  });
+
+  updatePreview();
+</script>
+{% endblock %}
