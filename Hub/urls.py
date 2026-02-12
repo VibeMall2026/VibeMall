@@ -56,6 +56,8 @@ urlpatterns = [
     path('admin-panel/product/<int:product_id>/add-review/', views.admin_add_review, name='admin_add_review'),
     path('admin-panel/returns/', views.admin_returns, name='admin_returns'),
     path('admin-panel/returns/<int:return_id>/', views.admin_return_detail, name='admin_return_detail'),
+    path('admin-panel/returns-analytics/', views.admin_return_analytics, name='admin_return_analytics'),
+    path('admin-panel/marketing-studio/', views.admin_marketing_studio, name='admin_marketing_studio'),
     path('admin-panel/razorpay/health/', views.admin_razorpay_health, name='admin_razorpay_health'),
     
     # Auth

@@ -1,0 +1,728 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Return Analytics{% endblock %}
+
+{% block extra_css %}
+<style>
+  .stat-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid #e2e8f0;
+    transition: transform 0.2s;
+  }
+  
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+  }
+  
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+  
+  .stat-label {
+    font-size: 0.875rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  
+  .chart-container {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 1.5rem;
+  }
+
+  .chart-container.chart-box {
+    position: relative;
+    height: 260px;
+  }
+
+  .chart-container.chart-box-sm {
+    height: 200px;
+  }
+
+  .chart-container.chart-box-xs {
+    height: 140px;
+  }
+
+  .chart-container.chart-box canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+  }
+  
+  .section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #0f172a;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #3b82f6;
+  }
+  
+  .progress-bar-custom {
+    height: 8px;
+    border-radius: 4px;
+  }
+  
+  .table-analytics {
+    font-size: 0.875rem;
+  }
+  
+  .table-analytics th {
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+  }
+  
+  .badge-metric {
+    padding: 0.4rem 0.8rem;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'admin_returns' %}">Returns</a></li>
+    <li class="breadcrumb-item active">Analytics</li>
+  </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-bold mb-1">📊 Return Analytics</h4>
+    <p class="text-muted mb-0">Comprehensive insights into return patterns and trends</p>
+  </div>
+  <div>
+    <a href="{% url 'admin_returns' %}" class="btn btn-outline-primary"><i class="bx bx-arrow-back"></i> Back to Returns</a>
+  </div>
+</div>
+
+<!-- Date Filter -->
+<div class="card mb-4">
+  <div class="card-body">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label">From Date</label>
+        <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">To Date</label>
+        <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn btn-primary"><i class="bx bx-filter"></i> Apply Filter</button>
+        <a href="{% url 'admin_return_analytics' %}" class="btn btn-outline-secondary"><i class="bx bx-reset"></i> Reset</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 1. OVERVIEW METRICS -->
+<h5 class="section-title">📈 Overview Metrics</h5>
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="stat-label">Total Returns</div>
+      <div class="stat-value text-primary">{{ total_returns_count }}</div>
+      <small class="text-muted">All time requests</small>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="stat-label">Return Rate</div>
+      <div class="stat-value text-warning">{{ return_rate }}%</div>
+      <small class="text-muted">Of delivered orders</small>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="stat-label">Avg Refund</div>
+      <div class="stat-value text-success">₹{{ avg_refund|floatformat:2 }}</div>
+      <small class="text-muted">Per return</small>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="stat-label">Avg Resolution</div>
+      <div class="stat-value text-info">{{ avg_resolution_days }}</div>
+      <small class="text-muted">Days to resolve</small>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-label">Pending Returns</div>
+      <div class="stat-value text-danger">{{ pending_returns }}</div>
+      <small class="text-muted">Awaiting action</small>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-label">Resolved Returns</div>
+      <div class="stat-value text-success">{{ resolved_returns }}</div>
+      <small class="text-muted">Completed</small>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-label">Total Refund Value</div>
+      <div class="stat-value text-primary">₹{{ total_refund_value|floatformat:2 }}</div>
+      <small class="text-muted">Net refunds issued</small>
+    </div>
+  </div>
+</div>
+
+<!-- 2. RETURN REASON ANALYSIS -->
+<h5 class="section-title">🔍 Return Reason Analysis</h5>
+<div class="row mb-4">
+  <div class="col-md-6">
+    <div class="chart-container chart-box">
+      <h6 class="fw-bold mb-3">Top Return Reasons</h6>
+      <canvas id="reasonChart"></canvas>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="chart-container">
+      <h6 class="fw-bold mb-3">Reason Breakdown</h6>
+      <div class="table-responsive">
+        <table class="table table-sm table-analytics">
+          <thead>
+            <tr>
+              <th>Reason</th>
+              <th class="text-end">Count</th>
+              <th class="text-end">Percentage</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in reason_data %}
+            <tr>
+              <td>{{ item.reason }}</td>
+              <td class="text-end">{{ item.count }}</td>
+              <td class="text-end">
+                <span class="badge-metric bg-primary">{{ item.percentage }}%</span>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="text-center text-muted">No data available</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-3">
+        <div class="d-flex justify-content-between mb-2">
+          <span>Defective/Damaged:</span>
+          <strong>{{ defective_count }}</strong>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span>Changed Mind:</span>
+          <strong>{{ changed_mind_count }}</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 3. PRODUCT ANALYSIS -->
+<h5 class="section-title">📦 Product Analysis</h5>
+<div class="row mb-4">
+  <div class="col-md-6">
+    <div class="chart-container">
+      <h6 class="fw-bold mb-3">Top 10 Most Returned Products</h6>
+      <div class="table-responsive">
+        <table class="table table-sm table-analytics table-hover">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th class="text-end">Returns</th>
+              <th class="text-end">Qty</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for product in top_returned_products %}
+            <tr>
+              <td>{{ product.product__name|truncatewords:5 }}</td>
+              <td class="text-end">{{ product.return_count }}</td>
+              <td class="text-end">{{ product.total_qty }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="text-center text-muted">No data</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="chart-container chart-box">
+      <h6 class="fw-bold mb-3">Category-wise Returns</h6>
+      <canvas id="categoryChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="row mb-4">
+  <div class="col-md-12">
+    <div class="chart-container">
+      <h6 class="fw-bold mb-3">Brand-wise Return Analysis</h6>
+      <div class="table-responsive">
+        <table class="table table-sm table-analytics">
+          <thead>
+            <tr>
+              <th>Brand</th>
+              <th class="text-end">Return Count</th>
+              <th>Distribution</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for brand in brand_returns %}
+            <tr>
+              <td>{{ brand.product__brand }}</td>
+              <td class="text-end">{{ brand.count }}</td>
+              <td>
+                <div class="progress progress-bar-custom">
+                  <div class="progress-bar bg-info" style="width: {{ brand.percentage }}%"></div>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="text-center text-muted">No brand data</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 4. CUSTOMER PATTERNS -->
+<h5 class="section-title">👥 Customer Patterns</h5>
+<div class="row mb-4">
+  <div class="col-md-6">
+    <div class="chart-container">
+      <h6 class="fw-bold mb-3">Top Returners</h6>
+      <div class="table-responsive">
+        <table class="table table-sm table-analytics">
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Email</th>
+              <th class="text-end">Returns</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in top_returners %}
+            <tr>
+              <td>{{ user.user__username }}</td>
+              <td>{{ user.user__email|truncatechars:25 }}</td>
+              <td class="text-end">
+                <span class="badge-metric {% if user.return_count > 5 %}bg-danger{% elif user.return_count > 2 %}bg-warning{% else %}bg-success{% endif %}">
+                  {{ user.return_count }}
+                </span>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="text-center text-muted">No data</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="chart-container">
+      <h6 class="fw-bold mb-3">Return Behavior Metrics</h6>
+      <div class="row text-center">
+        <div class="col-6 mb-3">
+          <div class="border-end">
+            <h3 class="text-warning fw-bold">{{ repeat_returners }}</h3>
+            <small class="text-muted">Repeat Returners<br>(>2 returns)</small>
+          </div>
+        </div>
+        <div class="col-6 mb-3">
+          <h3 class="text-danger fw-bold">{{ potential_abuse }}</h3>
+          <small class="text-muted">Potential Abuse<br>(>5 returns)</small>
+        </div>
+      </div>
+      <div class="alert alert-info mt-3">
+        <i class="bx bx-info-circle"></i>
+        <strong>Insight:</strong> Monitor users with high return rates for potential abuse patterns.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 5. TIME-BASED TRENDS -->
+<h5 class="section-title">📅 Time-based Trends</h5>
+<div class="row mb-4">
+  <div class="col-md-12">
+    <div class="chart-container chart-box-xs">
+      <h6 class="fw-bold mb-3">Returns Over Time (Last 12 Months)</h6>
+      <canvas id="monthlyChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="row mb-4">
+  <div class="col-md-6">
+    <div class="chart-container chart-box-sm">
+      <h6 class="fw-bold mb-3">Weekly Trend (Last 90 Days)</h6>
+      <canvas id="weeklyChart"></canvas>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="chart-container chart-box-sm">
+      <h6 class="fw-bold mb-3">Daily Returns (Last 30 Days)</h6>
+      <canvas id="dailyChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- 6. QC & RESOLUTION STATS -->
+<h5 class="section-title">✅ QC & Resolution Statistics</h5>
+<div class="row mb-4">
+  <div class="col-md-6">
+    <div class="chart-container chart-box-sm">
+      <h6 class="fw-bold mb-3">QC Results</h6>
+      <canvas id="qcChart"></canvas>
+      <div class="row text-center mt-3">
+        <div class="col-4">
+          <h4 class="text-success">{{ qc_passed }}</h4>
+          <small class="text-muted">QC Passed</small>
+        </div>
+        <div class="col-4">
+          <h4 class="text-danger">{{ qc_failed }}</h4>
+          <small class="text-muted">QC Failed</small>
+        </div>
+        <div class="col-4">
+          <h4 class="text-warning">{{ wrong_returns }}</h4>
+          <small class="text-muted">Wrong Returns</small>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="chart-container">
+      <h6 class="fw-bold mb-3">Average Processing Time by Status</h6>
+      <div class="table-responsive">
+        <table class="table table-sm table-analytics">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th class="text-end">Avg Days</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for status, days in status_times.items %}
+            <tr>
+              <td>{{ status }}</td>
+              <td class="text-end">{{ days }} days</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="2" class="text-center text-muted">No data</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mb-4">
+  <div class="col-md-12">
+    <div class="chart-container chart-box-xs">
+      <h6 class="fw-bold mb-3">Refund Method Distribution</h6>
+      <canvas id="refundMethodChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- 7. FINANCIAL IMPACT -->
+<h5 class="section-title">💰 Financial Impact</h5>
+<div class="row mb-4">
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-label">Total Refunds Issued</div>
+      <div class="stat-value text-danger">₹{{ total_refund_value|floatformat:2 }}</div>
+      <small class="text-muted">Gross refund amount</small>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-label">Refund Fees Collected</div>
+      <div class="stat-value text-success">₹{{ total_refund_fees|floatformat:2 }}</div>
+      <small class="text-muted">Processing fees</small>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-label">Net Refund Impact</div>
+      <div class="stat-value text-primary">₹{{ net_refund_impact|floatformat:2 }}</div>
+      <small class="text-muted">After fees deduction</small>
+    </div>
+  </div>
+</div>
+
+<div class="row mb-4">
+  <div class="col-md-12">
+    <div class="chart-container">
+      <h6 class="fw-bold mb-3">Payment Method-wise Refunds</h6>
+      <div class="table-responsive">
+        <table class="table table-analytics">
+          <thead>
+            <tr>
+              <th>Payment Method</th>
+              <th class="text-end">Count</th>
+              <th class="text-end">Total Amount</th>
+              <th>Distribution</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for payment in payment_refunds %}
+            <tr>
+              <td><span class="badge bg-primary">{{ payment.order__payment_method }}</span></td>
+              <td class="text-end">{{ payment.count }}</td>
+              <td class="text-end">₹{{ payment.total_amount|floatformat:2 }}</td>
+              <td>
+                <div class="progress progress-bar-custom">
+                  <div class="progress-bar bg-success" style="width: {% widthratio payment.total_amount total_refund_value 100 %}%"></div>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted">No payment data</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+// Chart.js configuration
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.color = '#64748b';
+
+// Return Reasons Chart
+const reasonCtx = document.getElementById('reasonChart').getContext('2d');
+new Chart(reasonCtx, {
+  type: 'doughnut',
+  data: {
+    labels: [{% for item in reason_data %}'{{ item.reason|escapejs }}',{% endfor %}],
+    datasets: [{
+      data: [{% for item in reason_data %}{{ item.count }},{% endfor %}],
+      backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'],
+      borderWidth: 2,
+      borderColor: '#fff'
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom'
+      }
+    }
+  }
+});
+
+// Category Returns Chart
+const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+new Chart(categoryCtx, {
+  type: 'bar',
+  data: {
+    labels: [{% for cat in category_returns %}'{{ cat.product__category|truncatewords:3|escapejs }}',{% endfor %}],
+    datasets: [{
+      label: 'Returns',
+      data: [{% for cat in category_returns %}{{ cat.count }},{% endfor %}],
+      backgroundColor: '#3b82f6',
+      borderRadius: 6
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          precision: 0
+        }
+      }
+    },
+    plugins: {
+      legend: {
+        display: false
+      }
+    }
+  }
+});
+
+// Monthly Trend Chart
+const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+new Chart(monthlyCtx, {
+  type: 'line',
+  data: {
+    labels: [{% for m in monthly_returns %}'{{ m.month|date:"M Y" }}',{% endfor %}],
+    datasets: [{
+      label: 'Returns',
+      data: [{% for m in monthly_returns %}{{ m.count }},{% endfor %}],
+      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+      borderColor: '#3b82f6',
+      borderWidth: 2,
+      fill: true,
+      tension: 0.4
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          precision: 0
+        }
+      }
+    }
+  }
+});
+
+// Weekly Trend Chart
+const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
+new Chart(weeklyCtx, {
+  type: 'bar',
+  data: {
+    labels: [{% for w in weekly_returns %}'Week {{ w.week|date:"W" }}',{% endfor %}],
+    datasets: [{
+      label: 'Returns',
+      data: [{% for w in weekly_returns %}{{ w.count }},{% endfor %}],
+      backgroundColor: '#10b981',
+      borderRadius: 4
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          precision: 0
+        }
+      }
+    }
+  }
+});
+
+// Daily Trend Chart
+const dailyCtx = document.getElementById('dailyChart').getContext('2d');
+new Chart(dailyCtx, {
+  type: 'line',
+  data: {
+    labels: [{% for d in daily_returns %}'{{ d.day|date:"d M" }}',{% endfor %}],
+    datasets: [{
+      label: 'Returns',
+      data: [{% for d in daily_returns %}{{ d.count }},{% endfor %}],
+      backgroundColor: 'rgba(245, 158, 11, 0.1)',
+      borderColor: '#f59e0b',
+      borderWidth: 2,
+      fill: true,
+      tension: 0.4
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          precision: 0
+        }
+      }
+    }
+  }
+});
+
+// QC Results Chart
+const qcCtx = document.getElementById('qcChart').getContext('2d');
+new Chart(qcCtx, {
+  type: 'pie',
+  data: {
+    labels: ['QC Passed', 'QC Failed', 'Wrong Returns'],
+    datasets: [{
+      data: [{{ qc_passed }}, {{ qc_failed }}, {{ wrong_returns }}],
+      backgroundColor: ['#10b981', '#ef4444', '#f59e0b'],
+      borderWidth: 2,
+      borderColor: '#fff'
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom'
+      }
+    }
+  }
+});
+
+// Refund Method Chart
+const refundMethodCtx = document.getElementById('refundMethodChart').getContext('2d');
+new Chart(refundMethodCtx, {
+  type: 'bar',
+  data: {
+    labels: [{% for method in refund_methods %}'{{ method.refund_method|escapejs }}',{% endfor %}],
+    datasets: [{
+      label: 'Count',
+      data: [{% for method in refund_methods %}{{ method.count }},{% endfor %}],
+      backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'],
+      borderRadius: 6
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      x: {
+        beginAtZero: true,
+        ticks: {
+          precision: 0
+        }
+      }
+    },
+    plugins: {
+      legend: {
+        display: false
+      }
+    }
+  }
+});
+</script>
+{% endblock %}

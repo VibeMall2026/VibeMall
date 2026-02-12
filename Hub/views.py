@@ -369,6 +369,18 @@ def admin_dashboard(request):
     # Recent Customers
     recent_customers = User.objects.filter(is_staff=False).order_by('-date_joined')[:5]
     
+    # ===== RETURN METRICS =====
+    total_returns = ReturnRequest.objects.count()
+    pending_returns = ReturnRequest.objects.exclude(status__in=['REFUNDED', 'REPLACED', 'REJECTED']).count()
+    refunded_returns = ReturnRequest.objects.filter(status='REFUNDED')
+    total_refund_amount = refunded_returns.aggregate(
+        total=Sum(Coalesce('refund_amount_net', 'refund_amount'))
+    )['total'] or Decimal('0.00')
+    
+    returns_last_7 = ReturnRequest.objects.filter(requested_at__date__gte=last_7_days).count()
+    total_delivered = Order.objects.filter(order_status='DELIVERED').count()
+    return_rate = round((total_returns / total_delivered * 100), 2) if total_delivered > 0 else 0
+    
     context = {
         # Basic Stats
         'total_products': total_products,
@@ -465,6 +477,13 @@ def admin_dashboard(request):
         'revenue_growth_percent': revenue_growth_percent,
         'sales_target': sales_target,
         'sales_target_percent': sales_target_percent,
+        
+        # Return Metrics
+        'total_returns': total_returns,
+        'pending_returns': pending_returns,
+        'total_refund_amount': total_refund_amount,
+        'returns_last_7': returns_last_7,
+        'return_rate': return_rate,
     }
     return render(request, 'admin_panel/dashboard.html', context)
 
@@ -7175,6 +7194,242 @@ def admin_return_detail(request, return_id):
         'customer_profile': customer_profile,
         'half_refund_amount': half_refund_amount,
     })
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_return_analytics(request):
+    """Comprehensive return analytics dashboard"""
+    from django.db.models.functions import TruncMonth, TruncWeek, TruncDate
+    from collections import Counter
+    
+    # Date filters
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    
+    all_returns = ReturnRequest.objects.select_related('order', 'user').prefetch_related('items', 'items__product')
+    
+    if date_from:
+        all_returns = all_returns.filter(requested_at__date__gte=date_from)
+    if date_to:
+        all_returns = all_returns.filter(requested_at__date__lte=date_to)
+    
+    # ===== 1. OVERVIEW METRICS =====
+    total_returns_count = all_returns.count()
+    total_delivered = Order.objects.filter(order_status='DELIVERED').count()
+    return_rate = (total_returns_count / total_delivered * 100) if total_delivered > 0 else 0
+    
+    refunded_returns = all_returns.filter(status='REFUNDED')
+    total_refund_value = refunded_returns.aggregate(
+        total=Sum(Coalesce('refund_amount_net', 'refund_amount'))
+    )['total'] or Decimal('0.00')
+    
+    avg_refund = refunded_returns.aggregate(
+        avg=Avg(Coalesce('refund_amount_net', 'refund_amount'))
+    )['avg'] or Decimal('0.00')
+    
+    pending_returns = all_returns.exclude(status__in=['REFUNDED', 'REPLACED', 'REJECTED']).count()
+    resolved_returns = all_returns.filter(status__in=['REFUNDED', 'REPLACED']).count()
+    
+    # Average resolution time
+    resolved_with_time = all_returns.filter(
+        status__in=['REFUNDED', 'REPLACED'],
+        resolved_at__isnull=False
+    ).annotate(
+        resolution_days=ExpressionWrapper(
+            F('resolved_at') - F('requested_at'),
+            output_field=DecimalField()
+        )
+    )
+    
+    avg_resolution_days = 0
+    if resolved_with_time.exists():
+        total_seconds = sum([
+            (r.resolved_at - r.requested_at).total_seconds() 
+            for r in resolved_with_time 
+            if r.resolved_at and r.requested_at
+        ])
+        avg_resolution_days = total_seconds / len(resolved_with_time) / 86400 if len(resolved_with_time) > 0 else 0
+    
+    # ===== 2. RETURN REASON ANALYSIS =====
+    reason_breakdown = all_returns.values('reason').annotate(
+        count=Count('id')
+    ).order_by('-count')
+    
+    total_for_percentage = total_returns_count if total_returns_count > 0 else 1
+    reason_data = []
+    for item in reason_breakdown:
+        reason_label = dict(ReturnRequest.RETURN_REASON_CHOICES).get(item['reason'], item['reason'])
+        reason_data.append({
+            'reason': reason_label,
+            'count': item['count'],
+            'percentage': round(item['count'] / total_for_percentage * 100, 1)
+        })
+    
+    defective_count = all_returns.filter(reason='DEFECTIVE').count()
+    changed_mind_count = all_returns.filter(reason='CHANGED_MIND').count()
+    
+    # ===== 3. PRODUCT ANALYSIS =====
+    returned_items = ReturnItem.objects.filter(return_request__in=all_returns)
+    
+    product_return_counts = returned_items.values(
+        'product__name', 'product__id'
+    ).annotate(
+        return_count=Count('id'),
+        total_qty=Sum('quantity')
+    ).order_by('-return_count')[:10]
+    
+    # Category-wise returns
+    category_returns = returned_items.filter(product__category__isnull=False).values(
+        'product__category'
+    ).annotate(
+        count=Count('id')
+    ).order_by('-count')[:10]
+    
+    # Brand-wise returns
+    brand_returns = returned_items.filter(product__brand__isnull=False).exclude(
+        product__brand=''
+    ).values(
+        'product__brand'
+    ).annotate(
+        count=Count('id')
+    ).order_by('-count')[:10]
+
+    brand_returns = list(brand_returns)
+    brand_total = sum(item['count'] for item in brand_returns) or 1
+    for item in brand_returns:
+        item['percentage'] = round(item['count'] / brand_total * 100, 1)
+    
+    # ===== 4. CUSTOMER PATTERNS =====
+    user_return_counts = all_returns.values(
+        'user__username', 'user__email', 'user__id'
+    ).annotate(
+        return_count=Count('id')
+    ).order_by('-return_count')[:10]
+    
+    # Repeat returners (>2 returns)
+    repeat_returners = all_returns.values('user').annotate(
+        count=Count('id')
+    ).filter(count__gt=2).count()
+    
+    # Potential abuse (>5 returns)
+    potential_abuse = all_returns.values('user').annotate(
+        count=Count('id')
+    ).filter(count__gt=5).count()
+    
+    # ===== 5. TIME-BASED TRENDS =====
+    monthly_returns = all_returns.annotate(
+        month=TruncMonth('requested_at')
+    ).values('month').annotate(
+        count=Count('id')
+    ).order_by('month')[:12]
+    
+    weekly_returns = all_returns.filter(
+        requested_at__gte=timezone.now() - timedelta(days=90)
+    ).annotate(
+        week=TruncWeek('requested_at')
+    ).values('week').annotate(
+        count=Count('id')
+    ).order_by('week')
+    
+    daily_returns = all_returns.filter(
+        requested_at__gte=timezone.now() - timedelta(days=30)
+    ).annotate(
+        day=TruncDate('requested_at')
+    ).values('day').annotate(
+        count=Count('id')
+    ).order_by('day')
+    
+    # ===== 6. QC & RESOLUTION STATS =====
+    qc_passed = all_returns.filter(status='QC_PASSED').count()
+    qc_failed = all_returns.filter(status='QC_FAILED').count()
+    wrong_returns = all_returns.filter(status='WRONG_RETURN').count()
+    
+    # Status-wise processing time
+    status_times = {}
+    for status_code, status_label in ReturnRequest.STATUS_CHOICES:
+        status_returns = all_returns.filter(status=status_code, resolved_at__isnull=False)
+        if status_returns.exists():
+            total_secs = sum([
+                (r.resolved_at - r.requested_at).total_seconds()
+                for r in status_returns
+                if r.resolved_at and r.requested_at
+            ])
+            avg_days = total_secs / status_returns.count() / 86400 if status_returns.count() > 0 else 0
+            status_times[status_label] = round(avg_days, 1)
+    
+    # Refund method breakdown
+    refund_methods = refunded_returns.exclude(refund_method='').values('refund_method').annotate(
+        count=Count('id')
+    ).order_by('-count')
+    
+    # ===== 7. FINANCIAL IMPACT =====
+    total_refund_fees = refunded_returns.aggregate(
+        total=Sum('refund_fee')
+    )['total'] or Decimal('0.00')
+    
+    net_refund_impact = total_refund_value - total_refund_fees
+    
+    # Payment method wise refunds
+    payment_refunds = refunded_returns.values('order__payment_method').annotate(
+        count=Count('id'),
+        total_amount=Sum(Coalesce('refund_amount_net', 'refund_amount'))
+    ).order_by('-total_amount')
+    
+    context = {
+        # Overview
+        'total_returns_count': total_returns_count,
+        'return_rate': round(return_rate, 2),
+        'total_refund_value': total_refund_value,
+        'avg_refund': avg_refund,
+        'pending_returns': pending_returns,
+        'resolved_returns': resolved_returns,
+        'avg_resolution_days': round(avg_resolution_days, 1),
+        
+        # Reasons
+        'reason_data': reason_data,
+        'defective_count': defective_count,
+        'changed_mind_count': changed_mind_count,
+        
+        # Products
+        'top_returned_products': product_return_counts,
+        'category_returns': category_returns,
+        'brand_returns': brand_returns,
+        
+        # Customers
+        'top_returners': user_return_counts,
+        'repeat_returners': repeat_returners,
+        'potential_abuse': potential_abuse,
+        
+        # Time trends
+        'monthly_returns': list(monthly_returns),
+        'weekly_returns': list(weekly_returns),
+        'daily_returns': list(daily_returns),
+        
+        # QC Stats
+        'qc_passed': qc_passed,
+        'qc_failed': qc_failed,
+        'wrong_returns': wrong_returns,
+        'status_times': status_times,
+        'refund_methods': refund_methods,
+        
+        # Financial
+        'total_refund_fees': total_refund_fees,
+        'net_refund_impact': net_refund_impact,
+        'payment_refunds': payment_refunds,
+        
+        # Filters
+        'date_from': date_from,
+        'date_to': date_to,
+    }
+    
+    return render(request, 'admin_panel/return_analytics.html', context)
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_marketing_studio(request):
+    return render(request, 'admin_panel/marketing_studio.html')
 
 
 @login_required(login_url='login')

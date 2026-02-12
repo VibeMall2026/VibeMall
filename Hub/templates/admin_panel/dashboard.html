@@ -183,6 +183,93 @@
     </div>
 </div>
 
+<!-- Return Analytics Row -->
+<div class="row">
+    <div class="col-md-12 mb-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">📊 Return Analytics</h5>
+            <a href="{% url 'admin_return_analytics' %}" class="btn btn-sm btn-primary">
+                <i class="bx bx-bar-chart"></i> View Full Analytics
+            </a>
+        </div>
+    </div>
+    <div class="col-xl-2 col-lg-4 col-md-6 mb-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="avatar me-3">
+                        <span class="avatar-initial rounded bg-label-info"><i class="bx bx-undo"></i></span>
+                    </div>
+                    <div>
+                        <p class="mb-1 small">Total Returns</p>
+                        <h4 class="mb-0">{{ total_returns }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-lg-4 col-md-6 mb-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="avatar me-3">
+                        <span class="avatar-initial rounded bg-label-warning"><i class="bx bx-time"></i></span>
+                    </div>
+                    <div>
+                        <p class="mb-1 small">Pending</p>
+                        <h4 class="mb-0">{{ pending_returns }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="avatar me-3">
+                        <span class="avatar-initial rounded bg-label-danger"><i class="bx bx-money"></i></span>
+                    </div>
+                    <div>
+                        <p class="mb-1 small">Refunded</p>
+                        <h4 class="mb-0">₹{{ total_refund_amount|floatformat:0 }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-lg-4 col-md-6 mb-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="avatar me-3">
+                        <span class="avatar-initial rounded bg-label-primary"><i class="bx bx-trending-up"></i></span>
+                    </div>
+                    <div>
+                        <p class="mb-1 small">Last 7 Days</p>
+                        <h4 class="mb-0">{{ returns_last_7 }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="avatar me-3">
+                        <span class="avatar-initial rounded bg-label-success"><i class="bx bx-percentage"></i></span>
+                    </div>
+                    <div>
+                        <p class="mb-1 small">Return Rate</p>
+                        <h4 class="mb-0">{{ return_rate }}%</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Total Income + Report -->
 <div class="row">
     <div class="col-xl-8 mb-4">

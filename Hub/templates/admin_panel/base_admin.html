@@ -248,10 +248,22 @@
               </a>
             </li>
             <li class="menu-item">
-              <a href="/admin-panel/returns/" class="menu-link">
+              <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bx-undo"></i>
                 <div data-i18n="Returns">Returns</div>
               </a>
+              <ul class="menu-sub">
+                <li class="menu-item">
+                  <a href="{% url 'admin_returns' %}" class="menu-link">
+                    <div data-i18n="All Returns">All Returns</div>
+                  </a>
+                </li>
+                <li class="menu-item">
+                  <a href="{% url 'admin_return_analytics' %}" class="menu-link">
+                    <div data-i18n="Analytics">Analytics</div>
+                  </a>
+                </li>
+              </ul>
             </li>
 
             <li class="menu-item">
@@ -297,6 +309,12 @@
               <a href="/admin-panel/banners/" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-image"></i>
                 <div data-i18n="Banners">Banners</div>
+              </a>
+            </li>
+            <li class="menu-item">
+              <a href="{% url 'admin_marketing_studio' %}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-paint"></i>
+                <div data-i18n="Marketing Studio">Marketing Studio</div>
               </a>
             </li>
             <li class="menu-item">
