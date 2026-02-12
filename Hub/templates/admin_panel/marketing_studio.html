@@ -6,7 +6,7 @@
 {% block extra_css %}
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&family=Syne:wght@500;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
 <style>
   :root {
     --studio-ink: #0f172a;
@@ -71,6 +71,47 @@
     gap: 0.75rem;
   }
 
+  .filter-pill {
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    padding: 0.3rem 0.75rem;
+    font-weight: 600;
+    background: #ffffff;
+    font-size: 0.8rem;
+  }
+
+  .filter-pill.active {
+    background: var(--studio-ink);
+    color: #ffffff;
+  }
+
+  .palette-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .palette-btn,
+  .font-btn,
+  .badge-btn,
+  .cta-btn {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 0.6rem 0.75rem;
+    background: #ffffff;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-align: left;
+  }
+
+  .palette-btn.active,
+  .font-btn.active,
+  .badge-btn.active,
+  .cta-btn.active {
+    border-color: var(--studio-accent);
+    box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.18);
+  }
+
   .template-btn {
     border: 1px solid #e5e7eb;
     border-radius: 12px;
@@ -95,14 +136,21 @@
   .ad-canvas {
     --canvas-w: 540px;
     --canvas-h: 540px;
+    --font-body: "Space Grotesk", sans-serif;
+    --font-title: "Playfair Display", serif;
+    --ink: var(--studio-ink);
+    --muted: var(--studio-muted);
+    --accent: var(--studio-accent);
+    --accent-2: var(--studio-accent-2);
+    --canvas-bg: #ffffff;
     width: var(--canvas-w);
     height: var(--canvas-h);
-    background: #ffffff;
+    background: var(--canvas-bg);
     border-radius: 20px;
     position: relative;
     overflow: hidden;
-    font-family: "Space Grotesk", sans-serif;
-    color: var(--studio-ink);
+    font-family: var(--font-body);
+    color: var(--ink);
   }
 
   .ad-canvas .brand-logo {
@@ -121,7 +169,7 @@
   }
 
   .ad-title {
-    font-family: "Playfair Display", serif;
+    font-family: var(--font-title);
     font-size: 2.1rem;
     font-weight: 700;
     line-height: 1.1;
@@ -129,7 +177,7 @@
 
   .ad-tagline {
     font-size: 1rem;
-    color: var(--studio-muted);
+    color: var(--muted);
   }
 
   .ad-cta {
@@ -138,7 +186,7 @@
     justify-content: center;
     padding: 0.55rem 1.1rem;
     border-radius: 999px;
-    background: var(--studio-accent);
+    background: var(--accent);
     color: #ffffff;
     font-weight: 700;
     font-size: 0.95rem;
@@ -154,7 +202,7 @@
     padding: 0.4rem 0.85rem;
     border-radius: 999px;
     font-weight: 700;
-    background: #0f172a;
+    background: var(--accent-2);
     color: #ffffff;
     font-size: 0.85rem;
   }
@@ -166,6 +214,107 @@
     border-radius: 16px;
     box-shadow: 0 16px 32px rgba(15, 23, 42, 0.18);
     background: #e2e8f0;
+  }
+
+  .product-visual {
+    position: relative;
+    width: 240px;
+    height: 320px;
+  }
+
+  .product-image,
+  .product-image-alt {
+    position: absolute;
+    inset: 0;
+  }
+
+  .product-image-alt {
+    display: none;
+  }
+
+  .mode-before-after .product-image {
+    clip-path: inset(0 0 0 50%);
+  }
+
+  .mode-before-after .product-image-alt {
+    display: block;
+    clip-path: inset(0 50% 0 0);
+  }
+
+  .before-after-divider {
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    left: 50%;
+    width: 2px;
+    background: rgba(15, 23, 42, 0.6);
+    display: none;
+  }
+
+  .before-after-label {
+    position: absolute;
+    top: 10px;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.75);
+    color: #ffffff;
+    font-size: 0.75rem;
+    display: none;
+  }
+
+  .before-label { left: 12px; }
+  .after-label { right: 12px; }
+
+  .mode-before-after .before-after-divider,
+  .mode-before-after .before-after-label {
+    display: block;
+  }
+
+  .ugc-frame {
+    position: absolute;
+    inset: 18px;
+    border: 2px solid rgba(15, 23, 42, 0.18);
+    border-radius: 18px;
+    pointer-events: none;
+    display: none;
+  }
+
+  .ugc-label {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    background: rgba(15, 23, 42, 0.85);
+    color: #ffffff;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .ugc-on .ugc-frame {
+    display: block;
+  }
+
+  .safe-zone {
+    position: absolute;
+    inset: 32px;
+    border: 1px dashed rgba(15, 23, 42, 0.35);
+    border-radius: 18px;
+    pointer-events: none;
+    display: none;
+  }
+
+  .safe-zone::after {
+    content: "Safe Zone";
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-size: 0.7rem;
+    color: rgba(15, 23, 42, 0.5);
+  }
+
+  .show-guides .safe-zone {
+    display: block;
   }
 
   .shape {
@@ -263,6 +412,10 @@
       width: 200px;
       height: 260px;
     }
+    .product-visual {
+      width: 200px;
+      height: 260px;
+    }
   }
 </style>
 {% endblock %}
@@ -329,6 +482,80 @@
 
     <div class="studio-card card mb-4">
       <div class="card-header">
+        <strong>Style Controls</strong>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <div class="studio-label mb-2">Palette presets</div>
+          <div class="palette-grid" id="paletteGrid">
+            <button class="palette-btn active" data-palette="sunset">Sunset Pop</button>
+            <button class="palette-btn" data-palette="mint">Mint Fresh</button>
+            <button class="palette-btn" data-palette="noir">Noir Luxe</button>
+            <button class="palette-btn" data-palette="rose">Soft Rose</button>
+          </div>
+        </div>
+        <div class="mb-3">
+          <div class="studio-label mb-2">Font pairs</div>
+          <div class="palette-grid" id="fontGrid">
+            <button class="font-btn active" data-font="grotesk-playfair">Grotesk + Playfair</button>
+            <button class="font-btn" data-font="syne-dm">Syne + DM Sans</button>
+            <button class="font-btn" data-font="dm-playfair">DM Sans + Playfair</button>
+            <button class="font-btn" data-font="syne-playfair">Syne + Playfair</button>
+          </div>
+        </div>
+        <div class="mb-3">
+          <div class="studio-label mb-2">Badge library</div>
+          <div class="palette-grid" id="badgeGrid">
+            <button class="badge-btn" data-badge="New Drop">New Drop</button>
+            <button class="badge-btn" data-badge="Limited">Limited</button>
+            <button class="badge-btn" data-badge="Best Seller">Best Seller</button>
+            <button class="badge-btn" data-badge="Only Today">Only Today</button>
+          </div>
+        </div>
+        <div class="mb-3">
+          <div class="studio-label mb-2">CTA variants</div>
+          <div class="palette-grid" id="ctaGrid">
+            <button class="cta-btn" data-cta="Shop the Drop">Shop the Drop</button>
+            <button class="cta-btn" data-cta="Tap to Try">Tap to Try</button>
+            <button class="cta-btn" data-cta="Style It Today">Style It Today</button>
+            <button class="cta-btn" data-cta="Add to Closet">Add to Closet</button>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="studio-label">UGC Handle</label>
+          <input id="ugcHandleInput" class="form-control studio-input" placeholder="@yourcustomer" />
+        </div>
+        <div class="row g-2">
+          <div class="col-6 form-check">
+            <input id="toggleGuides" class="form-check-input" type="checkbox" />
+            <label class="form-check-label" for="toggleGuides">Show safe zone</label>
+          </div>
+          <div class="col-6 form-check">
+            <input id="toggleUGC" class="form-check-input" type="checkbox" />
+            <label class="form-check-label" for="toggleUGC">UGC frame</label>
+          </div>
+          <div class="col-6 form-check">
+            <input id="toggleBeforeAfter" class="form-check-input" type="checkbox" />
+            <label class="form-check-label" for="toggleBeforeAfter">Before / After</label>
+          </div>
+          <div class="col-6 form-check">
+            <input id="lockPrice" class="form-check-input" type="checkbox" />
+            <label class="form-check-label" for="lockPrice">Lock price</label>
+          </div>
+          <div class="col-6 form-check">
+            <input id="lockBadge" class="form-check-input" type="checkbox" />
+            <label class="form-check-label" for="lockBadge">Lock badge</label>
+          </div>
+          <div class="col-6 form-check">
+            <input id="lockLogo" class="form-check-input" type="checkbox" />
+            <label class="form-check-label" for="lockLogo">Lock logo</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="studio-card card mb-4">
+      <div class="card-header">
         <strong>Idea Generator</strong>
       </div>
       <div class="card-body">
@@ -346,6 +573,16 @@
         <textarea id="copyOutput" class="form-control copy-output" readonly></textarea>
       </div>
     </div>
+
+    <div class="studio-card card mt-4">
+      <div class="card-header">
+        <strong>Hashtag Generator</strong>
+      </div>
+      <div class="card-body">
+        <button id="generateHashtags" class="btn btn-outline-primary mb-3">Generate Hashtags</button>
+        <textarea id="hashtagOutput" class="form-control copy-output" readonly></textarea>
+      </div>
+    </div>
   </div>
 
   <div class="col-lg-7">
@@ -359,17 +596,25 @@
         </div>
       </div>
       <div class="card-body">
+        <div class="d-flex flex-wrap gap-2 mb-3" id="templateFilters">
+          <button class="filter-pill active" data-filter="all">All</button>
+          <button class="filter-pill" data-filter="drop">Drop</button>
+          <button class="filter-pill" data-filter="minimal">Minimal</button>
+          <button class="filter-pill" data-filter="soft">Soft</button>
+          <button class="filter-pill" data-filter="bold">Bold</button>
+          <button class="filter-pill" data-filter="street">Street</button>
+        </div>
         <div class="template-grid" id="templateGrid">
-          <button class="template-btn active" data-template="t-1">Warm Editorial</button>
-          <button class="template-btn" data-template="t-2">Pop Contrast</button>
-          <button class="template-btn" data-template="t-3">Night Luxe</button>
-          <button class="template-btn" data-template="t-4">Minimal Split</button>
-          <button class="template-btn" data-template="t-5">Fresh Breeze</button>
-          <button class="template-btn" data-template="t-6">Soft Romance</button>
-          <button class="template-btn" data-template="t-7">Eco Chic</button>
-          <button class="template-btn" data-template="t-8">Sunrise Drop</button>
-          <button class="template-btn" data-template="t-9">City Glow</button>
-          <button class="template-btn" data-template="t-10">Bold Mono</button>
+          <button class="template-btn active" data-template="t-1" data-category="drop">Warm Editorial</button>
+          <button class="template-btn" data-template="t-2" data-category="drop">Pop Contrast</button>
+          <button class="template-btn" data-template="t-3" data-category="bold">Night Luxe</button>
+          <button class="template-btn" data-template="t-4" data-category="minimal">Minimal Split</button>
+          <button class="template-btn" data-template="t-5" data-category="street">Fresh Breeze</button>
+          <button class="template-btn" data-template="t-6" data-category="soft">Soft Romance</button>
+          <button class="template-btn" data-template="t-7" data-category="soft">Eco Chic</button>
+          <button class="template-btn" data-template="t-8" data-category="drop">Sunrise Drop</button>
+          <button class="template-btn" data-template="t-9" data-category="street">City Glow</button>
+          <button class="template-btn" data-template="t-10" data-category="bold">Bold Mono</button>
         </div>
       </div>
     </div>
@@ -380,6 +625,8 @@
         <div class="d-flex gap-2">
           <button id="applyToPreview" class="btn btn-outline-secondary">Update Preview</button>
           <button id="downloadBanner" class="btn btn-primary">Download PNG</button>
+          <button id="downloadAll" class="btn btn-outline-primary">Export All</button>
+          <button id="downloadCarousel" class="btn btn-outline-dark">Export Carousel</button>
         </div>
       </div>
       <div class="card-body">
@@ -387,6 +634,12 @@
           <div id="adCanvas" class="ad-canvas t-1">
             <div class="shape shape-one"></div>
             <div class="shape shape-two"></div>
+            <div class="safe-zone" id="safeZone"></div>
+            <div class="ugc-frame" id="ugcFrame">
+              <div class="ugc-label" id="ugcLabel">Styled by @you</div>
+            </div>
+            <div class="before-after-label before-label">Before</div>
+            <div class="before-after-label after-label">After</div>
 
             <div class="brand-logo" id="brandLogoWrap">
               {% if site_settings and site_settings.admin_logo %}
@@ -411,7 +664,11 @@
                 <div class="ad-cta" id="ctaText">Shop Now</div>
               </div>
               <div class="d-flex justify-content-center">
-                <img id="productImage" class="ad-product-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='320'><rect width='100%' height='100%' fill='%23e2e8f0'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%2394a3b8' font-family='Arial' font-size='16'>Upload Image</text></svg>" alt="Product" />
+                <div class="product-visual">
+                  <img id="productImage" class="ad-product-img product-image" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='320'><rect width='100%' height='100%' fill='%23e2e8f0'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%2394a3b8' font-family='Arial' font-size='16'>Upload Image</text></svg>" alt="Product" />
+                  <img id="productImageAlt" class="ad-product-img product-image-alt" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='320'><rect width='100%' height='100%' fill='%23e2e8f0'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%2394a3b8' font-family='Arial' font-size='16'>Upload Image</text></svg>" alt="Product alternate" />
+                  <div class="before-after-divider"></div>
+                </div>
               </div>
             </div>
           </div>
@@ -428,7 +685,11 @@
 <script>
   const ideaOutput = document.getElementById("ideaOutput");
   const copyOutput = document.getElementById("copyOutput");
+  const hashtagOutput = document.getElementById("hashtagOutput");
   const adCanvas = document.getElementById("adCanvas");
+  const safeZone = document.getElementById("safeZone");
+  const ugcLabel = document.getElementById("ugcLabel");
+  const ugcHandleInput = document.getElementById("ugcHandleInput");
 
   const fields = {
     brand: document.getElementById("brandName"),
@@ -451,7 +712,64 @@
     cta: document.getElementById("ctaText"),
     badge: document.getElementById("badgeDiscount"),
     image: document.getElementById("productImage"),
+    imageAlt: document.getElementById("productImageAlt"),
     logoWrap: document.getElementById("brandLogoWrap")
+  };
+
+  const locks = {
+    price: false,
+    badge: false,
+    logo: false
+  };
+
+  const palettes = {
+    sunset: {
+      ink: "#1f2937",
+      muted: "#6b7280",
+      accent: "#ff6b35",
+      accent2: "#0ea5a6",
+      bg: "#fff7ed"
+    },
+    mint: {
+      ink: "#0f172a",
+      muted: "#64748b",
+      accent: "#14b8a6",
+      accent2: "#22c55e",
+      bg: "#ecfeff"
+    },
+    noir: {
+      ink: "#f8fafc",
+      muted: "#cbd5f5",
+      accent: "#f97316",
+      accent2: "#38bdf8",
+      bg: "#0f172a"
+    },
+    rose: {
+      ink: "#1f2937",
+      muted: "#6b7280",
+      accent: "#fb7185",
+      accent2: "#f97316",
+      bg: "#fff1f2"
+    }
+  };
+
+  const fontPairs = {
+    "grotesk-playfair": {
+      body: "'Space Grotesk', sans-serif",
+      title: "'Playfair Display', serif"
+    },
+    "syne-dm": {
+      body: "'DM Sans', sans-serif",
+      title: "'Syne', sans-serif"
+    },
+    "dm-playfair": {
+      body: "'DM Sans', sans-serif",
+      title: "'Playfair Display', serif"
+    },
+    "syne-playfair": {
+      body: "'Syne', sans-serif",
+      title: "'Playfair Display', serif"
+    }
   };
 
   const hooks = [
@@ -505,19 +823,60 @@
     updatePreview();
   }
 
+  function buildHashtags() {
+    const brand = (fields.brand.value || "VibeMall").replace(/\s+/g, "");
+    const category = (fields.category.value || "WomenWear").replace(/\s+/g, "");
+    const product = (fields.name.value || "NewDrop").replace(/\s+/g, "");
+    const baseTags = [
+      "#indianfashion",
+      "#ootd",
+      "#genzstyle",
+      "#streetstyle",
+      "#trendalert",
+      "#newarrival",
+      "#womenwear",
+      "#styleinspo",
+      "#fashionindia",
+      "#closetgoals",
+      "#lookbook",
+      "#dailywear",
+      "#vibestyle",
+      "#wardrobe",
+      "#fashionstore"
+    ];
+    const customTags = [`#${brand}`, `#${category}`, `#${product}`];
+    const tags = customTags.concat(baseTags.slice(0, 12)).join(" ");
+    hashtagOutput.value = tags;
+  }
+
   function updatePreview() {
-    preview.brandText.textContent = fields.brand.value || "VibeMall";
+    if (!locks.logo) {
+      preview.brandText.textContent = fields.brand.value || "VibeMall";
+    }
     preview.headline.textContent = fields.name.value || "Floral Co-ord Set";
     preview.category.textContent = fields.category.value || "Women Wear";
-    preview.price.textContent = fields.price.value || "799";
+    if (!locks.price) {
+      preview.price.textContent = fields.price.value || "799";
+    }
     preview.highlight.textContent = fields.highlight.value || "Soft cotton. All day comfort.";
     preview.tagline.textContent = fields.tagline.value || "Own your everyday glam.";
     preview.cta.textContent = fields.cta.value || "Shop Now";
-    preview.badge.textContent = fields.discount.value || "20% OFF";
+    if (!locks.badge) {
+      preview.badge.textContent = fields.discount.value || "20% OFF";
+    }
+    const handleText = ugcHandleInput.value.trim();
+    if (handleText) {
+      ugcLabel.textContent = `Styled by ${handleText}`;
+    } else {
+      ugcLabel.textContent = fields.brand.value ? `Styled by @${fields.brand.value.replace(/\s+/g, "")}` : "Styled by @you";
+    }
   }
 
   function setTemplate(template) {
-    adCanvas.className = `ad-canvas ${template}`;
+    Array.from(adCanvas.classList)
+      .filter((cls) => cls.startsWith("t-"))
+      .forEach((cls) => adCanvas.classList.remove(cls));
+    adCanvas.classList.add(template);
     document.querySelectorAll(".template-btn").forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.template === template);
     });
@@ -539,8 +898,110 @@
     });
   }
 
+  function applyPalette(paletteKey) {
+    const palette = palettes[paletteKey];
+    if (!palette) return;
+    adCanvas.style.setProperty("--ink", palette.ink);
+    adCanvas.style.setProperty("--muted", palette.muted);
+    adCanvas.style.setProperty("--accent", palette.accent);
+    adCanvas.style.setProperty("--accent-2", palette.accent2);
+    adCanvas.style.setProperty("--canvas-bg", palette.bg);
+  }
+
+  function applyFonts(fontKey) {
+    const pair = fontPairs[fontKey];
+    if (!pair) return;
+    adCanvas.style.setProperty("--font-body", pair.body);
+    adCanvas.style.setProperty("--font-title", pair.title);
+  }
+
+  function setGuidesVisible(isVisible) {
+    adCanvas.classList.toggle("show-guides", isVisible);
+  }
+
+  function setUGC(isEnabled) {
+    adCanvas.classList.toggle("ugc-on", isEnabled);
+  }
+
+  function setBeforeAfter(isEnabled) {
+    adCanvas.classList.toggle("mode-before-after", isEnabled);
+  }
+
+  function syncLocks() {
+    document.getElementById("productPrice").disabled = locks.price;
+    document.getElementById("productDiscount").disabled = locks.badge;
+    document.getElementById("brandName").disabled = locks.logo;
+    document.getElementById("toggleLogo").disabled = locks.logo;
+  }
+
+  async function renderDownload(fileName) {
+    const guidesOn = adCanvas.classList.contains("show-guides");
+    setGuidesVisible(false);
+    const canvas = await html2canvas(adCanvas, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: null
+    });
+    const link = document.createElement("a");
+    link.download = fileName;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+    setGuidesVisible(guidesOn);
+  }
+
+  async function exportAllTemplates() {
+    const buttons = Array.from(document.querySelectorAll(".template-btn"));
+    const current = document.querySelector(".template-btn.active")?.dataset.template || "t-1";
+    for (const button of buttons) {
+      setTemplate(button.dataset.template);
+      updatePreview();
+      await new Promise((resolve) => setTimeout(resolve, 120));
+      await renderDownload(`banner-${button.dataset.template}.png`);
+    }
+    setTemplate(current);
+  }
+
+  async function exportCarousel() {
+    const original = {
+      name: fields.name.value,
+      tagline: fields.tagline.value,
+      highlight: fields.highlight.value,
+      category: fields.category.value,
+      price: fields.price.value,
+      discount: fields.discount.value,
+      cta: fields.cta.value
+    };
+    const slides = [
+      { name: original.name || "Hero Drop", tagline: "New season, new energy", highlight: "Limited quantity", cta: "Shop the Drop" },
+      { name: "Fabric Detail", tagline: "Touch the texture", highlight: "Soft, breathable, premium", cta: "See the Detail" },
+      { name: "Fit Check", tagline: "Designed to move", highlight: "Easy fit, all-day comfort", cta: "Try the Fit" },
+      { name: "Color Options", tagline: "Pick your mood", highlight: "Multiple shades available", cta: "Choose a Color" },
+      { name: "Final Call", tagline: "Ready to own it?", highlight: "Limited time offer", cta: "Checkout Now" }
+    ];
+
+    for (let i = 0; i < slides.length; i += 1) {
+      fields.name.value = slides[i].name;
+      fields.tagline.value = slides[i].tagline;
+      fields.highlight.value = slides[i].highlight;
+      fields.cta.value = slides[i].cta;
+      updatePreview();
+      await new Promise((resolve) => setTimeout(resolve, 120));
+      await renderDownload(`carousel-${i + 1}.png`);
+    }
+
+    fields.name.value = original.name;
+    fields.tagline.value = original.tagline;
+    fields.highlight.value = original.highlight;
+    fields.category.value = original.category;
+    fields.price.value = original.price;
+    fields.discount.value = original.discount;
+    fields.cta.value = original.cta;
+    updatePreview();
+  }
+
   document.getElementById("generateIdeas").addEventListener("click", buildIdeas);
   document.getElementById("generateCopy").addEventListener("click", buildCopy);
+  document.getElementById("generateHashtags").addEventListener("click", buildHashtags);
   document.getElementById("applyToPreview").addEventListener("click", updatePreview);
 
   document.getElementById("templateGrid").addEventListener("click", (event) => {
@@ -549,12 +1010,91 @@
     setTemplate(button.dataset.template);
   });
 
+  document.getElementById("templateFilters").addEventListener("click", (event) => {
+    const button = event.target.closest(".filter-pill");
+    if (!button) return;
+    const filter = button.dataset.filter;
+    document.querySelectorAll(".filter-pill").forEach((pill) => {
+      pill.classList.toggle("active", pill === button);
+    });
+    document.querySelectorAll(".template-btn").forEach((btn) => {
+      const category = btn.dataset.category;
+      btn.style.display = filter === "all" || category === filter ? "block" : "none";
+    });
+  });
+
   document.querySelectorAll(".ratio-pill").forEach((pill) => {
     pill.addEventListener("click", () => setRatio(pill.dataset.ratio));
   });
 
+  document.getElementById("paletteGrid").addEventListener("click", (event) => {
+    const button = event.target.closest(".palette-btn");
+    if (!button) return;
+    document.querySelectorAll(".palette-btn").forEach((btn) => btn.classList.remove("active"));
+    button.classList.add("active");
+    applyPalette(button.dataset.palette);
+  });
+
+  document.getElementById("fontGrid").addEventListener("click", (event) => {
+    const button = event.target.closest(".font-btn");
+    if (!button) return;
+    document.querySelectorAll(".font-btn").forEach((btn) => btn.classList.remove("active"));
+    button.classList.add("active");
+    applyFonts(button.dataset.font);
+  });
+
+  document.getElementById("badgeGrid").addEventListener("click", (event) => {
+    const button = event.target.closest(".badge-btn");
+    if (!button) return;
+    document.querySelectorAll(".badge-btn").forEach((btn) => btn.classList.remove("active"));
+    button.classList.add("active");
+    fields.discount.value = button.dataset.badge;
+    updatePreview();
+  });
+
+  document.getElementById("ctaGrid").addEventListener("click", (event) => {
+    const button = event.target.closest(".cta-btn");
+    if (!button) return;
+    document.querySelectorAll(".cta-btn").forEach((btn) => btn.classList.remove("active"));
+    button.classList.add("active");
+    fields.cta.value = button.dataset.cta;
+    updatePreview();
+  });
+
   document.getElementById("toggleLogo").addEventListener("change", (event) => {
     preview.logoWrap.style.display = event.target.checked ? "flex" : "none";
+  });
+
+  document.getElementById("toggleGuides").addEventListener("change", (event) => {
+    setGuidesVisible(event.target.checked);
+  });
+
+  document.getElementById("toggleUGC").addEventListener("change", (event) => {
+    setUGC(event.target.checked);
+  });
+
+  document.getElementById("toggleBeforeAfter").addEventListener("change", (event) => {
+    setBeforeAfter(event.target.checked);
+  });
+
+  document.getElementById("ugcHandleInput").addEventListener("input", (event) => {
+    const value = event.target.value.trim();
+    ugcLabel.textContent = value ? `Styled by ${value}` : "Styled by @you";
+  });
+
+  document.getElementById("lockPrice").addEventListener("change", (event) => {
+    locks.price = event.target.checked;
+    syncLocks();
+  });
+
+  document.getElementById("lockBadge").addEventListener("change", (event) => {
+    locks.badge = event.target.checked;
+    syncLocks();
+  });
+
+  document.getElementById("lockLogo").addEventListener("change", (event) => {
+    locks.logo = event.target.checked;
+    syncLocks();
   });
 
   document.getElementById("productImageInput").addEventListener("change", (event) => {
@@ -563,24 +1103,28 @@
     const reader = new FileReader();
     reader.onload = (e) => {
       preview.image.src = e.target.result;
+      preview.imageAlt.src = e.target.result;
     };
     reader.readAsDataURL(file);
   });
 
   document.getElementById("downloadBanner").addEventListener("click", async () => {
-    updatePreview();
-    const canvas = await html2canvas(adCanvas, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: null
-    });
-    const link = document.createElement("a");
     const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-    link.download = `banner-${timestamp}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
+    updatePreview();
+    await renderDownload(`banner-${timestamp}.png`);
   });
 
+  document.getElementById("downloadAll").addEventListener("click", async () => {
+    await exportAllTemplates();
+  });
+
+  document.getElementById("downloadCarousel").addEventListener("click", async () => {
+    await exportCarousel();
+  });
+
+  applyPalette("sunset");
+  applyFonts("grotesk-playfair");
+  syncLocks();
   updatePreview();
 </script>
 {% endblock %}
