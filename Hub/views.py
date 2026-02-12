@@ -7349,11 +7349,114 @@ def download_invoice(request, order_number):
             textColor=colors.HexColor('#1e293b'),
             fontName='Helvetica'
         )
+
+        def _build_logo_cell(image_path=None, image_bytes=None, source_label='logo'):
+            if not image_path and not image_bytes:
+                return None
+
+            if image_path and os.path.exists(image_path) and os.path.getsize(image_path) > 0:
+                try:
+                    with PILImage.open(image_path) as img:
+                        img_width, img_height = img.size
+                except Exception:
+                    logger.warning("Invoice logo load failed (%s): unable to read image path", source_label)
+                    return None
+            elif image_bytes:
+                try:
+                    with PILImage.open(BytesIO(image_bytes)) as img:
+                        img_width, img_height = img.size
+                except Exception:
+                    logger.warning("Invoice logo load failed (%s): unable to read image bytes", source_label)
+                    return None
+            else:
+                return None
+
+            max_width = 1.8 * inch
+            max_height = 0.65 * inch
+            scale = min(max_width / img_width, max_height / img_height)
+            render_width = img_width * scale
+            render_height = img_height * scale
+
+            try:
+                if image_bytes:
+                    return Image(BytesIO(image_bytes), width=render_width, height=render_height)
+                return Image(image_path, width=render_width, height=render_height)
+            except Exception:
+                logger.warning("Invoice logo render failed (%s): reportlab could not create image", source_label)
+                return None
         
         # ===== HEADER SECTION =====
+        site_settings = SiteSettings.get_settings()
+        site_name = (getattr(site_settings, 'site_name', None) or 'VibeMall').strip()
+        logo_cell = None
+
+        if getattr(site_settings, 'site_logo', None):
+            logo_path = None
+            logo_bytes = None
+            try:
+                logo_path = site_settings.site_logo.path
+            except Exception:
+                logo_path = None
+
+            if not logo_path:
+                try:
+                    logo_url = site_settings.site_logo.url
+                    if logo_url.startswith('http://') or logo_url.startswith('https://'):
+                        with urlopen(logo_url, timeout=5) as logo_response:
+                            logo_bytes = logo_response.read()
+                except Exception:
+                    logo_bytes = None
+
+            logo_cell = _build_logo_cell(
+                image_path=logo_path,
+                image_bytes=logo_bytes,
+                source_label='site_logo'
+            )
+
+        if not logo_cell:
+            media_root = getattr(settings, 'MEDIA_ROOT', None) or os.path.join(settings.BASE_DIR, 'media')
+            fallback_dir = os.path.join(media_root, 'site')
+            external_logo_path = os.path.normpath('D:/VibeMallProduct/Logo/logo2.png')
+            fallback_candidates = [
+                external_logo_path,
+                os.path.join(fallback_dir, 'logo.png'),
+                os.path.join(fallback_dir, 'logo2.png'),
+            ]
+            if os.path.isdir(fallback_dir):
+                try:
+                    for filename in sorted(os.listdir(fallback_dir)):
+                        if filename.lower().startswith('logo') and filename.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')):
+                            fallback_candidates.append(os.path.join(fallback_dir, filename))
+                except Exception:
+                    pass
+
+            for fallback_path in fallback_candidates:
+                logo_cell = _build_logo_cell(image_path=fallback_path, source_label=fallback_path)
+                if logo_cell:
+                    break
+
+        # Wrap logo with blue rounded background using a nested table
+        if logo_cell:
+            logo_wrapper_data = [[logo_cell]]
+            logo_wrapper = Table(logo_wrapper_data)
+            logo_wrapper.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (0, 0), colors.HexColor('#e3f2fd')),
+                ('BOX', (0, 0), (0, 0), 1, colors.HexColor('#90caf9')),
+                ('ROUNDEDCORNERS', [6, 6, 6, 6]),
+                ('LEFTPADDING', (0, 0), (0, 0), 8),
+                ('RIGHTPADDING', (0, 0), (0, 0), 8),
+                ('TOPPADDING', (0, 0), (0, 0), 8),
+                ('BOTTOMPADDING', (0, 0), (0, 0), 8),
+                ('VALIGN', (0, 0), (0, 0), 'MIDDLE'),
+                ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+            ]))
+            header_left = logo_wrapper
+        else:
+            header_left = Paragraph(f'<b>{site_name}</b>', styles['Heading2'])
+        
         header_data = [
             [
-                Paragraph('<b>VibeMall</b>', styles['Heading2']),
+                header_left,
                 Paragraph(f'<b style="font-size: 18">INVOICE</b>', styles['Heading2'])
             ]
         ]
@@ -7456,7 +7559,6 @@ def download_invoice(request, order_number):
         # ===== BILLING & SHIPPING SECTION =====
         # Log invoice generation start
         try:
-            logger = logging.getLogger(__name__)
             logger.info("Generating invoice PDF for order %s user=%s", order_number, request.user.username if hasattr(request.user, 'username') else str(request.user))
         except Exception:
             pass
@@ -7522,7 +7624,6 @@ def download_invoice(request, order_number):
                     if img_path and os.path.exists(img_path) and os.path.getsize(img_path) > 0:
                         # Try to load image with PIL (with AVIF support via pillow-heif)
                         try:
-                            from PIL import Image as PILImage
                             with open(img_path, 'rb') as f:
                                 test_img = PILImage.open(f)
                                 test_img.load()
@@ -7658,7 +7759,9 @@ def download_invoice(request, order_number):
         return response
         
     except Exception as e:
-        logger = logging.getLogger(__name__)
         logger.exception("Error generating invoice for %s: %s", order_number, str(e))
+        if getattr(settings, 'DEBUG', False):
+            error_details = traceback.format_exc()
+            return HttpResponse(error_details, content_type='text/plain', status=500)
         # Return error response without trying to use messages
         return HttpResponse('Error generating invoice. Please contact support.', status=500)

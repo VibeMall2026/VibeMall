@@ -121,9 +121,13 @@
           <div class="app-brand demo">
             <a href="/admin-panel/" class="app-brand-link">
               {% if site_settings and site_settings.admin_logo %}
-              <img src="{{ site_settings.admin_logo.url }}" alt="{{ site_settings.site_name }}" style="max-height: 40px; max-width: 180px;">
+              <span style="display: inline-block; background: #e3f2fd; padding: 8px; border-radius: 6px; border: 1px solid #90caf9;">
+                <img src="{{ site_settings.admin_logo.url }}" alt="{{ site_settings.site_name }}" style="max-height: 40px; max-width: 180px; display: block;">
+              </span>
               {% elif site_settings and site_settings.site_logo %}
-              <img src="{{ site_settings.site_logo.url }}" alt="{{ site_settings.site_name }}" style="max-height: 40px; max-width: 180px;">
+              <span style="display: inline-block; background: #e3f2fd; padding: 8px; border-radius: 6px; border: 1px solid #90caf9;">
+                <img src="{{ site_settings.site_logo.url }}" alt="{{ site_settings.site_name }}" style="max-height: 40px; max-width: 180px; display: block;">
+              </span>
               {% else %}
               <span class="app-brand-logo demo">
                 <svg
