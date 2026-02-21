@@ -1,58 +1,86 @@
-/* ============================= */
-/* CLEAN MOBILE HEADER FINAL */
-/* ============================= */
+/* ===================================
+   HEADER RESPONSIVE STYLES
+   Mobile and tablet only
+   =================================== */
 
-@media (max-width: 991px) {
-
-  /* Hide desktop elements */
-  .header-action,
-  .main-menu,
-  .cat__menu-wrapper,
-  .header__search,
-  .block-userlink,
-  .block-wishlist,
-  .block-cart .text {
-    display: none !important;
+@media (max-width: 991.98px) {
+  .header-top {
+    display: none;
   }
 
-  /* Force 3-column layout */
+  .header__bottom {
+    display: none;
+  }
+
+  .header-mid {
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  }
+
   .header-mid .row {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+
+  .mobile-menu-col {
     display: flex !important;
     align-items: center;
-    justify-content: space-between;
-  }
-
-
-  /* LEFT - Hamburger */
-    .mobile-menu-col {
     flex: 0 0 auto;
   }
-
 
   .mobile-menu-btn {
     font-size: 22px;
-    background: none;
-    border: none;
+    line-height: 1;
+    background: transparent;
+    border: 0;
+    color: #fff;
+    padding: 0;
   }
 
-  /* CENTER - Logo */
- .header-logo-col {
-    flex: 1;
-    text-align: center;
+  .header-logo-col {
+    flex: 1 1 auto;
+    display: flex;
+    justify-content: center;
   }
+
+  .header-logo-col .header__info {
+    width: 100%;
+  }
+
+  .header-logo-col .logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .logo-image {
+    display: block;
+    width: auto;
     max-height: 42px;
   }
 
-  /* RIGHT - Icons */
+  .header-action {
+    display: none !important;
+  }
+
   .mobile-icons {
+    display: flex !important;
+    align-items: center;
+    gap: 14px;
     flex: 0 0 auto;
-    display: flex;
-    gap: 16px;
+    margin-left: auto;
   }
 
   .mobile-icons .mobile-icon {
     position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+  }
+
+  .mobile-icons .mobile-icon i {
     font-size: 20px;
   }
 
@@ -60,202 +88,38 @@
     position: absolute;
     top: -6px;
     right: -8px;
-    font-size: 10px;
-    background: black;
-    color: white;
-    border-radius: 50%;
-    padding: 3px 6px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 600;
+    line-height: 16px;
+    text-align: center;
+    color: #111;
+    background: #ffc107;
   }
 
-}
-@media (max-width: 991px) {
-
-  .header-logo-col {
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center;
-    visibility: visible !important;
+  .offcanvas__area {
+    width: min(100vw, 360px);
   }
-
-  .header-logo-col .header__info {
-    display: flex !important;
-    justify-content: center !important;
-    width: 100%;
-  }
-
-  .logo-image,
-  .header-logo-col img {
-    display: block !important;
-    max-height: 42px;
-    width: auto !important;
-  }
-
 }
 
-/* =============================== */
-/* COUNT BADGE PROFESSIONAL STYLE */
-/* =============================== */
-
-/* Mobile + Desktop common */
-.mobile-icons .count,
-.block-wishlist .count,
-.block-cart .count {
-  position: absolute;
-  top: -6px;
-  right: -8px;
-
-  min-width: 16px;
-  height: 16px;
-
-  font-size: 9px;        /* smaller digit */
-  font-weight: 600;
-
-  background: #ffc107;   /* yellow like screenshot */
-  color: #000;
-
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  padding: 0 4px;
-  line-height: 1;
-}
-
-.mobile-icon,
-.block-wishlist a,
-.block-cart a {
-  position: relative;
-}
-
-.header.d-blue-bg {
-  display: flex;
-  justify-content: center;
-}
-
-.header.d-blue-bg .header-mid {
-  width: fit-content;
-}
-.header {
-  background: transparent !important;
-}
-
-.header-mid {
-  display: flex;
-  justify-content: center;
-}
-
-.header-mid .container {
-  padding-left: 15px;
-  padding-right: 15px;
-  overflow: hidden;
-}
-
-.header-mid .heade-mid-inner {
-  background: #2f3f99;
-  padding: 12px 25px;
-}
-
-
-
-/* =============================== */
-/* BLUE HEADER EXACT CONTENT WIDTH */
-/* =============================== */
-
-.header {
-  background: transparent !important;
-}
-
-/* Center the header block */
-.header-mid {
-  display: flex;
-  justify-content: center;
-}
-
-/* Remove bootstrap width effect */
-.header-mid .container {
-  width: auto !important;
-  max-width: none !important;
-  padding: 0 !important;
-}
-
-/* Blue box only around content */
-.header-mid .heade-mid-inner {
-  display: inline-flex;
-  align-items: center;
-  background: #2f3f99; /* your blue */
-  padding: 12px 25px;
-  border-radius: 6px; /* optional clean look */
-}
-
-/* Full width blue header for mobile */
-@media (max-width: 991px) {
-
-  .header {
-    background: #2f3f99 !important;
-  }
-
-  .header-mid {
-    display: block !important;
-  }
-
+@media (max-width: 575.98px) {
   .header-mid .container {
-    max-width: 100% !important;
-    padding: 10px 15px;
+    padding-left: 12px;
+    padding-right: 12px;
   }
 
-}
+  .logo-image {
+    max-height: 36px;
+  }
 
-/* Remove browser default spacing */
-body {
-  margin: 0 !important;
-  padding: 0 !important;
-}
+  .mobile-menu-btn {
+    font-size: 20px;
+  }
 
-/* Make header full width */
-.header {
-  margin: 0 !important;
-  padding: 0 !important;
-  width: 100% !important;
-  background: #2f3f99 !important; /* your blue */
-}
-
-/* Remove container side padding */
-.header-mid .container {
-  max-width: 100% !important;
-  padding-left: 15px !important;
-  padding-right: 15px !important;
-}
-
-/* Remove any unwanted spacing */
-.header-mid {
-  margin: 0 !important;
-  padding: 10px 0 !important;
-}
-
-/* Prevent horizontal scroll */
-html, body {
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden;
-}
-
-/* Proper box model */
-* {
-  box-sizing: border-box;
-}
-
-/* Responsive images */
-img {
-  max-width: 100%;
-  height: auto;
-}
-
-/* Fix Bootstrap row overflow */
-@media (max-width: 991px) {
-  .row {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
+  .mobile-icons .mobile-icon i {
+    font-size: 18px;
   }
 }
-
