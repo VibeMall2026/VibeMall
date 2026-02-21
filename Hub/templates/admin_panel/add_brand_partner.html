@@ -103,34 +103,5 @@
     </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Logo preview on file change
-    const logoInput = document.getElementById('logo');
-    const previewLogo = document.getElementById('preview-logo');
-    
-    if (logoInput) {
-        logoInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    previewLogo.innerHTML = '<img src="' + event.target.result + '" alt="Preview" style="max-height: 80px; max-width: 150px; object-fit: contain; filter: grayscale(100%); opacity: 0.6;">';
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-    }
-    
-    // Name preview
-    const nameInput = document.getElementById('name');
-    const previewName = document.getElementById('preview-name');
-    
-    if (nameInput && previewName) {
-        nameInput.addEventListener('input', function() {
-            previewName.textContent = this.value || 'Brand Name';
-        });
-    }
-});
-</script>
+<script src="{% static 'assets/js/admin-preview.js' %}"></script>
 {% endblock %}
