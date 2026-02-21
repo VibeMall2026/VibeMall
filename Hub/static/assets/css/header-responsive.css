@@ -3,6 +3,10 @@
    Mobile and tablet only
    =================================== */
 
+.logo-image--mobile-brand {
+  display: none;
+}
+
 @media (max-width: 991.98px) {
   .header-top {
     display: none;
@@ -40,6 +44,7 @@
 
   .header-logo-col {
     flex: 1 1 auto;
+    min-width: 120px;
     display: flex;
     justify-content: center;
   }
@@ -58,6 +63,14 @@
     display: block;
     width: auto;
     max-height: 42px;
+  }
+
+  .logo-image--dynamic {
+    display: none !important;
+  }
+
+  .logo-image--mobile-brand {
+    display: block !important;
   }
 
   .header-action {

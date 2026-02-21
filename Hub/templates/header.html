@@ -41,10 +41,10 @@
                         <div class="header__info">
                             <a href="{% url 'index' %}" class="logo">
                                 {% if site_settings and site_settings.site_logo %}
-                                    <img class="logo-image" src="{{ site_settings.site_logo.url }}" alt="{{ site_settings.site_name }}" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
-                                    <span class="logo-text logo-text--fallback logo-text--onerror" style="display:none;">{{ site_settings.site_name|default:"VibeMall" }}</span>
+                                    <img class="logo-image logo-image--dynamic" src="{{ site_settings.site_logo.url }}" alt="{{ site_settings.site_name }}">
+                                    <img class="logo-image logo-image--mobile-brand" src="{% static 'assets/img/logo/vibemall-brand.png' %}" alt="{{ site_settings.site_name|default:'VibeMall' }}">
                                 {% else %}
-                                    <span class="logo-text logo-text--fallback">{{ site_settings.site_name|default:"VibeMall" }}</span>
+                                    <img class="logo-image logo-image--mobile-brand" src="{% static 'assets/img/logo/vibemall-brand.png' %}" alt="{{ site_settings.site_name|default:'VibeMall' }}">
                                 {% endif %}
                             </a>
                         </div>
@@ -89,7 +89,7 @@
                             </form>
                         </div>
                     </div>
-                    <div class="col-xl-4 col-lg-5 col-md-8 col-sm-8">
+                    <div class="col-xl-4 col-lg-5 d-none d-lg-block">
                         <div class="header-action header-action--mobile">
                     <div class="block-userlink">
                             {% if user.is_authenticated %}
