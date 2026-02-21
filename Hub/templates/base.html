@@ -23,7 +23,7 @@
     <link rel="stylesheet" href="{% static 'assets/css/default.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/custom-fixes.css' %}">
-    <link rel="stylesheet" href="{% static 'assets/css/header-responsive.css' %}?v=20260221-11">
+    <link rel="stylesheet" href="{% static 'assets/css/header-responsive.css' %}?v=20260221-14">
     <link rel="stylesheet" href="{% static 'assets/css/pages-responsive.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/buttons-rounded.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/base-custom.css' %}">
@@ -135,6 +135,38 @@
     </main>
         {% include 'footer.html' %}
 
+        <nav id="mobileBottomNav" class="mobile-bottom-nav d-xl-none" aria-label="Mobile bottom navigation" style="position:fixed;left:0;right:0;bottom:0;z-index:9999;">
+            <a class="mobile-bottom-nav__item" href="{% url 'shop' %}" aria-label="Shop">
+                <i class="far fa-th-large"></i>
+                <span>Shop</span>
+            </a>
+            <a class="mobile-bottom-nav__item" href="{% url 'wishlist' %}" aria-label="Wishlist">
+                <i class="far fa-heart"></i>
+                <span>Wishlist</span>
+                <span class="mobile-bottom-nav__badge wishlist-count">{{ wishlist_count|default:"0" }}</span>
+            </a>
+            <a class="mobile-bottom-nav__item" href="{% url 'cart' %}" aria-label="Cart">
+                <i class="far fa-shopping-bag"></i>
+                <span>Cart</span>
+                <span class="mobile-bottom-nav__badge cart-count">{{ cart_count|default:"0" }}</span>
+            </a>
+            {% if user.is_authenticated %}
+            <a class="mobile-bottom-nav__item" href="{% url 'profile' %}" aria-label="Account">
+                <i class="far fa-user"></i>
+                <span>Account</span>
+            </a>
+            {% else %}
+            <a class="mobile-bottom-nav__item" href="{% url 'login' %}" aria-label="Account">
+                <i class="far fa-user"></i>
+                <span>Account</span>
+            </a>
+            {% endif %}
+            <a class="mobile-bottom-nav__item" href="{% url 'shop' %}" aria-label="Search">
+                <i class="far fa-search"></i>
+                <span>Search</span>
+            </a>
+        </nav>
+
         <div id="supportChatWidget">
             <button id="supportChatToggle" type="button">Support</button>
             <div id="supportChatPanel" class="chat-hidden">
@@ -182,5 +214,37 @@
         <script src="{% static 'assets/js/main.js' %}"></script>
         <script src="{% static 'assets/js/custom-fixes.js' %}"></script>
         <script src="{% static 'assets/js/base-custom.js' %}"></script>
+        <script>
+        (function () {
+            const nav = document.getElementById('mobileBottomNav');
+            if (!nav) return;
+
+            const apply = () => {
+                const isMobileTablet = window.matchMedia('(max-width: 1199.98px)').matches;
+                if (!isMobileTablet) {
+                    nav.style.setProperty('display', 'none', 'important');
+                    return;
+                }
+
+                nav.style.setProperty('display', 'grid', 'important');
+                nav.style.setProperty('position', 'fixed', 'important');
+                nav.style.setProperty('left', '0', 'important');
+                nav.style.setProperty('right', '0', 'important');
+                nav.style.setProperty('z-index', '9999', 'important');
+
+                const vv = window.visualViewport;
+                const offset = vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0;
+                nav.style.setProperty('bottom', offset + 'px', 'important');
+            };
+
+            apply();
+            window.addEventListener('resize', apply, { passive: true });
+            window.addEventListener('orientationchange', apply, { passive: true });
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', apply, { passive: true });
+                window.visualViewport.addEventListener('scroll', apply, { passive: true });
+            }
+        })();
+        </script>
 </body>
 </html>
