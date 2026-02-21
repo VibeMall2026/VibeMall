@@ -112,6 +112,10 @@
         display: none;
     }
 
+    .mobile-hero .swiper {
+        overflow: hidden;
+    }
+
     @media (max-width: 480px) {
         .slider-area {
             display: none;
@@ -220,36 +224,46 @@
 
         .category__area .row.justify-content-between {
             flex-wrap: nowrap !important;
-            justify-content: space-between !important;
-            gap: 4px !important;
+            justify-content: flex-start !important;
+            gap: 12px !important;
             overflow-x: auto;
-            padding-bottom: 6px;
+            -webkit-overflow-scrolling: touch;
+            scroll-snap-type: x mandatory;
+            padding-bottom: 8px;
+            margin-left: -4px;
+            margin-right: -4px;
         }
 
         .category__area .row.justify-content-between > div {
-            flex: 0 0 auto !important;
-            max-width: none !important;
-            min-width: 64px;
+            flex: 0 0 112px !important;
+            max-width: 112px !important;
+            min-width: 112px;
+            scroll-snap-align: start;
         }
 
         .category__area .category__icon {
-            padding: 6px !important;
-            border-radius: 6px !important;
-            margin-bottom: 6px !important;
+            padding: 8px !important;
+            border-radius: 8px !important;
+            margin-bottom: 8px !important;
         }
 
         .category__area .category__icon img {
-            width: 20px !important;
-            height: 20px !important;
+            width: 24px !important;
+            height: 24px !important;
         }
 
         .category__area .category__icon i {
-            font-size: 20px !important;
+            font-size: 24px !important;
         }
 
         .category__area .category__item h6 {
-            font-size: 9px !important;
-            line-height: 1.2 !important;
+            font-size: 11px !important;
+            line-height: 1.3 !important;
+            min-height: 30px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
         .slider-area .slider-top-btn {
@@ -267,38 +281,77 @@
     }
 </style>
 
-{% with mobile_slider=sliders|first %}
 <div class="mobile-hero">
-    <div class="mobile-hero__slide" style="background-image: url('{% static 'assets/img/banner/sl-banner.jpg' %}');">
-        <div class="container">
-            <div class="row">
-                <div class="col-12">
-                    <div class="slider-content mobile-hero__content">
-                        <div class="slider-top-btn">
-                            <a href="{{ mobile_slider.top_button_url|default:'#' }}" class="st-btn b-radius">
-                                {{ mobile_slider.top_button_text|default:'HOT DEALS' }}
-                            </a>
-                        </div>
+    <div class="swiper mobile-hero-swiper">
+        <div class="swiper-wrapper">
+            {% for slider in sliders %}
+            <div class="swiper-slide mobile-hero__slide" style="background-image: url('{% if slider.image %}{{ slider.image.url }}{% else %}{% static 'assets/img/banner/sl-banner.jpg' %}{% endif %}');">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="slider-content mobile-hero__content">
+                                <div class="slider-top-btn">
+                                    <a href="{{ slider.top_button_url|default:'#' }}" class="st-btn b-radius">
+                                        {{ slider.top_button_text|default:'HOT DEALS' }}
+                                    </a>
+                                </div>
 
-                        <h2 class="pt-15 slider-title pb-5">
-                            {{ mobile_slider.title|default:'' }} <br>
-                            {{ mobile_slider.subtitle|default:'' }}
-                        </h2>
+                                <h2 class="pt-15 slider-title pb-5">
+                                    {{ slider.title|default:'' }} <br>
+                                    {{ slider.subtitle|default:'' }}
+                                </h2>
 
-                        <p class="pr-20 slider_text">
-                            {{ mobile_slider.description|default:'' }}
-                        </p>
+                                <p class="pr-20 slider_text">
+                                    {{ slider.description|default:'' }}
+                                </p>
 
-                        <div class="slider-bottom-btn">
-                            <a href="/shop/" class="st-btn-b b-radius">Discover now</a>
+                                <div class="slider-bottom-btn">
+                                    <a href="/shop/" class="st-btn-b b-radius">Discover now</a>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+            {% empty %}
+            <div class="swiper-slide mobile-hero__slide" style="background-image: url('{% static 'assets/img/banner/sl-banner.jpg' %}');">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="slider-content mobile-hero__content">
+                                <div class="slider-top-btn">
+                                    <a href="/shop/" class="st-btn b-radius">HOT DEALS</a>
+                                </div>
+                                <h2 class="pt-15 slider-title pb-5">Discover now</h2>
+                                <div class="slider-bottom-btn">
+                                    <a href="/shop/" class="st-btn-b b-radius">Shop now</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
         </div>
     </div>
 </div>
-{% endwith %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof Swiper === 'undefined') return;
+    if (!document.querySelector('.mobile-hero-swiper')) return;
+
+    new Swiper('.mobile-hero-swiper', {
+        slidesPerView: 1,
+        loop: true,
+        effect: 'fade',
+        speed: 600,
+        autoplay: {
+            delay: 5000,
+            disableOnInteraction: false,
+        },
+    });
+});
+</script>
 
 <div class="slider-area">
     <div class="swiper-container slider__active">
