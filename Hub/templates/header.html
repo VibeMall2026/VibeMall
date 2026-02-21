@@ -1,4 +1,4 @@
-﻿{% load static %}
+{% load static %}
 <header class="header d-blue-bg">
     
     <div class="header-top">
@@ -41,7 +41,8 @@
                         <div class="header__info">
                             <a href="{% url 'index' %}" class="logo">
                                 {% if site_settings and site_settings.site_logo %}
-                                    <img class="logo-image" src="{{ site_settings.site_logo.url }}" alt="{{ site_settings.site_name }}">
+                                    <img class="logo-image" src="{{ site_settings.site_logo.url }}" alt="{{ site_settings.site_name }}" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
+                                    <span class="logo-text logo-text--fallback logo-text--onerror" style="display:none;">{{ site_settings.site_name|default:"VibeMall" }}</span>
                                 {% else %}
                                     <span class="logo-text logo-text--fallback">{{ site_settings.site_name|default:"VibeMall" }}</span>
                                 {% endif %}
