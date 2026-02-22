@@ -423,7 +423,23 @@ document.addEventListener('DOMContentLoaded', function () {
                     <button type="submit" ><i class="far fa-search"></i></button>
                 </form>
             </div>
-            <div class="mobile-menu fix"></div>
+            <div class="mobile-menu fix d-none" aria-hidden="true"></div>
+            <nav class="offcanvas-custom-menu" aria-label="Mobile menu">
+                <ul>
+                    <li><a href="{% url 'shop' %}">All Categories</a></li>
+                    <li><a href="{% url 'about' %}">About Us</a></li>
+                    <li><a href="{% url 'blog' %}">Blog</a></li>
+                    <li><a href="{% url 'order_list' %}">My Orders</a></li>
+                    <li><a href="{% url 'track_order' %}">Order Tracking</a></li>
+                    <li><a href="{% url 'faq' %}">FAQ</a></li>
+                    {% if user.is_authenticated %}
+                    <li><a href="{% url 'logout' %}">Logout</a></li>
+                    {% endif %}
+                    {% if user.is_staff %}
+                    <li><a href="{% url 'admin_dashboard' %}">Admin</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
             <div class="offcanvas__action">
 
             </div>
