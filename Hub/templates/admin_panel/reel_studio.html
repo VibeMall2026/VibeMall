@@ -4,56 +4,169 @@
 {% block title %}Reel Studio - Professional Video Creator{% endblock %}
 
 {% block extra_css %}
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@400;700&family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'reel_studio/studio.css' %}">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-    * { box-sizing: border-box; }
-    
-    body { 
-        font-family: 'Poppins', sans-serif;
-        overflow: hidden;
+    /* Override base admin styles for full screen */
+    .container-xxl {
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
     
-    .studio-container {
-        display: flex;
-        height: calc(100vh - 70px);
-        background: #1a1a2e;
-        color: white;
+    body {
+        overflow: hidden !important;
     }
     
-    /* Left Sidebar - Tools */
-    .tools-sidebar {
-        width: 80px;
-        background: #16213e;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 20px 0;
-        border-right: 1px solid #0f3460;
+    /* Hide admin header for full screen experience */
+    .layout-navbar {
+        display: none !important;
     }
     
-    .tool-btn {
-        width: 50px;
-        height: 50px;
-        background: transparent;
-        border: none;
-        color: #94a3b8;
-        font-size: 24px;
-        cursor: pointer;
-        border-radius: 8px;
-        margin-bottom: 10px;
-        transition: all 0.3s;
-        position: relative;
+    .layout-menu {
+        display: none !important;
     }
     
-    .tool-btn:hover, .tool-btn.active {
-        background: #0f3460;
-        color: #696cff;
+    .content-wrapper {
+        padding: 0 !important;
+        margin: 0 !important;
     }
     
-    .tool-btn .tooltip {
-        position: absolute;
-        left: 70px;
-        top: 50%;
-        transform: translateY(-50%);
-        background: #0f3460;
-        padding: 5px 10px;
+    .studio-wrapper {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 9999;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+<div class="studio-wrapper">
+    <!-- Left Toolbar -->
+    <div class="studio-toolbar">
+        <div class="tool-item active" data-tool="templates" data-label="Templates" title="Templates">
+            <i class="fas fa-th-large"></i>
+        </div>
+        <div class="tool-item" data-tool="images" data-label="Images" title="Images">
+            <i class="fas fa-images"></i>
+        </div>
+        <div class="tool-item" data-tool="text" data-label="Text" title="Text">
+            <i class="fas fa-font"></i>
+        </div>
+        <div class="tool-item" data-tool="elements" data-label="Elements" title="Elements">
+            <i class="fas fa-shapes"></i>
+        </div>
+        <div class="tool-item" data-tool="music" data-label="Music" title="Music">
+            <i class="fas fa-music"></i>
+        </div>
+        <div class="tool-item" data-tool="effects" data-label="Effects" title="Effects">
+            <i class="fas fa-magic"></i>
+        </div>
+        <div class="tool-item" data-tool="animations" data-label="Animate" title="Animations">
+            <i class="fas fa-play-circle"></i>
+        </div>
+        <div style="flex: 1"></div>
+        <div class="tool-item" data-tool="settings" data-label="Settings" title="Settings">
+            <i class="fas fa-cog"></i>
+        </div>
+    </div>
+
+    <!-- Left Panel -->
+    <div class="studio-left-panel">
+        <div class="panel-header">
+            <div class="panel-title" id="panelTitle">Templates</div>
+            <div class="panel-subtitle" id="panelSubtitle">Choose a template to start</div>
+        </div>
+        <div class="panel-content" id="panelContent">
+            <!-- Dynamic content loaded here -->
+        </div>
+    </div>
+
+    <!-- Center Canvas Area -->
+    <div class="studio-canvas-area">
+        <div class="canvas-header">
+            <div class="canvas-controls">
+                <a href="{% url 'admin_reels' %}" class="canvas-btn" style="text-decoration: none; color: inherit;">
+                    <i class="fas fa-arrow-left"></i> Back
+                </a>
+                <button class="canvas-btn" onclick="undoAction()">
+                    <i class="fas fa-undo"></i> Undo
+                </button>
+                <button class="canvas-btn" onclick="redoAction()">
+                    <i class="fas fa-redo"></i> Redo
+                </button>
+                <span style="color: #888; margin-left: 10px;" id="projectName">Untitled Reel</span>
+            </div>
+            <div class="canvas-controls">
+                <button class="canvas-btn" onclick="saveProject()">
+                    <i class="fas fa-save"></i> Save
+                </button>
+                <button class="canvas-btn primary" onclick="exportVideo()">
+                    <i class="fas fa-download"></i> Export
+                </button>
+            </div>
+        </div>
+        
+        <div class="canvas-viewport">
+            <div class="canvas-frame" id="canvasFrame">
+                <div class="canvas-stage" id="canvasStage">
+                    <!-- Layers rendered here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Timeline -->
+        <div class="studio-timeline">
+            <div class="timeline-header">
+                <div class="timeline-controls">
+                    <button class="timeline-btn" onclick="playPreview()">
+                        <i class="fas fa-play"></i>
+                    </button>
+                    <button class="timeline-btn" onclick="stopPreview()">
+                        <i class="fas fa-stop"></i>
+                    </button>
+                    <span style="color: #888; margin-left: 10px; font-size: 12px;" id="timeDisplay">0:00 / 0:00</span>
+                </div>
+                <div class="timeline-controls">
+                    <button class="timeline-btn" onclick="zoomTimeline('in')">
+                        <i class="fas fa-search-plus"></i>
+                    </button>
+                    <button class="timeline-btn" onclick="zoomTimeline('out')">
+                        <i class="fas fa-search-minus"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="timeline-tracks" id="timelineTracks">
+                <!-- Timeline clips rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Properties Panel -->
+    <div class="studio-properties">
+        <div class="properties-tabs">
+            <button class="prop-tab active" data-tab="design">Design</button>
+            <button class="prop-tab" data-tab="animate">Animate</button>
+            <button class="prop-tab" data-tab="export">Export</button>
+        </div>
+        <div class="properties-content" id="propertiesContent">
+            <!-- Dynamic properties loaded here -->
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'reel_studio/studio.js' %}"></script>
+<script>
+    // Initialize Studio
+    document.addEventListener('DOMContentLoaded', function() {
+        ReelStudio.init();
+    });
+</script>
+{% endblock %}

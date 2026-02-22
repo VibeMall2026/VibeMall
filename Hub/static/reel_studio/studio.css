@@ -1,0 +1,483 @@
+/* Reel Studio - Professional Video Creator */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    overflow: hidden;
+    background: #0a0a0a;
+}
+
+/* Main Studio Layout */
+.studio-wrapper {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    background: #0a0a0a;
+}
+
+/* Left Toolbar */
+.studio-toolbar {
+    width: 80px;
+    background: #1a1a1a;
+    border-right: 1px solid #2a2a2a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px 0;
+    z-index: 100;
+}
+
+.tool-item {
+    width: 70px;
+    height: 70px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: #888;
+    font-size: 20px;
+    cursor: pointer;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    transition: all 0.2s;
+    position: relative;
+    padding: 8px;
+}
+
+.tool-item i {
+    font-size: 22px;
+}
+
+.tool-item::after {
+    content: attr(data-label);
+    font-size: 9px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+}
+
+.tool-item:hover {
+    background: #2a2a2a;
+    color: #fff;
+}
+
+.tool-item.active {
+    background: #696cff;
+    color: #fff;
+}
+
+/* Left Panel */
+.studio-left-panel {
+    width: 300px;
+    background: #141414;
+    border-right: 1px solid #2a2a2a;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.panel-header {
+    padding: 20px;
+    border-bottom: 1px solid #2a2a2a;
+}
+
+.panel-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 5px;
+}
+
+.panel-subtitle {
+    font-size: 12px;
+    color: #888;
+}
+
+.panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+}
+
+/* Center Canvas */
+.studio-canvas-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #0a0a0a;
+    position: relative;
+}
+
+.canvas-header {
+    height: 60px;
+    background: #141414;
+    border-bottom: 1px solid #2a2a2a;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+}
+
+.canvas-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.canvas-btn {
+    padding: 8px 16px;
+    background: #2a2a2a;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.canvas-btn:hover {
+    background: #3a3a3a;
+}
+
+.canvas-btn.primary {
+    background: #696cff;
+}
+
+.canvas-btn.primary:hover {
+    background: #5558dd;
+}
+
+.canvas-viewport {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    position: relative;
+}
+
+/* Canvas Frame */
+.canvas-frame {
+    width: 360px;
+    height: 640px;
+    background: #000;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    position: relative;
+    overflow: hidden;
+    border: 2px solid #2a2a2a;
+}
+
+.canvas-stage {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background: #000;
+}
+
+/* Hide unwanted elements */
+.canvas-viewport button[style*="Upgrade"] {
+    display: none !important;
+}
+
+/* Timeline */
+.studio-timeline {
+    height: 200px;
+    background: #141414;
+    border-top: 1px solid #2a2a2a;
+    display: flex;
+    flex-direction: column;
+}
+
+.timeline-header {
+    height: 40px;
+    background: #1a1a1a;
+    border-bottom: 1px solid #2a2a2a;
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    justify-content: space-between;
+}
+
+.timeline-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.timeline-btn {
+    width: 30px;
+    height: 30px;
+    background: transparent;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 16px;
+    transition: all 0.2s;
+}
+
+.timeline-btn:hover {
+    background: #2a2a2a;
+    color: #fff;
+}
+
+.timeline-tracks {
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 10px;
+}
+
+.timeline-track {
+    height: 60px;
+    background: #1a1a1a;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    gap: 8px;
+}
+
+.timeline-clip {
+    height: 50px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 4px;
+    padding: 8px;
+    color: #fff;
+    font-size: 11px;
+    cursor: move;
+    position: relative;
+    min-width: 100px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.clip-thumbnail {
+    width: 35px;
+    height: 35px;
+    border-radius: 3px;
+    object-fit: cover;
+}
+
+.clip-info {
+    flex: 1;
+}
+
+.clip-name {
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.clip-duration {
+    font-size: 10px;
+    opacity: 0.8;
+}
+
+/* Right Properties Panel */
+.studio-properties {
+    width: 320px;
+    background: #141414;
+    border-left: 1px solid #2a2a2a;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.properties-tabs {
+    display: flex;
+    border-bottom: 1px solid #2a2a2a;
+}
+
+.prop-tab {
+    flex: 1;
+    padding: 12px;
+    background: transparent;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.prop-tab.active {
+    color: #696cff;
+    border-bottom: 2px solid #696cff;
+}
+
+.properties-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.prop-group {
+    margin-bottom: 25px;
+}
+
+.prop-label {
+    font-size: 12px;
+    color: #aaa;
+    margin-bottom: 8px;
+    display: block;
+    font-weight: 500;
+}
+
+.prop-input {
+    width: 100%;
+    padding: 10px;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 13px;
+}
+
+.prop-slider {
+    width: 100%;
+    height: 4px;
+    background: #2a2a2a;
+    border-radius: 2px;
+    outline: none;
+}
+
+.prop-color-picker {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.color-swatch {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.color-swatch:hover {
+    transform: scale(1.1);
+}
+
+.color-swatch.active {
+    border-color: #696cff;
+}
+
+/* Templates Grid */
+.templates-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.template-card {
+    aspect-ratio: 9/16;
+    background: #1a1a1a;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.template-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(105, 108, 255, 0.3);
+}
+
+.template-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.template-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 10px;
+    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+    color: #fff;
+    font-size: 11px;
+}
+
+/* Element Buttons */
+.element-btn {
+    background: #1a1a1a;
+    border-radius: 8px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    color: #aaa;
+}
+
+.element-btn:hover {
+    background: #2a2a2a;
+    transform: translateY(-2px);
+}
+
+/* Filter Cards */
+.filter-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(105, 108, 255, 0.3);
+}
+
+/* Scrollbar Styling */
+.panel-content::-webkit-scrollbar,
+.properties-content::-webkit-scrollbar,
+.timeline-tracks::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.panel-content::-webkit-scrollbar-track,
+.properties-content::-webkit-scrollbar-track,
+.timeline-tracks::-webkit-scrollbar-track {
+    background: #1a1a1a;
+}
+
+.panel-content::-webkit-scrollbar-thumb,
+.properties-content::-webkit-scrollbar-thumb,
+.timeline-tracks::-webkit-scrollbar-thumb {
+    background: #3a3a3a;
+    border-radius: 4px;
+}
+
+.panel-content::-webkit-scrollbar-thumb:hover,
+.properties-content::-webkit-scrollbar-thumb:hover,
+.timeline-tracks::-webkit-scrollbar-thumb:hover {
+    background: #4a4a4a;
+}
+
+/* Loading Animation */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading {
+    animation: spin 1s linear infinite;
+}
+
+/* Responsive */
+@media (max-width: 1400px) {
+    .studio-left-panel {
+        width: 250px;
+    }
+    
+    .studio-properties {
+        width: 280px;
+    }
+}
+
+@media (max-width: 1200px) {
+    .canvas-frame {
+        width: 300px;
+        height: 533px;
+    }
+}

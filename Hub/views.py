@@ -8062,6 +8062,89 @@ def admin_reels(request):
 
 @login_required(login_url='login')
 @staff_member_required(login_url='login')
+def reel_studio(request):
+    """Professional Reel Studio - Canva-style editor"""
+    return render(request, 'admin_panel/reel_studio.html')
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def reel_studio_export(request):
+    """Export reel from studio"""
+    import json
+    from django.http import JsonResponse
+    from Hub.models import Reel, ReelImage
+    from django.core.files.base import ContentFile
+    from django.views.decorators.csrf import csrf_exempt
+    import base64
+    
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=400)
+    
+    try:
+        data = json.loads(request.body)
+        
+        # Create reel
+        reel = Reel.objects.create(
+            title=data.get('name', 'Studio Reel'),
+            description='Created in Reel Studio',
+            duration_per_image=3,
+            transition_type='zoom',
+            add_end_screen=data.get('settings', {}).get('endScreen', True),
+            watermark_opacity=0.7,
+            watermark_position='top-right',
+            created_by=request.user
+        )
+        
+        # Save layers as images
+        image_count = 0
+        for idx, layer in enumerate(data.get('layers', [])):
+            if layer.get('type') == 'image' and layer.get('url'):
+                try:
+                    # Check if it's base64
+                    if 'base64' in layer['url']:
+                        image_data = layer['url'].split(',')[1]
+                        image_file = ContentFile(
+                            base64.b64decode(image_data), 
+                            name=f'studio_layer_{idx}.jpg'
+                        )
+                        
+                        ReelImage.objects.create(
+                            reel=reel,
+                            image=image_file,
+                            order=idx,
+                            text_overlay=layer.get('content', ''),
+                            text_position='center',
+                            text_color='white',
+                            text_size=70
+                        )
+                        image_count += 1
+                except Exception as e:
+                    print(f"Error saving layer {idx}: {e}")
+        
+        if image_count == 0:
+            reel.delete()
+            return JsonResponse({
+                'error': 'No images to export. Please add images first.'
+            }, status=400)
+        
+        return JsonResponse({
+            'success': True,
+            'reel_id': reel.id,
+            'message': f'Reel created with {image_count} images! Go to All Reels and click Generate.'
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        print(f"Export error: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
 def admin_add_reel(request):
     """Add new reel"""
     from Hub.models import Reel, ReelImage

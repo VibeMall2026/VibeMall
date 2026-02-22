@@ -10,17 +10,25 @@
                                 <div class="col-xl-6 col-lg-6 col-md-6 col-sm-6 col-6">
                                     <div class="footer__widget">
                                         <div class="footer__widget-title">
-                                            <h4>Customer Care</h4>
+                                            <h4>All Categories</h4>
                                         </div>
                                         <div class="footer__widget-content">
                                             <div class="footer__link">
                                                 <ul>
-                                                    <li><a href="faq.html">New Customers</a></li>
-                                                    <li><a href="faq.html">How to use Account</a></li>
-                                                    <li><a href="faq.html">Placing an Order</a></li>
-                                                    <li><a href="faq.html">Payment Methods</a></li>
-                                                    <li><a href="faq.html">Delivery &amp; Dispatch</a></li>
-                                                    <li><a href="faq.html">Problems with Order</a></li>
+                                                    {% if header_categories %}
+                                                        {% for category in header_categories %}
+                                                            <li>
+                                                                <a href="{% url 'shop' %}?category={{ category.key }}">{{ category.label }}</a>
+                                                            </li>
+                                                        {% endfor %}
+                                                    {% else %}
+                                                        <li><a href="{% url 'shop' %}">Women Wear</a></li>
+                                                        <li><a href="{% url 'shop' %}">Watch</a></li>
+                                                        <li><a href="{% url 'shop' %}">Home &amp; Kitchen</a></li>
+                                                        <li><a href="{% url 'shop' %}">Jewellery</a></li>
+                                                        <li><a href="{% url 'shop' %}">Mens Wear</a></li>
+                                                        <li><a href="{% url 'shop' %}">Beauty &amp; Shoes</a></li>
+                                                    {% endif %}
                                                 </ul>
                                             </div>
                                         </div>

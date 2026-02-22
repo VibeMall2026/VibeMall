@@ -62,6 +62,8 @@ urlpatterns = [
     
     # Reel Management URLs
     path('admin-panel/reels/', views.admin_reels, name='admin_reels'),
+    path('admin-panel/reels/studio/', views.reel_studio, name='reel_studio'),
+    path('admin-panel/reels/studio/export/', views.reel_studio_export, name='reel_studio_export'),
     path('admin-panel/reels/add/', views.admin_add_reel, name='admin_add_reel'),
     path('admin-panel/reels/<int:reel_id>/edit/', views.admin_edit_reel, name='admin_edit_reel'),
     path('admin-panel/reels/<int:reel_id>/delete/', views.admin_delete_reel, name='admin_delete_reel'),
