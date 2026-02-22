@@ -7,6 +7,10 @@
 
 {% block title %}Wishlist - VibeMall{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'assets/css/wishlist-responsive.css' %}?v=20260222-01">
+{% endblock %}
+
 {% block content %}
 
 <main>
@@ -54,7 +58,7 @@
                 {% if wishlist_items %}
                 <div class="row">
                     <div class="col-12">
-                        <div class="table-content table-responsive">
+                        <div class="table-content table-responsive wishlist-desktop-wrap d-none d-xl-block">
                             <table class="table">
                                 <thead>
                                     <tr>
@@ -105,6 +109,52 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        <div class="wishlist-mobile-wrap d-xl-none">
+                            <div class="wishlist-mobile-grid" style="--wishlist-cols:{% if wishlist_items|length >= 2 %}2{% else %}{{ wishlist_items|length }}{% endif %};">
+                                {% for item in wishlist_items %}
+                                <article class="wishlist-mobile-card">
+                                    <a href="#" class="wishlist-mobile-thumb">
+                                        {% if item.product.image %}
+                                            <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+                                        {% else %}
+                                            <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.product.name }}">
+                                        {% endif %}
+                                    </a>
+
+                                    <div class="wishlist-mobile-info">
+                                        <h6 class="wishlist-mobile-name">
+                                            <a href="#">{{ item.product.name }}</a>
+                                        </h6>
+
+                                        <div class="wishlist-mobile-price">&#8377;{{ item.product.price }}</div>
+
+                                        <div class="wishlist-mobile-stock">
+                                            {% if item.product.stock > 0 %}
+                                                <span class="badge bg-success">In Stock</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Out of Stock</span>
+                                            {% endif %}
+                                        </div>
+
+                                        <div class="wishlist-mobile-actions">
+                                            <form method="POST" action="{% url 'move_wishlist_to_cart' item.id %}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="tp-btn-h2 btn-sm" {% if item.product.stock == 0 %}disabled{% endif %}>
+                                                    <i class="fas fa-shopping-bag"></i> Add to Cart
+                                                </button>
+                                            </form>
+
+                                            <a href="{% url 'remove_from_wishlist' item.id %}" class="btn btn-sm btn-danger wishlist-mobile-remove" onclick="return confirm('Remove this item?');">
+                                                <i class="fa fa-times"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </article>
+                                {% endfor %}
+                            </div>
+                        </div>
+
                         <div class="row mt-40">
                             <div class="col-12">
                                 <a href="{% url 'shop' %}" class="tp-btn-h2">

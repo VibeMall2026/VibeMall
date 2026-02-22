@@ -1468,7 +1468,23 @@ def admin_product_list(request):
             return redirect('admin_product_list')
 
 
-    products = Product.objects.all().order_by('-id')
+    products = (
+        Product.objects
+        .annotate(
+            reel_count=Count('watch_shop_reels', distinct=True),
+            total_reel_views=Coalesce(
+                Sum('watch_shop_reels__view_count'),
+                Value(0),
+                output_field=IntegerField(),
+            ),
+            total_reel_likes=Coalesce(
+                Sum('watch_shop_reels__like_count'),
+                Value(0),
+                output_field=IntegerField(),
+            ),
+        )
+        .order_by('-id')
+    )
 
     # Filters
     status_filter = request.GET.get('status', 'all')
@@ -1747,10 +1763,20 @@ def admin_edit_product(request, product_id):
     except Exception:
         base_price = product.price
 
+    product_reels_qs = product.watch_shop_reels.all().order_by('-created_at')
+    reel_totals = product.watch_shop_reels.aggregate(
+        total_reels=Count('id'),
+        total_views=Coalesce(Sum('view_count'), Value(0), output_field=IntegerField()),
+        total_likes=Coalesce(Sum('like_count'), Value(0), output_field=IntegerField()),
+    )
+
     context = {
         'product': product,
         'base_price': base_price,
-        'product_reels': product.watch_shop_reels.all().order_by('-created_at')[:10],
+        'product_reels': product_reels_qs[:10],
+        'product_reel_count': reel_totals.get('total_reels', 0) or 0,
+        'product_reel_views': reel_totals.get('total_views', 0) or 0,
+        'product_reel_likes': reel_totals.get('total_likes', 0) or 0,
         'categories': CategoryIcon.objects.filter(is_active=True).order_by('order', 'id'),
         'sub_categories': list(
             SubCategory.objects.filter(is_active=True)
@@ -3941,6 +3967,13 @@ def index(request):
         .order_by('-created_at')[:12]
     )
 
+    liked_reel_ids = []
+    for raw_id in request.session.get('reel_liked_ids', []):
+        try:
+            liked_reel_ids.append(int(raw_id))
+        except (TypeError, ValueError):
+            continue
+
     # Get wishlist product IDs for logged-in user
     wishlist_product_ids = []
     cart_product_ids = []
@@ -3990,10 +4023,87 @@ def index(request):
             'cart_product_ids': cart_product_ids,
             'brand_partners': brand_partners,
             'watch_shop_reels': watch_shop_reels,
+            'liked_reel_ids': liked_reel_ids,
             'delivered_orders': delivered_orders,
             'product_stats': product_stats,
         }
     )
+
+
+@require_POST
+def reel_track_view(request, reel_id):
+    """Track reel view once per session and return latest count."""
+    from Hub.models import Reel
+
+    reel = get_object_or_404(Reel, id=reel_id, is_published=True)
+
+    viewed_ids = set()
+    for raw_id in request.session.get('reel_viewed_ids', []):
+        try:
+            viewed_ids.add(int(raw_id))
+        except (TypeError, ValueError):
+            continue
+
+    if reel_id not in viewed_ids:
+        Reel.objects.filter(id=reel.id).update(view_count=F('view_count') + 1)
+        viewed_ids.add(reel_id)
+        request.session['reel_viewed_ids'] = sorted(viewed_ids)
+        request.session.modified = True
+
+    reel.refresh_from_db(fields=['view_count'])
+    return JsonResponse({
+        'success': True,
+        'view_count': int(reel.view_count or 0),
+    })
+
+
+@require_POST
+def reel_set_like(request, reel_id):
+    """Set like status for a reel (per session) and return latest like count."""
+    from Hub.models import Reel
+
+    reel = get_object_or_404(Reel, id=reel_id, is_published=True)
+
+    liked_param = str(request.POST.get('liked', '')).strip().lower()
+    if liked_param not in {'1', '0', 'true', 'false', 'on', 'off', 'yes', 'no'}:
+        return JsonResponse({
+            'success': False,
+            'message': 'Invalid like state',
+        }, status=400)
+
+    should_like = liked_param in {'1', 'true', 'on', 'yes'}
+
+    liked_ids = set()
+    for raw_id in request.session.get('reel_liked_ids', []):
+        try:
+            liked_ids.add(int(raw_id))
+        except (TypeError, ValueError):
+            continue
+
+    already_liked = reel_id in liked_ids
+
+    if should_like and not already_liked:
+        Reel.objects.filter(id=reel.id).update(like_count=F('like_count') + 1)
+        liked_ids.add(reel_id)
+    elif not should_like and already_liked:
+        Reel.objects.filter(id=reel.id).update(
+            like_count=Case(
+                When(like_count__gt=0, then=F('like_count') - 1),
+                default=Value(0),
+                output_field=IntegerField(),
+            )
+        )
+        liked_ids.remove(reel_id)
+
+    request.session['reel_liked_ids'] = sorted(liked_ids)
+    request.session.modified = True
+
+    reel.refresh_from_db(fields=['like_count'])
+    return JsonResponse({
+        'success': True,
+        'liked': should_like,
+        'like_count': int(reel.like_count or 0),
+    })
 
 
 
@@ -8409,6 +8519,16 @@ def admin_edit_reel(request, reel_id):
             reel.end_screen_duration = int(request.POST.get('end_screen_duration', 3))
         except:
             reel.end_screen_duration = 3
+
+        try:
+            reel.view_count = max(int(request.POST.get('view_count', reel.view_count or 0)), 0)
+        except (TypeError, ValueError):
+            reel.view_count = reel.view_count or 0
+
+        try:
+            reel.like_count = max(int(request.POST.get('like_count', reel.like_count or 0)), 0)
+        except (TypeError, ValueError):
+            reel.like_count = reel.like_count or 0
         
         if 'background_music' in request.FILES:
             reel.background_music = request.FILES['background_music']

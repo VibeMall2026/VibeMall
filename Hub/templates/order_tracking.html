@@ -3,6 +3,10 @@
 
 {% block title %}Track Order #{{ order.order_number }} - FashioHub{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'assets/css/ordertracking-responsive.css' %}">
+{% endblock %}
+
 {% block content %}
 
 <!-- Page Banner Start -->

@@ -212,6 +212,9 @@
                                 <div>
                                     <strong>{{ reel.title }}</strong>
                                     <small class="text-muted d-block">{{ reel.created_at|date:"M d, Y H:i" }}</small>
+                                    <small class="text-muted d-block">
+                                        Views: {{ reel.view_count|default:0 }} | Likes: {{ reel.like_count|default:0 }}
+                                    </small>
                                 </div>
                                 <a href="{% url 'admin_edit_reel' reel.id %}" class="btn btn-sm btn-outline-primary">Edit Reel</a>
                             </div>
@@ -505,6 +508,9 @@
                 </p>
                 <p class="mb-2"><strong>Stock:</strong> {{ product.stock|default:"0" }} units</p>
                 <p class="mb-2"><strong>Rating:</strong> {{ product.rating|default:"0" }}/5</p>
+                <p class="mb-2"><strong>Linked Reels:</strong> {{ product_reel_count|default:"0" }}</p>
+                <p class="mb-2"><strong>Total Reel Views:</strong> {{ product_reel_views|default:"0" }}</p>
+                <p class="mb-2"><strong>Total Reel Likes:</strong> {{ product_reel_likes|default:"0" }}</p>
                 <hr>
                 <a href="{% url 'product-details' product.id %}" class="btn btn-sm btn-outline-primary w-100" target="_blank">
                     <i class='bx bx-show'></i> View on Website

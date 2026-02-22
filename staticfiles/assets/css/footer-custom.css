@@ -1,0 +1,225 @@
+/* Footer Custom Styles - Extracted from footer.html */
+
+:root {
+    --footer-bg: #0f1115;
+    --footer-bg-2: #171a21;
+    --footer-accent: #ffb703;
+    --footer-accent-2: #00d1ff;
+    --footer-text: #cbd5e1;
+    --footer-muted: #94a3b8;
+    --footer-heading: #f8fafc;
+}
+
+.fotter-area {
+    position: relative;
+    z-index: 10;
+    background: linear-gradient(180deg, var(--footer-bg) 0%, var(--footer-bg-2) 100%) !important;
+    border-top: 1px solid rgba(148, 163, 184, 0.15);
+    overflow: hidden;
+}
+
+.fotter-area::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(700px 240px at 15% 0%, rgba(0, 209, 255, 0.08), transparent 60%),
+                radial-gradient(700px 240px at 85% 10%, rgba(255, 183, 3, 0.08), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.footer__widget {
+    position: relative;
+    z-index: 1;
+    font-family: "Jost", "Poppins", sans-serif;
+}
+
+.footer__widget-title h4 {
+    color: var(--footer-heading);
+    font-size: 18px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+}
+
+.footer__widget-content,
+.footer__link ul li a,
+.footer-text,
+.footer__hotline,
+.footer__info {
+    color: var(--footer-text);
+}
+
+.footer__link ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.footer__link ul li {
+    margin-bottom: 8px;
+}
+
+.footer__link ul li a {
+    color: var(--footer-text);
+    text-decoration: none;
+    transition: color 0.2s ease, transform 0.2s ease;
+    display: inline-flex;
+    gap: 6px;
+}
+
+.footer__link ul li a:hover {
+    color: var(--footer-accent);
+    transform: translateX(2px);
+}
+
+.footer-text {
+    color: var(--footer-muted);
+    line-height: 1.7;
+}
+
+.footer__hotline {
+    background: rgba(255, 183, 3, 0.08);
+    border: 1px solid rgba(255, 183, 3, 0.2);
+    border-radius: 14px;
+    padding: 16px;
+}
+
+.footer__hotline .icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: rgba(255, 183, 3, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--footer-accent);
+    font-size: 18px;
+}
+
+.footer__hotline h4 {
+    color: var(--footer-heading);
+    font-size: 16px;
+    margin-bottom: 4px;
+}
+
+.footer__hotline a {
+    color: var(--footer-accent);
+    font-weight: 600;
+}
+
+.footer__info a {
+    color: var(--footer-muted);
+    text-decoration: none;
+}
+
+.footer__info a:hover {
+    color: var(--footer-accent-2);
+}
+
+.footer__bottom {
+    border-top: 1px solid rgba(148, 163, 184, 0.12);
+    background: rgba(10, 12, 16, 0.9);
+}
+
+.footer__links a {
+    color: var(--footer-muted);
+    margin: 0 10px;
+    text-decoration: none;
+    display: inline-block;
+    padding: 6px 0;
+}
+
+.footer__links a:hover {
+    color: var(--footer-heading);
+}
+
+.copy-right-area p {
+    color: var(--footer-muted);
+}
+
+.copy-right-area .main-color {
+    color: var(--footer-accent);
+}
+
+/* Fix footer text overlap issue */
+footer * {
+    position: relative;
+    z-index: 1;
+}
+
+/* Tablet + Mobile: keep 4 footer sections in one row */
+@media (max-width: 991.98px) {
+    .footer__top .container > .row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+    }
+
+    .footer-sections-left,
+    .footer-sections-right {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+
+    .footer-sections-left > .row,
+    .footer-sections-account-quick > .row {
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .footer-sections-account-quick {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    .footer-col-categories,
+    .footer-col-pages,
+    .footer-col-account,
+    .footer-col-quick {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+
+    .footer-col-categories .footer__widget,
+    .footer-col-pages .footer__widget,
+    .footer-col-account .footer__widget,
+    .footer-col-quick .footer__widget {
+        min-width: 0;
+        padding-right: 10px;
+    }
+
+    .footer-col-categories .footer__widget-title h4,
+    .footer-col-pages .footer__widget-title h4,
+    .footer-col-account .footer__widget-title h4,
+    .footer-col-quick .footer__widget-title h4 {
+        font-size: 13px;
+        line-height: 1.2;
+        letter-spacing: 0.2px;
+    }
+
+    .footer-col-categories .footer__link ul li,
+    .footer-col-pages .footer__link ul li,
+    .footer-col-account .footer__link ul li,
+    .footer-col-quick .footer__link ul li {
+        margin-bottom: 4px;
+    }
+
+    .footer-col-categories .footer__link ul li a,
+    .footer-col-pages .footer__link ul li a,
+    .footer-col-account .footer__link ul li a,
+    .footer-col-quick .footer__link ul li a {
+        font-size: 11px;
+        line-height: 1.25;
+    }
+
+    .footer-col-support {
+        flex: 0 0 100%;
+        max-width: 100%;
+        margin-top: 14px;
+    }
+
+    .footer-col-support .footer__hotline h4 {
+        font-size: 13px;
+        line-height: 1.25;
+    }
+}

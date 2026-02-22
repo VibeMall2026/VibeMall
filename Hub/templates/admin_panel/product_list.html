@@ -182,6 +182,11 @@
                             <div>
                                 <div class="fw-semibold">{{ product.name|truncatewords:4 }}</div>
                                 <small class="text-muted">{{ product.brand|default:"" }}</small>
+                                <small class="text-muted d-block">
+                                    Reels: {{ product.reel_count|default:0 }} |
+                                    Views: {{ product.total_reel_views|default:0 }} |
+                                    Likes: {{ product.total_reel_likes|default:0 }}
+                                </small>
                             </div>
                         </div>
                     </td>

@@ -1382,6 +1382,8 @@ class Reel(models.Model):
     video_file = models.FileField(upload_to='reels/', blank=True, null=True, help_text="Generated video file")
     thumbnail = models.ImageField(upload_to='reels/thumbnails/', blank=True, null=True, help_text="Video thumbnail")
     duration = models.IntegerField(default=0, help_text="Duration in seconds")
+    view_count = models.PositiveIntegerField(default=25, help_text="Total reel views")
+    like_count = models.PositiveIntegerField(default=3, help_text="Total reel likes")
     
     # Configuration
     duration_per_image = models.IntegerField(default=3, help_text="Seconds per image")

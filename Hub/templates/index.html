@@ -7,7 +7,7 @@
 {% block title %}Home - VibeMall{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'assets/css/index-responsive.css' %}?v=20260222-07">
+<link rel="stylesheet" href="{% static 'assets/css/index-responsive.css' %}?v=20260222-14">
 {% endblock %}
 
 {% block content %}
@@ -391,8 +391,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!section) return;
 
         new Swiper(swiperElement, {
-            slidesPerView: 1.35,
-            spaceBetween: 12,
+            slidesPerView: 2,
+            spaceBetween: 10,
             speed: 550,
             navigation: {
                 nextEl: section.querySelector('.watch-shop-next'),
@@ -400,19 +400,19 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             breakpoints: {
                 480: {
-                    slidesPerView: 1.7,
-                    spaceBetween: 14
+                    slidesPerView: 2,
+                    spaceBetween: 10
                 },
                 576: {
                     slidesPerView: 2,
-                    spaceBetween: 14
+                    spaceBetween: 12
                 },
                 768: {
-                    slidesPerView: 2.6,
-                    spaceBetween: 16
+                    slidesPerView: 2,
+                    spaceBetween: 14
                 },
                 992: {
-                    slidesPerView: 2.9,
+                    slidesPerView: 2,
                     spaceBetween: 18
                 },
                 1200: {
@@ -421,6 +421,354 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         });
+    });
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const overlay = document.getElementById('reelViewerOverlay');
+    const viewerVideo = document.getElementById('reelViewerVideo');
+    const closeBtn = document.getElementById('reelViewerClose');
+    const muteBtn = document.getElementById('reelMuteToggle');
+    const likeBtn = document.getElementById('reelLikeBtn');
+    const shareBtn = document.getElementById('reelShareBtn');
+    const viewsCount = document.getElementById('reelViewsCount');
+    const likesCount = document.getElementById('reelLikesCount');
+    const shareCount = document.getElementById('reelShareCount');
+    const productName = document.getElementById('reelProductName');
+    const productLink = document.getElementById('reelProductLink');
+    const sharePopup = document.getElementById('reelSharePopup');
+    const sharePopupClose = document.getElementById('reelShareClose');
+    const shareOptions = document.querySelectorAll('.reel-share-option');
+    const openTriggers = document.querySelectorAll('.js-reel-open');
+
+    if (!overlay || !viewerVideo || !openTriggers.length) return;
+    const currentShareData = {
+        reelId: '',
+        title: '',
+        detail: '',
+        price: '',
+        link: ''
+    };
+    let currentReelId = null;
+
+    const getCookie = (name) => {
+        const cookieValue = document.cookie
+            .split(';')
+            .map((item) => item.trim())
+            .find((item) => item.startsWith(`${name}=`));
+        return cookieValue ? decodeURIComponent(cookieValue.split('=').slice(1).join('=')) : '';
+    };
+
+    const csrfToken = getCookie('csrftoken');
+
+    const postForm = async (url, formData = null) => {
+        const options = {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
+        };
+
+        if (csrfToken) {
+            options.headers['X-CSRFToken'] = csrfToken;
+        }
+
+        if (formData) {
+            options.headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
+            options.body = formData.toString();
+        }
+
+        const response = await fetch(url, options);
+        return response.json();
+    };
+
+    const formatViews = (value) => {
+        const v = Number(value) || 0;
+        if (v >= 1000000) return (v / 1000000).toFixed(1) + 'M';
+        if (v >= 1000) return (v / 1000).toFixed(1) + 'K';
+        return String(v);
+    };
+
+    const setMuteIcon = () => {
+        if (!muteBtn) return;
+        const icon = muteBtn.querySelector('i');
+        if (!icon) return;
+        if (viewerVideo.muted) {
+            icon.className = 'fas fa-volume-mute';
+        } else {
+            icon.className = 'fas fa-volume-up';
+        }
+    };
+
+    const closeViewer = () => {
+        overlay.classList.remove('is-open');
+        overlay.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('reel-viewer-open');
+        if (sharePopup) {
+            sharePopup.classList.remove('is-open');
+            sharePopup.setAttribute('aria-hidden', 'true');
+        }
+        viewerVideo.pause();
+        viewerVideo.removeAttribute('src');
+        viewerVideo.load();
+        viewerVideo.muted = true;
+        setMuteIcon();
+        if (likeBtn) {
+            likeBtn.classList.remove('is-liked');
+            likeBtn.dataset.liked = '0';
+        }
+        currentReelId = null;
+    };
+
+    const buildShareText = () => {
+        const lines = [
+            `Watch this reel: ${currentShareData.title}`,
+            currentShareData.detail ? `Details: ${currentShareData.detail}` : '',
+            currentShareData.price ? `Price: ${currentShareData.price}` : '',
+            currentShareData.link ? `Product Link: ${currentShareData.link}` : ''
+        ].filter(Boolean);
+        return lines.join('\n');
+    };
+
+    const openSharePopup = () => {
+        if (!sharePopup) return;
+        sharePopup.classList.add('is-open');
+        sharePopup.setAttribute('aria-hidden', 'false');
+    };
+
+    const closeSharePopup = () => {
+        if (!sharePopup) return;
+        sharePopup.classList.remove('is-open');
+        sharePopup.setAttribute('aria-hidden', 'true');
+    };
+
+    const bumpShareCount = () => {
+        if (!shareBtn || !shareCount) return;
+        const base = parseInt(shareBtn.dataset.baseShares || '0', 10) || 0;
+        const next = base + 1;
+        shareBtn.dataset.baseShares = String(next);
+        shareCount.textContent = String(next);
+    };
+
+    const popupOpenWindow = (url) => {
+        window.open(url, '_blank', 'noopener,noreferrer,width=620,height=680');
+    };
+
+    const copyToClipboard = async (text) => {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+            return;
+        }
+        const temp = document.createElement('textarea');
+        temp.value = text;
+        temp.setAttribute('readonly', '');
+        temp.style.position = 'fixed';
+        temp.style.top = '-9999px';
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand('copy');
+        document.body.removeChild(temp);
+    };
+
+    openTriggers.forEach((trigger) => {
+        trigger.addEventListener('click', function (event) {
+            event.preventDefault();
+            const videoUrl = this.dataset.videoUrl || '';
+            const posterUrl = this.dataset.posterUrl || '';
+            const productUrl = this.dataset.productUrl || this.getAttribute('href') || '#';
+            const productTitle = this.dataset.productName || 'Product';
+            const productPrice = this.dataset.productPrice || '';
+            const productDetail = this.dataset.productDetail || '';
+            const reelId = parseInt(this.dataset.reelId || '1', 10) || 1;
+            const initialViews = parseInt(this.dataset.viewCount || '0', 10) || 0;
+            const initialLikes = parseInt(this.dataset.likeCount || '0', 10) || 0;
+            const isInitiallyLiked = this.dataset.isLiked === '1';
+            const generatedShares = ((reelId * 7) % 190) + 24;
+            const absoluteProductUrl = productUrl.startsWith('http')
+                ? productUrl
+                : `${window.location.origin}${productUrl}`;
+
+            if (videoUrl) {
+                viewerVideo.src = videoUrl;
+            }
+            if (posterUrl) {
+                viewerVideo.setAttribute('poster', posterUrl);
+            } else {
+                viewerVideo.removeAttribute('poster');
+            }
+
+            productName.textContent = productTitle;
+            productLink.href = productUrl;
+            viewsCount.textContent = formatViews(initialViews);
+            likesCount.textContent = String(initialLikes);
+            shareCount.textContent = String(generatedShares);
+            if (shareBtn) {
+                shareBtn.dataset.baseShares = String(generatedShares);
+            }
+
+            likeBtn.dataset.baseLikes = String(initialLikes);
+            likeBtn.dataset.liked = isInitiallyLiked ? '1' : '0';
+            likeBtn.classList.toggle('is-liked', isInitiallyLiked);
+            currentReelId = reelId;
+
+            currentShareData.reelId = String(reelId);
+            currentShareData.title = productTitle;
+            currentShareData.detail = productDetail;
+            currentShareData.price = productPrice;
+            currentShareData.link = absoluteProductUrl;
+            closeSharePopup();
+
+            overlay.classList.add('is-open');
+            overlay.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('reel-viewer-open');
+
+            viewerVideo.muted = true;
+            setMuteIcon();
+            viewerVideo.currentTime = 0;
+            const playPromise = viewerVideo.play();
+            if (playPromise && typeof playPromise.catch === 'function') {
+                playPromise.catch(function () {});
+            }
+
+            postForm(`/reels/${reelId}/track-view/`)
+                .then((data) => {
+                    if (!data || data.success !== true) return;
+                    const latestViews = parseInt(data.view_count || '0', 10) || 0;
+                    viewsCount.textContent = formatViews(latestViews);
+                    document.querySelectorAll(`.js-reel-open[data-reel-id="${reelId}"]`).forEach((node) => {
+                        node.dataset.viewCount = String(latestViews);
+                    });
+                })
+                .catch(function () {});
+        });
+    });
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeViewer);
+    }
+
+    if (muteBtn) {
+        muteBtn.addEventListener('click', function () {
+            viewerVideo.muted = !viewerVideo.muted;
+            setMuteIcon();
+        });
+    }
+
+    if (likeBtn) {
+        likeBtn.addEventListener('click', function () {
+            if (!currentReelId) return;
+            const isLiked = this.dataset.liked === '1';
+            const nextLiked = !isLiked;
+
+            const payload = new URLSearchParams();
+            payload.set('liked', nextLiked ? '1' : '0');
+
+            postForm(`/reels/${currentReelId}/like/`, payload)
+                .then((data) => {
+                    if (!data || data.success !== true) return;
+                    const serverLiked = data.liked === true;
+                    const serverLikeCount = parseInt(data.like_count || '0', 10) || 0;
+                    this.dataset.liked = serverLiked ? '1' : '0';
+                    this.dataset.baseLikes = String(serverLikeCount);
+                    this.classList.toggle('is-liked', serverLiked);
+                    likesCount.textContent = String(serverLikeCount);
+
+                    document.querySelectorAll(`.js-reel-open[data-reel-id="${currentReelId}"]`).forEach((node) => {
+                        node.dataset.likeCount = String(serverLikeCount);
+                        node.dataset.isLiked = serverLiked ? '1' : '0';
+                    });
+                })
+                .catch(function () {});
+        });
+    }
+
+    if (shareBtn) {
+        shareBtn.addEventListener('click', function (event) {
+            event.stopPropagation();
+            if (!sharePopup) return;
+            const isOpen = sharePopup.classList.contains('is-open');
+            if (isOpen) {
+                closeSharePopup();
+            } else {
+                openSharePopup();
+            }
+        });
+    }
+
+    if (sharePopupClose) {
+        sharePopupClose.addEventListener('click', function () {
+            closeSharePopup();
+        });
+    }
+
+    shareOptions.forEach((btn) => {
+        btn.addEventListener('click', async function () {
+            const target = (this.dataset.shareTarget || '').trim();
+            const text = buildShareText();
+            const url = encodeURIComponent(currentShareData.link || window.location.href);
+            const encodedText = encodeURIComponent(text);
+
+            try {
+                if (target === 'copy') {
+                    await copyToClipboard(text);
+                    bumpShareCount();
+                    closeSharePopup();
+                    return;
+                }
+
+                if (target === 'whatsapp') {
+                    popupOpenWindow(`https://wa.me/?text=${encodedText}`);
+                    bumpShareCount();
+                    closeSharePopup();
+                    return;
+                }
+
+                if (target === 'facebook') {
+                    popupOpenWindow(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${encodedText}`);
+                    bumpShareCount();
+                    closeSharePopup();
+                    return;
+                }
+
+                if (target === 'x') {
+                    popupOpenWindow(`https://twitter.com/intent/tweet?text=${encodedText}&url=${url}`);
+                    bumpShareCount();
+                    closeSharePopup();
+                    return;
+                }
+
+                if (target === 'instagram') {
+                    await copyToClipboard(text);
+                    popupOpenWindow('https://www.instagram.com/');
+                    bumpShareCount();
+                    closeSharePopup();
+                }
+            } catch (e) {
+                // Keep UI stable even if clipboard/share popup is blocked
+            }
+        });
+    });
+
+    overlay.addEventListener('click', function (event) {
+        if (event.target === overlay) {
+            closeViewer();
+            return;
+        }
+        if (sharePopup && sharePopup.classList.contains('is-open')) {
+            const isShareButton = shareBtn && (event.target === shareBtn || shareBtn.contains(event.target));
+            const isInsidePopup = sharePopup.contains(event.target);
+            if (!isInsidePopup && !isShareButton) {
+                closeSharePopup();
+            }
+        }
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && overlay.classList.contains('is-open')) {
+            closeViewer();
+        }
     });
 });
 </script>
@@ -602,7 +950,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 {% for reel in watch_shop_reels %}
                 <div class="swiper-slide">
                     <article class="watch-shop-card">
-                        <a class="watch-shop-media" href="{% url 'product-details' reel.product.id %}">
+                        <a
+                            class="watch-shop-media js-reel-open"
+                            href="{% url 'product-details' reel.product.id %}"
+                            data-reel-id="{{ reel.id }}"
+                            data-video-url="{{ reel.video_file.url }}"
+                            data-product-url="{% url 'product-details' reel.product.id %}"
+                            data-product-name="{{ reel.product.name|escape }}"
+                            data-view-count="{{ reel.view_count|default:0 }}"
+                            data-like-count="{{ reel.like_count|default:0 }}"
+                            data-is-liked="{% if reel.id in liked_reel_ids %}1{% else %}0{% endif %}"
+                            data-product-price="₹{{ reel.product.price }}"
+                            data-product-detail="{{ reel.product.sub_category|default:reel.product.category|default:'Ethnic Wear'|escape }}"
+                            {% if reel.thumbnail %}data-poster-url="{{ reel.thumbnail.url }}"{% endif %}>
                             <video
                                 muted
                                 loop
@@ -617,7 +977,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             <h6>
                                 <a href="{% url 'product-details' reel.product.id %}">{{ reel.product.name|truncatechars:56 }}</a>
                             </h6>
-                            <a class="watch-shop-btn" href="{% url 'product-details' reel.product.id %}">View Product</a>
+                            <a class="watch-shop-btn" href="{% url 'product-details' reel.product.id %}">See Product</a>
                         </div>
                     </article>
                 </div>
@@ -627,6 +987,72 @@ document.addEventListener('DOMContentLoaded', function () {
     </div>
 </section>
 {% endif %}
+
+<div class="reel-viewer-overlay" id="reelViewerOverlay" aria-hidden="true">
+    <div class="reel-viewer-shell">
+        <video id="reelViewerVideo" playsinline loop autoplay muted></video>
+
+        <div class="reel-viewer-top-controls">
+            <button type="button" class="reel-viewer-icon-btn" id="reelMuteToggle" aria-label="Toggle sound">
+                <i class="fas fa-volume-mute"></i>
+            </button>
+            <button type="button" class="reel-viewer-icon-btn" id="reelViewerClose" aria-label="Close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="reel-viewer-side-stats">
+            <div class="reel-viewer-stat">
+                <span class="reel-viewer-stat-value" id="reelViewsCount">0</span>
+                <span class="reel-viewer-stat-label">Views</span>
+            </div>
+            <button type="button" class="reel-viewer-icon-btn reel-like-btn" id="reelLikeBtn" aria-label="Like">
+                <i class="fas fa-heart"></i>
+                <span id="reelLikesCount">0</span>
+            </button>
+            <button type="button" class="reel-viewer-icon-btn reel-share-static" id="reelShareBtn" aria-label="Share">
+                <i class="fas fa-paper-plane"></i>
+                <span id="reelShareCount">0</span>
+            </button>
+        </div>
+
+        <div class="reel-share-popup" id="reelSharePopup" aria-hidden="true">
+            <div class="reel-share-popup-head">
+                <span>Share Reel</span>
+                <button type="button" id="reelShareClose" aria-label="Close share">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="reel-share-popup-grid">
+                <button type="button" class="reel-share-option" data-share-target="copy">
+                    <i class="fas fa-link"></i>
+                    <span>Copy Link</span>
+                </button>
+                <button type="button" class="reel-share-option" data-share-target="whatsapp">
+                    <i class="fab fa-whatsapp"></i>
+                    <span>WhatsApp</span>
+                </button>
+                <button type="button" class="reel-share-option" data-share-target="facebook">
+                    <i class="fab fa-facebook-f"></i>
+                    <span>Facebook</span>
+                </button>
+                <button type="button" class="reel-share-option" data-share-target="instagram">
+                    <i class="fab fa-instagram"></i>
+                    <span>Instagram</span>
+                </button>
+                <button type="button" class="reel-share-option" data-share-target="x">
+                    <i class="fab fa-x-twitter"></i>
+                    <span>X</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="reel-viewer-bottom-card">
+            <p id="reelProductName">Product</p>
+            <a id="reelProductLink" href="#" class="reel-viewer-product-btn">See Product</a>
+        </div>
+    </div>
+</div>
 
 <section class="topsell__area-1 pt-15 top-deals-section">
     <div class="container">

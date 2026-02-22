@@ -44,8 +44,29 @@
                 <div class="orders-content">
             
             {% if orders %}
+            
+            <!-- Search Bar -->
+            <div class="order-search-container mb-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="fas fa-search text-muted"></i>
+                    </span>
+                    <input type="text" 
+                           id="orderSearchInput" 
+                           class="form-control border-start-0 ps-0" 
+                           placeholder="Search by Order ID or Product Name..."
+                           autocomplete="off">
+                    <button class="btn btn-outline-secondary" type="button" id="clearSearch" style="display: none;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <small class="text-muted d-block mt-2">
+                    <i class="fas fa-info-circle"></i> Type to search orders by order number or product name
+                </small>
+            </div>
+            
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-hover" id="ordersTable">
                     <thead class="table-dark">
                         <tr>
                             <th>Order #</th>
@@ -168,6 +189,105 @@
 <!-- Orders Area End -->
 
 <script>
+// Order Search Functionality
+function initOrderSearch() {
+    const searchInput = document.getElementById('orderSearchInput');
+    const clearBtn = document.getElementById('clearSearch');
+    const tableBody = document.querySelector('#ordersTable tbody');
+    const mobileContainer = document.querySelector('.mobile-orders-container');
+    
+    if (!searchInput) return;
+    
+    // Search function
+    function performSearch() {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        
+        // Show/hide clear button
+        if (clearBtn) {
+            clearBtn.style.display = searchTerm ? 'block' : 'none';
+        }
+        
+        // Search in table (desktop/tablet)
+        if (tableBody) {
+            const rows = tableBody.querySelectorAll('tr');
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                const orderNumber = row.querySelector('td:first-child')?.textContent.toLowerCase() || '';
+                const productNames = row.querySelector('td:nth-child(3)')?.textContent.toLowerCase() || '';
+                
+                if (orderNumber.includes(searchTerm) || productNames.includes(searchTerm)) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Show no results message
+            showNoResults(tableBody.parentElement, visibleCount === 0 && searchTerm !== '');
+        }
+        
+        // Search in mobile cards
+        if (mobileContainer) {
+            const cards = mobileContainer.querySelectorAll('.order-card');
+            let visibleCount = 0;
+            
+            cards.forEach(card => {
+                const orderNumber = card.querySelector('.order-number')?.textContent.toLowerCase() || '';
+                const productNames = card.querySelector('.order-products')?.textContent.toLowerCase() || '';
+                
+                if (orderNumber.includes(searchTerm) || productNames.includes(searchTerm)) {
+                    card.style.display = '';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            // Show no results message
+            showNoResults(mobileContainer, visibleCount === 0 && searchTerm !== '');
+        }
+    }
+    
+    // Show/hide no results message
+    function showNoResults(container, show) {
+        let noResultsMsg = container.querySelector('.no-search-results');
+        
+        if (show && !noResultsMsg) {
+            noResultsMsg = document.createElement('div');
+            noResultsMsg.className = 'no-search-results alert alert-info text-center my-4';
+            noResultsMsg.innerHTML = `
+                <i class="fas fa-search" style="font-size: 48px; color: #0dcaf0; margin-bottom: 16px;"></i>
+                <h5>No orders found</h5>
+                <p class="mb-0">Try searching with a different order number or product name</p>
+            `;
+            container.appendChild(noResultsMsg);
+        } else if (!show && noResultsMsg) {
+            noResultsMsg.remove();
+        }
+    }
+    
+    // Clear search
+    function clearSearch() {
+        searchInput.value = '';
+        performSearch();
+        searchInput.focus();
+    }
+    
+    // Event listeners
+    searchInput.addEventListener('input', performSearch);
+    searchInput.addEventListener('keyup', (e) => {
+        if (e.key === 'Escape') clearSearch();
+    });
+    
+    if (clearBtn) {
+        clearBtn.addEventListener('click', clearSearch);
+    }
+    
+    console.log('Order search initialized');
+}
+
 // Mobile Order Cards Generator
 function createMobileOrderCards() {
     // Only run on mobile
@@ -282,9 +402,13 @@ function createMobileOrderCards() {
 
 // Run on load
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', createMobileOrderCards);
+    document.addEventListener('DOMContentLoaded', () => {
+        createMobileOrderCards();
+        initOrderSearch();
+    });
 } else {
     createMobileOrderCards();
+    initOrderSearch();
 }
 
 // Run on resize with debounce
@@ -295,6 +419,11 @@ window.addEventListener('resize', () => {
         const existing = document.querySelector('.mobile-orders-container');
         if (existing) existing.remove();
         createMobileOrderCards();
+        // Re-apply search after cards are recreated
+        const searchInput = document.getElementById('orderSearchInput');
+        if (searchInput && searchInput.value) {
+            searchInput.dispatchEvent(new Event('input'));
+        }
     }, 250);
 });
 </script>

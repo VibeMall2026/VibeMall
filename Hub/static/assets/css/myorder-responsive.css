@@ -6,52 +6,168 @@
  */
 
 /* ============================================
+   SEARCH BAR STYLES
+   ============================================ */
+
+.order-search-container {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e5e7eb;
+}
+
+.order-search-container .input-group {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.order-search-container .input-group-text {
+    border: 1px solid #e5e7eb;
+    padding: 12px 16px;
+}
+
+.order-search-container .form-control {
+    border: 1px solid #e5e7eb;
+    padding: 12px 16px;
+    font-size: 15px;
+}
+
+.order-search-container .form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15);
+}
+
+.order-search-container #clearSearch {
+    border: 1px solid #e5e7eb;
+    border-left: none;
+    background: #f8f9fa;
+    color: #6c757d;
+    padding: 0 16px;
+}
+
+.order-search-container #clearSearch:hover {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.no-search-results {
+    margin: 20px 0;
+}
+
+/* ============================================
    TABLET VIEW (768px - 1199px)
    ============================================ */
 
 @media (max-width: 1199px) and (min-width: 768px) {
     /* Orders Table - Tablet Adjustments */
     .orders-content .table {
-        font-size: 14px;
+        font-size: 12px;
     }
 
     .orders-content .table th,
     .orders-content .table td {
-        padding: 12px 8px;
+        padding: 8px 4px;
         vertical-align: middle;
+    }
+
+    /* Hide less important columns on tablet */
+    .orders-content .table th:nth-child(7), /* Type column */
+    .orders-content .table td:nth-child(7) {
+        display: none;
     }
 
     /* Product Images - Smaller on Tablet */
     .orders-content .table td img,
     .orders-content .table td > div > div > img {
-        width: 40px !important;
-        height: 40px !important;
+        width: 35px !important;
+        height: 35px !important;
+        border-radius: 6px;
+    }
+
+    /* Product placeholder icon */
+    .orders-content .table td > div > div > div {
+        width: 35px !important;
+        height: 35px !important;
+    }
+
+    .orders-content .table td > div > div > div i {
+        font-size: 16px !important;
     }
 
     /* Product Name - Truncate More */
-    .orders-content .table td > div > div > div {
-        font-size: 0.85rem !important;
-        max-width: 150px;
+    .orders-content .table td > div > div > div:not([style*="background"]) {
+        font-size: 0.8rem !important;
+        max-width: 120px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
 
-    /* Action Buttons - Smaller */
-    .orders-content .btn-group .btn {
-        padding: 4px 8px;
-        font-size: 12px;
-    }
-
-    /* Badges - Smaller */
-    .orders-content .badge {
-        font-size: 11px;
-        padding: 4px 8px;
+    /* Product price text */
+    .orders-content .table td small {
+        font-size: 10px !important;
     }
 
     /* Order Number - Smaller Font */
     .orders-content .table td strong {
+        font-size: 12px;
+    }
+
+    /* Date column - Smaller */
+    .orders-content .table td:nth-child(2) {
+        font-size: 11px;
+        white-space: nowrap;
+    }
+
+    /* Total Amount - Smaller */
+    .orders-content .table td:nth-child(4) strong {
         font-size: 13px;
+    }
+
+    /* Badges - Smaller */
+    .orders-content .badge {
+        font-size: 9px;
+        padding: 3px 6px;
+        white-space: nowrap;
+    }
+
+    /* Action Buttons - Icon Only on Tablet */
+    .orders-content .btn-group {
+        display: flex;
+        gap: 2px;
+    }
+
+    .orders-content .btn-group .btn {
+        padding: 4px 6px;
+        font-size: 11px;
+        min-width: auto;
+    }
+
+    .orders-content .btn-group .btn i {
+        margin: 0;
+    }
+
+    /* Products column - Compact layout */
+    .orders-content .table td:nth-child(3) > div {
+        gap: 6px !important;
+    }
+
+    .orders-content .table td:nth-child(3) > div > div {
+        gap: 6px !important;
+    }
+
+    /* Table responsive wrapper */
+    .orders-content .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Ensure table fits */
+    .orders-content .table {
+        min-width: 100%;
+        width: 100%;
     }
 }
 
@@ -60,9 +176,32 @@
    ============================================ */
 
 @media (max-width: 767px) {
-    /* Hide Default Table on Mobile */
+    /* Search Bar - Mobile */
+    .order-search-container {
+        padding: 12px;
+        margin-bottom: 16px !important;
+    }
+
+    .order-search-container .input-group-text {
+        padding: 10px 12px;
+    }
+
+    .order-search-container .form-control {
+        padding: 10px 12px;
+        font-size: 14px;
+    }
+
+    .order-search-container small {
+        font-size: 11px;
+    }
+
+    .order-search-container #clearSearch {
+        padding: 0 12px;
+    }
+
+    /* Hide table on mobile - show cards only */
     .orders-content .table-responsive {
-        display: none;
+        display: none !important;
     }
 
     /* Create Card-Based Layout for Mobile */
@@ -70,54 +209,72 @@
         padding: 0;
     }
 
+    /* Mobile Orders Container - 2 Column Grid */
+    .mobile-orders-container {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+
     /* Order Card Container */
     .order-card {
         background: #ffffff;
         border-radius: 12px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        margin-bottom: 16px;
         overflow: hidden;
         border: 1px solid #e5e7eb;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        min-width: 0;
     }
 
     /* Order Card Header */
     .order-card-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 12px 16px;
+        padding: 8px 10px;
         display: flex;
-        justify-content: space-between;
-        align-items: center;
+        flex-direction: column;
+        gap: 3px;
     }
 
     .order-card-header .order-number {
         color: #ffffff;
         font-weight: 700;
-        font-size: 15px;
+        font-size: 11px;
         text-decoration: none;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .order-card-header .order-date {
         color: rgba(255, 255, 255, 0.9);
-        font-size: 12px;
+        font-size: 10px;
     }
 
     /* Order Card Body */
     .order-card-body {
-        padding: 16px;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        flex: 1;
     }
 
     /* Products Section */
     .order-products {
-        margin-bottom: 16px;
-        padding-bottom: 16px;
+        padding-bottom: 10px;
         border-bottom: 1px solid #e5e7eb;
     }
 
     .order-product-item {
         display: flex;
         align-items: center;
-        gap: 12px;
-        margin-bottom: 12px;
+        gap: 6px;
+        margin-bottom: 6px;
     }
 
     .order-product-item:last-child {
@@ -125,19 +282,19 @@
     }
 
     .order-product-image {
-        width: 60px;
-        height: 60px;
+        width: 40px;
+        height: 40px;
         object-fit: cover;
-        border-radius: 8px;
+        border-radius: 6px;
         border: 2px solid #f0f0f0;
         flex-shrink: 0;
     }
 
     .order-product-placeholder {
-        width: 60px;
-        height: 60px;
+        width: 40px;
+        height: 40px;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 8px;
+        border-radius: 6px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -145,7 +302,7 @@
     }
 
     .order-product-placeholder i {
-        font-size: 24px;
+        font-size: 16px;
         color: white;
     }
 
@@ -155,94 +312,87 @@
     }
 
     .order-product-name {
-        font-size: 14px;
+        font-size: 11px;
         font-weight: 600;
         color: #333;
-        margin-bottom: 4px;
+        margin-bottom: 2px;
         overflow: hidden;
         text-overflow: ellipsis;
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
+        line-height: 1.2;
     }
 
     .order-product-price {
-        font-size: 13px;
+        font-size: 10px;
         color: #666;
     }
 
     .order-product-price i {
-        font-size: 11px;
+        font-size: 9px;
     }
 
     /* Order Info Grid */
     .order-info-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-        margin-bottom: 16px;
+        grid-template-columns: 1fr;
+        gap: 6px;
     }
 
     .order-info-item {
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 2px;
     }
 
     .order-info-label {
-        font-size: 11px;
+        font-size: 9px;
         color: #666;
         text-transform: uppercase;
         font-weight: 600;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.3px;
     }
 
     .order-info-value {
-        font-size: 14px;
+        font-size: 11px;
         color: #333;
         font-weight: 600;
     }
 
     /* Badges in Mobile */
     .order-info-value .badge {
-        font-size: 11px;
-        padding: 4px 10px;
-        border-radius: 12px;
+        font-size: 9px;
+        padding: 2px 6px;
+        border-radius: 8px;
         font-weight: 600;
     }
 
     /* Order Actions */
     .order-actions {
         display: flex;
-        gap: 8px;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none; /* Firefox */
-        -ms-overflow-style: none; /* IE/Edge */
-    }
-
-    .order-actions::-webkit-scrollbar {
-        display: none; /* Chrome/Safari */
+        flex-wrap: wrap;
+        gap: 5px;
     }
 
     .order-actions .btn {
         flex: 1;
-        min-width: 80px;
-        padding: 10px 12px;
-        font-size: 12px;
-        border-radius: 8px;
+        min-width: calc(50% - 2.5px);
+        padding: 7px 5px;
+        font-size: 9px;
+        border-radius: 6px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 4px;
+        gap: 2px;
         font-weight: 600;
         transition: all 0.3s ease;
         white-space: nowrap;
     }
 
     .order-actions .btn i {
-        font-size: 16px;
+        font-size: 13px;
     }
 
     /* Button Colors */
@@ -319,16 +469,29 @@
    ============================================ */
 
 @media (max-width: 479px) {
-    /* Smaller Padding */
+    /* Single Column Layout on Very Small Screens */
+    .mobile-orders-container {
+        grid-template-columns: 1fr;
+    }
+
+    /* Slightly Larger on Single Column */
     .order-card-body {
-        padding: 12px;
+        padding: 14px;
     }
 
     .order-card-header {
-        padding: 10px 12px;
+        padding: 12px 14px;
     }
 
-    /* Smaller Product Images */
+    .order-card-header .order-number {
+        font-size: 14px;
+    }
+
+    .order-card-header .order-date {
+        font-size: 12px;
+    }
+
+    /* Larger Product Images on Single Column */
     .order-product-image,
     .order-product-placeholder {
         width: 50px;
@@ -339,7 +502,7 @@
         font-size: 20px;
     }
 
-    /* Smaller Fonts */
+    /* Slightly Larger Fonts */
     .order-product-name {
         font-size: 13px;
     }
@@ -352,15 +515,18 @@
         font-size: 13px;
     }
 
-    /* Smaller Buttons */
+    .order-info-label {
+        font-size: 11px;
+    }
+
+    /* Larger Buttons on Single Column */
     .order-actions .btn {
-        min-width: 70px;
-        padding: 8px 10px;
+        padding: 10px 8px;
         font-size: 11px;
     }
 
     .order-actions .btn i {
-        font-size: 14px;
+        font-size: 15px;
     }
 }
 

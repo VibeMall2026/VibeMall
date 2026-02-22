@@ -1,0 +1,31 @@
+/* Fix preloader overlap with footer - Complete removal */
+#loading {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+#loading * {
+    display: none !important;
+}
+
+/* Ensure loading elements are completely hidden */
+#loading-center,
+#loading-center-absolute,
+.product {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+/* Remove any positioning that might cause overlap */
+body.loaded #loading,
+html #loading {
+    position: fixed !important;
+    top: -9999px !important;
+    left: -9999px !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+}

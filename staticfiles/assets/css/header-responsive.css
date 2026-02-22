@@ -1,0 +1,426 @@
+/* ===================================
+   HEADER RESPONSIVE STYLES
+   Mobile and tablet only
+   =================================== */
+
+.logo-image--mobile-brand {
+  display: none;
+}
+
+.mobile-bottom-nav {
+  display: none;
+}
+
+/* Desktop header stability fixes */
+@media (min-width: 992px) {
+  .header-logo-col .logo-image--dynamic {
+    display: block;
+    max-width: 260px;
+    max-height: 70px;
+    width: auto;
+    height: auto;
+  }
+
+  .header-logo-col .logo-image--mobile-brand {
+    display: none !important;
+  }
+
+  .header-mid .header__search {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+  }
+
+  .header-mid .header-action {
+    margin-left: 16px;
+    display: grid;
+    grid-template-columns: minmax(95px, auto) minmax(95px, auto) minmax(130px, auto);
+    justify-content: end;
+    align-items: center;
+    column-gap: 14px;
+  }
+
+  .header-mid .header-action .block-userlink,
+  .header-mid .header-action .block-wishlist,
+  .header-mid .header-action .block-cart {
+    min-width: 0;
+  }
+
+  .header-mid .header-action .icon-link {
+    align-items: center;
+    min-width: 0;
+  }
+
+  .header-mid .header-action .icon-link i {
+    margin-right: 8px;
+    flex: 0 0 auto;
+  }
+
+  .header-mid .header-action .profile-avatar {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    margin-right: 8px;
+  }
+
+  .header-mid .header-action .icon-link .text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.1;
+  }
+
+  .header-mid .header-action .icon-link .sub {
+    display: block;
+    max-width: none;
+    white-space: nowrap;
+  }
+
+  .header-mid .header-action .icon-link .main-label {
+    display: block;
+    white-space: nowrap;
+  }
+
+  .header-mid .header-action .block-cart .icon-link .main-label {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+
+  .header-mid .header-action .block-cart .icon-link .cart-total {
+    display: inline-block;
+    white-space: nowrap;
+  }
+
+  .header-mid .header-action .icon-link .count {
+    top: -5px;
+    left: 12px;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  .header-mid .header-action {
+    grid-template-columns: minmax(84px, auto) minmax(84px, auto) minmax(120px, auto);
+    column-gap: 10px;
+  }
+
+  .header-mid .header-action .icon-link i {
+    font-size: 22px;
+    margin-right: 6px;
+  }
+
+  .header-mid .header-action .profile-avatar {
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    margin-right: 6px;
+  }
+
+  .header-mid .header-action .icon-link .text {
+    font-size: 12px;
+  }
+
+  .header-mid .header-action .icon-link .sub {
+    font-size: 10px;
+    max-width: none;
+  }
+
+  .header-mid .header-action .icon-link .main-label {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .header-top {
+    display: none;
+  }
+
+  .header__bottom {
+    display: none;
+  }
+
+  .header-mid {
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  }
+
+  .header-mid .row {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+
+  .mobile-menu-col {
+    display: flex !important;
+    align-items: center;
+    flex: 0 0 auto;
+  }
+
+  .mobile-menu-btn {
+    font-size: 22px;
+    line-height: 1;
+    background: transparent;
+    border: 0;
+    color: #fff;
+    padding: 0;
+  }
+
+  .header-logo-col {
+    flex: 1 1 auto;
+    min-width: 120px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .header-logo-col .header__info {
+    width: 100%;
+  }
+
+  .header-logo-col .logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-image {
+    display: block;
+    width: auto;
+    max-height: 42px;
+  }
+
+  .logo-image--dynamic {
+    display: none !important;
+  }
+
+  .logo-image--mobile-brand {
+    display: block !important;
+  }
+
+  .header-action {
+    display: none !important;
+  }
+
+  .mobile-icons {
+    display: flex !important;
+    align-items: center;
+    gap: 14px;
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+
+  .mobile-icons .mobile-icon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+  }
+
+  .mobile-icons .mobile-icon i {
+    font-size: 20px;
+  }
+
+  .mobile-icons .count {
+    position: absolute;
+    top: -6px;
+    right: -8px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 600;
+    line-height: 16px;
+    text-align: center;
+    color: #111;
+    background: #ffc107;
+  }
+
+  .offcanvas__area {
+    width: min(100vw, 360px);
+  }
+
+  .offcanvas-custom-menu ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .offcanvas-custom-menu li {
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .offcanvas-custom-menu li a {
+    display: block;
+    padding: 16px 0;
+    color: #222;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.15;
+    text-transform: uppercase;
+  }
+
+}
+
+/* Mobile + tablet fixed bottom nav only */
+@media (max-width: 1199.98px) {
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden !important;
+    transform: none !important;
+    perspective: none !important;
+    filter: none !important;
+  }
+
+  main,
+  header,
+  footer {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  .mobile-bottom-nav {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    inset: auto 0 0 0 !important;
+    width: 100vw;
+    max-width: 100vw;
+    box-sizing: border-box;
+    z-index: 9999 !important;
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: center;
+    gap: 0;
+    height: 70px;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    background: #ffffff;
+    border-top: 1px solid #e5e7eb;
+    box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.08);
+    transform: none !important;
+    margin: 0 !important;
+  }
+
+  .mobile-bottom-nav__item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: #111827;
+    text-decoration: none;
+    font-size: 11px;
+    line-height: 1;
+    min-height: 52px;
+  }
+
+  .mobile-bottom-nav__item i {
+    font-size: 21px;
+    line-height: 1;
+  }
+
+  .mobile-bottom-nav__item span {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  .mobile-bottom-nav__badge {
+    position: absolute;
+    top: 1px;
+    right: 20%;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: #ffc107;
+    color: #111827;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+  }
+
+  body {
+    padding-bottom: calc(78px + env(safe-area-inset-bottom)) !important;
+  }
+
+  #supportChatWidget {
+    right: 12px !important;
+    bottom: calc(86px + env(safe-area-inset-bottom)) !important;
+    z-index: 10001 !important;
+  }
+
+  #supportChatToggle {
+    min-height: 44px;
+    padding: 10px 18px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 999px;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.22);
+  }
+
+  #supportChatPanel {
+    width: min(92vw, 340px);
+    max-height: min(68vh, 560px);
+    border-radius: 14px;
+  }
+
+  #supportChatMessages {
+    max-height: min(38vh, 300px);
+  }
+}
+
+@media (max-width: 575.98px) {
+  .header-mid .container {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .logo-image {
+    max-height: 36px;
+  }
+
+  .mobile-menu-btn {
+    font-size: 20px;
+  }
+
+  .mobile-icons .mobile-icon i {
+    font-size: 18px;
+  }
+
+  .mobile-bottom-nav {
+    height: 68px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .mobile-bottom-nav__item i {
+    font-size: 20px;
+  }
+
+  #supportChatWidget {
+    right: 10px !important;
+    bottom: calc(82px + env(safe-area-inset-bottom)) !important;
+  }
+
+  #supportChatToggle {
+    min-height: 40px;
+    padding: 8px 14px;
+    font-size: 14px;
+    border-radius: 999px;
+  }
+
+  #supportChatPanel {
+    width: min(94vw, 320px);
+  }
+}

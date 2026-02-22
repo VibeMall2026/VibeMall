@@ -1,0 +1,685 @@
+/* ============================================
+   ORDER DETAILS PAGE - RESPONSIVE STYLES
+   Professional, Clean & Modern Design
+   ============================================ */
+
+/* ============================================
+   TABLET VIEW (768px - 1199px)
+   ============================================ */
+@media (min-width: 768px) and (max-width: 1199px) {
+    /* Container Adjustments */
+    .container.my-5 {
+        padding: 0 20px;
+    }
+
+    /* Back Button */
+    .btn-outline-secondary {
+        font-size: 14px;
+        padding: 8px 16px;
+    }
+
+    /* Order Header Card */
+    .card-header.bg-dark h4 {
+        font-size: 20px;
+    }
+
+    .card-header.bg-dark small {
+        font-size: 12px;
+    }
+
+    /* Header Buttons - Wrap on Tablet */
+    .card-header .col-md-6.text-md-end {
+        margin-top: 15px;
+        text-align: left !important;
+    }
+
+    .card-header .btn-sm,
+    .card-header .badge {
+        font-size: 12px;
+        padding: 6px 12px;
+        margin: 4px 4px 4px 0 !important;
+    }
+
+    /* Order Status Cards */
+    .card-body .row .col-md-6 {
+        margin-bottom: 15px;
+    }
+
+    .card-body h6 {
+        font-size: 13px;
+    }
+
+    .card-body h5 {
+        font-size: 16px;
+    }
+
+    .card-body p {
+        font-size: 14px;
+    }
+
+    /* Shipping & Resell Cards */
+    .row.mb-4 .col-md-6 {
+        margin-bottom: 15px;
+    }
+
+    .card-header h5 {
+        font-size: 16px;
+    }
+
+    /* Order Items Table */
+    .table-responsive {
+        font-size: 13px;
+    }
+
+    .table thead th {
+        font-size: 13px;
+        padding: 10px 8px;
+    }
+
+    .table tbody td {
+        padding: 12px 8px;
+        font-size: 13px;
+    }
+
+    .table tbody td img,
+    .table tbody td div[style*="width: 70px"] {
+        width: 60px !important;
+        height: 60px !important;
+    }
+
+    .table tbody td strong {
+        font-size: 14px;
+    }
+
+    .table tbody td .btn-sm {
+        font-size: 10px;
+        padding: 4px 8px;
+    }
+
+    /* Table Footer */
+    .table tfoot td {
+        font-size: 13px;
+        padding: 10px 8px;
+    }
+}
+
+/* ============================================
+   MOBILE VIEW (< 768px)
+   ============================================ */
+@media (max-width: 767px) {
+    /* Container Spacing */
+    .container.my-5 {
+        padding: 0 12px;
+        margin-top: 20px !important;
+        margin-bottom: 20px !important;
+    }
+
+    /* Back Button */
+    .btn-outline-secondary {
+        font-size: 13px;
+        padding: 8px 14px;
+        margin-bottom: 15px !important;
+    }
+
+    /* Order Header Card */
+    .card.mb-4 {
+        margin-bottom: 20px !important;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .card-header.bg-dark {
+        padding: 15px;
+    }
+
+    .card-header.bg-dark .row {
+        flex-direction: column;
+    }
+
+    .card-header.bg-dark .col-md-6 {
+        width: 100%;
+        text-align: left !important;
+    }
+
+    .card-header.bg-dark h4 {
+        font-size: 18px;
+        margin-bottom: 5px !important;
+    }
+
+    .card-header.bg-dark small {
+        font-size: 11px;
+        display: block;
+        margin-bottom: 12px;
+    }
+
+    /* Header Action Buttons - Stack Vertically */
+    .card-header .col-md-6.text-md-end {
+        margin-top: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .card-header .btn-sm,
+    .card-header .badge.fs-6 {
+        width: 100%;
+        text-align: center;
+        font-size: 13px !important;
+        padding: 10px 12px;
+        margin: 0 !important;
+        display: inline-block;
+    }
+
+    .card-header .btn-sm i {
+        margin-right: 6px;
+    }
+
+    /* Order Status Section */
+    .card-body {
+        padding: 15px;
+    }
+
+    .card-body .row {
+        margin: 0;
+    }
+
+    .card-body .col-md-6 {
+        padding: 0;
+        margin-bottom: 15px;
+    }
+
+    .card-body h6 {
+        font-size: 12px;
+        margin-bottom: 6px;
+        font-weight: 600;
+    }
+
+    .card-body h5 {
+        font-size: 15px;
+        margin-bottom: 0;
+    }
+
+    .card-body p {
+        font-size: 14px;
+        margin-bottom: 0;
+    }
+
+    .card-body .badge {
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+
+    /* Alert Messages */
+    .alert {
+        font-size: 12px;
+        padding: 10px 12px;
+        margin-top: 15px !important;
+    }
+
+    .alert i {
+        font-size: 14px;
+    }
+
+    /* Shipping & Resell Cards */
+    .row.mb-4 {
+        margin-bottom: 20px !important;
+    }
+
+    .row.mb-4 .col-md-6 {
+        margin-bottom: 15px;
+        padding: 0 12px;
+    }
+
+    .row.mb-4 .card {
+        border-radius: 10px;
+    }
+
+    .row.mb-4 .card-header {
+        padding: 12px 15px;
+    }
+
+    .row.mb-4 .card-header h5 {
+        font-size: 15px;
+        margin-bottom: 0;
+    }
+
+    .row.mb-4 .card-body {
+        padding: 15px;
+        font-size: 13px;
+    }
+
+    .row.mb-4 .card-body p {
+        font-size: 13px;
+        line-height: 1.6;
+    }
+
+    /* Order Items Card */
+    .card:last-of-type {
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .card:last-of-type .card-header {
+        padding: 12px 15px;
+    }
+
+    .card:last-of-type .card-header h5 {
+        font-size: 16px;
+        margin-bottom: 0;
+    }
+
+    .card:last-of-type .card-body {
+        padding: 0;
+    }
+
+    /* Table Responsive Container */
+    .table-responsive {
+        border: none;
+        padding: 0;
+    }
+}
+
+/* ============================================
+   MOBILE PRODUCT CARDS LAYOUT
+   ============================================ */
+@media (max-width: 767px) {
+    /* Hide table header on mobile */
+    .table thead {
+        display: none;
+    }
+
+    /* Create mobile-friendly product cards using CSS */
+    .table tbody tr {
+        display: block;
+        background: #f8f9fa;
+        margin: 12px;
+        padding: 15px;
+        border-radius: 10px;
+        border: 1px solid #e9ecef;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .table tbody tr:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+        transition: all 0.3s ease;
+    }
+
+    .table tbody td {
+        display: block;
+        border: none;
+        padding: 6px 0;
+        text-align: left !important;
+    }
+
+    /* Product Image & Name */
+    .table tbody td:nth-child(1) {
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .table tbody td:nth-child(1) .d-flex {
+        flex-direction: row;
+        gap: 12px;
+    }
+
+    .table tbody td:nth-child(1) img,
+    .table tbody td:nth-child(1) div[style*="width: 70px"] {
+        width: 80px !important;
+        height: 80px !important;
+        flex-shrink: 0;
+    }
+
+    .table tbody td:nth-child(1) strong {
+        font-size: 15px;
+        display: block;
+        margin-bottom: 8px;
+        color: #333;
+    }
+
+    .table tbody td:nth-child(1) .btn-sm {
+        font-size: 11px;
+        padding: 6px 12px;
+        margin-top: 8px;
+    }
+
+    /* Size, Color, Quantity, Price - Grid Layout */
+    .table tbody td:nth-child(2),
+    .table tbody td:nth-child(3),
+    .table tbody td:nth-child(4),
+    .table tbody td:nth-child(5),
+    .table tbody td:nth-child(6) {
+        display: inline-block;
+        width: 48%;
+        padding: 8px 0;
+        font-size: 13px;
+    }
+
+    .table tbody td:nth-child(2)::before {
+        content: 'Size: ';
+        font-weight: 600;
+        color: #666;
+    }
+
+    .table tbody td:nth-child(3)::before {
+        content: 'Color: ';
+        font-weight: 600;
+        color: #666;
+    }
+
+    .table tbody td:nth-child(4) {
+        width: 100%;
+        margin-top: 8px;
+        padding-top: 12px;
+        border-top: 1px solid #e9ecef;
+    }
+
+    .table tbody td:nth-child(4)::before {
+        content: 'Quantity: ';
+        font-weight: 600;
+        color: #666;
+        margin-right: 8px;
+    }
+
+    .table tbody td:nth-child(5)::before {
+        content: 'Price: ';
+        font-weight: 600;
+        color: #666;
+    }
+
+    .table tbody td:nth-child(6) {
+        width: 100%;
+        font-size: 16px;
+        font-weight: 700;
+        color: #28a745;
+        margin-top: 8px;
+        padding-top: 8px;
+    }
+
+    .table tbody td:nth-child(6)::before {
+        content: 'Total: ';
+        font-weight: 600;
+        color: #666;
+        margin-right: 8px;
+    }
+
+    /* Table Footer - Order Summary */
+    .table tfoot {
+        display: block;
+        background: white;
+        padding: 15px;
+        margin: 12px;
+        border-radius: 10px;
+        border: 2px solid #e9ecef;
+    }
+
+    .table tfoot tr {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .table tfoot tr:last-child {
+        border-bottom: none;
+        padding-top: 12px;
+        margin-top: 8px;
+        border-top: 2px solid #28a745;
+    }
+
+    .table tfoot tr.table-success {
+        background: #d4edda;
+        padding: 12px;
+        margin: 0 -15px;
+        margin-top: 12px;
+        border-radius: 8px;
+    }
+
+    .table tfoot td {
+        display: inline-block;
+        border: none;
+        padding: 0;
+        font-size: 14px;
+    }
+
+    .table tfoot td:first-child {
+        text-align: left;
+    }
+
+    .table tfoot td:last-child {
+        text-align: right;
+        font-size: 16px;
+    }
+
+    .table tfoot tr.table-success td {
+        font-size: 16px;
+        font-weight: 700;
+    }
+}
+
+/* ============================================
+   SMALL MOBILE VIEW (< 480px)
+   ============================================ */
+@media (max-width: 479px) {
+    /* Extra Compact Spacing */
+    .container.my-5 {
+        padding: 0 10px;
+    }
+
+    /* Cards */
+    .card {
+        border-radius: 10px;
+    }
+
+    .card-header {
+        padding: 12px;
+    }
+
+    .card-body {
+        padding: 12px;
+    }
+
+    /* Order Header */
+    .card-header.bg-dark h4 {
+        font-size: 16px;
+    }
+
+    .card-header.bg-dark small {
+        font-size: 10px;
+    }
+
+    .card-header .btn-sm,
+    .card-header .badge.fs-6 {
+        font-size: 12px !important;
+        padding: 9px 10px;
+    }
+
+    /* Status Section */
+    .card-body h6 {
+        font-size: 11px;
+    }
+
+    .card-body h5 {
+        font-size: 14px;
+    }
+
+    .card-body .badge {
+        font-size: 11px;
+        padding: 5px 10px;
+    }
+
+    /* Shipping Cards */
+    .row.mb-4 .col-md-6 {
+        padding: 0 10px;
+    }
+
+    .row.mb-4 .card-header h5 {
+        font-size: 14px;
+    }
+
+    .row.mb-4 .card-body {
+        font-size: 12px;
+    }
+
+    /* Product Cards */
+    .table tbody tr {
+        margin: 10px;
+        padding: 12px;
+    }
+
+    .table tbody td:nth-child(1) img,
+    .table tbody td:nth-child(1) div[style*="width: 70px"] {
+        width: 70px !important;
+        height: 70px !important;
+    }
+
+    .table tbody td:nth-child(1) strong {
+        font-size: 14px;
+    }
+
+    .table tbody td:nth-child(1) .btn-sm {
+        font-size: 10px;
+        padding: 5px 10px;
+    }
+
+    .table tbody td:nth-child(2),
+    .table tbody td:nth-child(3),
+    .table tbody td:nth-child(5) {
+        font-size: 12px;
+    }
+
+    .table tbody td:nth-child(6) {
+        font-size: 15px;
+    }
+
+    /* Order Summary */
+    .table tfoot {
+        padding: 12px;
+        margin: 10px;
+    }
+
+    .table tfoot td {
+        font-size: 13px;
+    }
+
+    .table tfoot td:last-child {
+        font-size: 15px;
+    }
+
+    .table tfoot tr.table-success td {
+        font-size: 15px;
+    }
+}
+
+/* ============================================
+   MODAL RESPONSIVE FIXES
+   ============================================ */
+@media (max-width: 767px) {
+    .modal-dialog {
+        margin: 10px;
+    }
+
+    .modal-content {
+        border-radius: 12px;
+    }
+
+    .modal-header {
+        padding: 15px;
+    }
+
+    .modal-title {
+        font-size: 16px;
+    }
+
+    .modal-body {
+        padding: 15px;
+    }
+
+    .modal-body .form-label {
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .modal-body .form-control,
+    .modal-body .form-select {
+        font-size: 13px;
+        padding: 10px;
+    }
+
+    .modal-body .alert {
+        font-size: 12px;
+        padding: 10px;
+    }
+
+    .modal-footer {
+        padding: 12px 15px;
+        gap: 8px;
+    }
+
+    .modal-footer .btn {
+        font-size: 13px;
+        padding: 10px 20px;
+    }
+}
+
+/* ============================================
+   SMOOTH TRANSITIONS & ANIMATIONS
+   ============================================ */
+@media (max-width: 767px) {
+    .card,
+    .table tbody tr,
+    .btn {
+        transition: all 0.3s ease;
+    }
+
+    .card:hover {
+        box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+    }
+
+    /* Smooth scroll behavior */
+    html {
+        scroll-behavior: smooth;
+    }
+}
+
+/* ============================================
+   LANDSCAPE ORIENTATION FIXES
+   ============================================ */
+@media (max-width: 767px) and (orientation: landscape) {
+    .container.my-5 {
+        margin-top: 15px !important;
+        margin-bottom: 15px !important;
+    }
+
+    .card-header.bg-dark {
+        padding: 12px 15px;
+    }
+
+    .table tbody tr {
+        margin: 10px;
+        padding: 12px;
+    }
+}
+
+/* ============================================
+   PRINT STYLES (Optional)
+   ============================================ */
+@media print {
+    .btn,
+    .modal,
+    .alert {
+        display: none !important;
+    }
+
+    .card {
+        border: 1px solid #ddd;
+        box-shadow: none;
+        page-break-inside: avoid;
+    }
+
+    .table tbody tr {
+        page-break-inside: avoid;
+    }
+}

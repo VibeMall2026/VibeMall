@@ -82,6 +82,8 @@ urlpatterns = [
     path('api/upi/validate/', views.validate_upi_id, name='validate_upi_id'),
     path('api/ifsc/lookup/', views.lookup_ifsc, name='lookup_ifsc'),
     path('api/cart/summary/', views.cart_summary, name='cart_summary'),
+    path('reels/<int:reel_id>/track-view/', views.reel_track_view, name='reel_track_view'),
+    path('reels/<int:reel_id>/like/', views.reel_set_like, name='reel_set_like'),
 
     # Support Chat
     path('chat/thread/', views.chat_thread, name='chat_thread'),

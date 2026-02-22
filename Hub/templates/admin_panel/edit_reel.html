@@ -265,6 +265,23 @@
                 </select>
                 <small class="text-muted">If selected, Watch & Shop card click will open this product details page.</small>
             </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label">View Count</label>
+                        <input type="number" name="view_count" min="0" class="form-control" value="{{ reel.view_count|default:'0' }}">
+                        <small class="text-muted">Manually set total views for this reel.</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label">Like Count</label>
+                        <input type="number" name="like_count" min="0" class="form-control" value="{{ reel.like_count|default:'0' }}">
+                        <small class="text-muted">Manually set total likes for this reel.</small>
+                    </div>
+                </div>
+            </div>
             
             <div class="row">
                 <div class="col-md-6">
