@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% load static %}
 {% load custom_filters %}
 
@@ -145,6 +145,7 @@
         font-size: clamp(11px, 1.2vw, 12px);
     }
 </style>
+<link rel="stylesheet" href="{% static 'assets/css/shop-responsive.css' %}?v=20260222-09">
 
 <section class="breadcrumb__area box-plr-75 shop-shell pb-10 pt-20">
     <div class="container">
@@ -174,8 +175,16 @@
 
 <div class="shop-area shop-shell py-30">
     <div class="container">
+        <button type="button" id="shopFilterFab" class="shop-filter-fab" aria-controls="shopFilterSidebar" aria-expanded="false">
+            <i class="fal fa-filter"></i> Filters
+        </button>
+        <div id="shopFilterBackdrop" class="shop-filter-backdrop" aria-hidden="true"></div>
         <div class="row g-4">
-            <div class="col-xl-3 col-lg-4">
+            <div class="col-xl-3 col-lg-4 shop-filter-sidebar" id="shopFilterSidebar">
+                <div class="shop-filter-mobile-header">
+                    <span>Filters</span>
+                    <button type="button" id="shopFilterClose" class="shop-filter-close" aria-label="Close filters">&times;</button>
+                </div>
                 <div class="filter-card">
                     <h5 class="filter-title">Filters</h5>
                     <form method="get" id="shopFiltersForm" class="filter-form">
@@ -215,7 +224,7 @@
                             <p class="filter-label mb-2">Price range</p>
                             <div class="d-flex align-items-center" style="gap:10px;">
                                 <input type="number" name="min_price" value="{{ min_price }}" placeholder="Min" class="form-control" style="max-width:120px;">
-                                <span class="text-muted">–</span>
+                                <span class="text-muted">-</span>
                                 <input type="number" name="max_price" value="{{ max_price }}" placeholder="Max" class="form-control" style="max-width:120px;">
                             </div>
                         </div>
@@ -336,7 +345,7 @@
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge bg-dark text-white">Grid</span>
                         <span class="text-muted small">
-                            Showing {{ products.start_index }}–{{ products.end_index }} of {{ products.paginator.count }} product{% if products.paginator.count != 1 %}s{% endif %}
+                            Showing {{ products.start_index }}-{{ products.end_index }} of {{ products.paginator.count }} product{% if products.paginator.count != 1 %}s{% endif %}
                         </span>
                     </div>
                     <div class="text-muted small">Use the filters on the left to narrow results.</div>
@@ -537,6 +546,46 @@ document.addEventListener('DOMContentLoaded', function() {
             form.submit();
         });
     });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const sidebar = document.getElementById('shopFilterSidebar');
+    const openBtn = document.getElementById('shopFilterFab');
+    const closeBtn = document.getElementById('shopFilterClose');
+    const backdrop = document.getElementById('shopFilterBackdrop');
+
+    if (!sidebar || !openBtn || !backdrop) return;
+
+    const isMobile = () => window.matchMedia('(max-width: 575.98px)').matches;
+    const setOpenState = (open) => {
+        sidebar.classList.toggle('is-open', open);
+        backdrop.classList.toggle('is-open', open);
+        document.body.classList.toggle('shop-filter-open', open);
+        openBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+
+    const openSidebar = () => {
+        if (!isMobile()) return;
+        setOpenState(true);
+    };
+
+    const closeSidebar = () => setOpenState(false);
+
+    openBtn.addEventListener('click', openSidebar);
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeSidebar);
+    }
+    backdrop.addEventListener('click', closeSidebar);
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') closeSidebar();
+    });
+
+    window.addEventListener('resize', function () {
+        if (!isMobile()) closeSidebar();
+    }, { passive: true });
 });
 </script>
 

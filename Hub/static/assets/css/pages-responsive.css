@@ -106,14 +106,16 @@
 @media (max-width: 575.98px) {
     .top-deals-section .col-xl-3,
     .top-selling-section .col-xl-3,
-    .recommended-section .col-xl-3 {
+    .recommended-section .col-xl-3,
+    .recommended-for-you-section .col-xl-3 {
         flex: 0 0 50%;
         max-width: 50%;
     }
 
     .top-deals-section .product__item,
     .top-selling-section .product__item,
-    .recommended-section .product__item {
+    .recommended-section .product__item,
+    .recommended-for-you-section .product__item {
         height: 100%;
         display: flex;
         flex-direction: column;
@@ -121,7 +123,8 @@
 
     .top-deals-section .product__thumb,
     .top-selling-section .product__thumb,
-    .recommended-section .product__thumb {
+    .recommended-section .product__thumb,
+    .recommended-for-you-section .product__thumb {
         aspect-ratio: 3 / 4;
         height: auto !important;
         overflow: hidden !important;
@@ -129,7 +132,8 @@
 
     .top-deals-section .product__thumb img,
     .top-selling-section .product__thumb img,
-    .recommended-section .product__thumb img {
+    .recommended-section .product__thumb img,
+    .recommended-for-you-section .product__thumb img {
         width: 100% !important;
         height: 100% !important;
         object-fit: cover;
@@ -137,7 +141,8 @@
 
     .top-deals-section .product__content h6,
     .top-selling-section .product__content h6,
-    .recommended-section .product__content h6 {
+    .recommended-section .product__content h6,
+    .recommended-for-you-section .product__content h6 {
         font-size: 13px !important;
         line-height: 1.3 !important;
         min-height: 34px !important;
@@ -149,7 +154,8 @@
 
     .top-deals-section .buy-now-btn-card,
     .top-selling-section .buy-now-btn-card,
-    .recommended-section .buy-now-btn-card {
+    .recommended-section .buy-now-btn-card,
+    .recommended-for-you-section .buy-now-btn-card {
         font-size: 12px !important;
         padding: 8px 6px !important;
     }
@@ -204,14 +210,16 @@
 @media (min-width: 576px) and (max-width: 991.98px) {
     .top-deals-section .col-xl-3,
     .top-selling-section .col-xl-3,
-    .recommended-section .col-xl-3 {
+    .recommended-section .col-xl-3,
+    .recommended-for-you-section .col-xl-3 {
         flex: 0 0 33.3333%;
         max-width: 33.3333%;
     }
 
     .top-deals-section .product__item,
     .top-selling-section .product__item,
-    .recommended-section .product__item {
+    .recommended-section .product__item,
+    .recommended-for-you-section .product__item {
         height: 100%;
         display: flex;
         flex-direction: column;
@@ -589,6 +597,52 @@
         height: 100%;
         min-height: 0;
         object-fit: cover;
+    }
+}
+
+/* Brand partners responsive */
+@media (max-width: 575.98px) {
+    .brand-area {
+        padding-top: 20px !important;
+        padding-bottom: 20px !important;
+    }
+
+    .brand-area .section__head {
+        margin-bottom: 16px !important;
+    }
+
+    .brand-area .section__title h5 {
+        font-size: 18px;
+        line-height: 1.25;
+    }
+
+    .brand-area .section__title p {
+        font-size: 12px;
+        line-height: 1.35;
+        margin-bottom: 0;
+    }
+
+    .brand-area .brand-item {
+        padding: 10px !important;
+    }
+
+    .brand-area .brand-item img {
+        max-height: 44px !important;
+        max-width: 110px !important;
+        object-fit: contain;
+        opacity: 0.75 !important;
+    }
+}
+
+@media (min-width: 576px) and (max-width: 991.98px) {
+    .brand-area .brand-item {
+        padding: 14px !important;
+    }
+
+    .brand-area .brand-item img {
+        max-height: 56px !important;
+        max-width: 130px !important;
+        object-fit: contain;
     }
 }
 
