@@ -188,8 +188,20 @@
                         </div>
 
                         <!-- Register Button -->
+                        <div class="form-section mb-35">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="terms_accepted" name="terms_accepted" required>
+                                <label class="form-check-label" for="terms_accepted">
+                                    I agree to the <a href="/terms-and-conditions/" target="_blank" style="color: #696cff; text-decoration: underline;">Terms & Conditions</a> and <a href="/privacy-policy/" target="_blank" style="color: #696cff; text-decoration: underline;">Privacy Policy</a> <span class="text-danger">*</span>
+                                </label>
+                            </div>
+                            <div id="terms_error" class="text-danger mt-2" style="display: none;">
+                                <i class="fas fa-exclamation-circle"></i> You must accept the Terms & Conditions to register
+                            </div>
+                        </div>
+                        
                         <div class="register-form-actions">
-                            <button type="submit" class="tp-btn-h1 w-100">
+                            <button type="submit" class="tp-btn-h1 w-100" id="submitBtn">
                                 <i class="fas fa-check-circle"></i> Create Account
                             </button>
                         </div>
@@ -321,8 +333,36 @@
 
     // Form Submission Validation
     const registerForm = document.querySelector('form');
+    const termsCheckbox = document.getElementById('terms_accepted');
+    const termsError = document.getElementById('terms_error');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // Terms checkbox validation
+    if (termsCheckbox) {
+        termsCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                termsError.style.display = 'none';
+                this.parentElement.style.border = 'none';
+            }
+        });
+    }
+    
     if (registerForm) {
         registerForm.addEventListener('submit', function(e) {
+            // Check terms acceptance
+            if (!termsCheckbox.checked) {
+                e.preventDefault();
+                termsError.style.display = 'block';
+                termsCheckbox.parentElement.style.border = '2px solid #e74c3c';
+                termsCheckbox.parentElement.style.padding = '10px';
+                termsCheckbox.parentElement.style.borderRadius = '5px';
+                termsCheckbox.focus();
+                
+                // Scroll to terms
+                termsCheckbox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return false;
+            }
+            
             const emailValue = emailInput.value.trim();
             const passwordValue = password.value;
             
@@ -339,7 +379,6 @@
                 return false;
             }
             
-            const submitBtn = this.querySelector('button[type=\"submit\"]');
             if (submitBtn) {
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class=\"fas fa-spinner fa-spin\"></i> Creating Account...';

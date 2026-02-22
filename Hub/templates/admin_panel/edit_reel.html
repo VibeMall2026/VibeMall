@@ -252,6 +252,19 @@
                 <label class="form-label">Description</label>
                 <textarea name="description" class="form-control" rows="3">{{ reel.description }}</textarea>
             </div>
+
+            <div class="form-group">
+                <label class="form-label">Linked Product</label>
+                <select name="product_id" class="form-select">
+                    <option value="">Select Product (Optional)</option>
+                    {% for product in products %}
+                    <option value="{{ product.id }}" {% if reel.product_id == product.id %}selected{% endif %}>
+                        {{ product.name }} (#{{ product.id }})
+                    </option>
+                    {% endfor %}
+                </select>
+                <small class="text-muted">If selected, Watch & Shop card click will open this product details page.</small>
+            </div>
             
             <div class="row">
                 <div class="col-md-6">

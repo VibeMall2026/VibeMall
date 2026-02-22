@@ -1173,6 +1173,24 @@ def admin_add_product(request):
             descriptionImage = request.FILES.get('descriptionImage')
             gallery_images = [crop_image_height(img) for img in request.FILES.getlist('gallery_images')]
 
+            # Optional direct reel upload
+            reel_video_file = request.FILES.get('reel_video_file')
+            reel_thumbnail = request.FILES.get('reel_thumbnail')
+            reel_title = (request.POST.get('reel_title') or '').strip()
+            reel_description = (request.POST.get('reel_description') or '').strip()
+            reel_is_published = request.POST.get('reel_is_published') == 'on'
+            reel_duration_raw = (request.POST.get('reel_duration') or '0').strip()
+            reel_duration = 0
+            if reel_video_file:
+                reel_content_type = (getattr(reel_video_file, 'content_type', '') or '').lower()
+                if reel_content_type and not reel_content_type.startswith('video/'):
+                    messages.error(request, 'Invalid reel file type. Please upload a video file.')
+                    return redirect('admin_add_product')
+                try:
+                    reel_duration = max(int(reel_duration_raw), 0)
+                except (TypeError, ValueError):
+                    reel_duration = 0
+
             use_saved_images = request.POST.get('use_saved_images') == 'on'
             saved_info = request.session.get('edit_photo_saved') if use_saved_images else None
             if saved_info and not image:
@@ -1268,11 +1286,35 @@ def admin_add_product(request):
             if review_count > 0 and rating > 0:
                 generate_auto_reviews(product, review_count, rating, request.user)
 
+            if reel_video_file:
+                from Hub.models import Reel
+
+                Reel.objects.create(
+                    title=reel_title or f'{product.name} Reel',
+                    description=reel_description,
+                    product=product,
+                    video_file=reel_video_file,
+                    thumbnail=reel_thumbnail,
+                    duration=reel_duration,
+                    is_published=reel_is_published,
+                    is_processing=False,
+                    created_by=request.user,
+                )
+
             if use_saved_images:
                 request.session.pop('edit_photo_saved', None)
                 request.session.modified = True
             
-            messages.success(request, f'Product "{product.name}" added successfully with {len(gallery_images)} gallery images!')
+            if reel_video_file:
+                messages.success(
+                    request,
+                    f'Product "{product.name}" added successfully with {len(gallery_images)} gallery images and 1 reel.'
+                )
+            else:
+                messages.success(
+                    request,
+                    f'Product "{product.name}" added successfully with {len(gallery_images)} gallery images!'
+                )
             return redirect('admin_add_product')
             
         except Exception as e:
@@ -1654,6 +1696,38 @@ def admin_edit_product(request, product_id):
                         order=idx,
                         is_active=True
                     )
+
+            # Optional direct reel upload from edit product page
+            new_reel_video_file = request.FILES.get('new_reel_video_file')
+            if new_reel_video_file:
+                from Hub.models import Reel
+
+                reel_content_type = (getattr(new_reel_video_file, 'content_type', '') or '').lower()
+                if reel_content_type and not reel_content_type.startswith('video/'):
+                    messages.error(request, 'Invalid reel file type. Please upload a video file.')
+                    return redirect('admin_edit_product', product_id=product_id)
+
+                new_reel_title = (request.POST.get('new_reel_title') or '').strip() or f'{product.name} Reel'
+                new_reel_description = (request.POST.get('new_reel_description') or '').strip()
+                new_reel_thumbnail = request.FILES.get('new_reel_thumbnail')
+                new_reel_is_published = request.POST.get('new_reel_is_published') == 'on'
+                new_reel_duration_raw = (request.POST.get('new_reel_duration') or '0').strip()
+                try:
+                    new_reel_duration = max(int(new_reel_duration_raw), 0)
+                except (TypeError, ValueError):
+                    new_reel_duration = 0
+
+                Reel.objects.create(
+                    title=new_reel_title,
+                    description=new_reel_description,
+                    product=product,
+                    video_file=new_reel_video_file,
+                    thumbnail=new_reel_thumbnail,
+                    duration=new_reel_duration,
+                    is_published=new_reel_is_published,
+                    is_processing=False,
+                    created_by=request.user,
+                )
             
             messages.success(request, f'Product "{product.name}" updated successfully!')
             return redirect('admin_product_list')
@@ -1670,6 +1744,7 @@ def admin_edit_product(request, product_id):
     context = {
         'product': product,
         'base_price': base_price,
+        'product_reels': product.watch_shop_reels.all().order_by('-created_at')[:10],
         'categories': CategoryIcon.objects.filter(is_active=True).order_by('order', 'id'),
         'sub_categories': list(
             SubCategory.objects.filter(is_active=True)
@@ -3818,7 +3893,7 @@ def index(request):
         ]
     
     # Get products from MainPageProduct model (4 categories)
-    from .models import MainPageProduct
+    from .models import MainPageProduct, Reel
     
     category1_products = MainPageProduct.objects.filter(category='category1').select_related('product').order_by('order')
     category2_products = MainPageProduct.objects.filter(category='category2').select_related('product').order_by('order')
@@ -3847,6 +3922,18 @@ def index(request):
     
     countdown = DealCountdown.objects.filter(is_active=True).first()
     brand_partners = BrandPartner.objects.filter(is_active=True).order_by('order')
+    watch_shop_reels = (
+        Reel.objects
+        .filter(
+            is_published=True,
+            product__isnull=False,
+            product__is_active=True,
+            video_file__isnull=False,
+        )
+        .exclude(video_file='')
+        .select_related('product')
+        .order_by('-created_at')[:12]
+    )
 
     # Get wishlist product IDs for logged-in user
     wishlist_product_ids = []
@@ -3896,6 +3983,7 @@ def index(request):
             'wishlist_product_ids': wishlist_product_ids,
             'cart_product_ids': cart_product_ids,
             'brand_partners': brand_partners,
+            'watch_shop_reels': watch_shop_reels,
             'delivered_orders': delivered_orders,
             'product_stats': product_stats,
         }
@@ -4676,6 +4764,12 @@ def register_view(request):
         country_code = request.POST.get("country_code")
         mobile_number = request.POST.get("mobile_number")
         profile_image = request.FILES.get("profile_image")
+        terms_accepted = request.POST.get("terms_accepted")
+
+        # Validate terms acceptance
+        if not terms_accepted:
+            messages.error(request, "You must accept the Terms and Conditions to register.")
+            return redirect("register")
 
         # Validate password strength
         if len(password) < 8:
@@ -4711,7 +4805,19 @@ def register_view(request):
                 profile.profile_image = profile_image
             profile.save()
 
+            # Send verification email
             send_verification_email(user, request)
+            
+            # Send welcome email with Terms & Conditions PDF
+            from .email_utils import send_welcome_email_with_terms
+            try:
+                send_welcome_email_with_terms(user, request)
+            except Exception as email_error:
+                # Log error but don't fail registration
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to send welcome email: {str(email_error)}")
+            
             messages.success(request, "Account created! Please verify your email to activate your account.", extra_tags='success')
             return redirect("verify_email_sent")
         except Exception as e:
@@ -8175,6 +8281,8 @@ def admin_add_reel(request):
         watermark_opacity = request.POST.get('watermark_opacity', 0.7)
         add_end_screen = request.POST.get('add_end_screen') == 'on'
         end_screen_duration = request.POST.get('end_screen_duration', 3)
+        product_id = (request.POST.get('product_id') or '').strip()
+        linked_product = None
         
         if not title:
             messages.error(request, 'Title is required')
@@ -8196,10 +8304,17 @@ def admin_add_reel(request):
             end_screen_duration = int(end_screen_duration)
         except:
             end_screen_duration = 3
+
+        if product_id:
+            linked_product = Product.objects.filter(id=product_id, is_active=True).first()
+            if not linked_product:
+                messages.error(request, 'Selected product is invalid or inactive.')
+                return redirect('admin_add_reel')
         
         reel = Reel.objects.create(
             title=title,
             description=description,
+            product=linked_product,
             duration_per_image=duration_per_image,
             transition_type=transition_type,
             watermark_position=watermark_position,
@@ -8243,7 +8358,8 @@ def admin_add_reel(request):
         messages.success(request, f'✨ Professional reel "{title}" created successfully!')
         return redirect('admin_edit_reel', reel_id=reel.id)
     
-    return render(request, 'admin_panel/add_reel.html')
+    products = Product.objects.filter(is_active=True).only('id', 'name').order_by('name')
+    return render(request, 'admin_panel/add_reel.html', {'products': products})
 
 
 @login_required(login_url='login')
@@ -8255,8 +8371,17 @@ def admin_edit_reel(request, reel_id):
     reel = get_object_or_404(Reel, id=reel_id)
     
     if request.method == 'POST':
+        product_id = (request.POST.get('product_id') or '').strip()
         reel.title = request.POST.get('title', '').strip()
         reel.description = request.POST.get('description', '').strip()
+        if product_id:
+            linked_product = Product.objects.filter(id=product_id, is_active=True).first()
+            if not linked_product:
+                messages.error(request, 'Selected product is invalid or inactive.')
+                return redirect('admin_edit_reel', reel_id=reel.id)
+            reel.product = linked_product
+        else:
+            reel.product = None
         
         try:
             reel.duration_per_image = int(request.POST.get('duration_per_image', 3))
@@ -8317,7 +8442,8 @@ def admin_edit_reel(request, reel_id):
     
     context = {
         'reel': reel,
-        'images': reel.images.all().order_by('order')
+        'images': reel.images.all().order_by('order'),
+        'products': Product.objects.filter(is_active=True).only('id', 'name').order_by('name'),
     }
     
     return render(request, 'admin_panel/edit_reel.html', context)
@@ -8442,3 +8568,102 @@ def admin_reel_details(request, reel_id):
         'is_published': reel.is_published,
         'created_at': reel.created_at.strftime('%Y-%m-%d %H:%M:%S')
     })
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_upload_reel_file(request):
+    """Upload ready-made reel video file and link it to a product."""
+    from Hub.models import Reel
+
+    products = Product.objects.filter(is_active=True).only('id', 'name').order_by('name')
+
+    if request.method == 'POST':
+        title = (request.POST.get('title') or '').strip()
+        description = (request.POST.get('description') or '').strip()
+        product_id = (request.POST.get('product_id') or '').strip()
+        duration_raw = (request.POST.get('duration') or '0').strip()
+        is_published = request.POST.get('is_published') == 'on'
+        video_file = request.FILES.get('video_file')
+        thumbnail = request.FILES.get('thumbnail')
+
+        if not title:
+            messages.error(request, 'Reel title is required.')
+            return redirect('admin_upload_reel_file')
+
+        if not product_id:
+            messages.error(request, 'Please select a linked product.')
+            return redirect('admin_upload_reel_file')
+
+        linked_product = Product.objects.filter(id=product_id, is_active=True).first()
+        if not linked_product:
+            messages.error(request, 'Selected product is invalid or inactive.')
+            return redirect('admin_upload_reel_file')
+
+        if not video_file:
+            messages.error(request, 'Please upload a reel video file.')
+            return redirect('admin_upload_reel_file')
+
+        content_type = (getattr(video_file, 'content_type', '') or '').lower()
+        if content_type and not content_type.startswith('video/'):
+            messages.error(request, 'Invalid file type. Please upload a video file.')
+            return redirect('admin_upload_reel_file')
+
+        duration = 0
+        try:
+            duration = max(int(duration_raw), 0)
+        except (TypeError, ValueError):
+            duration = 0
+
+        Reel.objects.create(
+            title=title,
+            description=description,
+            product=linked_product,
+            video_file=video_file,
+            thumbnail=thumbnail,
+            duration=duration,
+            is_published=is_published,
+            is_processing=False,
+            created_by=request.user,
+        )
+
+        messages.success(request, f'Reel "{title}" uploaded successfully.')
+        return redirect('admin_upload_reel_file')
+
+    uploaded_reels = (
+        Reel.objects
+        .filter(video_file__isnull=False)
+        .exclude(video_file='')
+        .select_related('product')
+        .order_by('-created_at')[:20]
+    )
+
+    return render(
+        request,
+        'admin_panel/upload_reel_file.html',
+        {
+            'products': products,
+            'uploaded_reels': uploaded_reels,
+        }
+    )
+
+
+
+def terms_and_conditions(request):
+    """Display Terms and Conditions page"""
+    from datetime import datetime
+    context = {
+        'current_date': datetime.now().strftime('%B %d, %Y'),
+        'current_year': datetime.now().year,
+    }
+    return render(request, 'terms_and_conditions.html', context)
+
+
+def privacy_policy(request):
+    """Display Privacy Policy page"""
+    from datetime import datetime
+    context = {
+        'current_date': datetime.now().strftime('%B %d, %Y'),
+        'current_year': datetime.now().year,
+    }
+    return render(request, 'privacy_policy.html', context)

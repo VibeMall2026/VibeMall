@@ -1,0 +1,327 @@
+/* Index responsive: mobile/tablet product swipers */
+.mobile-products-section {
+    display: none;
+}
+
+/* Watch & Shop reels section */
+.watch-shop-area {
+    background: #f7f7f8;
+}
+
+.watch-shop-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.watch-shop-head h3 {
+    margin: 0;
+    font-size: 34px;
+    font-weight: 700;
+    color: #30323b;
+}
+
+.watch-shop-nav {
+    display: inline-flex;
+    gap: 8px;
+}
+
+.watch-shop-nav button {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid #e2e3e8;
+    background: #fff;
+    color: #2d3038;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.watch-shop-nav button:hover {
+    background: #fcbe00;
+    color: #121212;
+    border-color: #fcbe00;
+}
+
+.watch-shop-swiper {
+    overflow: hidden;
+}
+
+.watch-shop-card {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid #ececf1;
+    overflow: hidden;
+    box-shadow: 0 8px 20px rgba(16, 24, 40, 0.08);
+    height: 100%;
+}
+
+.watch-shop-media {
+    display: block;
+    width: 100%;
+    background: #111;
+}
+
+.watch-shop-media video {
+    width: 100%;
+    aspect-ratio: 9 / 16;
+    object-fit: cover;
+    display: block;
+}
+
+.watch-shop-content {
+    padding: 10px 12px 14px;
+}
+
+.watch-shop-content h6 {
+    margin: 0 0 10px;
+    font-size: 20px;
+    line-height: 1.25;
+    font-weight: 600;
+}
+
+.watch-shop-content h6 a {
+    color: #1e222b;
+    text-decoration: none;
+}
+
+.watch-shop-btn {
+    width: 100%;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1;
+    padding: 14px 12px;
+    background: #e5d2d4;
+    color: #111827;
+    transition: all 0.2s ease;
+}
+
+.watch-shop-btn:hover {
+    background: #d9b9bc;
+    color: #111827;
+}
+
+@keyframes mobileHeadingGlow {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+@media (max-width: 1199.98px) {
+    .top-deals-section,
+    .top-selling-section,
+    .recommended-section,
+    .recommended-for-you-section {
+        display: none;
+    }
+
+    .mobile-products-section {
+        display: block;
+        margin-bottom: 12px;
+    }
+
+    .mobile-products-section .container {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .mobile-products-section .section__head {
+        margin-bottom: 14px !important;
+    }
+
+    .mobile-products-section .section__head::before {
+        display: none !important;
+        content: none !important;
+    }
+
+    .mobile-products-section .section__title {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 0 !important;
+    }
+
+    .mobile-products-section .section__title h5::after,
+    .mobile-products-section .section__title .st-titile-d::after {
+        display: none !important;
+        content: none !important;
+    }
+
+    .mobile-products-section .st-titile-d {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 16px;
+        border-radius: 999px;
+        background: linear-gradient(120deg, #fff8cf 0%, #ffe17f 45%, #ffd24f 100%);
+        background-size: 200% 200%;
+        animation: mobileHeadingGlow 5s ease-in-out infinite;
+        box-shadow: 0 6px 16px rgba(252, 190, 0, 0.28);
+        border: 1px solid rgba(255, 255, 255, 0.85);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        margin-bottom: 0;
+        font-size: 28px;
+        font-weight: 700;
+        line-height: 1.1;
+        color: #171717;
+    }
+
+    .mobile-products-section .st-titile-d:hover,
+    .mobile-products-section .st-titile-d:active {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 20px rgba(252, 190, 0, 0.35);
+    }
+
+    .mobile-products-swiper {
+        overflow: hidden;
+        height: auto !important;
+        padding: 2px 0 16px;
+    }
+
+    .mobile-products-swiper .swiper-wrapper {
+        align-items: stretch;
+        height: auto !important;
+    }
+
+    .mobile-products-swiper .swiper-slide {
+        display: flex;
+        height: auto !important;
+    }
+
+    .best-seller-card {
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .best-seller-card__thumb {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .best-seller-card__thumb img {
+        width: 100%;
+        height: 210px;
+        object-fit: cover;
+        display: block;
+    }
+
+    .best-seller-card__actions {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        z-index: 2;
+    }
+
+    .best-seller-card__actions .best-seller-action-btn {
+        width: 34px !important;
+        height: 34px !important;
+        min-width: 34px !important;
+        min-height: 34px !important;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.85);
+        background: rgba(0, 0, 0, 0.28);
+        color: #fff;
+        backdrop-filter: blur(2px);
+    }
+
+    .best-seller-card__actions .best-seller-action-btn i {
+        font-size: 15px !important;
+        line-height: 1;
+    }
+
+    .best-seller-card__content {
+        padding: 10px 4px 10px;
+    }
+
+    .best-seller-card__content h6 {
+        font-size: 15px;
+        line-height: 1.35;
+        font-weight: 500;
+        margin-bottom: 8px;
+        min-height: 40px;
+    }
+
+    .best-seller-card__content h6 a {
+        color: #1a1a1a;
+        text-decoration: none;
+    }
+
+    .best-seller-card__price span {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 18px;
+        line-height: 1.2;
+        color: #1a1a1a;
+    }
+
+    .best-seller-card__price del {
+        color: #8b8b8b;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .watch-shop-head h3 {
+        font-size: 18px;
+    }
+
+    .watch-shop-nav button {
+        width: 34px;
+        height: 34px;
+    }
+
+    .watch-shop-content h6 {
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+
+    .watch-shop-btn {
+        font-size: 16px;
+        padding: 10px 10px;
+        border-radius: 10px;
+    }
+
+    .mobile-products-section .st-titile-d {
+        padding: 7px 12px;
+        font-size: 24px;
+    }
+
+    .best-seller-card__thumb img {
+        height: 190px;
+    }
+
+    .best-seller-card__content h6 {
+        font-size: 13px;
+        min-height: 34px;
+        margin-bottom: 6px;
+    }
+
+    .best-seller-card__price span {
+        font-size: 14px;
+    }
+
+    .best-seller-card__price del {
+        font-size: 12px;
+    }
+}

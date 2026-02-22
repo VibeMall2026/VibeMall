@@ -7,6 +7,7 @@ urlpatterns = [
     path('admin-panel/new-dashboard/', views.admin_new_dashboard, name='admin_new_dashboard'),
     path('admin-panel/test/', views.admin_test, name='admin_test'),
     path('admin-panel/add-product/', views.admin_add_product, name='admin_add_product'),
+    path('admin-panel/products/upload-reel/', views.admin_upload_reel_file, name='admin_upload_reel_file'),
     path('admin-panel/products/', views.admin_product_list, name='admin_product_list'),
     path('admin-panel/products/toggle-stock/<int:product_id>/', views.admin_toggle_stock, name='admin_toggle_stock'),
     path('admin-panel/products/edit/<int:product_id>/', views.admin_edit_product, name='admin_edit_product'),

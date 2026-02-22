@@ -29,6 +29,8 @@ urlpatterns = [
     path('404/', views.page_404, name='404'),
     path('order-tracking/', views.order_tracking, name='order-tracking'),
     path('register/', views.register_view, name='register'),
+    path('terms-and-conditions/', views.terms_and_conditions, name='terms-and-conditions'),
+    path('privacy-policy/', views.privacy_policy, name='privacy-policy'),
     path('add-product/', views.add_product, name='add_product'),
 ]
 if settings.DEBUG:

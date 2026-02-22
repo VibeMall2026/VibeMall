@@ -333,3 +333,297 @@ VibeMall System
         )
         return False
 
+
+
+def send_welcome_email_with_terms(user, request):
+    """
+    Send welcome email with Terms & Conditions PDF attachment
+
+    Args:
+        user: User instance
+        request: Django request object for building absolute URLs
+
+    Returns:
+        bool: True if email sent successfully, False otherwise
+    """
+    try:
+        from datetime import datetime
+        from io import BytesIO
+
+        # Try to import weasyprint for PDF generation
+        try:
+            from weasyprint import HTML, CSS
+            pdf_generation_available = True
+        except ImportError:
+            logger.warning("WeasyPrint not installed. PDF will not be attached. Install with: pip install weasyprint")
+            pdf_generation_available = False
+
+        # Get site URL
+        site_url = request.build_absolute_uri('/').rstrip('/')
+        shop_url = f"{site_url}/shop/"
+
+        # Prepare context for templates
+        context = {
+            'user_name': user.first_name or user.username,
+            'username': user.username,
+            'email': user.email,
+            'registration_date': datetime.now().strftime('%B %d, %Y'),
+            'shop_url': shop_url,
+            'current_year': datetime.now().year,
+            'current_date': datetime.now().strftime('%B %d, %Y'),
+        }
+
+        # Render welcome email HTML
+        html_content = render_to_string('emails/welcome_email.html', context)
+
+        # Plain text fallback
+        text_content = f"""
+Welcome to VibeMall!
+
+Hello {context['user_name']}!
+
+Thank you for joining VibeMall! We're excited to have you as part of our community.
+
+Your Account Details:
+- Username: {user.username}
+- Email: {user.email}
+- Registration Date: {context['registration_date']}
+
+Start shopping now: {shop_url}
+
+What You Can Do:
+✓ Browse thousands of products
+✓ Add items to wishlist
+✓ Track your orders
+✓ Get exclusive deals and offers
+
+Need help? Contact us:
+Email: support@vibemall.com
+
+© {context['current_year']} VibeMall. All rights reserved.
+        """
+
+        # Create email
+        subject = 'Welcome to VibeMall - Registration Successful! 🎉'
+        from_email = settings.EMAIL_HOST_USER
+        to_email = user.email
+
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body=text_content,
+            from_email=from_email,
+            to=[to_email]
+        )
+        email.attach_alternative(html_content, "text/html")
+
+        # Generate and attach Terms & Conditions PDF if weasyprint is available
+        if pdf_generation_available:
+            try:
+                # Render Terms & Conditions HTML
+                terms_html = render_to_string('terms_and_conditions_pdf.html', context)
+
+                # Generate PDF from HTML
+                pdf_file = BytesIO()
+                HTML(string=terms_html).write_pdf(pdf_file)
+                pdf_file.seek(0)
+
+                # Attach PDF to email
+                email.attach(
+                    'VibeMall_Terms_and_Conditions.pdf',
+                    pdf_file.read(),
+                    'application/pdf'
+                )
+
+                logger.info(f"Terms & Conditions PDF generated and attached for {user.email}")
+            except Exception as pdf_error:
+                logger.error(f"Failed to generate/attach PDF for {user.email}: {str(pdf_error)}")
+                # Continue sending email without PDF
+
+        # Send email
+        email.send(fail_silently=False)
+
+        # Log successful email
+        EmailLog.objects.create(
+            user=user,
+            email_to=to_email,
+            email_type='WELCOME_EMAIL',
+            subject=subject,
+            sent_successfully=True
+        )
+
+        # Create in-app notification
+        Notification.objects.create(
+            user=user,
+            notification_type='WELCOME',
+            title='Welcome to VibeMall! 🎉',
+            message='Thank you for registering. Start exploring amazing products now!',
+            link='/shop/'
+        )
+
+        logger.info(f"Welcome email sent successfully to {to_email}")
+        return True
+
+    except Exception as e:
+        logger.error(f"Failed to send welcome email to {user.email}: {str(e)}")
+
+        try:
+            EmailLog.objects.create(
+                user=user,
+                email_to=user.email,
+                email_type='WELCOME_EMAIL',
+                subject='Welcome to VibeMall',
+                sent_successfully=False,
+                error_message=str(e)
+            )
+        except:
+            pass
+
+        return False
+
+
+
+
+def send_welcome_email_with_terms(user, request):
+    """
+    Send welcome email with Terms & Conditions PDF attachment
+    
+    Args:
+        user: User instance
+        request: Django request object for building absolute URLs
+    
+    Returns:
+        bool: True if email sent successfully, False otherwise
+    """
+    try:
+        from datetime import datetime
+        from io import BytesIO
+        
+        # Try to import weasyprint for PDF generation
+        try:
+            from weasyprint import HTML, CSS
+            pdf_generation_available = True
+        except ImportError:
+            logger.warning("WeasyPrint not installed. PDF will not be attached. Install with: pip install weasyprint")
+            pdf_generation_available = False
+        
+        # Get site URL
+        site_url = request.build_absolute_uri('/').rstrip('/')
+        shop_url = f"{site_url}/shop/"
+        
+        # Prepare context for templates
+        context = {
+            'user_name': user.first_name or user.username,
+            'username': user.username,
+            'email': user.email,
+            'registration_date': datetime.now().strftime('%B %d, %Y'),
+            'shop_url': shop_url,
+            'current_year': datetime.now().year,
+            'current_date': datetime.now().strftime('%B %d, %Y'),
+        }
+        
+        # Render welcome email HTML
+        html_content = render_to_string('emails/welcome_email.html', context)
+        
+        # Plain text fallback
+        text_content = f"""
+Welcome to VibeMall!
+
+Hello {context['user_name']}!
+
+Thank you for joining VibeMall! We're excited to have you as part of our community.
+
+Your Account Details:
+- Username: {user.username}
+- Email: {user.email}
+- Registration Date: {context['registration_date']}
+
+Start shopping now: {shop_url}
+
+What You Can Do:
+✓ Browse thousands of products
+✓ Add items to wishlist
+✓ Track your orders
+✓ Get exclusive deals and offers
+
+Need help? Contact us:
+Email: support@vibemall.com
+
+© {context['current_year']} VibeMall. All rights reserved.
+        """
+        
+        # Create email
+        subject = 'Welcome to VibeMall - Registration Successful! 🎉'
+        from_email = settings.EMAIL_HOST_USER
+        to_email = user.email
+        
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body=text_content,
+            from_email=from_email,
+            to=[to_email]
+        )
+        email.attach_alternative(html_content, "text/html")
+        
+        # Generate and attach Terms & Conditions PDF if weasyprint is available
+        if pdf_generation_available:
+            try:
+                # Render Terms & Conditions HTML
+                terms_html = render_to_string('terms_and_conditions_pdf.html', context)
+                
+                # Generate PDF from HTML
+                pdf_file = BytesIO()
+                HTML(string=terms_html).write_pdf(pdf_file)
+                pdf_file.seek(0)
+                
+                # Attach PDF to email
+                email.attach(
+                    'VibeMall_Terms_and_Conditions.pdf',
+                    pdf_file.read(),
+                    'application/pdf'
+                )
+                
+                logger.info(f"Terms & Conditions PDF generated and attached for {user.email}")
+            except Exception as pdf_error:
+                logger.error(f"Failed to generate/attach PDF for {user.email}: {str(pdf_error)}")
+                # Continue sending email without PDF
+        
+        # Send email
+        email.send(fail_silently=False)
+        
+        # Log successful email
+        EmailLog.objects.create(
+            user=user,
+            email_to=to_email,
+            email_type='WELCOME_EMAIL',
+            subject=subject,
+            sent_successfully=True
+        )
+        
+        # Create in-app notification
+        Notification.objects.create(
+            user=user,
+            notification_type='WELCOME',
+            title='Welcome to VibeMall! 🎉',
+            message='Thank you for registering. Start exploring amazing products now!',
+            link='/shop/'
+        )
+        
+        logger.info(f"Welcome email sent successfully to {to_email}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to send welcome email to {user.email}: {str(e)}")
+        
+        try:
+            EmailLog.objects.create(
+                user=user,
+                email_to=user.email,
+                email_type='WELCOME_EMAIL',
+                subject='Welcome to VibeMall',
+                sent_successfully=False,
+                error_message=str(e)
+            )
+        except:
+            pass
+        
+        return False

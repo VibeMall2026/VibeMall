@@ -1,0 +1,174 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Upload Reel Video - Admin Panel{% endblock %}
+
+{% block extra_css %}
+<style>
+  .upload-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .upload-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #2f3349;
+  }
+
+  .hint-box {
+    background: #eef5ff;
+    border: 1px solid #d8e7ff;
+    color: #1f4f91;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 18px;
+    font-size: 14px;
+  }
+
+  .video-thumb {
+    width: 90px;
+    height: 140px;
+    border-radius: 10px;
+    object-fit: cover;
+    border: 1px solid #e5e7eb;
+    background: #f8fafc;
+  }
+
+  .table td,
+  .table th {
+    vertical-align: middle;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'admin_product_list' %}">Products</a></li>
+      <li class="breadcrumb-item active">Upload Reel Video</li>
+    </ol>
+  </nav>
+
+  <div class="upload-card">
+    <h4 class="fw-bold mb-2">
+      <i class="bx bx-video me-2"></i>
+      Upload Ready Reel Video
+    </h4>
+    <p class="text-muted mb-3">Direct MP4 reel upload from your file. This reel will show in "Watch and Shop" section on home page.</p>
+
+    <div class="hint-box">
+      Recommended: vertical 9:16 video, MP4 format, and linked product required for product-details redirect.
+    </div>
+
+    <form method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Reel Title *</label>
+          <input type="text" name="title" class="form-control" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Linked Product *</label>
+          <select name="product_id" class="form-select" required>
+            <option value="">Select Product</option>
+            {% for product in products %}
+            <option value="{{ product.id }}">{{ product.name }} (#{{ product.id }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-12">
+          <label class="form-label">Description</label>
+          <textarea name="description" class="form-control" rows="3"></textarea>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Reel Video File *</label>
+          <input type="file" name="video_file" class="form-control" accept="video/mp4,video/*" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Thumbnail (Optional)</label>
+          <input type="file" name="thumbnail" class="form-control" accept="image/*">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Duration (seconds)</label>
+          <input type="number" name="duration" class="form-control" min="0" value="0">
+        </div>
+        <div class="col-12">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" name="is_published" id="isPublished" checked>
+            <label class="form-check-label" for="isPublished">Publish now</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <button type="submit" class="btn btn-primary">
+          <i class="bx bx-upload me-1"></i> Upload Reel
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div class="upload-card">
+    <div class="upload-title">Recent Uploaded Reels</div>
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Preview</th>
+            <th>Title</th>
+            <th>Product</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for reel in uploaded_reels %}
+          <tr>
+            <td>
+              {% if reel.thumbnail %}
+              <img src="{{ reel.thumbnail.url }}" alt="{{ reel.title }}" class="video-thumb">
+              {% elif reel.video_file %}
+              <video class="video-thumb" muted>
+                <source src="{{ reel.video_file.url }}" type="video/mp4">
+              </video>
+              {% endif %}
+            </td>
+            <td>{{ reel.title }}</td>
+            <td>
+              {% if reel.product %}
+              {{ reel.product.name }}
+              {% else %}
+              <span class="text-muted">Not linked</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if reel.is_published %}
+              <span class="badge bg-label-success">Published</span>
+              {% else %}
+              <span class="badge bg-label-warning">Draft</span>
+              {% endif %}
+            </td>
+            <td>{{ reel.created_at|date:"M d, Y H:i" }}</td>
+            <td>
+              <a href="{% url 'admin_edit_reel' reel.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-muted py-4">No reel videos uploaded yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

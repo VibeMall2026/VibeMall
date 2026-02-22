@@ -6,6 +6,10 @@
 
 {% block title %}Home - VibeMall{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'assets/css/index-responsive.css' %}?v=20260222-06">
+{% endblock %}
+
 {% block content %}
 
 <style>
@@ -352,6 +356,66 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof Swiper === 'undefined') return;
+    document.querySelectorAll('.mobile-products-swiper').forEach(function (swiperElement) {
+        if (swiperElement.swiper) return;
+        new Swiper(swiperElement, {
+            slidesPerView: 2.1,
+            spaceBetween: 10,
+            speed: 500,
+            autoHeight: true,
+            observer: true,
+            observeParents: true,
+            breakpoints: {
+                576: {
+                    slidesPerView: 2.4,
+                    spaceBetween: 12
+                },
+                768: {
+                    slidesPerView: 3,
+                    spaceBetween: 14
+                }
+            }
+        });
+    });
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof Swiper === 'undefined') return;
+    document.querySelectorAll('.watch-shop-swiper').forEach(function (swiperElement) {
+        if (swiperElement.swiper) return;
+        const section = swiperElement.closest('.watch-shop-area');
+        if (!section) return;
+
+        new Swiper(swiperElement, {
+            slidesPerView: 1.15,
+            spaceBetween: 14,
+            speed: 550,
+            navigation: {
+                nextEl: section.querySelector('.watch-shop-next'),
+                prevEl: section.querySelector('.watch-shop-prev')
+            },
+            breakpoints: {
+                576: {
+                    slidesPerView: 1.6,
+                    spaceBetween: 16
+                },
+                768: {
+                    slidesPerView: 2.2,
+                    spaceBetween: 18
+                },
+                1200: {
+                    slidesPerView: 3,
+                    spaceBetween: 20
+                }
+            }
+        });
+    });
+});
+</script>
 
 <div class="slider-area">
     <div class="swiper-container slider__active">
@@ -509,6 +573,52 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 
+
+{% if watch_shop_reels %}
+<section class="watch-shop-area pt-10 pb-20">
+    <div class="container">
+        <div class="watch-shop-head">
+            <h3>Watch and Shop</h3>
+            <div class="watch-shop-nav">
+                <button type="button" class="watch-shop-prev" aria-label="Previous">
+                    <i class="fal fa-angle-left"></i>
+                </button>
+                <button type="button" class="watch-shop-next" aria-label="Next">
+                    <i class="fal fa-angle-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="swiper watch-shop-swiper">
+            <div class="swiper-wrapper">
+                {% for reel in watch_shop_reels %}
+                <div class="swiper-slide">
+                    <article class="watch-shop-card">
+                        <a class="watch-shop-media" href="{% url 'product-details' reel.product.id %}">
+                            <video
+                                muted
+                                loop
+                                autoplay
+                                playsinline
+                                preload="metadata"
+                                {% if reel.thumbnail %}poster="{{ reel.thumbnail.url }}"{% endif %}>
+                                <source src="{{ reel.video_file.url }}" type="video/mp4">
+                            </video>
+                        </a>
+                        <div class="watch-shop-content">
+                            <h6>
+                                <a href="{% url 'product-details' reel.product.id %}">{{ reel.product.name|truncatechars:56 }}</a>
+                            </h6>
+                            <a class="watch-shop-btn" href="{% url 'product-details' reel.product.id %}">View Product</a>
+                        </div>
+                    </article>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
 
 <section class="topsell__area-1 pt-15 top-deals-section">
     <div class="container">
@@ -703,6 +813,29 @@ document.addEventListener('DOMContentLoaded', function () {
     </div>
 </section>
 
+<!-- TOP DEALS MOBILE/TABLET SWIPER -->
+<section class="topsell__area-1 pt-15 mobile-products-section top-deals-mobile-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-xl-12">
+                <div class="section__head mb-20">
+                    <div class="section__title text-center">
+                        <h5 class="st-titile-d">Top Deals Of The Day</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="swiper mobile-products-swiper top-deals-mobile-swiper">
+            <div class="swiper-wrapper">
+                {% for product in top_deals|slice:":10" %}
+                    {% include 'partials/mobile_product_swiper_card.html' with product=product %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- TOP SELLING PRODUCTS SECTION -->
 <section class="topsell__area-1 pt-15 top-selling-section">
     <div class="container">
@@ -830,6 +963,29 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
             </div>
             {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- BEST SELLER MOBILE/TABLET SWIPER -->
+<section class="topsell__area-1 pt-15 mobile-products-section best-seller-mobile-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-xl-12">
+                <div class="section__head mb-20">
+                    <div class="section__title text-center">
+                        <h5 class="st-titile-d">Best Seller</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="swiper mobile-products-swiper best-seller-mobile-swiper">
+            <div class="swiper-wrapper">
+                {% for product in top_selling|slice:":10" %}
+                    {% include 'partials/mobile_product_swiper_card.html' with product=product %}
+                {% endfor %}
+            </div>
         </div>
     </div>
 </section>
@@ -1140,6 +1296,29 @@ document.addEventListener('DOMContentLoaded', function () {
     </div>
 </section>
 
+<!-- TOP FEATURED MOBILE/TABLET SWIPER -->
+<section class="topsell__area-1 pt-15 mobile-products-section top-featured-mobile-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-xl-12">
+                <div class="section__head mb-20">
+                    <div class="section__title text-center">
+                        <h5 class="st-titile-d">Top Featured Products</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="swiper mobile-products-swiper top-featured-mobile-swiper">
+            <div class="swiper-wrapper">
+                {% for product in top_featured|slice:":10" %}
+                    {% include 'partials/mobile_product_swiper_card.html' with product=product %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+
 
         
 
@@ -1271,6 +1450,30 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
             </div>
             {% endfor %}
+        </div>
+    </div>
+</section>
+
+
+<!-- RECOMMENDED MOBILE/TABLET SWIPER -->
+<section class="topsell__area-1 pt-15 mobile-products-section recommended-mobile-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-xl-12">
+                <div class="section__head mb-20">
+                    <div class="section__title text-center">
+                        <h5 class="st-titile-d">Recommended For You</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="swiper mobile-products-swiper recommended-mobile-swiper">
+            <div class="swiper-wrapper">
+                {% for product in recommended|slice:":10" %}
+                    {% include 'partials/mobile_product_swiper_card.html' with product=product %}
+                {% endfor %}
+            </div>
         </div>
     </div>
 </section>
@@ -1639,16 +1842,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Success Notification Function
     function showSuccessNotification(message) {
         const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-success alert-dismissible fade show';
+        alertDiv.className = 'alert alert-success alert-dismissible fade show vm-floating-alert';
         alertDiv.setAttribute('role', 'alert');
-        alertDiv.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            min-width: 300px;
-            z-index: 9999;
-            animation: slideIn 0.3s ease;
-        `;
         alertDiv.innerHTML = `
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -1665,16 +1860,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Error Notification Function
     function showErrorNotification(message) {
         const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+        alertDiv.className = 'alert alert-danger alert-dismissible fade show vm-floating-alert';
         alertDiv.setAttribute('role', 'alert');
-        alertDiv.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            min-width: 300px;
-            z-index: 9999;
-            animation: slideIn 0.3s ease;
-        `;
         alertDiv.innerHTML = `
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>

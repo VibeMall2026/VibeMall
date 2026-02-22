@@ -1,0 +1,67 @@
+{% load static %}
+{% load custom_filters %}
+
+<div class="swiper-slide">
+    <article class="best-seller-card">
+        <div class="best-seller-card__thumb">
+            <a href="{% url 'product-details' product.id %}">
+                {% if product.image %}
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                {% else %}
+                    <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}">
+                {% endif %}
+            </a>
+            <div class="best-seller-card__actions">
+                <button
+                    type="button"
+                    class="action-btn best-seller-action-btn"
+                    title="Quick view"
+                    data-bs-toggle="modal"
+                    data-bs-target="#productQuickView"
+                    data-product-name="{{ product.name }}"
+                    data-product-price="{{ product.price }}"
+                    data-product-old-price="{{ product.old_price|default_if_none:'' }}"
+                    data-product-image="{% if product.image %}{{ product.image.url }}{% else %}{% static 'assets/img/product/tp-1.jpg' %}{% endif %}"
+                    data-product-rating="{% with stats=product_stats|get_item:product.id %}{% if stats %}{{ stats.avg_rating }}{% else %}{{ product.rating }}{% endif %}{% endwith %}"
+                    data-product-reviews="{% with stats=product_stats|get_item:product.id %}{% if stats %}{{ stats.review_count }}{% else %}{{ product.review_count }}{% endif %}{% endwith %}"
+                    data-product-link="{% url 'product-details' product.id %}"
+                    data-product-stock="{{ product.stock }}"
+                    onclick="openQuickView(this)">
+                    <i class="fal fa-eye"></i>
+                </button>
+                <button
+                    type="button"
+                    class="action-btn best-seller-action-btn wishlist-btn {% if product.id in wishlist_product_ids %}wishlisted{% endif %}"
+                    title="Add to wishlist"
+                    data-product-id="{{ product.id }}"
+                    data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
+                    onclick="handleWishlistClick(this)">
+                    <i class="{% if product.id in wishlist_product_ids %}fas{% else %}fal{% endif %} fa-heart"></i>
+                </button>
+                <button
+                    type="button"
+                    class="action-btn best-seller-action-btn cart-btn {% if product.id in cart_product_ids %}in-cart{% endif %}"
+                    title="{% if product.id in cart_product_ids %}Remove from cart{% else %}Add to cart{% endif %}"
+                    data-product-id="{{ product.id }}"
+                    data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
+                    onclick="handleCartClick(this)"
+                    {% if product.stock == 0 %}disabled{% endif %}>
+                    <i class="{% if product.id in cart_product_ids %}fas{% else %}fal{% endif %} fa-shopping-cart"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="best-seller-card__content">
+            <h6>
+                <a href="{% url 'product-details' product.id %}">{{ product.name }}</a>
+            </h6>
+            <div class="best-seller-card__price">
+                {% if product.old_price %}
+                    <span><del>₹{{ product.old_price }}</del> ₹{{ product.price }}</span>
+                {% else %}
+                    <span>₹{{ product.price }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </article>
+</div>

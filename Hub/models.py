@@ -1371,6 +1371,14 @@ class Reel(models.Model):
     """Reels/Videos for social media and website"""
     title = models.CharField(max_length=200, help_text="Reel title")
     description = models.TextField(blank=True, help_text="Reel description")
+    product = models.ForeignKey(
+        'Product',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='watch_shop_reels',
+        help_text="Linked product for watch-and-shop redirect"
+    )
     video_file = models.FileField(upload_to='reels/', blank=True, null=True, help_text="Generated video file")
     thumbnail = models.ImageField(upload_to='reels/thumbnails/', blank=True, null=True, help_text="Video thumbnail")
     duration = models.IntegerField(default=0, help_text="Duration in seconds")

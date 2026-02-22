@@ -783,16 +783,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Show success notification
     function showSuccessNotification(message) {
         const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-success alert-dismissible fade show';
+        alertDiv.className = 'alert alert-success alert-dismissible fade show vm-floating-alert';
         alertDiv.setAttribute('role', 'alert');
-        alertDiv.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            min-width: 300px;
-            z-index: 9999;
-            animation: slideIn 0.3s ease;
-        `;
         alertDiv.innerHTML = `
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -808,16 +800,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Show error notification
     function showErrorNotification(message) {
         const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+        alertDiv.className = 'alert alert-danger alert-dismissible fade show vm-floating-alert';
         alertDiv.setAttribute('role', 'alert');
-        alertDiv.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            min-width: 300px;
-            z-index: 9999;
-            animation: slideIn 0.3s ease;
-        `;
         alertDiv.innerHTML = `
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
