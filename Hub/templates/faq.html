@@ -6,6 +6,10 @@
 
 {% block title %}FAQs - VibeMall{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'assets/css/faq-responsive.css' %}?v=20260222-01">
+{% endblock %}
+
 {% block content %}
 
     <main>
@@ -44,43 +48,43 @@
                     <div class="col-lg-6">
                         <div class="single-faqs mb-40">
                             <div class="faq-title">
-                                <h5>Order and Returns</h5>
+                                <h5>Orders, Tracking & Returns</h5>
                             </div>
                             <div class="faq-content mt-10">
                                 <div class="accordion" id="accordionExample1">
                                       <div class="accordion-item">
                                          <h2 class="accordion-header" id="headingOne">
                                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
-                                                Can I order over the phone?
+                                                How do I place an order on VibeMall?
                                             </button>
                                          </h2>
-                                         <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
+                                         <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample1">
                                             <div class="accordion-body">
-                                            <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. </p>
+                                            <p>Select your product, click Add to Cart, proceed to Checkout, fill shipping details, choose payment method, and confirm your order. You will receive an order confirmation after successful placement.</p>
                                             </div>
                                          </div>
                                       </div>
                                       <div class="accordion-item">
                                          <h2 class="accordion-header" id="headingTwo">
                                             <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
-                                                Donec mattis finibus elit ut tristique?
+                                                How can I track my order status?
                                             </button>
                                          </h2>
-                                         <div id="collapseTwo" class="accordion-collapse collapse show" aria-labelledby="headingTwo" data-bs-parent="#accordionExample">
+                                         <div id="collapseTwo" class="accordion-collapse collapse show" aria-labelledby="headingTwo" data-bs-parent="#accordionExample1">
                                             <div class="accordion-body">
-                                            <p>The perfect way to enjoy brewing tea on low hanging fruit to identify. Duis autem vel eum iriure dolor in hendrerit in vulputate velit esse molestie consequat, vel illum dolore eu feugiat nulla facilisis. For me, the most important part of improving at photography has been sharing it.</p>
+                                            <p>Go to My Orders and open the order details to see live status updates. If a tracking number is available, it will be shown there once your order is shipped.</p>
                                             </div>
                                          </div>
                                       </div>
                                       <div class="accordion-item">
                                          <h2 class="accordion-header" id="headingThree">
                                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
-                                                Vestibulum a lorem placerat, porttitor urna vel?
+                                                What is your return policy?
                                             </button>
                                          </h2>
-                                         <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#accordionExample">
+                                         <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#accordionExample1">
                                             <div class="accordion-body">
-                                            <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. </p>
+                                            <p>Return eligibility depends on the product. Items marked as No Return cannot be returned. For returnable products, request within the allowed return window and keep product in original condition with tags and packaging.</p>
                                             </div>
                                          </div>
                                       </div>
@@ -91,43 +95,43 @@
                     <div class="col-lg-6">
                         <div class="single-faqs mb-40">
                             <div class="faq-title">
-                                <h5>Ordering from AYO</h5>
+                                <h5>Payments, Shipping & Support</h5>
                             </div>
                             <div class="faq-content mt-10">
                                 <div class="accordion" id="accordionExample2">
                                       <div class="accordion-item">
                                          <h2 class="accordion-header" id="heading1">
                                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1" aria-expanded="false" aria-controls="collapse1">
-                                            What is the rules of Payment?
+                                            Which payment methods are available?
                                             </button>
                                          </h2>
-                                         <div id="collapse1" class="accordion-collapse collapse" aria-labelledby="heading1" data-bs-parent="#accordionExample">
+                                         <div id="collapse1" class="accordion-collapse collapse" aria-labelledby="heading1" data-bs-parent="#accordionExample2">
                                             <div class="accordion-body">
-                                            <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. </p>
+                                            <p>We currently support Cash on Delivery (COD) and secure online payment via Razorpay, including cards, UPI, net banking, and supported wallets.</p>
                                             </div>
                                          </div>
                                       </div>
                                       <div class="accordion-item">
                                          <h2 class="accordion-header" id="heading2">
-                                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2" aria-expanded="true" aria-controls="collapseTwo">
-                                                How musch i need to pay?
+                                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2" aria-expanded="true" aria-controls="collapse2">
+                                                What are your shipping charges?
                                             </button>
                                          </h2>
-                                         <div id="collapse2" class="accordion-collapse collapse show" aria-labelledby="heading2" data-bs-parent="#accordionExample">
+                                         <div id="collapse2" class="accordion-collapse collapse show" aria-labelledby="heading2" data-bs-parent="#accordionExample2">
                                             <div class="accordion-body">
-                                            <p>The perfect way to enjoy brewing tea on low hanging fruit to identify. Duis autem vel eum iriure dolor in hendrerit in vulputate velit esse molestie consequat, vel illum dolore eu feugiat nulla facilisis. For me, the most important part of improving at photography has been sharing it.</p>
+                                            <p>Shipping is free on qualifying higher-value orders. For smaller orders, a standard shipping fee may apply at checkout based on your cart total and delivery location.</p>
                                             </div>
                                          </div>
                                       </div>
                                       <div class="accordion-item">
                                          <h2 class="accordion-header" id="heading3">
                                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3" aria-expanded="false" aria-controls="collapse3">
-                                                Nam pellentesque aliquam metus?
+                                                When will I receive my refund and how can I contact support?
                                             </button>
                                          </h2>
-                                         <div id="collapse3" class="accordion-collapse collapse" aria-labelledby="heading3" data-bs-parent="#accordionExample">
+                                         <div id="collapse3" class="accordion-collapse collapse" aria-labelledby="heading3" data-bs-parent="#accordionExample2">
                                             <div class="accordion-body">
-                                            <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. </p>
+                                            <p>Refunds are usually processed within 7-14 business days after return approval. For help with orders, returns, or payments, use the support chat on the website or contact us at support@vibemall.com.</p>
                                             </div>
                                          </div>
                                       </div>
@@ -169,18 +173,6 @@
                                     <input type="email" placeholder="Enter your email here...">
                                     <button>subscribe</button>
                                 </form>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-4 col-md-6">
-                        <div class="cta-item mb-30">
-                            <h5 class="cta-title">Download App</h5>
-                            <p>DukaMarket App is now available on App Store & Google Play. Get it now.</p>
-                            <div class="cta-apps">
-                                <div class="apps-store">
-                                    <a href="#"><img src="{% static 'assets/img/brand/app_ios.png'%}" alt=""></a>
-                                    <a href="#"><img src="{% static 'assets/img/brand/app_android.png'%}" alt=""></a>
-                                </div>
                             </div>
                         </div>
                     </div>
