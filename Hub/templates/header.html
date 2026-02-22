@@ -100,16 +100,16 @@
                                         <i class="flaticon-user profile-icon"></i>
                                     {% endif %}
                                     <span class="text">
-                                        <span class="sub">{{ user.username }}</span>
-                                        My Account
+                                        <span class="sub">VibeMall</span>
+                                        <span class="main-label">My Account</span>
                                     </span>
                                 </a>
                             {% else %}
                                 <a class="icon-link" href="{% url 'login' %}">
                                     <i class="flaticon-user profile-icon"></i>
                                     <span class="text">
-                                        <span class="sub">Login</span>
-                                        My Account
+                                        <span class="sub">VibeMall</span>
+                                        <span class="main-label">My Account</span>
                                     </span>
                                 </a>
                             {% endif %}
@@ -121,7 +121,8 @@
                                 <span class="count wishlist-count">{{ wishlist_count|default:"0" }}</span>
                                 <span class="text">
                                 <span class="sub">Favorite</span>
-                                My Wishlist </span>
+                                <span class="main-label">My Wishlist</span>
+                                </span>
                                 </a>
                             </div>
                             <div class="block-cart action">
@@ -130,7 +131,8 @@
                                 <span class="count cart-count">{{ cart_count }}</span>
                                 <span class="text">
                                 <span class="sub">Your Cart:</span>
-                                &#8377;<span class="cart-total">{{ cart_total|default:"0.00" }}</span> </span>
+                                <span class="main-label">&#8377;<span class="cart-total">{{ cart_total|default:"0.00" }}</span></span>
+                                </span>
                                 </a>
                                 <div class="cart">
                                     <div class="cart__mini" id="miniCartContent">
