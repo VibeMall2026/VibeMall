@@ -1349,8 +1349,35 @@ class Reel(models.Model):
     
     # Configuration
     duration_per_image = models.IntegerField(default=3, help_text="Seconds per image")
-    transition_type = models.CharField(max_length=20, default='fade', help_text="Transition effect")
+    transition_type = models.CharField(
+        max_length=20, 
+        default='zoom', 
+        choices=[
+            ('fade', 'Fade'),
+            ('zoom', 'Zoom In'),
+            ('slide', 'Slide'),
+            ('none', 'None')
+        ],
+        help_text="Transition effect"
+    )
     background_music = models.FileField(upload_to='reels/music/', blank=True, null=True, help_text="Background music (optional)")
+    
+    # Branding
+    watermark_logo = models.ImageField(upload_to='reels/logos/', blank=True, null=True, help_text="Watermark logo (transparent PNG)")
+    watermark_position = models.CharField(
+        max_length=20,
+        default='top-right',
+        choices=[
+            ('top-left', 'Top Left'),
+            ('top-right', 'Top Right'),
+            ('bottom-left', 'Bottom Left'),
+            ('bottom-right', 'Bottom Right')
+        ],
+        help_text="Watermark position"
+    )
+    watermark_opacity = models.FloatField(default=0.7, help_text="Watermark opacity (0.0 to 1.0)")
+    add_end_screen = models.BooleanField(default=True, help_text="Add branded end screen with logo")
+    end_screen_duration = models.IntegerField(default=3, help_text="End screen duration in seconds")
     
     # Status
     is_published = models.BooleanField(default=False, help_text="Publish on website")

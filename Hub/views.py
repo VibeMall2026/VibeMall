@@ -8070,8 +8070,15 @@ def admin_add_reel(request):
         title = request.POST.get('title', '').strip()
         description = request.POST.get('description', '').strip()
         duration_per_image = request.POST.get('duration_per_image', 3)
-        transition_type = request.POST.get('transition_type', 'fade')
+        transition_type = request.POST.get('transition_type', 'zoom')
         background_music = request.FILES.get('background_music')
+        
+        # Branding fields
+        watermark_logo = request.FILES.get('watermark_logo')
+        watermark_position = request.POST.get('watermark_position', 'top-right')
+        watermark_opacity = request.POST.get('watermark_opacity', 0.7)
+        add_end_screen = request.POST.get('add_end_screen') == 'on'
+        end_screen_duration = request.POST.get('end_screen_duration', 3)
         
         if not title:
             messages.error(request, 'Title is required')
@@ -8084,16 +8091,34 @@ def admin_add_reel(request):
         except:
             duration_per_image = 3
         
+        try:
+            watermark_opacity = float(watermark_opacity)
+        except:
+            watermark_opacity = 0.7
+        
+        try:
+            end_screen_duration = int(end_screen_duration)
+        except:
+            end_screen_duration = 3
+        
         reel = Reel.objects.create(
             title=title,
             description=description,
             duration_per_image=duration_per_image,
             transition_type=transition_type,
+            watermark_position=watermark_position,
+            watermark_opacity=watermark_opacity,
+            add_end_screen=add_end_screen,
+            end_screen_duration=end_screen_duration,
             created_by=request.user
         )
         
         if background_music:
             reel.background_music = background_music
+            reel.save()
+        
+        if watermark_logo:
+            reel.watermark_logo = watermark_logo
             reel.save()
         
         # Handle multiple image uploads
@@ -8119,7 +8144,7 @@ def admin_add_reel(request):
                 text_size=text_size
             )
         
-        messages.success(request, f'Reel "{title}" created successfully!')
+        messages.success(request, f'✨ Professional reel "{title}" created successfully!')
         return redirect('admin_edit_reel', reel_id=reel.id)
     
     return render(request, 'admin_panel/add_reel.html')
@@ -8142,11 +8167,27 @@ def admin_edit_reel(request, reel_id):
         except:
             reel.duration_per_image = 3
         
-        reel.transition_type = request.POST.get('transition_type', 'fade')
+        reel.transition_type = request.POST.get('transition_type', 'zoom')
         reel.is_published = request.POST.get('is_published') == 'on'
+        
+        # Branding fields
+        reel.watermark_position = request.POST.get('watermark_position', 'top-right')
+        try:
+            reel.watermark_opacity = float(request.POST.get('watermark_opacity', 0.7))
+        except:
+            reel.watermark_opacity = 0.7
+        
+        reel.add_end_screen = request.POST.get('add_end_screen') == 'on'
+        try:
+            reel.end_screen_duration = int(request.POST.get('end_screen_duration', 3))
+        except:
+            reel.end_screen_duration = 3
         
         if 'background_music' in request.FILES:
             reel.background_music = request.FILES['background_music']
+        
+        if 'watermark_logo' in request.FILES:
+            reel.watermark_logo = request.FILES['watermark_logo']
         
         reel.save()
         
@@ -8175,7 +8216,7 @@ def admin_edit_reel(request, reel_id):
                     text_size=text_size
                 )
         
-        messages.success(request, f'Reel "{reel.title}" updated successfully!')
+        messages.success(request, f'✅ Reel "{reel.title}" updated successfully!')
         return redirect('admin_edit_reel', reel_id=reel.id)
     
     context = {
@@ -8193,10 +8234,16 @@ def admin_delete_reel(request, reel_id):
     from Hub.models import Reel
     
     reel = get_object_or_404(Reel, id=reel_id)
+    
+    # Prevent deletion of published reels
+    if reel.is_published:
+        messages.error(request, f'❌ Cannot delete published reel "{reel.title}". Unpublish it first.')
+        return redirect('admin_reels')
+    
     title = reel.title
     reel.delete()
     
-    messages.success(request, f'Reel "{title}" deleted successfully!')
+    messages.success(request, f'✅ Reel "{title}" deleted successfully!')
     return redirect('admin_reels')
 
 
@@ -8205,7 +8252,7 @@ def admin_delete_reel(request, reel_id):
 def admin_generate_reel(request, reel_id):
     """Generate video from reel images"""
     from Hub.models import Reel
-    from Hub.reel_generator import ReelGenerator
+    from Hub.reel_generator_v2 import EnhancedReelGenerator
     import traceback
     
     reel = get_object_or_404(Reel, id=reel_id)
@@ -8222,20 +8269,22 @@ def admin_generate_reel(request, reel_id):
     
     try:
         print(f"\n{'='*60}")
-        print(f"🎬 Starting reel generation: {reel.title} (ID: {reel.id})")
+        print(f"🎬 Starting enhanced reel generation: {reel.title} (ID: {reel.id})")
         print(f"   Images: {reel.images.count()}")
-        print(f"   Duration per image: {reel.duration_per_image}s")
+        print(f"   Animation: {reel.transition_type}")
+        print(f"   Watermark: {'Yes' if reel.watermark_logo else 'No'}")
+        print(f"   End Screen: {'Yes' if reel.add_end_screen else 'No'}")
         print(f"{'='*60}\n")
         
-        # Generate reel
-        generator = ReelGenerator(reel)
+        # Generate reel with enhanced generator
+        generator = EnhancedReelGenerator(reel)
         success = generator.generate_video()
         
         if success:
-            print(f"\n✅ SUCCESS: Reel generated successfully!")
+            print(f"\n✅ SUCCESS: Professional reel generated!")
             print(f"   Video file: {reel.video_file.name if reel.video_file else 'None'}")
             print(f"   Duration: {reel.duration}s\n")
-            messages.success(request, f'✅ Reel "{reel.title}" generated successfully!')
+            messages.success(request, f'✅ Professional reel "{reel.title}" generated successfully!')
         else:
             print(f"\n❌ FAILED: Video generation returned False")
             print(f"   Check error messages above\n")

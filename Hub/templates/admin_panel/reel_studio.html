@@ -1,0 +1,59 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Reel Studio - Professional Video Creator{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@400;700&family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+<style>
+    * { box-sizing: border-box; }
+    
+    body { 
+        font-family: 'Poppins', sans-serif;
+        overflow: hidden;
+    }
+    
+    .studio-container {
+        display: flex;
+        height: calc(100vh - 70px);
+        background: #1a1a2e;
+        color: white;
+    }
+    
+    /* Left Sidebar - Tools */
+    .tools-sidebar {
+        width: 80px;
+        background: #16213e;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px 0;
+        border-right: 1px solid #0f3460;
+    }
+    
+    .tool-btn {
+        width: 50px;
+        height: 50px;
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        font-size: 24px;
+        cursor: pointer;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        transition: all 0.3s;
+        position: relative;
+    }
+    
+    .tool-btn:hover, .tool-btn.active {
+        background: #0f3460;
+        color: #696cff;
+    }
+    
+    .tool-btn .tooltip {
+        position: absolute;
+        left: 70px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: #0f3460;
+        padding: 5px 10px;

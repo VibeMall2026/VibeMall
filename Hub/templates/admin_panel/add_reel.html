@@ -344,11 +344,12 @@
                 <div class="form-group">
                     <label class="form-label">Transition Effect</label>
                     <select name="transition_type" class="form-select">
-                        <option value="fade" selected>Fade (Recommended)</option>
-                        <option value="crossfade">Crossfade</option>
+                        <option value="zoom" selected>Zoom In (Recommended) ✨</option>
+                        <option value="fade">Fade</option>
+                        <option value="slide">Slide</option>
                         <option value="none">No Transition</option>
                     </select>
-                    <small class="text-muted">Effect between images</small>
+                    <small class="text-muted">Animation effect for images</small>
                 </div>
                 
                 <div class="form-group">
@@ -360,6 +361,62 @@
                     </select>
                     <small class="text-muted">Higher quality = larger file size</small>
                 </div>
+            </div>
+        </div>
+
+        <!-- Branding & Watermark -->
+        <div class="reel-form-card">
+            <div class="section-title">
+                <i class="fas fa-copyright"></i>
+                Branding & Watermark
+            </div>
+            
+            <div class="settings-grid">
+                <div class="form-group">
+                    <label class="form-label">Watermark Logo</label>
+                    <input type="file" name="watermark_logo" class="form-control" accept="image/png">
+                    <small class="text-muted">Upload transparent PNG logo (will appear throughout video)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Watermark Position</label>
+                    <select name="watermark_position" class="form-select">
+                        <option value="top-right" selected>Top Right (Recommended)</option>
+                        <option value="top-left">Top Left</option>
+                        <option value="bottom-right">Bottom Right</option>
+                        <option value="bottom-left">Bottom Left</option>
+                    </select>
+                    <small class="text-muted">Where to place the watermark</small>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Watermark Opacity</label>
+                    <select name="watermark_opacity" class="form-select">
+                        <option value="0.5">50% (Subtle)</option>
+                        <option value="0.7" selected>70% (Recommended)</option>
+                        <option value="0.9">90% (Bold)</option>
+                        <option value="1.0">100% (Full)</option>
+                    </select>
+                    <small class="text-muted">Transparency level</small>
+                </div>
+            </div>
+            
+            <div class="form-check mt-3">
+                <input class="form-check-input" type="checkbox" name="add_end_screen" id="addEndScreen" checked>
+                <label class="form-check-label" for="addEndScreen">
+                    <strong>Add Branded End Screen</strong>
+                    <small class="d-block text-muted">Show VibeMall logo with gradient background at the end</small>
+                </label>
+            </div>
+            
+            <div class="form-group mt-3" id="endScreenDuration">
+                <label class="form-label">End Screen Duration</label>
+                <select name="end_screen_duration" class="form-select">
+                    <option value="2">2 seconds</option>
+                    <option value="3" selected>3 seconds (Recommended)</option>
+                    <option value="4">4 seconds</option>
+                    <option value="5">5 seconds</option>
+                </select>
             </div>
         </div>
 
@@ -546,35 +603,41 @@
         document.getElementById('progressContainer').style.display = 'block';
         simulateProgress();
         
-        // Create hidden inputs for image data
+        // Create FormData to properly handle file uploads
         const form = this;
+        const formData = new FormData(form);
         
-        // Remove old hidden inputs if any
-        form.querySelectorAll('.dynamic-image-input').forEach(input => input.remove());
+        // Remove old image inputs
+        form.querySelectorAll('input[name="images"]').forEach(input => input.remove());
         
-        // Add image files and metadata as form data
+        // Add images with correct name
         uploadedImages.forEach((image, index) => {
-            // Create file input
+            // Create file input with name "images" (multiple)
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
-            fileInput.name = `image_${index}_file`;
-            fileInput.className = 'dynamic-image-input';
+            fileInput.name = 'images';
             fileInput.style.display = 'none';
             
-            // Create a DataTransfer to hold the file
+            // Create DataTransfer to hold the file
             const dataTransfer = new DataTransfer();
             dataTransfer.items.add(image.file);
             fileInput.files = dataTransfer.files;
             
             form.appendChild(fileInput);
             
-            // Add metadata
-            ['text', 'position', 'color', 'size', 'order'].forEach(field => {
+            // Add metadata with indexed names
+            const metadataFields = {
+                [`text_overlay_${index}`]: image.text,
+                [`text_position_${index}`]: image.position,
+                [`text_color_${index}`]: image.color,
+                [`text_size_${index}`]: image.size
+            };
+            
+            Object.entries(metadataFields).forEach(([name, value]) => {
                 const input = document.createElement('input');
                 input.type = 'hidden';
-                input.name = `image_${index}_${field}`;
-                input.value = image[field];
-                input.className = 'dynamic-image-input';
+                input.name = name;
+                input.value = value;
                 form.appendChild(input);
             });
         });

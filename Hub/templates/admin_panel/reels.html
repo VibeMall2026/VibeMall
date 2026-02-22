@@ -354,9 +354,15 @@
                             <i class="fas fa-edit"></i> Edit
                         </button>
                         
-                        <button class="btn-action btn-delete" onclick="deleteReel({{ reel.id }}, '{{ reel.title|escapejs }}')">
-                            <i class="fas fa-trash"></i> Delete
-                        </button>
+                        {% if reel.is_published %}
+                            <button class="btn-action btn-delete" disabled style="opacity: 0.5; cursor: not-allowed;" title="Unpublish first to delete">
+                                <i class="fas fa-lock"></i> Protected
+                            </button>
+                        {% else %}
+                            <button class="btn-action btn-delete" onclick="deleteReel({{ reel.id }}, '{{ reel.title|escapejs }}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        {% endif %}
                     </div>
                 </div>
             </div>
