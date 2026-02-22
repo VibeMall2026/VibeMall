@@ -247,7 +247,13 @@
                                 <ul>
                                     <li><a href="#"><i class="fas fa-circle"></i> High Quality Product</a></li>
                                     <li><a href="#"><i class="fas fa-circle"></i> Fast Shipping Available</a></li>
-                                    <li><a href="#"><i class="fas fa-circle"></i> Easy Returns & Exchanges</a></li>
+                                    
+                                    {% if product.is_returnable %}
+                                        <li><a href="#" style="color: #28a745;"><i class="fas fa-circle"></i> {{ product.return_days }} Days Easy Returns</a></li>
+                                    {% else %}
+                                        <li><a href="#" style="color: #dc3545;"><i class="fas fa-circle"></i> No Return Available</a></li>
+                                    {% endif %}
+                                    
                                     <li><a href="#"><i class="fas fa-circle"></i> 100% Authentic Guarantee</a></li>
                                 </ul>
                             </div>
@@ -371,6 +377,40 @@
                                   <span>{{ product.brand }}</span>
                                </li>
                                {% endif %}
+                               
+                               <!-- Return Policy -->
+                               <li>
+                                  <h6>Return Policy</h6>
+                                  <span>
+                                      {% if product.is_returnable %}
+                                          <span style="color: #28a745;">
+                                              <i class="fal fa-check-circle"></i> {{ product.return_days }} Days Return Available
+                                          </span>
+                                      {% else %}
+                                          <span style="color: #dc3545;">
+                                              <i class="fal fa-times-circle"></i> No Return Available
+                                          </span>
+                                      {% endif %}
+                                  </span>
+                               </li>
+                               
+                               <!-- Payment Methods -->
+                               <li>
+                                  <h6>Payment Methods</h6>
+                                  <span>
+                                      {% for method in product.get_payment_methods_list %}
+                                          {% if method == 'COD' %}
+                                              <span class="badge bg-success me-1"><i class="fal fa-money-bill"></i> Cash on Delivery</span>
+                                          {% elif method == 'ONLINE' %}
+                                              <span class="badge bg-primary me-1"><i class="fal fa-credit-card"></i> Online Payment</span>
+                                          {% elif method == 'UPI' %}
+                                              <span class="badge bg-info me-1"><i class="fal fa-mobile"></i> UPI</span>
+                                          {% elif method == 'CARD' %}
+                                              <span class="badge bg-warning me-1"><i class="fal fa-credit-card-front"></i> Card</span>
+                                          {% endif %}
+                                      {% endfor %}
+                                  </span>
+                               </li>
                             </ul>
                          </div>
                          

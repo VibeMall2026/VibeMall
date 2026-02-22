@@ -270,6 +270,18 @@ class Product(models.Model):
     care_info = models.TextField(blank=True, help_text="Care instructions")
     tags = models.CharField(max_length=200, blank=True, help_text="Comma-separated tags")
     
+    # Return & Payment Policy
+    is_returnable = models.BooleanField(default=True, help_text="Can this product be returned?")
+    return_days = models.PositiveIntegerField(default=7, help_text="Return period in days")
+    return_policy = models.TextField(blank=True, help_text="Return policy details")
+    
+    # Payment Methods (stored as comma-separated values)
+    payment_methods = models.CharField(
+        max_length=200, 
+        default='COD,ONLINE,UPI,CARD',
+        help_text="Comma-separated: COD,ONLINE,UPI,CARD"
+    )
+    
     is_top_deal = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     rating = models.FloatField(default=0)
@@ -315,6 +327,22 @@ class Product(models.Model):
         if self.tags:
             return [tag.strip() for tag in self.tags.split(',')]
         return []
+    
+    def get_payment_methods_list(self):
+        """Return available payment methods as list"""
+        if self.payment_methods:
+            return [method.strip() for method in self.payment_methods.split(',')]
+        return ['COD', 'ONLINE', 'UPI', 'CARD']
+    
+    def is_cod_available(self):
+        """Check if COD is available for this product"""
+        return 'COD' in self.get_payment_methods_list()
+    
+    def get_return_policy_display(self):
+        """Get formatted return policy"""
+        if self.is_returnable:
+            return f"{self.return_days} Days Return Available"
+        return "No Return Available"
 
     def __str__(self):
         return self.name

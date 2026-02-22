@@ -1159,6 +1159,15 @@ def admin_add_product(request):
             size_list = request.POST.getlist('size')
             size = ', '.join(size_list) if size_list else ''
             
+            # Return & Payment Policy
+            is_returnable = request.POST.get('is_returnable') == 'on'
+            return_days = int(request.POST.get('return_days', 7))
+            return_policy = request.POST.get('return_policy', '')
+            
+            # Payment Methods (multiple selection)
+            payment_methods_list = request.POST.getlist('payment_methods')
+            payment_methods = ','.join(payment_methods_list) if payment_methods_list else 'COD,ONLINE,UPI,CARD'
+            
             # Get images
             image = crop_image_height(request.FILES.get('image'))
             descriptionImage = request.FILES.get('descriptionImage')
@@ -1239,7 +1248,11 @@ def admin_add_product(request):
                 description=description,
                 weight=weight,
                 color=color,
-                size=size
+                size=size,
+                is_returnable=is_returnable,
+                return_days=return_days,
+                return_policy=return_policy,
+                payment_methods=payment_methods
             )
             
             # Add gallery images if provided

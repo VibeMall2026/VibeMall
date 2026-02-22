@@ -243,11 +243,118 @@
                         <small class="text-muted">Upload a large image to display below product description (Recommended: 1200x800px)</small>
                     </div>
                     
+                    <!-- Return & Payment Policy Section -->
+                    <div class="card mb-4" style="border: 2px solid #696cff;">
+                        <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                            <h5 class="mb-0"><i class="bx bx-shield-quarter me-2"></i>Return & Payment Policy</h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Return Policy -->
+                            <div class="mb-4">
+                                <h6 class="text-primary mb-3">Return Policy</h6>
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="is_returnable" name="is_returnable" checked onchange="toggleReturnOptions()">
+                                    <label class="form-check-label" for="is_returnable">
+                                        <strong>Product is Returnable</strong>
+                                    </label>
+                                </div>
+                                
+                                <div id="returnOptions">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="return_days">Return Period (Days)</label>
+                                        <select class="form-select" id="return_days" name="return_days">
+                                            <option value="7" selected>7 Days</option>
+                                            <option value="10">10 Days</option>
+                                            <option value="15">15 Days</option>
+                                            <option value="30">30 Days</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label" for="return_policy">Return Policy Details (Optional)</label>
+                                        <textarea class="form-control" id="return_policy" name="return_policy" rows="3" placeholder="Enter return policy details..."></textarea>
+                                        <small class="text-muted">e.g., "Product must be unused and in original packaging"</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="alert alert-warning" id="noReturnAlert" style="display: none;">
+                                    <i class="bx bx-info-circle me-2"></i>
+                                    <strong>Note:</strong> If product is not returnable, COD option will be hidden at checkout.
+                                </div>
+                            </div>
+                            
+                            <!-- Payment Methods -->
+                            <div class="mb-3">
+                                <h6 class="text-primary mb-3">Available Payment Methods</h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="payment_cod" name="payment_methods" value="COD" checked>
+                                            <label class="form-check-label" for="payment_cod">
+                                                <i class="bx bx-money me-1"></i> Cash on Delivery (COD)
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="payment_online" name="payment_methods" value="ONLINE" checked>
+                                            <label class="form-check-label" for="payment_online">
+                                                <i class="bx bx-credit-card me-1"></i> Online Payment
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="payment_upi" name="payment_methods" value="UPI" checked>
+                                            <label class="form-check-label" for="payment_upi">
+                                                <i class="bx bx-mobile me-1"></i> UPI Payment
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="payment_card" name="payment_methods" value="CARD" checked>
+                                            <label class="form-check-label" for="payment_card">
+                                                <i class="bx bx-credit-card-alt me-1"></i> Credit/Debit Card
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <small class="text-muted">Select all payment methods available for this product</small>
+                            </div>
+                        </div>
+                    </div>
 
                     
                     <button type="submit" class="btn btn-primary">Add Product</button>
                     <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
                 </form>
+
+<script>
+function toggleReturnOptions() {
+    const isReturnable = document.getElementById('is_returnable').checked;
+    const returnOptions = document.getElementById('returnOptions');
+    const noReturnAlert = document.getElementById('noReturnAlert');
+    const codCheckbox = document.getElementById('payment_cod');
+    
+    if (isReturnable) {
+        returnOptions.style.display = 'block';
+        noReturnAlert.style.display = 'none';
+        codCheckbox.disabled = false;
+    } else {
+        returnOptions.style.display = 'none';
+        noReturnAlert.style.display = 'block';
+        // Disable COD if no return
+        codCheckbox.checked = false;
+        codCheckbox.disabled = true;
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    toggleReturnOptions();
+});
+</script>
             </div>
         </div>
         

@@ -146,3 +146,80 @@ footer * {
     position: relative;
     z-index: 1;
 }
+
+/* Tablet + Mobile: keep 4 footer sections in one row */
+@media (max-width: 991.98px) {
+    .footer__top .container > .row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+    }
+
+    .footer-sections-left,
+    .footer-sections-right {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+
+    .footer-sections-left > .row,
+    .footer-sections-account-quick > .row {
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .footer-sections-account-quick {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    .footer-col-categories,
+    .footer-col-pages,
+    .footer-col-account,
+    .footer-col-quick {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+
+    .footer-col-categories .footer__widget,
+    .footer-col-pages .footer__widget,
+    .footer-col-account .footer__widget,
+    .footer-col-quick .footer__widget {
+        min-width: 0;
+        padding-right: 10px;
+    }
+
+    .footer-col-categories .footer__widget-title h4,
+    .footer-col-pages .footer__widget-title h4,
+    .footer-col-account .footer__widget-title h4,
+    .footer-col-quick .footer__widget-title h4 {
+        font-size: 13px;
+        line-height: 1.2;
+        letter-spacing: 0.2px;
+    }
+
+    .footer-col-categories .footer__link ul li,
+    .footer-col-pages .footer__link ul li,
+    .footer-col-account .footer__link ul li,
+    .footer-col-quick .footer__link ul li {
+        margin-bottom: 4px;
+    }
+
+    .footer-col-categories .footer__link ul li a,
+    .footer-col-pages .footer__link ul li a,
+    .footer-col-account .footer__link ul li a,
+    .footer-col-quick .footer__link ul li a {
+        font-size: 11px;
+        line-height: 1.25;
+    }
+
+    .footer-col-support {
+        flex: 0 0 100%;
+        max-width: 100%;
+        margin-top: 14px;
+    }
+
+    .footer-col-support .footer__hotline h4 {
+        font-size: 13px;
+        line-height: 1.25;
+    }
+}
