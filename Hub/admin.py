@@ -27,6 +27,8 @@ from .models import (
     WishlistPriceAlert,
     Notification,
     EmailLog,
+    Reel,
+    ReelImage,
 )
 
 admin.site.register(Slider)
@@ -636,3 +638,115 @@ class EmailLogAdmin(admin.ModelAdmin):
     search_fields = ('email_to', 'subject', 'user__username')
     readonly_fields = ('sent_at',)
     date_hierarchy = 'sent_at'
+
+
+
+# ============================================
+# REEL MANAGEMENT
+# ============================================
+
+class ReelImageInline(admin.TabularInline):
+    """Inline Reel Images in Reel admin"""
+    model = ReelImage
+    extra = 3
+    fields = ('image', 'order', 'text_overlay', 'text_position', 'text_color', 'text_size')
+    ordering = ['order']
+
+
+@admin.register(Reel)
+class ReelAdmin(admin.ModelAdmin):
+    """Reel Management in Admin Panel"""
+    list_display = ('title', 'duration', 'is_published', 'is_processing', 'video_preview', 'thumbnail_preview', 'created_at', 'generate_button')
+    list_filter = ('is_published', 'is_processing', 'created_at')
+    search_fields = ('title', 'description')
+    readonly_fields = ('duration', 'is_processing', 'created_by', 'created_at', 'updated_at', 'video_preview_large', 'thumbnail_preview_large')
+    inlines = [ReelImageInline]
+    
+    fieldsets = (
+        ('📋 BASIC INFO', {
+            'fields': ('title', 'description', 'created_by', 'created_at', 'updated_at')
+        }),
+        ('🎬 VIDEO SETTINGS', {
+            'fields': ('duration_per_image', 'transition_type', 'background_music'),
+            'description': 'Configure video generation settings'
+        }),
+        ('📹 GENERATED VIDEO', {
+            'fields': ('video_file', 'video_preview_large', 'thumbnail', 'thumbnail_preview_large', 'duration'),
+            'description': 'Generated video and thumbnail'
+        }),
+        ('⚙️ STATUS', {
+            'fields': ('is_published', 'is_processing'),
+            'description': 'Publishing and processing status'
+        }),
+    )
+    
+    def save_model(self, request, obj, form, change):
+        """Auto-set created_by to current user"""
+        if not obj.pk:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+    
+    def video_preview(self, obj):
+        if obj.video_file:
+            return format_html(
+                '<video width="120" height="80" style="border-radius: 5px; object-fit: cover;"><source src="{}" type="video/mp4"></video>',
+                obj.video_file.url
+            )
+        return '—'
+    video_preview.short_description = 'Video'
+    
+    def video_preview_large(self, obj):
+        if obj.video_file:
+            return format_html(
+                '<video width="300" controls style="border-radius: 8px; border: 1px solid #ddd;"><source src="{}" type="video/mp4"></video>',
+                obj.video_file.url
+            )
+        return 'No video generated yet. Add images and click "Generate Reel" button.'
+    video_preview_large.short_description = 'Video Preview'
+    
+    def thumbnail_preview(self, obj):
+        if obj.thumbnail:
+            return format_html(
+                '<img src="{}" style="width: 60px; height: 80px; border-radius: 5px; object-fit: cover;" />',
+                obj.thumbnail.url
+            )
+        return '—'
+    thumbnail_preview.short_description = 'Thumbnail'
+    
+    def thumbnail_preview_large(self, obj):
+        if obj.thumbnail:
+            return format_html(
+                '<img src="{}" style="max-width: 200px; height: auto; border-radius: 8px; border: 1px solid #ddd; padding: 10px;" />',
+                obj.thumbnail.url
+            )
+        return 'No thumbnail yet'
+    thumbnail_preview_large.short_description = 'Thumbnail Preview'
+    
+    def generate_button(self, obj):
+        if obj.pk and not obj.is_processing:
+            return format_html(
+                '<a class="button" href="/admin-panel/reels/{}/generate/" style="background-color: #4caf50; color: white; padding: 8px 15px; border-radius: 4px; text-decoration: none;">🎬 Generate Reel</a>',
+                obj.pk
+            )
+        elif obj.is_processing:
+            return format_html('<span style="color: #ff9800;">⏳ Processing...</span>')
+        return '—'
+    generate_button.short_description = 'Actions'
+
+
+@admin.register(ReelImage)
+class ReelImageAdmin(admin.ModelAdmin):
+    """Reel Image Management"""
+    list_display = ('reel', 'order', 'text_overlay', 'image_preview')
+    list_filter = ('reel',)
+    list_editable = ('order',)
+    ordering = ['reel', 'order']
+    
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="width: 60px; height: 80px; border-radius: 5px; object-fit: cover;" />',
+                obj.image.url
+            )
+        return '—'
+    image_preview.short_description = 'Preview'

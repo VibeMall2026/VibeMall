@@ -8020,3 +8020,262 @@ def download_invoice(request, order_number):
             return HttpResponse(error_details, content_type='text/plain', status=500)
         # Return error response without trying to use messages
         return HttpResponse('Error generating invoice. Please contact support.', status=500)
+
+
+# Import Reel views
+from .views_reel import admin_generate_reel
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_reels(request):
+    """Admin reel management list"""
+    from Hub.models import Reel
+    
+    reels = Reel.objects.all().order_by('-created_at')
+    
+    # Search functionality
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        reels = reels.filter(
+            Q(title__icontains=search_query) |
+            Q(description__icontains=search_query)
+        )
+    
+    # Filter by status
+    status_filter = request.GET.get('status', '')
+    if status_filter == 'published':
+        reels = reels.filter(is_published=True)
+    elif status_filter == 'draft':
+        reels = reels.filter(is_published=False)
+    elif status_filter == 'processing':
+        reels = reels.filter(is_processing=True)
+    
+    context = {
+        'reels': reels,
+        'search_query': search_query,
+        'status_filter': status_filter,
+    }
+    
+    return render(request, 'admin_panel/reels.html', context)
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_add_reel(request):
+    """Add new reel"""
+    from Hub.models import Reel, ReelImage
+    
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        description = request.POST.get('description', '').strip()
+        duration_per_image = request.POST.get('duration_per_image', 3)
+        transition_type = request.POST.get('transition_type', 'fade')
+        background_music = request.FILES.get('background_music')
+        
+        if not title:
+            messages.error(request, 'Title is required')
+            return redirect('admin_add_reel')
+        
+        try:
+            duration_per_image = int(duration_per_image)
+            if duration_per_image < 1 or duration_per_image > 10:
+                duration_per_image = 3
+        except:
+            duration_per_image = 3
+        
+        reel = Reel.objects.create(
+            title=title,
+            description=description,
+            duration_per_image=duration_per_image,
+            transition_type=transition_type,
+            created_by=request.user
+        )
+        
+        if background_music:
+            reel.background_music = background_music
+            reel.save()
+        
+        # Handle multiple image uploads
+        images = request.FILES.getlist('images')
+        for idx, image in enumerate(images):
+            text_overlay = request.POST.get(f'text_overlay_{idx}', '')
+            text_position = request.POST.get(f'text_position_{idx}', 'center')
+            text_color = request.POST.get(f'text_color_{idx}', 'white')
+            text_size = request.POST.get(f'text_size_{idx}', 70)
+            
+            try:
+                text_size = int(text_size)
+            except:
+                text_size = 70
+            
+            ReelImage.objects.create(
+                reel=reel,
+                image=image,
+                order=idx,
+                text_overlay=text_overlay,
+                text_position=text_position,
+                text_color=text_color,
+                text_size=text_size
+            )
+        
+        messages.success(request, f'Reel "{title}" created successfully!')
+        return redirect('admin_edit_reel', reel_id=reel.id)
+    
+    return render(request, 'admin_panel/add_reel.html')
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_edit_reel(request, reel_id):
+    """Edit existing reel"""
+    from Hub.models import Reel, ReelImage
+    
+    reel = get_object_or_404(Reel, id=reel_id)
+    
+    if request.method == 'POST':
+        reel.title = request.POST.get('title', '').strip()
+        reel.description = request.POST.get('description', '').strip()
+        
+        try:
+            reel.duration_per_image = int(request.POST.get('duration_per_image', 3))
+        except:
+            reel.duration_per_image = 3
+        
+        reel.transition_type = request.POST.get('transition_type', 'fade')
+        reel.is_published = request.POST.get('is_published') == 'on'
+        
+        if 'background_music' in request.FILES:
+            reel.background_music = request.FILES['background_music']
+        
+        reel.save()
+        
+        # Handle new images
+        new_images = request.FILES.getlist('new_images')
+        if new_images:
+            max_order = reel.images.count()
+            for idx, image in enumerate(new_images):
+                text_overlay = request.POST.get(f'new_text_overlay_{idx}', '')
+                text_position = request.POST.get(f'new_text_position_{idx}', 'center')
+                text_color = request.POST.get(f'new_text_color_{idx}', 'white')
+                text_size = request.POST.get(f'new_text_size_{idx}', 70)
+                
+                try:
+                    text_size = int(text_size)
+                except:
+                    text_size = 70
+                
+                ReelImage.objects.create(
+                    reel=reel,
+                    image=image,
+                    order=max_order + idx,
+                    text_overlay=text_overlay,
+                    text_position=text_position,
+                    text_color=text_color,
+                    text_size=text_size
+                )
+        
+        messages.success(request, f'Reel "{reel.title}" updated successfully!')
+        return redirect('admin_edit_reel', reel_id=reel.id)
+    
+    context = {
+        'reel': reel,
+        'images': reel.images.all().order_by('order')
+    }
+    
+    return render(request, 'admin_panel/edit_reel.html', context)
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_delete_reel(request, reel_id):
+    """Delete reel"""
+    from Hub.models import Reel
+    
+    reel = get_object_or_404(Reel, id=reel_id)
+    title = reel.title
+    reel.delete()
+    
+    messages.success(request, f'Reel "{title}" deleted successfully!')
+    return redirect('admin_reels')
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_generate_reel(request, reel_id):
+    """Generate video from reel images"""
+    from Hub.models import Reel
+    from Hub.reel_generator import ReelGenerator
+    
+    reel = get_object_or_404(Reel, id=reel_id)
+    
+    # Check if already processing
+    if reel.is_processing:
+        messages.warning(request, 'Reel is already being processed. Please wait.')
+        return redirect('admin_reels')
+    
+    # Check if images exist
+    if not reel.images.exists():
+        messages.error(request, 'Please add images to the reel before generating video.')
+        return redirect('admin_edit_reel', reel_id=reel.id)
+    
+    try:
+        # Generate reel
+        generator = ReelGenerator(reel)
+        success = generator.generate_video()
+        
+        if success:
+            messages.success(request, f'✅ Reel "{reel.title}" generated successfully!')
+        else:
+            messages.error(request, '❌ Failed to generate reel. Please check the logs.')
+    
+    except Exception as e:
+        messages.error(request, f'❌ Error generating reel: {str(e)}')
+        reel.is_processing = False
+        reel.save(update_fields=['is_processing'])
+    
+    return redirect('admin_reels')
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_reels(request):
+    """Reel list page"""
+    from Hub.models import Reel
+    
+    reels = Reel.objects.all().prefetch_related('images').order_by('-created_at')
+    
+    # Calculate stats
+    total_reels = reels.count()
+    published_reels = reels.filter(is_published=True).count()
+    draft_reels = reels.filter(is_published=False, is_processing=False).count()
+    
+    context = {
+        'reels': reels,
+        'total_reels': total_reels,
+        'published_reels': published_reels,
+        'draft_reels': draft_reels,
+    }
+    
+    return render(request, 'admin_panel/reels.html', context)
+
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_reel_details(request, reel_id):
+    """Get reel details (AJAX)"""
+    from Hub.models import Reel
+    
+    reel = get_object_or_404(Reel, id=reel_id)
+    
+    return JsonResponse({
+        'id': reel.id,
+        'title': reel.title,
+        'description': reel.description,
+        'video_url': reel.video_file.url if reel.video_file else '',
+        'thumbnail_url': reel.thumbnail.url if reel.thumbnail else '',
+        'duration': reel.duration,
+        'is_published': reel.is_published,
+        'created_at': reel.created_at.strftime('%Y-%m-%d %H:%M:%S')
+    })

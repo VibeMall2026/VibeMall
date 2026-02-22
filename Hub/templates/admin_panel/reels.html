@@ -1,0 +1,490 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Reels Management - Admin Panel{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 20px;
+    }
+    
+    .stats-card h3 {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+    
+    .stats-card p {
+        opacity: 0.9;
+        margin: 0;
+    }
+    
+    .reel-card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        transition: all 0.3s;
+        margin-bottom: 20px;
+    }
+    
+    .reel-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    }
+    
+    .reel-thumbnail {
+        width: 100%;
+        height: 250px;
+        object-fit: cover;
+        background: #f0f0f0;
+    }
+    
+    .reel-content {
+        padding: 20px;
+    }
+    
+    .reel-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 10px;
+    }
+    
+    .reel-meta {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 15px;
+        font-size: 13px;
+        color: #666;
+    }
+    
+    .reel-meta i {
+        margin-right: 5px;
+    }
+    
+    .reel-status {
+        display: inline-block;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .status-published {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status-draft {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .status-processing {
+        background: #cce5ff;
+        color: #004085;
+    }
+    
+    .reel-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .btn-action {
+        flex: 1;
+        padding: 8px 15px;
+        border-radius: 6px;
+        border: none;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+    }
+    
+    .btn-view {
+        background: #696cff;
+        color: white;
+    }
+    
+    .btn-view:hover {
+        background: #5558dd;
+    }
+    
+    .btn-edit {
+        background: #fff;
+        color: #696cff;
+        border: 1px solid #696cff;
+    }
+    
+    .btn-edit:hover {
+        background: #696cff;
+        color: white;
+    }
+    
+    .btn-delete {
+        background: #ff4444;
+        color: white;
+    }
+    
+    .btn-delete:hover {
+        background: #cc0000;
+    }
+    
+    .btn-generate {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    .btn-generate:hover {
+        transform: scale(1.05);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        background: white;
+        border-radius: 12px;
+    }
+    
+    .empty-state i {
+        font-size: 64px;
+        color: #ddd;
+        margin-bottom: 20px;
+    }
+    
+    .empty-state h4 {
+        color: #666;
+        margin-bottom: 10px;
+    }
+    
+    .empty-state p {
+        color: #999;
+        margin-bottom: 30px;
+    }
+    
+    .filter-bar {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .filter-bar select, .filter-bar input {
+        padding: 8px 15px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+    
+    .video-duration {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .reel-thumbnail-wrapper {
+        position: relative;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold mb-2">
+                <i class="fas fa-video me-2" style="color: #696cff;"></i>
+                Reels Management
+            </h4>
+            <p class="text-muted mb-0">Create and manage your video reels</p>
+        </div>
+        <a href="{% url 'admin_add_reel' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>
+            Create New Reel
+        </a>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3>{{ total_reels }}</h3>
+                <p><i class="fas fa-video me-2"></i>Total Reels</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <h3>{{ published_reels }}</h3>
+                <p><i class="fas fa-check-circle me-2"></i>Published</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <h3>{{ draft_reels }}</h3>
+                <p><i class="fas fa-file me-2"></i>Drafts</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                <h3>{{ total_views|default:"0" }}</h3>
+                <p><i class="fas fa-eye me-2"></i>Total Views</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+        <select id="statusFilter" onchange="filterReels()">
+            <option value="">All Status</option>
+            <option value="published">Published</option>
+            <option value="draft">Draft</option>
+            <option value="processing">Processing</option>
+        </select>
+        
+        <input type="text" id="searchInput" placeholder="Search reels..." onkeyup="searchReels()">
+        
+        <select id="sortBy" onchange="sortReels()">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="title">Title A-Z</option>
+            <option value="duration">Duration</option>
+        </select>
+    </div>
+
+    <!-- Reels Grid -->
+    {% if reels %}
+    <div class="row" id="reelsGrid">
+        {% for reel in reels %}
+        <div class="col-md-4 reel-item" data-status="{% if reel.is_processing %}processing{% elif reel.is_published %}published{% else %}draft{% endif %}" data-title="{{ reel.title|lower }}">
+            <div class="reel-card">
+                <div class="reel-thumbnail-wrapper">
+                    {% if reel.thumbnail %}
+                        <img src="{{ reel.thumbnail.url }}" alt="{{ reel.title }}" class="reel-thumbnail">
+                    {% elif reel.video_file %}
+                        <video class="reel-thumbnail" muted>
+                            <source src="{{ reel.video_file.url }}" type="video/mp4">
+                        </video>
+                    {% else %}
+                        <div class="reel-thumbnail d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <i class="fas fa-image" style="font-size: 48px; color: white; opacity: 0.5;"></i>
+                        </div>
+                    {% endif %}
+                    
+                    {% if reel.duration %}
+                    <div class="video-duration">
+                        <i class="fas fa-clock me-1"></i>{{ reel.duration }}s
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="reel-content">
+                    <h5 class="reel-title">{{ reel.title }}</h5>
+                    
+                    <div class="reel-meta">
+                        <span><i class="fas fa-images"></i> {{ reel.images.count }} images</span>
+                        <span><i class="fas fa-calendar"></i> {{ reel.created_at|date:"M d, Y" }}</span>
+                    </div>
+                    
+                    {% if reel.is_processing %}
+                        <span class="reel-status status-processing">
+                            <i class="fas fa-spinner fa-spin"></i> Processing
+                        </span>
+                    {% elif reel.is_published %}
+                        <span class="reel-status status-published">
+                            <i class="fas fa-check-circle"></i> Published
+                        </span>
+                    {% else %}
+                        <span class="reel-status status-draft">
+                            <i class="fas fa-file"></i> Draft
+                        </span>
+                    {% endif %}
+                    
+                    <div class="reel-actions">
+                        {% if reel.video_file %}
+                            <button class="btn-action btn-view" onclick="viewReel({{ reel.id }}, '{{ reel.video_file.url }}', '{{ reel.title|escapejs }}')">
+                                <i class="fas fa-play"></i> View
+                            </button>
+                        {% elif not reel.is_processing %}
+                            <button class="btn-action btn-generate" onclick="generateReel({{ reel.id }})">
+                                <i class="fas fa-magic"></i> Generate
+                            </button>
+                        {% else %}
+                            <button class="btn-action btn-generate" disabled style="opacity: 0.5; cursor: not-allowed;">
+                                <i class="fas fa-spinner fa-spin"></i> Processing
+                            </button>
+                        {% endif %}
+                        
+                        <button class="btn-action btn-edit" onclick="editReel({{ reel.id }})">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        
+                        <button class="btn-action btn-delete" onclick="deleteReel({{ reel.id }}, '{{ reel.title|escapejs }}')">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="empty-state">
+        <i class="fas fa-video"></i>
+        <h4>No Reels Yet</h4>
+        <p>Create your first reel to get started with video content</p>
+        <a href="{% url 'admin_add_reel' %}" class="btn btn-primary btn-lg">
+            <i class="fas fa-plus me-2"></i>
+            Create Your First Reel
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- View Reel Modal -->
+<div class="modal fade" id="viewReelModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reelModalTitle">Reel Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <video id="reelVideoPlayer" controls style="max-width: 100%; max-height: 70vh; border-radius: 8px;">
+                    <source src="" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a id="downloadReelBtn" href="#" download class="btn btn-primary">
+                    <i class="fas fa-download me-2"></i>Download
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Pause video when modal closes
+    document.getElementById('viewReelModal').addEventListener('hidden.bs.modal', function () {
+        const video = document.getElementById('reelVideoPlayer');
+        video.pause();
+        video.currentTime = 0;
+    });
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // View Reel
+    function viewReel(reelId, videoUrl, title) {
+        document.getElementById('reelModalTitle').textContent = title;
+        document.getElementById('reelVideoPlayer').src = videoUrl;
+        document.getElementById('downloadReelBtn').href = videoUrl;
+        document.getElementById('downloadReelBtn').download = title + '.mp4';
+        
+        const modal = new bootstrap.Modal(document.getElementById('viewReelModal'));
+        modal.show();
+        
+        // Play video when modal opens
+        const video = document.getElementById('reelVideoPlayer');
+        video.load();
+    }
+
+    // Generate Reel
+    function generateReel(reelId) {
+        if (confirm('Generate video for this reel? This may take 30-60 seconds.')) {
+            // Show loading message
+            const btn = event.target.closest('button');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            btn.disabled = true;
+            
+            // Redirect to generate URL
+            window.location.href = `/admin-panel/reels/${reelId}/generate/`;
+        }
+    }
+
+    // Edit Reel
+    function editReel(reelId) {
+        window.location.href = `/admin-panel/reels/${reelId}/edit/`;
+    }
+
+    // Delete Reel
+    function deleteReel(reelId, title) {
+        if (confirm(`Are you sure you want to delete "${title}"?\n\nThis action cannot be undone.`)) {
+            // Redirect to delete URL
+            window.location.href = `/admin-panel/reels/${reelId}/delete/`;
+        }
+    }
+
+    // Filter Reels
+    function filterReels() {
+        const status = document.getElementById('statusFilter').value;
+        const items = document.querySelectorAll('.reel-item');
+        
+        items.forEach(item => {
+            if (status === '' || item.dataset.status === status) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    // Search Reels
+    function searchReels() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const items = document.querySelectorAll('.reel-item');
+        
+        items.forEach(item => {
+            const title = item.dataset.title;
+            if (title.includes(query)) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    // Sort Reels
+    function sortReels() {
+        const sortBy = document.getElementById('sortBy').value;
+        const grid = document.getElementById('reelsGrid');
+        const items = Array.from(document.querySelectorAll('.reel-item'));
+        
+        items.sort((a, b) => {
+            if (sortBy === 'title') {
+                return a.dataset.title.localeCompare(b.dataset.title);
+            }
+            // Add more sorting logic as needed
+            return 0;
+        });
+        
+        items.forEach(item => grid.appendChild(item));
+    }
+</script>
+{% endblock %}

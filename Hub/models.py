@@ -1336,3 +1336,54 @@ class SiteSettings(models.Model):
         """Get or create site settings"""
         settings, created = cls.objects.get_or_create(pk=1)
         return settings
+
+
+
+class Reel(models.Model):
+    """Reels/Videos for social media and website"""
+    title = models.CharField(max_length=200, help_text="Reel title")
+    description = models.TextField(blank=True, help_text="Reel description")
+    video_file = models.FileField(upload_to='reels/', blank=True, null=True, help_text="Generated video file")
+    thumbnail = models.ImageField(upload_to='reels/thumbnails/', blank=True, null=True, help_text="Video thumbnail")
+    duration = models.IntegerField(default=0, help_text="Duration in seconds")
+    
+    # Configuration
+    duration_per_image = models.IntegerField(default=3, help_text="Seconds per image")
+    transition_type = models.CharField(max_length=20, default='fade', help_text="Transition effect")
+    background_music = models.FileField(upload_to='reels/music/', blank=True, null=True, help_text="Background music (optional)")
+    
+    # Status
+    is_published = models.BooleanField(default=False, help_text="Publish on website")
+    is_processing = models.BooleanField(default=False, help_text="Video generation in progress")
+    
+    # Metadata
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reels')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Reel"
+        verbose_name_plural = "Reels"
+    
+    def __str__(self):
+        return self.title
+
+
+class ReelImage(models.Model):
+    """Images used in a reel"""
+    reel = models.ForeignKey(Reel, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='reels/images/', help_text="Image for reel")
+    order = models.PositiveIntegerField(default=0, help_text="Display order")
+    text_overlay = models.CharField(max_length=200, blank=True, help_text="Text to display on this image")
+    text_position = models.CharField(max_length=20, default='center', help_text="Text position (center, top, bottom)")
+    text_color = models.CharField(max_length=20, default='white', help_text="Text color")
+    text_size = models.IntegerField(default=70, help_text="Text font size")
+    
+    class Meta:
+        ordering = ['order']
+        verbose_name = "Reel Image"
+        verbose_name_plural = "Reel Images"
+    
+    def __str__(self):
+        return f"{self.reel.title} - Image {self.order}"

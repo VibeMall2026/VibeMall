@@ -1,0 +1,28 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}Reels Management - Admin Panel{% endblock %}
+
+{% block extra_css %}
+<style>
+    .reel-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .reel-card:hover {
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        transform: translateY(-4px);
+    }
+    
+    .reel-thumbnail {
+        width: 100%;
+        height: 280px;
+        object-fit: cover;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .reel-vi

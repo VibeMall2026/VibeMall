@@ -355,7 +355,28 @@
   }
 
   #supportChatWidget {
-    bottom: calc(92px + env(safe-area-inset-bottom)) !important;
+    right: 12px !important;
+    bottom: calc(86px + env(safe-area-inset-bottom)) !important;
+    z-index: 10001 !important;
+  }
+
+  #supportChatToggle {
+    min-height: 44px;
+    padding: 10px 18px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 999px;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.22);
+  }
+
+  #supportChatPanel {
+    width: min(92vw, 340px);
+    max-height: min(68vh, 560px);
+    border-radius: 14px;
+  }
+
+  #supportChatMessages {
+    max-height: min(38vh, 300px);
   }
 }
 
@@ -385,5 +406,21 @@
 
   .mobile-bottom-nav__item i {
     font-size: 20px;
+  }
+
+  #supportChatWidget {
+    right: 10px !important;
+    bottom: calc(82px + env(safe-area-inset-bottom)) !important;
+  }
+
+  #supportChatToggle {
+    min-height: 40px;
+    padding: 8px 14px;
+    font-size: 14px;
+    border-radius: 999px;
+  }
+
+  #supportChatPanel {
+    width: min(94vw, 320px);
   }
 }

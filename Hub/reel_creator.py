@@ -3,7 +3,13 @@ Reel Creator Utility for Admin Panel
 Images ને video/reel માં convert કરે છે
 """
 
-from moviepy.editor import ImageClip, concatenate_videoclips, AudioFileClip, CompositeVideoClip, TextClip
+try:
+    from moviepy.editor import ImageClip, concatenate_videoclips, AudioFileClip, CompositeVideoClip, TextClip
+    MOVIEPY_AVAILABLE = True
+except ImportError:
+    MOVIEPY_AVAILABLE = False
+    print("⚠️ MoviePy not installed. Run: pip install moviepy==1.0.3")
+
 from PIL import Image
 import os
 from django.conf import settings
@@ -24,6 +30,9 @@ class ReelCreator:
     
     def create_reel(self, image_paths, output_path, background_music=None, text_overlays=None):
         """Create video from images"""
+        if not MOVIEPY_AVAILABLE:
+            raise ImportError("MoviePy is not installed. Run: pip install moviepy==1.0.3")
+        
         clips = []
         
         for img_path in image_paths:

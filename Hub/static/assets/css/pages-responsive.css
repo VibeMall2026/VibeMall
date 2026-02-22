@@ -714,4 +714,107 @@
     }
 }
 
+/* Shop: Quick View modal responsive (mobile + tablet only) */
+@media (max-width: 991.98px) {
+    #productQuickView .modal-dialog {
+        max-width: calc(100% - 28px);
+        margin: 14px auto;
+    }
+
+    #productQuickView .modal-content {
+        border-radius: 12px;
+    }
+
+    #productQuickView .modal-header {
+        padding: 12px 14px 0;
+    }
+
+    #productQuickView .modal-title {
+        font-size: 17px;
+    }
+
+    #productQuickView .modal-body {
+        padding: 10px 14px 14px;
+    }
+
+    #productQuickView .modal-body .row {
+        --bs-gutter-x: 14px;
+        --bs-gutter-y: 12px;
+        align-items: flex-start !important;
+    }
+
+    #productQuickView #qvImage {
+        height: 260px !important;
+    }
+
+    #productQuickView #qvProductName {
+        font-size: 16px;
+        line-height: 1.3;
+        margin-bottom: 6px !important;
+    }
+
+    #productQuickView .rating-inline i {
+        font-size: 12px;
+    }
+
+    #productQuickView #qvReviews {
+        font-size: 12px !important;
+    }
+
+    #productQuickView .price-line {
+        margin-bottom: 8px !important;
+    }
+
+    #productQuickView #qvPriceCurrent {
+        font-size: 20px;
+        font-weight: 700;
+        line-height: 1.1;
+    }
+
+    #productQuickView #qvPriceOld {
+        font-size: 14px;
+    }
+
+    #productQuickView #qvStock {
+        margin-bottom: 10px !important;
+    }
+
+    #productQuickView #qvLink {
+        min-height: 38px;
+        padding: 8px 14px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    #productQuickView .modal-dialog {
+        max-width: calc(100% - 16px);
+        margin: 8px auto;
+    }
+
+    #productQuickView .modal-title {
+        font-size: 16px;
+    }
+
+    #productQuickView .modal-body {
+        padding: 8px 10px 12px;
+    }
+
+    #productQuickView #qvImage {
+        height: 210px !important;
+    }
+
+    #productQuickView #qvProductName {
+        font-size: 14px;
+    }
+
+    #productQuickView #qvPriceCurrent {
+        font-size: 18px;
+    }
+
+    #productQuickView #qvLink {
+        width: 100%;
+        text-align: center;
+    }
+}
+
 
