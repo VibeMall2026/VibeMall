@@ -3,6 +3,10 @@
 
 {% block title %}My Orders - VibeMall{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'assets/css/myorder-responsive.css' %}">
+{% endblock %}
+
 {% block content %}
 <!-- Page Banner Start -->
 <div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
@@ -162,4 +166,137 @@
     </div>
 </section>
 <!-- Orders Area End -->
+
+<script>
+// Mobile Order Cards Generator
+function createMobileOrderCards() {
+    // Only run on mobile
+    if (window.innerWidth >= 768) {
+        const existing = document.querySelector('.mobile-orders-container');
+        if (existing) existing.remove();
+        return;
+    }
+    
+    const tableBody = document.querySelector('.orders-content tbody');
+    if (!tableBody) return;
+    
+    // Check if already created
+    if (document.querySelector('.mobile-orders-container')) return;
+    
+    const rows = tableBody.querySelectorAll('tr');
+    const container = document.querySelector('.orders-content');
+    
+    // Create cards container
+    const cardsContainer = document.createElement('div');
+    cardsContainer.className = 'mobile-orders-container';
+    
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length === 0) return;
+        
+        // Extract data
+        const orderNumberEl = cells[0].querySelector('strong');
+        const orderLinkEl = cells[0].querySelector('a');
+        if (!orderNumberEl || !orderLinkEl) return;
+        
+        const orderNumber = orderNumberEl.textContent.trim();
+        const orderLink = orderLinkEl.href;
+        const date = cells[1].textContent.trim();
+        const productsDiv = cells[2].querySelector('div');
+        const productsHtml = productsDiv ? productsDiv.innerHTML : '';
+        const total = cells[3].textContent.trim();
+        const payment = cells[4].innerHTML;
+        const status = cells[5].innerHTML;
+        const type = cells[6].innerHTML;
+        const actions = cells[7].querySelectorAll('a');
+        
+        // Create card
+        const card = document.createElement('div');
+        card.className = 'order-card';
+        
+        let actionsHtml = '';
+        actions.forEach(a => {
+            const icon = a.querySelector('i');
+            if (!icon) return;
+            const iconClass = icon.className;
+            const title = a.title || a.getAttribute('title') || '';
+            const href = a.href;
+            
+            let btnClass = 'btn-track';
+            let btnText = 'Track';
+            if (title.includes('Details') || title.includes('View')) {
+                btnClass = 'btn-details';
+                btnText = 'Details';
+            } else if (title.includes('Invoice') || title.includes('Download')) {
+                btnClass = 'btn-invoice';
+                btnText = 'Invoice';
+            } else if (title.includes('Return')) {
+                btnClass = 'btn-return';
+                btnText = 'Return';
+            } else if (title.includes('Track')) {
+                btnClass = 'btn-track';
+                btnText = 'Track';
+            }
+            
+            actionsHtml += `<a href="${href}" class="btn ${btnClass}"><i class="${iconClass}"></i> ${btnText}</a>`;
+        });
+        
+        card.innerHTML = `
+            <div class="order-card-header">
+                <a href="${orderLink}" class="order-number">#${orderNumber}</a>
+                <span class="order-date">${date}</span>
+            </div>
+            <div class="order-card-body">
+                <div class="order-products">
+                    ${productsHtml}
+                </div>
+                <div class="order-info-grid">
+                    <div class="order-info-item">
+                        <span class="order-info-label">Total Amount</span>
+                        <span class="order-info-value">${total}</span>
+                    </div>
+                    <div class="order-info-item">
+                        <span class="order-info-label">Payment</span>
+                        <span class="order-info-value">${payment}</span>
+                    </div>
+                    <div class="order-info-item">
+                        <span class="order-info-label">Status</span>
+                        <span class="order-info-value">${status}</span>
+                    </div>
+                    <div class="order-info-item">
+                        <span class="order-info-label">Type</span>
+                        <span class="order-info-value">${type}</span>
+                    </div>
+                </div>
+                <div class="order-actions">
+                    ${actionsHtml}
+                </div>
+            </div>
+        `;
+        
+        cardsContainer.appendChild(card);
+    });
+    
+    container.appendChild(cardsContainer);
+}
+
+// Run on load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', createMobileOrderCards);
+} else {
+    createMobileOrderCards();
+}
+
+// Run on resize with debounce
+let resizeTimer;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+        const existing = document.querySelector('.mobile-orders-container');
+        if (existing) existing.remove();
+        createMobileOrderCards();
+    }, 250);
+});
+</script>
+
 {% endblock %}

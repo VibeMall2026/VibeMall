@@ -7,7 +7,7 @@
 {% block title %}Home - VibeMall{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'assets/css/index-responsive.css' %}?v=20260222-06">
+<link rel="stylesheet" href="{% static 'assets/css/index-responsive.css' %}?v=20260222-07">
 {% endblock %}
 
 {% block content %}
@@ -391,20 +391,28 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!section) return;
 
         new Swiper(swiperElement, {
-            slidesPerView: 1.15,
-            spaceBetween: 14,
+            slidesPerView: 1.35,
+            spaceBetween: 12,
             speed: 550,
             navigation: {
                 nextEl: section.querySelector('.watch-shop-next'),
                 prevEl: section.querySelector('.watch-shop-prev')
             },
             breakpoints: {
+                480: {
+                    slidesPerView: 1.7,
+                    spaceBetween: 14
+                },
                 576: {
-                    slidesPerView: 1.6,
-                    spaceBetween: 16
+                    slidesPerView: 2,
+                    spaceBetween: 14
                 },
                 768: {
-                    slidesPerView: 2.2,
+                    slidesPerView: 2.6,
+                    spaceBetween: 16
+                },
+                992: {
+                    slidesPerView: 2.9,
                     spaceBetween: 18
                 },
                 1200: {

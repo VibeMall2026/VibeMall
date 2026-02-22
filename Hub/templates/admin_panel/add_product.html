@@ -242,6 +242,46 @@
                         <input class="form-control" type="file" id="descriptionImage" name="descriptionImage" accept="image/*" />
                         <small class="text-muted">Upload a large image to display below product description (Recommended: 1200x800px)</small>
                     </div>
+
+                    <div class="card mb-4" style="border: 1px solid #dce3ff;">
+                        <div class="card-header" style="background: #f5f7ff;">
+                            <h6 class="mb-0">
+                                <i class="bx bx-video me-2"></i>
+                                Direct Reel Upload (Optional)
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="reel_title">Reel Title</label>
+                                    <input type="text" class="form-control" id="reel_title" name="reel_title" placeholder="Auto: Product Name Reel" />
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="reel_duration">Duration (seconds)</label>
+                                    <input type="number" min="0" class="form-control" id="reel_duration" name="reel_duration" value="0" />
+                                </div>
+                                <div class="col-md-3 d-flex align-items-end">
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" id="reel_is_published" name="reel_is_published" checked>
+                                        <label class="form-check-label" for="reel_is_published">Publish Reel</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label" for="reel_description">Reel Description</label>
+                                    <textarea class="form-control" id="reel_description" name="reel_description" rows="2" placeholder="Optional"></textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="reel_video_file">Reel Video File</label>
+                                    <input class="form-control" type="file" id="reel_video_file" name="reel_video_file" accept="video/mp4,video/*" />
+                                    <small class="text-muted">Upload vertical MP4 reel file from your system.</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="reel_thumbnail">Reel Thumbnail (Optional)</label>
+                                    <input class="form-control" type="file" id="reel_thumbnail" name="reel_thumbnail" accept="image/*" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     
                     <!-- Return & Payment Policy Section -->
                     <div class="card mb-4" style="border: 2px solid #696cff;">
@@ -423,25 +463,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const subCategoryData = {{ sub_categories_json|safe }};
     const categorySelect = document.getElementById('category');
     const subCategoryInput = document.getElementById('sub_category');
-    if (!mainCategory || !categorySelect) return;
-    const target = (mainCategory.value || '').trim().toLowerCase();
-    if (!target) return;
-
-    const options = Array.from(categorySelect.options);
-    const match = options.find((opt) => {
-        const value = (opt.value || '').trim().toLowerCase();
-        const text = (opt.textContent || '').trim().toLowerCase();
-        return value === target || text === target;
-    });
-    if (match) {
-        categorySelect.value = match.value;
-    }
+    if (!categorySelect || !subCategoryInput) return;
 
     const buildSubOptions = () => {
-        if (!subCategoryInput) return;
         const selected = (categorySelect.value || '').trim();
-        const options = subCategoryData.filter((item) => item.category_key === selected);
+        const selectedLower = selected.toLowerCase();
+        const options = subCategoryData.filter((item) => {
+            const key = (item.category_key || '').trim().toLowerCase();
+            return key === selectedLower;
+        });
         subCategoryInput.innerHTML = '<option value="">Select Sub_Category</option>';
+        if (selected && options.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = 'No Sub_Category Found';
+            subCategoryInput.appendChild(opt);
+            return;
+        }
         options.forEach((item) => {
             const opt = document.createElement('option');
             opt.value = item.name;
@@ -458,6 +496,21 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     };
+
+    if (mainCategory) {
+        const target = (mainCategory.value || '').trim().toLowerCase();
+        if (target) {
+            const options = Array.from(categorySelect.options);
+            const match = options.find((opt) => {
+                const value = (opt.value || '').trim().toLowerCase();
+                const text = (opt.textContent || '').trim().toLowerCase();
+                return value === target || text === target;
+            });
+            if (match) {
+                categorySelect.value = match.value;
+            }
+        }
+    }
 
     buildSubOptions();
 

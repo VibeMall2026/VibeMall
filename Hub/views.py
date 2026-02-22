@@ -1697,6 +1697,8 @@ def admin_edit_product(request, product_id):
                         is_active=True
                     )
 
+            reel_added = False
+
             # Optional direct reel upload from edit product page
             new_reel_video_file = request.FILES.get('new_reel_video_file')
             if new_reel_video_file:
@@ -1728,8 +1730,12 @@ def admin_edit_product(request, product_id):
                     is_processing=False,
                     created_by=request.user,
                 )
+                reel_added = True
             
-            messages.success(request, f'Product "{product.name}" updated successfully!')
+            if reel_added:
+                messages.success(request, f'Product "{product.name}" updated successfully and reel added.')
+            else:
+                messages.success(request, f'Product "{product.name}" updated successfully!')
             return redirect('admin_product_list')
         
         except Exception as e:
