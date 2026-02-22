@@ -119,6 +119,17 @@
     
     .btn-view:hover {
         background: #5558dd;
+        color: white;
+    }
+    
+    .btn-download {
+        background: #28a745;
+        color: white;
+    }
+    
+    .btn-download:hover {
+        background: #218838;
+        color: white;
     }
     
     .btn-edit {
@@ -324,8 +335,11 @@
                     <div class="reel-actions">
                         {% if reel.video_file %}
                             <button class="btn-action btn-view" onclick="viewReel({{ reel.id }}, '{{ reel.video_file.url }}', '{{ reel.title|escapejs }}')">
-                                <i class="fas fa-play"></i> View
+                                <i class="fas fa-play"></i> Preview
                             </button>
+                            <a href="{{ reel.video_file.url }}" download="{{ reel.title }}.mp4" class="btn-action btn-view" style="text-decoration: none;">
+                                <i class="fas fa-download"></i> Download
+                            </a>
                         {% elif not reel.is_processing %}
                             <button class="btn-action btn-generate" onclick="generateReel({{ reel.id }})">
                                 <i class="fas fa-magic"></i> Generate

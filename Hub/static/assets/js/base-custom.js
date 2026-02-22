@@ -165,15 +165,22 @@
         });
     }
 
+    function setPanelOpen(open) {
+        panel.classList.toggle('chat-hidden', !open);
+        toggleBtn.classList.toggle('chat-hidden', open);
+        toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+
     toggleBtn.addEventListener('click', () => {
-        panel.classList.toggle('chat-hidden');
-        if (!panel.classList.contains('chat-hidden')) {
+        const shouldOpen = panel.classList.contains('chat-hidden');
+        setPanelOpen(shouldOpen);
+        if (shouldOpen) {
             loadThread();
         }
     });
 
     closeBtn.addEventListener('click', () => {
-        panel.classList.add('chat-hidden');
+        setPanelOpen(false);
     });
 
     sendBtn.addEventListener('click', () => {

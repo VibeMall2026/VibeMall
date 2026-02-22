@@ -8206,6 +8206,7 @@ def admin_generate_reel(request, reel_id):
     """Generate video from reel images"""
     from Hub.models import Reel
     from Hub.reel_generator import ReelGenerator
+    import traceback
     
     reel = get_object_or_404(Reel, id=reel_id)
     
@@ -8220,17 +8221,34 @@ def admin_generate_reel(request, reel_id):
         return redirect('admin_edit_reel', reel_id=reel.id)
     
     try:
+        print(f"\n{'='*60}")
+        print(f"🎬 Starting reel generation: {reel.title} (ID: {reel.id})")
+        print(f"   Images: {reel.images.count()}")
+        print(f"   Duration per image: {reel.duration_per_image}s")
+        print(f"{'='*60}\n")
+        
         # Generate reel
         generator = ReelGenerator(reel)
         success = generator.generate_video()
         
         if success:
+            print(f"\n✅ SUCCESS: Reel generated successfully!")
+            print(f"   Video file: {reel.video_file.name if reel.video_file else 'None'}")
+            print(f"   Duration: {reel.duration}s\n")
             messages.success(request, f'✅ Reel "{reel.title}" generated successfully!')
         else:
-            messages.error(request, '❌ Failed to generate reel. Please check the logs.')
+            print(f"\n❌ FAILED: Video generation returned False")
+            print(f"   Check error messages above\n")
+            messages.error(request, '❌ Failed to generate reel. Check server console for details.')
     
     except Exception as e:
-        messages.error(request, f'❌ Error generating reel: {str(e)}')
+        print(f"\n❌ EXCEPTION during reel generation:")
+        print(f"   Error: {str(e)}")
+        print(f"\n   Full traceback:")
+        traceback.print_exc()
+        print()
+        
+        messages.error(request, f'❌ Error: {str(e)}')
         reel.is_processing = False
         reel.save(update_fields=['is_processing'])
     
