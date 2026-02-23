@@ -469,7 +469,7 @@ body.reel-viewer-open {
 
     .mobile-products-section .section__title {
         display: flex;
-        justify-content: center;
+        justify-content: flex-start;
         margin-bottom: 0 !important;
     }
 
@@ -481,28 +481,25 @@ body.reel-viewer-open {
 
     .mobile-products-section .st-titile-d {
         position: relative;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 8px 16px;
-        border-radius: 999px;
-        background: linear-gradient(120deg, #fff8cf 0%, #ffe17f 45%, #ffd24f 100%);
-        background-size: 200% 200%;
-        animation: mobileHeadingGlow 5s ease-in-out infinite;
-        box-shadow: 0 6px 16px rgba(252, 190, 0, 0.28);
-        border: 1px solid rgba(255, 255, 255, 0.85);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        display: inline-block;
+        padding: 0;
+        border-radius: 0;
+        background: none;
+        animation: none;
+        box-shadow: none;
+        border: 0;
+        transition: none;
         margin-bottom: 0;
-        font-size: 28px;
+        font-size: 34px;
         font-weight: 700;
-        line-height: 1.1;
-        color: #171717;
+        line-height: 1.2;
+        color: #30323b;
     }
 
     .mobile-products-section .st-titile-d:hover,
     .mobile-products-section .st-titile-d:active {
-        transform: translateY(-1px);
-        box-shadow: 0 10px 20px rgba(252, 190, 0, 0.35);
+        transform: none;
+        box-shadow: none;
     }
 
     .mobile-products-swiper {
@@ -636,8 +633,8 @@ body.reel-viewer-open {
     }
 
     .mobile-products-section .st-titile-d {
-        padding: 7px 12px;
-        font-size: 24px;
+        padding: 0;
+        font-size: 18px;
     }
 
     .best-seller-card__thumb img {
@@ -673,5 +670,163 @@ body.reel-viewer-open {
     .watch-shop-btn {
         font-size: 15px;
         padding: 9px 9px;
+    }
+}
+
+
+/* ============================================
+   BRAND PARTNERS SECTION - MOBILE RESPONSIVE
+   ============================================ */
+
+@media (max-width: 767px) {
+    /* Brand Partners Section */
+    .brand-area {
+        padding: 30px 0 !important;
+    }
+
+    .brand-area .container {
+        padding: 0 15px;
+    }
+
+    /* Section Header - Remove ALL borders and lines */
+    .brand-area .section__head {
+        margin-bottom: 25px !important;
+        text-align: left !important;
+        border: none !important;
+        border-bottom: none !important;
+        border-top: none !important;
+    }
+
+    .brand-area .section__head::before,
+    .brand-area .section__head::after {
+        display: none !important;
+        content: none !important;
+        border: none !important;
+    }
+
+    .brand-area .section__title {
+        text-align: left !important;
+        border: none !important;
+        border-bottom: none !important;
+        border-top: none !important;
+        position: relative;
+    }
+
+    .brand-area .section__title::before,
+    .brand-area .section__title::after {
+        display: none !important;
+        content: none !important;
+        border: none !important;
+    }
+
+    .brand-area .section__title h5 {
+        font-size: 24px !important;
+        font-weight: 700;
+        margin-bottom: 0 !important;
+        line-height: 1.3;
+        text-align: left !important;
+        border: none !important;
+        border-bottom: none !important;
+        border-top: none !important;
+    }
+
+    .brand-area .section__title h5::before,
+    .brand-area .section__title h5::after {
+        display: none !important;
+        content: none !important;
+        border: none !important;
+    }
+
+    .brand-area .st-titile-d::before,
+    .brand-area .st-titile-d::after {
+        display: none !important;
+        content: none !important;
+        border: none !important;
+    }
+
+    /* Hide subtitle text and decorative line */
+    .brand-area .section__title p,
+    .brand-area .section__title::before,
+    .brand-area .section__title::after,
+    .brand-area .st-titile-d::before,
+    .brand-area .st-titile-d::after {
+        display: none !important;
+    }
+
+    /* Remove any decorative borders */
+    .brand-area .section__head::after,
+    .brand-area .section__title::after,
+    .brand-area .st-titile-d::after {
+        display: none !important;
+        border: none !important;
+    }
+
+    /* Brand Slider */
+    .brand-slider {
+        padding: 0 10px;
+    }
+
+    .brand-slider .swiper-slide {
+        padding: 0 5px;
+    }
+
+    /* Brand Item */
+    .brand-item {
+        padding: 15px !important;
+        transition: transform 0.3s ease;
+    }
+
+    .brand-item:active {
+        transform: scale(0.95);
+    }
+
+    .brand-item img {
+        max-width: 100%;
+        height: auto;
+        max-height: 60px !important;
+        object-fit: contain;
+    }
+
+    /* Swiper Navigation - Smaller on Mobile */
+    .brand-slider .swiper-button-next,
+    .brand-slider .swiper-button-prev {
+        width: 35px !important;
+        height: 35px !important;
+        font-size: 16px !important;
+    }
+
+    .brand-slider .swiper-button-next::after,
+    .brand-slider .swiper-button-prev::after {
+        font-size: 16px !important;
+    }
+
+    /* Swiper Pagination */
+    .brand-slider .swiper-pagination {
+        bottom: -5px !important;
+    }
+
+    .brand-slider .swiper-pagination-bullet {
+        width: 8px !important;
+        height: 8px !important;
+        margin: 0 4px !important;
+    }
+}
+
+/* Small Mobile */
+@media (max-width: 479px) {
+    .brand-area {
+        padding: 25px 0 !important;
+    }
+
+    .brand-area .section__title h5 {
+        font-size: 20px !important;
+    }
+
+    .brand-item {
+        padding: 12px !important;
+    }
+
+    .brand-item img {
+        max-height: 50px !important;
     }
 }

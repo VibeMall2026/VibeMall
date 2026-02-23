@@ -4866,6 +4866,15 @@ def wishlist(request):
     })
 
 def page_404(request): return render(request, '404.html', status=404)
+
+def custom_404(request, exception=None):
+    """Custom 404 error handler"""
+    return render(request, '404.html', status=404)
+
+def custom_500(request):
+    """Custom 500 error handler"""
+    return render(request, '500.html', status=500)
+
 def order_tracking(request):return render(request, 'order-tracking.html')
 
 
@@ -5563,22 +5572,53 @@ def api_profile_stats(request):
     from django.urls import reverse
 
     user = request.user
-    orders = Order.objects.filter(user=user)
+    orders = Order.objects.filter(user=user).prefetch_related('items__product')
 
     total_orders = orders.count()
     delivered_orders = orders.filter(order_status='DELIVERED').count()
     cancelled_orders = orders.filter(order_status='CANCELLED').count()
     pending_orders = orders.filter(order_status__in=['PENDING', 'PROCESSING', 'SHIPPED']).count()
 
+    def to_absolute_url(url_value):
+        if not url_value:
+            return ''
+        if url_value.startswith('http://') or url_value.startswith('https://'):
+            return url_value
+        if not url_value.startswith('/'):
+            url_value = f'/{url_value}'
+        return request.build_absolute_uri(url_value)
+
     recent_orders = orders.order_by('-created_at')[:5]
     recent_list = []
     for order in recent_orders:
+        order_items = list(order.items.all())
+        first_item = order_items[0] if order_items else None
+        total_qty = sum(item.quantity for item in order_items) if order_items else 0
+
+        product_name = first_item.product_name if first_item else 'Order Item'
+        item_summary = product_name
+        if total_qty > 1:
+            item_summary = f"{product_name} +{total_qty - 1} more item(s)"
+
+        product_image = ''
+        if first_item:
+            if first_item.product_image:
+                product_image = to_absolute_url(first_item.product_image)
+            elif first_item.product and first_item.product.image:
+                product_image = to_absolute_url(first_item.product.image.url)
+
         recent_list.append({
             'order_number': order.order_number,
             'status': order.order_status,
+            'status_display': order.get_order_status_display(),
             'total_amount': float(order.total_amount),
             'created_at': order.created_at.strftime('%d %b %Y'),
+            'created_at_full': order.created_at.strftime('%d %b %Y, %I:%M %p'),
             'detail_url': reverse('order_details', args=[order.order_number]),
+            'product_name': product_name,
+            'item_summary': item_summary,
+            'product_image': product_image,
+            'item_count': total_qty,
         })
 
     return JsonResponse({

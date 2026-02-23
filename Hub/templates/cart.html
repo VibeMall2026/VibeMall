@@ -40,6 +40,7 @@
 
         <!-- cart-area-start -->
         <link rel="stylesheet" href="{% static 'assets/css/cart-custom.css' %}">
+        <link rel="stylesheet" href="{% static 'assets/css/cart-responsive.css' %}?v=20260222-03">
         <section class="cart-area pt-120 pb-120">
             <div class="container">
                 <!-- Messages -->
@@ -55,7 +56,54 @@
                 {% if cart_items %}
                 <div class="row">
                   <div class="col-12">
-                        <div class="table-content table-responsive">
+                        <div class="cart-responsive-grid">
+                           {% for item in cart_items %}
+                           <div class="cart-r-card">
+                              <div class="cart-r-top">
+                                 <a href="#" class="cart-r-thumb">
+                                    {% if item.product.image %}
+                                       <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+                                    {% else %}
+                                       <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.product.name }}">
+                                    {% endif %}
+                                 </a>
+                                 <a href="#" class="cart-r-name">{{ item.product.name }}</a>
+                              </div>
+
+                              <div class="cart-r-prices">
+                                 <div class="cart-r-line">
+                                    <span>Unit Price</span>
+                                    <strong>&#8377;{{ item.product.price }}</strong>
+                                 </div>
+                                 <div class="cart-r-line">
+                                    <span>Total</span>
+                                    <strong>&#8377;{{ item.get_total_price }}</strong>
+                                 </div>
+                              </div>
+
+                              <form method="POST" action="{% url 'update_cart_quantity' item.id %}" class="cart-r-qty-form">
+                                 {% csrf_token %}
+                                 <label class="cart-r-label">Quantity</label>
+                                 <div class="cart-qty-wrap" data-max="999">
+                                    <div class="cart-qty">
+                                       <button type="button" class="cart-qty-btn" data-step="-1" aria-label="Decrease quantity">-</button>
+                                       <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="999" class="cart-qty-input" inputmode="numeric">
+                                       <button type="button" class="cart-qty-btn" data-step="1" aria-label="Increase quantity">+</button>
+                                    </div>
+                                    <button type="submit" class="btn btn-sm btn-primary cart-qty-action">Update</button>
+                                 </div>
+                              </form>
+
+                              <div class="cart-r-footer">
+                                 <a href="{% url 'remove_from_cart' item.id %}" class="btn btn-sm btn-danger cart-r-remove" onclick="return confirm('Remove this item?');">
+                                    <i class="fa fa-times"></i>
+                                 </a>
+                              </div>
+                           </div>
+                           {% endfor %}
+                        </div>
+
+                        <div class="table-content table-responsive cart-desktop-table">
                            <table class="table">
                                  <thead>
                                     <tr>

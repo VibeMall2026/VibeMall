@@ -218,8 +218,212 @@ footer * {
         margin-top: 14px;
     }
 
-    .footer-col-support .footer__hotline h4 {
+.footer-col-support .footer__hotline h4 {
         font-size: 13px;
         line-height: 1.25;
+    }
+}
+
+.footer-mobile-shell {
+    display: none !important;
+}
+
+@media (min-width: 768px) {
+    .footer-mobile-shell {
+        display: none !important;
+    }
+
+    .fotter-area .footer__top,
+    .fotter-area .footer__bottom {
+        display: block !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .fotter-area .footer__top,
+    .fotter-area .footer__bottom {
+        display: none !important;
+    }
+
+    .footer-mobile-shell {
+        display: block !important;
+        background: #626972;
+        padding: 18px 0 104px;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .footer-mobile-accordion {
+        margin: 0 0 20px;
+    }
+
+    .footer-mobile-item {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+        padding: 0;
+    }
+
+    .footer-mobile-item summary {
+        list-style: none;
+        cursor: pointer;
+        color: #f3f4f6;
+        font-size: 16px;
+        line-height: 1.2;
+        font-weight: 600;
+        letter-spacing: 0.2px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 0;
+    }
+
+    .footer-mobile-item summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .footer-mobile-item summary::after {
+        content: "+";
+        color: rgba(255, 255, 255, 0.75);
+        font-size: 34px;
+        font-weight: 400;
+        line-height: 1;
+        transition: transform 0.2s ease;
+        margin-left: 10px;
+    }
+
+    .footer-mobile-item[open] summary::after {
+        transform: rotate(45deg);
+    }
+
+    .footer-mobile-item ul {
+        list-style: none;
+        margin: 0;
+        padding: 0 0 12px;
+    }
+
+    .footer-mobile-item li {
+        margin: 0 0 8px;
+    }
+
+    .footer-mobile-item li:last-child {
+        margin-bottom: 0;
+    }
+
+    .footer-mobile-item a {
+        color: rgba(255, 255, 255, 0.82);
+        text-decoration: none;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    .footer-mobile-social {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin: 18px 0 22px;
+    }
+
+    .footer-mobile-social a {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 21px;
+        text-decoration: none;
+    }
+
+    .footer-mobile-social a.facebook { background: #3b5998; }
+    .footer-mobile-social a.x {
+        background: #2e3135;
+        font-weight: 700;
+        font-family: "Jost", "Poppins", sans-serif;
+    }
+    .footer-mobile-social a.x i { display: none; }
+    .footer-mobile-social a.x::before {
+        content: "X";
+        color: #ffffff;
+        font-size: 20px;
+        line-height: 1;
+    }
+    .footer-mobile-social a.instagram { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
+    .footer-mobile-social a.pinterest { background: #cc2127; }
+    .footer-mobile-social a.youtube { background: #ff0000; }
+    .footer-mobile-social a.whatsapp { background: #25d366; }
+
+    .footer-mobile-badges {
+        margin: 0 0 18px;
+    }
+
+    .footer-mobile-badges h6 {
+        color: #f3f4f6;
+        font-size: 16px;
+        font-weight: 600;
+        margin: 0 0 10px;
+    }
+
+    .footer-mobile-chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .footer-mobile-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 30px;
+        padding: 6px 10px;
+        border-radius: 6px;
+        background: #f8fafc;
+        color: #1f2937;
+        border: 1px solid #dbe4ef;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+    }
+
+    .footer-mobile-copy {
+        padding-top: 6px;
+    }
+
+    .footer-mobile-copy p {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 12px;
+        line-height: 1.4;
+        text-align: center;
+    }
+
+    .footer-mobile-copy span {
+        color: #ffffff;
+    }
+}
+
+
+/* ============================================
+   MOBILE RESPONSIVE - HIDE CTA SECTIONS
+   ============================================ */
+
+@media (max-width: 767px) {
+    /* Hide Follow Us, Newsletter, and Download App sections on mobile */
+    .cta-area,
+    .cta-item,
+    .cta-item-d {
+        display: none !important;
+    }
+    
+    /* Also hide if they have specific classes */
+    .subscribe__form,
+    .cta-social,
+    .app-download {
+        display: none !important;
+    }
+    
+    /* Hide entire CTA section container */
+    section.cta-area,
+    .cta-section {
+        display: none !important;
     }
 }

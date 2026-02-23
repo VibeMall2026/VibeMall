@@ -148,24 +148,12 @@
                         <i class="fas fa-receipt"></i> Recent Orders
                     </h6>
 
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead style="background: #f8f9fa;">
-                                <tr>
-                                    <th style="padding: 12px;">Order</th>
-                                    <th style="padding: 12px;">Status</th>
-                                    <th style="padding: 12px;">Amount</th>
-                                    <th style="padding: 12px;">Date</th>
-                                </tr>
-                            </thead>
-                            <tbody id="recentOrdersBody">
-                                <tr>
-                                    <td colspan="4" class="text-center text-muted" style="padding: 16px;">
-                                        Loading recent orders...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div class="row recent-orders-grid" id="recentOrdersGrid">
+                        <div class="col-12">
+                            <div class="recent-orders-empty">
+                                Loading recent orders...
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -175,7 +163,7 @@
                         <i class="fas fa-star" style="color: #ffc107;"></i> Loyalty Points
                     </h5>
 
-                    <div class="row mb-30">
+                    <div class="row mb-30 loyalty-points-grid">
                         <div class="col-md-4 mb-20">
                             <div class="points-stat-card text-center p-20" style="background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%); border-radius: 12px; box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);">
                                 <i class="fas fa-coins" style="font-size: 32px; color: white; margin-bottom: 10px;"></i>
@@ -211,46 +199,46 @@
                     </h6>
 
                     {% if points_transactions %}
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead style="background: #f8f9fa;">
-                                    <tr>
-                                        <th style="padding: 12px;">Date</th>
-                                        <th style="padding: 12px;">Type</th>
-                                        <th style="padding: 12px;">Description</th>
-                                        <th style="padding: 12px; text-align: right;">Points</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for transaction in points_transactions %}
-                                    <tr>
-                                        <td style="padding: 12px; vertical-align: middle;">
-                                            <small style="color: #6c757d;">{{ transaction.created_at|date:"M d, Y" }}</small><br>
-                                            <small style="color: #adb5bd;">{{ transaction.created_at|time:"h:i A" }}</small>
-                                        </td>
-                                        <td style="padding: 12px; vertical-align: middle;">
+                        <div class="row transaction-history-grid">
+                            {% for transaction in points_transactions %}
+                            <div class="col-sm-6 mb-20">
+                                <div class="transaction-history-card {% if transaction.transaction_type == 'EARNED' %}transaction-history-card--earned{% elif transaction.transaction_type == 'REDEEMED' %}transaction-history-card--redeemed{% elif transaction.transaction_type == 'EXPIRED' %}transaction-history-card--expired{% else %}transaction-history-card--adjusted{% endif %}">
+                                    <div class="transaction-history-card__top">
+                                        <div class="transaction-history-card__date">
+                                            <small>{{ transaction.created_at|date:"M d, Y" }}</small>
+                                            <small>{{ transaction.created_at|time:"h:i A" }}</small>
+                                        </div>
+                                        <div class="transaction-history-card__points">
+                                            <small class="transaction-history-card__points-label">Points</small>
                                             {% if transaction.transaction_type == 'EARNED' %}
-                                                <span class="badge bg-success"><i class="fas fa-plus-circle"></i> Earned</span>
-                                            {% elif transaction.transaction_type == 'REDEEMED' %}
-                                                <span class="badge bg-danger"><i class="fas fa-minus-circle"></i> Redeemed</span>
-                                            {% elif transaction.transaction_type == 'EXPIRED' %}
-                                                <span class="badge bg-warning"><i class="fas fa-clock"></i> Expired</span>
+                                                <span class="transaction-points-positive">+{{ transaction.points }}</span>
                                             {% else %}
-                                                <span class="badge bg-info"><i class="fas fa-sync"></i> Adjusted</span>
+                                                <span class="transaction-points-negative">-{{ transaction.points }}</span>
                                             {% endif %}
-                                        </td>
-                                        <td style="padding: 12px; vertical-align: middle;">{{ transaction.description }}</td>
-                                        <td style="padding: 12px; vertical-align: middle; text-align: right;">
-                                            {% if transaction.transaction_type == 'EARNED' %}
-                                                <span style="color: #28a745; font-weight: 600;">+{{ transaction.points }}</span>
-                                            {% else %}
-                                                <span style="color: #dc3545; font-weight: 600;">-{{ transaction.points }}</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                                        </div>
+                                    </div>
+
+                                    <div class="transaction-history-card__type mb-2">
+                                        {% if transaction.transaction_type == 'EARNED' %}
+                                            <span class="badge bg-success"><i class="fas fa-plus-circle"></i> Earned</span>
+                                        {% elif transaction.transaction_type == 'REDEEMED' %}
+                                            <span class="badge bg-danger"><i class="fas fa-minus-circle"></i> Redeemed</span>
+                                        {% elif transaction.transaction_type == 'EXPIRED' %}
+                                            <span class="badge bg-warning"><i class="fas fa-clock"></i> Expired</span>
+                                        {% else %}
+                                            <span class="badge bg-info"><i class="fas fa-sync"></i> Adjusted</span>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="transaction-history-card__meta">
+                                        <span class="transaction-history-card__meta-label">
+                                            <i class="fas fa-receipt"></i> Order Details
+                                        </span>
+                                        <p class="transaction-history-card__desc mb-0">{{ transaction.description }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
                         </div>
                     {% else %}
                         <div class="alert alert-info">
@@ -399,6 +387,7 @@
 </div>
 
 <link rel="stylesheet" href="{% static 'assets/css/profile-custom.css' %}">
+<link rel="stylesheet" href="{% static 'assets/css/profile-responsive.css' %}?v=20260222-01">
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -406,7 +395,17 @@
         const statsDelivered = document.getElementById('statsDeliveredOrders');
         const statsPending = document.getElementById('statsPendingOrders');
         const statsCancelled = document.getElementById('statsCancelledOrders');
-        const recentBody = document.getElementById('recentOrdersBody');
+        const recentGrid = document.getElementById('recentOrdersGrid');
+        const fallbackProductImage = "{% static 'assets/img/product/tp-1.jpg' %}";
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
 
         fetch('/api/profile/stats/')
             .then(response => response.json())
@@ -416,42 +415,59 @@
                 if (statsPending) statsPending.textContent = data.pending_orders ?? 0;
                 if (statsCancelled) statsCancelled.textContent = data.cancelled_orders ?? 0;
 
-                if (recentBody) {
+                if (recentGrid) {
                     const orders = data.recent_orders || [];
                     if (!orders.length) {
-                        recentBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted" style="padding: 16px;">No recent orders found.</td></tr>';
+                        recentGrid.innerHTML = '<div class="col-12"><div class="recent-orders-empty">No recent orders found.</div></div>';
                         return;
                     }
 
-                    recentBody.innerHTML = orders.map(order => {
-                        const statusClass = order.status === 'DELIVERED'
-                            ? 'bg-success'
-                            : order.status === 'CANCELLED'
-                                ? 'bg-danger'
-                                : 'bg-warning';
+                    recentGrid.innerHTML = orders.map(order => {
+                        const statusClassMap = {
+                            DELIVERED: 'bg-success',
+                            CANCELLED: 'bg-danger',
+                            SHIPPED: 'bg-primary',
+                            PROCESSING: 'bg-info',
+                            PENDING: 'bg-warning'
+                        };
+                        const statusClass = statusClassMap[order.status] || 'bg-secondary';
+
+                        const orderAmount = Number(order.total_amount || 0).toFixed(2);
+                        const orderDate = escapeHtml(order.created_at_full || order.created_at || '');
+                        const productName = escapeHtml(order.product_name || 'Product');
+                        const itemSummary = escapeHtml(order.item_summary || '');
+                        const statusText = escapeHtml(order.status_display || order.status || '');
+                        const orderNumber = escapeHtml(order.order_number || '');
+                        const productImage = escapeHtml(order.product_image || fallbackProductImage);
+                        const detailUrl = escapeHtml(order.detail_url || '#');
 
                         return `
-                            <tr style="cursor: pointer;" onclick="window.location.href='${order.detail_url}'">
-                                <td style="padding: 12px; vertical-align: middle;">
-                                    <strong>#${order.order_number}</strong>
-                                </td>
-                                <td style="padding: 12px; vertical-align: middle;">
-                                    <span class="badge ${statusClass}">${order.status}</span>
-                                </td>
-                                <td style="padding: 12px; vertical-align: middle;">
-                                    ₹${Number(order.total_amount).toFixed(2)}
-                                </td>
-                                <td style="padding: 12px; vertical-align: middle;">
-                                    ${order.created_at}
-                                </td>
-                            </tr>
+                            <div class="col-6 mb-20">
+                                <a class="recent-order-card" href="${detailUrl}">
+                                    <div class="recent-order-card__media">
+                                        <img src="${productImage}" alt="${productName}" loading="lazy" onerror="this.onerror=null;this.src='${fallbackProductImage}';">
+                                    </div>
+                                    <div class="recent-order-card__content">
+                                        <div class="recent-order-card__top">
+                                            <span class="recent-order-card__number">#${orderNumber}</span>
+                                            <span class="badge ${statusClass}">${statusText}</span>
+                                        </div>
+                                        <h6 class="recent-order-card__title">${productName}</h6>
+                                        <p class="recent-order-card__summary">${itemSummary}</p>
+                                        <div class="recent-order-card__bottom">
+                                            <strong class="recent-order-card__price">₹${orderAmount}</strong>
+                                            <span class="recent-order-card__date">${orderDate}</span>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
                         `;
                     }).join('');
                 }
             })
             .catch(() => {
-                if (recentBody) {
-                    recentBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted" style="padding: 16px;">Unable to load stats right now.</td></tr>';
+                if (recentGrid) {
+                    recentGrid.innerHTML = '<div class="col-12"><div class="recent-orders-empty">Unable to load stats right now.</div></div>';
                 }
             });
     });

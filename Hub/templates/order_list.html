@@ -323,7 +323,34 @@ function createMobileOrderCards() {
         const orderLink = orderLinkEl.href;
         const date = cells[1].textContent.trim();
         const productsDiv = cells[2].querySelector('div');
-        const productsHtml = productsDiv ? productsDiv.innerHTML : '';
+        
+        // Get products HTML and count
+        let productsHtml = '';
+        let productCountBadge = '';
+        
+        if (productsDiv) {
+            // Try to find direct product containers with d-flex class
+            let productDivs = productsDiv.querySelectorAll(':scope > div');
+            
+            // Filter to only get actual product items (those with images or placeholders)
+            productDivs = Array.from(productDivs).filter(div => {
+                return div.querySelector('img') || div.querySelector('i.fa-box');
+            });
+            
+            if (productDivs.length > 0) {
+                // Show only first product
+                productsHtml = productDivs[0].outerHTML;
+                
+                // Add count badge ONLY if more than 1 product
+                if (productDivs.length > 1) {
+                    productCountBadge = `<span class="order-products-count">+${productDivs.length - 1} more item${productDivs.length > 2 ? 's' : ''}</span>`;
+                }
+            } else {
+                // Fallback: use all HTML if no products found
+                productsHtml = productsDiv.innerHTML;
+            }
+        }
+        
         const total = cells[3].textContent.trim();
         const payment = cells[4].innerHTML;
         const status = cells[5].innerHTML;
@@ -369,6 +396,7 @@ function createMobileOrderCards() {
             <div class="order-card-body">
                 <div class="order-products">
                     ${productsHtml}
+                    ${productCountBadge}
                 </div>
                 <div class="order-info-grid">
                     <div class="order-info-item">

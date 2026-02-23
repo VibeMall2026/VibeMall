@@ -35,3 +35,9 @@ urlpatterns = [
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Error Handlers
+handler404 = 'Hub.views.custom_404'
+handler500 = 'Hub.views.custom_500'
+handler403 = 'Hub.views.custom_404'
+handler400 = 'Hub.views.custom_404'

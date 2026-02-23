@@ -283,6 +283,145 @@
             margin-bottom: 6px;
         }
     }
+
+    .ready-ship-area {
+        position: relative;
+    }
+
+    .ready-ship-head {
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    .ready-ship-head h3 {
+        margin: 0;
+        color: #333;
+        font-size: 36px;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .ready-ship-hero {
+        position: relative;
+        display: block;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 12px;
+        height: 430px;
+    }
+
+    .ready-ship-hero img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .ready-ship-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .ready-ship-card {
+        position: relative;
+        display: block;
+        border-radius: 10px;
+        overflow: hidden;
+        height: 240px;
+    }
+
+    .ready-ship-card img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .ready-ship-hero::after,
+    .ready-ship-card::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 40%;
+        background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.58) 100%);
+    }
+
+    .ready-ship-label {
+        position: absolute;
+        left: 50%;
+        bottom: 16px;
+        transform: translateX(-50%);
+        z-index: 2;
+        color: #fff;
+        font-size: 32px;
+        font-weight: 600;
+        line-height: 1.2;
+        text-align: center;
+        text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+        padding: 0 10px;
+        width: calc(100% - 20px);
+    }
+
+    .ready-ship-card .ready-ship-label {
+        font-size: 28px;
+        bottom: 12px;
+    }
+
+    @media (max-width: 1199.98px) {
+        .ready-ship-head h3 {
+            font-size: 30px;
+        }
+
+        .ready-ship-hero {
+            height: 360px;
+        }
+
+        .ready-ship-card {
+            height: 200px;
+        }
+
+        .ready-ship-label {
+            font-size: 26px;
+        }
+
+        .ready-ship-card .ready-ship-label {
+            font-size: 20px;
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .ready-ship-head h3 {
+            font-size: 22px;
+        }
+
+        .ready-ship-hero {
+            height: 250px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+        }
+
+        .ready-ship-grid {
+            gap: 8px;
+        }
+
+        .ready-ship-card {
+            height: 165px;
+            border-radius: 8px;
+        }
+
+        .ready-ship-label {
+            font-size: 16px;
+            bottom: 10px;
+        }
+
+        .ready-ship-card .ready-ship-label {
+            font-size: 14px;
+            bottom: 8px;
+        }
+    }
 </style>
 
 <div class="mobile-hero">
@@ -923,6 +1062,40 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
             {% endfor %}
 
+        </div>
+    </div>
+</section>
+
+
+
+<section class="ready-ship-area pt-10 pb-20">
+    <div class="container">
+        <div class="ready-ship-head">
+            <h3>Ready-to-Ship Styles</h3>
+        </div>
+
+        <a href="{% url 'shop' %}" class="ready-ship-hero">
+            <img src="{% static 'assets/img/banner/banner-14.jpg' %}" alt="Ready to ship styles">
+            <span class="ready-ship-label">Sarees</span>
+        </a>
+
+        <div class="ready-ship-grid">
+            <a href="{% url 'shop' %}" class="ready-ship-card">
+                <img src="{% static 'assets/img/banner/banner-9.jpg' %}" alt="Pure Designer Embroidery Saree">
+                <span class="ready-ship-label">Pure Designer Embroidery Saree</span>
+            </a>
+            <a href="{% url 'shop' %}" class="ready-ship-card">
+                <img src="{% static 'assets/img/banner/banner-10.jpg' %}" alt="Handloom Silk Embroidery Saree">
+                <span class="ready-ship-label">Handloom Silk Embroidery Saree</span>
+            </a>
+            <a href="{% url 'shop' %}" class="ready-ship-card">
+                <img src="{% static 'assets/img/banner/banner-11.jpg' %}" alt="Kanchipuram Saree">
+                <span class="ready-ship-label">Kanchipuram Saree</span>
+            </a>
+            <a href="{% url 'shop' %}" class="ready-ship-card">
+                <img src="{% static 'assets/img/banner/banner-12.jpg' %}" alt="Ready Blouse Sarees">
+                <span class="ready-ship-label">Ready Blouse Sarees</span>
+            </a>
         </div>
     </div>
 </section>

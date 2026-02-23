@@ -320,4 +320,119 @@
     })();
 </script>
 {% endif %}
+
+<script>
+// Convert table to mobile cards on small screens
+(function() {
+    function createMobileCards() {
+        if (window.innerWidth > 767) return;
+        
+        const tableResponsive = document.querySelector('.table-responsive');
+        if (!tableResponsive) return;
+        
+        const table = tableResponsive.querySelector('table');
+        if (!table || table.style.display === 'none') return;
+        
+        const tbody = table.querySelector('tbody');
+        const tfoot = table.querySelector('tfoot');
+        if (!tbody) return;
+        
+        // Create container for mobile cards
+        const mobileContainer = document.createElement('div');
+        mobileContainer.className = 'mobile-cards-container';
+        
+        // Convert each row to a card
+        const rows = tbody.querySelectorAll('tr');
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            if (cells.length < 6) return;
+            
+            const card = document.createElement('div');
+            card.className = 'mobile-product-card';
+            
+            // Product image and name
+            const imageSection = document.createElement('div');
+            imageSection.className = 'product-image-section';
+            const productCell = cells[0].cloneNode(true);
+            imageSection.appendChild(productCell);
+            card.appendChild(imageSection);
+            
+            // Size
+            const sizeRow = document.createElement('div');
+            sizeRow.className = 'product-details-row';
+            sizeRow.innerHTML = `<span class="label">Size</span><span class="value">${cells[1].textContent.trim()}</span>`;
+            card.appendChild(sizeRow);
+            
+            // Color
+            const colorRow = document.createElement('div');
+            colorRow.className = 'product-details-row';
+            colorRow.innerHTML = `<span class="label">Color</span><span class="value">${cells[2].textContent.trim()}</span>`;
+            card.appendChild(colorRow);
+            
+            // Quantity
+            const qtyRow = document.createElement('div');
+            qtyRow.className = 'product-details-row';
+            const qtyValue = cells[3].cloneNode(true);
+            qtyRow.innerHTML = `<span class="label">Quantity</span>`;
+            qtyRow.appendChild(qtyValue);
+            card.appendChild(qtyRow);
+            
+            // Price
+            const priceRow = document.createElement('div');
+            priceRow.className = 'product-details-row';
+            priceRow.innerHTML = `<span class="label">Price</span><span class="value">${cells[4].textContent.trim()}</span>`;
+            card.appendChild(priceRow);
+            
+            // Total
+            const totalRow = document.createElement('div');
+            totalRow.className = 'product-details-row total';
+            totalRow.innerHTML = `<span class="label">Total</span><span class="value">${cells[5].textContent.trim()}</span>`;
+            card.appendChild(totalRow);
+            
+            mobileContainer.appendChild(card);
+        });
+        
+        // Create price summary card
+        if (tfoot) {
+            const summaryCard = document.createElement('div');
+            summaryCard.className = 'mobile-price-summary';
+            summaryCard.innerHTML = '<div class="summary-title">Price Details</div>';
+            
+            const tfootRows = tfoot.querySelectorAll('tr');
+            tfootRows.forEach((row, index) => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length >= 2) {
+                    const summaryRow = document.createElement('div');
+                    summaryRow.className = 'summary-row';
+                    if (row.classList.contains('table-success')) {
+                        summaryRow.classList.add('grand-total');
+                    }
+                    summaryRow.innerHTML = `<span class="label">${cells[0].textContent.trim()}</span><span class="value">${cells[1].textContent.trim()}</span>`;
+                    summaryCard.appendChild(summaryRow);
+                }
+            });
+            
+            mobileContainer.appendChild(summaryCard);
+        }
+        
+        // Replace table with mobile cards
+        table.style.display = 'none';
+        tableResponsive.appendChild(mobileContainer);
+    }
+    
+    // Run on load and resize
+    createMobileCards();
+    window.addEventListener('resize', function() {
+        const mobileContainer = document.querySelector('.mobile-cards-container');
+        if (mobileContainer) {
+            mobileContainer.remove();
+        }
+        const table = document.querySelector('.table-responsive table');
+        if (table) {
+            table.style.display = '';
+        }
+        createMobileCards();
+    });
+})();
+</script>
 {% endblock %}

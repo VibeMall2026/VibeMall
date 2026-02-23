@@ -7,6 +7,35 @@
 }
 
 @media (max-width: 991.98px) {
+    .page-banner-area.page-banner-height-2 {
+        min-height: 300px;
+        background-position: center center !important;
+    }
+
+    .page-banner-area .page-banner-content {
+        padding: 12px 0 6px;
+    }
+
+    .page-banner-area .breadcrumb-title {
+        font-size: 48px;
+        line-height: 1.08;
+        letter-spacing: -0.02em;
+        margin-bottom: 10px;
+    }
+
+    .page-banner-area .breadcrumb-two .breadcrumb-menu {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px 14px;
+    }
+
+    .page-banner-area .breadcrumb-two .breadcrumb-menu li span {
+        font-size: 18px;
+        line-height: 1.2;
+    }
+
     .shop-shell {
         padding-left: 0;
         padding-right: 0;
@@ -112,6 +141,25 @@
 }
 
 @media (max-width: 575.98px) {
+    .page-banner-area.page-banner-height-2 {
+        min-height: 245px;
+    }
+
+    .page-banner-area .page-banner-content {
+        padding: 10px 0 4px;
+    }
+
+    .page-banner-area .breadcrumb-title {
+        font-size: 34px;
+        line-height: 1.05;
+        margin-bottom: 8px;
+    }
+
+    .page-banner-area .breadcrumb-two .breadcrumb-menu li span {
+        font-size: 15px;
+        line-height: 1.2;
+    }
+
     .shop-area .col-xl-9.col-lg-8 {
         flex: 0 0 100% !important;
         max-width: 100% !important;
@@ -123,8 +171,9 @@
         gap: 6px;
         position: fixed;
         right: 0;
-        top: 56%;
-        transform: translateY(-50%);
+        top: auto;
+        bottom: 96px;
+        transform: none;
         z-index: 10070;
         border: 0;
         border-radius: 12px 0 0 12px;

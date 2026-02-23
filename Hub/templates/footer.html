@@ -160,4 +160,122 @@
                 </div>
             </div>
         </div>
+
+        <div class="footer-mobile-shell d-md-none" style="display:none;">
+            <div class="container">
+                <div class="footer-mobile-accordion">
+                    <details class="footer-mobile-item">
+                        <summary>Shop Now</summary>
+                        <ul>
+                            <li><a href="{% url 'index' %}">Home</a></li>
+                            <li><a href="{% url 'shop' %}">Shop</a></li>
+                            <li><a href="{% url 'cart' %}">Cart</a></li>
+                            <li><a href="{% url 'checkout' %}">Checkout</a></li>
+                        </ul>
+                    </details>
+
+                    <details class="footer-mobile-item">
+                        <summary>Useful Links</summary>
+                        <ul>
+                            <li><a href="{% url 'about' %}">About Us</a></li>
+                            <li><a href="{% url 'contact' %}">Contact Us</a></li>
+                            <li><a href="{% url 'faq' %}">FAQs</a></li>
+                            <li><a href="{% url 'profile' %}">My Account</a></li>
+                            <li><a href="{% url 'order_list' %}">My Orders</a></li>
+                            <li><a href="{% url 'track_order' %}">Order Tracking</a></li>
+                        </ul>
+                    </details>
+
+                    <details class="footer-mobile-item">
+                        <summary>Popular Searches</summary>
+                        <ul>
+                            {% if header_categories %}
+                                {% for category in header_categories|slice:":6" %}
+                                    <li><a href="{% url 'shop' %}?category={{ category.key }}">{{ category.label }}</a></li>
+                                {% endfor %}
+                            {% else %}
+                                <li><a href="{% url 'shop' %}">Women Wear</a></li>
+                                <li><a href="{% url 'shop' %}">Watch</a></li>
+                                <li><a href="{% url 'shop' %}">Home &amp; Kitchen</a></li>
+                                <li><a href="{% url 'shop' %}">Jewellery</a></li>
+                                <li><a href="{% url 'shop' %}">Mens Wear</a></li>
+                                <li><a href="{% url 'shop' %}">Beauty &amp; Shoes</a></li>
+                            {% endif %}
+                        </ul>
+                    </details>
+
+                    <details class="footer-mobile-item">
+                        <summary>Latest Design</summary>
+                        <ul>
+                            {% if header_categories %}
+                                {% for category in header_categories|slice:"6:12" %}
+                                    <li><a href="{% url 'shop' %}?category={{ category.key }}">{{ category.label }}</a></li>
+                                {% empty %}
+                                    <li><a href="{% url 'blog' %}">Blog</a></li>
+                                    <li><a href="{% url 'shop' %}">New Arrivals</a></li>
+                                    <li><a href="{% url 'shop' %}">Top Featured Products</a></li>
+                                {% endfor %}
+                            {% else %}
+                                <li><a href="{% url 'shop' %}">New Arrivals</a></li>
+                                <li><a href="{% url 'shop' %}">Best Seller</a></li>
+                                <li><a href="{% url 'shop' %}">Top Deals</a></li>
+                            {% endif %}
+                        </ul>
+                    </details>
+
+                    <details class="footer-mobile-item">
+                        <summary>Traditional Wear</summary>
+                        <ul>
+                            <li><a href="{% url 'shop' %}">Women Wear</a></li>
+                            <li><a href="{% url 'shop' %}">Mens Wear</a></li>
+                            <li><a href="{% url 'shop' %}">Jewellery</a></li>
+                            <li><a href="{% url 'shop' %}">Beauty &amp; Shoes</a></li>
+                        </ul>
+                    </details>
+
+                    <details class="footer-mobile-item">
+                        <summary>Contact Us</summary>
+                        <ul>
+                            <li><a href="{% url 'contact' %}">Contact Page</a></li>
+                            <li><a href="mailto:{{ site_settings.contact_email|default:'support@vibemall.com' }}">{{ site_settings.contact_email|default:"support@vibemall.com" }}</a></li>
+                            <li><a href="{% url 'faq' %}">Support 24/7</a></li>
+                        </ul>
+                    </details>
+                </div>
+
+                <div class="footer-mobile-social">
+                    <a href="#" class="facebook" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" class="x" aria-label="X"><i class="fab fa-x-twitter"></i></a>
+                    <a href="#" class="instagram" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                    <a href="#" class="pinterest" aria-label="Pinterest"><i class="fab fa-pinterest-p"></i></a>
+                    <a href="#" class="youtube" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+                    <a href="#" class="whatsapp" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+                </div>
+
+                <div class="footer-mobile-badges">
+                    <h6>Shipping Partners:</h6>
+                    <div class="footer-mobile-chip-row">
+                        <span class="footer-mobile-chip">FedEx</span>
+                        <span class="footer-mobile-chip">BLUE DART</span>
+                        <span class="footer-mobile-chip">DTDC</span>
+                    </div>
+                </div>
+
+                <div class="footer-mobile-badges">
+                    <h6>We Accept:</h6>
+                    <div class="footer-mobile-chip-row">
+                        <span class="footer-mobile-chip">VISA</span>
+                        <span class="footer-mobile-chip">MasterCard</span>
+                        <span class="footer-mobile-chip">American Express</span>
+                        <span class="footer-mobile-chip">PayPal</span>
+                        <span class="footer-mobile-chip">UPI</span>
+                        <span class="footer-mobile-chip">RuPay</span>
+                    </div>
+                </div>
+
+                <div class="footer-mobile-copy">
+                    <p>Copyright © <span>{{ site_settings.site_name|default:"VibeMall" }}</span>. All Rights Reserved.</p>
+                </div>
+            </div>
+        </div>
     </footer>

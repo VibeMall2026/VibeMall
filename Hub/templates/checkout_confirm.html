@@ -4,6 +4,10 @@
 
 {% block title %}Confirm Order - VibeMall{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'assets/css/confirmorder-responsive.css' %}">
+{% endblock %}
+
 {% block content %}
 <div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
     <div class="container">
@@ -69,18 +73,18 @@
                                         <td>
                                             <div class="d-flex align-items-center gap-3">
                                                 {% if item.product_image %}
-                                                <img src="{{ item.product_image }}" alt="{{ item.product_name }}" style="width: 56px; height: 56px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;">
+                                                <img src="{{ item.product_image }}" alt="{{ item.product_name }}" style="width: 56px; height: 56px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;" class="product-img">
                                                 {% elif item.product and item.product.image %}
-                                                <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="width: 56px; height: 56px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;">
+                                                <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="width: 56px; height: 56px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;" class="product-img">
                                                 {% endif %}
                                                 <div>
-                                                    <div class="fw-semibold">{{ item.product_name|default:item.product.name }}</div>
-                                                    <small class="text-muted">₹{{ item.product_price|default:item.product.price }}</small>
+                                                    <div class="fw-semibold product-name-text">{{ item.product_name|default:item.product.name }}</div>
+                                                    <small class="text-muted product-price-text">₹{{ item.product_price|default:item.product.price }}</small>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td>{{ item.quantity }}</td>
-                                        <td>
+                                        <td class="product-qty-text">{{ item.quantity }}</td>
+                                        <td class="product-total-text">
                                             {% if item.subtotal %}
                                                 ₹{{ item.subtotal|floatformat:2 }}
                                             {% else %}
@@ -138,4 +142,116 @@
         </div>
     </div>
 </section>
+
+<script>
+// Convert product table to mobile cards on small screens
+(function() {
+    function createMobileProductCards() {
+        if (window.innerWidth <= 767) {
+            const tableResponsive = document.querySelector('.table-responsive');
+            if (!tableResponsive) return;
+
+            const table = tableResponsive.querySelector('.table');
+            if (!table) return;
+
+            // Check if mobile cards already exist
+            if (tableResponsive.querySelector('.mobile-confirm-products')) return;
+
+            const tbody = table.querySelector('tbody');
+            if (!tbody) return;
+
+            const rows = tbody.querySelectorAll('tr');
+            if (rows.length === 0) return;
+
+            // Create mobile cards container
+            const mobileContainer = document.createElement('div');
+            mobileContainer.className = 'mobile-confirm-products';
+
+            rows.forEach(row => {
+                const productImg = row.querySelector('.product-img');
+                const productName = row.querySelector('.product-name-text');
+                const productPrice = row.querySelector('.product-price-text');
+                const productQty = row.querySelector('.product-qty-text');
+                const productTotal = row.querySelector('.product-total-text');
+
+                if (!productName || !productQty || !productTotal) return;
+
+                const card = document.createElement('div');
+                card.className = 'mobile-confirm-product-card';
+
+                const productRow = document.createElement('div');
+                productRow.className = 'product-row';
+
+                // Add image if exists
+                if (productImg) {
+                    const imgClone = productImg.cloneNode(true);
+                    imgClone.className = 'product-image';
+                    productRow.appendChild(imgClone);
+                }
+
+                // Product info
+                const productInfo = document.createElement('div');
+                productInfo.className = 'product-info';
+
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'product-name';
+                nameDiv.textContent = productName.textContent.trim();
+                productInfo.appendChild(nameDiv);
+
+                if (productPrice) {
+                    const priceDiv = document.createElement('div');
+                    priceDiv.className = 'product-price';
+                    priceDiv.textContent = productPrice.textContent.trim();
+                    productInfo.appendChild(priceDiv);
+                }
+
+                productRow.appendChild(productInfo);
+                card.appendChild(productRow);
+
+                // Product details (qty and total)
+                const detailsDiv = document.createElement('div');
+                detailsDiv.className = 'product-details';
+
+                const qtyDiv = document.createElement('div');
+                qtyDiv.className = 'product-qty';
+                qtyDiv.innerHTML = `Qty: <span>${productQty.textContent.trim()}</span>`;
+                detailsDiv.appendChild(qtyDiv);
+
+                const totalDiv = document.createElement('div');
+                totalDiv.className = 'product-total';
+                totalDiv.textContent = productTotal.textContent.trim();
+                detailsDiv.appendChild(totalDiv);
+
+                card.appendChild(detailsDiv);
+                mobileContainer.appendChild(card);
+            });
+
+            // Insert mobile cards before the table
+            tableResponsive.insertBefore(mobileContainer, table);
+        }
+    }
+
+    // Run on load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', createMobileProductCards);
+    } else {
+        createMobileProductCards();
+    }
+
+    // Run on resize (debounced)
+    let resizeTimer;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+            // Remove existing mobile cards
+            const existingMobile = document.querySelector('.mobile-confirm-products');
+            if (existingMobile) {
+                existingMobile.remove();
+            }
+            createMobileProductCards();
+        }, 250);
+    });
+})();
+</script>
+
 {% endblock %}
