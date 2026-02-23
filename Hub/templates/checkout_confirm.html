@@ -118,6 +118,12 @@
                                     <th>Shipping</th>
                                     <td>{% if shipping_cost == 0 %}FREE{% else %}₹{{ shipping_cost|floatformat:2 }}{% endif %}</td>
                                 </tr>
+                                {% if applied_coupon and coupon_discount > 0 %}
+                                <tr>
+                                    <th>Coupon Discount ({{ applied_coupon.code }})</th>
+                                    <td style="color: #28a745;">-₹{{ coupon_discount|floatformat:2 }}</td>
+                                </tr>
+                                {% endif %}
                                 {% if points_discount and points_discount > 0 %}
                                 <tr>
                                     <th>Points Discount</th>

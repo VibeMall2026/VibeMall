@@ -284,6 +284,57 @@
         }
     }
 
+    .subcat-banner-area {
+        position: relative;
+    }
+
+    .subcat-banner-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .subcat-banner-item {
+        position: relative;
+        border-radius: 10px;
+        overflow: hidden;
+        display: block;
+        height: 210px;
+        text-decoration: none;
+    }
+
+    .subcat-banner-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .subcat-banner-item::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 45%;
+        background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.62) 100%);
+    }
+
+    .subcat-banner-label {
+        position: absolute;
+        left: 50%;
+        bottom: 10px;
+        transform: translateX(-50%);
+        z-index: 2;
+        width: calc(100% - 18px);
+        color: #fff;
+        text-align: center;
+        font-size: 18px;
+        font-weight: 600;
+        line-height: 1.25;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+    }
+
     .ready-ship-area {
         position: relative;
     }
@@ -336,6 +387,15 @@
         height: 100%;
         object-fit: cover;
         display: block;
+    }
+
+    @media (min-width: 768px) {
+        .ready-ship-hero img,
+        .ready-ship-card img {
+            object-fit: contain;
+            object-position: center;
+            background: #f5f5f5;
+        }
     }
 
     .ready-ship-hero::after,
@@ -393,6 +453,22 @@
     }
 
     @media (max-width: 767.98px) {
+        .subcat-banner-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .subcat-banner-item {
+            height: 145px;
+            border-radius: 8px;
+        }
+
+        .subcat-banner-label {
+            font-size: 12px;
+            bottom: 7px;
+            width: calc(100% - 12px);
+        }
+
         .ready-ship-head h3 {
             font-size: 22px;
         }
@@ -555,7 +631,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     spaceBetween: 18
                 },
                 1200: {
-                    slidesPerView: 3,
+                    slidesPerView: 3.25,
+                    spaceBetween: 18
+                },
+                1400: {
+                    slidesPerView: 4,
                     spaceBetween: 20
                 }
             }
@@ -1009,6 +1089,31 @@ document.addEventListener('DOMContentLoaded', function () {
 </section>
 
 
+{% if subcategory_banners %}
+<section class="subcat-banner-area pt-10 pb-20">
+    <div class="container">
+        <div class="section__head d-flex justify-content-between mb-20">
+            <div class="section__title">
+                <h5 class="st-titile-d">Shop by Sub-category</h5>
+            </div>
+        </div>
+        <div class="subcat-banner-grid">
+            {% for item in subcategory_banners %}
+            <a href="{% url 'shop' %}?category={{ item.category_key|urlencode }}&sub_category={{ item.sub_category|urlencode }}" class="subcat-banner-item">
+                {% if item.image_url %}
+                <img src="{{ item.image_url }}" alt="{{ item.title }}">
+                {% else %}
+                <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.title }}">
+                {% endif %}
+                <span class="subcat-banner-label">{{ item.title }}</span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+
 
         <section class="features__area pt-20">
     <div class="container">
@@ -1074,29 +1179,33 @@ document.addEventListener('DOMContentLoaded', function () {
             <h3>Ready-to-Ship Styles</h3>
         </div>
 
-        <a href="{% url 'shop' %}" class="ready-ship-hero">
-            <img src="{% static 'assets/img/banner/banner-14.jpg' %}" alt="Ready to ship styles">
-            <span class="ready-ship-label">Sarees</span>
-        </a>
+        {% if ready_ship_cards %}
+            {% with hero=ready_ship_cards.0 %}
+            <a href="{% url 'product-details' hero.product.id %}" class="ready-ship-hero">
+                {% if hero.image_url %}
+                <img src="{{ hero.image_url }}" alt="{{ hero.title }}">
+                {% else %}
+                <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ hero.title }}">
+                {% endif %}
+                <span class="ready-ship-label">{{ hero.title }}</span>
+            </a>
+            {% endwith %}
 
-        <div class="ready-ship-grid">
-            <a href="{% url 'shop' %}" class="ready-ship-card">
-                <img src="{% static 'assets/img/banner/banner-9.jpg' %}" alt="Pure Designer Embroidery Saree">
-                <span class="ready-ship-label">Pure Designer Embroidery Saree</span>
-            </a>
-            <a href="{% url 'shop' %}" class="ready-ship-card">
-                <img src="{% static 'assets/img/banner/banner-10.jpg' %}" alt="Handloom Silk Embroidery Saree">
-                <span class="ready-ship-label">Handloom Silk Embroidery Saree</span>
-            </a>
-            <a href="{% url 'shop' %}" class="ready-ship-card">
-                <img src="{% static 'assets/img/banner/banner-11.jpg' %}" alt="Kanchipuram Saree">
-                <span class="ready-ship-label">Kanchipuram Saree</span>
-            </a>
-            <a href="{% url 'shop' %}" class="ready-ship-card">
-                <img src="{% static 'assets/img/banner/banner-12.jpg' %}" alt="Ready Blouse Sarees">
-                <span class="ready-ship-label">Ready Blouse Sarees</span>
-            </a>
-        </div>
+            {% if ready_ship_cards|length > 1 %}
+            <div class="ready-ship-grid">
+                {% for item in ready_ship_cards|slice:"1:" %}
+                <a href="{% url 'product-details' item.product.id %}" class="ready-ship-card">
+                    {% if item.image_url %}
+                    <img src="{{ item.image_url }}" alt="{{ item.title }}">
+                    {% else %}
+                    <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.title }}">
+                    {% endif %}
+                    <span class="ready-ship-label">{{ item.title }}</span>
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+        {% endif %}
     </div>
 </section>
 

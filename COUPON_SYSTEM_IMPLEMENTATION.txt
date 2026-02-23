@@ -1,0 +1,285 @@
+===============================================
+VIBEMALL COUPON SYSTEM - COMPLETE IMPLEMENTATION
+===============================================
+
+STEP 1: ADD MODELS TO Hub/models.py
+====================================
+Add these models at the end of Hub/models.py:
+
+class Coupon(models.Model):
+    DISCOUNT_TYPE_CHOICES = [
+        ('PERCENTAGE', 'Percentage'),
+        ('FIXED', 'Fixed Amount'),
+    ]
+    
+    COUPON_TYPE_CHOICES = [
+        ('MANUAL', 'Manual Code'),
+        ('FIRST_ORDER', 'First Order (15%)'),
+        ('SPEND_5K', 'Spend 5000 (15%)'),
+    ]
+    
+    code = models.CharField(max_length=50, unique=True)
+    coupon_type = models.CharField(max_length=20, choices=COUPON_TYPE_CHOICES, default='MANUAL')
+    description = models.TextField(blank=True)
+    discount_type = models.CharField(max_length=20, choices=DISCOUNT_TYPE_CHOICES)
+    discount_value = models.DecimalField(max_digits=10, decimal_places=2)
+    min_purchase_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    max_discount_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    usage_limit = models.IntegerField(null=True, blank=True)
+    usage_per_user = models.IntegerField(default=1)
+    valid_from = models.DateTimeField()
+    valid_to = models.DateTimeField()
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.code} - {self.discount_value}{'%' if self.discount_type == 'PERCENTAGE' else '₹'}"
+    
+    def is_valid(self):
+        from django.utils import timezone
+        now = timezone.now()
+        return self.is_active and self.valid_from <= now <= self.valid_to
+    
+    def get_discount_amount(self, cart_total):
+        if self.discount_type == 'PERCENTAGE':
+            discount = (cart_total * self.discount_value) / 100
+            if self.max_discount_amount:
+                discount = min(discount, self.max_discount_amount)
+        else:
+            discount = self.discount_value
+        return min(discount, cart_total)
+
+
+class CouponUsage(models.Model):
+    coupon = models.ForeignKey(Coupon, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    order = models.ForeignKey('Order', on_delete=models.CASCADE, null=True)
+    used_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['coupon', 'order']
+        ordering = ['-used_at']
+    
+    def __str__(self):
+        return f"{self.user.username} used {self.coupon.code}"
+
+
+class UserSpendTracker(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    total_spent = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    current_cycle_spent = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    last_5k_coupon_at = models.DateTimeField(null=True, blank=True)
+    
+    def __str__(self):
+        return f"{self.user.username} - Spent: ₹{self.total_spent}"
+
+
+STEP 2: RUN MIGRATIONS
+=======================
+python manage.py makemigrations
+python manage.py migrate
+
+
+STEP 3: CREATE MANAGEMENT COMMAND
+==================================
+Create: Hub/management/commands/create_auto_coupons.py
+
+from django.core.management.base import BaseCommand
+from Hub.models import Coupon
+from django.utils import timezone
+from datetime import timedelta
+
+class Command(BaseCommand):
+    help = 'Create automatic coupons'
+    
+    def handle(self, *args, **kwargs):
+        # First Order Coupon
+        Coupon.objects.get_or_create(
+            code='FIRST15',
+            defaults={
+                'coupon_type': 'FIRST_ORDER',
+                'description': '15% off on your first order',
+                'discount_type': 'PERCENTAGE',
+                'discount_value': 15,
+                'min_purchase_amount': 0,
+                'usage_per_user': 1,
+                'valid_from': timezone.now(),
+                'valid_to': timezone.now() + timedelta(days=365),
+                'is_active': True
+            }
+        )
+        
+        self.stdout.write('Coupons created successfully!')
+
+
+Run: python manage.py create_auto_coupons
+
+
+STEP 4: UPDATE Order MODEL
+===========================
+Add these fields to Order model:
+
+    coupon = models.ForeignKey('Coupon', on_delete=models.SET_NULL, null=True, blank=True)
+    coupon_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+
+STEP 5: CREATE VIEWS
+=====================
+Add to Hub/views.py:
+
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+import json
+
+@require_POST
+def validate_coupon(request):
+    try:
+        data = json.loads(request.body)
+        code = data.get('code', '').upper()
+        cart_total = float(data.get('cart_total', 0))
+        
+        try:
+            coupon = Coupon.objects.get(code=code)
+        except Coupon.DoesNotExist:
+            return JsonResponse({'valid': False, 'message': 'Invalid coupon code'})
+        
+        if not coupon.is_valid():
+            return JsonResponse({'valid': False, 'message': 'Coupon has expired'})
+        
+        # Check if already used
+        if request.user.is_authenticated:
+            already_used = CouponUsage.objects.filter(
+                coupon=coupon, 
+                user=request.user
+            ).exists()
+            
+            if already_used:
+                return JsonResponse({'valid': False, 'message': 'Coupon already used'})
+            
+            # Check first order coupon
+            if coupon.coupon_type == 'FIRST_ORDER':
+                has_orders = Order.objects.filter(user=request.user).exists()
+                if has_orders:
+                    return JsonResponse({'valid': False, 'message': 'This coupon is only for first-time orders'})
+        
+        if cart_total < coupon.min_purchase_amount:
+            return JsonResponse({
+                'valid': False, 
+                'message': f'Minimum purchase of ₹{coupon.min_purchase_amount} required'
+            })
+        
+        discount_amount = coupon.get_discount_amount(cart_total)
+        
+        return JsonResponse({
+            'valid': True,
+            'coupon_id': coupon.id,
+            'code': coupon.code,
+            'discount_amount': float(discount_amount),
+            'message': f'Coupon applied! You saved ₹{discount_amount:.2f}'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'valid': False, 'message': 'Error validating coupon'})
+
+
+@require_POST  
+def get_available_coupons(request):
+    try:
+        user = request.user
+        cart_total = float(request.POST.get('cart_total', 0))
+        
+        available_coupons = []
+        
+        # First Order Coupon
+        if not Order.objects.filter(user=user).exists():
+            first_coupon = Coupon.objects.filter(
+                coupon_type='FIRST_ORDER',
+                is_active=True
+            ).first()
+            
+            if first_coupon and first_coupon.is_valid():
+                available_coupons.append({
+                    'code': first_coupon.code,
+                    'description': first_coupon.description,
+                    'discount': f"{first_coupon.discount_value}%",
+                    'used': False
+                })
+        
+        # 5K Spend Coupon
+        tracker, _ = UserSpendTracker.objects.get_or_create(user=user)
+        if tracker.current_cycle_spent >= 5000:
+            spend_coupon_code = f"SPEND5K{user.id}"
+            spend_coupon, created = Coupon.objects.get_or_create(
+                code=spend_coupon_code,
+                defaults={
+                    'coupon_type': 'SPEND_5K',
+                    'description': '15% off for spending ₹5000',
+                    'discount_type': 'PERCENTAGE',
+                    'discount_value': 15,
+                    'usage_per_user': 1,
+                    'valid_from': timezone.now(),
+                    'valid_to': timezone.now() + timedelta(days=30),
+                    'is_active': True
+                }
+            )
+            
+            used = CouponUsage.objects.filter(coupon=spend_coupon, user=user).exists()
+            available_coupons.append({
+                'code': spend_coupon.code,
+                'description': spend_coupon.description,
+                'discount': '15%',
+                'used': used
+            })
+        
+        return JsonResponse({'coupons': available_coupons})
+        
+    except Exception as e:
+        return JsonResponse({'coupons': []})
+
+
+STEP 6: ADD URLS
+================
+Add to Hub/urls.py:
+
+    path('api/validate-coupon/', views.validate_coupon, name='validate_coupon'),
+    path('api/available-coupons/', views.get_available_coupons, name='available_coupons'),
+
+
+STEP 7: UPDATE CHECKOUT TEMPLATE
+=================================
+See next file for complete checkout template code...
+
+
+STEP 8: CREATE ADMIN VIEWS
+===========================
+Create: Hub/templates/admin_panel/coupons.html
+(Use custom admin panel, not Django admin)
+
+
+STEP 9: ADD SIGNAL TO TRACK SPENDING
+=====================================
+Add to Hub/signals.py:
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+@receiver(post_save, sender=Order)
+def update_user_spending(sender, instance, created, **kwargs):
+    if instance.payment_status == 'PAID':
+        tracker, _ = UserSpendTracker.objects.get_or_create(user=instance.user)
+        tracker.total_spent += instance.total_amount
+        tracker.current_cycle_spent += instance.total_amount
+        
+        # Reset cycle if 5K coupon used
+        if instance.coupon and instance.coupon.coupon_type == 'SPEND_5K':
+            tracker.current_cycle_spent = 0
+            tracker.last_5k_coupon_at = timezone.now()
+        
+        tracker.save()
+
+
+This is the complete implementation plan!
+Run migrations and test each feature.

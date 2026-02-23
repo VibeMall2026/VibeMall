@@ -40,7 +40,7 @@
 
         <!-- cart-area-start -->
         <link rel="stylesheet" href="{% static 'assets/css/cart-custom.css' %}">
-        <link rel="stylesheet" href="{% static 'assets/css/cart-responsive.css' %}?v=20260222-03">
+        <link rel="stylesheet" href="{% static 'assets/css/cart-responsive.css' %}?v=20260223-01">
         <section class="cart-area pt-120 pb-120">
             <div class="container">
                 <!-- Messages -->
@@ -156,9 +156,27 @@
                         <div class="row mt-40">
                            <div class="col-12">
                                  <div class="coupon-all">
-                                    <div class="coupon">
-                                       <input id="coupon_code" class="input-text" name="coupon_code" value="" placeholder="Coupon code" type="text">
-                                       <button class="tp-btn-h1" name="apply_coupon" type="submit">Apply coupon</button>
+                                    <!-- Coupon Section -->
+                                    <div class="coupon" style="flex: 1; max-width: 600px;">
+                                       <div class="d-flex gap-2 mb-2 flex-wrap">
+                                          <input id="coupon_code" class="input-text" name="coupon_code" value="" placeholder="Enter coupon code" type="text" style="flex: 1; min-width: 200px; text-transform: uppercase;">
+                                          <button class="tp-btn-h1" id="applyCouponBtn" type="button">Apply</button>
+                                          <button class="tp-btn-h2" id="viewCouponsBtn" type="button" style="white-space: nowrap;">
+                                             <i class="fas fa-ticket-alt"></i> Coupons
+                                          </button>
+                                       </div>
+                                       <div id="couponMessage"></div>
+                                       <div id="appliedCouponDisplay" style="display: none;" class="mt-2 p-2 bg-success text-white rounded">
+                                          <div class="d-flex justify-content-between align-items-center">
+                                             <div>
+                                                <strong><i class="fas fa-check-circle"></i> <span id="appliedCouponCode"></span></strong>
+                                                <div class="small">Discount: ₹<span id="appliedCouponAmount">0</span></div>
+                                             </div>
+                                             <button type="button" id="removeCouponBtn" class="btn btn-sm btn-light">
+                                                <i class="fas fa-times"></i>
+                                             </button>
+                                          </div>
+                                       </div>
                                     </div>
                                     <div class="coupon2">
                                        <a class="tp-btn-h2" href="{% url 'shop' %}">Continue Shopping</a>
@@ -171,10 +189,13 @@
                                  <div class="cart-page-total">
                                     <h2>Cart Totals</h2>
                                     <ul class="mb-20">
-                                       <li>Subtotal <span>&#8377;{{ total_price }}</span></li>
-                                       <li>Total <span>&#8377;{{ total_price }}</span></li>
+                                       <li>Subtotal <span id="cartSubtotal">&#8377;{{ total_price }}</span></li>
+                                       <li id="couponDiscountRow" style="display: none; color: #28a745;">
+                                          Coupon Discount <span id="cartCouponDiscount">-₹0.00</span>
+                                       </li>
+                                       <li><strong>Total</strong> <span id="cartTotal"><strong>&#8377;{{ total_price }}</strong></span></li>
                                     </ul>
-                                    <a class="tp-btn-h1 w-100 text-center" href="{% url 'checkout' %}">Proceed to Checkout</a>
+                                    <a class="tp-btn-h1 w-100 text-center" href="{% url 'checkout' %}" id="checkoutBtn">Proceed to Checkout</a>
                                  </div>
                            </div>
                         </div>
@@ -215,6 +236,217 @@
                     const current = parseInt(input.value || min, 10);
                     input.value = clamp(current);
                 });
+            });
+
+            // ===== COUPON FUNCTIONALITY =====
+            let appliedCoupon = null;
+            const cartTotal = {{ total_price }};
+
+            // Apply Coupon
+            document.getElementById('applyCouponBtn').addEventListener('click', function() {
+                const code = document.getElementById('coupon_code').value.trim().toUpperCase();
+                if (!code) {
+                    showCouponMessage('Please enter a coupon code', 'warning');
+                    return;
+                }
+                applyCouponCode(code);
+            });
+
+            // View Available Coupons
+            document.getElementById('viewCouponsBtn').addEventListener('click', function() {
+                showAvailableCouponsPopup();
+            });
+
+            // Remove Coupon
+            document.getElementById('removeCouponBtn').addEventListener('click', function() {
+                removeCoupon();
+            });
+
+            function applyCouponCode(code) {
+                fetch('/api/validate-coupon/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        code: code,
+                        cart_total: cartTotal
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.valid) {
+                        appliedCoupon = data;
+                        document.getElementById('appliedCouponCode').textContent = data.code;
+                        document.getElementById('appliedCouponAmount').textContent = data.discount_amount.toFixed(2);
+                        document.getElementById('appliedCouponDisplay').style.display = 'block';
+                        
+                        // Show discount in cart totals
+                        document.getElementById('couponDiscountRow').style.display = 'list-item';
+                        document.getElementById('cartCouponDiscount').textContent = `-₹${data.discount_amount.toFixed(2)}`;
+                        
+                        updateCartTotal();
+                        showCouponMessage(data.message, 'success');
+                        
+                        // Store coupon in session for checkout
+                        sessionStorage.setItem('appliedCoupon', JSON.stringify(data));
+                    } else {
+                        showCouponMessage(data.message, 'danger');
+                    }
+                })
+                .catch(err => {
+                    showCouponMessage('Error applying coupon', 'danger');
+                });
+            }
+
+            function removeCoupon() {
+                appliedCoupon = null;
+                document.getElementById('coupon_code').value = '';
+                document.getElementById('appliedCouponDisplay').style.display = 'none';
+                document.getElementById('couponDiscountRow').style.display = 'none';
+                updateCartTotal();
+                showCouponMessage('Coupon removed', 'info');
+                sessionStorage.removeItem('appliedCoupon');
+            }
+
+            function updateCartTotal() {
+                let total = cartTotal;
+                if (appliedCoupon) {
+                    total -= appliedCoupon.discount_amount;
+                }
+                if (total < 0) total = 0;
+                document.getElementById('cartTotal').innerHTML = '<strong>₹' + total.toFixed(2) + '</strong>';
+            }
+
+            function showCouponMessage(message, type) {
+                const msgDiv = document.getElementById('couponMessage');
+                msgDiv.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show mt-2"><small>${message}</small><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
+                setTimeout(() => msgDiv.innerHTML = '', 5000);
+            }
+
+            function showAvailableCouponsPopup() {
+                fetch('/api/available-coupons/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        cart_total: cartTotal
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.coupons.length > 0) {
+                        showCouponsModal(data.coupons);
+                    } else {
+                        showCouponMessage('No coupons available at the moment', 'info');
+                    }
+                })
+                .catch(err => {
+                    showCouponMessage('Error loading coupons', 'danger');
+                });
+            }
+
+            function showCouponsModal(coupons) {
+                let html = `
+                    <div class="modal fade" id="couponsModal" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title"><i class="fas fa-ticket-alt"></i> Available Coupons</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                `;
+                
+                coupons.forEach(coupon => {
+                    const usedBadge = coupon.used ? '<span class="badge bg-secondary">USED</span>' : '';
+                    const applyBtn = coupon.used ? 
+                        '<button class="btn btn-sm btn-secondary" disabled>Used</button>' : 
+                        `<button class="btn btn-sm btn-primary apply-coupon-btn" data-code="${coupon.code}">Apply</button>`;
+                    
+                    html += `
+                        <div class="coupon-card mb-3 p-3 border rounded ${coupon.used ? 'opacity-50' : ''}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">${coupon.title} ${usedBadge}</h6>
+                                    <p class="text-muted small mb-2">${coupon.description}</p>
+                                    <div class="d-flex gap-2">
+                                        <span class="badge bg-success">${coupon.discount}</span>
+                                        <span class="badge bg-info">Code: ${coupon.code}</span>
+                                    </div>
+                                </div>
+                                <div class="ms-2">
+                                    ${applyBtn}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Remove existing modal if any
+                const existingModal = document.getElementById('couponsModal');
+                if (existingModal) existingModal.remove();
+                
+                // Add modal to body
+                document.body.insertAdjacentHTML('beforeend', html);
+                
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('couponsModal'));
+                modal.show();
+                
+                // Add event listeners to apply buttons
+                document.querySelectorAll('.apply-coupon-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const code = this.getAttribute('data-code');
+                        document.getElementById('coupon_code').value = code;
+                        modal.hide();
+                        applyCouponCode(code);
+                    });
+                });
+            }
+
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+
+            // Load saved coupon from session storage on page load
+            window.addEventListener('DOMContentLoaded', function() {
+                const savedCoupon = sessionStorage.getItem('appliedCoupon');
+                if (savedCoupon) {
+                    try {
+                        appliedCoupon = JSON.parse(savedCoupon);
+                        document.getElementById('coupon_code').value = appliedCoupon.code;
+                        document.getElementById('appliedCouponCode').textContent = appliedCoupon.code;
+                        document.getElementById('appliedCouponAmount').textContent = appliedCoupon.discount_amount.toFixed(2);
+                        document.getElementById('appliedCouponDisplay').style.display = 'block';
+                        document.getElementById('couponDiscountRow').style.display = 'list-item';
+                        document.getElementById('cartCouponDiscount').textContent = `-₹${appliedCoupon.discount_amount.toFixed(2)}`;
+                        updateCartTotal();
+                    } catch (e) {
+                        sessionStorage.removeItem('appliedCoupon');
+                    }
+                }
             });
         </script>
 

@@ -61,7 +61,7 @@ RETURN_STATUS_FLOW = {
     'QC_FAILED': ['REFUND_PENDING', 'WRONG_RETURN', 'REFUNDED', 'REPLACED'],
 }
 
-from .models import CategoryIcon, SubCategory, Slider, Feature, Banner, Product, DealCountdown, UserProfile, Address, Cart, Wishlist, ProductImage, ProductReview, ReviewImage, ReviewVote, ProductQuestion, Order, OrderItem, OrderStatusHistory, OrderCancellationRequest, ReturnRequest, ReturnItem, ReturnHistory, ReturnAttachment, ReturnLabel, AdminEmailSettings, ProductStockNotification, BrandPartner, SiteSettings, LoyaltyPoints, PointsTransaction, MainPageProduct, ChatThread, ChatMessage, ChatAttachment
+from .models import CategoryIcon, SubCategory, Slider, Feature, Banner, Product, DealCountdown, UserProfile, Address, Cart, Wishlist, ProductImage, ProductReview, ReviewImage, ReviewVote, ProductQuestion, Order, OrderItem, OrderStatusHistory, OrderCancellationRequest, ReturnRequest, ReturnItem, ReturnHistory, ReturnAttachment, ReturnLabel, AdminEmailSettings, ProductStockNotification, BrandPartner, SiteSettings, LoyaltyPoints, PointsTransaction, MainPageProduct, MainPageSubCategoryBanner, ChatThread, ChatMessage, ChatAttachment
 from .email_utils import send_order_confirmation_email, send_order_status_update_email, send_admin_order_notification
 
 # ===== ADMIN PANEL VIEWS =====
@@ -1053,6 +1053,58 @@ def _crop_png_by_ratio(abs_path, ratio, index=None):
     return public_url, filename
 
 
+def _resize_uploaded_image(file_obj, target_width=None, target_height=None, keep_aspect=True):
+    _register_heif_opener()
+    file_obj.seek(0)
+    image = PILImage.open(file_obj)
+    image.load()
+
+    original_width, original_height = image.size
+
+    if not target_width and not target_height:
+        raise ValueError('Please provide width or height.')
+
+    if keep_aspect:
+        if target_width and target_height:
+            scale = min(target_width / original_width, target_height / original_height)
+            scale = max(scale, 1 / max(original_width, original_height))
+            new_width = max(1, int(round(original_width * scale)))
+            new_height = max(1, int(round(original_height * scale)))
+        elif target_width:
+            new_width = max(1, int(target_width))
+            new_height = max(1, int(round((original_height * new_width) / original_width)))
+        else:
+            new_height = max(1, int(target_height))
+            new_width = max(1, int(round((original_width * new_height) / original_height)))
+    else:
+        new_width = max(1, int(target_width or original_width))
+        new_height = max(1, int(target_height or original_height))
+
+    try:
+        resample_filter = PILImage.Resampling.LANCZOS
+    except AttributeError:
+        resample_filter = PILImage.LANCZOS
+
+    image = image.convert('RGBA').resize((new_width, new_height), resample_filter)
+
+    filename = f"edit_photo_resize_{uuid.uuid4().hex}.png"
+    rel_path = os.path.join('edit_photo', filename)
+    media_root = getattr(settings, 'MEDIA_ROOT', None) or os.path.join(settings.BASE_DIR, 'media')
+    abs_path = os.path.join(media_root, rel_path)
+    os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+    image.save(abs_path, format='PNG')
+    public_url = f"{settings.MEDIA_URL}{rel_path.replace(os.sep, '/')}"
+
+    return {
+        'url': public_url,
+        'filename': filename,
+        'original_width': original_width,
+        'original_height': original_height,
+        'new_width': new_width,
+        'new_height': new_height,
+    }
+
+
 def convert_url_to_png(image_url, crop_box=None, crop_ratio=None):
     response = requests.get(image_url, timeout=15)
     response.raise_for_status()
@@ -1990,6 +2042,7 @@ def admin_edit_photo(request):
     errors = []
     show_downloads = False
     saved_message = ''
+    resize_result = None
 
     product_image_root = r"D:\VibeMallProduct\ProductImage"
 
@@ -2021,7 +2074,44 @@ def admin_edit_photo(request):
     if request.method == 'POST':
         action = request.POST.get('action') or 'convert'
 
-        if action == 'save_to_folder':
+        if action == 'resize_image':
+            uploaded_image = request.FILES.get('resize_image')
+            width_raw = (request.POST.get('resize_width') or '').strip()
+            height_raw = (request.POST.get('resize_height') or '').strip()
+            keep_aspect = request.POST.get('keep_aspect') == 'on'
+
+            if not uploaded_image:
+                errors.append('Please upload an image to resize.')
+            else:
+                try:
+                    target_width = int(width_raw) if width_raw else None
+                except (TypeError, ValueError):
+                    target_width = None
+                    errors.append('Width must be a valid number.')
+
+                try:
+                    target_height = int(height_raw) if height_raw else None
+                except (TypeError, ValueError):
+                    target_height = None
+                    errors.append('Height must be a valid number.')
+
+                if target_width is not None and (target_width < 1 or target_width > 10000):
+                    errors.append('Width must be between 1 and 10000.')
+                if target_height is not None and (target_height < 1 or target_height > 10000):
+                    errors.append('Height must be between 1 and 10000.')
+
+                if not errors:
+                    try:
+                        resize_result = _resize_uploaded_image(
+                            uploaded_image,
+                            target_width=target_width,
+                            target_height=target_height,
+                            keep_aspect=keep_aspect
+                        )
+                    except Exception as exc:
+                        errors.append(f'Resize failed: {exc}')
+
+        elif action == 'save_to_folder':
             converted_urls = request.POST.getlist('converted_urls')
             main_category = (request.POST.get('main_category') or '').strip()
             sub_category = (request.POST.get('sub_category') or '').strip()
@@ -2140,6 +2230,7 @@ def admin_edit_photo(request):
         'errors': errors,
         'show_downloads': show_downloads,
         'saved_message': saved_message,
+        'resize_result': resize_result,
         'folder_index_json': json.dumps(folder_index),
         'category_options': sorted(folder_index.keys()),
         'product_image_root': product_image_root,
@@ -2322,21 +2413,31 @@ def admin_delete_brand_partner(request, partner_id):
 @login_required(login_url='login')
 @staff_member_required(login_url='login')
 def admin_main_page_products(request):
-    """Manage products displayed on main page by category"""
-    from .models import MainPageProduct
-    
+    """Manage homepage sections: main categories, sub-category banners and ready-to-ship styles."""
+    from .models import MainPageProduct, MainPageSubCategoryBanner, ReadyShipStyle
+
+    valid_sections = {'categories', 'subcat_banners', 'ready_ship'}
+    active_section = (request.GET.get('section') or '').strip()
+    if active_section not in valid_sections:
+        active_section = ''
+
+    def redirect_with_section(section_name=''):
+        target_section = section_name if section_name in valid_sections else active_section
+        redirect_url = reverse('admin_main_page_products')
+        if target_section:
+            redirect_url = f"{redirect_url}?section={target_section}"
+        return redirect(redirect_url)
+
     if request.method == 'POST':
         action = request.POST.get('action')
-        
+
         if action == 'add':
-            # Add product to main page
             product_id = request.POST.get('product_id')
             category = request.POST.get('category')
-            
+
             if product_id and category:
                 try:
                     product = Product.objects.get(id=product_id)
-                    # Check if already exists
                     existing = MainPageProduct.objects.filter(product=product, category=category).first()
                     if not existing:
                         MainPageProduct.objects.create(product=product, category=category)
@@ -2345,10 +2446,9 @@ def admin_main_page_products(request):
                         messages.warning(request, f'⚠ {product.name} already in {category}')
                 except Product.DoesNotExist:
                     messages.error(request, 'Product not found')
-            return redirect('admin_main_page_products')
-            
+            return redirect_with_section('categories')
+
         elif action == 'remove':
-            # Remove product from main page
             item_id = request.POST.get('item_id')
             try:
                 item = MainPageProduct.objects.get(id=item_id)
@@ -2357,20 +2457,210 @@ def admin_main_page_products(request):
                 messages.success(request, f'✓ {product_name} removed')
             except MainPageProduct.DoesNotExist:
                 messages.error(request, 'Item not found')
-            return redirect('admin_main_page_products')
-            
+            return redirect_with_section('categories')
+
         elif action == 'update_order':
-            # Update display order
             items = MainPageProduct.objects.all()
             for item in items:
                 new_order = request.POST.get(f'order_{item.id}')
-                if new_order:
+                if not new_order:
+                    continue
+                try:
                     item.order = int(new_order)
                     item.save()
+                except (TypeError, ValueError):
+                    continue
             messages.success(request, '✓ Display order updated')
-            return redirect('admin_main_page_products')
-    
-    # Get all main page products organized by category
+            return redirect_with_section('categories')
+
+        elif action == 'add_subcategory_banner':
+            sub_category_id = request.POST.get('sub_category_id')
+            title = (request.POST.get('banner_title') or '').strip()
+            order_value = request.POST.get('banner_order', '0')
+            image = request.FILES.get('banner_image')
+            is_active = request.POST.get('banner_is_active') == 'on'
+
+            try:
+                order = int(order_value or 0)
+            except (TypeError, ValueError):
+                order = 0
+
+            if not sub_category_id:
+                messages.error(request, 'Please select a sub-category.')
+                return redirect_with_section('subcat_banners')
+
+            if not image:
+                messages.error(request, 'Please upload an image for the sub-category banner.')
+                return redirect_with_section('subcat_banners')
+
+            try:
+                sub_category = SubCategory.objects.get(id=sub_category_id, is_active=True)
+            except SubCategory.DoesNotExist:
+                messages.error(request, 'Selected sub-category not found.')
+                return redirect_with_section('subcat_banners')
+
+            MainPageSubCategoryBanner.objects.create(
+                title=title,
+                sub_category=sub_category,
+                image=image,
+                order=order,
+                is_active=is_active,
+            )
+            messages.success(request, f'✓ Banner added for {sub_category.name}')
+            return redirect_with_section('subcat_banners')
+
+        elif action == 'update_subcategory_banner':
+            banner_id = request.POST.get('banner_id')
+            if not banner_id:
+                messages.error(request, 'Banner item not found.')
+                return redirect_with_section('subcat_banners')
+
+            banner_item = get_object_or_404(MainPageSubCategoryBanner, id=banner_id)
+            sub_category_id = request.POST.get('sub_category_id')
+            title = (request.POST.get('banner_title') or '').strip()
+            order_value = request.POST.get('banner_order', '')
+            new_image = request.FILES.get('banner_image')
+            remove_image = request.POST.get('remove_banner_image') == 'on'
+            is_active = request.POST.get('banner_is_active') == 'on'
+            old_image_name = banner_item.image.name if banner_item.image else ''
+
+            try:
+                order = int(order_value) if order_value != '' else banner_item.order
+            except (TypeError, ValueError):
+                order = banner_item.order
+
+            if sub_category_id:
+                try:
+                    banner_item.sub_category = SubCategory.objects.get(id=sub_category_id, is_active=True)
+                except SubCategory.DoesNotExist:
+                    messages.error(request, 'Selected sub-category not found.')
+                    return redirect_with_section('subcat_banners')
+
+            banner_item.title = title
+            banner_item.order = order
+            banner_item.is_active = is_active
+
+            if remove_image and not new_image:
+                messages.error(request, 'Please upload a replacement image when removing current image.')
+                return redirect_with_section('subcat_banners')
+
+            if new_image:
+                banner_item.image = new_image
+
+            if not banner_item.image:
+                messages.error(request, 'Banner image is required.')
+                return redirect_with_section('subcat_banners')
+
+            banner_item.save()
+            if remove_image and old_image_name and old_image_name != banner_item.image.name:
+                banner_item.image.storage.delete(old_image_name)
+            messages.success(request, '✓ Sub-category banner updated')
+            return redirect_with_section('subcat_banners')
+
+        elif action == 'delete_subcategory_banner':
+            banner_id = request.POST.get('banner_id')
+            try:
+                banner_item = MainPageSubCategoryBanner.objects.get(id=banner_id)
+                banner_name = banner_item.display_title
+                banner_item.delete()
+                messages.success(request, f'✓ "{banner_name}" banner removed')
+            except MainPageSubCategoryBanner.DoesNotExist:
+                messages.error(request, 'Banner not found')
+            return redirect_with_section('subcat_banners')
+
+        elif action == 'add_ready_ship':
+            product_id = request.POST.get('product_id')
+            title = (request.POST.get('title') or '').strip()
+            order_value = request.POST.get('order', '0')
+            is_active = request.POST.get('is_active') == 'on'
+            image = request.FILES.get('image')
+
+            try:
+                order = int(order_value or 0)
+            except (TypeError, ValueError):
+                order = 0
+
+            if not product_id:
+                messages.error(request, 'Please select a product.')
+                return redirect_with_section('ready_ship')
+
+            try:
+                product = Product.objects.get(id=product_id, is_active=True)
+            except Product.DoesNotExist:
+                messages.error(request, 'Selected product not found.')
+                return redirect_with_section('ready_ship')
+
+            duplicate = ReadyShipStyle.objects.filter(product=product).exists()
+            if duplicate:
+                messages.warning(request, f'"{product.name}" is already added in Ready-to-Ship styles.')
+                return redirect_with_section('ready_ship')
+
+            ReadyShipStyle.objects.create(
+                product=product,
+                title=title,
+                image=image,
+                order=order,
+                is_active=is_active,
+            )
+            messages.success(request, 'Ready-to-Ship style added successfully.')
+            return redirect_with_section('ready_ship')
+
+        elif action == 'update_ready_ship':
+            item_id = request.POST.get('item_id')
+            if not item_id:
+                messages.error(request, 'Invalid style item.')
+                return redirect_with_section('ready_ship')
+
+            item = get_object_or_404(ReadyShipStyle, id=item_id)
+            product_id = request.POST.get('product_id')
+            title = (request.POST.get('title') or '').strip()
+            order_value = request.POST.get('order', '0')
+            is_active = request.POST.get('is_active') == 'on'
+            remove_image = request.POST.get('remove_image') == 'on'
+            new_image = request.FILES.get('image')
+
+            try:
+                order = int(order_value or 0)
+            except (TypeError, ValueError):
+                order = item.order
+
+            if product_id:
+                try:
+                    product = Product.objects.get(id=product_id, is_active=True)
+                except Product.DoesNotExist:
+                    messages.error(request, 'Selected product not found.')
+                    return redirect_with_section('ready_ship')
+
+                duplicate = ReadyShipStyle.objects.filter(product=product).exclude(id=item.id).exists()
+                if duplicate:
+                    messages.warning(request, f'"{product.name}" is already assigned to another Ready-to-Ship item.')
+                    return redirect_with_section('ready_ship')
+                item.product = product
+
+            item.title = title
+            item.order = order
+            item.is_active = is_active
+
+            if remove_image and item.image:
+                item.image.delete(save=False)
+                item.image = None
+
+            if new_image:
+                item.image = new_image
+
+            item.save()
+            messages.success(request, 'Ready-to-Ship style updated successfully.')
+            return redirect_with_section('ready_ship')
+
+        elif action == 'delete_ready_ship':
+            item_id = request.POST.get('item_id')
+            item = get_object_or_404(ReadyShipStyle, id=item_id)
+            item_name = item.display_title
+            item.delete()
+            messages.success(request, f'"{item_name}" removed successfully.')
+            return redirect_with_section('ready_ship')
+
+    # Main page category products
     categories = [
         ('category1', 'Category 1'),
         ('category2', 'Category 2'),
@@ -2392,15 +2682,57 @@ def admin_main_page_products(request):
     available_products = Product.objects.filter(is_active=True).exclude(
         id__in=MainPageProduct.objects.values_list('product_id', flat=True)
     ).order_by('-sold', 'name')
-    
+
+    sub_categories = SubCategory.objects.filter(is_active=True).order_by('category_key', 'order', 'name')
+    main_page_subcategory_banners = (
+        MainPageSubCategoryBanner.objects
+        .select_related('sub_category')
+        .order_by('order', 'id')
+    )
+
+    # Ready-to-Ship section data
+    ready_ship_items = ReadyShipStyle.objects.select_related('product').order_by('order', 'id')
+    used_ready_ship_product_ids = ready_ship_items.values_list('product_id', flat=True)
+    ready_ship_available_products = (
+        Product.objects
+        .filter(is_active=True)
+        .exclude(id__in=used_ready_ship_product_ids)
+        .order_by('name')
+    )
+    ready_ship_all_products = Product.objects.filter(is_active=True).order_by('name')
+    ready_ship_hero_id = (
+        ready_ship_items
+        .filter(is_active=True)
+        .values_list('id', flat=True)
+        .first()
+    )
+
     context = {
+        'active_section': active_section,
         'categories': categories,
         'category_products': category_products,
         'available_products': available_products[:50],  # Limit to 50 for dropdown
         'all_products_count': Product.objects.filter(is_active=True).count(),
+        'main_category_item_count': main_page_items.count(),
+        'sub_categories': sub_categories,
+        'main_page_subcategory_banners': main_page_subcategory_banners,
+        'subcat_banner_count': main_page_subcategory_banners.count(),
+        'ready_ship_items': ready_ship_items,
+        'ready_ship_available_products': ready_ship_available_products[:200],
+        'ready_ship_all_products': ready_ship_all_products[:500],
+        'ready_ship_hero_id': ready_ship_hero_id,
+        'ready_ship_count': ready_ship_items.count(),
     }
-    
+
     return render(request, 'admin_panel/main_page_products.html', context)
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_ready_ship_styles(request):
+    """Backward-compatible route: redirect to main page section selector."""
+    return redirect(f"{reverse('admin_main_page_products')}?section=ready_ship")
+
 
 @login_required(login_url='login')
 @staff_member_required(login_url='login')
@@ -3925,7 +4257,7 @@ def index(request):
         ]
     
     # Get products from MainPageProduct model (4 categories)
-    from .models import MainPageProduct, Reel
+    from .models import MainPageProduct, Reel, ReadyShipStyle, MainPageSubCategoryBanner
     
     category1_products = MainPageProduct.objects.filter(category='category1').select_related('product').order_by('order')
     category2_products = MainPageProduct.objects.filter(category='category2').select_related('product').order_by('order')
@@ -3937,6 +4269,47 @@ def index(request):
     top_selling = [item.product for item in category2_products[:10]] if category2_products.exists() else Product.objects.filter(is_active=True).order_by('-id')[:10]
     top_featured = [item.product for item in category3_products[:10]] if category3_products.exists() else Product.objects.filter(is_active=True).order_by('-id')[:10]
     recommended = [item.product for item in category4_products[:10]] if category4_products.exists() else Product.objects.filter(is_active=True).order_by('-id')[:10]
+
+    ready_ship_records = list(
+        ReadyShipStyle.objects
+        .filter(is_active=True, product__is_active=True)
+        .select_related('product')
+        .order_by('order', 'id')[:5]
+    )
+    ready_ship_cards = []
+    for item in ready_ship_records:
+        product = item.product
+        image_url = item.image.url if item.image else (product.image.url if product.image else '')
+        ready_ship_cards.append({
+            'product': product,
+            'title': item.display_title,
+            'image_url': image_url,
+        })
+
+    if not ready_ship_cards:
+        fallback_products = Product.objects.filter(is_active=True).order_by('-sold', '-id')[:5]
+        for product in fallback_products:
+            ready_ship_cards.append({
+                'product': product,
+                'title': product.name,
+                'image_url': product.image.url if product.image else '',
+            })
+
+    subcategory_banner_records = (
+        MainPageSubCategoryBanner.objects
+        .filter(is_active=True, sub_category__is_active=True)
+        .select_related('sub_category')
+        .order_by('order', 'id')
+    )
+    subcategory_banners = [
+        {
+            'title': item.display_title,
+            'image_url': item.image.url if item.image else '',
+            'category_key': item.sub_category.category_key,
+            'sub_category': item.sub_category.name,
+        }
+        for item in subcategory_banner_records
+    ]
 
     # Build product rating stats for cards
     product_ids = {p.id for p in list(top_deals) + list(top_selling) + list(top_featured) + list(recommended)}
@@ -4018,6 +4391,8 @@ def index(request):
             'top_selling': top_selling,
             'top_featured': top_featured,
             'recommended': recommended,
+            'ready_ship_cards': ready_ship_cards,
+            'subcategory_banners': subcategory_banners,
             'countdown': countdown,
             'wishlist_product_ids': wishlist_product_ids,
             'cart_product_ids': cart_product_ids,
@@ -4202,6 +4577,9 @@ def checkout(request):
         if redeem_points:
             points_to_redeem = int(request.POST.get('points_to_redeem', 0))
         
+        # Coupon handling
+        coupon_id = request.POST.get('coupon_id', '')
+        
         # Debug: Show selected payment method
         print(f"[DEBUG] Selected payment method: {payment_method}")
         if not payment_method or payment_method not in ['COD', 'RAZORPAY']:
@@ -4286,6 +4664,7 @@ def checkout(request):
             'points_to_redeem': points_to_redeem,
             'use_default_address': use_default_address,
             'set_default_address': set_default_address,
+            'coupon_id': coupon_id,  # Save coupon ID
         }
         return redirect('checkout_confirm')
     
@@ -4333,6 +4712,28 @@ def checkout_confirm(request):
     tax = subtotal * Decimal('0.05')
     shipping_cost = Decimal('0.00') if subtotal > 500 else Decimal('50.00')
 
+    # Coupon discount
+    coupon_discount = Decimal('0')
+    applied_coupon = None
+    coupon_id = checkout_form.get('coupon_id')
+    if coupon_id:
+        try:
+            from .models import Coupon, CouponUsage
+            applied_coupon = Coupon.objects.get(id=coupon_id)
+            # Validate coupon is still valid
+            if applied_coupon.is_valid():
+                # Check if not already used
+                already_used = CouponUsage.objects.filter(
+                    coupon=applied_coupon,
+                    user=request.user
+                ).exists()
+                if not already_used:
+                    # Calculate discount
+                    cart_total = subtotal + tax + shipping_cost
+                    coupon_discount = Decimal(str(applied_coupon.get_discount_amount(float(cart_total))))
+        except Coupon.DoesNotExist:
+            applied_coupon = None
+
     points_discount = Decimal('0')
     points_to_redeem = int(checkout_form.get('points_to_redeem') or 0)
     redeem_points = checkout_form.get('redeem_points') is True
@@ -4344,7 +4745,7 @@ def checkout_confirm(request):
         except LoyaltyPoints.DoesNotExist:
             redeem_points = False
 
-    total_amount = subtotal + tax + shipping_cost - points_discount
+    total_amount = subtotal + tax + shipping_cost - coupon_discount - points_discount
     if total_amount < 0:
         total_amount = Decimal('0')
 
@@ -4385,6 +4786,8 @@ def checkout_confirm(request):
                 subtotal=subtotal,
                 tax=tax,
                 shipping_cost=shipping_cost,
+                coupon=applied_coupon,  # Save coupon reference
+                coupon_discount=coupon_discount,  # Save discount amount
                 total_amount=total_amount,
                 shipping_address=shipping_address,
                 billing_address=shipping_address,
@@ -4394,6 +4797,18 @@ def checkout_confirm(request):
                 resell_from_name=from_name if is_resell else '',
                 resell_from_phone=from_phone if is_resell else ''
             )
+
+            # Create CouponUsage record if coupon was applied
+            if applied_coupon and coupon_discount > 0:
+                from .models import CouponUsage
+                CouponUsage.objects.create(
+                    coupon=applied_coupon,
+                    user=request.user,
+                    order=order,
+                    discount_amount=coupon_discount
+                )
+                order.admin_notes += f"\nCoupon Applied: {applied_coupon.code} (₹{coupon_discount} discount)"
+                order.save()
 
             if redeem_points and points_to_redeem > 0:
                 order.admin_notes += f"\nLoyalty Points Redeemed: {points_to_redeem} points (₹{points_discount} discount)"
@@ -4494,13 +4909,98 @@ def checkout_confirm(request):
         'subtotal': subtotal,
         'tax': tax,
         'shipping_cost': shipping_cost,
+        'coupon_discount': coupon_discount,
+        'applied_coupon': applied_coupon,
         'points_discount': points_discount,
         'total_amount': total_amount,
         'payment_method': checkout_form.get('payment_method', 'COD'),
         'address_text': f"{checkout_form.get('first_name', '')} {checkout_form.get('last_name', '')}\n{checkout_form.get('address', '')}\n{checkout_form.get('city', '')}, {checkout_form.get('state', '')} {checkout_form.get('postcode', '')}\n{checkout_form.get('country', '')}".strip(),
     }
     return render(request, 'checkout_confirm.html', context)
-def contact(request): return render(request, 'contact.html')
+def contact(request):
+    """Contact page with form submission"""
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        email = request.POST.get('email', '').strip()
+        phone = request.POST.get('phone', '').strip()
+        subject = request.POST.get('subject', '').strip()
+        message = request.POST.get('message', '').strip()
+        
+        # Validation
+        if not all([name, email, subject, message]):
+            messages.error(request, 'Please fill all required fields.')
+            return render(request, 'contact.html')
+        
+        # Email validation
+        import re
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, email):
+            messages.error(request, 'Please enter a valid email address.')
+            return render(request, 'contact.html')
+        
+        try:
+            # Send email to admin
+            from django.core.mail import send_mail
+            from django.conf import settings
+            
+            email_subject = f"Contact Form: {subject}"
+            email_message = f"""
+New Contact Form Submission
+
+Name: {name}
+Email: {email}
+Phone: {phone if phone else 'Not provided'}
+Subject: {subject}
+
+Message:
+{message}
+
+---
+This message was sent from VibeMall Contact Form
+            """
+            
+            send_mail(
+                email_subject,
+                email_message,
+                settings.DEFAULT_FROM_EMAIL,
+                ['info.vibemall@gmail.com'],
+                fail_silently=False,
+            )
+            
+            # Send confirmation email to user
+            confirmation_subject = "Thank you for contacting VibeMall"
+            confirmation_message = f"""
+Dear {name},
+
+Thank you for reaching out to VibeMall! We have received your message and our team will get back to you within 24 hours.
+
+Your Message Details:
+Subject: {subject}
+Message: {message}
+
+If you have any urgent concerns, please feel free to call us at +91 123 456 7890.
+
+Best regards,
+VibeMall Team
+info.vibemall@gmail.com
+            """
+            
+            send_mail(
+                confirmation_subject,
+                confirmation_message,
+                settings.DEFAULT_FROM_EMAIL,
+                [email],
+                fail_silently=True,
+            )
+            
+            messages.success(request, 'Thank you for your message! We will get back to you within 24 hours.')
+            return redirect('contact')
+            
+        except Exception as e:
+            messages.error(request, 'Sorry, there was an error sending your message. Please try again or email us directly at info.vibemall@gmail.com')
+            return render(request, 'contact.html')
+    
+    return render(request, 'contact.html')
 def faq(request): return render(request, 'faq.html')
 
 
@@ -8833,3 +9333,171 @@ def privacy_policy(request):
         'current_year': datetime.now().year,
     }
     return render(request, 'privacy_policy.html', context)
+
+
+# ============================================
+# COUPON SYSTEM VIEWS
+# ============================================
+
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+from datetime import timedelta
+import json
+
+@require_POST
+@csrf_exempt
+def validate_coupon(request):
+    """Validate coupon code and return discount details"""
+    try:
+        data = json.loads(request.body)
+        code = data.get('code', '').upper().strip()
+        cart_total = float(data.get('cart_total', 0))
+        
+        if not code:
+            return JsonResponse({'valid': False, 'message': 'Please enter a coupon code'})
+        
+        # Get coupon
+        try:
+            coupon = Coupon.objects.get(code=code)
+        except Coupon.DoesNotExist:
+            return JsonResponse({'valid': False, 'message': 'Invalid coupon code'})
+        
+        # Check if valid
+        if not coupon.is_valid():
+            return JsonResponse({'valid': False, 'message': 'This coupon has expired'})
+        
+        # Check if user is authenticated
+        if not request.user.is_authenticated:
+            return JsonResponse({'valid': False, 'message': 'Please login to use coupons'})
+        
+        # Check if already used by this user
+        already_used = CouponUsage.objects.filter(
+            coupon=coupon, 
+            user=request.user
+        ).exists()
+        
+        if already_used:
+            return JsonResponse({'valid': False, 'message': 'Coupon already used'})
+        
+        # Check first order coupon
+        if coupon.coupon_type == 'FIRST_ORDER':
+            has_orders = Order.objects.filter(user=request.user, payment_status='PAID').exists()
+            if has_orders:
+                return JsonResponse({'valid': False, 'message': 'This coupon is only for first-time orders'})
+        
+        # Check minimum purchase
+        if cart_total < coupon.min_purchase_amount:
+            return JsonResponse({
+                'valid': False, 
+                'message': f'Minimum purchase of ₹{coupon.min_purchase_amount} required'
+            })
+        
+        # Check usage limit
+        if coupon.usage_limit:
+            total_uses = CouponUsage.objects.filter(coupon=coupon).count()
+            if total_uses >= coupon.usage_limit:
+                return JsonResponse({'valid': False, 'message': 'Coupon usage limit reached'})
+        
+        # Calculate discount
+        discount_amount = coupon.get_discount_amount(cart_total)
+        
+        return JsonResponse({
+            'valid': True,
+            'coupon_id': coupon.id,
+            'code': coupon.code,
+            'discount_amount': float(discount_amount),
+            'discount_type': coupon.discount_type,
+            'discount_value': float(coupon.discount_value),
+            'message': f'Coupon applied! You saved ₹{discount_amount:.2f}'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'valid': False, 'message': f'Error validating coupon: {str(e)}'})
+
+
+@require_POST
+@csrf_exempt
+def get_available_coupons(request):
+    """Get list of available coupons for the user"""
+    try:
+        if not request.user.is_authenticated:
+            return JsonResponse({'coupons': []})
+        
+        user = request.user
+        data = json.loads(request.body)
+        cart_total = float(data.get('cart_total', 0))
+        
+        available_coupons = []
+        
+        # 1. First Order Coupon (15%)
+        has_paid_orders = Order.objects.filter(user=user, payment_status='PAID').exists()
+        if not has_paid_orders:
+            first_coupon = Coupon.objects.filter(
+                coupon_type='FIRST_ORDER',
+                is_active=True
+            ).first()
+            
+            if first_coupon and first_coupon.is_valid():
+                used = CouponUsage.objects.filter(coupon=first_coupon, user=user).exists()
+                discount_amount = first_coupon.get_discount_amount(cart_total)
+                
+                available_coupons.append({
+                    'code': first_coupon.code,
+                    'title': 'First Order Discount',
+                    'description': first_coupon.description,
+                    'discount': f"{first_coupon.discount_value}% OFF",
+                    'discount_amount': float(discount_amount),
+                    'min_purchase': float(first_coupon.min_purchase_amount),
+                    'used': used,
+                    'type': 'FIRST_ORDER'
+                })
+        
+        # 2. Spend 5K Coupon (15%)
+        tracker, _ = UserSpendTracker.objects.get_or_create(user=user)
+        
+        if tracker.can_earn_5k_coupon():
+            spend_coupon_code = f"SPEND5K{user.id}"
+            
+            # Create or get the coupon
+            spend_coupon, created = Coupon.objects.get_or_create(
+                code=spend_coupon_code,
+                defaults={
+                    'coupon_type': 'SPEND_5K',
+                    'description': f'Congratulations! You spent ₹5000. Enjoy 5% off!',
+                    'discount_type': 'PERCENTAGE',
+                    'discount_value': 5,
+                    'min_purchase_amount': 0,
+                    'max_discount_amount': 250,  # Max ₹250 discount
+                    'usage_per_user': 1,
+                    'valid_from': timezone.now(),
+                    'valid_to': timezone.now() + timedelta(days=30),
+                    'is_active': True
+                }
+            )
+            
+            used = CouponUsage.objects.filter(coupon=spend_coupon, user=user).exists()
+            discount_amount = spend_coupon.get_discount_amount(cart_total)
+            
+            available_coupons.append({
+                'code': spend_coupon.code,
+                'title': 'Spend ₹5000 Reward',
+                'description': spend_coupon.description,
+                'discount': '5% OFF',
+                'discount_amount': float(discount_amount),
+                'min_purchase': 0,
+                'used': used,
+                'type': 'SPEND_5K',
+                'spent_amount': float(tracker.current_cycle_spent)
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'coupons': available_coupons,
+            'total_spent': float(tracker.total_spent),
+            'cycle_spent': float(tracker.current_cycle_spent)
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'coupons': [], 'error': str(e)})

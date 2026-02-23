@@ -98,3 +98,28 @@ def auto_update_categories_on_product(sender, instance, created, **kwargs):
         thread = threading.Thread(target=run_category_update_async)
         thread.daemon = True
         thread.start()
+
+
+# ============================================
+# COUPON SYSTEM SIGNALS
+# ============================================
+
+@receiver(post_save, sender=Order)
+def update_user_spending_tracker(sender, instance, created, **kwargs):
+    """Track user spending for automatic coupon generation"""
+    from .models import UserSpendTracker
+    
+    # Only track paid orders
+    if instance.payment_status == 'PAID':
+        tracker, _ = UserSpendTracker.objects.get_or_create(user=instance.user)
+        
+        # Update total spent
+        tracker.total_spent += instance.total_amount
+        tracker.current_cycle_spent += instance.total_amount
+        
+        # Reset cycle if 5K coupon was used
+        if instance.coupon and instance.coupon.coupon_type == 'SPEND_5K':
+            tracker.current_cycle_spent = 0
+            tracker.last_5k_coupon_at = timezone.now()
+        
+        tracker.save()

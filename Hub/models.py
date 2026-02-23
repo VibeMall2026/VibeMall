@@ -646,6 +646,8 @@ class Order(models.Model):
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)
     tax = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     shipping_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    coupon = models.ForeignKey('Coupon', on_delete=models.SET_NULL, null=True, blank=True, help_text="Applied coupon")
+    coupon_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Discount from coupon")
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     
     # Order status
@@ -817,6 +819,10 @@ class Order(models.Model):
             self.approval_status = 'PENDING_APPROVAL'
         
         self.save()
+    
+    def get_subtotal(self):
+        """Calculate subtotal from order items"""
+        return sum(item.subtotal for item in self.items.all())
 
 
 class OrderItem(models.Model):
@@ -1321,6 +1327,69 @@ class MainPageProduct(models.Model):
         return f"{self.product.name} - {self.get_category_display()}"
 
 
+class MainPageSubCategoryBanner(models.Model):
+    """Custom image banners on home page that redirect to a selected sub-category."""
+    title = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Optional title shown over image. Leave blank to use sub-category name."
+    )
+    sub_category = models.ForeignKey(
+        SubCategory,
+        on_delete=models.CASCADE,
+        related_name='main_page_banners'
+    )
+    image = models.ImageField(upload_to='main_page_subcategory_banners/')
+    order = models.PositiveIntegerField(default=0, help_text="Display order (lower appears first)")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order', 'id']
+        verbose_name = "Main Page Sub-category Banner"
+        verbose_name_plural = "Main Page Sub-category Banners"
+
+    def __str__(self):
+        return self.title or self.sub_category.name
+
+    @property
+    def display_title(self):
+        return (self.title or '').strip() or self.sub_category.name
+
+
+class ReadyShipStyle(models.Model):
+    """Products shown in the Ready-to-Ship Styles section on home page."""
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='ready_ship_styles')
+    title = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Optional custom title. Leave blank to use product name."
+    )
+    image = models.ImageField(
+        upload_to='ready_ship_styles/',
+        blank=True,
+        null=True,
+        help_text="Optional custom image. Leave blank to use product image."
+    )
+    order = models.PositiveIntegerField(default=0, help_text="Display order (lower numbers appear first)")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order', 'id']
+        verbose_name = "Ready-to-Ship Style"
+        verbose_name_plural = "Ready-to-Ship Styles"
+
+    def __str__(self):
+        return self.title or self.product.name
+
+    @property
+    def display_title(self):
+        return (self.title or '').strip() or self.product.name
+
+
 class SiteSettings(models.Model):
     """Global site settings - only one instance should exist"""
     site_name = models.CharField(max_length=100, default='VibeMall', help_text='Website name displayed across the site')
@@ -1452,3 +1521,103 @@ class ReelImage(models.Model):
     
     def __str__(self):
         return f"{self.reel.title} - Image {self.order}"
+
+
+# ============================================
+# COUPON SYSTEM
+# ============================================
+
+class Coupon(models.Model):
+    """Discount coupons for orders"""
+    DISCOUNT_TYPE_CHOICES = [
+        ('PERCENTAGE', 'Percentage'),
+        ('FIXED', 'Fixed Amount'),
+    ]
+    
+    COUPON_TYPE_CHOICES = [
+        ('MANUAL', 'Manual Code'),
+        ('FIRST_ORDER', 'First Order (5%)'),
+        ('SPEND_5K', 'Spend 5000 (5%)'),
+    ]
+    
+    code = models.CharField(max_length=50, unique=True, help_text="Coupon code (e.g., FIRST5)")
+    coupon_type = models.CharField(max_length=20, choices=COUPON_TYPE_CHOICES, default='MANUAL')
+    description = models.TextField(blank=True, help_text="Description shown to users")
+    discount_type = models.CharField(max_length=20, choices=DISCOUNT_TYPE_CHOICES)
+    discount_value = models.DecimalField(max_digits=10, decimal_places=2, help_text="Percentage or fixed amount")
+    min_purchase_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Minimum cart value")
+    max_discount_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Maximum discount cap")
+    usage_limit = models.IntegerField(null=True, blank=True, help_text="Total usage limit (null = unlimited)")
+    usage_per_user = models.IntegerField(default=1, help_text="Usage limit per user")
+    valid_from = models.DateTimeField()
+    valid_to = models.DateTimeField()
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Coupon"
+        verbose_name_plural = "Coupons"
+    
+    def __str__(self):
+        return f"{self.code} - {self.discount_value}{'%' if self.discount_type == 'PERCENTAGE' else '₹'}"
+    
+    def is_valid(self):
+        """Check if coupon is currently valid"""
+        from django.utils import timezone
+        now = timezone.now()
+        return self.is_active and self.valid_from <= now <= self.valid_to
+    
+    def get_discount_amount(self, cart_total):
+        """Calculate discount amount for given cart total"""
+        if self.discount_type == 'PERCENTAGE':
+            discount = (cart_total * self.discount_value) / 100
+            if self.max_discount_amount:
+                discount = min(discount, self.max_discount_amount)
+        else:
+            discount = self.discount_value
+        return min(discount, cart_total)
+    
+    def times_used(self):
+        """Get total usage count"""
+        return self.couponusage_set.count()
+
+
+class CouponUsage(models.Model):
+    """Track coupon usage by users"""
+    coupon = models.ForeignKey(Coupon, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    order = models.ForeignKey('Order', on_delete=models.CASCADE, null=True, blank=True)
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    used_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['coupon', 'order']
+        ordering = ['-used_at']
+        verbose_name = "Coupon Usage"
+        verbose_name_plural = "Coupon Usages"
+    
+    def __str__(self):
+        return f"{self.user.username} used {self.coupon.code} on {self.used_at.strftime('%Y-%m-%d')}"
+
+
+class UserSpendTracker(models.Model):
+    """Track user spending for automatic coupon generation"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='spend_tracker')
+    total_spent = models.DecimalField(max_digits=12, decimal_places=2, default=0, help_text="Total lifetime spending")
+    current_cycle_spent = models.DecimalField(max_digits=12, decimal_places=2, default=0, help_text="Spending in current 5K cycle")
+    last_5k_coupon_at = models.DateTimeField(null=True, blank=True, help_text="When last 5K coupon was earned")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "User Spend Tracker"
+        verbose_name_plural = "User Spend Trackers"
+    
+    def __str__(self):
+        return f"{self.user.username} - Total: ₹{self.total_spent} | Cycle: ₹{self.current_cycle_spent}"
+    
+    def can_earn_5k_coupon(self):
+        """Check if user has spent enough for 5K coupon"""
+        return self.current_cycle_spent >= 5000

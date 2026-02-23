@@ -2,7 +2,11 @@
 Context processors for FashioHub
 Adds cart and wishlist counts to every template
 """
-from .models import Cart, Wishlist, SiteSettings, LoyaltyPoints, CategoryIcon, Product
+from collections import defaultdict
+
+from django.utils import timezone
+
+from .models import Cart, Wishlist, SiteSettings, LoyaltyPoints, CategoryIcon, Product, SubCategory, Coupon
 from django.db.models import F, Sum
 
 
@@ -65,28 +69,66 @@ def header_menu_context(request):
     }
 
     header_categories = []
+    subcategory_map = defaultdict(list)
+
+    active_subcategories = (
+        SubCategory.objects
+        .filter(is_active=True)
+        .order_by('category_key', 'order', 'name')
+    )
+    for sub in active_subcategories:
+        key = (sub.category_key or '').strip()
+        if not key:
+            continue
+        subcategory_map[key].append({
+            'name': sub.name,
+        })
+
+    # Fallback: if SubCategory master is empty for a category, derive from product values.
+    product_subcategory_map = defaultdict(list)
+    product_subcategory_rows = (
+        Product.objects
+        .filter(is_active=True)
+        .exclude(sub_category='')
+        .values('category', 'sub_category')
+        .distinct()
+        .order_by('category', 'sub_category')
+    )
+    for row in product_subcategory_rows:
+        key = (row.get('category') or '').strip()
+        sub_name = (row.get('sub_category') or '').strip()
+        if not key or not sub_name:
+            continue
+        product_subcategory_map[key].append({
+            'name': sub_name,
+        })
     icon_categories = CategoryIcon.objects.filter(is_active=True).order_by('order', 'id')
     for icon in icon_categories:
         category_key = (icon.category_key or '').strip()
         badge = badge_map.get(category_key)
+        sub_categories = subcategory_map.get(category_key) or product_subcategory_map.get(category_key, [])
         header_categories.append({
             'label': icon.name,
             'key': category_key,
             'badge_text': badge['text'] if badge else '',
             'badge_class': badge['class'] if badge else '',
-            'has_children': False,
+            'has_children': bool(sub_categories),
+            'sub_categories': sub_categories,
         })
     if not header_categories:
         excluded_categories = {'TOP_DEALS', 'TOP_SELLING', 'TOP_FEATURED', 'RECOMMENDED'}
         for key, label in Product.CATEGORY_CHOICES:
             if key in excluded_categories:
                 continue
+            category_key = (key or '').strip()
+            sub_categories = subcategory_map.get(category_key) or product_subcategory_map.get(category_key, [])
             header_categories.append({
                 'label': label,
-                'key': key,
+                'key': category_key,
                 'badge_text': '',
                 'badge_class': '',
-                'has_children': False,
+                'has_children': bool(sub_categories),
+                'sub_categories': sub_categories,
             })
 
     header_links = [
@@ -96,7 +138,36 @@ def header_menu_context(request):
         {'label': 'FAQs', 'url_name': 'faq'},
     ]
 
+    header_offer_coupon = None
+    header_offer_heading = 'Coupon Offer'
+    header_offer_message = 'Apply this code at checkout:'
+    try:
+        now = timezone.now()
+        header_offer_coupon = (
+            Coupon.objects
+            .filter(is_active=True, valid_from__lte=now, valid_to__gte=now)
+            .order_by('coupon_type', '-created_at')
+            .first()
+        )
+        if header_offer_coupon:
+            coupon_label_map = {
+                'FIRST_ORDER': 'First Order Offer',
+                'SPEND_5K': 'Spend 5K Reward',
+                'MANUAL': 'Limited Time Offer',
+            }
+            header_offer_heading = coupon_label_map.get(
+                header_offer_coupon.coupon_type,
+                'Coupon Offer'
+            )
+            if header_offer_coupon.description:
+                header_offer_message = header_offer_coupon.description.strip()
+    except Exception:
+        header_offer_coupon = None
+
     return {
         'header_categories': header_categories,
         'header_links': header_links,
+        'header_offer_coupon': header_offer_coupon,
+        'header_offer_heading': header_offer_heading,
+        'header_offer_message': header_offer_message,
     }

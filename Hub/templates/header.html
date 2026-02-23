@@ -162,7 +162,7 @@
                                         {% if header_categories %}
                                             {% for category in header_categories %}
                                             <li>
-                                                <a href="{% url 'shop' %}?category={{ category.key }}">
+                                                <a href="{% url 'shop' %}?category={{ category.key|urlencode }}">
                                                     {{ category.label }}
                                                     {% if category.badge_text %}
                                                         <span class="cat-label{% if category.badge_class %} {{ category.badge_class }}{% endif %}">{{ category.badge_text|lower }}</span>
@@ -171,6 +171,17 @@
                                                         <i class="far fa-angle-down"></i>
                                                     {% endif %}
                                                 </a>
+                                                {% if category.sub_categories %}
+                                                <ul class="submenu">
+                                                    {% for sub in category.sub_categories %}
+                                                    <li>
+                                                        <a href="{% url 'shop' %}?category={{ category.key|urlencode }}&sub_category={{ sub.name|urlencode }}">
+                                                            {{ sub.name }}
+                                                        </a>
+                                                    </li>
+                                                    {% endfor %}
+                                                </ul>
+                                                {% endif %}
                                             </li>
                                             {% endfor %}
                                         {% else %}
@@ -203,14 +214,14 @@
                                     <li class="has-mega"><a href="{% url 'shop' %}">Shop <i class="far fa-angle-down"></i></a>
                                         <div class="mega-menu">
                                             <div class="container container-mega">
-                                                <ul>
+                                                <ul class="mega-menu-grid">
                                                     <li>
                                                         <ul>
                                                         <li class="title"><a href="{% url 'shop' %}">Categories</a></li>
                                                         <li><a href="{% url 'shop' %}">All Categories</a></li>
                                                         {% if header_categories %}
                                                             {% for category in header_categories %}
-                                                            <li><a href="{% url 'shop' %}?category={{ category.key }}">{{ category.label }}</a></li>
+                                                            <li><a href="{% url 'shop' %}?category={{ category.key|urlencode }}">{{ category.label }}</a></li>
                                                             {% endfor %}
                                                         {% else %}
                                                             <li><a href="{% url 'shop' %}">Women Wear</a></li>
@@ -223,73 +234,38 @@
                                                         {% endif %}
                                                         </ul>
                                                     </li>
-                                                    <li>
-                                                        <ul>
-                                                        <li class="title"><a href="{% url 'shop' %}">{% if header_categories|length > 0 %}{{ header_categories.0.label }}{% else %}SHOP LAYOUT{% endif %}</a></li>
-                                                        <li><a href="{% url 'shop' %}">Pagination</a></li>
-                                                        <li><a href="{% url 'shop' %}">Ajax Load More</a></li>
-                                                        <li><a href="{% url 'shop' %}">Infinite Scroll</a></li>
-                                                        <li><a href="{% url 'shop' %}">Sidebar Right</a></li>
-                                                        <li><a href="{% url 'shop' %}">Sidebar Left</a></li>
-                                                        </ul>
-                                                    </li>
-                                                    <li>
-                                                        <ul>
-                                                        <li class="title"><a href="{% url 'shop' %}">{% if header_categories|length > 1 %}{{ header_categories.1.label }}{% else %}SHOP PAGES{% endif %}</a></li>
-                                                        <li><a href="{% url 'shop' %}">List View</a></li>
-                                                        <li><a href="{% url 'shop' %}">Small Products</a></li>
-                                                        <li><a href="{% url 'shop' %}">Large Products</a></li>
-                                                        <li><a href="{% url 'shop' %}">Shop — 3 Items</a></li>
-                                                        <li><a href="{% url 'shop' %}">Shop — 4 Items</a></li>
-                                                        <li><a href="{% url 'shop' %}">Shop — 5 Items</a></li>
-                                                        </ul>
-                                                    </li>
-                                                    <li>
-                                                        <ul>
-                                                        <li class="title"><a href="{% url 'shop' %}">{% if header_categories|length > 2 %}{{ header_categories.2.label }}{% else %}PRODUCT LAYOUT{% endif %}</a></li>
-                                                        <li><a href="{% url 'shop' %}">Description Sticky</a></li>
-                                                        <li><a href="{% url 'shop' %}">Product Carousel</a></li>
-                                                        <li><a href="{% url 'shop' %}">Gallery Modern</a></li>
-                                                        <li><a href="{% url 'shop' %}">Thumbnail Left</a></li>
-                                                        <li><a href="{% url 'shop' %}">Thumbnail Right</a></li>
-                                                        <li><a href="{% url 'shop' %}">Thumbnail Botttom</a></li>
-                                                        </ul>
-                                                    </li>
-                                                    <li>
-                                                        <ul>
-                                                        <li class="title"><a href="{% url 'shop' %}">{% if header_categories|length > 3 %}{{ header_categories.3.label }}{% else %}Basketball{% endif %}</a></li>
-                                                        <li><a href="{% url 'shop' %}">East Hampton Fleece</a></li>
-                                                        <li><a href="{% url 'shop' %}">Faxon Canvas Low</a></li>
-                                                        <li><a href="{% url 'shop' %}">Habitasse Dictumst</a></li>
-                                                        <li><a href="{% url 'shop' %}">Kaoreet Lobortis</a></li>
-                                                        <li><a href="{% url 'shop' %}">NikeCourt Zoom</a></li>
-                                                        <li><a href="{% url 'shop' %}">NikeCourts Air Zoom</a></li>
-                                                        </ul>
-                                                    </li>
-                                                    <li>
-                                                        <ul>
-                                                        <li class="title"><a href="{% url 'shop' %}">{% if header_categories|length > 4 %}{{ header_categories.4.label }}{% else %}Basketball{% endif %}</a></li>
-                                                        <li><a href="{% url 'shop' %}">East Hampton Fleece</a></li>
-                                                        <li><a href="{% url 'shop' %}">Faxon Canvas Low</a></li>
-                                                        <li><a href="{% url 'shop' %}">Habitasse Dictumst</a></li>
-                                                        <li><a href="{% url 'shop' %}">Kaoreet Lobortis</a></li>
-                                                        <li><a href="{% url 'shop' %}">NikeCourt Zoom</a></li>
-                                                        <li><a href="{% url 'shop' %}">NikeCourts Air Zoom</a></li>
-                                                        </ul>
-                                                    </li>
-                                                    <li class="mega-image hover-effect" style="background-image: url({% static 'assets/img/bg/menu-item.jpg' %});"> 
-                                                        <ul>
-                                                            <li><a href="{% url 'shop' %}">
-                                                                <h4>Top Cameras <br> Bestseller Products</h4>
-                                                                <h5>4K</h5>
-                                                                <h6>Sale Up To <span>60% Off</span></h6>
-                                                            </a></li>
-                                                        </ul>
-                                                    </li>
+                                                    {% if header_categories %}
+                                                        {% for category in header_categories %}
+                                                        <li>
+                                                            <ul>
+                                                            <li class="title">
+                                                                <a href="{% url 'shop' %}?category={{ category.key|urlencode }}">{{ category.label }}</a>
+                                                            </li>
+                                                            {% if category.sub_categories %}
+                                                                {% for sub in category.sub_categories %}
+                                                                <li>
+                                                                    <a href="{% url 'shop' %}?category={{ category.key|urlencode }}&sub_category={{ sub.name|urlencode }}">{{ sub.name }}</a>
+                                                                </li>
+                                                                {% endfor %}
+                                                            {% else %}
+                                                                <li><a href="{% url 'shop' %}?category={{ category.key|urlencode }}">View Products</a></li>
+                                                            {% endif %}
+                                                            </ul>
+                                                        </li>
+                                                        {% endfor %}
+                                                    {% endif %}
                                                 </ul>
                                             </div>
                                             <div class="offer mt-40">
+                                                {% if header_offer_coupon %}
+                                                <p>
+                                                    <b>{{ header_offer_heading }}</b>
+                                                    {{ header_offer_message }}
+                                                    <b>{{ header_offer_coupon.code }}</b>
+                                                </p>
+                                                {% else %}
                                                 <p><b>30% OFF</b> the shipping of your first order with the code: <b>DUKA-SALE30</b></p>
+                                                {% endif %}
                                             </div>
                                         </div>
                                     </li>
@@ -300,19 +276,7 @@
                                         </ul>
                                     </li>
                                     <li><a href="{% url 'order_list' %}">My Orders</a></li>
-                                    <li>
-                                        <a href="{% url 'about' %}">Pages <i class="far fa-angle-down"></i></a>
-                                        <ul class="submenu">
-                                            <li><a href="{% url 'profile' %}">My Account</a></li>
-                                            <li><a href="{% url 'product-details' %}">Product Details</a></li>
-                                            <li><a href="{% url 'faq' %}">FAQs pages</a></li>
-                                            <li><a href="{% url 'cart' %}">Cart</a></li>
-                                            <li><a href="{% url 'wishlist' %}">Wishlist</a></li>
-                                            <li><a href="{% url 'checkout' %}">Checkout</a></li>
-                                            <li><a href="{% url 'contact' %}">Contact Us</a></li>
-                                            <li><a href="{% url '404' %}">404 Error</a></li>
-                                        </ul>
-                                    </li>
+                                    <li><a href="{% url 'checkout' %}">Checkout</a></li>
                                     {% if user.is_staff %}
                                     <li>
                                         <a href="javascript:void(0);">Admin <i class="far fa-angle-down"></i></a>
@@ -447,3 +411,4 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
     </div>
     <div class="body-overlay"></div>
+

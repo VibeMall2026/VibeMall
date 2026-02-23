@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 def send_order_confirmation_email(order):
     """
     Send order confirmation email to customer after successful order placement
+    with PDF invoice attachment
     
     Args:
         order: Order instance
@@ -23,6 +24,17 @@ def send_order_confirmation_email(order):
         bool: True if email sent successfully, False otherwise
     """
     try:
+        from datetime import datetime
+        from io import BytesIO
+        
+        # Try to import weasyprint for PDF generation
+        try:
+            from weasyprint import HTML
+            pdf_generation_available = True
+        except ImportError:
+            logger.warning("WeasyPrint not installed. Invoice PDF will not be attached. Install with: pip install weasyprint")
+            pdf_generation_available = False
+        
         # Get site URL from settings or use default
         site_url = getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000')
         
@@ -65,6 +77,36 @@ def send_order_confirmation_email(order):
             to=[to_email]
         )
         email.attach_alternative(html_content, "text/html")
+        
+        # Generate and attach Invoice PDF if weasyprint is available
+        if pdf_generation_available:
+            try:
+                # Prepare context for invoice PDF
+                invoice_context = {
+                    'order': order,
+                    'current_year': datetime.now().year,
+                }
+                
+                # Render invoice HTML
+                invoice_html = render_to_string('invoice_pdf.html', invoice_context)
+                
+                # Generate PDF from HTML
+                pdf_file = BytesIO()
+                HTML(string=invoice_html).write_pdf(pdf_file)
+                pdf_file.seek(0)
+                
+                # Attach PDF to email
+                email.attach(
+                    f'Invoice_{order.order_number}.pdf',
+                    pdf_file.read(),
+                    'application/pdf'
+                )
+                
+                logger.info(f"Invoice PDF generated and attached for order {order.order_number}")
+            except Exception as pdf_error:
+                logger.error(f"Failed to generate/attach invoice PDF for order {order.order_number}: {str(pdf_error)}")
+                # Continue sending email without PDF
+        
         email.send(fail_silently=False)
         
         # Log successful email

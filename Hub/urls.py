@@ -21,6 +21,7 @@ urlpatterns = [
     path('admin-panel/edit-photo/', views.admin_edit_photo, name='admin_edit_photo'),
     path('admin-panel/edit-photo/preview/', views.admin_edit_photo_preview, name='admin_edit_photo_preview'),
     path('admin-panel/main-page-products/', views.admin_main_page_products, name='admin_main_page_products'),
+    path('admin-panel/ready-ship-styles/', views.admin_ready_ship_styles, name='admin_ready_ship_styles'),
     path('admin-panel/brand-partners/', views.admin_brand_partners, name='admin_brand_partners'),
     path('admin-panel/brand-partners/add/', views.admin_add_brand_partner, name='admin_add_brand_partner'),
     path('admin-panel/brand-partners/edit/<int:partner_id>/', views.admin_edit_brand_partner, name='admin_edit_brand_partner'),
@@ -140,4 +141,8 @@ urlpatterns = [
     # Email Verification URLs
     path('verify-email/', views.verify_email_sent, name='verify_email_sent'),
     path('verify-email/<uidb64>/<token>/', views.verify_email, name='verify_email'),
+    
+    # Coupon System URLs
+    path('api/validate-coupon/', views.validate_coupon, name='validate_coupon'),
+    path('api/available-coupons/', views.get_available_coupons, name='available_coupons'),
 ]
