@@ -16,6 +16,8 @@ from django.utils.dateparse import parse_datetime, parse_date
 from django.conf import settings
 from django.urls import reverse
 from django.core.mail import send_mail, EmailMultiAlternatives
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 from django.template.loader import render_to_string
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes
@@ -61,7 +63,7 @@ RETURN_STATUS_FLOW = {
     'QC_FAILED': ['REFUND_PENDING', 'WRONG_RETURN', 'REFUNDED', 'REPLACED'],
 }
 
-from .models import CategoryIcon, SubCategory, Slider, Feature, Banner, Product, DealCountdown, UserProfile, Address, Cart, Wishlist, ProductImage, ProductReview, ReviewImage, ReviewVote, ProductQuestion, Order, OrderItem, OrderStatusHistory, OrderCancellationRequest, ReturnRequest, ReturnItem, ReturnHistory, ReturnAttachment, ReturnLabel, AdminEmailSettings, ProductStockNotification, BrandPartner, SiteSettings, LoyaltyPoints, PointsTransaction, MainPageProduct, MainPageSubCategoryBanner, ChatThread, ChatMessage, ChatAttachment
+from .models import CategoryIcon, SubCategory, Slider, Feature, Banner, Product, DealCountdown, UserProfile, Address, Cart, Wishlist, ProductImage, ProductReview, ReviewImage, ReviewVote, ProductQuestion, Order, OrderItem, OrderStatusHistory, OrderCancellationRequest, ReturnRequest, ReturnItem, ReturnHistory, ReturnAttachment, ReturnLabel, AdminEmailSettings, ProductStockNotification, BrandPartner, SiteSettings, LoyaltyPoints, PointsTransaction, MainPageProduct, MainPageSubCategoryBanner, ChatThread, ChatMessage, ChatAttachment, NewsletterSubscription
 from .email_utils import send_order_confirmation_email, send_order_status_update_email, send_admin_order_notification
 
 # ===== ADMIN PANEL VIEWS =====
@@ -4531,6 +4533,76 @@ def reel_set_like(request, reel_id):
 def about(request): return render(request, 'about.html')
 def blog(request): return render(request, 'blog.html')
 def blog_details(request): return render(request, 'blog-details.html')
+
+
+@require_POST
+def subscribe_newsletter(request):
+    """Capture newsletter subscribers from CTA forms."""
+    email = (request.POST.get('email') or '').strip().lower()
+    source_page = (request.POST.get('source_page') or '').strip()[:120]
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
+
+    redirect_to = request.META.get('HTTP_REFERER') or reverse('index')
+    parsed_redirect = urlparse(redirect_to)
+    if parsed_redirect.netloc and parsed_redirect.netloc != request.get_host():
+        redirect_to = reverse('index')
+
+    if not email:
+        message = 'Please enter a valid email address.'
+        if is_ajax:
+            return JsonResponse({'success': False, 'message': message}, status=400)
+        messages.error(request, message)
+        return redirect(redirect_to)
+
+    try:
+        validate_email(email)
+    except ValidationError:
+        message = 'Please enter a valid email address.'
+        if is_ajax:
+            return JsonResponse({'success': False, 'message': message}, status=400)
+        messages.error(request, message)
+        return redirect(redirect_to)
+
+    subscriber, created = NewsletterSubscription.objects.get_or_create(
+        email=email,
+        defaults={
+            'source_page': source_page,
+            'is_active': True,
+        }
+    )
+
+    status = 'subscribed'
+    if created:
+        message = 'Thanks for subscribing. You will receive our latest offers by email.'
+    elif subscriber.is_active:
+        status = 'already_subscribed'
+        message = 'This email is already subscribed to our newsletter.'
+    else:
+        status = 'resubscribed'
+        subscriber.is_active = True
+        subscriber.unsubscribed_at = None
+        if source_page:
+            subscriber.source_page = source_page
+            subscriber.save(update_fields=['is_active', 'unsubscribed_at', 'source_page', 'updated_at'])
+        else:
+            subscriber.save(update_fields=['is_active', 'unsubscribed_at', 'updated_at'])
+        message = 'Welcome back. Your newsletter subscription is active again.'
+
+    if is_ajax:
+        return JsonResponse({
+            'success': True,
+            'status': status,
+            'message': message,
+        })
+
+    if status == 'subscribed':
+        messages.success(request, message)
+    elif status == 'already_subscribed':
+        messages.info(request, message)
+    else:
+        messages.success(request, message)
+
+    return redirect(redirect_to)
 
 
 @login_required(login_url='login')

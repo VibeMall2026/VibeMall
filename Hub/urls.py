@@ -89,6 +89,7 @@ urlpatterns = [
     # Support Chat
     path('chat/thread/', views.chat_thread, name='chat_thread'),
     path('chat/message/', views.chat_message, name='chat_message'),
+    path('newsletter/subscribe/', views.subscribe_newsletter, name='subscribe_newsletter'),
     
     # Cart URLs
     path('add-to-cart/', views.add_to_cart, name='add_to_cart'),

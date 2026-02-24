@@ -14,6 +14,23 @@ class PasswordResetLog(models.Model):
 
     def __str__(self):
         return f"{self.email} ({self.status}) at {self.timestamp}"
+
+
+class NewsletterSubscription(models.Model):
+    """Email subscribers for marketing/newsletter updates."""
+    email = models.EmailField(unique=True)
+    is_active = models.BooleanField(default=True)
+    source_page = models.CharField(max_length=120, blank=True)
+    subscribed_at = models.DateTimeField(auto_now_add=True)
+    unsubscribed_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-subscribed_at']
+
+    def __str__(self):
+        state = "active" if self.is_active else "inactive"
+        return f"{self.email} ({state})"
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.text import slugify
