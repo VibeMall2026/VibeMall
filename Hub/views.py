@@ -1981,6 +1981,12 @@ def admin_add_category(request):
             # Handle icon image upload
             if request.FILES.get('icon_image'):
                 category.icon_image = request.FILES['icon_image']
+
+            # Handle category card image upload (homepage photo card)
+            if request.FILES.get('card_image'):
+                category.card_image = request.FILES['card_image']
+
+            if request.FILES.get('icon_image') or request.FILES.get('card_image'):
                 category.save()
             
             messages.success(request, f'Category "{category.name}" added successfully!')
@@ -2019,6 +2025,13 @@ def admin_edit_category(request, category_id):
             # Handle icon image upload
             if request.FILES.get('icon_image'):
                 category.icon_image = request.FILES['icon_image']
+
+            # Handle category card image upload/removal
+            if request.POST.get('remove_card_image') == 'on' and category.card_image:
+                category.card_image.delete(save=False)
+                category.card_image = None
+            if request.FILES.get('card_image'):
+                category.card_image = request.FILES['card_image']
             
             category.save()
             
@@ -4247,6 +4260,7 @@ def index(request):
                 'name': label,
                 'category_key': key,
                 'background_gradient': 'linear-gradient(135deg, #e0f7ff 0%, #b3e5fc 100%)',
+                'card_image': None,
                 'icon_image': None,
                 'icon_class': None,
                 'icon_color': '#0288d1',
@@ -4255,6 +4269,30 @@ def index(request):
             for key, label in Product.CATEGORY_CHOICES
             if key not in excluded_categories
         ]
+
+    # Fallback photo for category cards when custom card image is not uploaded.
+    category_fallback_images = {}
+    category_keys = []
+    for category in categories:
+        if hasattr(category, 'category_key'):
+            key = (category.category_key or '').strip()
+        else:
+            key = (category.get('category_key') or '').strip()
+        if key and key not in category_keys:
+            category_keys.append(key)
+
+    if category_keys:
+        fallback_products = (
+            Product.objects
+            .filter(is_active=True, category__in=category_keys)
+            .exclude(image='')
+            .only('category', 'image')
+            .order_by('category', '-id')
+        )
+        for product in fallback_products:
+            key = (product.category or '').strip()
+            if key and key not in category_fallback_images and product.image:
+                category_fallback_images[key] = product.image.url
     
     # Get products from MainPageProduct model (4 categories)
     from .models import MainPageProduct, Reel, ReadyShipStyle, MainPageSubCategoryBanner
@@ -4387,6 +4425,7 @@ def index(request):
             'features': features,
             'banners': banners,
             'categories': categories,
+            'category_fallback_images': category_fallback_images,
             'top_deals': top_deals,
             'top_selling': top_selling,
             'top_featured': top_featured,

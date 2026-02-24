@@ -37,6 +37,7 @@
                 <thead>
                     <tr>
                         <th>Order</th>
+                        <th>Card Preview</th>
                         <th>Icon Preview</th>
                         <th>Name</th>
                         <th>Category Key</th>
@@ -49,6 +50,13 @@
                     {% for category in categories %}
                     <tr>
                         <td><strong>{{ category.order }}</strong></td>
+                        <td>
+                            {% if category.card_image %}
+                                <img src="{{ category.card_image.url }}" alt="{{ category.name }}" style="width: 70px; height: 88px; border-radius: 6px; object-fit: cover; border: 1px solid #e5e7eb;">
+                            {% else %}
+                                <span class="text-muted small">No card image</span>
+                            {% endif %}
+                        </td>
                         <td>
                             <div style="display: inline-block; background: {{ category.background_gradient }}; padding: calc({{ category.icon_size|default:48 }}px * 0.35); border-radius: calc({{ category.icon_size|default:48 }}px * 0.28); min-width: calc({{ category.icon_size|default:48 }}px * 2); min-height: calc({{ category.icon_size|default:48 }}px * 2); display: flex; align-items: center; justify-content: center;">
                                 {% if category.icon_image %}
@@ -89,7 +97,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="text-center py-4">
+                        <td colspan="8" class="text-center py-4">
                             <p class="text-muted">No categories found.</p>
                             <a href="{% url 'admin_add_category' %}" class="btn btn-sm btn-primary">Add First Category</a>
                         </td>
@@ -104,22 +112,26 @@
 <!-- Category Preview Section -->
 <div class="card mt-4">
     <div class="card-header">
-        <h5 class="mb-0">Live Preview (How it appears on homepage)</h5>
+        <h5 class="mb-0">Live Preview (All Categories Photo Cards)</h5>
     </div>
     <div class="card-body">
-        <div class="row justify-content-center">
+        <div class="row g-3">
             {% for category in categories %}
             {% if category.is_active %}
-            <div class="col-xl col-lg col-md-2 col-sm-3 col-4">
-                <div class="category__item text-center mb-20" style="display: block;">
-                    <div class="category__icon" style="background: {{ category.background_gradient }}; padding: calc({{ category.icon_size|default:48 }}px * 0.45); border-radius: calc({{ category.icon_size|default:48 }}px * 0.3); margin-bottom: 8px; display: flex; align-items: center; justify-content: center; min-height: calc({{ category.icon_size|default:48 }}px * 2);">
-                        {% if category.icon_image %}
-                            <img src="{{ category.icon_image.url }}" alt="{{ category.name }}" style="width: {{ category.icon_size|default:48 }}px; height: {{ category.icon_size|default:48 }}px; object-fit: contain;">
+            <div class="col-6 col-md-3 col-xl-2">
+                <div style="border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; background: #fff;">
+                    <div style="height: 130px; background: #f3f4f6; display: flex; align-items: center; justify-content: center;">
+                        {% if category.card_image %}
+                            <img src="{{ category.card_image.url }}" alt="{{ category.name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                        {% elif category.icon_image %}
+                            <img src="{{ category.icon_image.url }}" alt="{{ category.name }}" style="width: 60px; height: 60px; object-fit: contain;">
                         {% elif category.icon_class %}
-                            <i class="{{ category.icon_class }}" style="font-size: {{ category.icon_size|default:48 }}px; color: {{ category.icon_color }};"></i>
+                            <i class="{{ category.icon_class }}" style="font-size: 40px; color: {{ category.icon_color }};"></i>
+                        {% else %}
+                            <span class="text-muted small">No image</span>
                         {% endif %}
                     </div>
-                    <h6 style="color: #333; font-weight: 600; font-size: 12px;">{{ category.name }}</h6>
+                    <h6 style="margin: 0; padding: 10px 8px; color: #333; font-weight: 600; font-size: 13px; text-align: center;">{{ category.name }}</h6>
                 </div>
             </div>
             {% endif %}

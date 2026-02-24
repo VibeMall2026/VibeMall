@@ -34,6 +34,12 @@ class CategoryIcon(models.Model):
         null=True,
         help_text="Upload category icon image (PNG with transparent background recommended)"
     )
+    card_image = models.ImageField(
+        upload_to='category_cards/',
+        blank=True,
+        null=True,
+        help_text="Homepage All Categories card image (recommended: 800x1000 or 4:5 ratio)"
+    )
     category_key = models.CharField(
         max_length=50,
         unique=True,

@@ -28,7 +28,7 @@
                     {% endfor %}
                 {% endif %}
                 
-                <form method="POST">
+                <form method="POST" enctype="multipart/form-data">
                     {% csrf_token %}
                     
                     <div class="mb-3">
@@ -44,8 +44,8 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label" for="icon_class">Icon Class *</label>
-                        <input type="text" class="form-control" id="icon_class" name="icon_class" placeholder="e.g., fas fa-mobile-alt" required>
+                        <label class="form-label" for="icon_class">Icon Class</label>
+                        <input type="text" class="form-control" id="icon_class" name="icon_class" placeholder="e.g., fas fa-mobile-alt">
                         <div class="form-text">
                             FontAwesome icon class. Browse icons at <a href="https://fontawesome.com/icons" target="_blank">FontAwesome.com</a>
                         </div>
@@ -68,6 +68,12 @@
                         <label class="form-label" for="icon_size">Icon Size (px)</label>
                         <input type="number" class="form-control" id="icon_size" name="icon_size" value="48" min="16" max="128">
                         <div class="form-text">Controls FontAwesome size on the homepage</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="card_image">Category Card Image (Homepage)</label>
+                        <input type="file" class="form-control" id="card_image" name="card_image" accept="image/*">
+                        <div class="form-text">Used in homepage All Categories photo cards. Recommended size: 800x1000 (4:5).</div>
                     </div>
                     
                     <div class="mb-3">

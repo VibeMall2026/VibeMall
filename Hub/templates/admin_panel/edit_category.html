@@ -91,6 +91,24 @@
                         <input type="number" class="form-control" id="icon_size" name="icon_size" value="{{ category.icon_size|default:48 }}" min="16" max="128">
                         <div class="form-text">Controls image size or FontAwesome size on the homepage</div>
                     </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="card_image">Category Card Image (Homepage)</label>
+                        {% if category.card_image %}
+                            <div class="mb-2">
+                                <img src="{{ category.card_image.url }}" alt="{{ category.name }}" style="width: 110px; height: 140px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd;">
+                                <small class="d-block text-muted">Current All Categories card image</small>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="remove_card_image" name="remove_card_image">
+                                <label class="form-check-label" for="remove_card_image">
+                                    Remove current card image
+                                </label>
+                            </div>
+                        {% endif %}
+                        <input type="file" class="form-control" id="card_image" name="card_image" accept="image/*">
+                        <div class="form-text">Used in homepage All Categories photo cards. Recommended size: 800x1000 (4:5).</div>
+                    </div>
                     
                     <div class="mb-3">
                         <label class="form-label" for="order">Display Order</label>
