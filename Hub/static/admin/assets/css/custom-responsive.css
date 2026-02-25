@@ -1,4 +1,6 @@
 /* Admin panel responsive fixes */
+/* IMPORTANT: Desktop view (>991px) remains unchanged */
+/* Only mobile and tablet views are modified */
 
 /* ============================================
    MOBILE & TABLET RESPONSIVE IMPROVEMENTS
@@ -52,12 +54,64 @@
     .row-cols-xl-4 > * {
         width: 50% !important;
     }
+    
+    /* Navbar search bar - smaller on tablet */
+    .admin-search-wrapper {
+        width: 180px;
+    }
+    
+    /* Dashboard cards - 2 columns on tablet */
+    .col-xl-3, .col-xl-4 {
+        width: 50% !important;
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
 }
 
 /* ============================================
    MOBILE VIEW (< 768px)
    ============================================ */
 @media (max-width: 767px) {
+    /* ========== NAVBAR/HEADER ========== */
+    
+    /* Hide GitHub button on mobile */
+    .github-button {
+        display: none !important;
+    }
+    
+    /* Search bar responsive */
+    .navbar-nav.align-items-center {
+        width: 100%;
+    }
+    
+    .admin-search-wrapper {
+        width: 100%;
+        max-width: 300px;
+    }
+    
+    /* Search icon smaller */
+    .bx-search {
+        font-size: 1.25rem !important;
+    }
+    
+    /* User avatar smaller */
+    .avatar.avatar-online {
+        width: 32px !important;
+        height: 32px !important;
+    }
+    
+    .avatar img,
+    .avatar.avatar-online img {
+        width: 32px !important;
+        height: 32px !important;
+    }
+    
+    .w-px-40 {
+        width: 32px !important;
+    }
+    
+    /* ========== SIDEBAR ========== */
+    
     /* Hide sidebar by default, show as overlay */
     .layout-menu {
         transform: translateX(-100%);
@@ -72,6 +126,8 @@
     .layout-page {
         padding-left: 0 !important;
     }
+    
+    /* ========== CONTAINER & SPACING ========== */
     
     /* Container padding */
     .container-xxl,
@@ -88,6 +144,8 @@
         margin-bottom: 1rem !important;
     }
     
+    /* ========== CARDS ========== */
+    
     /* Card headers */
     .card .card-header h5,
     .card .card-header h4 {
@@ -102,12 +160,71 @@
         padding: 1rem;
     }
     
+    /* ========== DASHBOARD CARDS ========== */
+    
+    /* Single column on mobile */
+    .col-xl-3, .col-xl-4, .col-lg-6 {
+        width: 100% !important;
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    
+    /* Smaller charts on mobile */
+    .chart-xs { 
+        min-height: 60px !important; 
+    }
+    
+    .chart-sm { 
+        min-height: 80px !important; 
+    }
+    
+    .chart-md { 
+        min-height: 150px !important; 
+    }
+    
+    .chart-lg { 
+        min-height: 200px !important; 
+    }
+    
+    /* Card dropdowns stack better */
+    .sales-card-body {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .sales-range-dropdown {
+        width: 100%;
+        margin-top: 0.75rem;
+    }
+    
+    .sales-range-btn {
+        width: 100%;
+        min-width: auto;
+    }
+    
+    /* Dashboard cards - single column */
+    .row-cols-xl-4 > *,
+    .row-cols-lg-3 > *,
+    .row-cols-md-2 > * {
+        width: 100% !important;
+        margin-bottom: 1rem;
+    }
+    
+    /* Stats cards */
+    .card-body .d-flex.align-items-center {
+        flex-direction: row !important;
+    }
+    
+    /* ========== FLEX CONTAINERS ========== */
+    
     /* Flex containers - stack vertically */
     .d-flex.justify-content-between.align-items-center {
         flex-direction: column;
         align-items: flex-start !important;
         gap: 0.75rem;
     }
+    
+    /* ========== FORMS ========== */
     
     /* Form - single column */
     .row.mb-3 .col-md-6,
@@ -117,6 +234,36 @@
         width: 100%;
         margin-bottom: 1rem;
     }
+    
+    /* Input groups full width */
+    .input-group-merge {
+        flex-wrap: nowrap;
+    }
+    
+    .input-group-text {
+        font-size: 0.875rem;
+        padding: 0.5rem 0.75rem;
+    }
+    
+    /* Labels smaller */
+    .form-label {
+        font-size: 0.875rem;
+        margin-bottom: 0.375rem;
+    }
+    
+    /* Textarea smaller */
+    textarea.form-control {
+        min-height: 100px;
+    }
+    
+    /* Size checkboxes - 2 columns on mobile */
+    .form-check {
+        width: 50%;
+        float: left;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* ========== BUTTONS ========== */
     
     /* Buttons */
     .btn,
@@ -137,9 +284,11 @@
         margin-bottom: 0.5rem;
     }
     
-    /* Tables - card view alternative */
+    /* ========== TABLES ========== */
+    
+    /* Remove min-width for better mobile experience */
     .table {
-        min-width: 700px;
+        min-width: auto !important;
         font-size: 0.813rem;
     }
     
@@ -149,38 +298,104 @@
         white-space: nowrap;
     }
     
-    /* Product list - compact view */
+    /* Hide less important columns on mobile */
+    .table th:nth-child(4), /* SKU column */
+    .table td:nth-child(4),
+    .table th:nth-child(6), /* Qty column */
+    .table td:nth-child(6) {
+        display: none;
+    }
+    
+    /* Product list - bigger images on mobile */
     .table td img {
-        width: 32px !important;
-        height: 32px !important;
+        width: 48px !important;
+        height: 48px !important;
     }
     
-    /* Dashboard cards - single column */
-    .row-cols-xl-4 > *,
-    .row-cols-lg-3 > *,
-    .row-cols-md-2 > * {
-        width: 100% !important;
-        margin-bottom: 1rem;
+    /* Product name truncate */
+    .table .fw-semibold {
+        max-width: 150px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        display: block;
     }
     
-    /* Stats cards */
-    .card-body .d-flex.align-items-center {
-        flex-direction: row !important;
+    /* Action dropdown bigger touch target */
+    .table .dropdown-toggle {
+        padding: 0.5rem !important;
+        min-width: 44px;
+        min-height: 44px;
     }
+    
+    /* ========== STAT CARDS (Orders Page) ========== */
+    
+    .stat-card {
+        padding: 1rem;
+    }
+    
+    .stat-card .stat-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+    }
+    
+    .stat-label {
+        font-size: 0.813rem;
+    }
+    
+    /* ========== MESSAGES/ALERTS ========== */
+    
+    .messages-container {
+        top: 70px !important;
+        right: 10px !important;
+        left: 10px !important;
+        max-width: none !important;
+    }
+    
+    .alert {
+        font-size: 0.813rem;
+        padding: 0.625rem;
+    }
+    
+    .alert i {
+        font-size: 1rem;
+    }
+    
+    /* ========== DROPDOWN MENUS ========== */
     
     /* Dropdown menus - full width */
     .dropdown-menu {
         min-width: 200px;
     }
     
+    /* ========== MODALS ========== */
+    
     /* Modal adjustments */
     .modal-dialog {
-        margin: 0.5rem;
+        margin: 0.25rem;
+        max-width: calc(100% - 0.5rem);
     }
     
     .modal-content {
         border-radius: 0.5rem;
     }
+    
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        padding: 1rem;
+    }
+    
+    .modal-title {
+        font-size: 1.125rem;
+    }
+    
+    /* ========== PAGINATION ========== */
     
     /* Pagination */
     .pagination {
@@ -193,15 +408,28 @@
         font-size: 0.875rem;
     }
     
+    /* ========== FOOTER ========== */
+    
+    .content-footer {
+        padding: 1rem 0 !important;
+    }
+    
+    .content-footer .container-xxl {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+    }
+    
+    .footer-link {
+        font-size: 0.813rem;
+        margin: 0 0.5rem !important;
+    }
+    
+    /* ========== NAVBAR ITEMS ========== */
+    
     /* Search bar in header */
     .navbar-nav .nav-item {
         margin-bottom: 0.5rem;
-    }
-    
-    /* Alerts */
-    .alert {
-        font-size: 0.875rem;
-        padding: 0.75rem;
     }
 }
 
@@ -209,6 +437,8 @@
    SMALL MOBILE VIEW (< 576px)
    ============================================ */
 @media (max-width: 575px) {
+    /* ========== CONTAINER ========== */
+    
     /* Even more compact */
     .container-xxl,
     .container-fluid {
@@ -216,10 +446,14 @@
         padding-right: 8px;
     }
     
+    /* ========== TYPOGRAPHY ========== */
+    
     /* Page title */
     .fw-bold.py-3.mb-4 {
         font-size: 1.125rem;
     }
+    
+    /* ========== CARDS ========== */
     
     /* Cards */
     .card {
@@ -231,11 +465,15 @@
         padding: 0.75rem;
     }
     
+    /* ========== BUTTONS ========== */
+    
     /* Buttons smaller */
     .btn {
         padding: 0.375rem 0.75rem;
         font-size: 0.813rem;
     }
+    
+    /* ========== FORMS ========== */
     
     /* Form inputs */
     .form-control,
@@ -248,6 +486,8 @@
         font-size: 0.875rem;
         margin-bottom: 0.375rem;
     }
+    
+    /* ========== TABLES ========== */
     
     /* Table even more compact */
     .table {
@@ -262,6 +502,54 @@
     /* Hide less important columns on very small screens */
     .table .d-none-mobile {
         display: none !important;
+    }
+    
+    /* Product name even shorter */
+    .table .fw-semibold {
+        max-width: 120px;
+    }
+    
+    /* ========== STAT CARDS ========== */
+    
+    .stat-card {
+        padding: 0.875rem;
+    }
+    
+    .stat-card .stat-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 18px;
+    }
+    
+    .stat-value {
+        font-size: 1.375rem;
+    }
+    
+    .stat-label {
+        font-size: 0.75rem;
+    }
+    
+    /* ========== NAVBAR ========== */
+    
+    .admin-search-wrapper {
+        max-width: 250px;
+    }
+    
+    /* ========== MODALS ========== */
+    
+    .modal-dialog {
+        margin: 0.125rem;
+        max-width: calc(100% - 0.25rem);
+    }
+    
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        padding: 0.75rem;
+    }
+    
+    .modal-title {
+        font-size: 1rem;
     }
 }
 
