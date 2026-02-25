@@ -1112,21 +1112,41 @@ def convert_url_to_png(image_url, crop_box=None, crop_ratio=None):
     response = requests.get(image_url, timeout=15)
     response.raise_for_status()
     content_type = (response.headers.get('Content-Type') or '').lower()
-    if content_type and 'image/' not in content_type:
+    
+    # Allow AVIF content type
+    if content_type and 'image/' not in content_type and 'avif' not in content_type:
         raise ValueError('URL did not return an image.')
 
     _register_heif_opener()
 
+    image = None
+    first_error = None
+    
+    # Try PIL first
     try:
         image = PILImage.open(BytesIO(response.content))
         image.load()
-    except UnidentifiedImageError:
+    except Exception as e:
+        first_error = str(e)
+    
+    # If PIL failed, try pillow_heif
+    if image is None:
         try:
             import pillow_heif
-            heif = pillow_heif.read_heif(response.content)
-            image = heif.to_pillow()
-        except Exception as exc:
-            raise ValueError('Unsupported image format. Try JPG or PNG.') from exc
+            # Register all HEIF/AVIF formats
+            pillow_heif.register_heif_opener()
+            
+            # Try to open with PIL again after registration
+            try:
+                image = PILImage.open(BytesIO(response.content))
+                image.load()
+            except:
+                # If still fails, use pillow_heif directly
+                heif_file = pillow_heif.read_heif(response.content)
+                image = heif_file.to_pillow()
+        except Exception as heif_error:
+            # If both methods fail, raise a clear error
+            raise ValueError(f'Unsupported image format. PIL error: {first_error}. HEIF error: {heif_error}. Try JPG or PNG.')
 
     if crop_box is None and crop_ratio:
         try:
@@ -1150,7 +1170,16 @@ def convert_url_to_png(image_url, crop_box=None, crop_ratio=None):
         height = max(1, min(int(height), img_h - y))
         image = image.crop((x, y, x + width, y + height))
 
-    image = image.convert('RGBA')
+    # Convert to RGB for better compatibility
+    if image.mode in ('RGBA', 'LA', 'P'):
+        # Create white background for transparency
+        background = PILImage.new('RGB', image.size, (255, 255, 255))
+        if image.mode == 'P':
+            image = image.convert('RGBA')
+        background.paste(image, mask=image.split()[-1] if image.mode == 'RGBA' else None)
+        image = background
+    elif image.mode != 'RGB':
+        image = image.convert('RGB')
 
     filename = f"edit_photo_{uuid.uuid4().hex}.png"
     rel_path = os.path.join('edit_photo', filename)
@@ -1162,6 +1191,49 @@ def convert_url_to_png(image_url, crop_box=None, crop_ratio=None):
     public_url = f"{settings.MEDIA_URL}{rel_path.replace(os.sep, '/')}"
 
     return public_url, filename
+
+
+def convert_uploaded_file_to_png(uploaded_file, upload_to='converted_images'):
+    """
+    Convert an uploaded file (including AVIF) to PNG format.
+    Returns a relative path that can be saved to an ImageField.
+    """
+    _register_heif_opener()
+    
+    try:
+        # Try to open the uploaded file with PIL
+        image = PILImage.open(uploaded_file)
+        image.load()
+    except UnidentifiedImageError:
+        # If PIL can't identify it, try pillow_heif for AVIF/HEIF
+        try:
+            import pillow_heif
+            uploaded_file.seek(0)
+            heif = pillow_heif.read_heif(uploaded_file.read())
+            image = heif.to_pillow()
+        except Exception as exc:
+            raise ValueError('Unsupported image format. Try JPG or PNG.') from exc
+    
+    # Convert to RGB (PNG doesn't need RGBA unless transparency is needed)
+    if image.mode in ('RGBA', 'LA', 'P'):
+        image = image.convert('RGBA')
+    else:
+        image = image.convert('RGB')
+    
+    # Generate unique filename
+    filename = f"{uuid.uuid4().hex}.png"
+    rel_path = os.path.join(upload_to, filename)
+    media_root = getattr(settings, 'MEDIA_ROOT', None) or os.path.join(settings.BASE_DIR, 'media')
+    abs_path = os.path.join(media_root, rel_path)
+    os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+    
+    # Save as PNG
+    image.save(abs_path, format='PNG')
+    
+    # Return the relative path for Django's ImageField
+    return rel_path.replace(os.sep, '/')
+
+
 @staff_member_required(login_url='login')
 def admin_add_product(request):
     """Admin Add Product Page"""
@@ -2721,14 +2793,36 @@ def admin_main_page_products(request):
                 messages.error(request, 'Selected sub-category not found.')
                 return redirect_with_section('subcat_banners')
 
-            MainPageSubCategoryBanner.objects.create(
-                title=title,
-                sub_category=sub_category,
-                image=image,
-                order=order,
-                is_active=is_active,
-            )
-            messages.success(request, f'✓ Banner added for {sub_category.name}')
+            # Convert AVIF/HEIF to PNG if needed
+            try:
+                converted_path = convert_uploaded_file_to_png(image, upload_to='main_page_subcategory_banners')
+                # Create a File object from the converted path
+                from django.core.files import File
+                with open(os.path.join(settings.MEDIA_ROOT, converted_path), 'rb') as f:
+                    image_file = File(f, name=os.path.basename(converted_path))
+                    banner = MainPageSubCategoryBanner.objects.create(
+                        title=title,
+                        sub_category=sub_category,
+                        order=order,
+                        is_active=is_active,
+                    )
+                    banner.image.save(os.path.basename(converted_path), image_file, save=True)
+                messages.success(request, f'✓ Banner added for {sub_category.name} (converted to PNG)')
+            except ValueError as e:
+                # If conversion fails, try to save the original file
+                try:
+                    MainPageSubCategoryBanner.objects.create(
+                        title=title,
+                        sub_category=sub_category,
+                        image=image,
+                        order=order,
+                        is_active=is_active,
+                    )
+                    messages.success(request, f'✓ Banner added for {sub_category.name}')
+                except Exception as save_error:
+                    messages.error(request, f'Failed to save banner: {save_error}')
+                    return redirect_with_section('subcat_banners')
+            
             return redirect_with_section('subcat_banners')
 
         elif action == 'update_subcategory_banner':
@@ -2767,7 +2861,16 @@ def admin_main_page_products(request):
                 return redirect_with_section('subcat_banners')
 
             if new_image:
-                banner_item.image = new_image
+                # Convert AVIF/HEIF to PNG if needed
+                try:
+                    converted_path = convert_uploaded_file_to_png(new_image, upload_to='main_page_subcategory_banners')
+                    from django.core.files import File
+                    with open(os.path.join(settings.MEDIA_ROOT, converted_path), 'rb') as f:
+                        image_file = File(f, name=os.path.basename(converted_path))
+                        banner_item.image.save(os.path.basename(converted_path), image_file, save=False)
+                except ValueError:
+                    # If conversion fails, use original file
+                    banner_item.image = new_image
 
             if not banner_item.image:
                 messages.error(request, 'Banner image is required.')

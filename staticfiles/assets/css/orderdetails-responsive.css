@@ -1,0 +1,396 @@
+/* ============================================
+   ORDER DETAILS PAGE - RESPONSIVE STYLES
+   Card-Based Mobile Layout - No Horizontal Scroll
+   ============================================ */
+
+/* ============================================
+   TABLET VIEW (768px - 1199px)
+   ============================================ */
+@media (min-width: 768px) and (max-width: 1199px) {
+    .container.my-5 {
+        padding: 0 20px;
+    }
+
+    .card-header.bg-dark h4 {
+        font-size: 20px;
+    }
+
+    .card-header .btn-sm {
+        font-size: 12px;
+        padding: 6px 12px;
+        margin: 4px 4px 4px 0 !important;
+    }
+
+    .table thead th {
+        font-size: 13px;
+        padding: 10px 8px;
+    }
+
+    .table tbody td {
+        padding: 12px 8px;
+        font-size: 13px;
+    }
+
+    .table tbody td img {
+        width: 60px !important;
+        height: 60px !important;
+    }
+}
+
+/* ============================================
+   MOBILE VIEW (< 768px) - CARD LAYOUT
+   ============================================ */
+@media (max-width: 767px) {
+    /* Global Container */
+    body {
+        overflow-x: hidden;
+    }
+
+    .container.my-5 {
+        padding: 0 10px;
+        margin-top: 15px !important;
+        margin-bottom: 15px !important;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    /* Back Button */
+    .btn-outline-secondary {
+        font-size: 12px;
+        padding: 6px 12px;
+        margin-bottom: 12px !important;
+    }
+
+    /* Order Header Card */
+    .card.mb-4 {
+        margin-bottom: 15px !important;
+        border-radius: 10px;
+    }
+
+    .card-header.bg-dark {
+        padding: 12px;
+    }
+
+    .card-header.bg-dark .row {
+        flex-direction: column;
+    }
+
+    .card-header.bg-dark h4 {
+        font-size: 16px;
+        margin-bottom: 4px !important;
+    }
+
+    .card-header.bg-dark small {
+        font-size: 10px;
+        display: block;
+        margin-bottom: 10px;
+    }
+
+    .card-header .col-md-6.text-md-end {
+        margin-top: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .card-header .btn-sm,
+    .card-header .badge.fs-6 {
+        width: 100%;
+        text-align: center;
+        font-size: 11px !important;
+        padding: 8px 10px;
+        margin: 0 !important;
+    }
+
+    /* Order Status Section - 2x2 Grid */
+    .card-body {
+        padding: 12px;
+    }
+
+    .card-body .row {
+        margin: 0;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .card-body .col-md-6 {
+        padding: 8px;
+        margin-bottom: 0;
+        background: #f8f9fa;
+        border-radius: 8px;
+        text-align: center;
+    }
+
+    .card-body h6 {
+        font-size: 10px;
+        margin-bottom: 6px;
+        font-weight: 600;
+        color: #666;
+    }
+
+    .card-body h5 {
+        font-size: 13px;
+        margin-bottom: 0;
+    }
+
+    .card-body p {
+        font-size: 13px;
+        margin-bottom: 0;
+        font-weight: 600;
+    }
+
+    .card-body .badge {
+        font-size: 10px;
+        padding: 5px 8px;
+    }
+
+    .card-body h5.text-success {
+        font-size: 16px;
+        font-weight: 700;
+    }
+
+    .alert {
+        font-size: 11px;
+        padding: 10px 12px;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.5;
+    }
+
+    /* Shipping Cards */
+    .row.mb-4 {
+        margin-bottom: 15px !important;
+    }
+
+    .row.mb-4 .col-md-6 {
+        margin-bottom: 12px;
+        padding: 0 10px;
+    }
+
+    .row.mb-4 .card-header h5 {
+        font-size: 14px;
+    }
+
+    .row.mb-4 .card-body {
+        padding: 12px;
+        font-size: 12px;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        white-space: pre-line;
+        text-align: center;
+    }
+
+    /* Order Items Card */
+    .card:last-of-type {
+        border-radius: 10px;
+    }
+
+    .card:last-of-type .card-header {
+        padding: 10px 12px;
+    }
+
+    .card:last-of-type .card-header h5 {
+        font-size: 14px;
+    }
+
+    .card:last-of-type .card-body {
+        padding: 8px;
+    }
+
+    /* Hide Desktop Table */
+    .table-responsive {
+        overflow: visible !important;
+    }
+
+    .table {
+        display: none !important;
+    }
+
+    /* Create Mobile Product Cards */
+    .table-responsive::after {
+        content: '';
+        display: block;
+    }
+}
+
+/* ============================================
+   MOBILE PRODUCT CARDS - JavaScript Alternative
+   ============================================ */
+@media (max-width: 767px) {
+    /* If table is converted to cards via JS or template */
+    .mobile-product-card {
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .mobile-product-card .product-image-section {
+        text-align: center;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #f0f0f0;
+        margin-bottom: 12px;
+    }
+
+    .mobile-product-card .product-image-section img {
+        width: 100px;
+        height: 100px;
+        border-radius: 10px;
+        margin-bottom: 8px;
+    }
+
+    .mobile-product-card .product-name {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        text-align: center;
+    }
+
+    .mobile-product-card .product-details-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #f5f5f5;
+        font-size: 12px;
+    }
+
+    .mobile-product-card .product-details-row:last-child {
+        border-bottom: none;
+        padding-top: 12px;
+        margin-top: 8px;
+        border-top: 2px solid #e9ecef;
+    }
+
+    .mobile-product-card .product-details-row .label {
+        color: #666;
+        font-weight: 500;
+    }
+
+    .mobile-product-card .product-details-row .value {
+        color: #333;
+        font-weight: 600;
+    }
+
+    .mobile-product-card .product-details-row.total .value {
+        color: #28a745;
+        font-size: 16px;
+        font-weight: 700;
+    }
+
+    /* Price Summary Card */
+    .mobile-price-summary {
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        padding: 15px 12px;
+        margin-top: 12px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .mobile-price-summary .summary-title {
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #f0f0f0;
+    }
+
+    .mobile-price-summary .summary-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #f5f5f5;
+        font-size: 13px;
+    }
+
+    .mobile-price-summary .summary-row:last-child {
+        border-bottom: none;
+        padding-top: 12px;
+        margin-top: 8px;
+        border-top: 2px dashed #ddd;
+    }
+
+    .mobile-price-summary .summary-row.grand-total {
+        background: #d4edda;
+        margin: 0 -12px;
+        padding: 12px;
+        border-radius: 8px;
+    }
+
+    .mobile-price-summary .summary-row .label {
+        color: #666;
+        font-weight: 500;
+    }
+
+    .mobile-price-summary .summary-row .value {
+        color: #333;
+        font-weight: 600;
+    }
+
+    .mobile-price-summary .summary-row.grand-total .label,
+    .mobile-price-summary .summary-row.grand-total .value {
+        font-size: 16px;
+        font-weight: 700;
+        color: #155724;
+    }
+}
+
+/* ============================================
+   MODAL RESPONSIVE
+   ============================================ */
+@media (max-width: 767px) {
+    .modal-dialog {
+        margin: 10px;
+    }
+
+    .modal-header {
+        padding: 12px;
+    }
+
+    .modal-title {
+        font-size: 15px;
+    }
+
+    .modal-body {
+        padding: 12px;
+    }
+
+    .modal-body .form-label {
+        font-size: 12px;
+    }
+
+    .modal-body .form-control,
+    .modal-body .form-select {
+        font-size: 12px;
+        padding: 8px;
+    }
+
+    .modal-footer {
+        padding: 10px 12px;
+    }
+
+    .modal-footer .btn {
+        font-size: 12px;
+        padding: 8px 16px;
+    }
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+@media print {
+    .btn,
+    .modal,
+    .alert {
+        display: none !important;
+    }
+
+    .card {
+        border: 1px solid #ddd;
+        box-shadow: none;
+        page-break-inside: avoid;
+    }
+}

@@ -1,39 +1,111 @@
-#loading{
-	background-color: #fff;
-	height: 100%;
-	width: 100%;
-	position: fixed;
-	z-index: 9999999999;
-	margin-top: 0px;
-	top: 0px;
-}
-#loading-center{
-	width: 100%;
-	height: 100%;
-	position: relative;
-}
-#loading-center-absolute {
-	position: absolute;
-	left: 50%;
-	top: 50%;
-    transform: translate(-50%, -50%);
+/* Preloader - Responsive for all devices */
+#loading {
+    background-color: #fff;
+    height: 100%;
+    width: 100%;
+    position: fixed;
+    z-index: 9999999999;
+    margin-top: 0px;
+    top: 0px;
+    left: 0px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
+#loading-center {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#loading-center-absolute {
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
 .cart-container {
-    width: 900px;
+    width: 100%;
+    max-width: 900px;
     margin: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px;
 }
-  
+
 #cart {
     width: 150px;
-    display:inline-block;
+    display: inline-block;
 }
-  
+
 .product {
     width: 60px;
     position: absolute;
     left: 50%;
     opacity: 0;
     transform: scale(2);
+}
+
+/* Tablet responsive (768px - 1199px) */
+@media (max-width: 1199px) {
+    #cart {
+        width: 120px;
+    }
+    
+    .product {
+        width: 50px;
+    }
+    
+    .cart-container {
+        max-width: 600px;
+        padding: 0 15px;
+    }
+}
+
+/* Mobile responsive (below 768px) */
+@media (max-width: 767px) {
+    #cart {
+        width: 100px;
+    }
+    
+    .product {
+        width: 40px;
+    }
+    
+    .cart-container {
+        max-width: 400px;
+        padding: 0 10px;
+    }
+}
+
+/* Small mobile (below 480px) */
+@media (max-width: 480px) {
+    #cart {
+        width: 80px;
+    }
+    
+    .product {
+        width: 32px;
+    }
+    
+    .cart-container {
+        max-width: 300px;
+        padding: 0 10px;
+    }
+}
+
+/* Hide preloader when page is loaded */
+body.loaded #loading {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
 }

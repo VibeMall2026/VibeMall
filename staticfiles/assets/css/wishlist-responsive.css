@@ -1,0 +1,191 @@
+.wishlist-mobile-wrap {
+    display: none;
+}
+
+@media (max-width: 1199.98px) {
+    .wishlist-desktop-wrap {
+        display: none !important;
+    }
+
+    .wishlist-mobile-wrap {
+        display: block !important;
+    }
+
+    .cart-area {
+        padding-top: 70px !important;
+        padding-bottom: 100px !important;
+    }
+
+    .cart-area .alert {
+        border-radius: 12px;
+    }
+
+    .wishlist-mobile-grid {
+        display: grid;
+        grid-template-columns: repeat(var(--wishlist-cols, 1), minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .wishlist-mobile-card {
+        background: #fff;
+        border: 1px solid #e8ebf3;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 12px 26px rgba(16, 24, 40, 0.08);
+    }
+
+    .wishlist-mobile-thumb {
+        display: block;
+        background: #f4f6fb;
+    }
+
+    .wishlist-mobile-thumb img {
+        width: 100%;
+        aspect-ratio: 3 / 4;
+        object-fit: cover;
+        display: block;
+    }
+
+    .wishlist-mobile-info {
+        padding: 12px;
+    }
+
+    .wishlist-mobile-name {
+        margin: 0 0 8px;
+        font-size: 15px;
+        line-height: 1.35;
+        font-weight: 600;
+    }
+
+    .wishlist-mobile-name a {
+        color: #1b2432;
+        text-decoration: none;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .wishlist-mobile-price {
+        font-size: 20px;
+        font-weight: 700;
+        color: #111827;
+        line-height: 1.2;
+        margin-bottom: 10px;
+    }
+
+    .wishlist-mobile-stock .badge {
+        font-size: 12px;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+
+    .wishlist-mobile-actions {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .wishlist-mobile-actions form {
+        margin: 0;
+    }
+
+    .wishlist-mobile-actions .tp-btn-h2 {
+        width: 100%;
+        min-height: 38px;
+        border-radius: 10px;
+        padding: 8px 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .wishlist-mobile-remove {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+    }
+
+    .cart-area .row.mt-40 {
+        margin-top: 20px !important;
+    }
+
+    .cart-area .row.mt-40 .tp-btn-h2 {
+        width: 100%;
+        min-height: 46px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .cart-area .text-center.py-5 {
+        background: #fff;
+        border: 1px solid #e9ecf4;
+        border-radius: 16px;
+        box-shadow: 0 10px 22px rgba(16, 24, 40, 0.06);
+        padding: 28px 16px !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .page-banner-area.page-banner-height-2 {
+        min-height: 170px;
+    }
+
+    .page-banner-area .breadcrumb-title {
+        font-size: 24px;
+    }
+
+    .cart-area {
+        padding-top: 52px !important;
+        padding-bottom: 106px !important;
+    }
+
+    .wishlist-mobile-grid {
+        gap: 14px;
+    }
+
+    .wishlist-mobile-card {
+        border-radius: 14px;
+    }
+
+    .wishlist-mobile-info {
+        padding: 10px;
+    }
+
+    .wishlist-mobile-name {
+        font-size: 14px;
+        margin-bottom: 7px;
+    }
+
+    .wishlist-mobile-price {
+        font-size: 18px;
+        margin-bottom: 9px;
+    }
+
+    .wishlist-mobile-actions .tp-btn-h2 {
+        min-height: 36px;
+        border-radius: 9px;
+        font-size: 12px;
+    }
+
+    .wishlist-mobile-remove {
+        width: 36px;
+        height: 36px;
+        border-radius: 9px;
+    }
+}

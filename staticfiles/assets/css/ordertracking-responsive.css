@@ -1,0 +1,535 @@
+/* ============================================
+   ORDER TRACKING PAGE - RESPONSIVE STYLES
+   ============================================ */
+
+/* ============================================
+   PAGE BANNER RESPONSIVE
+   ============================================ */
+@media (max-width: 1199px) {
+    .page-banner-area.page-banner-height-2 {
+        min-height: 300px;
+        background-position: center center !important;
+    }
+
+    .page-banner-area .page-banner-content {
+        padding: 12px 0 6px;
+    }
+
+    .page-banner-area .breadcrumb-title {
+        font-size: 44px;
+        line-height: 1.08;
+        letter-spacing: -0.02em;
+        margin-bottom: 10px;
+    }
+
+    .page-banner-area .breadcrumb-two .breadcrumb-menu {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px 14px;
+    }
+
+    .page-banner-area .breadcrumb-two .breadcrumb-menu li span {
+        font-size: 17px;
+        line-height: 1.2;
+    }
+}
+
+@media (max-width: 767px) {
+    .page-banner-area.page-banner-height-2 {
+        min-height: 250px;
+    }
+
+    .page-banner-area .page-banner-content {
+        padding: 10px 0 4px;
+    }
+
+    .page-banner-area .breadcrumb-title {
+        font-size: 33px;
+        line-height: 1.06;
+        margin-bottom: 8px;
+    }
+
+    .page-banner-area .breadcrumb-two .breadcrumb-menu li span {
+        font-size: 15px;
+    }
+}
+
+/* ============================================
+   TABLET VIEW (768px - 1199px)
+   ============================================ */
+@media (min-width: 768px) and (max-width: 1199px) {
+    .tracking-section {
+        padding: 50px 0;
+    }
+
+    .tracking-container {
+        max-width: 95%;
+        border-radius: 15px;
+    }
+
+    .tracking-header {
+        padding: 30px 20px;
+    }
+
+    .tracking-header h1 {
+        font-size: 26px;
+    }
+
+    .order-number {
+        font-size: 16px;
+    }
+
+    .tracking-content {
+        padding: 35px 25px;
+    }
+
+    .back-to-orders {
+        margin-bottom: 20px;
+    }
+
+    /* Order Info Cards - 2 columns */
+    .order-info {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+        margin-bottom: 35px;
+    }
+
+    .info-card {
+        padding: 15px;
+    }
+
+    .info-card .label {
+        font-size: 11px;
+    }
+
+    .info-card .value {
+        font-size: 15px;
+    }
+
+    /* Timeline Adjustments */
+    .timeline-item {
+        padding-left: 85px;
+        margin-bottom: 35px;
+    }
+
+    .timeline-icon {
+        width: 65px;
+        height: 65px;
+        font-size: 24px;
+    }
+
+    .timeline::before {
+        left: 32px;
+    }
+
+    .timeline-content {
+        padding: 18px;
+    }
+
+    .timeline-title {
+        font-size: 18px;
+    }
+
+    .timeline-date {
+        font-size: 13px;
+    }
+
+    .timeline-description {
+        font-size: 13px;
+    }
+
+    /* Products Section */
+    .products-title {
+        font-size: 20px;
+        margin-bottom: 20px;
+    }
+
+    .product-card {
+        padding: 15px;
+        gap: 15px;
+    }
+
+    .product-image {
+        width: 70px;
+        height: 70px;
+    }
+
+    .product-name {
+        font-size: 15px;
+    }
+
+    .product-meta {
+        font-size: 13px;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+        gap: 12px;
+        margin-top: 30px;
+    }
+
+    .btn {
+        padding: 12px 28px;
+        font-size: 15px;
+    }
+}
+
+/* ============================================
+   MOBILE VIEW (< 768px)
+   ============================================ */
+@media (max-width: 767px) {
+    .tracking-section {
+        padding: 30px 0;
+    }
+
+    .tracking-container {
+        border-radius: 12px;
+        margin: 0 10px;
+    }
+
+    .tracking-header {
+        padding: 25px 15px;
+    }
+
+    .tracking-header h1 {
+        font-size: 22px;
+        margin-bottom: 8px;
+    }
+
+    .order-number {
+        font-size: 14px;
+    }
+
+    .tracking-content {
+        padding: 25px 15px;
+    }
+
+    .back-to-orders {
+        margin-bottom: 20px;
+    }
+
+    .back-to-orders a {
+        font-size: 14px;
+    }
+
+    /* Order Info Cards - Single Column */
+    .order-info {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin-bottom: 30px;
+    }
+
+    .info-card {
+        padding: 12px 15px;
+        border-left-width: 3px;
+    }
+
+    .info-card .label {
+        font-size: 10px;
+        margin-bottom: 6px;
+    }
+
+    .info-card .value {
+        font-size: 14px;
+    }
+
+    /* Timeline - Compact Mobile Version */
+    .timeline-item {
+        padding-left: 70px;
+        margin-bottom: 30px;
+    }
+
+    .timeline-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+        left: 0;
+    }
+
+    .timeline::before {
+        left: 25px;
+        width: 3px;
+    }
+
+    .timeline-content {
+        padding: 15px;
+        border-radius: 10px;
+    }
+
+    .timeline-title {
+        font-size: 16px;
+        margin-bottom: 6px;
+    }
+
+    .timeline-date {
+        font-size: 12px;
+        margin-bottom: 10px;
+    }
+
+    .timeline-date i {
+        font-size: 11px;
+    }
+
+    .timeline-description {
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .status-badge {
+        padding: 5px 12px;
+        font-size: 10px;
+        margin-top: 8px;
+    }
+
+    /* Products Section */
+    .products-section {
+        margin-top: 35px;
+        padding-top: 30px;
+    }
+
+    .products-title {
+        font-size: 18px;
+        margin-bottom: 20px;
+    }
+
+    .products-title i {
+        font-size: 16px;
+    }
+
+    /* Product Cards - Vertical Layout */
+    .product-card {
+        flex-direction: column;
+        padding: 15px;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .product-image {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+    }
+
+    .product-details {
+        width: 100%;
+    }
+
+    .product-name {
+        font-size: 15px;
+        margin-bottom: 8px;
+    }
+
+    .product-meta {
+        font-size: 12px;
+        line-height: 1.6;
+    }
+
+    /* Action Buttons - Full Width Stack */
+    .action-buttons {
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 30px;
+    }
+
+    .btn {
+        width: 100%;
+        padding: 14px 20px;
+        font-size: 15px;
+        text-align: center;
+    }
+
+    .btn i {
+        margin-right: 8px;
+    }
+}
+
+/* ============================================
+   SMALL MOBILE VIEW (< 480px)
+   ============================================ */
+@media (max-width: 479px) {
+    .tracking-container {
+        margin: 0 5px;
+        border-radius: 10px;
+    }
+
+    .tracking-header {
+        padding: 20px 12px;
+    }
+
+    .tracking-header h1 {
+        font-size: 20px;
+    }
+
+    .order-number {
+        font-size: 13px;
+    }
+
+    .tracking-content {
+        padding: 20px 12px;
+    }
+
+    /* Timeline - Extra Compact */
+    .timeline-item {
+        padding-left: 60px;
+        margin-bottom: 25px;
+    }
+
+    .timeline-icon {
+        width: 45px;
+        height: 45px;
+        font-size: 18px;
+    }
+
+    .timeline::before {
+        left: 22px;
+        width: 2px;
+    }
+
+    .timeline-content {
+        padding: 12px;
+    }
+
+    .timeline-title {
+        font-size: 15px;
+    }
+
+    .timeline-date {
+        font-size: 11px;
+    }
+
+    .timeline-description {
+        font-size: 11px;
+    }
+
+    .status-badge {
+        padding: 4px 10px;
+        font-size: 9px;
+    }
+
+    /* Order Info Cards */
+    .info-card {
+        padding: 10px 12px;
+    }
+
+    .info-card .label {
+        font-size: 9px;
+    }
+
+    .info-card .value {
+        font-size: 13px;
+    }
+
+    /* Products Section */
+    .products-title {
+        font-size: 16px;
+        margin-bottom: 15px;
+    }
+
+    .product-card {
+        padding: 12px;
+        gap: 10px;
+    }
+
+    .product-image {
+        height: 120px;
+    }
+
+    .product-name {
+        font-size: 14px;
+    }
+
+    .product-meta {
+        font-size: 11px;
+    }
+
+    /* Action Buttons */
+    .btn {
+        padding: 12px 16px;
+        font-size: 14px;
+    }
+}
+
+/* ============================================
+   ANIMATION OPTIMIZATIONS FOR MOBILE
+   ============================================ */
+@media (max-width: 767px) {
+    /* Reduce animation intensity on mobile for better performance */
+    @keyframes pulse {
+        0%, 100% {
+            transform: scale(1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        50% {
+            transform: scale(1.03);
+            box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3);
+        }
+    }
+
+    @keyframes bounce {
+        0%, 100% {
+            transform: translateY(0);
+        }
+        50% {
+            transform: translateY(-5px);
+        }
+    }
+
+    /* Disable hover effects on mobile */
+    .timeline-content:hover {
+        transform: none;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+
+    .product-card:hover {
+        background: #f8f9fa;
+        transform: none;
+    }
+}
+
+/* ============================================
+   LANDSCAPE ORIENTATION FIXES
+   ============================================ */
+@media (max-width: 767px) and (orientation: landscape) {
+    .tracking-header {
+        padding: 20px 15px;
+    }
+
+    .tracking-header h1 {
+        font-size: 20px;
+    }
+
+    .timeline-item {
+        margin-bottom: 20px;
+    }
+
+    .products-section {
+        margin-top: 25px;
+        padding-top: 20px;
+    }
+}
+
+/* ============================================
+   PRINT STYLES (Optional)
+   ============================================ */
+@media print {
+    .tracking-section {
+        padding: 20px 0;
+    }
+
+    .back-to-orders,
+    .action-buttons {
+        display: none;
+    }
+
+    .tracking-container {
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+
+    .timeline-icon {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+}

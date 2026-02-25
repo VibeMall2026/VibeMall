@@ -1,0 +1,82 @@
+/* Promotional Banners (Shop by Sub-category) */
+.subcat-banner-area {
+    padding-top: 10px;
+    padding-bottom: 20px;
+}
+
+.subcat-banner-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.subcat-banner-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.subcat-banner-item {
+    display: block;
+    width: 100%;
+    height: 220px;
+    overflow: hidden;
+    border-radius: 8px;
+    transition: transform 0.3s ease;
+}
+
+.subcat-banner-item:hover {
+    transform: translateY(-4px);
+}
+
+.subcat-banner-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.subcat-banner-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+    text-align: center;
+    transition: color 0.3s ease;
+}
+
+.subcat-banner-wrapper:hover .subcat-banner-label {
+    color: #0989ff;
+}
+
+/* Tablet View */
+@media (max-width: 991px) {
+    .subcat-banner-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+    
+    .subcat-banner-item {
+        height: 180px;
+    }
+    
+    .subcat-banner-label {
+        font-size: 15px;
+    }
+}
+
+/* Mobile View */
+@media (max-width: 575px) {
+    .subcat-banner-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .subcat-banner-item {
+        height: 160px;
+    }
+    
+    .subcat-banner-label {
+        font-size: 14px;
+    }
+}

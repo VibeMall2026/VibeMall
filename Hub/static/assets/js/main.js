@@ -35,6 +35,7 @@
 	//01. PreLoader Js
 	windowOn.on('load',function() {
 		$("#loading").fadeOut(500);
+		$('body').addClass('loaded');
 	});
 
 	////////////////////////////////////////////////////

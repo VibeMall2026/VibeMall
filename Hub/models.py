@@ -1362,7 +1362,10 @@ class MainPageSubCategoryBanner(models.Model):
         on_delete=models.CASCADE,
         related_name='main_page_banners'
     )
-    image = models.ImageField(upload_to='main_page_subcategory_banners/')
+    image = models.ImageField(
+        upload_to='main_page_subcategory_banners/',
+        help_text="Recommended size: 800 x 600 px (4:3 ratio) for best display"
+    )
     order = models.PositiveIntegerField(default=0, help_text="Display order (lower appears first)")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -1393,7 +1396,7 @@ class ReadyShipStyle(models.Model):
         upload_to='ready_ship_styles/',
         blank=True,
         null=True,
-        help_text="Optional custom image. Leave blank to use product image."
+        help_text="Optional custom image. Recommended sizes: Hero (first item): 2100x900px (21:9), Cards: 1600x900px (16:9). Leave blank to use product image."
     )
     order = models.PositiveIntegerField(default=0, help_text="Display order (lower numbers appear first)")
     is_active = models.BooleanField(default=True)

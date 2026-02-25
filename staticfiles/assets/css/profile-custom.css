@@ -152,6 +152,248 @@
     border-color: #f4a800;
 }
 
+.recent-orders-grid {
+    margin-left: -10px;
+    margin-right: -10px;
+}
+
+.recent-orders-grid > [class*="col-"] {
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.recent-orders-empty {
+    border: 1px dashed #d6deea;
+    border-radius: 12px;
+    background: #f8fbff;
+    color: #667085;
+    text-align: center;
+    padding: 18px;
+    font-size: 14px;
+}
+
+.recent-order-card {
+    display: block;
+    height: 100%;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.25s ease;
+}
+
+.recent-order-card:hover {
+    border-color: #d3dceb;
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.1);
+    transform: translateY(-2px);
+}
+
+.recent-order-card__media {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: #eef2f7;
+    border-bottom: 1px solid #e2e8f0;
+    overflow: hidden;
+}
+
+.recent-order-card__media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.recent-order-card__content {
+    padding: 14px;
+}
+
+.recent-order-card__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.recent-order-card__number {
+    font-size: 12px;
+    font-weight: 700;
+    color: #344054;
+}
+
+.recent-order-card__title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 6px;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.recent-order-card__summary {
+    font-size: 12px;
+    color: #667085;
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.recent-order-card__bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border-top: 1px dashed #d4dbe7;
+    padding-top: 10px;
+}
+
+.recent-order-card__price {
+    font-size: 18px;
+    color: #111827;
+    line-height: 1;
+}
+
+.recent-order-card__date {
+    font-size: 11px;
+    color: #667085;
+    text-align: right;
+    line-height: 1.3;
+}
+
+.transaction-history-grid {
+    margin-left: -10px;
+    margin-right: -10px;
+}
+
+.transaction-history-grid > [class*="col-"] {
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.transaction-history-card {
+    height: 100%;
+    background: linear-gradient(180deg, #fcfdff 0%, #f8fafd 100%);
+    border: 1px solid #dfe6f1;
+    border-left-width: 4px;
+    border-radius: 14px;
+    padding: 16px;
+    transition: all 0.25s ease;
+}
+
+.transaction-history-card:hover {
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+    transform: translateY(-2px);
+}
+
+.transaction-history-card--earned {
+    border-left-color: #198754;
+    background: linear-gradient(180deg, #f5fcf8 0%, #eef8f2 100%);
+}
+
+.transaction-history-card--redeemed {
+    border-left-color: #dc3545;
+    background: linear-gradient(180deg, #fff7f7 0%, #fff1f1 100%);
+}
+
+.transaction-history-card--expired {
+    border-left-color: #f59e0b;
+    background: linear-gradient(180deg, #fffaf0 0%, #fff6e5 100%);
+}
+
+.transaction-history-card--adjusted {
+    border-left-color: #0d6efd;
+    background: linear-gradient(180deg, #f3f8ff 0%, #edf4ff 100%);
+}
+
+.transaction-history-card__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.transaction-history-card__date {
+    display: flex;
+    flex-direction: column;
+}
+
+.transaction-history-card__date small {
+    font-size: 12px;
+    line-height: 1.35;
+    color: #6c757d;
+}
+
+.transaction-history-card__date small:last-child {
+    color: #98a2b3;
+}
+
+.transaction-history-card__points {
+    min-width: 78px;
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(208, 218, 233, 0.8);
+    border-radius: 10px;
+    padding: 7px 9px;
+    text-align: right;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.transaction-history-card__points-label {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.45px;
+    color: #64748b;
+    margin-bottom: 4px;
+}
+
+.transaction-points-positive {
+    color: #198754;
+}
+
+.transaction-points-negative {
+    color: #dc3545;
+}
+
+.transaction-history-card__type .badge {
+    font-size: 11px;
+    padding: 6px 10px;
+    border-radius: 999px;
+}
+
+.transaction-history-card__meta {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #cfd8e6;
+}
+
+.transaction-history-card__meta-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.45px;
+    color: #526079;
+    margin-bottom: 6px;
+}
+
+.transaction-history-card__desc {
+    font-size: 13px;
+    line-height: 1.45;
+    color: #2f3b52;
+    font-weight: 500;
+    word-break: break-word;
+}
+
 @media (max-width: 768px) {
     .profile-card {
         margin-bottom: 30px;
@@ -163,5 +405,18 @@
 
     .profile-details-box {
         margin-top: 30px;
+    }
+
+    .transaction-history-card {
+        padding: 14px;
+    }
+
+    .transaction-history-card__points {
+        min-width: 70px;
+        padding: 6px 8px;
+    }
+
+    .transaction-history-card__points {
+        font-size: 16px;
     }
 }

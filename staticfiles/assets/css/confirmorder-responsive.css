@@ -1,0 +1,535 @@
+/* ============================================
+   CONFIRM ORDER PAGE - RESPONSIVE STYLES
+   Professional, Clean & Modern Design
+   ============================================ */
+
+/* ============================================
+   TABLET VIEW (768px - 1199px)
+   ============================================ */
+@media (min-width: 768px) and (max-width: 1199px) {
+    .checkout-area {
+        padding: 60px 0 40px;
+    }
+
+    .container {
+        padding: 0 20px;
+    }
+
+    /* Card Headers */
+    .card-header h5 {
+        font-size: 18px;
+    }
+
+    .card-header .btn-sm {
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+
+    /* Card Body */
+    .card-body {
+        padding: 20px;
+        font-size: 14px;
+    }
+
+    .card-body p {
+        font-size: 14px;
+    }
+
+    /* Product Table */
+    .table {
+        font-size: 13px;
+    }
+
+    .table thead th {
+        font-size: 14px;
+        padding: 12px 10px;
+    }
+
+    .table tbody td {
+        padding: 12px 10px;
+        font-size: 13px;
+    }
+
+    .table img {
+        width: 50px !important;
+        height: 50px !important;
+    }
+
+    /* Order Summary */
+    .your-order h3 {
+        font-size: 20px;
+    }
+
+    .your-order-table table {
+        font-size: 14px;
+    }
+
+    .your-order-table th,
+    .your-order-table td {
+        padding: 12px 10px;
+        font-size: 14px;
+    }
+
+    /* Buttons */
+    .tp-btn-h1 {
+        font-size: 15px;
+        padding: 12px 20px;
+    }
+
+    .btn-outline-secondary {
+        font-size: 14px;
+        padding: 10px 20px;
+    }
+}
+
+/* ============================================
+   MOBILE VIEW (< 768px)
+   ============================================ */
+@media (max-width: 767px) {
+    /* Global Container */
+    body {
+        overflow-x: hidden;
+    }
+
+    .checkout-area {
+        padding: 30px 0 20px;
+    }
+
+    .container {
+        padding: 0 15px !important;
+        max-width: 100%;
+        overflow-x: hidden;
+        margin: 0 auto;
+    }
+
+    .checkout-area .container > .row {
+        margin: 0 !important;
+    }
+
+    /* Page Banner */
+    .page-banner-area {
+        padding: 40px 0;
+    }
+
+    .page-banner-content h4 {
+        font-size: 24px;
+    }
+
+    .breadcrumb-menu {
+        font-size: 13px;
+    }
+
+    /* Layout - Stack Columns */
+    .checkout-area .row {
+        flex-direction: column;
+        margin: 0 !important;
+    }
+
+    .checkout-area .col-lg-7,
+    .checkout-area .col-lg-5 {
+        width: 100%;
+        padding: 0 !important;
+        margin: 0;
+    }
+
+    /* Cards */
+    .card {
+        border-radius: 10px;
+        margin-bottom: 20px !important;
+        border: 1px solid #e9ecef;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .card-header {
+        padding: 15px !important;
+        border-radius: 10px 10px 0 0 !important;
+    }
+
+    .card-header h5 {
+        font-size: 18px;
+        margin-bottom: 0 !important;
+        font-weight: 700;
+    }
+
+    .card-header .btn-sm {
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+
+    .card-body {
+        padding: 15px !important;
+    }
+
+    .card-body p {
+        font-size: 14px;
+        line-height: 1.6;
+        margin-bottom: 10px;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    .card-body strong {
+        font-size: 14px;
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    .card-body .mt-3 {
+        margin-top: 15px !important;
+    }
+
+    .card-body .ms-2 {
+        margin-left: 8px !important;
+    }
+
+    /* Hide Desktop Product Table */
+    .table-responsive .table {
+        display: none;
+    }
+
+    /* Mobile Product Cards */
+    .mobile-confirm-products {
+        display: block;
+    }
+
+    .mobile-confirm-product-card {
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 12px !important;
+        margin-bottom: 12px;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+
+    .mobile-confirm-product-card .product-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .mobile-confirm-product-card .product-image {
+        width: 60px;
+        height: 60px;
+        border-radius: 8px;
+        object-fit: cover;
+        border: 1px solid #eee;
+        flex-shrink: 0;
+    }
+
+    .mobile-confirm-product-card .product-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .mobile-confirm-product-card .product-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 5px;
+        margin-left: 0;
+        padding-left: 0;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.4;
+        text-align: left;
+    }
+
+    .mobile-confirm-product-card .product-price {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 8px;
+    }
+
+    .mobile-confirm-product-card .product-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 8px;
+        border-top: 1px solid #f0f0f0;
+        margin-top: 8px;
+    }
+
+    .mobile-confirm-product-card .product-qty {
+        font-size: 13px;
+        color: #666;
+    }
+
+    .mobile-confirm-product-card .product-qty span {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .mobile-confirm-product-card .product-total {
+        font-size: 15px;
+        font-weight: 700;
+        color: #667eea;
+    }
+
+    /* Order Summary Section */
+    .your-order {
+        margin-bottom: 20px !important;
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        padding: 15px !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .your-order h3 {
+        font-size: 20px;
+        margin-bottom: 15px;
+        margin-left: 0;
+        padding-left: 0;
+        font-weight: 700;
+        text-align: left;
+    }
+
+    /* Order Summary Table */
+    .your-order-table {
+        margin-bottom: 20px;
+    }
+
+    .your-order-table table {
+        width: 100%;
+        font-size: 14px;
+    }
+
+    .your-order-table tbody tr {
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .your-order-table tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    .your-order-table th {
+        padding: 12px 0 !important;
+        font-size: 14px;
+        font-weight: 500;
+        color: #666;
+        text-align: left;
+        padding-left: 0 !important;
+        margin-left: 0;
+    }
+
+    .your-order-table td {
+        padding: 12px 0 !important;
+        font-size: 14px;
+        font-weight: 600;
+        color: #333;
+        text-align: right;
+        padding-right: 0 !important;
+        margin-right: 0;
+    }
+
+    .your-order-table .order-total th {
+        font-size: 16px;
+        font-weight: 700;
+        color: #333;
+        padding-top: 15px !important;
+        border-top: 2px solid #e9ecef;
+    }
+
+    .your-order-table .order-total td {
+        font-size: 18px;
+        font-weight: 700;
+        color: #667eea;
+        padding-top: 15px !important;
+        border-top: 2px solid #e9ecef;
+    }
+
+    /* Buttons */
+    .tp-btn-h1 {
+        width: 100%;
+        font-size: 16px;
+        padding: 15px 20px !important;
+        border-radius: 8px;
+        text-align: center;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+
+    .btn-outline-secondary {
+        width: 100%;
+        font-size: 15px;
+        padding: 14px 20px !important;
+        border-radius: 8px;
+        text-align: center;
+        font-weight: 500;
+        margin-top: 10px !important;
+    }
+
+    /* Form */
+    form.mt-4 {
+        margin-top: 20px !important;
+    }
+}
+
+/* ============================================
+   SMALL MOBILE VIEW (< 480px)
+   ============================================ */
+@media (max-width: 479px) {
+    .checkout-area {
+        padding: 20px 0 15px;
+    }
+
+    .container {
+        padding: 0 12px !important;
+    }
+
+    .page-banner-content h4 {
+        font-size: 22px;
+    }
+
+    .breadcrumb-menu {
+        font-size: 12px;
+    }
+
+    /* Cards */
+    .card {
+        margin-bottom: 15px !important;
+    }
+
+    .card-header {
+        padding: 12px !important;
+    }
+
+    .card-header h5 {
+        font-size: 16px;
+    }
+
+    .card-header .btn-sm {
+        font-size: 11px;
+        padding: 5px 10px;
+    }
+
+    .card-body {
+        padding: 12px !important;
+    }
+
+    .card-body p {
+        font-size: 13px;
+    }
+
+    /* Mobile Product Cards */
+    .mobile-confirm-product-card {
+        padding: 10px !important;
+    }
+
+    .mobile-confirm-product-card .product-image {
+        width: 55px;
+        height: 55px;
+    }
+
+    .mobile-confirm-product-card .product-name {
+        font-size: 13px;
+    }
+
+    .mobile-confirm-product-card .product-price {
+        font-size: 11px;
+    }
+
+    .mobile-confirm-product-card .product-qty {
+        font-size: 12px;
+    }
+
+    .mobile-confirm-product-card .product-total {
+        font-size: 14px;
+    }
+
+    /* Order Summary */
+    .your-order {
+        padding: 12px !important;
+    }
+
+    .your-order h3 {
+        font-size: 18px;
+    }
+
+    .your-order-table th,
+    .your-order-table td {
+        font-size: 13px;
+        padding: 10px 0 !important;
+    }
+
+    .your-order-table .order-total th,
+    .your-order-table .order-total td {
+        font-size: 15px;
+    }
+
+    /* Buttons */
+    .tp-btn-h1 {
+        font-size: 15px;
+        padding: 14px 18px !important;
+    }
+
+    .btn-outline-secondary {
+        font-size: 14px;
+        padding: 12px 18px !important;
+    }
+}
+
+/* ============================================
+   LANDSCAPE ORIENTATION FIXES
+   ============================================ */
+@media (max-width: 767px) and (orientation: landscape) {
+    .checkout-area {
+        padding: 20px 0 15px;
+    }
+
+    .card {
+        margin-bottom: 15px !important;
+    }
+}
+
+/* ============================================
+   SMOOTH TRANSITIONS
+   ============================================ */
+@media (max-width: 767px) {
+    .tp-btn-h1,
+    .btn-outline-secondary {
+        transition: all 0.3s ease;
+    }
+
+    .tp-btn-h1:active,
+    .btn-outline-secondary:active {
+        transform: scale(0.98);
+    }
+
+    .mobile-confirm-product-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .mobile-confirm-product-card:active {
+        transform: scale(0.98);
+    }
+
+    .card {
+        transition: box-shadow 0.3s ease;
+    }
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+@media print {
+    .page-banner-area,
+    .breadcrumb-two,
+    .tp-btn-h1,
+    .btn-outline-secondary,
+    .card-header .btn-sm {
+        display: none !important;
+    }
+
+    .checkout-area {
+        padding: 20px 0;
+    }
+
+    .card {
+        border: 1px solid #ddd;
+        box-shadow: none;
+        page-break-inside: avoid;
+    }
+}

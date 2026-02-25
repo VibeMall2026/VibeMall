@@ -325,3 +325,71 @@ async function checkWishlistStatus(productId, button) {
         console.error('Check wishlist error:', error);
     }
 }
+
+// Newsletter subscription forms (About/404 CTA blocks)
+document.addEventListener('DOMContentLoaded', function() {
+    const forms = document.querySelectorAll('.js-newsletter-form');
+    if (!forms.length) return;
+
+    const setFeedback = (el, message, type) => {
+        if (!el) return;
+        el.textContent = message || '';
+        el.classList.remove('text-success', 'text-danger', 'text-warning');
+        if (type === 'success') el.classList.add('text-success');
+        if (type === 'error') el.classList.add('text-danger');
+        if (type === 'info') el.classList.add('text-warning');
+    };
+
+    forms.forEach((form) => {
+        const emailInput = form.querySelector('input[name=\"email\"]');
+        const submitBtn = form.querySelector('button[type=\"submit\"]');
+        const feedbackEl = form.parentElement.querySelector('.newsletter-feedback');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            if (!emailInput || !submitBtn) return;
+
+            const email = emailInput.value.trim();
+            if (!email) {
+                setFeedback(feedbackEl, 'Please enter your email address.', 'error');
+                return;
+            }
+
+            setFeedback(feedbackEl, '', '');
+            const originalButtonText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Please wait...';
+
+            try {
+                const formData = new FormData(form);
+                const csrfInput = form.querySelector('input[name=\"csrfmiddlewaretoken\"]');
+                const csrfToken = csrfInput ? csrfInput.value : getCsrfToken();
+
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    },
+                    credentials: 'same-origin',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Unable to subscribe right now.');
+                }
+
+                const feedbackType = data.status === 'already_subscribed' ? 'info' : 'success';
+                setFeedback(feedbackEl, data.message || 'Subscribed successfully.', feedbackType);
+                form.reset();
+            } catch (error) {
+                setFeedback(feedbackEl, error.message || 'Something went wrong. Please try again.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalButtonText;
+            }
+        });
+    });
+});
