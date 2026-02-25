@@ -182,6 +182,13 @@
                             <div>
                                 <div class="fw-semibold">{{ product.name|truncatewords:4 }}</div>
                                 <small class="text-muted">{{ product.brand|default:"" }}</small>
+                                {% if product.product_link %}
+                                <small class="d-block mt-1">
+                                    <a href="{{ product.product_link }}" target="_blank" rel="noopener noreferrer" class="text-primary" title="View external product link">
+                                        <i class='bx bx-link-external'></i> Product Link
+                                    </a>
+                                </small>
+                                {% endif %}
                                 <small class="text-muted d-block">
                                     Reels: {{ product.reel_count|default:0 }} |
                                     Views: {{ product.total_reel_views|default:0 }} |

@@ -1117,36 +1117,25 @@ def convert_url_to_png(image_url, crop_box=None, crop_ratio=None):
     if content_type and 'image/' not in content_type and 'avif' not in content_type:
         raise ValueError('URL did not return an image.')
 
+    # Register AVIF plugin
+    try:
+        import pillow_avif
+    except ImportError:
+        pass  # Plugin not available, continue anyway
+    
     _register_heif_opener()
 
     image = None
     first_error = None
     
-    # Try PIL first
+    # Try PIL first (with AVIF plugin if available)
     try:
         image = PILImage.open(BytesIO(response.content))
         image.load()
     except Exception as e:
         first_error = str(e)
-    
-    # If PIL failed, try pillow_heif
-    if image is None:
-        try:
-            import pillow_heif
-            # Register all HEIF/AVIF formats
-            pillow_heif.register_heif_opener()
-            
-            # Try to open with PIL again after registration
-            try:
-                image = PILImage.open(BytesIO(response.content))
-                image.load()
-            except:
-                # If still fails, use pillow_heif directly
-                heif_file = pillow_heif.read_heif(response.content)
-                image = heif_file.to_pillow()
-        except Exception as heif_error:
-            # If both methods fail, raise a clear error
-            raise ValueError(f'Unsupported image format. PIL error: {first_error}. HEIF error: {heif_error}. Try JPG or PNG.')
+        # If PIL failed, raise error with details
+        raise ValueError(f'Unsupported image format. Error: {first_error}. Try JPG or PNG.')
 
     if crop_box is None and crop_ratio:
         try:
@@ -1279,6 +1268,7 @@ def admin_add_product(request):
             sub_category = request.POST.get('sub_category', '').strip()
             sku = request.POST.get('sku', '')
             brand = request.POST.get('brand', '')
+            product_link = request.POST.get('product_link', '').strip()
             description = request.POST.get('description', '')
             weight = request.POST.get('weight', '')
             color = request.POST.get('color', '')
@@ -1390,6 +1380,7 @@ def admin_add_product(request):
                 sub_category=sub_category,
                 sku=sku,
                 brand=brand,
+                product_link=product_link,
                 description=description,
                 weight=weight,
                 color=color,
@@ -1809,6 +1800,7 @@ def admin_edit_product(request, product_id):
             # Update new fields
             product.sku = request.POST.get('sku', '')
             product.brand = request.POST.get('brand', '')
+            product.product_link = request.POST.get('product_link', '').strip()
             product.tags = request.POST.get('tags', '')
             product.description = request.POST.get('description', '')
             product.weight = request.POST.get('weight', '')

@@ -293,6 +293,9 @@ class Product(models.Model):
     care_info = models.TextField(blank=True, help_text="Care instructions")
     tags = models.CharField(max_length=200, blank=True, help_text="Comma-separated tags")
     
+    # External Product Link (for admin reference only)
+    product_link = models.URLField(max_length=500, blank=True, help_text="External product link (e.g., Meesho URL) - for admin reference only")
+    
     # Return & Payment Policy
     is_returnable = models.BooleanField(default=True, help_text="Can this product be returned?")
     return_days = models.PositiveIntegerField(default=7, help_text="Return period in days")
