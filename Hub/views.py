@@ -13,6 +13,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime, parse_date
+from django.utils.html import strip_tags
 from django.conf import settings
 from django.urls import reverse
 from django.core.mail import send_mail, EmailMultiAlternatives
@@ -2412,6 +2413,212 @@ def admin_site_settings(request):
         'settings': settings_obj,
     }
     return render(request, 'admin_panel/site_settings.html', context)
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_newsletter_subscribers(request):
+    """Newsletter subscriber tracking page in custom admin panel."""
+    draft_subject = ''
+    draft_title = ''
+    draft_body = ''
+    draft_cta_text = ''
+    draft_cta_url = ''
+    draft_recipient_scope = 'active'
+
+    if request.method == 'POST' and request.POST.get('action') == 'send_newsletter':
+        draft_subject = (request.POST.get('subject') or '').strip()
+        draft_title = (request.POST.get('title') or '').strip()
+        draft_body = (request.POST.get('body') or '').strip()
+        draft_cta_text = (request.POST.get('cta_text') or '').strip()
+        draft_cta_url = (request.POST.get('cta_url') or '').strip()
+        draft_recipient_scope = (request.POST.get('recipient_scope') or 'active').strip().lower()
+
+        if not draft_subject or not draft_title or not draft_body:
+            messages.error(request, 'Subject, title, and newsletter content are required.')
+        elif bool(draft_cta_text) != bool(draft_cta_url):
+            messages.error(request, 'Please provide both CTA text and CTA URL, or leave both empty.')
+        elif draft_cta_url and not (
+            draft_cta_url.startswith('http://') or
+            draft_cta_url.startswith('https://') or
+            draft_cta_url.startswith('/')
+        ):
+            messages.error(request, 'CTA URL must start with http://, https://, or /.')
+        else:
+            recipients_qs = NewsletterSubscription.objects.all()
+            if draft_recipient_scope == 'active':
+                recipients_qs = recipients_qs.filter(is_active=True)
+            elif draft_recipient_scope == 'inactive':
+                recipients_qs = recipients_qs.filter(is_active=False)
+
+            recipient_emails = list(
+                recipients_qs.values_list('email', flat=True).distinct()
+            )
+
+            if not recipient_emails:
+                messages.warning(request, 'No subscribers found for the selected recipient scope.')
+            else:
+                site_settings_obj = SiteSettings.get_settings()
+                site_url = (getattr(settings, 'SITE_URL', '') or '').rstrip('/')
+                if not site_url:
+                    site_url = request.build_absolute_uri('/').rstrip('/')
+
+                logo_url = ''
+                try:
+                    if site_settings_obj and site_settings_obj.site_logo:
+                        raw_logo_url = site_settings_obj.site_logo.url
+                        if raw_logo_url.startswith('http://') or raw_logo_url.startswith('https://'):
+                            logo_url = raw_logo_url
+                        else:
+                            logo_url = f"{site_url}{raw_logo_url}"
+                except Exception:
+                    logo_url = ''
+
+                from_email = (
+                    getattr(settings, 'DEFAULT_FROM_EMAIL', None) or
+                    getattr(settings, 'EMAIL_HOST_USER', None) or
+                    'no-reply@vibemall.com'
+                )
+
+                normalized_cta_url = draft_cta_url
+                if normalized_cta_url.startswith('/'):
+                    normalized_cta_url = f"{site_url}{normalized_cta_url}"
+
+                success_count = 0
+                failed_count = 0
+                email_logs = []
+
+                for recipient_email in recipient_emails:
+                    try:
+                        html_content = render_to_string('emails/newsletter_campaign.html', {
+                            'site_settings': site_settings_obj,
+                            'site_url': site_url,
+                            'site_logo_url': logo_url,
+                            'newsletter_title': draft_title,
+                            'newsletter_body': draft_body,
+                            'cta_text': draft_cta_text,
+                            'cta_url': normalized_cta_url,
+                            'recipient_email': recipient_email,
+                            'now': timezone.now(),
+                        })
+
+                        text_content = f"{draft_title}\n\n{draft_body}\n\n"
+                        if draft_cta_text and normalized_cta_url:
+                            text_content += f"{draft_cta_text}: {normalized_cta_url}\n\n"
+                        text_content += (
+                            f"Support: {getattr(site_settings_obj, 'contact_email', 'support@vibemall.com')}\n"
+                            f"You received this email because you subscribed to "
+                            f"{getattr(site_settings_obj, 'site_name', 'VibeMall')} newsletter."
+                        )
+                        text_content = strip_tags(text_content)
+
+                        email_message = EmailMultiAlternatives(
+                            subject=draft_subject,
+                            body=text_content,
+                            from_email=from_email,
+                            to=[recipient_email]
+                        )
+                        email_message.attach_alternative(html_content, "text/html")
+                        email_message.send(fail_silently=False)
+
+                        success_count += 1
+                        email_logs.append(EmailLog(
+                            user=request.user,
+                            email_to=recipient_email,
+                            email_type='PROMOTIONAL',
+                            subject=draft_subject,
+                            sent_successfully=True
+                        ))
+                    except Exception as exc:
+                        failed_count += 1
+                        logger.exception("Newsletter send failed for %s", recipient_email)
+                        email_logs.append(EmailLog(
+                            user=request.user,
+                            email_to=recipient_email,
+                            email_type='PROMOTIONAL',
+                            subject=draft_subject,
+                            sent_successfully=False,
+                            error_message=str(exc)[:2000]
+                        ))
+
+                if email_logs:
+                    EmailLog.objects.bulk_create(email_logs, batch_size=250)
+
+                if failed_count == 0:
+                    messages.success(
+                        request,
+                        f'Newsletter sent successfully to {success_count} subscriber(s).'
+                    )
+                elif success_count > 0:
+                    messages.warning(
+                        request,
+                        f'Newsletter sent to {success_count} subscriber(s), failed for {failed_count}. '
+                        'Check Email Logs for details.'
+                    )
+                else:
+                    messages.error(
+                        request,
+                        f'Newsletter could not be sent. Failed attempts: {failed_count}.'
+                    )
+
+                return redirect('admin_newsletter_subscribers')
+
+    search_query = (request.GET.get('search') or '').strip()
+    status_filter = (request.GET.get('status') or 'all').strip().lower()
+    source_filter = (request.GET.get('source') or 'all').strip()
+
+    subscribers_qs = NewsletterSubscription.objects.all().order_by('-subscribed_at')
+
+    if search_query:
+        subscribers_qs = subscribers_qs.filter(email__icontains=search_query)
+
+    if status_filter == 'active':
+        subscribers_qs = subscribers_qs.filter(is_active=True)
+    elif status_filter == 'inactive':
+        subscribers_qs = subscribers_qs.filter(is_active=False)
+
+    if source_filter != 'all':
+        if source_filter == '__blank__':
+            subscribers_qs = subscribers_qs.filter(source_page='')
+        else:
+            subscribers_qs = subscribers_qs.filter(source_page=source_filter)
+
+    source_options = (
+        NewsletterSubscription.objects.exclude(source_page='')
+        .values_list('source_page', flat=True)
+        .distinct()
+        .order_by('source_page')
+    )
+
+    total_subscribers = NewsletterSubscription.objects.count()
+    active_subscribers = NewsletterSubscription.objects.filter(is_active=True).count()
+    inactive_subscribers = NewsletterSubscription.objects.filter(is_active=False).count()
+    today_subscribers = NewsletterSubscription.objects.filter(
+        subscribed_at__date=timezone.localdate()
+    ).count()
+
+    paginator = Paginator(subscribers_qs, 25)
+    page_number = request.GET.get('page')
+    subscribers = paginator.get_page(page_number)
+
+    context = {
+        'subscribers': subscribers,
+        'search_query': search_query,
+        'status_filter': status_filter,
+        'source_filter': source_filter,
+        'source_options': source_options,
+        'total_subscribers': total_subscribers,
+        'active_subscribers': active_subscribers,
+        'inactive_subscribers': inactive_subscribers,
+        'today_subscribers': today_subscribers,
+        'draft_subject': draft_subject,
+        'draft_title': draft_title,
+        'draft_body': draft_body,
+        'draft_cta_text': draft_cta_text,
+        'draft_cta_url': draft_cta_url,
+        'draft_recipient_scope': draft_recipient_scope,
+    }
+    return render(request, 'admin_panel/newsletter_subscribers.html', context)
 
 
 @login_required(login_url='login')

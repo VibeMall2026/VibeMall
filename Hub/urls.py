@@ -27,6 +27,7 @@ urlpatterns = [
     path('admin-panel/brand-partners/edit/<int:partner_id>/', views.admin_edit_brand_partner, name='admin_edit_brand_partner'),
     path('admin-panel/brand-partners/delete/<int:partner_id>/', views.admin_delete_brand_partner, name='admin_delete_brand_partner'),
     path('admin-panel/site-settings/', views.admin_site_settings, name='admin_site_settings'),
+    path('admin-panel/newsletter/', views.admin_newsletter_subscribers, name='admin_newsletter_subscribers'),
     path('admin-panel/reviews/', views.admin_reviews, name='admin_reviews'),
     path('admin-panel/orders/', views.admin_orders, name='admin_orders'),
     path('admin-panel/orders/<int:order_id>/', views.admin_order_details, name='admin_order_details'),

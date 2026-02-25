@@ -1,0 +1,205 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Newsletter Subscribers - VibeMall Admin{% endblock %}
+
+{% block content %}
+<h4 class="fw-bold py-3 mb-4">
+    <span class="text-muted fw-light">Marketing /</span> Newsletter Subscribers
+</h4>
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Send Newsletter Campaign</h5>
+        <small class="text-muted">Uses VibeMall branded email format</small>
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="send_newsletter">
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Email Subject *</label>
+                    <input type="text" name="subject" class="form-control" value="{{ draft_subject }}" placeholder="Example: Weekend Offer - Flat 20% Off" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Recipients *</label>
+                    <select name="recipient_scope" class="form-select" required>
+                        <option value="active" {% if draft_recipient_scope == 'active' %}selected{% endif %}>Active Subscribers</option>
+                        <option value="all" {% if draft_recipient_scope == 'all' %}selected{% endif %}>All Subscribers</option>
+                        <option value="inactive" {% if draft_recipient_scope == 'inactive' %}selected{% endif %}>Inactive Subscribers</option>
+                    </select>
+                </div>
+
+                <div class="col-md-12">
+                    <label class="form-label">Campaign Title *</label>
+                    <input type="text" name="title" class="form-control" value="{{ draft_title }}" placeholder="Headline shown in the email body" required>
+                </div>
+
+                <div class="col-md-12">
+                    <label class="form-label">Newsletter Content *</label>
+                    <textarea name="body" rows="6" class="form-control" placeholder="Write your campaign message here..." required>{{ draft_body }}</textarea>
+                    <small class="text-muted">Line breaks are preserved in the email.</small>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">CTA Button Text (Optional)</label>
+                    <input type="text" name="cta_text" class="form-control" value="{{ draft_cta_text }}" placeholder="Example: Shop Now">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">CTA URL (Optional)</label>
+                    <input type="text" name="cta_url" class="form-control" value="{{ draft_cta_url }}" placeholder="https://yourdomain.com/shop">
+                </div>
+
+                <div class="col-md-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class='bx bx-send'></i> Send Newsletter
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <span class="fw-semibold d-block mb-1">Total Subscribers</span>
+                <h3 class="card-title mb-0">{{ total_subscribers }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <span class="fw-semibold d-block mb-1">Active</span>
+                <h3 class="card-title text-success mb-0">{{ active_subscribers }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <span class="fw-semibold d-block mb-1">Inactive</span>
+                <h3 class="card-title text-warning mb-0">{{ inactive_subscribers }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <span class="fw-semibold d-block mb-1">Today</span>
+                <h3 class="card-title text-primary mb-0">{{ today_subscribers }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="GET" class="mb-4">
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <input
+                        type="text"
+                        name="search"
+                        class="form-control"
+                        placeholder="Search by email..."
+                        value="{{ search_query }}"
+                    >
+                </div>
+                <div class="col-md-3">
+                    <select name="status" class="form-select">
+                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+                        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                        <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="source" class="form-select">
+                        <option value="all" {% if source_filter == 'all' %}selected{% endif %}>All Sources</option>
+                        <option value="__blank__" {% if source_filter == '__blank__' %}selected{% endif %}>Unknown Source</option>
+                        {% for source in source_options %}
+                        <option value="{{ source }}" {% if source_filter == source %}selected{% endif %}>{{ source }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class='bx bx-search'></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Email</th>
+                        <th>Source</th>
+                        <th>Status</th>
+                        <th>Subscribed</th>
+                        <th>Updated</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for subscriber in subscribers %}
+                    <tr>
+                        <td>{{ subscribers.start_index|add:forloop.counter0 }}</td>
+                        <td><strong>{{ subscriber.email }}</strong></td>
+                        <td>
+                            {% if subscriber.source_page %}
+                                <span class="badge bg-label-info">{{ subscriber.source_page }}</span>
+                            {% else %}
+                                <span class="badge bg-label-secondary">Unknown</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if subscriber.is_active %}
+                                <span class="badge bg-label-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-label-warning">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ subscriber.subscribed_at|date:"M d, Y h:i A" }}</td>
+                        <td>{{ subscriber.updated_at|date:"M d, Y h:i A" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">No newsletter subscribers found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if subscribers.has_other_pages %}
+        <nav aria-label="Newsletter pagination" class="mt-3">
+            <ul class="pagination justify-content-end mb-0">
+                {% if subscribers.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ subscribers.previous_page_number }}&search={{ search_query }}&status={{ status_filter }}&source={{ source_filter }}">Previous</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">Previous</span></li>
+                {% endif %}
+
+                <li class="page-item active"><span class="page-link">{{ subscribers.number }}</span></li>
+
+                {% if subscribers.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ subscribers.next_page_number }}&search={{ search_query }}&status={{ status_filter }}&source={{ source_filter }}">Next</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">Next</span></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

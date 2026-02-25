@@ -29,6 +29,7 @@ from .models import (
     EmailLog,
     Reel,
     ReelImage,
+    NewsletterSubscription,
 )
 
 admin.site.register(Slider)
@@ -218,6 +219,14 @@ class CartAdmin(admin.ModelAdmin):
     list_filter = ('user', 'added_at')
     search_fields = ('user__username', 'product__name')
     readonly_fields = ('added_at', 'updated_at')
+
+
+@admin.register(NewsletterSubscription)
+class NewsletterSubscriptionAdmin(admin.ModelAdmin):
+    list_display = ('email', 'is_active', 'source_page', 'subscribed_at', 'updated_at')
+    list_filter = ('is_active', 'source_page', 'subscribed_at')
+    search_fields = ('email', 'source_page')
+    readonly_fields = ('subscribed_at', 'updated_at', 'unsubscribed_at')
 
 @admin.register(Wishlist)
 class WishlistAdmin(admin.ModelAdmin):
