@@ -1,0 +1,168 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Resell Reports - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="fw-bold py-3 mb-4">Resell Reports</h4>
+
+    <!-- Date Range Filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">From Date</label>
+                    <input type="date" name="date_from" class="form-control" value="{{ date_from }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">To Date</label>
+                    <input type="date" name="date_to" class="form-control" value="{{ date_to }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="btn-group d-block">
+                        <button type="submit" class="btn btn-primary">Generate Report</button>
+                        <a href="?date_from={{ date_from }}&date_to={{ date_to }}&export=csv" class="btn btn-success">
+                            <i class='bx bx-download'></i> Export CSV
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <span class="fw-semibold d-block mb-1">Total Resellers</span>
+                    <h3 class="card-title mb-2">{{ total_resellers }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <span class="fw-semibold d-block mb-1">Total Orders</span>
+                    <h3 class="card-title mb-2">{{ total_orders }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <span class="fw-semibold d-block mb-1">Total Revenue</span>
+                    <h3 class="card-title text-success mb-2">₹{{ total_revenue }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <span class="fw-semibold d-block mb-1">Total Margin</span>
+                    <h3 class="card-title text-info mb-2">₹{{ total_margin }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Earnings Breakdown -->
+    <div class="card mb-4">
+        <h5 class="card-header">Earnings Breakdown</h5>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label class="text-muted">Pending Earnings</label>
+                        <h4 class="text-warning">₹{{ pending_earnings }}</h4>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label class="text-muted">Confirmed Earnings</label>
+                        <h4 class="text-info">₹{{ confirmed_earnings }}</h4>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label class="text-muted">Paid Earnings</label>
+                        <h4 class="text-success">₹{{ paid_earnings }}</h4>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label class="text-muted">Cancelled Earnings</label>
+                        <h4 class="text-danger">₹{{ cancelled_earnings }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payout Metrics -->
+    <div class="card mb-4">
+        <h5 class="card-header">Payout Metrics</h5>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label class="text-muted">Total Payouts</label>
+                        <h4>{{ total_payouts }}</h4>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label class="text-muted">Completed Payouts</label>
+                        <h4 class="text-success">{{ completed_payouts }}</h4>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label class="text-muted">Failed Payouts</label>
+                        <h4 class="text-danger">{{ failed_payouts }}</h4>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label class="text-muted">Total Payout Amount</label>
+                        <h4 class="text-primary">₹{{ total_payout_amount }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Performing Resellers -->
+    <div class="card">
+        <h5 class="card-header">Top Performing Resellers</h5>
+        <div class="table-responsive text-nowrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Reseller</th>
+                        <th>Orders</th>
+                        <th>Earnings</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reseller in top_resellers %}
+                    <tr>
+                        <td><strong>#{{ forloop.counter }}</strong></td>
+                        <td>{{ reseller.user.username }}</td>
+                        <td>{{ reseller.period_orders|default:0 }}</td>
+                        <td class="text-success"><strong>₹{{ reseller.period_earnings|default:0 }}</strong></td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center">No data available for selected period.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,268 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Resell Orders - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold mb-1">
+                <i class="bx bx-refresh me-2"></i>Resell Orders Management
+            </h4>
+            <p class="text-muted mb-0">View and manage all resell orders with filters</p>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="card-info">
+                            <p class="card-text">Total Orders</p>
+                            <div class="d-flex align-items-end mb-2">
+                                <h4 class="card-title mb-0 me-2">{{ total_orders }}</h4>
+                            </div>
+                        </div>
+                        <div class="card-icon">
+                            <span class="badge bg-label-primary rounded p-2">
+                                <i class="bx bx-shopping-bag bx-sm"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="card-info">
+                            <p class="card-text">Total Revenue</p>
+                            <div class="d-flex align-items-end mb-2">
+                                <h4 class="card-title mb-0 me-2">₹{{ total_revenue|floatformat:2 }}</h4>
+                            </div>
+                        </div>
+                        <div class="card-icon">
+                            <span class="badge bg-label-success rounded p-2">
+                                <i class="bx bx-rupee bx-sm"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="card-info">
+                            <p class="card-text">Total Margin</p>
+                            <div class="d-flex align-items-end mb-2">
+                                <h4 class="card-title mb-0 me-2">₹{{ total_margin|floatformat:2 }}</h4>
+                            </div>
+                        </div>
+                        <div class="card-icon">
+                            <span class="badge bg-label-warning rounded p-2">
+                                <i class="bx bx-trending-up bx-sm"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="card-info">
+                            <p class="card-text">Base Amount</p>
+                            <div class="d-flex align-items-end mb-2">
+                                <h4 class="card-title mb-0 me-2">₹{{ total_base|floatformat:2 }}</h4>
+                            </div>
+                        </div>
+                        <div class="card-icon">
+                            <span class="badge bg-label-info rounded p-2">
+                                <i class="bx bx-dollar bx-sm"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="bx bx-filter-alt me-2"></i>Filters
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="get" action="{% url 'admin_resell_orders' %}">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Reseller</label>
+                        <select name="reseller" class="form-select">
+                            <option value="">All Resellers</option>
+                            {% for reseller in resellers %}
+                            <option value="{{ reseller.id }}" {% if filter_reseller == reseller.id|stringformat:"s" %}selected{% endif %}>
+                                {{ reseller.username }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Date From</label>
+                        <input type="date" name="date_from" class="form-control" value="{{ filter_date_from }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Date To</label>
+                        <input type="date" name="date_to" class="form-control" value="{{ filter_date_to }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Order Status</label>
+                        <select name="status" class="form-select">
+                            <option value="">All Status</option>
+                            <option value="PENDING" {% if filter_status == 'PENDING' %}selected{% endif %}>Pending</option>
+                            <option value="PROCESSING" {% if filter_status == 'PROCESSING' %}selected{% endif %}>Processing</option>
+                            <option value="SHIPPED" {% if filter_status == 'SHIPPED' %}selected{% endif %}>Shipped</option>
+                            <option value="DELIVERED" {% if filter_status == 'DELIVERED' %}selected{% endif %}>Delivered</option>
+                            <option value="CANCELLED" {% if filter_status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Search</label>
+                        <input type="text" name="search" class="form-control" placeholder="Order #, Customer, Reseller" value="{{ filter_search }}">
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bx bx-search me-1"></i>Apply Filters
+                    </button>
+                    <a href="{% url 'admin_resell_orders' %}" class="btn btn-label-secondary">
+                        <i class="bx bx-reset me-1"></i>Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Resell Orders ({{ total_orders }})</h5>
+        </div>
+        <div class="table-responsive text-nowrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Order #</th>
+                        <th>Customer</th>
+                        <th>Reseller</th>
+                        <th>Base Amount</th>
+                        <th>Margin</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th>Payment</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td><strong>{{ order.order_number }}</strong></td>
+                        <td>{{ order.user.username }}</td>
+                        <td>
+                            <a href="{% url 'admin_reseller_analytics' %}?reseller_id={{ order.reseller.id }}" class="text-primary">
+                                {{ order.reseller.username }}
+                            </a>
+                        </td>
+                        <td>₹{{ order.base_amount|floatformat:2 }}</td>
+                        <td><span class="badge bg-label-warning">₹{{ order.total_margin|floatformat:2 }}</span></td>
+                        <td><strong>₹{{ order.total_amount|floatformat:2 }}</strong></td>
+                        <td>
+                            {% if order.order_status == 'PENDING' %}
+                            <span class="badge bg-warning">Pending</span>
+                            {% elif order.order_status == 'PROCESSING' %}
+                            <span class="badge bg-info">Processing</span>
+                            {% elif order.order_status == 'SHIPPED' %}
+                            <span class="badge bg-primary">Shipped</span>
+                            {% elif order.order_status == 'DELIVERED' %}
+                            <span class="badge bg-success">Delivered</span>
+                            {% elif order.order_status == 'CANCELLED' %}
+                            <span class="badge bg-danger">Cancelled</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if order.payment_status == 'PAID' %}
+                            <span class="badge bg-success">Paid</span>
+                            {% elif order.payment_status == 'PENDING' %}
+                            <span class="badge bg-warning">Pending</span>
+                            {% elif order.payment_status == 'FAILED' %}
+                            <span class="badge bg-danger">Failed</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ order.created_at|date:"d M Y" }}</td>
+                        <td>
+                            <a href="{% url 'admin_order_details' order.id %}" class="btn btn-sm btn-icon btn-label-primary">
+                                <i class="bx bx-show"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" class="text-center py-4">
+                            <i class="bx bx-info-circle bx-lg text-muted"></i>
+                            <p class="text-muted mt-2">No resell orders found</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="card-footer">
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filter_reseller %}&reseller={{ filter_reseller }}{% endif %}{% if filter_date_from %}&date_from={{ filter_date_from }}{% endif %}{% if filter_date_to %}&date_to={{ filter_date_to }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_search %}&search={{ filter_search }}{% endif %}">
+                            <i class="tf-icon bx bx-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if filter_reseller %}&reseller={{ filter_reseller }}{% endif %}{% if filter_date_from %}&date_from={{ filter_date_from }}{% endif %}{% if filter_date_to %}&date_to={{ filter_date_to }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_search %}&search={{ filter_search }}{% endif %}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filter_reseller %}&reseller={{ filter_reseller }}{% endif %}{% if filter_date_from %}&date_from={{ filter_date_from }}{% endif %}{% if filter_date_to %}&date_to={{ filter_date_to }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_search %}&search={{ filter_search }}{% endif %}">
+                            <i class="tf-icon bx bx-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

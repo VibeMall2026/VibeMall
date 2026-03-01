@@ -5086,6 +5086,21 @@ def checkout(request):
     default_address = Address.objects.filter(user=request.user, is_default=True).first()
     checkout_form = request.session.get('checkout_form', {})
     
+    # Check for resell link in session
+    resell_link = None
+    resell_link_id = request.session.get('resell_link_id')
+    if resell_link_id:
+        try:
+            from .models import ResellLink
+            resell_link = ResellLink.objects.select_related('reseller', 'product').get(
+                id=resell_link_id,
+                is_active=True
+            )
+        except ResellLink.DoesNotExist:
+            # Clear invalid resell link from session
+            request.session.pop('resell_link_id', None)
+            request.session.pop('resell_code', None)
+    
     # Get loyalty account
     loyalty_account = None
     if request.user.is_authenticated:
@@ -5093,6 +5108,14 @@ def checkout(request):
             loyalty_account = LoyaltyPoints.objects.get(user=request.user)
         except LoyaltyPoints.DoesNotExist:
             pass
+    
+    # Calculate totals with margin if resell order
+    if resell_link:
+        # Recalculate total_price with margin
+        margin_total = Decimal('0')
+        for item in cart_items:
+            margin_total += resell_link.margin_amount * item.quantity
+        total_price = Decimal(str(total_price)) + margin_total
     
     context = {
         'cart_items': cart_items,
@@ -5102,6 +5125,7 @@ def checkout(request):
         'default_address': default_address,
         'checkout_form': checkout_form,
         'loyalty_account': loyalty_account,
+        'resell_link': resell_link,  # Add resell link to context
         'tax_amount': Decimal(str(total_price)) * Decimal('0.05'),
         'shipping_cost': Decimal('0.00') if Decimal(str(total_price)) > 500 else Decimal('50.00'),
         'final_total': Decimal(str(total_price)) + (Decimal(str(total_price)) * Decimal('0.05')) + (Decimal('0.00') if Decimal(str(total_price)) > 500 else Decimal('50.00'))
@@ -5120,6 +5144,26 @@ def checkout_confirm(request):
     if not cart_items:
         messages.error(request, 'Your cart is empty.')
         return redirect('cart')
+
+    # Check for resell link in session
+    resell_link = None
+    resell_link_id = request.session.get('resell_link_id')
+    if resell_link_id:
+        try:
+            from .models import ResellLink
+            resell_link = ResellLink.objects.select_related('reseller', 'product').get(
+                id=resell_link_id,
+                is_active=True
+            )
+            # Recalculate total_price with margin
+            margin_total = Decimal('0')
+            for item in cart_items:
+                margin_total += resell_link.margin_amount * item.quantity
+            total_price = Decimal(str(total_price)) + margin_total
+        except ResellLink.DoesNotExist:
+            # Clear invalid resell link from session
+            request.session.pop('resell_link_id', None)
+            request.session.pop('resell_code', None)
 
     subtotal = Decimal(str(total_price))
     tax = subtotal * Decimal('0.05')
@@ -5193,23 +5237,65 @@ def checkout_confirm(request):
 
         try:
             shipping_address = f"{first_name} {last_name}\n{address}\n{city}, {state} {postcode}\n{country}"
-
-            order = Order.objects.create(
-                user=request.user,
-                subtotal=subtotal,
-                tax=tax,
-                shipping_cost=shipping_cost,
-                coupon=applied_coupon,  # Save coupon reference
-                coupon_discount=coupon_discount,  # Save discount amount
-                total_amount=total_amount,
-                shipping_address=shipping_address,
-                billing_address=shipping_address,
-                payment_method=payment_method,
-                customer_notes=customer_notes,
-                is_resell=is_resell,
-                resell_from_name=from_name if is_resell else '',
-                resell_from_phone=from_phone if is_resell else ''
-            )
+            
+            # Check for resell link in session
+            resell_link_id = request.session.get('resell_link_id')
+            resell_link = None
+            
+            if resell_link_id:
+                try:
+                    from .models import ResellLink
+                    from .resell_services import ResellOrderProcessor
+                    
+                    resell_link = ResellLink.objects.select_related('reseller', 'product').get(
+                        id=resell_link_id,
+                        is_active=True
+                    )
+                    
+                    # Use ResellOrderProcessor for resell orders
+                    order = ResellOrderProcessor.create_resell_order(
+                        cart_items=cart_items,
+                        resell_link=resell_link,
+                        customer=request.user,
+                        shipping_address=shipping_address,
+                        billing_address=shipping_address,
+                        payment_method=payment_method,
+                        tax=tax,
+                        shipping_cost=shipping_cost,
+                        coupon_discount=coupon_discount,
+                        coupon=applied_coupon,
+                        payment_status='PENDING',
+                    )
+                    
+                    # Add customer notes if provided
+                    if customer_notes:
+                        order.customer_notes = customer_notes
+                        order.save(update_fields=['customer_notes'])
+                    
+                except ResellLink.DoesNotExist:
+                    messages.error(request, 'Resell link is no longer valid.')
+                    return redirect('checkout')
+                except Exception as e:
+                    messages.error(request, f'Error processing resell order: {str(e)}')
+                    return redirect('checkout')
+            else:
+                # Regular order (non-resell)
+                order = Order.objects.create(
+                    user=request.user,
+                    subtotal=subtotal,
+                    tax=tax,
+                    shipping_cost=shipping_cost,
+                    coupon=applied_coupon,  # Save coupon reference
+                    coupon_discount=coupon_discount,  # Save discount amount
+                    total_amount=total_amount,
+                    shipping_address=shipping_address,
+                    billing_address=shipping_address,
+                    payment_method=payment_method,
+                    customer_notes=customer_notes,
+                    is_resell=is_resell,
+                    resell_from_name=from_name if is_resell else '',
+                    resell_from_phone=from_phone if is_resell else ''
+                )
 
             # Create CouponUsage record if coupon was applied
             if applied_coupon and coupon_discount > 0:
@@ -5227,32 +5313,13 @@ def checkout_confirm(request):
                 order.admin_notes += f"\nLoyalty Points Redeemed: {points_to_redeem} points (₹{points_discount} discount)"
                 order.save()
 
-            if buy_now_item:
-                product = buy_now_item['product']
-                product_image = ''
-                if product.image:
-                    image_url = product.image.url
-                    if not image_url.startswith('http'):
-                        site_url = request.build_absolute_uri('/').rstrip('/')
-                        product_image = f"{site_url}{image_url}"
-                    else:
-                        product_image = image_url
-
-                OrderItem.objects.create(
-                    order=order,
-                    product=product,
-                    product_name=product.name,
-                    product_price=buy_now_item['price'],
-                    product_image=product_image,
-                    quantity=buy_now_item['quantity'],
-                    margin_amount=product.margin if product else None
-                )
-                del request.session['buy_now_item']
-            else:
-                for item in cart_items:
+            # Only create order items if NOT a resell order (ResellOrderProcessor already created them)
+            if not resell_link:
+                if buy_now_item:
+                    product = buy_now_item['product']
                     product_image = ''
-                    if item.product.image:
-                        image_url = item.product.image.url
+                    if product.image:
+                        image_url = product.image.url
                         if not image_url.startswith('http'):
                             site_url = request.build_absolute_uri('/').rstrip('/')
                             product_image = f"{site_url}{image_url}"
@@ -5261,13 +5328,34 @@ def checkout_confirm(request):
 
                     OrderItem.objects.create(
                         order=order,
-                        product=item.product,
-                        product_name=item.product.name,
-                        product_price=item.product.price,
+                        product=product,
+                        product_name=product.name,
+                        product_price=buy_now_item['price'],
                         product_image=product_image,
-                        quantity=item.quantity,
-                        margin_amount=item.product.margin if item.product else None
+                        quantity=buy_now_item['quantity'],
+                        margin_amount=product.margin if product else None
                     )
+                    del request.session['buy_now_item']
+                else:
+                    for item in cart_items:
+                        product_image = ''
+                        if item.product.image:
+                            image_url = item.product.image.url
+                            if not image_url.startswith('http'):
+                                site_url = request.build_absolute_uri('/').rstrip('/')
+                                product_image = f"{site_url}{image_url}"
+                            else:
+                                product_image = image_url
+
+                        OrderItem.objects.create(
+                            order=order,
+                            product=item.product,
+                            product_name=item.product.name,
+                            product_price=item.product.price,
+                            product_image=product_image,
+                            quantity=item.quantity,
+                            margin_amount=item.product.margin if item.product else None
+                        )
 
             if redeem_points and points_to_redeem > 0:
                 loyalty_account = LoyaltyPoints.objects.get(user=request.user)
@@ -5289,6 +5377,11 @@ def checkout_confirm(request):
                 )
 
             request.session.pop('checkout_form', None)
+            
+            # Clear resell link from session after order is created
+            if resell_link:
+                request.session.pop('resell_link_id', None)
+                request.session.pop('resell_code', None)
 
             if payment_method == 'RAZORPAY':
                 return redirect('razorpay_payment', order_id=order.id)
@@ -5299,6 +5392,7 @@ def checkout_confirm(request):
 
             order.auto_process_approval()
 
+            # Clear cart for both regular and resell orders
             if not buy_now_item:
                 Cart.objects.filter(user=request.user).delete()
 
@@ -5326,6 +5420,7 @@ def checkout_confirm(request):
         'applied_coupon': applied_coupon,
         'points_discount': points_discount,
         'total_amount': total_amount,
+        'resell_link': resell_link,  # Add resell link to context
         'payment_method': checkout_form.get('payment_method', 'COD'),
         'address_text': f"{checkout_form.get('first_name', '')} {checkout_form.get('last_name', '')}\n{checkout_form.get('address', '')}\n{checkout_form.get('city', '')}, {checkout_form.get('state', '')} {checkout_form.get('postcode', '')}\n{checkout_form.get('country', '')}".strip(),
     }

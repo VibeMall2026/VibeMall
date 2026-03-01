@@ -701,10 +701,16 @@ class Order(models.Model):
     razorpay_payment_id = models.CharField(max_length=100, blank=True, help_text="Razorpay Payment ID")
     razorpay_signature = models.CharField(max_length=200, blank=True, help_text="Razorpay Payment Signature")
     
-    # Resell functionality
+    # Resell functionality (Enhanced)
     is_resell = models.BooleanField(default=False, help_text="Is this a resell order?")
-    resell_from_name = models.CharField(max_length=200, blank=True, help_text="Original seller name for resell orders")
-    resell_from_phone = models.CharField(max_length=20, blank=True, help_text="Original seller phone for resell orders")
+    reseller = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='resold_orders', help_text="Reseller user for resell orders")
+    resell_link = models.ForeignKey('ResellLink', on_delete=models.SET_NULL, null=True, blank=True, help_text="Resell link used for this order")
+    total_margin = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Total margin amount for reseller")
+    base_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Base amount before margin")
+    
+    # Deprecated fields (kept for backward compatibility)
+    resell_from_name = models.CharField(max_length=200, blank=True, help_text="[DEPRECATED] Use reseller field instead")
+    resell_from_phone = models.CharField(max_length=20, blank=True, help_text="[DEPRECATED] Use reseller.phone instead")
     
     # Order Approval System
     APPROVAL_STATUS_CHOICES = [
@@ -732,6 +738,17 @@ class Order(models.Model):
     
     def __str__(self):
         return f"Order #{self.order_number} - {self.user.username}"
+    
+    def clean(self):
+        """Validate order data"""
+        from django.core.exceptions import ValidationError
+        
+        # If is_resell is True, reseller and resell_link must be set
+        if self.is_resell:
+            if not self.reseller:
+                raise ValidationError({'reseller': 'Reseller must be set for resell orders.'})
+            if not self.resell_link:
+                raise ValidationError({'resell_link': 'Resell link must be set for resell orders.'})
     
     def save(self, *args, **kwargs):
         if not self.order_number:
@@ -858,9 +875,10 @@ class OrderItem(models.Model):
     
     # Product details at time of order (preserved even if product changes)
     product_name = models.CharField(max_length=255)
-    product_price = models.DecimalField(max_digits=10, decimal_places=2)
+    product_price = models.DecimalField(max_digits=10, decimal_places=2, help_text="Price shown to customer (includes margin for resell orders)")
     product_image = models.CharField(max_length=500, blank=True)
-    margin_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    base_price = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Original product price before margin")
+    margin_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Reseller margin per unit")
     
     # Order details
     quantity = models.PositiveIntegerField(default=1)
@@ -1281,6 +1299,11 @@ class Notification(models.Model):
         ('REFUND_PROCESSED', 'Refund Processed'),
         ('POINTS_EARNED', 'Loyalty Points Earned'),
         ('SPECIAL_OFFER', 'Special Offer'),
+        ('EARNING_CONFIRMED', 'Reseller Earning Confirmed'),
+        ('PAYOUT_COMPLETED', 'Payout Completed'),
+        ('PAYOUT_FAILED', 'Payout Failed'),
+        ('ORDER_CANCELLED', 'Order Cancelled'),
+        ('NEW_RESELL_ORDER', 'New Resell Order'),
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
@@ -1650,3 +1673,184 @@ class UserSpendTracker(models.Model):
     def can_earn_5k_coupon(self):
         """Check if user has spent enough for 5K coupon"""
         return self.current_cycle_spent >= 5000
+
+
+# ============================================
+# RESELL FEATURE MODELS
+# ============================================
+
+class ResellLink(models.Model):
+    """Tracks resell links created by users"""
+    reseller = models.ForeignKey(User, on_delete=models.CASCADE, related_name='resell_links')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='resell_links')
+    resell_code = models.CharField(max_length=20, unique=True, db_index=True)
+    margin_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    margin_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    views_count = models.PositiveIntegerField(default=0)
+    orders_count = models.PositiveIntegerField(default=0)
+    total_earnings = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Resell Link"
+        verbose_name_plural = "Resell Links"
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['resell_code']),
+            models.Index(fields=['reseller', 'is_active']),
+        ]
+    
+    def __str__(self):
+        return f"Resell Link {self.resell_code} - {self.reseller.username} - {self.product.name}"
+    
+    def clean(self):
+        """Validate margin amount"""
+        from django.core.exceptions import ValidationError
+        
+        if self.margin_amount is not None and self.product:
+            # Margin must be positive
+            if self.margin_amount <= 0:
+                raise ValidationError({'margin_amount': 'Margin must be greater than zero.'})
+            
+            # Margin must not exceed 50% of product price
+            max_margin = self.product.price * 0.5
+            if self.margin_amount > max_margin:
+                raise ValidationError({
+                    'margin_amount': f'Margin cannot exceed 50% of product price (₹{max_margin}).'
+                })
+    
+    def save(self, *args, **kwargs):
+        # Calculate margin percentage if not set
+        if self.margin_percentage is None and self.product:
+            self.margin_percentage = (self.margin_amount / self.product.price) * 100
+        
+        # Run validation
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+
+class ResellerProfile(models.Model):
+    """Extended profile for users who are resellers"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='reseller_profile')
+    is_reseller_enabled = models.BooleanField(default=False)
+    business_name = models.CharField(max_length=200, blank=True)
+    total_earnings = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    available_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_orders = models.PositiveIntegerField(default=0)
+    bank_account_name = models.CharField(max_length=200, blank=True)
+    bank_account_number = models.CharField(max_length=50, blank=True)
+    bank_ifsc_code = models.CharField(max_length=20, blank=True)
+    upi_id = models.CharField(max_length=100, blank=True)
+    pan_number = models.CharField(max_length=10, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Reseller Profile"
+        verbose_name_plural = "Reseller Profiles"
+    
+    def __str__(self):
+        return f"Reseller Profile - {self.user.username}"
+    
+    def clean(self):
+        """Validate available balance cannot be negative"""
+        from django.core.exceptions import ValidationError
+        
+        if self.available_balance < 0:
+            raise ValidationError({'available_balance': 'Available balance cannot be negative.'})
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+
+class ResellerEarning(models.Model):
+    """Tracks earnings for each reseller from orders"""
+    EARNING_STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('CONFIRMED', 'Confirmed'),
+        ('PAID', 'Paid'),
+        ('CANCELLED', 'Cancelled'),
+    ]
+    
+    reseller = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reseller_earnings')
+    order = models.OneToOneField('Order', on_delete=models.CASCADE, related_name='reseller_earning')
+    resell_link = models.ForeignKey(ResellLink, on_delete=models.SET_NULL, null=True)
+    margin_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=20, choices=EARNING_STATUS_CHOICES, default='PENDING')
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
+    payout_transaction = models.ForeignKey('PayoutTransaction', on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Reseller Earning"
+        verbose_name_plural = "Reseller Earnings"
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['reseller', 'status']),
+            models.Index(fields=['status']),
+        ]
+    
+    def __str__(self):
+        return f"Earning {self.status} - {self.reseller.username} - Order #{self.order.order_number}"
+
+
+class PayoutTransaction(models.Model):
+    """Tracks payout transactions to resellers"""
+    PAYOUT_STATUS_CHOICES = [
+        ('INITIATED', 'Initiated'),
+        ('PROCESSING', 'Processing'),
+        ('COMPLETED', 'Completed'),
+        ('FAILED', 'Failed'),
+    ]
+    
+    PAYOUT_METHOD_CHOICES = [
+        ('BANK_TRANSFER', 'Bank Transfer'),
+        ('UPI', 'UPI'),
+        ('WALLET', 'Wallet'),
+    ]
+    
+    reseller = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payout_transactions')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    payout_method = models.CharField(max_length=20, choices=PAYOUT_METHOD_CHOICES)
+    status = models.CharField(max_length=20, choices=PAYOUT_STATUS_CHOICES, default='INITIATED')
+    transaction_id = models.CharField(max_length=100, blank=True)
+    bank_account = models.CharField(max_length=100, blank=True)
+    upi_id = models.CharField(max_length=100, blank=True)
+    admin_notes = models.TextField(blank=True)
+    initiated_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Payout Transaction"
+        verbose_name_plural = "Payout Transactions"
+        ordering = ['-initiated_at']
+        indexes = [
+            models.Index(fields=['reseller', 'status']),
+            models.Index(fields=['status']),
+        ]
+    
+    def __str__(self):
+        return f"Payout {self.status} - {self.reseller.username} - ₹{self.amount}"
+    
+    def clean(self):
+        """Validate payout amount and payment details"""
+        from django.core.exceptions import ValidationError
+        
+        if self.amount <= 0:
+            raise ValidationError({'amount': 'Payout amount must be greater than zero.'})
+        
+        # Validate payment method specific fields
+        if self.payout_method == 'BANK_TRANSFER':
+            if not self.bank_account:
+                raise ValidationError({'bank_account': 'Bank account details required for bank transfer.'})
+        elif self.payout_method == 'UPI':
+            if not self.upi_id:
+                raise ValidationError({'upi_id': 'UPI ID required for UPI payout.'})
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)

@@ -247,6 +247,42 @@
                 <div data-i18n="Orders">Orders</div>
               </a>
             </li>
+
+            <!-- Resell Management -->
+            <li class="menu-item">
+              <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-share-alt"></i>
+                <div data-i18n="Resell">Resell Management</div>
+              </a>
+              <ul class="menu-sub">
+                <li class="menu-item">
+                  <a href="{% url 'admin_resell_orders' %}" class="menu-link">
+                    <div data-i18n="Resell Orders">Resell Orders</div>
+                  </a>
+                </li>
+                <li class="menu-item">
+                  <a href="{% url 'admin_reseller_analytics' %}" class="menu-link">
+                    <div data-i18n="Analytics">Analytics</div>
+                  </a>
+                </li>
+                <li class="menu-item">
+                  <a href="{% url 'admin_reseller_management' %}" class="menu-link">
+                    <div data-i18n="Resellers">Resellers</div>
+                  </a>
+                </li>
+                <li class="menu-item">
+                  <a href="{% url 'admin_payout_management' %}" class="menu-link">
+                    <div data-i18n="Payouts">Payouts</div>
+                  </a>
+                </li>
+                <li class="menu-item">
+                  <a href="{% url 'admin_resell_reports' %}" class="menu-link">
+                    <div data-i18n="Reports">Reports</div>
+                  </a>
+                </li>
+              </ul>
+            </li>
+
             <li class="menu-item">
               <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bx-undo"></i>

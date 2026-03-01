@@ -123,3 +123,32 @@ def update_user_spending_tracker(sender, instance, created, **kwargs):
             tracker.last_5k_coupon_at = timezone.now()
         
         tracker.save()
+
+
+
+# ============================================
+# RESELL SYSTEM SIGNALS
+# ============================================
+
+@receiver(post_save, sender=Order)
+def auto_confirm_reseller_earnings(sender, instance, created, **kwargs):
+    """Automatically confirm reseller earnings when order is delivered"""
+    # Only process if order status changed to DELIVERED and it's a resell order
+    if not created and instance.order_status == 'DELIVERED' and instance.is_resell:
+        try:
+            from .resell_services import confirm_reseller_earnings
+            from .models import ResellerEarning
+            
+            # Check if earning exists and is still PENDING
+            try:
+                earning = ResellerEarning.objects.get(order=instance, status='PENDING')
+                # Confirm the earning
+                confirm_reseller_earnings(instance)
+            except ResellerEarning.DoesNotExist:
+                # Earning already confirmed or doesn't exist
+                pass
+        except Exception as e:
+            # Log error but don't raise - don't block order status update
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to auto-confirm earnings for order {instance.order_number}: {str(e)}")

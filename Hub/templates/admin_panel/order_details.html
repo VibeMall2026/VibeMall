@@ -1,5 +1,6 @@
 ﻿{% extends 'admin_panel/base_admin.html' %}
 {% load static %}
+{% load custom_filters %}
 
 {% block title %}Order Details - Admin Panel{% endblock %}
 
@@ -73,6 +74,135 @@
                 </div>
             </div>
 
+            <!-- Resell Information (Only for Resell Orders) -->
+            {% if order.is_resell_order and order.reseller %}
+            <div class="card mb-4 border-warning">
+                <div class="card-header bg-label-warning">
+                    <h5 class="mb-0"><i class="bx bx-share-alt"></i> Resell Information</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Reseller Details -->
+                    <div class="mb-4">
+                        <h6 class="text-warning mb-3"><i class="bx bx-user-circle"></i> Reseller Details</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted">Reseller Name</label>
+                                <p class="mb-0 fw-bold">
+                                    <a href="{% url 'admin_reseller_analytics' %}?reseller_id={{ order.reseller.id }}" class="text-primary">
+                                        {{ order.reseller.get_full_name|default:order.reseller.username }}
+                                    </a>
+                                </p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted">Reseller Email</label>
+                                <p class="mb-0"><a href="mailto:{{ order.reseller.email }}">{{ order.reseller.email }}</a></p>
+                            </div>
+                            {% if order.resell_from_phone %}
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted">Reseller Phone</label>
+                                <p class="mb-0">{{ order.resell_from_phone }}</p>
+                            </div>
+                            {% endif %}
+                            {% if order.resell_from_name %}
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted">Resell From</label>
+                                <p class="mb-0">{{ order.resell_from_name }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Margin Breakdown -->
+                    <div class="mb-3">
+                        <h6 class="text-warning mb-3"><i class="bx bx-calculator"></i> Margin Breakdown</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <tbody>
+                                    <tr>
+                                        <td class="text-muted">Base Amount (Original Price)</td>
+                                        <td class="text-end"><strong>₹{{ order.base_amount|floatformat:2 }}</strong></td>
+                                    </tr>
+                                    <tr class="table-warning">
+                                        <td class="text-muted">
+                                            <i class="bx bx-trending-up"></i> Reseller Margin
+                                            {% if order.base_amount > 0 %}
+                                            <span class="badge bg-warning ms-2">{{ order.total_margin|calculate_margin_percentage:order.base_amount }}%</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end"><strong class="text-warning">+₹{{ order.total_margin|floatformat:2 }}</strong></td>
+                                    </tr>
+                                    <tr class="table-success">
+                                        <td class="text-muted"><strong>Total Amount (Customer Paid)</strong></td>
+                                        <td class="text-end"><strong class="text-success">₹{{ order.total_amount|floatformat:2 }}</strong></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Product-wise Margin -->
+                    {% if order.items.all %}
+                    <div>
+                        <h6 class="text-warning mb-3"><i class="bx bx-list-ul"></i> Product-wise Margin</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Product</th>
+                                        <th class="text-end">Base Price</th>
+                                        <th class="text-end">Margin</th>
+                                        <th class="text-end">Final Price</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in order.items.all %}
+                                    <tr>
+                                        <td>
+                                            <small>{{ item.product_name }}</small>
+                                            {% if item.quantity > 1 %}<br><small class="text-muted">Qty: {{ item.quantity }}</small>{% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <small>₹{{ item.base_price|default:item.product_price|floatformat:2 }}</small>
+                                        </td>
+                                        <td class="text-end">
+                                            {% if item.margin_amount %}
+                                            <small class="text-warning">+₹{{ item.margin_amount|floatformat:2 }}</small>
+                                            {% else %}
+                                            <small class="text-muted">₹0.00</small>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <small><strong>₹{{ item.product_price|floatformat:2 }}</strong></small>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Reseller Earnings Status -->
+                    <div class="mt-3 p-3 bg-light rounded">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted">Reseller Earnings Status</small>
+                                <p class="mb-0 fw-bold">
+                                    {% if order.order_status == 'DELIVERED' %}
+                                    <span class="badge bg-success"><i class="bx bx-check-circle"></i> Confirmed (₹{{ order.total_margin|floatformat:2 }})</span>
+                                    {% elif order.order_status == 'CANCELLED' %}
+                                    <span class="badge bg-danger"><i class="bx bx-x-circle"></i> Cancelled</span>
+                                    {% else %}
+                                    <span class="badge bg-warning"><i class="bx bx-time"></i> Pending Delivery</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Shipping Address -->
             <div class="card mb-4">
                 <div class="card-header">
@@ -143,6 +273,21 @@
                     <h5 class="mb-0">Order Summary</h5>
                 </div>
                 <div class="card-body">
+                    {% if order.is_resell_order %}
+                    <!-- Resell Order Summary -->
+                    <div class="alert alert-warning p-2 mb-3">
+                        <small><i class="bx bx-share-alt"></i> <strong>Resell Order</strong></small>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Base Amount:</span>
+                        <strong>&#8377;{{ order.base_amount|floatformat:2 }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-warning">Reseller Margin:</span>
+                        <strong class="text-warning">+&#8377;{{ order.total_margin|floatformat:2 }}</strong>
+                    </div>
+                    <hr>
+                    {% endif %}
                     <div class="d-flex justify-content-between mb-2">
                         <span>Subtotal:</span>
                         <strong>&#8377;{{ order.subtotal|floatformat:2 }}</strong>

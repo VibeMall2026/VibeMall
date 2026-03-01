@@ -16,3 +16,16 @@ def get_item(dictionary, key):
     if isinstance(dictionary, dict):
         return dictionary.get(key)
     return None
+
+
+@register.filter
+def calculate_margin_percentage(margin, base_amount):
+    """Calculate margin percentage"""
+    try:
+        margin = float(margin)
+        base_amount = float(base_amount)
+        if base_amount > 0:
+            return round((margin / base_amount) * 100, 1)
+        return 0
+    except (ValueError, TypeError, ZeroDivisionError):
+        return 0

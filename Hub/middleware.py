@@ -53,3 +53,83 @@ class BlockedUserMiddleware:
         
         response = self.get_response(request)
         return response
+
+
+
+class ResellLinkMiddleware:
+    """
+    Middleware to capture and validate resell links from URL parameters.
+    Stores resell link information in session for checkout process.
+    """
+    
+    def __init__(self, get_response):
+        self.get_response = get_response
+    
+    def __call__(self, request):
+        # Check for resell code in query parameters
+        resell_code = request.GET.get('resell')
+        
+        if resell_code:
+            try:
+                from .models import ResellLink
+                from django.utils import timezone
+                
+                # Validate resell link
+                resell_link = ResellLink.objects.select_related('reseller', 'product').get(
+                    resell_code=resell_code
+                )
+                
+                # Check if link is active
+                if resell_link.is_active and resell_link.product.is_active:
+                    # Check expiration
+                    if not resell_link.expires_at or resell_link.expires_at > timezone.now():
+                        # Store resell link ID in session
+                        request.session['resell_link_id'] = resell_link.id
+                        request.session['resell_code'] = resell_link.resell_code
+                        
+                        # Increment views count
+                        resell_link.views_count += 1
+                        resell_link.save(update_fields=['views_count'])
+                        
+                        # Store resell link in request for easy access
+                        request.resell_link = resell_link
+                    else:
+                        # Link expired, deactivate it
+                        resell_link.is_active = False
+                        resell_link.save(update_fields=['is_active'])
+                        
+            except ResellLink.DoesNotExist:
+                # Invalid resell code, ignore
+                pass
+            except Exception:
+                # Any other error, ignore and continue
+                pass
+        
+        # Check if there's a resell link in session
+        elif 'resell_link_id' in request.session:
+            try:
+                from .models import ResellLink
+                
+                resell_link = ResellLink.objects.select_related('reseller', 'product').get(
+                    id=request.session['resell_link_id']
+                )
+                
+                # Verify link is still active
+                if resell_link.is_active and resell_link.product.is_active:
+                    request.resell_link = resell_link
+                else:
+                    # Link no longer active, clear from session
+                    del request.session['resell_link_id']
+                    if 'resell_code' in request.session:
+                        del request.session['resell_code']
+                        
+            except ResellLink.DoesNotExist:
+                # Link deleted, clear from session
+                del request.session['resell_link_id']
+                if 'resell_code' in request.session:
+                    del request.session['resell_code']
+            except Exception:
+                pass
+        
+        response = self.get_response(request)
+        return response

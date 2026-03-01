@@ -1,0 +1,242 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}{{ reseller.username }} - Reseller Analytics{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold py-3 mb-0">Reseller Analytics: {{ reseller.username }}</h4>
+        <a href="{% url 'admin_reseller_analytics' %}" class="btn btn-secondary">
+            <i class='bx bx-arrow-back'></i> Back to All Resellers
+        </a>
+    </div>
+
+    <!-- Profile Info -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Profile Information</h5>
+                    <table class="table table-borderless">
+                        <tr>
+                            <td><strong>Username:</strong></td>
+                            <td>{{ reseller.username }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Email:</strong></td>
+                            <td>{{ reseller.email }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Business Name:</strong></td>
+                            <td>{{ profile.business_name|default:"-" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Status:</strong></td>
+                            <td>
+                                {% if profile.is_reseller_enabled %}
+                                <span class="badge bg-label-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-label-warning">Inactive</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h5>Payment Details</h5>
+                    <table class="table table-borderless">
+                        <tr>
+                            <td><strong>Bank Account:</strong></td>
+                            <td>{{ profile.bank_account_number|default:"-" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>IFSC Code:</strong></td>
+                            <td>{{ profile.bank_ifsc_code|default:"-" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>UPI ID:</strong></td>
+                            <td>{{ profile.upi_id|default:"-" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>PAN Number:</strong></td>
+                            <td>{{ profile.pan_number|default:"-" }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Metrics -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <span class="fw-semibold d-block mb-1">Total Earnings</span>
+                    <h3 class="card-title text-success mb-2">₹{{ profile.total_earnings }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <span class="fw-semibold d-block mb-1">Available Balance</span>
+                    <h3 class="card-title text-info mb-2">₹{{ profile.available_balance }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <span class="fw-semibold d-block mb-1">Total Orders</span>
+                    <h3 class="card-title mb-2">{{ total_orders }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <span class="fw-semibold d-block mb-1">Conversion Rate</span>
+                    <h3 class="card-title mb-2">{{ conversion_rate }}%</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Links & Views -->
+    <div class="row mb-4">
+        <div class="col-md-4 col-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <span class="fw-semibold d-block mb-1">Total Links</span>
+                    <h4 class="card-title mb-2">{{ total_links }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <span class="fw-semibold d-block mb-1">Active Links</span>
+                    <h4 class="card-title text-success mb-2">{{ active_links }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <span class="fw-semibold d-block mb-1">Total Views</span>
+                    <h4 class="card-title mb-2">{{ total_views }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Earnings Breakdown -->
+    <div class="card mb-4">
+        <h5 class="card-header">Earnings Breakdown</h5>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="text-muted">Pending Earnings</label>
+                        <h4 class="text-warning">₹{{ pending_earnings }}</h4>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="text-muted">Confirmed Earnings</label>
+                        <h4 class="text-info">₹{{ confirmed_earnings }}</h4>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="text-muted">Paid Earnings</label>
+                        <h4 class="text-success">₹{{ paid_earnings }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Orders -->
+    <div class="card mb-4">
+        <h5 class="card-header">Recent Orders</h5>
+        <div class="table-responsive text-nowrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Order #</th>
+                        <th>Customer</th>
+                        <th>Date</th>
+                        <th>Total Amount</th>
+                        <th>Margin</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in recent_orders %}
+                    <tr>
+                        <td><strong>#{{ order.order_number }}</strong></td>
+                        <td>{{ order.user.username }}</td>
+                        <td>{{ order.created_at|date:"M d, Y" }}</td>
+                        <td>₹{{ order.total_amount }}</td>
+                        <td class="text-success"><strong>₹{{ order.total_margin }}</strong></td>
+                        <td>
+                            <span class="badge bg-label-{{ order.order_status|lower }}">
+                                {{ order.get_order_status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center">No orders yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Top Performing Links -->
+    <div class="card">
+        <h5 class="card-header">Top Performing Links</h5>
+        <div class="table-responsive text-nowrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Margin</th>
+                        <th>Views</th>
+                        <th>Orders</th>
+                        <th>Earnings</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for link in top_links %}
+                    <tr>
+                        <td>{{ link.product.name }}</td>
+                        <td>₹{{ link.margin_amount }} ({{ link.margin_percentage|floatformat:1 }}%)</td>
+                        <td>{{ link.views_count }}</td>
+                        <td>{{ link.orders_count }}</td>
+                        <td class="text-success"><strong>₹{{ link.total_earnings }}</strong></td>
+                        <td>
+                            {% if link.is_active %}
+                            <span class="badge bg-label-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-label-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center">No links created yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

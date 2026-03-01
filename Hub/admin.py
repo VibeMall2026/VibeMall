@@ -30,6 +30,11 @@ from .models import (
     Reel,
     ReelImage,
     NewsletterSubscription,
+    # Resell feature models
+    ResellLink,
+    ResellerProfile,
+    ResellerEarning,
+    PayoutTransaction,
 )
 
 admin.site.register(Slider)
@@ -759,3 +764,219 @@ class ReelImageAdmin(admin.ModelAdmin):
             )
         return '—'
     image_preview.short_description = 'Preview'
+
+
+# ============================================
+# RESELL FEATURE ADMIN
+# ============================================
+
+@admin.register(ResellLink)
+class ResellLinkAdmin(admin.ModelAdmin):
+    """Resell Link Management"""
+    list_display = ('resell_code', 'reseller_name', 'product_name', 'margin_amount', 'margin_percentage', 
+                    'is_active', 'views_count', 'orders_count', 'total_earnings', 'created_at')
+    list_filter = ('is_active', 'created_at', 'reseller')
+    search_fields = ('resell_code', 'reseller__username', 'reseller__email', 'product__name')
+    readonly_fields = ('resell_code', 'margin_percentage', 'views_count', 'orders_count', 'total_earnings', 'created_at')
+    list_per_page = 50
+    date_hierarchy = 'created_at'
+    
+    fieldsets = (
+        ('Link Information', {
+            'fields': ('resell_code', 'reseller', 'product', 'is_active')
+        }),
+        ('Margin Details', {
+            'fields': ('margin_amount', 'margin_percentage')
+        }),
+        ('Statistics', {
+            'fields': ('views_count', 'orders_count', 'total_earnings')
+        }),
+        ('Dates', {
+            'fields': ('created_at', 'expires_at')
+        }),
+    )
+    
+    def reseller_name(self, obj):
+        return obj.reseller.username
+    reseller_name.short_description = 'Reseller'
+    reseller_name.admin_order_field = 'reseller__username'
+    
+    def product_name(self, obj):
+        return obj.product.name
+    product_name.short_description = 'Product'
+    product_name.admin_order_field = 'product__name'
+
+
+@admin.register(ResellerProfile)
+class ResellerProfileAdmin(admin.ModelAdmin):
+    """Reseller Profile Management"""
+    list_display = ('user_name', 'is_reseller_enabled', 'business_name', 'total_earnings', 
+                    'available_balance', 'total_orders', 'created_at')
+    list_filter = ('is_reseller_enabled', 'created_at')
+    search_fields = ('user__username', 'user__email', 'business_name', 'pan_number')
+    readonly_fields = ('total_earnings', 'available_balance', 'total_orders', 'created_at', 'updated_at')
+    list_per_page = 50
+    
+    fieldsets = (
+        ('User Information', {
+            'fields': ('user', 'is_reseller_enabled', 'business_name')
+        }),
+        ('Earnings & Balance', {
+            'fields': ('total_earnings', 'available_balance', 'total_orders')
+        }),
+        ('Payment Details', {
+            'fields': ('bank_account_name', 'bank_account_number', 'bank_ifsc_code', 'upi_id', 'pan_number')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at')
+        }),
+    )
+    
+    def user_name(self, obj):
+        return obj.user.username
+    user_name.short_description = 'User'
+    user_name.admin_order_field = 'user__username'
+
+
+@admin.register(ResellerEarning)
+class ResellerEarningAdmin(admin.ModelAdmin):
+    """Reseller Earning Management"""
+    list_display = ('reseller_name', 'order_number', 'margin_amount', 'status', 
+                    'confirmed_at', 'paid_at', 'created_at')
+    list_filter = ('status', 'created_at', 'confirmed_at', 'paid_at')
+    search_fields = ('reseller__username', 'order__order_number')
+    readonly_fields = ('reseller', 'order', 'resell_link', 'margin_amount', 'created_at')
+    list_per_page = 50
+    date_hierarchy = 'created_at'
+    
+    fieldsets = (
+        ('Earning Information', {
+            'fields': ('reseller', 'order', 'resell_link', 'margin_amount')
+        }),
+        ('Status', {
+            'fields': ('status', 'confirmed_at', 'paid_at', 'payout_transaction')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at',)
+        }),
+    )
+    
+    actions = ['confirm_earnings', 'cancel_earnings']
+    
+    def reseller_name(self, obj):
+        return obj.reseller.username
+    reseller_name.short_description = 'Reseller'
+    reseller_name.admin_order_field = 'reseller__username'
+    
+    def order_number(self, obj):
+        return obj.order.order_number
+    order_number.short_description = 'Order'
+    order_number.admin_order_field = 'order__order_number'
+    
+    def confirm_earnings(self, request, queryset):
+        """Confirm selected earnings"""
+        from .resell_services import confirm_reseller_earnings
+        from django.core.exceptions import ValidationError
+        
+        confirmed_count = 0
+        error_count = 0
+        
+        for earning in queryset.filter(status='PENDING'):
+            try:
+                confirm_reseller_earnings(earning.order)
+                confirmed_count += 1
+            except ValidationError as e:
+                error_count += 1
+                self.message_user(request, f'Error confirming earning for order #{earning.order.order_number}: {str(e)}', level='error')
+            except Exception as e:
+                error_count += 1
+                self.message_user(request, f'Unexpected error for order #{earning.order.order_number}: {str(e)}', level='error')
+        
+        if confirmed_count > 0:
+            self.message_user(request, f'{confirmed_count} earnings confirmed successfully.')
+        if error_count > 0:
+            self.message_user(request, f'{error_count} earnings could not be confirmed.', level='warning')
+    confirm_earnings.short_description = 'Confirm selected earnings'
+    
+    def cancel_earnings(self, request, queryset):
+        """Cancel selected earnings"""
+        cancelled_count = queryset.filter(status='PENDING').update(status='CANCELLED')
+        self.message_user(request, f'{cancelled_count} earnings cancelled.')
+    cancel_earnings.short_description = 'Cancel selected earnings'
+
+
+@admin.register(PayoutTransaction)
+class PayoutTransactionAdmin(admin.ModelAdmin):
+    """Payout Transaction Management"""
+    list_display = ('reseller_name', 'amount', 'payout_method', 'status', 
+                    'transaction_id', 'initiated_at', 'completed_at')
+    list_filter = ('status', 'payout_method', 'initiated_at', 'completed_at')
+    search_fields = ('reseller__username', 'transaction_id', 'bank_account', 'upi_id')
+    readonly_fields = ('reseller', 'amount', 'initiated_at')
+    list_per_page = 50
+    date_hierarchy = 'initiated_at'
+    
+    fieldsets = (
+        ('Payout Information', {
+            'fields': ('reseller', 'amount', 'payout_method', 'status')
+        }),
+        ('Payment Details', {
+            'fields': ('transaction_id', 'bank_account', 'upi_id')
+        }),
+        ('Admin Notes', {
+            'fields': ('admin_notes',)
+        }),
+        ('Timestamps', {
+            'fields': ('initiated_at', 'completed_at')
+        }),
+    )
+    
+    actions = ['mark_as_completed', 'mark_as_failed']
+    
+    def reseller_name(self, obj):
+        return obj.reseller.username
+    reseller_name.short_description = 'Reseller'
+    reseller_name.admin_order_field = 'reseller__username'
+    
+    def mark_as_completed(self, request, queryset):
+        """Mark selected payouts as completed"""
+        from django.utils import timezone
+        
+        completed_count = 0
+        for payout in queryset.filter(status='INITIATED'):
+            payout.status = 'COMPLETED'
+            payout.completed_at = timezone.now()
+            payout.save()
+            
+            # Update associated earnings to PAID
+            ResellerEarning.objects.filter(
+                reseller=payout.reseller,
+                status='CONFIRMED',
+                payout_transaction__isnull=True
+            ).update(
+                status='PAID',
+                paid_at=timezone.now(),
+                payout_transaction=payout
+            )
+            
+            completed_count += 1
+        
+        self.message_user(request, f'{completed_count} payouts marked as completed.')
+    mark_as_completed.short_description = 'Mark as completed'
+    
+    def mark_as_failed(self, request, queryset):
+        """Mark selected payouts as failed and refund balance"""
+        failed_count = 0
+        for payout in queryset.filter(status='INITIATED'):
+            payout.status = 'FAILED'
+            payout.save()
+            
+            # Refund to reseller balance
+            profile = payout.reseller.reseller_profile
+            profile.available_balance += payout.amount
+            profile.save()
+            
+            failed_count += 1
+        
+        self.message_user(request, f'{failed_count} payouts marked as failed and balance refunded.')
+    mark_as_failed.short_description = 'Mark as failed (refund balance)'

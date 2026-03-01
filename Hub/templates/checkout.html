@@ -55,9 +55,50 @@
         <form action="{% url 'checkout' %}" method="POST" id="checkoutForm">
             {% csrf_token %}
             <input type="hidden" name="pincode_valid" id="pincodeValid" value="0">
+            
             <div class="row">
-                <div class="col-lg-6">
-                    <div class="checkbox-form">
+                <div class="col-lg-12">
+                    <!-- Order Type Selection (First Thing User Sees) -->
+                    <div class="card mb-4" style="border: 2px solid #e3e6f0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div class="card-body">
+                            <h4 class="mb-3">
+                                <i class="fas fa-shopping-cart"></i> Select Order Type
+                            </h4>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="order-type-card" style="cursor: pointer; display: block; padding: 20px; border: 2px solid #ddd; border-radius: 10px; transition: all 0.3s;">
+                                        <input type="radio" name="order_type" value="for_self" id="order_type_self" checked style="margin-right: 10px;">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div style="font-size: 2.5rem;">🛍️</div>
+                                            <div>
+                                                <h5 class="mb-1">For Self</h5>
+                                                <small class="text-muted">Buying for personal use</small>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="order-type-card" style="cursor: pointer; display: block; padding: 20px; border: 2px solid #ddd; border-radius: 10px; transition: all 0.3s;">
+                                        <input type="radio" name="order_type" value="for_resell" id="order_type_resell" style="margin-right: 10px;">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div style="font-size: 2.5rem;">🔄</div>
+                                            <div>
+                                                <h5 class="mb-1">For Resell</h5>
+                                                <small class="text-muted">Reselling to another customer</small>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-lg-6" id="billing_details_section">
+                    <!-- FOR SELF: Normal Billing Details -->
+                    <div class="checkbox-form" id="for_self_section">
                         <h3>Billing Details</h3>
                         {% if default_address %}
                         <div class="alert alert-light border d-flex align-items-center justify-content-between" style="gap: 10px;">
@@ -159,6 +200,44 @@
                                     </div>
                                 </div>
                             </div>
+                            
+                            <!-- Resell Order Indication (Automatic Detection) -->
+                            {% if resell_link %}
+                            <div class="col-md-12 mt-3">
+                                <div class="alert alert-info border-info" style="background-color: #e7f3ff; border-left: 4px solid #0d6efd;">
+                                    <div class="d-flex align-items-start gap-3">
+                                        <div style="font-size: 2rem;">🔄</div>
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-2" style="color: #0d6efd;">
+                                                <strong>Resell Order Detected</strong>
+                                            </h6>
+                                            <p class="mb-2">
+                                                You're purchasing through reseller: <strong>{{ resell_link.reseller.get_full_name|default:resell_link.reseller.username }}</strong>
+                                            </p>
+                                            <div class="row g-2 mt-2">
+                                                <div class="col-md-6">
+                                                    <small class="text-muted">📦 Product:</small><br>
+                                                    <small><strong>{{ resell_link.product.name }}</strong></small>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <small class="text-muted">💰 Reseller Margin:</small><br>
+                                                    <small><strong>₹{{ resell_link.margin_amount }} per item</strong></small>
+                                                </div>
+                                            </div>
+                                            <hr class="my-2">
+                                            <small class="text-muted">
+                                                <i class="fas fa-info-circle"></i> This order will be tracked as a resell order. The reseller will earn commission when the order is delivered.
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Hidden field to mark as resell order -->
+                                <input type="hidden" name="is_resell" value="on">
+                                <input type="hidden" name="from_name" value="{{ resell_link.reseller.get_full_name|default:resell_link.reseller.username }}">
+                                <input type="hidden" name="from_phone" value="{{ resell_link.reseller.userprofile.mobile_number|default:'' }}">
+                            </div>
+                            {% else %}
+                            <!-- Manual Resell Option (Only if no automatic detection) -->
                             <div class="col-md-12 mt-3">
                                 <div class="checkout-form-list create-acc">
                                     <input type="checkbox" id="is_resell" name="is_resell" {% if checkout_form.is_resell %}checked{% endif %}>
@@ -191,6 +270,7 @@
                                     </div>
                                 </div>
                             </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -231,6 +311,30 @@
                                         <th>Cart Subtotal</th>
                                         <td><span class="amount">&#8377;{{ total_price|floatformat:2 }}</span></td>
                                     </tr>
+                                    
+                                    <!-- Resell Margin (Only shown for resell orders) -->
+                                    {% if resell_link %}
+                                    <tr class="resell-margin" style="background-color: #fff3cd;">
+                                        <th>
+                                            <span style="color: #856404;">
+                                                <i class="fas fa-share-alt"></i> Reseller Margin
+                                            </span>
+                                        </th>
+                                        <td>
+                                            <span class="amount" style="color: #856404; font-weight: 600;">
+                                                +&#8377;{% widthratio resell_link.margin_amount 1 1 %}
+                                                {% if cart_items|length == 1 %}
+                                                    {% for item in cart_items %}
+                                                        {% if item.quantity > 1 %}
+                                                            × {{ item.quantity }} = &#8377;{% widthratio resell_link.margin_amount item.quantity 1 %}
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                {% endif %}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                    
                                     <tr class="tax">
                                         <th>Tax (5%)</th>
                                         <td><span class="amount">&#8377;{{ tax_amount|floatformat:2 }}</span></td>

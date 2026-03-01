@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Reseller Profile - VibeMall{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">Reseller Profile Settings</h2>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-body">
+                    {% if messages %}
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="close" data-dismiss="alert">
+                            <span>&times;</span>
+                        </button>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <!-- Business Information -->
+                        <h5 class="mb-3">Business Information</h5>
+                        <div class="form-group">
+                            <label for="business_name">Business Name (Optional)</label>
+                            <input type="text" class="form-control" id="business_name" name="business_name" 
+                                   value="{{ profile.business_name }}" placeholder="Your business name">
+                            <small class="form-text text-muted">
+                                This will be displayed on invoices and communications
+                            </small>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Bank Account Details -->
+                        <h5 class="mb-3">Bank Account Details</h5>
+                        <div class="form-group">
+                            <label for="bank_account_name">Account Holder Name</label>
+                            <input type="text" class="form-control" id="bank_account_name" name="bank_account_name" 
+                                   value="{{ profile.bank_account_name }}" placeholder="As per bank records">
+                        </div>
+                        <div class="form-group">
+                            <label for="bank_account_number">Bank Account Number</label>
+                            <input type="text" class="form-control" id="bank_account_number" name="bank_account_number" 
+                                   value="{{ profile.bank_account_number }}" placeholder="Enter account number">
+                        </div>
+                        <div class="form-group">
+                            <label for="bank_ifsc_code">IFSC Code</label>
+                            <input type="text" class="form-control" id="bank_ifsc_code" name="bank_ifsc_code" 
+                                   value="{{ profile.bank_ifsc_code }}" placeholder="e.g., SBIN0001234">
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- UPI Details -->
+                        <h5 class="mb-3">UPI Details</h5>
+                        <div class="form-group">
+                            <label for="upi_id">UPI ID</label>
+                            <input type="text" class="form-control" id="upi_id" name="upi_id" 
+                                   value="{{ profile.upi_id }}" placeholder="yourname@upi">
+                            <small class="form-text text-muted">
+                                For faster payouts via UPI
+                            </small>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Tax Information -->
+                        <h5 class="mb-3">Tax Information</h5>
+                        <div class="form-group">
+                            <label for="pan_number">PAN Number (Optional)</label>
+                            <input type="text" class="form-control" id="pan_number" name="pan_number" 
+                                   value="{{ profile.pan_number }}" placeholder="ABCDE1234F" maxlength="10">
+                            <small class="form-text text-muted">
+                                Required for payouts above ₹50,000
+                            </small>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Account Status -->
+                        <h5 class="mb-3">Account Status</h5>
+                        <div class="alert {% if profile.is_reseller_enabled %}alert-success{% else %}alert-warning{% endif %}">
+                            <strong>Status:</strong> 
+                            {% if profile.is_reseller_enabled %}
+                            <span class="badge badge-success">Active</span>
+                            Your reseller account is active and you can create resell links.
+                            {% else %}
+                            <span class="badge badge-warning">Inactive</span>
+                            Your reseller account is currently inactive. Contact admin to activate.
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary btn-lg btn-block">
+                                <i class="fas fa-save"></i> Save Profile
+                            </button>
+                        </div>
+                    </form>
+
+                    <hr class="my-4">
+
+                    <!-- Important Notes -->
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle"></i> Important Notes</h6>
+                        <ul class="mb-0">
+                            <li>Ensure all payment details are accurate to avoid payout delays</li>
+                            <li>You can update these details anytime</li>
+                            <li>Bank account and UPI details are encrypted and secure</li>
+                            <li>PAN is required for tax compliance on large payouts</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

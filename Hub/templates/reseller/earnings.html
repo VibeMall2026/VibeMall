@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Earnings History - VibeMall{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">Earnings History</h2>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="form-inline">
+                        <label class="mr-2">Filter by Status:</label>
+                        <select name="status" class="form-control mr-2" onchange="this.form.submit()">
+                            <option value="">All</option>
+                            <option value="PENDING" {% if status_filter == 'PENDING' %}selected{% endif %}>Pending</option>
+                            <option value="CONFIRMED" {% if status_filter == 'CONFIRMED' %}selected{% endif %}>Confirmed</option>
+                            <option value="PAID" {% if status_filter == 'PAID' %}selected{% endif %}>Paid</option>
+                            <option value="CANCELLED" {% if status_filter == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+                        </select>
+                        {% if status_filter %}
+                        <a href="{% url 'earnings_history' %}" class="btn btn-secondary">Clear Filter</a>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Earnings Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    {% if earnings %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Product</th>
+                                    <th>Date</th>
+                                    <th>Margin Amount</th>
+                                    <th>Status</th>
+                                    <th>Confirmed</th>
+                                    <th>Paid</th>
+                                    <th>Payout</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for earning in earnings %}
+                                <tr>
+                                    <td>#{{ earning.order.order_number }}</td>
+                                    <td>
+                                        <small>{{ earning.resell_link.product.name }}</small>
+                                    </td>
+                                    <td>{{ earning.created_at|date:"M d, Y" }}</td>
+                                    <td class="font-weight-bold text-success">₹{{ earning.margin_amount }}</td>
+                                    <td>
+                                        {% if earning.status == 'PENDING' %}
+                                        <span class="badge badge-warning">Pending</span>
+                                        <small class="d-block text-muted">Waiting for delivery</small>
+                                        {% elif earning.status == 'CONFIRMED' %}
+                                        <span class="badge badge-info">Confirmed</span>
+                                        <small class="d-block text-muted">Available for payout</small>
+                                        {% elif earning.status == 'PAID' %}
+                                        <span class="badge badge-success">Paid</span>
+                                        {% elif earning.status == 'CANCELLED' %}
+                                        <span class="badge badge-danger">Cancelled</span>
+                                        <small class="d-block text-muted">Order cancelled</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if earning.confirmed_at %}
+                                        {{ earning.confirmed_at|date:"M d, Y" }}
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if earning.paid_at %}
+                                        {{ earning.paid_at|date:"M d, Y" }}
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if earning.payout_transaction %}
+                                        <a href="{% url 'payout_request_page' %}" class="btn btn-sm btn-outline-primary">
+                                            View Payout
+                                        </a>
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Summary -->
+                    <div class="row mt-4">
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Total Earnings</h6>
+                                    <h4>₹{% widthratio earnings|length 1 1 %}</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-coins fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No earnings yet.</p>
+                        <a href="{% url 'reseller_links_page' %}" class="btn btn-primary">
+                            Create Resell Links
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Box -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h6><i class="fas fa-info-circle"></i> Earning Status Explained</h6>
+                <ul class="mb-0">
+                    <li><strong>Pending:</strong> Order is placed but not yet delivered. Earnings will be confirmed after delivery.</li>
+                    <li><strong>Confirmed:</strong> Order is delivered. Earnings are added to your available balance and ready for payout.</li>
+                    <li><strong>Paid:</strong> Earnings have been paid out to you.</li>
+                    <li><strong>Cancelled:</strong> Order was cancelled. No earnings for this order.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

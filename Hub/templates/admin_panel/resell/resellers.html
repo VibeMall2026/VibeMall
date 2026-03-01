@@ -1,0 +1,164 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Reseller Management - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="fw-bold py-3 mb-4">Reseller Management</h4>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4 col-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <span class="fw-semibold d-block mb-1">Total Resellers</span>
+                    <h3 class="card-title mb-2">{{ total_resellers }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <span class="fw-semibold d-block mb-1">Active Resellers</span>
+                    <h3 class="card-title text-success mb-2">{{ enabled_resellers }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <span class="fw-semibold d-block mb-1">Inactive Resellers</span>
+                    <h3 class="card-title text-warning mb-2">{{ disabled_resellers }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Search</label>
+                    <input type="text" name="search" class="form-control" placeholder="Username, email, business name..." value="{{ filter_search }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All</option>
+                        <option value="enabled" {% if filter_status == 'enabled' %}selected{% endif %}>Active</option>
+                        <option value="disabled" {% if filter_status == 'disabled' %}selected{% endif %}>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary d-block w-100">Apply Filters</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resellers Table -->
+    <div class="card">
+        <h5 class="card-header">All Resellers</h5>
+        <div class="table-responsive text-nowrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Business Name</th>
+                        <th>Total Earnings</th>
+                        <th>Available Balance</th>
+                        <th>Total Orders</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="table-border-bottom-0">
+                    {% for reseller in resellers %}
+                    <tr>
+                        <td><strong>#{{ reseller.id }}</strong></td>
+                        <td>
+                            <div>
+                                <strong>{{ reseller.user.username }}</strong>
+                                <div><small class="text-muted">{{ reseller.user.email }}</small></div>
+                            </div>
+                        </td>
+                        <td>{{ reseller.business_name|default:"-" }}</td>
+                        <td class="text-success"><strong>₹{{ reseller.total_earnings }}</strong></td>
+                        <td class="text-info"><strong>₹{{ reseller.available_balance }}</strong></td>
+                        <td>{{ reseller.total_orders }}</td>
+                        <td>
+                            {% if reseller.is_reseller_enabled %}
+                            <span class="badge bg-label-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-label-warning">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="dropdown">
+                                <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                    <i class="bx bx-dots-vertical-rounded"></i>
+                                </button>
+                                <div class="dropdown-menu">
+                                    <a class="dropdown-item" href="{% url 'admin_reseller_analytics' %}?reseller_id={{ reseller.user.id }}">
+                                        <i class="bx bx-bar-chart me-1"></i> View Analytics
+                                    </a>
+                                    <form method="post" action="{% url 'admin_toggle_reseller_status' reseller.id %}" style="display: inline;">
+                                        {% csrf_token %}
+                                        {% if reseller.is_reseller_enabled %}
+                                        <button type="submit" class="dropdown-item" onclick="return confirm('Disable this reseller?')">
+                                            <i class="bx bx-x-circle me-1"></i> Disable
+                                        </button>
+                                        {% else %}
+                                        <button type="submit" class="dropdown-item" onclick="return confirm('Enable this reseller?')">
+                                            <i class="bx bx-check-circle me-1"></i> Enable
+                                        </button>
+                                        {% endif %}
+                                    </form>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center">No resellers found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filter_search %}&search={{ filter_search }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}">Previous</a>
+            </li>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% else %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ num }}{% if filter_search %}&search={{ filter_search }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}">{{ num }}</a>
+            </li>
+            {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filter_search %}&search={{ filter_search }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}">Next</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

@@ -52,6 +52,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'Hub.middleware.BlockedUserMiddleware',  # Block users who are marked as blocked
+    'Hub.middleware.ResellLinkMiddleware',  # Handle resell links from URL parameters
     # 'livereload.middleware.LiveReloadScript',  # Commented out - not needed
 ]
 

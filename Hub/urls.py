@@ -1,5 +1,7 @@
 from django.urls import path
 from . import views
+from . import views_resell
+from . import views_admin_resell
 
 urlpatterns = [
     # Admin Panel URLs
@@ -62,6 +64,16 @@ urlpatterns = [
     path('admin-panel/returns-analytics/', views.admin_return_analytics, name='admin_return_analytics'),
     path('admin-panel/marketing-studio/', views.admin_marketing_studio, name='admin_marketing_studio'),
     path('admin-panel/razorpay/health/', views.admin_razorpay_health, name='admin_razorpay_health'),
+    
+    # Resell Management URLs (Admin Panel)
+    path('admin-panel/resell/orders/', views_admin_resell.admin_resell_orders, name='admin_resell_orders'),
+    path('admin-panel/resell/analytics/', views_admin_resell.admin_reseller_analytics, name='admin_reseller_analytics'),
+    path('admin-panel/resell/reports/', views_admin_resell.admin_resell_reports, name='admin_resell_reports'),
+    path('admin-panel/resell/resellers/', views_admin_resell.admin_reseller_management, name='admin_reseller_management'),
+    path('admin-panel/resell/resellers/<int:reseller_id>/toggle/', views_admin_resell.admin_toggle_reseller_status, name='admin_toggle_reseller_status'),
+    path('admin-panel/resell/payouts/', views_admin_resell.admin_payout_management, name='admin_payout_management'),
+    path('admin-panel/resell/payouts/<int:payout_id>/approve/', views_admin_resell.admin_approve_payout, name='admin_approve_payout'),
+    path('admin-panel/resell/payouts/<int:payout_id>/reject/', views_admin_resell.admin_reject_payout, name='admin_reject_payout'),
     
     # Reel Management URLs
     path('admin-panel/reels/', views.admin_reels, name='admin_reels'),
@@ -147,4 +159,24 @@ urlpatterns = [
     # Coupon System URLs
     path('api/validate-coupon/', views.validate_coupon, name='validate_coupon'),
     path('api/available-coupons/', views.get_available_coupons, name='available_coupons'),
+    
+    # ============================================
+    # RESELL FEATURE URLs
+    # ============================================
+    
+    # Resell Link Management API
+    path('api/resell/create-link/', views_resell.create_resell_link, name='create_resell_link'),
+    path('api/resell/my-links/', views_resell.my_resell_links, name='my_resell_links'),
+    path('api/resell/deactivate-link/', views_resell.deactivate_resell_link, name='deactivate_resell_link'),
+    path('api/resell/reactivate-link/', views_resell.reactivate_resell_link, name='reactivate_resell_link'),
+    
+    # Reseller Dashboard Pages
+    path('reseller/dashboard/', views_resell.reseller_dashboard, name='reseller_dashboard'),
+    path('reseller/links/', views_resell.reseller_links_page, name='reseller_links'),
+    path('reseller/earnings/', views_resell.earnings_history, name='earnings_history'),
+    path('reseller/profile/', views_resell.reseller_profile_page, name='reseller_profile'),
+    
+    # Payout Management
+    path('reseller/payout/', views_resell.payout_request_page, name='payout_request_page'),
+    path('api/resell/request-payout/', views_resell.request_payout, name='request_payout'),
 ]

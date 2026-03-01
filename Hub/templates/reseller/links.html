@@ -1,0 +1,283 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Resell Links - VibeMall{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">My Resell Links</h2>
+        </div>
+    </div>
+
+    <!-- Create New Link Button -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <button class="btn btn-primary" data-toggle="modal" data-target="#createLinkModal">
+                <i class="fas fa-plus"></i> Create New Resell Link
+            </button>
+        </div>
+    </div>
+
+    <!-- Links Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    {% if links %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Base Price</th>
+                                    <th>Margin</th>
+                                    <th>Customer Price</th>
+                                    <th>Views</th>
+                                    <th>Orders</th>
+                                    <th>Earnings</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for link in links %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if link.product.image %}
+                                            <img src="{{ link.product.image.url }}" alt="{{ link.product.name }}" 
+                                                 style="width: 40px; height: 40px; object-fit: cover; margin-right: 10px;">
+                                            {% endif %}
+                                            <span>{{ link.product.name }}</span>
+                                        </div>
+                                    </td>
+                                    <td>₹{{ link.product.price }}</td>
+                                    <td>₹{{ link.margin_amount }} ({{ link.margin_percentage|floatformat:1 }}%)</td>
+                                    <td class="font-weight-bold">₹{{ link.product.price|add:link.margin_amount }}</td>
+                                    <td>{{ link.views_count }}</td>
+                                    <td>{{ link.orders_count }}</td>
+                                    <td class="text-success">₹{{ link.total_earnings }}</td>
+                                    <td>
+                                        {% if link.is_active %}
+                                        <span class="badge badge-success">Active</span>
+                                        {% else %}
+                                        <span class="badge badge-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary copy-link" 
+                                                data-link="{{ request.scheme }}://{{ request.get_host }}/product/{{ link.product.slug }}/?resell={{ link.resell_code }}">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                        {% if link.is_active %}
+                                        <button class="btn btn-sm btn-outline-warning toggle-link" 
+                                                data-link-id="{{ link.id }}" data-action="deactivate">
+                                            <i class="fas fa-pause"></i>
+                                        </button>
+                                        {% else %}
+                                        <button class="btn btn-sm btn-outline-success toggle-link" 
+                                                data-link-id="{{ link.id }}" data-action="reactivate">
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-link fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">You haven't created any resell links yet.</p>
+                        <button class="btn btn-primary" data-toggle="modal" data-target="#createLinkModal">
+                            Create Your First Link
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Link Modal -->
+<div class="modal fade" id="createLinkModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Resell Link</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="createLinkForm">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="product_id">Select Product</label>
+                        <select class="form-control" id="product_id" name="product_id" required>
+                            <option value="">Choose a product...</option>
+                            {% for product in products %}
+                            <option value="{{ product.id }}" data-price="{{ product.price }}">
+                                {{ product.name }} - ₹{{ product.price }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="margin_amount">Your Margin (₹)</label>
+                        <input type="number" class="form-control" id="margin_amount" name="margin_amount" 
+                               step="0.01" min="0.01" required>
+                        <small class="form-text text-muted">
+                            Maximum: <span id="max_margin">-</span> (50% of product price)
+                        </small>
+                    </div>
+                    <div class="alert alert-info">
+                        <strong>Margin Percentage:</strong> <span id="margin_percentage">0%</span><br>
+                        <strong>Customer Price:</strong> ₹<span id="customer_price">0.00</span>
+                    </div>
+                    <div id="linkResult" class="alert alert-success" style="display: none;">
+                        <strong>Link Created!</strong><br>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" id="shareable_url" readonly>
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-secondary" type="button" id="copyUrlBtn">
+                                    <i class="fas fa-copy"></i> Copy
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="linkError" class="alert alert-danger" style="display: none;"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="createLinkBtn">Create Link</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Calculate margin percentage and customer price
+document.getElementById('product_id').addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    const basePrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+    const maxMargin = (basePrice * 0.5).toFixed(2);
+    document.getElementById('max_margin').textContent = '₹' + maxMargin;
+    updateCalculations();
+});
+
+document.getElementById('margin_amount').addEventListener('input', updateCalculations);
+
+function updateCalculations() {
+    const productSelect = document.getElementById('product_id');
+    const selectedOption = productSelect.options[productSelect.selectedIndex];
+    const basePrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+    const marginAmount = parseFloat(document.getElementById('margin_amount').value) || 0;
+    
+    if (basePrice > 0 && marginAmount > 0) {
+        const marginPercentage = ((marginAmount / basePrice) * 100).toFixed(2);
+        const customerPrice = (basePrice + marginAmount).toFixed(2);
+        
+        document.getElementById('margin_percentage').textContent = marginPercentage + '%';
+        document.getElementById('customer_price').textContent = customerPrice;
+    } else {
+        document.getElementById('margin_percentage').textContent = '0%';
+        document.getElementById('customer_price').textContent = '0.00';
+    }
+}
+
+// Create link
+document.getElementById('createLinkBtn').addEventListener('click', function() {
+    const formData = new FormData(document.getElementById('createLinkForm'));
+    const btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Creating...';
+    
+    fetch('{% url "create_resell_link" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('linkResult').style.display = 'block';
+            document.getElementById('linkError').style.display = 'none';
+            document.getElementById('shareable_url').value = data.resell_link.shareable_url;
+            document.getElementById('createLinkForm').reset();
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            document.getElementById('linkError').textContent = data.error;
+            document.getElementById('linkError').style.display = 'block';
+            document.getElementById('linkResult').style.display = 'none';
+        }
+    })
+    .catch(error => {
+        document.getElementById('linkError').textContent = 'An error occurred. Please try again.';
+        document.getElementById('linkError').style.display = 'block';
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.textContent = 'Create Link';
+    });
+});
+
+// Copy URL
+document.getElementById('copyUrlBtn').addEventListener('click', function() {
+    const urlInput = document.getElementById('shareable_url');
+    urlInput.select();
+    navigator.clipboard.writeText(urlInput.value);
+    this.innerHTML = '<i class="fas fa-check"></i> Copied!';
+    setTimeout(() => {
+        this.innerHTML = '<i class="fas fa-copy"></i> Copy';
+    }, 2000);
+});
+
+// Copy link buttons
+document.querySelectorAll('.copy-link').forEach(button => {
+    button.addEventListener('click', function() {
+        const link = this.getAttribute('data-link');
+        navigator.clipboard.writeText(link).then(() => {
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-check"></i>';
+            setTimeout(() => {
+                this.innerHTML = originalText;
+            }, 2000);
+        });
+    });
+});
+
+// Toggle link status
+document.querySelectorAll('.toggle-link').forEach(button => {
+    button.addEventListener('click', function() {
+        const linkId = this.getAttribute('data-link-id');
+        const action = this.getAttribute('data-action');
+        const url = action === 'deactivate' ? '{% url "deactivate_resell_link" %}' : '{% url "reactivate_resell_link" %}';
+        
+        const formData = new FormData();
+        formData.append('link_id', linkId);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        fetch(url, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.error);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

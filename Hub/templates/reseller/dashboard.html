@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Reseller Dashboard - VibeMall{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">Reseller Dashboard</h2>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">Available Balance</h6>
+                    <h3 class="card-title text-success">₹{{ profile.available_balance }}</h3>
+                    <a href="{% url 'payout_request_page' %}" class="btn btn-sm btn-primary mt-2">Request Payout</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">Total Earnings</h6>
+                    <h3 class="card-title">₹{{ profile.total_earnings }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">Pending Earnings</h6>
+                    <h3 class="card-title text-warning">₹{{ pending_earnings }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">Total Orders</h6>
+                    <h3 class="card-title">{{ profile.total_orders }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Quick Actions</h5>
+                    <div class="btn-group" role="group">
+                        <a href="{% url 'reseller_links_page' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-link"></i> Manage Links
+                        </a>
+                        <a href="{% url 'earnings_history' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-history"></i> Earnings History
+                        </a>
+                        <a href="{% url 'payout_request_page' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-money-bill-wave"></i> Request Payout
+                        </a>
+                        <a href="{% url 'reseller_profile_page' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-user-cog"></i> Profile Settings
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Orders -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Orders</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_orders %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Customer</th>
+                                    <th>Date</th>
+                                    <th>Total Amount</th>
+                                    <th>Your Margin</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in recent_orders %}
+                                <tr>
+                                    <td>#{{ order.order_number }}</td>
+                                    <td>{{ order.user.get_full_name|default:order.user.username }}</td>
+                                    <td>{{ order.created_at|date:"M d, Y" }}</td>
+                                    <td>₹{{ order.total_amount }}</td>
+                                    <td class="text-success">₹{{ order.total_margin }}</td>
+                                    <td>
+                                        <span class="badge badge-{{ order.order_status|lower }}">
+                                            {{ order.get_order_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No orders yet. Start sharing your resell links!</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Links -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Active Resell Links</h5>
+                    <a href="{% url 'reseller_links_page' %}" class="btn btn-sm btn-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if active_links %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Margin</th>
+                                    <th>Views</th>
+                                    <th>Orders</th>
+                                    <th>Earnings</th>
+                                    <th>Link</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for link in active_links %}
+                                <tr>
+                                    <td>{{ link.product.name }}</td>
+                                    <td>₹{{ link.margin_amount }} ({{ link.margin_percentage|floatformat:1 }}%)</td>
+                                    <td>{{ link.views_count }}</td>
+                                    <td>{{ link.orders_count }}</td>
+                                    <td class="text-success">₹{{ link.total_earnings }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-secondary copy-link" 
+                                                data-link="{{ request.scheme }}://{{ request.get_host }}/product/{{ link.product.slug }}/?resell={{ link.resell_code }}">
+                                            <i class="fas fa-copy"></i> Copy
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No active links. <a href="{% url 'reseller_links_page' %}">Create your first resell link</a></p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.copy-link').forEach(button => {
+    button.addEventListener('click', function() {
+        const link = this.getAttribute('data-link');
+        navigator.clipboard.writeText(link).then(() => {
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            setTimeout(() => {
+                this.innerHTML = originalText;
+            }, 2000);
+        });
+    });
+});
+</script>
+{% endblock %}

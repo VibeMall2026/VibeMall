@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Request Payout - VibeMall{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">Request Payout</h2>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Payout Request Form -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">New Payout Request</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>Available Balance:</strong> ₹{{ profile.available_balance }}
+                    </div>
+                    
+                    <form id="payoutForm">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="amount">Payout Amount (₹)</label>
+                            <input type="number" class="form-control" id="amount" name="amount" 
+                                   step="0.01" min="1" max="{{ profile.available_balance }}" required>
+                            <small class="form-text text-muted">
+                                Maximum: ₹{{ profile.available_balance }}
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="payout_method">Payout Method</label>
+                            <select class="form-control" id="payout_method" name="payout_method" required>
+                                <option value="">Select method...</option>
+                                <option value="BANK_TRANSFER">Bank Transfer</option>
+                                <option value="UPI">UPI</option>
+                            </select>
+                        </div>
+
+                        <!-- Bank Transfer Fields -->
+                        <div id="bankFields" style="display: none;">
+                            <div class="form-group">
+                                <label for="bank_account_number">Bank Account Number</label>
+                                <input type="text" class="form-control" id="bank_account_number" 
+                                       name="bank_account_number" value="{{ profile.bank_account_number }}">
+                            </div>
+                            <div class="form-group">
+                                <label for="bank_ifsc_code">IFSC Code</label>
+                                <input type="text" class="form-control" id="bank_ifsc_code" 
+                                       name="bank_ifsc_code" value="{{ profile.bank_ifsc_code }}">
+                            </div>
+                        </div>
+
+                        <!-- UPI Fields -->
+                        <div id="upiFields" style="display: none;">
+                            <div class="form-group">
+                                <label for="upi_id">UPI ID</label>
+                                <input type="text" class="form-control" id="upi_id" 
+                                       name="upi_id" value="{{ profile.upi_id }}" placeholder="yourname@upi">
+                            </div>
+                        </div>
+
+                        <div id="payoutSuccess" class="alert alert-success" style="display: none;">
+                            Payout request submitted successfully! It will be processed by admin.
+                        </div>
+                        <div id="payoutError" class="alert alert-danger" style="display: none;"></div>
+
+                        <button type="submit" class="btn btn-primary btn-block" id="submitBtn">
+                            Submit Payout Request
+                        </button>
+                    </form>
+
+                    <hr class="my-4">
+
+                    <div class="text-muted small">
+                        <p><strong>Note:</strong></p>
+                        <ul>
+                            <li>Payout requests are processed manually by admin</li>
+                            <li>Processing time: 2-3 business days</li>
+                            <li>Ensure your payment details are correct</li>
+                            <li>You can update payment details in <a href="{% url 'reseller_profile_page' %}">Profile Settings</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payout History -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Payout History</h5>
+                </div>
+                <div class="card-body">
+                    {% if payouts %}
+                    <div class="list-group">
+                        {% for payout in payouts %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">₹{{ payout.amount }}</h6>
+                                    <small class="text-muted">
+                                        {{ payout.get_payout_method_display }} • 
+                                        {{ payout.initiated_at|date:"M d, Y" }}
+                                    </small>
+                                </div>
+                                <div>
+                                    {% if payout.status == 'INITIATED' %}
+                                    <span class="badge badge-warning">Pending</span>
+                                    {% elif payout.status == 'PROCESSING' %}
+                                    <span class="badge badge-info">Processing</span>
+                                    {% elif payout.status == 'COMPLETED' %}
+                                    <span class="badge badge-success">Completed</span>
+                                    {% elif payout.status == 'FAILED' %}
+                                    <span class="badge badge-danger">Failed</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if payout.transaction_id %}
+                            <small class="text-muted d-block mt-1">
+                                Transaction ID: {{ payout.transaction_id }}
+                            </small>
+                            {% endif %}
+                            {% if payout.admin_notes %}
+                            <small class="text-muted d-block mt-1">
+                                Note: {{ payout.admin_notes }}
+                            </small>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center py-4">No payout requests yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Show/hide payment fields based on method
+document.getElementById('payout_method').addEventListener('change', function() {
+    const method = this.value;
+    document.getElementById('bankFields').style.display = method === 'BANK_TRANSFER' ? 'block' : 'none';
+    document.getElementById('upiFields').style.display = method === 'UPI' ? 'block' : 'none';
+});
+
+// Submit payout request
+document.getElementById('payoutForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Processing...';
+    
+    fetch('{% url "request_payout" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('payoutSuccess').style.display = 'block';
+            document.getElementById('payoutError').style.display = 'none';
+            document.getElementById('payoutForm').reset();
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            document.getElementById('payoutError').textContent = data.error;
+            document.getElementById('payoutError').style.display = 'block';
+            document.getElementById('payoutSuccess').style.display = 'none';
+        }
+    })
+    .catch(error => {
+        document.getElementById('payoutError').textContent = 'An error occurred. Please try again.';
+        document.getElementById('payoutError').style.display = 'block';
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Payout Request';
+    });
+});
+</script>
+{% endblock %}

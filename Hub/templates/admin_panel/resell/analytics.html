@@ -1,0 +1,219 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Reseller Analytics - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold mb-1">
+                <i class="bx bx-bar-chart me-2"></i>Reseller Analytics
+            </h4>
+            <p class="text-muted mb-0">Performance metrics and analytics for all resellers</p>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="card-info">
+                            <p class="card-text">Total Resellers</p>
+                            <h4 class="card-title mb-0">{{ total_resellers }}</h4>
+                        </div>
+                        <div class="card-icon">
+                            <span class="badge bg-label-primary rounded p-2">
+                                <i class="bx bx-user bx-sm"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="card-info">
+                            <p class="card-text">Total Orders</p>
+                            <h4 class="card-title mb-0">{{ total_orders }}</h4>
+                        </div>
+                        <div class="card-icon">
+                            <span class="badge bg-label-success rounded p-2">
+                                <i class="bx bx-shopping-bag bx-sm"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="card-info">
+                            <p class="card-text">Total Revenue</p>
+                            <h4 class="card-title mb-0">₹{{ total_revenue|floatformat:2 }}</h4>
+                        </div>
+                        <div class="card-icon">
+                            <span class="badge bg-label-warning rounded p-2">
+                                <i class="bx bx-rupee bx-sm"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="card-info">
+                            <p class="card-text">Total Margin</p>
+                            <h4 class="card-title mb-0">₹{{ total_margin|floatformat:2 }}</h4>
+                        </div>
+                        <div class="card-icon">
+                            <span class="badge bg-label-info rounded p-2">
+                                <i class="bx bx-trending-up bx-sm"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Performers -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="bx bx-trophy me-2"></i>Top Performing Resellers
+            </h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Reseller</th>
+                        <th>Business Name</th>
+                        <th>Total Earnings</th>
+                        <th>Available Balance</th>
+                        <th>Total Orders</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reseller in top_resellers %}
+                    <tr>
+                        <td><strong>#{{ forloop.counter }}</strong></td>
+                        <td>{{ reseller.user.username }}</td>
+                        <td>{{ reseller.business_name|default:"-" }}</td>
+                        <td><strong>₹{{ reseller.total_earnings|floatformat:2 }}</strong></td>
+                        <td>₹{{ reseller.available_balance|floatformat:2 }}</td>
+                        <td>{{ reseller.total_orders }}</td>
+                        <td>
+                            <a href="{% url 'admin_reseller_analytics' %}?reseller_id={{ reseller.user.id }}" class="btn btn-sm btn-label-primary">
+                                <i class="bx bx-show me-1"></i>View Details
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- All Resellers -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">All Resellers</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Reseller</th>
+                        <th>Business Name</th>
+                        <th>Total Earnings</th>
+                        <th>Available Balance</th>
+                        <th>Total Orders</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reseller in resellers %}
+                    <tr>
+                        <td>{{ reseller.user.username }}</td>
+                        <td>{{ reseller.business_name|default:"-" }}</td>
+                        <td>₹{{ reseller.total_earnings|floatformat:2 }}</td>
+                        <td>₹{{ reseller.available_balance|floatformat:2 }}</td>
+                        <td>{{ reseller.total_orders }}</td>
+                        <td>
+                            {% if reseller.is_reseller_enabled %}
+                            <span class="badge bg-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'admin_reseller_analytics' %}?reseller_id={{ reseller.user.id }}" class="btn btn-sm btn-icon btn-label-primary">
+                                <i class="bx bx-show"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4">
+                            <i class="bx bx-info-circle bx-lg text-muted"></i>
+                            <p class="text-muted mt-2">No resellers found</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="card-footer">
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+                            <i class="tf-icon bx bx-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+                            <i class="tf-icon bx bx-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
