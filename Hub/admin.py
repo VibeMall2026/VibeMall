@@ -356,7 +356,7 @@ class OrderAdmin(admin.ModelAdmin):
             'fields': ('customer_notes', 'admin_notes')
         }),
         ('🔄 RESELL', {
-            'fields': ('is_resell',)
+            'fields': ('is_resell', 'reseller', 'resell_link', 'base_amount', 'total_margin', 'resell_from_name', 'resell_from_phone')
         }),
     )
     

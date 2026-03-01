@@ -67,7 +67,7 @@
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="order-type-card" style="cursor: pointer; display: block; padding: 20px; border: 2px solid #ddd; border-radius: 10px; transition: all 0.3s;">
-                                        <input type="radio" name="order_type" value="for_self" id="order_type_self" checked style="margin-right: 10px;">
+                                        <input type="radio" name="order_type" value="for_self" id="order_type_self" {% if selected_order_type != 'for_resell' and not resell_link %}checked{% endif %} {% if resell_link %}disabled{% endif %} style="margin-right: 10px;">
                                         <div class="d-flex align-items-center gap-3">
                                             <div style="font-size: 2.5rem;">🛍️</div>
                                             <div>
@@ -79,7 +79,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="order-type-card" style="cursor: pointer; display: block; padding: 20px; border: 2px solid #ddd; border-radius: 10px; transition: all 0.3s;">
-                                        <input type="radio" name="order_type" value="for_resell" id="order_type_resell" style="margin-right: 10px;">
+                                        <input type="radio" name="order_type" value="for_resell" id="order_type_resell" {% if selected_order_type == 'for_resell' or resell_link %}checked{% endif %} style="margin-right: 10px;">
                                         <div class="d-flex align-items-center gap-3">
                                             <div style="font-size: 2.5rem;">🔄</div>
                                             <div>
@@ -99,7 +99,7 @@
                 <div class="col-lg-6" id="billing_details_section">
                     <!-- FOR SELF: Normal Billing Details -->
                     <div class="checkbox-form" id="for_self_section">
-                        <h3>Billing Details</h3>
+                        <h3 id="toDetailsHeading">Billing Details</h3>
                         {% if default_address %}
                         <div class="alert alert-light border d-flex align-items-center justify-content-between" style="gap: 10px;">
                             <div>
@@ -235,24 +235,17 @@
                                 <input type="hidden" name="is_resell" value="on">
                                 <input type="hidden" name="from_name" value="{{ resell_link.reseller.get_full_name|default:resell_link.reseller.username }}">
                                 <input type="hidden" name="from_phone" value="{{ resell_link.reseller.userprofile.mobile_number|default:'' }}">
+                                <input type="hidden" name="resell_margin" value="{{ resell_link.margin_amount|default:'0' }}">
                             </div>
                             {% else %}
-                            <!-- Manual Resell Option (Only if no automatic detection) -->
-                            <div class="col-md-12 mt-3">
-                                <div class="checkout-form-list create-acc">
-                                    <input type="checkbox" id="is_resell" name="is_resell" {% if checkout_form.is_resell %}checked{% endif %}>
-                                    <label for="is_resell" style="display: inline; margin-left: 5px;">
-                                        <strong>🔄 Is this a Resell Order?</strong> (Check if you're reselling this product)
-                                    </label>
-                                </div>
-                            </div>
-                            
+                            <input type="hidden" id="is_resell_hidden" name="is_resell" value="{% if selected_order_type == 'for_resell' %}on{% endif %}">
+
                             <!-- Resell FROM Details (Hidden by default) -->
-                            <div id="resell_from_section" style="display: none;" class="col-md-12 mt-3">
+                            <div id="resell_from_section" style="{% if selected_order_type == 'for_resell' %}display: block;{% else %}display: none;{% endif %}" class="col-md-12 mt-3">
                                 <div class="card" style="background-color: #f8f9fa; border: 2px dashed #007bff;">
                                     <div class="card-body">
                                         <h6 class="mb-3" style="color: #007bff;">
-                                            <i class="fas fa-user-tie"></i> FROM Details (Original Seller)
+                                            <i class="fas fa-user-tie"></i> FROM Details (Reseller)
                                         </h6>
                                         <div class="row">
                                             <div class="col-md-6 mb-3">
@@ -263,9 +256,14 @@
                                                 <label>FROM Phone <span class="required">*</span></label>
                                                 <input type="text" id="from_phone" name="from_phone" value="{{ checkout_form.from_phone|default:user_profile.mobile_number|default:'' }}" class="form-control">
                                             </div>
+                                            <div class="col-md-12 mb-3">
+                                                <label>Add Margin Per Item (₹) <span class="required">*</span></label>
+                                                <input type="number" id="resell_margin" name="resell_margin" min="0" step="0.01" value="{{ checkout_form.resell_margin|default:'0' }}" class="form-control">
+                                                <small class="text-muted">This margin is added to each product quantity.</small>
+                                            </div>
                                         </div>
                                         <small class="text-muted">
-                                            <i class="fas fa-info-circle"></i> These details will appear on the invoice as the original seller. You can edit them if needed.
+                                            <i class="fas fa-info-circle"></i> These FROM details will appear on resell invoices. TO details are entered in the billing form above.
                                         </small>
                                     </div>
                                 </div>
@@ -309,7 +307,7 @@
                                 <tfoot>
                                     <tr class="cart-subtotal">
                                         <th>Cart Subtotal</th>
-                                        <td><span class="amount">&#8377;{{ total_price|floatformat:2 }}</span></td>
+                                        <td><span class="amount" id="cart_subtotal_amount">&#8377;{{ total_price|floatformat:2 }}</span></td>
                                     </tr>
                                     
                                     <!-- Resell Margin (Only shown for resell orders) -->
@@ -334,18 +332,30 @@
                                         </td>
                                     </tr>
                                     {% endif %}
+                                    <tr class="resell-margin" id="manual_resell_margin_row" style="background-color: #fff3cd; {% if resell_link or selected_order_type != 'for_resell' %}display: none;{% endif %}">
+                                        <th>
+                                            <span style="color: #856404;">
+                                                <i class="fas fa-share-alt"></i> Reseller Margin
+                                            </span>
+                                        </th>
+                                        <td>
+                                            <span class="amount" style="color: #856404; font-weight: 600;" id="manual_resell_margin_amount">
+                                                +&#8377;{{ manual_resell_margin_total|floatformat:2 }}
+                                            </span>
+                                        </td>
+                                    </tr>
                                     
                                     <tr class="tax">
                                         <th>Tax (5%)</th>
-                                        <td><span class="amount">&#8377;{{ tax_amount|floatformat:2 }}</span></td>
+                                        <td><span class="amount" id="tax_amount_value">&#8377;{{ tax_amount|floatformat:2 }}</span></td>
                                     </tr>
                                     <tr class="shipping">
                                         <th>Shipping</th>
                                         <td>
                                             {% if total_price > 500 %}
-                                                <span class="amount" style="color: green;">FREE</span>
+                                                <span class="amount" id="shipping_cost_value" style="color: green;">FREE</span>
                                             {% else %}
-                                                <span class="amount">&#8377;50.00</span>
+                                                <span class="amount" id="shipping_cost_value">&#8377;50.00</span>
                                             {% endif %}
                                         </td>
                                     </tr>
@@ -489,24 +499,118 @@
 <!-- checkout-area-end -->
 
 <script>
-// Show/hide resell FROM section when checkbox is toggled
-document.getElementById('is_resell').addEventListener('change', function() {
-    const resellSection = document.getElementById('resell_from_section');
-    if (this.checked) {
-        resellSection.style.display = 'block';
-    } else {
-        resellSection.style.display = 'none';
-    }
-});
+// ===== ORDER TYPE (FOR SELF / FOR RESELL) =====
+const orderTypeSelf = document.getElementById('order_type_self');
+const orderTypeResell = document.getElementById('order_type_resell');
+const resellFromSection = document.getElementById('resell_from_section');
+const isResellHidden = document.getElementById('is_resell_hidden');
+const toDetailsHeading = document.getElementById('toDetailsHeading');
+const fromNameField = document.getElementById('from_name');
+const fromPhoneField = document.getElementById('from_phone');
+const marginField = document.getElementById('resell_margin');
+const manualMarginRow = document.getElementById('manual_resell_margin_row');
+const manualMarginAmount = document.getElementById('manual_resell_margin_amount');
+const subtotalDisplay = document.getElementById('cart_subtotal_amount');
+const taxDisplay = document.getElementById('tax_amount_value');
+const shippingDisplay = document.getElementById('shipping_cost_value');
+const checkoutFormEl = document.getElementById('checkoutForm');
 
-// Show resell section on load if already checked
-(function () {
-    const resellCheckbox = document.getElementById('is_resell');
-    const resellSection = document.getElementById('resell_from_section');
-    if (resellCheckbox && resellSection && resellCheckbox.checked) {
-        resellSection.style.display = 'block';
+const baseCartSubtotal = Number('{{ cart_base_total|default:0|floatformat:2 }}');
+const totalItemQty = Number('{{ total_item_qty|default:0 }}');
+const hasAutoResellLink = {% if resell_link %}true{% else %}false{% endif %};
+
+function isManualResellSelected() {
+    return !hasAutoResellLink && !!orderTypeResell && orderTypeResell.checked;
+}
+
+function currentMarginPerItem() {
+    if (hasAutoResellLink) {
+        return Number('{{ manual_resell_margin_per_unit|default:0|floatformat:2 }}');
     }
-})();
+    const value = marginField ? Number(marginField.value || 0) : 0;
+    return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+function calculateSubtotalWithMargin() {
+    if (hasAutoResellLink) {
+        const marginTotal = currentMarginPerItem() * totalItemQty;
+        return baseCartSubtotal + marginTotal;
+    }
+    if (!isManualResellSelected()) {
+        return baseCartSubtotal;
+    }
+    return baseCartSubtotal + (currentMarginPerItem() * totalItemQty);
+}
+
+function calculateBaseTotalBeforeDiscounts() {
+    const subtotal = calculateSubtotalWithMargin();
+    const tax = subtotal * 0.05;
+    const shipping = subtotal > 500 ? 0 : 50;
+
+    if (subtotalDisplay) {
+        subtotalDisplay.textContent = `₹${subtotal.toFixed(2)}`;
+    }
+    if (taxDisplay) {
+        taxDisplay.textContent = `₹${tax.toFixed(2)}`;
+    }
+    if (shippingDisplay) {
+        if (shipping === 0) {
+            shippingDisplay.textContent = 'FREE';
+            shippingDisplay.style.color = 'green';
+        } else {
+            shippingDisplay.textContent = `₹${shipping.toFixed(2)}`;
+            shippingDisplay.style.color = '';
+        }
+    }
+    if (manualMarginRow && manualMarginAmount) {
+        const marginTotal = currentMarginPerItem() * totalItemQty;
+        if (hasAutoResellLink || isManualResellSelected()) {
+            manualMarginRow.style.display = hasAutoResellLink ? 'none' : 'table-row';
+            manualMarginAmount.textContent = `+₹${marginTotal.toFixed(2)}`;
+        } else {
+            manualMarginRow.style.display = 'none';
+        }
+    }
+
+    return subtotal + tax + shipping;
+}
+
+function applyOrderTypeUI() {
+    const isResell = hasAutoResellLink || (orderTypeResell && orderTypeResell.checked);
+
+    if (resellFromSection) {
+        resellFromSection.style.display = isResell ? 'block' : 'none';
+    }
+    if (isResellHidden) {
+        isResellHidden.value = isResell ? 'on' : '';
+    }
+    if (toDetailsHeading) {
+        toDetailsHeading.textContent = isResell ? 'TO (Customer) Details' : 'Billing Details';
+    }
+    if (fromNameField) {
+        fromNameField.required = !!isResell;
+    }
+    if (fromPhoneField) {
+        fromPhoneField.required = !!isResell;
+    }
+    if (marginField) {
+        marginField.required = !!isResell;
+    }
+    updateFinalTotal();
+}
+
+if (checkoutFormEl) {
+    if (orderTypeSelf) {
+        orderTypeSelf.addEventListener('change', applyOrderTypeUI);
+    }
+    if (orderTypeResell) {
+        orderTypeResell.addEventListener('change', applyOrderTypeUI);
+    }
+    if (marginField) {
+        marginField.addEventListener('input', updateFinalTotal);
+    }
+    applyOrderTypeUI();
+}
 
 // Sync radio button with accordion
 document.querySelectorAll('.accordion-button').forEach(button => {
@@ -532,19 +636,17 @@ const pointsToRedeemInput = document.getElementById('points_to_redeem');
 const pointsDiscountRow = document.getElementById('points_discount_row');
 const pointsDiscountAmount = document.getElementById('points_discount_amount');
 const finalTotalDisplay = document.getElementById('final_total_display');
-
-const baseTotal = {{ final_total }};
 const maxPoints = {{ loyalty_account.points_available }};
 
 if (redeemCheckbox) {
     redeemCheckbox.addEventListener('change', function() {
         if (this.checked) {
             pointsDiscountRow.style.display = 'table-row';
-            pointsToRedeemInput.value = Math.min(maxPoints, Math.floor(baseTotal)); // Max discount = total amount
+            pointsToRedeemInput.value = Math.min(maxPoints, Math.floor(calculateBaseTotalBeforeDiscounts()));
         } else {
             pointsDiscountRow.style.display = 'none';
             pointsToRedeemInput.value = 0;
-            updateTotal(0);
+            updateFinalTotal();
         }
     });
 
@@ -552,22 +654,14 @@ if (redeemCheckbox) {
         pointsToRedeemInput.addEventListener('input', function() {
             let points = parseInt(this.value) || 0;
             // Limit points to not exceed order total
-            const maxDiscount = Math.floor(baseTotal);
+            const maxDiscount = Math.floor(calculateBaseTotalBeforeDiscounts());
             points = Math.min(points, maxPoints);
             points = Math.min(points, maxDiscount);
             
             this.value = points;
-            updateTotal(points);
+            updateFinalTotal();
         });
     }
-}
-
-function updateTotal(pointsRedeemed) {
-    const discount = pointsRedeemed * 0.03; // 1 point = ₹0.03
-    const newTotal = baseTotal - discount;
-    
-    pointsDiscountAmount.textContent = `-₹${discount.toFixed(2)}`;
-    finalTotalDisplay.textContent = `₹${newTotal.toFixed(2)}`;
 }
 {% endif %}
 
@@ -726,28 +820,36 @@ function updateTotal(pointsRedeemed) {
 
 // ===== COUPON SYSTEM =====
 let appliedCoupon = null;
-const cartTotal = {{ final_total }};
 
 // Apply Coupon
-document.getElementById('applyCoupon').addEventListener('click', function() {
-    const code = document.getElementById('couponCode').value.trim().toUpperCase();
-    if (!code) {
-        showCouponMessage('Please enter a coupon code', 'warning');
-        return;
-    }
-    
-    applyCouponCode(code);
-});
+const applyCouponBtn = document.getElementById('applyCoupon');
+if (applyCouponBtn) {
+    applyCouponBtn.addEventListener('click', function() {
+        const code = document.getElementById('couponCode').value.trim().toUpperCase();
+        if (!code) {
+            showCouponMessage('Please enter a coupon code', 'warning');
+            return;
+        }
+        
+        applyCouponCode(code);
+    });
+}
 
 // View Available Coupons
-document.getElementById('viewAvailableCoupons').addEventListener('click', function() {
-    showAvailableCouponsPopup();
-});
+const viewCouponsBtn = document.getElementById('viewAvailableCoupons');
+if (viewCouponsBtn) {
+    viewCouponsBtn.addEventListener('click', function() {
+        showAvailableCouponsPopup();
+    });
+}
 
 // Remove Coupon
-document.getElementById('removeCoupon').addEventListener('click', function() {
-    removeCoupon();
-});
+const removeCouponBtn = document.getElementById('removeCoupon');
+if (removeCouponBtn) {
+    removeCouponBtn.addEventListener('click', function() {
+        removeCoupon();
+    });
+}
 
 function applyCouponCode(code) {
     fetch('/api/validate-coupon/', {
@@ -758,7 +860,7 @@ function applyCouponCode(code) {
         },
         body: JSON.stringify({
             code: code,
-            cart_total: cartTotal
+            cart_total: calculateBaseTotalBeforeDiscounts()
         })
     })
     .then(res => res.json())
@@ -806,7 +908,7 @@ function removeCoupon() {
 }
 
 function updateFinalTotal() {
-    let total = cartTotal;
+    let total = calculateBaseTotalBeforeDiscounts();
     
     // Apply coupon discount
     if (appliedCoupon) {
@@ -827,7 +929,19 @@ function updateFinalTotal() {
     // Ensure total is not negative
     if (total < 0) total = 0;
     
-    document.getElementById('final_total_display').textContent = '₹' + total.toFixed(2);
+    const finalTotalDisplay = document.getElementById('final_total_display');
+    if (finalTotalDisplay) {
+        finalTotalDisplay.textContent = '₹' + total.toFixed(2);
+    }
+    {% if user.is_authenticated and loyalty_account and loyalty_account.points_available > 0 %}
+    const pointsToRedeemInput = document.getElementById('points_to_redeem');
+    const pointsDiscountAmount = document.getElementById('points_discount_amount');
+    if (pointsToRedeemInput && pointsDiscountAmount) {
+        const points = parseInt(pointsToRedeemInput.value) || 0;
+        const pointsDiscount = points * 0.03;
+        pointsDiscountAmount.textContent = `-₹${pointsDiscount.toFixed(2)}`;
+    }
+    {% endif %}
 }
 
 function showCouponMessage(message, type) {
@@ -844,7 +958,7 @@ function showAvailableCouponsPopup() {
             'X-CSRFToken': getCookie('csrftoken')
         },
         body: JSON.stringify({
-            cart_total: cartTotal
+            cart_total: calculateBaseTotalBeforeDiscounts()
         })
     })
     .then(res => res.json())

@@ -4964,25 +4964,33 @@ def buy_now(request, product_id):
 def checkout(request):
     """Dynamic Checkout Page"""
     cart_items, buy_now_item, total_price = _get_checkout_items(request)
+    base_cart_total = Decimal(str(total_price))
+    total_item_qty = _get_checkout_total_quantity(cart_items)
     
     # Handle form submission
     if request.method == 'POST':
         # Get form data
-        first_name = request.POST.get('first_name')
-        last_name = request.POST.get('last_name')
-        email = request.POST.get('email')
-        phone = request.POST.get('phone')
-        country = request.POST.get('country')
-        address = request.POST.get('address')
-        city = request.POST.get('city')
-        state = request.POST.get('state')
-        postcode = request.POST.get('postcode')
+        first_name = (request.POST.get('first_name') or '').strip()
+        last_name = (request.POST.get('last_name') or '').strip()
+        email = (request.POST.get('email') or '').strip()
+        phone = (request.POST.get('phone') or '').strip()
+        country = (request.POST.get('country') or '').strip()
+        address = (request.POST.get('address') or '').strip()
+        city = (request.POST.get('city') or '').strip()
+        state = (request.POST.get('state') or '').strip()
+        postcode = (request.POST.get('postcode') or '').strip()
         pincode_valid = request.POST.get('pincode_valid', '')
+        order_type = request.POST.get('order_type', 'for_self')
         payment_method = request.POST.get('payment_method', 'COD')
         customer_notes = request.POST.get('customer_notes', '')
-        is_resell = request.POST.get('is_resell') == 'on'
+        is_resell = (order_type == 'for_resell') or (request.POST.get('is_resell') == 'on')
         use_default_address = request.POST.get('use_default_address') == 'on'
         set_default_address = request.POST.get('set_default_address') == 'on'
+        resell_margin_raw = normalize_decimal_input(request.POST.get('resell_margin', '0'))
+        try:
+            resell_margin_per_unit = Decimal(resell_margin_raw or '0')
+        except Exception:
+            resell_margin_per_unit = Decimal('0')
         
         # Loyalty points redemption
         redeem_points = request.POST.get('redeem_points') == 'on'
@@ -5004,8 +5012,8 @@ def checkout(request):
             })
         
         # Resell FROM details
-        from_name = request.POST.get('from_name', '')
-        from_phone = request.POST.get('from_phone', '')
+        from_name = (request.POST.get('from_name') or '').strip()
+        from_phone = (request.POST.get('from_phone') or '').strip()
 
         if use_default_address:
             default_address = Address.objects.filter(user=request.user, is_default=True).first()
@@ -5023,6 +5031,28 @@ def checkout(request):
             state = default_address.state
             postcode = default_address.pincode
             country = default_address.country
+
+        # Resell link orders are always resell and use link margin
+        resell_link = None
+        resell_link_id = request.session.get('resell_link_id')
+        if resell_link_id:
+            try:
+                from .models import ResellLink
+                resell_link = ResellLink.objects.select_related('reseller', 'product').get(
+                    id=resell_link_id,
+                    is_active=True
+                )
+                is_resell = True
+                order_type = 'for_resell'
+                resell_margin_per_unit = Decimal(str(resell_link.margin_amount or 0))
+                if not from_name:
+                    from_name = resell_link.reseller.get_full_name() or resell_link.reseller.username
+                if not from_phone and hasattr(resell_link.reseller, 'userprofile'):
+                    from_phone = resell_link.reseller.userprofile.mobile_number or ''
+            except ResellLink.DoesNotExist:
+                request.session.pop('resell_link_id', None)
+                request.session.pop('resell_code', None)
+                resell_link = None
         
         # Validation
         if not all([first_name, last_name, email, phone, address, city, state, postcode]):
@@ -5057,6 +5087,22 @@ def checkout(request):
                 'total_price': total_price,
                 'buy_now_item': buy_now_item
             })
+        if is_resell and resell_margin_per_unit < 0:
+            messages.error(request, 'Margin cannot be negative.')
+            return render(request, 'checkout.html', {
+                'cart_items': cart_items,
+                'total_price': total_price,
+                'buy_now_item': buy_now_item
+            })
+        if is_resell and resell_link is None and resell_margin_per_unit > 0 and base_cart_total > 0:
+            max_margin = (base_cart_total / Decimal(max(total_item_qty, 1))) * Decimal('0.50')
+            if resell_margin_per_unit > max_margin:
+                messages.error(request, f'Margin cannot exceed 50% of item price (max ₹{max_margin:.2f} per item).')
+                return render(request, 'checkout.html', {
+                    'cart_items': cart_items,
+                    'total_price': total_price,
+                    'buy_now_item': buy_now_item
+                })
 
         request.session['checkout_form'] = {
             'first_name': first_name,
@@ -5071,6 +5117,8 @@ def checkout(request):
             'payment_method': payment_method,
             'customer_notes': customer_notes,
             'is_resell': is_resell,
+            'order_type': order_type,
+            'resell_margin': str(resell_margin_per_unit),
             'from_name': from_name,
             'from_phone': from_phone,
             'redeem_points': redeem_points,
@@ -5085,6 +5133,14 @@ def checkout(request):
     user_profile = UserProfile.objects.filter(user=request.user).first()
     default_address = Address.objects.filter(user=request.user, is_default=True).first()
     checkout_form = request.session.get('checkout_form', {})
+    selected_order_type = checkout_form.get('order_type', 'for_self')
+    manual_margin_raw = normalize_decimal_input(checkout_form.get('resell_margin', '0'))
+    try:
+        manual_margin_per_unit = Decimal(manual_margin_raw or '0')
+    except Exception:
+        manual_margin_per_unit = Decimal('0')
+    if manual_margin_per_unit < 0:
+        manual_margin_per_unit = Decimal('0')
     
     # Check for resell link in session
     resell_link = None
@@ -5101,6 +5157,11 @@ def checkout(request):
             request.session.pop('resell_link_id', None)
             request.session.pop('resell_code', None)
     
+    if resell_link:
+        selected_order_type = 'for_resell'
+        checkout_form['order_type'] = 'for_resell'
+        checkout_form['is_resell'] = True
+
     # Get loyalty account
     loyalty_account = None
     if request.user.is_authenticated:
@@ -5109,26 +5170,43 @@ def checkout(request):
         except LoyaltyPoints.DoesNotExist:
             pass
     
-    # Calculate totals with margin if resell order
+    # Calculate totals with resell margins
+    manual_margin_total = Decimal('0')
+    display_subtotal = base_cart_total
+
     if resell_link:
-        # Recalculate total_price with margin
-        margin_total = Decimal('0')
+        link_margin_total = Decimal('0')
         for item in cart_items:
-            margin_total += resell_link.margin_amount * item.quantity
-        total_price = Decimal(str(total_price)) + margin_total
+            item_qty = int(item.get('quantity', 0)) if isinstance(item, dict) else int(item.quantity or 0)
+            link_margin_total += Decimal(str(resell_link.margin_amount or 0)) * item_qty
+        display_subtotal = base_cart_total + link_margin_total
+        manual_margin_per_unit = Decimal(str(resell_link.margin_amount or 0))
+        manual_margin_total = link_margin_total
+    elif selected_order_type == 'for_resell' and manual_margin_per_unit > 0 and total_item_qty > 0:
+        manual_margin_total = manual_margin_per_unit * Decimal(str(total_item_qty))
+        display_subtotal = base_cart_total + manual_margin_total
     
+    tax_amount = display_subtotal * Decimal('0.05')
+    shipping_cost = Decimal('0.00') if display_subtotal > 500 else Decimal('50.00')
+    final_total = display_subtotal + tax_amount + shipping_cost
+
     context = {
         'cart_items': cart_items,
-        'total_price': total_price,
+        'total_price': display_subtotal,
+        'cart_base_total': base_cart_total,
+        'total_item_qty': total_item_qty,
         'buy_now_item': buy_now_item,
         'user_profile': user_profile,
         'default_address': default_address,
         'checkout_form': checkout_form,
+        'selected_order_type': selected_order_type,
         'loyalty_account': loyalty_account,
         'resell_link': resell_link,  # Add resell link to context
-        'tax_amount': Decimal(str(total_price)) * Decimal('0.05'),
-        'shipping_cost': Decimal('0.00') if Decimal(str(total_price)) > 500 else Decimal('50.00'),
-        'final_total': Decimal(str(total_price)) + (Decimal(str(total_price)) * Decimal('0.05')) + (Decimal('0.00') if Decimal(str(total_price)) > 500 else Decimal('50.00'))
+        'manual_resell_margin_per_unit': manual_margin_per_unit,
+        'manual_resell_margin_total': manual_margin_total,
+        'tax_amount': tax_amount,
+        'shipping_cost': shipping_cost,
+        'final_total': final_total,
     }
     
     return render(request, 'checkout.html', context)
@@ -5141,13 +5219,29 @@ def checkout_confirm(request):
         return redirect('checkout')
 
     cart_items, buy_now_item, total_price = _get_checkout_items(request)
+    base_cart_total = Decimal(str(total_price))
+    total_item_qty = _get_checkout_total_quantity(cart_items)
+
     if not cart_items:
         messages.error(request, 'Your cart is empty.')
         return redirect('cart')
 
+    order_type = checkout_form.get('order_type', 'for_self')
+    is_resell = (order_type == 'for_resell') or (checkout_form.get('is_resell') is True)
+    margin_raw = normalize_decimal_input(checkout_form.get('resell_margin', '0'))
+    try:
+        resell_margin_per_unit = Decimal(margin_raw or '0')
+    except Exception:
+        resell_margin_per_unit = Decimal('0')
+    if resell_margin_per_unit < 0:
+        resell_margin_per_unit = Decimal('0')
+
     # Check for resell link in session
     resell_link = None
     resell_link_id = request.session.get('resell_link_id')
+    total_margin = Decimal('0')
+    base_amount = base_cart_total
+
     if resell_link_id:
         try:
             from .models import ResellLink
@@ -5155,17 +5249,21 @@ def checkout_confirm(request):
                 id=resell_link_id,
                 is_active=True
             )
-            # Recalculate total_price with margin
-            margin_total = Decimal('0')
+            # Recalculate with link margin
             for item in cart_items:
-                margin_total += resell_link.margin_amount * item.quantity
-            total_price = Decimal(str(total_price)) + margin_total
+                item_qty = int(item.get('quantity', 0)) if isinstance(item, dict) else int(item.quantity or 0)
+                total_margin += Decimal(str(resell_link.margin_amount or 0)) * item_qty
+            resell_margin_per_unit = Decimal(str(resell_link.margin_amount or 0))
+            is_resell = True
+            order_type = 'for_resell'
         except ResellLink.DoesNotExist:
             # Clear invalid resell link from session
             request.session.pop('resell_link_id', None)
             request.session.pop('resell_code', None)
+    elif is_resell and resell_margin_per_unit > 0 and total_item_qty > 0:
+        total_margin = resell_margin_per_unit * Decimal(str(total_item_qty))
 
-    subtotal = Decimal(str(total_price))
+    subtotal = base_amount + total_margin
     tax = subtotal * Decimal('0.05')
     shipping_cost = Decimal('0.00') if subtotal > 500 else Decimal('50.00')
 
@@ -5218,7 +5316,6 @@ def checkout_confirm(request):
         postcode = checkout_form.get('postcode')
         payment_method = checkout_form.get('payment_method', 'COD')
         customer_notes = checkout_form.get('customer_notes', '')
-        is_resell = checkout_form.get('is_resell') is True
         from_name = checkout_form.get('from_name', '')
         from_phone = checkout_form.get('from_phone', '')
         set_default_address = checkout_form.get('set_default_address') is True
@@ -5270,7 +5367,11 @@ def checkout_confirm(request):
                     # Add customer notes if provided
                     if customer_notes:
                         order.customer_notes = customer_notes
-                        order.save(update_fields=['customer_notes'])
+                    if not order.resell_from_name:
+                        order.resell_from_name = from_name or (resell_link.reseller.get_full_name() or resell_link.reseller.username)
+                    if not order.resell_from_phone and hasattr(resell_link.reseller, 'userprofile'):
+                        order.resell_from_phone = from_phone or (resell_link.reseller.userprofile.mobile_number or '')
+                    order.save(update_fields=['customer_notes', 'resell_from_name', 'resell_from_phone'])
                     
                 except ResellLink.DoesNotExist:
                     messages.error(request, 'Resell link is no longer valid.')
@@ -5279,23 +5380,30 @@ def checkout_confirm(request):
                     messages.error(request, f'Error processing resell order: {str(e)}')
                     return redirect('checkout')
             else:
-                # Regular order (non-resell)
-                order = Order.objects.create(
-                    user=request.user,
-                    subtotal=subtotal,
-                    tax=tax,
-                    shipping_cost=shipping_cost,
-                    coupon=applied_coupon,  # Save coupon reference
-                    coupon_discount=coupon_discount,  # Save discount amount
-                    total_amount=total_amount,
-                    shipping_address=shipping_address,
-                    billing_address=shipping_address,
-                    payment_method=payment_method,
-                    customer_notes=customer_notes,
-                    is_resell=is_resell,
-                    resell_from_name=from_name if is_resell else '',
-                    resell_from_phone=from_phone if is_resell else ''
-                )
+                # Regular order and manual resell order
+                order_kwargs = {
+                    'user': request.user,
+                    'subtotal': subtotal,
+                    'tax': tax,
+                    'shipping_cost': shipping_cost,
+                    'coupon': applied_coupon,  # Save coupon reference
+                    'coupon_discount': coupon_discount,  # Save discount amount
+                    'total_amount': total_amount,
+                    'shipping_address': shipping_address,
+                    'billing_address': shipping_address,
+                    'payment_method': payment_method,
+                    'customer_notes': customer_notes,
+                    'is_resell': is_resell,
+                    'resell_from_name': from_name if is_resell else '',
+                    'resell_from_phone': from_phone if is_resell else '',
+                }
+                if is_resell:
+                    order_kwargs.update({
+                        'reseller': request.user,
+                        'base_amount': base_amount,
+                        'total_margin': total_margin,
+                    })
+                order = Order.objects.create(**order_kwargs)
 
             # Create CouponUsage record if coupon was applied
             if applied_coupon and coupon_discount > 0:
@@ -5330,10 +5438,11 @@ def checkout_confirm(request):
                         order=order,
                         product=product,
                         product_name=product.name,
-                        product_price=buy_now_item['price'],
+                        product_price=Decimal(str(buy_now_item['price'])) + (resell_margin_per_unit if is_resell else Decimal('0')),
                         product_image=product_image,
                         quantity=buy_now_item['quantity'],
-                        margin_amount=product.margin if product else None
+                        base_price=Decimal(str(buy_now_item['price'])),
+                        margin_amount=resell_margin_per_unit if is_resell else (product.margin if product else Decimal('0'))
                     )
                     del request.session['buy_now_item']
                 else:
@@ -5347,15 +5456,40 @@ def checkout_confirm(request):
                             else:
                                 product_image = image_url
 
+                        item_base_price = Decimal(str(item.product.price))
+                        item_margin = resell_margin_per_unit if is_resell else Decimal(str(item.product.margin or 0))
                         OrderItem.objects.create(
                             order=order,
                             product=item.product,
                             product_name=item.product.name,
-                            product_price=item.product.price,
+                            product_price=item_base_price + item_margin,
                             product_image=product_image,
                             quantity=item.quantity,
-                            margin_amount=item.product.margin if item.product else None
+                            base_price=item_base_price,
+                            margin_amount=item_margin
                         )
+
+            if is_resell and not resell_link and total_margin > 0:
+                from .models import ResellerProfile, ResellerEarning
+                reseller_profile, _ = ResellerProfile.objects.get_or_create(
+                    user=request.user,
+                    defaults={
+                        'is_reseller_enabled': True,
+                        'business_name': request.user.get_full_name() or request.user.username,
+                    }
+                )
+                if not reseller_profile.is_reseller_enabled:
+                    reseller_profile.is_reseller_enabled = True
+                    reseller_profile.save(update_fields=['is_reseller_enabled'])
+
+                if not hasattr(order, 'reseller_earning'):
+                    ResellerEarning.objects.create(
+                        reseller=request.user,
+                        order=order,
+                        resell_link=None,
+                        margin_amount=total_margin,
+                        status='PENDING'
+                    )
 
             if redeem_points and points_to_redeem > 0:
                 loyalty_account = LoyaltyPoints.objects.get(user=request.user)
@@ -5414,6 +5548,14 @@ def checkout_confirm(request):
         'checkout_form': checkout_form,
         'cart_items': cart_items,
         'subtotal': subtotal,
+        'base_amount': base_amount,
+        'total_margin': total_margin,
+        'resell_margin_per_unit': resell_margin_per_unit,
+        'total_item_qty': total_item_qty,
+        'is_resell': is_resell,
+        'order_type': order_type,
+        'from_name': checkout_form.get('from_name', ''),
+        'from_phone': checkout_form.get('from_phone', ''),
         'tax': tax,
         'shipping_cost': shipping_cost,
         'coupon_discount': coupon_discount,
@@ -7817,6 +7959,16 @@ def _get_checkout_items(request):
     return cart_items, buy_now_item, total_price
 
 
+def _get_checkout_total_quantity(cart_items):
+    total_qty = 0
+    for item in cart_items:
+        if isinstance(item, dict):
+            total_qty += int(item.get('quantity', 0) or 0)
+        else:
+            total_qty += int(getattr(item, 'quantity', 0) or 0)
+    return max(total_qty, 0)
+
+
 def _log_return_history(return_request, old_status, new_status, user=None, notes=''):
     ReturnHistory.objects.create(
         return_request=return_request,
@@ -9101,21 +9253,58 @@ def download_invoice(request, order_number):
         except Exception:
             pass
 
-        billing_data = [
-            [
-                Paragraph('<b style="font-size: 11; color: #1e293b">BILL TO</b>', styles['Normal']),
-                Paragraph('<b style="font-size: 11; color: #1e293b">SHIP TO</b>', styles['Normal'])
-            ],
-            [
-                Paragraph(
-                    f'<b>{order.user.get_full_name() or order.user.username}</b><br/>'
-                    f'{order.user.email}<br/>'
-                    f'{order.user.userprofile.mobile_number if hasattr(order.user, "userprofile") and order.user.userprofile.mobile_number else "N/A"}',
-                    value_style
-                ),
-                Paragraph((order.shipping_address or '').replace('\n', '<br/>'), value_style)
+        if order.is_resell:
+            from_name = (
+                order.resell_from_name
+                or (order.reseller.get_full_name() if order.reseller else '')
+                or (order.reseller.username if order.reseller else '')
+                or order.user.get_full_name()
+                or order.user.username
+            )
+            from_phone = (
+                order.resell_from_phone
+                or (
+                    order.reseller.userprofile.mobile_number
+                    if order.reseller and hasattr(order.reseller, 'userprofile') and order.reseller.userprofile.mobile_number
+                    else ''
+                )
+                or 'N/A'
+            )
+            from_email = (
+                order.reseller.email if order.reseller and order.reseller.email
+                else (order.user.email or '')
+            )
+            billing_data = [
+                [
+                    Paragraph('<b style="font-size: 11; color: #1e293b">FROM</b>', styles['Normal']),
+                    Paragraph('<b style="font-size: 11; color: #1e293b">TO</b>', styles['Normal'])
+                ],
+                [
+                    Paragraph(
+                        f'<b>{from_name}</b><br/>'
+                        f'{from_phone}<br/>'
+                        f'{from_email}',
+                        value_style
+                    ),
+                    Paragraph((order.shipping_address or '').replace('\n', '<br/>'), value_style)
+                ]
             ]
-        ]
+        else:
+            billing_data = [
+                [
+                    Paragraph('<b style="font-size: 11; color: #1e293b">BILL TO</b>', styles['Normal']),
+                    Paragraph('<b style="font-size: 11; color: #1e293b">SHIP TO</b>', styles['Normal'])
+                ],
+                [
+                    Paragraph(
+                        f'<b>{order.user.get_full_name() or order.user.username}</b><br/>'
+                        f'{order.user.email}<br/>'
+                        f"{order.user.userprofile.mobile_number if hasattr(order.user, 'userprofile') and order.user.userprofile.mobile_number else 'N/A'}",
+                        value_style
+                    ),
+                    Paragraph((order.shipping_address or '').replace('\n', '<br/>'), value_style)
+                ]
+            ]
         billing_table = Table(billing_data, colWidths=[3*inch, 3*inch])
         billing_table.setStyle(TableStyle([
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),

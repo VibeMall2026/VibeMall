@@ -75,7 +75,7 @@
             </div>
 
             <!-- Resell Information (Only for Resell Orders) -->
-            {% if order.is_resell_order and order.reseller %}
+            {% if order.is_resell and order.reseller %}
             <div class="card mb-4 border-warning">
                 <div class="card-header bg-label-warning">
                     <h5 class="mb-0"><i class="bx bx-share-alt"></i> Resell Information</h5>
@@ -273,7 +273,7 @@
                     <h5 class="mb-0">Order Summary</h5>
                 </div>
                 <div class="card-body">
-                    {% if order.is_resell_order %}
+                    {% if order.is_resell %}
                     <!-- Resell Order Summary -->
                     <div class="alert alert-warning p-2 mb-3">
                         <small><i class="bx bx-share-alt"></i> <strong>Resell Order</strong></small>
