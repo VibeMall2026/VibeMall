@@ -4,6 +4,7 @@ from django.utils.text import slugify
 from django.utils import timezone
 from decimal import Decimal
 from typing import Optional, Dict, Any, List
+import uuid
 
 class PasswordResetLog(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
@@ -1968,8 +1969,26 @@ class BackupConfiguration(models.Model):
     backup_frequency = models.CharField(
         max_length=20,
         choices=FREQUENCY_CHOICES,
-        default='DAILY',
+        default='MONTHLY',
         help_text="How often should backups run?"
+    )
+
+    backup_root_path = models.CharField(
+        max_length=500,
+        default=r'D:\VibeMallBackUp',
+        help_text="Local root folder for all backups"
+    )
+
+    regular_folder_name = models.CharField(
+        max_length=100,
+        default='RegularBackUp',
+        help_text="Subfolder name for automated regular backups"
+    )
+
+    special_folder_name = models.CharField(
+        max_length=100,
+        default='SpecialBackup',
+        help_text="Subfolder name for manual special backups and ITR reports"
     )
     
     schedule_time = models.TimeField(
@@ -1994,8 +2013,8 @@ class BackupConfiguration(models.Model):
     
     # Terabox Configuration
     enable_terabox_backup = models.BooleanField(
-        default=True,
-        help_text="Enable automatic backup to Terabox cloud storage?"
+        default=False,
+        help_text="Deprecated: Terabox backup is disabled in local backup mode"
     )
     
     terabox_auto_folder_create = models.BooleanField(
@@ -2091,12 +2110,27 @@ class BackupLog(models.Model):
         ('MANUAL', 'Manual Trigger'),
         ('SCHEDULED', 'Scheduled'),
         ('ON_DEMAND', 'On Demand'),
+        ('SPECIAL', 'Special Backup'),
+        ('ITR_REPORT', 'ITR Financial Report'),
+    ]
+
+    BACKUP_SCOPE_CHOICES = [
+        ('REGULAR', 'Regular Backup'),
+        ('SPECIAL', 'Special Backup'),
+        ('ITR', 'ITR Report Backup'),
     ]
     
     backup_type = models.CharField(
         max_length=20,
         choices=BACKUP_TYPE_CHOICES,
         default='SCHEDULED'
+    )
+
+    backup_scope = models.CharField(
+        max_length=20,
+        choices=BACKUP_SCOPE_CHOICES,
+        default='REGULAR',
+        help_text="Regular, special, or ITR report backup"
     )
     
     backup_frequency = models.CharField(
@@ -2137,11 +2171,17 @@ class BackupLog(models.Model):
         blank=True,
         help_text="Path to local backup file"
     )
+
+    monthly_folder_label = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Monthly folder label (e.g., 2026-03)"
+    )
     
     terabox_file_path = models.CharField(
         max_length=500,
         blank=True,
-        help_text="Path to cloud backup in Terabox"
+        help_text="Deprecated cloud backup path"
     )
     
     file_size_mb = models.DecimalField(
@@ -2154,7 +2194,12 @@ class BackupLog(models.Model):
     # Status tracking
     terabox_synced = models.BooleanField(
         default=False,
-        help_text="Was this backup successfully synced to Terabox?"
+        help_text="Deprecated cloud sync flag"
+    )
+
+    requires_cleanup_confirmation = models.BooleanField(
+        default=False,
+        help_text="Whether this backup generated an old-data cleanup confirmation request"
     )
     
     email_sent = models.BooleanField(
@@ -2307,3 +2352,36 @@ class TeraboxSettings(models.Model):
             return 0
         delta = self.token_expires_at - timezone.now()
         return max(0, int(delta.total_seconds() / 3600))
+
+
+class BackupCleanupRequest(models.Model):
+    """Admin confirmation record before deleting previous backup folders."""
+
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending Confirmation'),
+        ('CONFIRMED', 'Confirmed'),
+        ('DECLINED', 'Declined'),
+        ('COMPLETED', 'Completed'),
+    ]
+
+    backup_log = models.ForeignKey(
+        BackupLog,
+        on_delete=models.CASCADE,
+        related_name='cleanup_requests'
+    )
+    folder_path = models.CharField(max_length=500)
+    folder_label = models.CharField(max_length=50)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    confirmation_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    email_sent = models.BooleanField(default=False)
+    requested_at = models.DateTimeField(auto_now_add=True)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    confirmed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        ordering = ['-requested_at']
+        verbose_name = "Backup Cleanup Request"
+        verbose_name_plural = "Backup Cleanup Requests"
+
+    def __str__(self):
+        return f"Cleanup {self.folder_label} - {self.status}"

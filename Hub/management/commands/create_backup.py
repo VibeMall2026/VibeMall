@@ -1,701 +1,494 @@
 """
 Django Management Command: Create Backup
-Export all critical VibeMall data to Excel files and sync to Terabox
-Usage:
-    python manage.py create_backup --type manual
-    python manage.py create_backup --type scheduled --frequency daily
+Local-first backup system for VibeMall.
 """
 
 import os
-import json
 import logging
-from datetime import datetime, timedelta
-from decimal import Decimal
-from io import BytesIO
-from django.core.management.base import BaseCommand, CommandError
-from django.contrib.auth.models import User
-from django.utils import timezone
-from django.conf import settings
+from datetime import datetime
 
 import pandas as pd
-from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-from openpyxl.utils.dataframe import dataframe_to_rows
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.core.management.base import BaseCommand, CommandError
+from django.db.models import Sum, Count
+from django.utils import timezone
 
 from Hub.models import (
-    Order, OrderItem, Product, Payment, ReturnRequest,
-    BackupConfiguration, BackupLog, TeraboxSettings
+    BackupConfiguration,
+    BackupLog,
+    BackupCleanupRequest,
+    Order,
+    OrderItem,
+    Product,
+    ProductImage,
+    ReturnRequest,
+    PayoutTransaction,
+    PointsTransaction,
+    Reel,
 )
-from Hub.backup_utils import send_backup_notification_email, upload_to_terabox
+from Hub.backup_utils import (
+    ensure_backup_directories,
+    get_month_folder,
+    send_backup_notification_email,
+    send_cleanup_confirmation_email,
+)
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_TYPES = [
+    "users",
+    "orders",
+    "payments",
+    "transactions",
+    "products",
+    "returns",
+    "analytics",
+    "product_media",
+]
+
 
 class Command(BaseCommand):
-    help = 'Create backup of all VibeMall data and sync to Terabox'
-    
+    help = "Create local monthly/special/ITR backups in D:\\VibeMallBackUp"
+
     def add_arguments(self, parser):
-        parser.add_argument(
-            '--type',
-            type=str,
-            default='manual',
-            choices=['manual', 'scheduled', 'on-demand'],
-            help='Type of backup: manual, scheduled, or on-demand'
-        )
-        
-        parser.add_argument(
-            '--frequency',
-            type=str,
-            default='custom',
-            choices=['daily', 'weekly', 'biweekly', 'monthly', 'custom'],
-            help='Backup frequency for scheduled backups'
-        )
-        
-        parser.add_argument(
-            '--output-dir',
-            type=str,
-            default=None,
-            help='Custom output directory for backup files'
-        )
-        
-        parser.add_argument(
-            '--no-cloud',
-            action='store_true',
-            help='Skip Terabox upload'
-        )
-        
-        parser.add_argument(
-            '--no-email',
-            action='store_true',
-            help='Skip email notification'
-        )
-    
+        parser.add_argument("--type", default="manual", choices=["manual", "scheduled", "on-demand", "special", "itr-report"])
+        parser.add_argument("--frequency", default="monthly", choices=["daily", "weekly", "biweekly", "monthly", "custom"])
+        parser.add_argument("--mode", default="regular", choices=["regular", "special", "itr"])
+        parser.add_argument("--data-types", default=",".join(DEFAULT_TYPES), help="Comma separated: users,orders,payments,transactions,products,returns,analytics,product_media")
+        parser.add_argument("--output-dir", default=None)
+        parser.add_argument("--from-date", default=None, help="YYYY-MM-DD")
+        parser.add_argument("--to-date", default=None, help="YYYY-MM-DD")
+        parser.add_argument("--no-email", action="store_true")
+        parser.add_argument("--no-cleanup-request", action="store_true")
+
     def handle(self, *args, **options):
-        """Main handler for backup creation."""
         try:
-            backup_type = options['type']
-            frequency = options['frequency']
-            output_dir = options['output_dir']
-            skip_cloud = options['no_cloud']
-            skip_email = options['no_email']
-            
-            # Determine output directory
-            if not output_dir:
-                output_dir = os.path.join(settings.BASE_DIR, 'backups', 'excel')
-            
-            # Create directory if it doesn't exist
-            os.makedirs(output_dir, exist_ok=True)
-            
-            # Create BackupLog entry
+            config, _ = BackupConfiguration.objects.get_or_create(pk=1)
+
+            mode = options["mode"].upper()
+            backup_type = options["type"].upper().replace("-", "_")
+            frequency = options["frequency"].upper()
+            data_types = [item.strip().lower() for item in options["data_types"].split(",") if item.strip()]
+            if not data_types:
+                data_types = DEFAULT_TYPES
+
+            date_from = self._parse_date(options.get("from_date"))
+            date_to = self._parse_date(options.get("to_date"), end_of_day=True)
+
+            root, regular_root, special_root = ensure_backup_directories(config)
+            base_root = regular_root if mode == "REGULAR" else special_root
+            if options.get("output_dir"):
+                base_root = options["output_dir"]
+                os.makedirs(base_root, exist_ok=True)
+
+            month_dir, month_label = get_month_folder(base_root)
+
             backup_log = BackupLog.objects.create(
-                backup_type=backup_type.upper().replace('-', '_'),
-                backup_frequency=frequency.upper(),
-                status='IN_PROGRESS'
+                backup_type=backup_type,
+                backup_scope=mode,
+                backup_frequency=frequency,
+                status="IN_PROGRESS",
+                backup_data_types=",".join(data_types),
+                monthly_folder_label=month_label,
+                local_file_path=month_dir,
             )
-            
-            self.stdout.write(self.style.SUCCESS(f'Starting backup #{backup_log.id}...'))
-            
-            # Create backup files
-            backup_files = self.create_backup_files(output_dir, backup_log)
-            
-            if backup_files:
-                backup_log.end_time = timezone.now()
-                backup_log.status = 'SUCCESS'
-                backup_log.save()
-                
-                # Upload to Terabox if enabled
-                if not skip_cloud:
-                    self.terabox_sync(backup_log, backup_files, output_dir)
-                
-                # Send notification email
-                if not skip_email:
-                    self.send_notification(backup_log, backup_files)
-                
-                self.stdout.write(self.style.SUCCESS(
-                    f'\n✅ Backup #{backup_log.id} completed successfully!\n'
-                    f'Location: {output_dir}'
-                ))
-            else:
-                backup_log.status = 'FAILED'
-                backup_log.error_message = 'No backup files generated'
-                backup_log.save()
-                self.stdout.write(self.style.ERROR('Backup failed - no files generated'))
-        
-        except Exception as e:
-            logger.error(f'Backup creation failed: {str(e)}', exc_info=True)
-            if 'backup_log' in locals():
-                backup_log.status = 'FAILED'
-                backup_log.error_message = str(e)
-                backup_log.error_trace = logger.formatException(e)
+
+            files = self._export_selected_files(month_dir, backup_log, data_types, date_from, date_to)
+            if not files:
+                raise CommandError("No backup files generated.")
+
+            backup_log.status = "SUCCESS"
+            backup_log.end_time = timezone.now()
+            backup_log.file_size_mb = self._calc_total_size_mb(files)
+            backup_log.save()
+
+            config.last_backup_at = timezone.now()
+            config.save(update_fields=["last_backup_at", "updated_at"])
+
+            if not options["no_email"]:
+                recipients = config.get_notification_emails()
+                if recipients:
+                    sent = send_backup_notification_email(backup_log, files, recipients)
+                    backup_log.email_sent = sent
+                    backup_log.save(update_fields=["email_sent", "updated_at"])
+
+            if mode == "REGULAR" and not options["no_cleanup_request"]:
+                self._create_cleanup_request_if_needed(config, backup_log, regular_root, month_label)
+
+            self.stdout.write(self.style.SUCCESS(f"Backup #{backup_log.id} completed at: {month_dir}"))
+
+        except Exception as exc:
+            logger.error("Backup creation failed: %s", exc, exc_info=True)
+            if "backup_log" in locals():
+                backup_log.status = "FAILED"
+                backup_log.error_message = str(exc)
                 backup_log.end_time = timezone.now()
                 backup_log.save()
-            self.stdout.write(self.style.ERROR(f'Error: {str(e)}'))
-            raise CommandError(f'Backup failed: {str(e)}')
-    
-    def create_backup_files(self, output_dir, backup_log):
-        """Create all backup files."""
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        backup_files = {}
-        
-        try:
-            # Users backup
-            users_file = self.export_users(output_dir, timestamp, backup_log)
-            if users_file:
-                backup_files['users'] = users_file
-            
-            # Orders backup
-            orders_file = self.export_orders(output_dir, timestamp, backup_log)
-            if orders_file:
-                backup_files['orders'] = orders_file
-            
-            # Payments backup
-            payments_file = self.export_payments(output_dir, timestamp, backup_log)
-            if payments_file:
-                backup_files['payments'] = payments_file
-            
-            # Products backup
-            products_file = self.export_products(output_dir, timestamp, backup_log)
-            if products_file:
-                backup_files['products'] = products_file
-            
-            # Returns backup
-            returns_file = self.export_returns(output_dir, timestamp, backup_log)
-            if returns_file:
-                backup_files['returns'] = returns_file
-            
-            # Analytics backup
-            analytics_file = self.export_analytics(output_dir, timestamp, backup_log)
-            if analytics_file:
-                backup_files['analytics'] = analytics_file
-            
-            return backup_files
-        
-        except Exception as e:
-            logger.error(f'Error creating backup files: {str(e)}', exc_info=True)
-            raise
-    
-    def export_users(self, output_dir, timestamp, backup_log):
-        """Export all user data to Excel file."""
-        try:
-            users = User.objects.all().values(
-                'id', 'username', 'email', 'first_name', 'last_name',
-                'phone', 'date_joined', 'last_login', 'is_active'
-            )
-            
-            df = pd.DataFrame(list(users))
-            
-            if df.empty:
-                self.stdout.write(self.style.WARNING('No users to backup'))
-                return None
-            
-            filename = f'users_backup_{timestamp}.xlsx'
-            filepath = os.path.join(output_dir, filename)
-            
-            # Create Excel with styling
-            with pd.ExcelWriter(filepath, engine='openpyxl') as writer:
-                df.to_excel(writer, sheet_name='Users', index=False)
-                
-                # Add summary sheet
-                summary_df = pd.DataFrame({
-                    'Metric': ['Total Users', 'Active Users', 'Inactive Users', 'Backup Date'],
-                    'Value': [
-                        len(df),
-                        len(df[df['is_active'] == True]),
-                        len(df[df['is_active'] == False]),
-                        datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                    ]
-                })
-                summary_df.to_excel(writer, sheet_name='Summary', index=False)
-                
-                # Format sheets
-                self.format_worksheet(writer, 'Users')
-                self.format_worksheet(writer, 'Summary')
-            
-            backup_log.users_count = len(df)
-            backup_log.local_file_path = filepath
-            
-            self.stdout.write(self.style.SUCCESS(f'✓ Exported {len(df)} users'))
-            return filepath
-        
-        except Exception as e:
-            logger.error(f'Error exporting users: {str(e)}', exc_info=True)
+            raise CommandError(f"Backup failed: {exc}")
+
+    def _parse_date(self, value, end_of_day=False):
+        if not value:
             return None
-    
-    def export_orders(self, output_dir, timestamp, backup_log):
-        """Export all orders with detailed information."""
-        try:
-            orders = Order.objects.select_related('user').all()
-            
-            if not orders.exists():
-                self.stdout.write(self.style.WARNING('No orders to backup'))
-                return None
-            
-            # Main orders sheet
-            orders_data = []
-            all_items_data = []
-            
-            for order in orders:
-                orders_data.append({
-                    'Order ID': order.id,
-                    'User': order.user.username,
-                    'Email': order.user.email,
-                    'Total Amount': float(order.total_amount),
-                    'Discount': float(order.discount) if order.discount else 0,
-                    'Tax': float(order.tax) if order.tax else 0,
-                    'Shipping': float(order.shipping_cost) if order.shipping_cost else 0,
-                    'Payment Status': order.payment_status,
-                    'Order Status': order.order_status,
-                    'Created At': order.created_at,
-                    'Delivery Date': order.delivery_date,
-                    'Notes': order.notes or '',
+        dt = datetime.strptime(value, "%Y-%m-%d")
+        if end_of_day:
+            dt = dt.replace(hour=23, minute=59, second=59)
+        return timezone.make_aware(dt)
+
+    def _export_selected_files(self, output_dir, backup_log, data_types, date_from, date_to):
+        timestamp = timezone.now().strftime("%Y%m%d_%H%M%S")
+        files = {}
+
+        if "users" in data_types:
+            path, count = self.export_users(output_dir, timestamp, date_from, date_to)
+            if path:
+                files["users"] = path
+                backup_log.users_count = count
+
+        if "orders" in data_types:
+            path, count = self.export_orders(output_dir, timestamp, date_from, date_to)
+            if path:
+                files["orders"] = path
+                backup_log.orders_count = count
+
+        if "payments" in data_types:
+            path, count = self.export_payments(output_dir, timestamp, date_from, date_to)
+            if path:
+                files["payments"] = path
+                backup_log.payments_count = count
+
+        if "transactions" in data_types:
+            path, count = self.export_transactions(output_dir, timestamp, date_from, date_to)
+            if path:
+                files["transactions"] = path
+                backup_log.transactions_count = count
+
+        if "products" in data_types:
+            path, count = self.export_products(output_dir, timestamp, date_from, date_to)
+            if path:
+                files["products"] = path
+                backup_log.products_count = count
+
+        if "returns" in data_types:
+            path, count = self.export_returns(output_dir, timestamp, date_from, date_to)
+            if path:
+                files["returns"] = path
+                backup_log.returns_count = count
+
+        if "analytics" in data_types:
+            path = self.export_analytics(output_dir, timestamp, date_from, date_to)
+            if path:
+                files["analytics"] = path
+
+        if "product_media" in data_types:
+            path = self.export_product_media(output_dir, timestamp)
+            if path:
+                files["product_media"] = path
+
+        backup_log.save()
+        return files
+
+    def _date_filter(self, queryset, field_name, date_from, date_to):
+        if date_from:
+            queryset = queryset.filter(**{f"{field_name}__gte": date_from})
+        if date_to:
+            queryset = queryset.filter(**{f"{field_name}__lte": date_to})
+        return queryset
+
+    def _excel_safe(self, df):
+        for col in df.columns:
+            if pd.api.types.is_datetime64tz_dtype(df[col]):
+                df[col] = df[col].dt.tz_localize(None)
+        return df
+
+    def _auto_adjust_sheet_columns(self, worksheet):
+        if worksheet.max_column == 0:
+            return
+
+        for column_cells in worksheet.iter_cols(min_row=1, max_row=worksheet.max_row, min_col=1, max_col=worksheet.max_column):
+            max_length = 0
+            column_letter = column_cells[0].column_letter
+
+            for cell in column_cells:
+                value = cell.value
+                if value is None:
+                    continue
+                try:
+                    max_length = max(max_length, len(str(value)))
+                except Exception:
+                    continue
+
+            adjusted_width = min(max(max_length + 2, 12), 50)
+            worksheet.column_dimensions[column_letter].width = adjusted_width
+
+    def _auto_adjust_workbook(self, writer):
+        for worksheet in writer.book.worksheets:
+            self._auto_adjust_sheet_columns(worksheet)
+
+    def export_users(self, output_dir, timestamp, date_from=None, date_to=None):
+        qs = User.objects.all().order_by("id")
+        qs = self._date_filter(qs, "date_joined", date_from, date_to)
+        rows = list(qs.values("id", "username", "email", "first_name", "last_name", "is_active", "date_joined", "last_login"))
+        if not rows:
+            return None, 0
+
+        df = self._excel_safe(pd.DataFrame(rows))
+        path = os.path.join(output_dir, f"users_backup_{timestamp}.xlsx")
+        with pd.ExcelWriter(path, engine="openpyxl") as writer:
+            df.to_excel(writer, sheet_name="Users", index=False)
+            self._auto_adjust_workbook(writer)
+        return path, len(df)
+
+    def export_orders(self, output_dir, timestamp, date_from=None, date_to=None):
+        orders = Order.objects.select_related("user").all().order_by("-created_at")
+        orders = self._date_filter(orders, "created_at", date_from, date_to)
+        if not orders.exists():
+            return None, 0
+
+        order_rows, item_rows = [], []
+        for order in orders:
+            order_rows.append({
+                "Order Number": order.order_number,
+                "User": order.user.username,
+                "Email": order.user.email,
+                "Subtotal": float(order.subtotal),
+                "Tax": float(order.tax),
+                "Shipping": float(order.shipping_cost),
+                "Coupon Discount": float(order.coupon_discount),
+                "Total": float(order.total_amount),
+                "Order Status": order.order_status,
+                "Payment Status": order.payment_status,
+                "Payment Method": order.payment_method,
+                "Order Date": order.order_date,
+                "Created At": order.created_at,
+            })
+            for item in order.items.all():
+                item_rows.append({
+                    "Order Number": order.order_number,
+                    "Product Name": item.product_name,
+                    "Product ID": item.product_id,
+                    "Quantity": item.quantity,
+                    "Unit Price": float(item.product_price),
+                    "Subtotal": float(item.subtotal),
                 })
-                
-                # Order items
-                for item in order.items.all():
-                    all_items_data.append({
-                        'Order ID': order.id,
-                        'Product': item.product.name,
-                        'Category': item.product.category.name if item.product.category else '',
-                        'Quantity': item.quantity,
-                        'Price': float(item.price),
-                        'Discount': float(item.discount) if item.discount else 0,
-                        'Total': float(item.total),
-                    })
-            
-            orders_df = pd.DataFrame(orders_data)
-            items_df = pd.DataFrame(all_items_data)
-            
-            filename = f'orders_backup_{timestamp}.xlsx'
-            filepath = os.path.join(output_dir, filename)
-            
-            with pd.ExcelWriter(filepath, engine='openpyxl') as writer:
-                orders_df.to_excel(writer, sheet_name='Orders', index=False)
-                items_df.to_excel(writer, sheet_name='Order Items', index=False)
-                
-                # Summary
-                summary_df = pd.DataFrame({
-                    'Metric': ['Total Orders', 'Total Revenue', 'Avg Order Value', 'Backup Date'],
-                    'Value': [
-                        len(orders_df),
-                        float(orders_df['Total Amount'].sum()),
-                        float(orders_df['Total Amount'].mean()),
-                        datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                    ]
-                })
-                summary_df.to_excel(writer, sheet_name='Summary', index=False)
-                
-                self.format_worksheet(writer, 'Orders')
-                self.format_worksheet(writer, 'Order Items')
-                self.format_worksheet(writer, 'Summary')
-            
-            backup_log.orders_count = len(orders_df)
-            
-            self.stdout.write(self.style.SUCCESS(f'✓ Exported {len(orders_df)} orders'))
-            return filepath
-        
-        except Exception as e:
-            logger.error(f'Error exporting orders: {str(e)}', exc_info=True)
+
+        orders_df = self._excel_safe(pd.DataFrame(order_rows))
+        items_df = self._excel_safe(pd.DataFrame(item_rows))
+        path = os.path.join(output_dir, f"orders_backup_{timestamp}.xlsx")
+        with pd.ExcelWriter(path, engine="openpyxl") as writer:
+            orders_df.to_excel(writer, sheet_name="Orders", index=False)
+            items_df.to_excel(writer, sheet_name="OrderItems", index=False)
+            self._auto_adjust_workbook(writer)
+        return path, len(orders_df)
+
+    def export_payments(self, output_dir, timestamp, date_from=None, date_to=None):
+        orders = Order.objects.all().order_by("-created_at")
+        orders = self._date_filter(orders, "created_at", date_from, date_to)
+        if not orders.exists():
+            return None, 0
+
+        rows = []
+        for order in orders:
+            rows.append({
+                "Order Number": order.order_number,
+                "Payment Status": order.payment_status,
+                "Payment Method": order.payment_method,
+                "Amount": float(order.total_amount),
+                "Razorpay Order ID": order.razorpay_order_id,
+                "Razorpay Payment ID": order.razorpay_payment_id,
+                "Created At": order.created_at,
+            })
+        df = self._excel_safe(pd.DataFrame(rows))
+        path = os.path.join(output_dir, f"payments_backup_{timestamp}.xlsx")
+        with pd.ExcelWriter(path, engine="openpyxl") as writer:
+            df.to_excel(writer, sheet_name="Payments", index=False)
+            summary = df.groupby("Payment Status", dropna=False)["Amount"].agg(["count", "sum"]).reset_index()
+            summary.to_excel(writer, sheet_name="StatusSummary", index=False)
+            self._auto_adjust_workbook(writer)
+        return path, len(df)
+
+    def export_transactions(self, output_dir, timestamp, date_from=None, date_to=None):
+        payouts = PayoutTransaction.objects.select_related("reseller").all().order_by("-initiated_at")
+        payouts = self._date_filter(payouts, "initiated_at", date_from, date_to)
+
+        points = PointsTransaction.objects.select_related("user").all().order_by("-created_at")
+        points = self._date_filter(points, "created_at", date_from, date_to)
+
+        payout_rows = [{
+            "Reseller": p.reseller.username,
+            "Amount": float(p.amount),
+            "Method": p.payout_method,
+            "Status": p.status,
+            "Transaction ID": p.transaction_id,
+            "Initiated": p.initiated_at,
+            "Completed": p.completed_at,
+        } for p in payouts]
+
+        point_rows = [{
+            "User": pt.user.username,
+            "Points": pt.points,
+            "Type": pt.transaction_type,
+            "Description": pt.description,
+            "Created At": pt.created_at,
+        } for pt in points]
+
+        if not payout_rows and not point_rows:
+            return None, 0
+
+        path = os.path.join(output_dir, f"transactions_backup_{timestamp}.xlsx")
+        with pd.ExcelWriter(path, engine="openpyxl") as writer:
+            self._excel_safe(pd.DataFrame(payout_rows)).to_excel(writer, sheet_name="PayoutTransactions", index=False)
+            self._excel_safe(pd.DataFrame(point_rows)).to_excel(writer, sheet_name="PointsTransactions", index=False)
+            self._auto_adjust_workbook(writer)
+        return path, len(payout_rows) + len(point_rows)
+
+    def export_products(self, output_dir, timestamp, date_from=None, date_to=None):
+        products = Product.objects.all().order_by("-id")
+        if not products.exists():
+            return None, 0
+
+        rows = [{
+            "Product ID": p.id,
+            "Name": p.name,
+            "SKU": p.sku,
+            "Category": p.get_category_display() if p.category else "",
+            "Sub Category": p.sub_category,
+            "Price": float(p.price),
+            "Old Price": float(p.old_price) if p.old_price else None,
+            "Stock": p.stock,
+            "Sold": p.sold,
+            "Active": p.is_active,
+            "Brand": p.brand,
+            "Image": p.image.url if p.image else "",
+            "Description": p.description,
+        } for p in products]
+        df = pd.DataFrame(rows)
+
+        path = os.path.join(output_dir, f"products_backup_{timestamp}.xlsx")
+        with pd.ExcelWriter(path, engine="openpyxl") as writer:
+            df.to_excel(writer, sheet_name="Products", index=False)
+            self._auto_adjust_workbook(writer)
+        return path, len(df)
+
+    def export_product_media(self, output_dir, timestamp):
+        product_images = ProductImage.objects.select_related("product").all().order_by("product_id", "order")
+        reels = Reel.objects.select_related("product").all().order_by("-created_at")
+
+        image_rows = [{
+            "Product ID": img.product_id,
+            "Product Name": img.product.name if img.product else "",
+            "Image": img.image.url if img.image else "",
+            "Order": img.order,
+        } for img in product_images]
+
+        reel_rows = [{
+            "Reel ID": reel.id,
+            "Title": reel.title,
+            "Linked Product ID": reel.product_id,
+            "Video File": reel.video_file.url if reel.video_file else "",
+            "Thumbnail": reel.thumbnail.url if reel.thumbnail else "",
+            "Created At": reel.created_at,
+        } for reel in reels]
+
+        path = os.path.join(output_dir, f"product_media_backup_{timestamp}.xlsx")
+        with pd.ExcelWriter(path, engine="openpyxl") as writer:
+            self._excel_safe(pd.DataFrame(image_rows)).to_excel(writer, sheet_name="ProductImages", index=False)
+            self._excel_safe(pd.DataFrame(reel_rows)).to_excel(writer, sheet_name="ProductVideos", index=False)
+            self._auto_adjust_workbook(writer)
+        return path
+
+    def export_returns(self, output_dir, timestamp, date_from=None, date_to=None):
+        returns = ReturnRequest.objects.select_related("order", "user", "order_item").all().order_by("-created_at")
+        returns = self._date_filter(returns, "created_at", date_from, date_to)
+        if not returns.exists():
+            return None, 0
+
+        rows = [{
+            "Return Number": ret.return_number,
+            "Order Number": ret.order.order_number,
+            "User": ret.user.username,
+            "Reason": ret.reason,
+            "Status": ret.status,
+            "Refund Amount": float(ret.refund_amount) if ret.refund_amount else 0,
+            "Refund Net": float(ret.refund_amount_net) if ret.refund_amount_net else 0,
+            "Requested At": ret.requested_at,
+            "Resolved At": ret.resolved_at,
+        } for ret in returns]
+        df = self._excel_safe(pd.DataFrame(rows))
+
+        path = os.path.join(output_dir, f"returns_backup_{timestamp}.xlsx")
+        with pd.ExcelWriter(path, engine="openpyxl") as writer:
+            df.to_excel(writer, sheet_name="Returns", index=False)
+            self._auto_adjust_workbook(writer)
+        return path, len(df)
+
+    def export_analytics(self, output_dir, timestamp, date_from=None, date_to=None):
+        orders = Order.objects.all()
+        orders = self._date_filter(orders, "created_at", date_from, date_to)
+        if not orders.exists():
             return None
-    
-    def export_payments(self, output_dir, timestamp, backup_log):
-        """Export payment data and analytics."""
-        try:
-            from Hub.models import Payment
-            
-            payments = Payment.objects.select_related('order').all()
-            
-            if not payments.exists():
-                self.stdout.write(self.style.WARNING('No payments to backup'))
-                return None
-            
-            payments_data = []
-            for payment in payments:
-                payments_data.append({
-                    'Payment ID': payment.razorpay_payment_id,
-                    'Order ID': payment.order_id,
-                    'Amount': float(payment.amount),
-                    'Currency': payment.currency,
-                    'Status': payment.payment_status,
-                    'Method': payment.payment_method or 'N/A',
-                    'Created At': payment.created_at,
-                    'Updated At': payment.updated_at,
-                })
-            
-            payments_df = pd.DataFrame(payments_data)
-            
-            filename = f'payments_backup_{timestamp}.xlsx'
-            filepath = os.path.join(output_dir, filename)
-            
-            with pd.ExcelWriter(filepath, engine='openpyxl') as writer:
-                payments_df.to_excel(writer, sheet_name='Payments', index=False)
-                
-                # Summary by status
-                status_summary = payments_df.groupby('Status').agg({
-                    'Amount': ['count', 'sum', 'mean']
-                }).round(2)
-                
-                status_summary_df = pd.DataFrame({
-                    'Status': status_summary.index,
-                    'Count': status_summary[('Amount', 'count')].values,
-                    'Total': status_summary[('Amount', 'sum')].values,
-                    'Average': status_summary[('Amount', 'mean')].values,
-                })
-                
-                status_summary_df.to_excel(writer, sheet_name='Status Summary', index=False)
-                
-                # Overall summary
-                overall_df = pd.DataFrame({
-                    'Metric': ['Total Payments', 'Total Revenue', 'Avg Payment', 'Backup Date'],
-                    'Value': [
-                        len(payments_df),
-                        float(payments_df['Amount'].sum()),
-                        float(payments_df['Amount'].mean()),
-                        datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                    ]
-                })
-                overall_df.to_excel(writer, sheet_name='Summary', index=False)
-                
-                self.format_worksheet(writer, 'Payments')
-                self.format_worksheet(writer, 'Status Summary')
-                self.format_worksheet(writer, 'Summary')
-            
-            backup_log.payments_count = len(payments_df)
-            
-            self.stdout.write(self.style.SUCCESS(f'✓ Exported {len(payments_df)} payments'))
-            return filepath
-        
-        except Exception as e:
-            logger.error(f'Error exporting payments: {str(e)}', exc_info=True)
-            return None
-    
-    def export_products(self, output_dir, timestamp, backup_log):
-        """Export product inventory data."""
-        try:
-            products = Product.objects.select_related('category').all()
-            
-            if not products.exists():
-                self.stdout.write(self.style.WARNING('No products to backup'))
-                return None
-            
-            products_data = []
-            for product in products:
-                products_data.append({
-                    'Product ID': product.id,
-                    'Name': product.name,
-                    'Category': product.category.name if product.category else '',
-                    'SKU': product.sku or '',
-                    'Price': float(product.price),
-                    'Cost Price': float(product.cost_price) if product.cost_price else 0,
-                    'Stock': product.stock,
-                    'Sold': product.sold or 0,
-                    'Rating': float(product.rating) if product.rating else 0,
-                    'Is Active': product.is_active,
-                    'Visibility': product.visibility_status,
-                    'Created At': product.created_at,
-                })
-            
-            products_df = pd.DataFrame(products_data)
-            
-            filename = f'products_backup_{timestamp}.xlsx'
-            filepath = os.path.join(output_dir, filename)
-            
-            with pd.ExcelWriter(filepath, engine='openpyxl') as writer:
-                products_df.to_excel(writer, sheet_name='Products', index=False)
-                
-                # Low stock alert
-                low_stock_df = products_df[products_df['Stock'] < 10].copy()
-                if not low_stock_df.empty:
-                    low_stock_df.to_excel(writer, sheet_name='Low Stock Alert', index=False)
-                
-                # Category summary
-                category_summary = products_df.groupby('Category').agg({
-                    'Product ID': 'count',
-                    'Stock': 'sum',
-                    'Sold': 'sum',
-                    'Price': 'mean'
-                }).round(2)
-                
-                category_summary_df = pd.DataFrame({
-                    'Category': category_summary.index,
-                    'Count': category_summary['Product ID'].values,
-                    'Total Stock': category_summary['Stock'].values,
-                    'Total Sold': category_summary['Sold'].values,
-                    'Avg Price': category_summary['Price'].values,
-                })
-                category_summary_df.to_excel(writer, sheet_name='Category Summary', index=False)
-                
-                # Overall summary
-                overall_df = pd.DataFrame({
-                    'Metric': ['Total Products', 'Total Stock', 'Total Sold', 'Avg Price', 'Backup Date'],
-                    'Value': [
-                        len(products_df),
-                        int(products_df['Stock'].sum()),
-                        int(products_df['Sold'].sum()),
-                        float(products_df['Price'].mean()),
-                        datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                    ]
-                })
-                overall_df.to_excel(writer, sheet_name='Summary', index=False)
-                
-                self.format_worksheet(writer, 'Products')
-                if not low_stock_df.empty:
-                    self.format_worksheet(writer, 'Low Stock Alert')
-                self.format_worksheet(writer, 'Category Summary')
-                self.format_worksheet(writer, 'Summary')
-            
-            backup_log.products_count = len(products_df)
-            
-            self.stdout.write(self.style.SUCCESS(f'✓ Exported {len(products_df)} products'))
-            return filepath
-        
-        except Exception as e:
-            logger.error(f'Error exporting products: {str(e)}', exc_info=True)
-            return None
-    
-    def export_returns(self, output_dir, timestamp, backup_log):
-        """Export return requests data."""
-        try:
-            from Hub.models import ReturnRequest
-            
-            returns = ReturnRequest.objects.select_related('order', 'user').all()
-            
-            if not returns.exists():
-                self.stdout.write(self.style.WARNING('No return requests to backup'))
-                return None
-            
-            returns_data = []
-            for ret in returns:
-                returns_data.append({
-                    'Return ID': ret.id,
-                    'Order ID': ret.order_id,
-                    'User': ret.user.username,
-                    'Email': ret.user.email,
-                    'Reason': ret.reason,
-                    'Status': ret.status,
-                    'Refund Amount': float(ret.refund_amount) if ret.refund_amount else 0,
-                    'Created At': ret.created_at,
-                    'Updated At': ret.updated_at,
-                })
-            
-            returns_df = pd.DataFrame(returns_data)
-            
-            filename = f'returns_backup_{timestamp}.xlsx'
-            filepath = os.path.join(output_dir, filename)
-            
-            with pd.ExcelWriter(filepath, engine='openpyxl') as writer:
-                returns_df.to_excel(writer, sheet_name='Returns', index=False)
-                
-                # Status summary
-                status_summary = returns_df.groupby('Status').agg({
-                    'Return ID': 'count',
-                    'Refund Amount': 'sum'
-                }).round(2)
-                
-                status_summary_df = pd.DataFrame({
-                    'Status': status_summary.index,
-                    'Count': status_summary['Return ID'].values,
-                    'Total Refunds': status_summary['Refund Amount'].values,
-                })
-                status_summary_df.to_excel(writer, sheet_name='Status Summary', index=False)
-                
-                # Overall summary
-                overall_df = pd.DataFrame({
-                    'Metric': ['Total Returns', 'Total Refunds', 'Avg Refund', 'Backup Date'],
-                    'Value': [
-                        len(returns_df),
-                        float(returns_df['Refund Amount'].sum()),
-                        float(returns_df['Refund Amount'].mean()),
-                        datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                    ]
-                })
-                overall_df.to_excel(writer, sheet_name='Summary', index=False)
-                
-                self.format_worksheet(writer, 'Returns')
-                self.format_worksheet(writer, 'Status Summary')
-                self.format_worksheet(writer, 'Summary')
-            
-            backup_log.returns_count = len(returns_df)
-            
-            self.stdout.write(self.style.SUCCESS(f'✓ Exported {len(returns_df)} returns'))
-            return filepath
-        
-        except Exception as e:
-            logger.error(f'Error exporting returns: {str(e)}', exc_info=True)
-            return None
-    
-    def export_analytics(self, output_dir, timestamp, backup_log):
-        """Export financial analytics and business metrics."""
-        try:
-            orders = Order.objects.select_related('user').all()
-            products = Product.objects.all()
-            
-            if not orders.exists():
-                self.stdout.write(self.style.WARNING('No data for analytics backup'))
-                return None
-            
-            # Calculate metrics
-            total_revenue = sum(float(o.total_amount) for o in orders)
-            total_orders = len(orders)
-            
-            # Order status breakdown
-            status_breakdown = {}
-            for order in orders:
-                status = order.order_status
-                if status not in status_breakdown:
-                    status_breakdown[status] = 0
-                status_breakdown[status] += 1
-            
-            # Payment status breakdown
-            payment_breakdown = {}
-            for order in orders:
-                status = order.payment_status
-                if status not in payment_breakdown:
-                    payment_breakdown[status] = 0
-                payment_breakdown[status] += 1
-            
-            # Top products
-            items = OrderItem.objects.select_related('product').all()
-            product_sales = {}
-            for item in items:
-                if item.product.id not in product_sales:
-                    product_sales[item.product.id] = {'name': item.product.name, 'qty': 0, 'revenue': 0}
-                product_sales[item.product.id]['qty'] += item.quantity
-                product_sales[item.product.id]['revenue'] += float(item.total)
-            
-            top_products = sorted(product_sales.items(), key=lambda x: x[1]['revenue'], reverse=True)[:10]
-            
-            filename = f'analytics_backup_{timestamp}.xlsx'
-            filepath = os.path.join(output_dir, filename)
-            
-            with Workbook() as wb:
-                # Business Metrics
-                ws = wb.active
-                ws.title = 'Metrics'
-                ws['A1'] = 'VibeMall Business Analytics'
-                ws['A1'].font = Font(bold=True, size=14)
-                
-                metrics = [
-                    ['Metric', 'Value'],
-                    ['Total Revenue', f'₹{total_revenue:,.2f}'],
-                    ['Total Orders', total_orders],
-                    ['Avg Order Value', f'₹{total_revenue/total_orders:,.2f}' if total_orders else '₹0'],
-                    ['Total Products', products.count()],
-                    ['Backup Date', datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
-                ]
-                
-                for row_idx, row_data in enumerate(metrics, 1):
-                    for col_idx, val in enumerate(row_data, 1):
-                        ws.cell(row=row_idx, column=col_idx, value=val)
-                
-                ws.column_dimensions['A'].width = 20
-                ws.column_dimensions['B'].width = 30
-                
-                # Order Status Breakdown
-                ws = wb.create_sheet('Order Status')
-                ws['A1'] = 'Order Status Breakdown'
-                ws['A1'].font = Font(bold=True)
-                for idx, (status, count) in enumerate(status_breakdown.items(), 2):
-                    ws[f'A{idx}'] = status
-                    ws[f'B{idx}'] = count
-                
-                # Payment Status Breakdown
-                ws = wb.create_sheet('Payment Status')
-                ws['A1'] = 'Payment Status Breakdown'
-                ws['A1'].font = Font(bold=True)
-                for idx, (status, count) in enumerate(payment_breakdown.items(), 2):
-                    ws[f'A{idx}'] = status
-                    ws[f'B{idx}'] = count
-                
-                # Top Products
-                ws = wb.create_sheet('Top Products')
-                ws['A1'] = 'Product Name'
-                ws['B1'] = 'Quantity Sold'
-                ws['C1'] = 'Revenue'
-                for idx, (prod_id, data) in enumerate(top_products, 2):
-                    ws[f'A{idx}'] = data['name']
-                    ws[f'B{idx}'] = data['qty']
-                    ws[f'C{idx}'] = data['revenue']
-                
-                ws.column_dimensions['A'].width = 30
-                ws.column_dimensions['B'].width = 15
-                ws.column_dimensions['C'].width = 15
-                
-                wb.save(filepath)
-            
-            self.stdout.write(self.style.SUCCESS('✓ Exported analytics'))
-            return filepath
-        
-        except Exception as e:
-            logger.error(f'Error exporting analytics: {str(e)}', exc_info=True)
-            return None
-    
-    def format_worksheet(self, writer, sheet_name):
-        """Format worksheet with colors and borders."""
-        worksheet = writer.sheets[sheet_name]
-        header_fill = PatternFill(start_color='4472C4', end_color='4472C4', fill_type='solid')
-        header_font = Font(bold=True, color='FFFFFF')
-        border = Border(
-            left=Side(style='thin'),
-            right=Side(style='thin'),
-            top=Side(style='thin'),
-            bottom=Side(style='thin')
+
+        total_revenue = float(orders.aggregate(total=Sum("total_amount"))["total"] or 0)
+        total_orders = orders.count()
+        total_returns = ReturnRequest.objects.filter(order__in=orders).count()
+        avg_order = total_revenue / total_orders if total_orders else 0
+
+        metrics_df = pd.DataFrame([
+            {"Metric": "Total Revenue", "Value": total_revenue},
+            {"Metric": "Total Orders", "Value": total_orders},
+            {"Metric": "Average Order Value", "Value": avg_order},
+            {"Metric": "Total Returns", "Value": total_returns},
+            {"Metric": "Generated At", "Value": timezone.now().strftime("%Y-%m-%d %H:%M:%S")},
+        ])
+
+        status_df = pd.DataFrame(list(orders.values("order_status").annotate(count=Count("id"))))
+        payment_df = pd.DataFrame(list(orders.values("payment_status").annotate(total_amount=Sum("total_amount"))))
+
+        path = os.path.join(output_dir, f"analytics_backup_{timestamp}.xlsx")
+        with pd.ExcelWriter(path, engine="openpyxl") as writer:
+            metrics_df.to_excel(writer, sheet_name="Metrics", index=False)
+            status_df.to_excel(writer, sheet_name="OrderStatus", index=False)
+            payment_df.to_excel(writer, sheet_name="PaymentStatus", index=False)
+            self._auto_adjust_workbook(writer)
+        return path
+
+    def _calc_total_size_mb(self, files):
+        total = 0
+        for file_path in files.values():
+            if os.path.isfile(file_path):
+                total += os.path.getsize(file_path)
+        return round(total / (1024 * 1024), 2)
+
+    def _create_cleanup_request_if_needed(self, config, backup_log, regular_root, current_month_label):
+        month_folders = [name for name in os.listdir(regular_root) if os.path.isdir(os.path.join(regular_root, name))]
+        month_folders = sorted(month_folders)
+        if len(month_folders) < 2:
+            return
+
+        candidates = [label for label in month_folders if label < current_month_label]
+        if not candidates:
+            return
+
+        old_label = candidates[-1]
+        old_folder = os.path.join(regular_root, old_label)
+
+        existing = BackupCleanupRequest.objects.filter(folder_path=old_folder, status__in=["PENDING", "CONFIRMED"]).first()
+        if existing:
+            return
+
+        cleanup = BackupCleanupRequest.objects.create(
+            backup_log=backup_log,
+            folder_path=old_folder,
+            folder_label=old_label,
+            status="PENDING",
         )
-        
-        for cell in worksheet[1]:
-            if cell.value:
-                cell.fill = header_fill
-                cell.font = header_font
-                cell.alignment = Alignment(horizontal='center', vertical='center')
-                cell.border = border
-        
-        for row in worksheet.iter_rows(min_row=2):
-            for cell in row:
-                cell.border = border
-    
-    def terabox_sync(self, backup_log, backup_files, output_dir):
-        """Upload backup files to Terabox."""
-        try:
-            terabox_settings = TeraboxSettings.objects.first()
-            if not terabox_settings or not terabox_settings.is_connected:
-                self.stdout.write(self.style.WARNING('⚠ Terabox not connected, skipping cloud sync'))
-                return
-            
-            self.stdout.write('Syncing to Terabox...')
-            
-            for file_type, filepath in backup_files.items():
-                filename = os.path.basename(filepath)
-                
-                # Upload file
-                success = upload_to_terabox(terabox_settings, filepath, filename)
-                
-                if success:
-                    self.stdout.write(self.style.SUCCESS(f'✓ Uploaded {file_type} to Terabox'))
-                    backup_log.terabox_synced = True
-                else:
-                    self.stdout.write(self.style.WARNING(f'⚠ Failed to upload {file_type}'))
-            
-            backup_log.save()
-        
-        except Exception as e:
-            logger.error(f'Terabox sync failed: {str(e)}', exc_info=True)
-            self.stdout.write(self.style.WARNING(f'⚠ Cloud sync failed: {str(e)}'))
-    
-    def send_notification(self, backup_log, backup_files):
-        """Send backup notification email."""
-        try:
-            config = BackupConfiguration.objects.first()
-            if not config or not config.notification_emails:
-                return
-            
-            emails = config.get_notification_emails()
-            if not emails:
-                return
-            
-            send_backup_notification_email(backup_log, backup_files, emails)
-            backup_log.email_sent = True
-            backup_log.save()
-            
-            self.stdout.write(self.style.SUCCESS(f'✓ Notification sent to {len(emails)} recipients'))
-        
-        except Exception as e:
-            logger.error(f'Email notification failed: {str(e)}', exc_info=True)
+        backup_log.requires_cleanup_confirmation = True
+        backup_log.save(update_fields=["requires_cleanup_confirmation", "updated_at"])
+
+        recipients = config.get_notification_emails()
+        if recipients:
+            site_url = getattr(settings, "SITE_URL", "http://127.0.0.1:8000")
+            confirm_url = f"{site_url}/admin-panel/backup/cleanup/{cleanup.confirmation_token}/"
+            email_sent = send_cleanup_confirmation_email(cleanup, recipients, confirm_url)
+            cleanup.email_sent = email_sent
+            cleanup.save(update_fields=["email_sent"])

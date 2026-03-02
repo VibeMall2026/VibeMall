@@ -147,7 +147,16 @@
                         </div>
                         <div class="mb-3" id="refundMethodFields" style="display: none;">
                             <label class="form-label">Refund Method</label>
-                            <input type="text" class="form-control" name="refund_method" placeholder="RAZORPAY / COD / WALLET">
+                            <select class="form-select" name="refund_method" id="refundMethodSelect">
+                                <option value="">Select method</option>
+                                <option value="RAZORPAY" {% if return_request.refund_method == 'RAZORPAY' %}selected{% endif %}>RAZORPAY</option>
+                                <option value="WALLET" {% if return_request.refund_method == 'WALLET' %}selected{% endif %}>WALLET</option>
+                                <option value="BANK" {% if return_request.refund_method == 'BANK' %}selected{% endif %}>BANK</option>
+                            </select>
+                            <small class="text-muted d-block mt-1" id="refundMethodHint">For online paid orders, choose RAZORPAY to process gateway refund.</small>
+                            <small class="text-muted d-block" id="razorpayPaymentHint" data-payment-id="{{ return_request.order.razorpay_payment_id|default:'' }}">
+                                Razorpay Payment ID: {{ return_request.order.razorpay_payment_id|default:'Not available' }}
+                            </small>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Admin Notes</label>
@@ -161,6 +170,9 @@
                             const pickupFields = document.getElementById('pickupFields');
                             const refundAmountFields = document.getElementById('refundAmountFields');
                             const refundMethodFields = document.getElementById('refundMethodFields');
+                            const refundMethodSelect = document.getElementById('refundMethodSelect');
+                            const refundMethodHint = document.getElementById('refundMethodHint');
+                            const razorpayPaymentHint = document.getElementById('razorpayPaymentHint');
                             const refundAmountInput = document.getElementById('refundAmountInput');
                             const wrongReturnHint = document.getElementById('wrongReturnHint');
                             if (!actionSelect) return;
@@ -178,12 +190,27 @@
                                 refundMethodFields.style.display = showRefundMethod.has(action) ? 'block' : 'none';
                                 wrongReturnHint.style.display = isWrongReturn ? 'block' : 'none';
 
+                                if (refundMethodSelect && refundMethodHint && razorpayPaymentHint) {
+                                    const method = refundMethodSelect.value;
+                                    const paymentId = (razorpayPaymentHint.dataset.paymentId || '').trim();
+                                    if (showRefundMethod.has(action) && method === 'RAZORPAY') {
+                                        refundMethodHint.textContent = paymentId
+                                            ? 'Razorpay refund will be attempted using the above payment id.'
+                                            : 'Razorpay payment id is missing for this order. Use WALLET/BANK instead.';
+                                    } else {
+                                        refundMethodHint.textContent = 'For online paid orders, choose RAZORPAY to process gateway refund.';
+                                    }
+                                }
+
                                 if (isWrongReturn && refundAmountInput && refundAmountInput.dataset.halfAmount) {
                                     refundAmountInput.value = refundAmountInput.dataset.halfAmount;
                                 }
                             };
 
                             actionSelect.addEventListener('change', updateVisibility);
+                            if (refundMethodSelect) {
+                                refundMethodSelect.addEventListener('change', updateVisibility);
+                            }
                             updateVisibility();
                         })();
                     </script>

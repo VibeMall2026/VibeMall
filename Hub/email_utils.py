@@ -161,7 +161,7 @@ def send_order_status_update_email(order, old_status, new_status):
         bool: True if email sent successfully, False otherwise
     """
     try:
-        from .models import LoyaltyPoints, PointsTransaction
+        from .models import LoyaltyPoints
         
         # Award loyalty points when order is delivered
         if new_status == 'DELIVERED' and old_status != 'DELIVERED':
@@ -176,8 +176,46 @@ def send_order_status_update_email(order, old_status, new_status):
             except Exception as e:
                 logger.error(f"Failed to award loyalty points for order {order.order_number}: {str(e)}")
         
+        # Validate recipient and sender configuration
+        if not order.user.email:
+            logger.warning(f"Skipping status email for order {order.order_number}: user has no email")
+            return False
+
+        configured_host_user = getattr(settings, 'EMAIL_HOST_USER', '')
+        configured_host_password = getattr(settings, 'EMAIL_HOST_PASSWORD', '')
+        if str(configured_host_user).startswith('replace_with_') or str(configured_host_password).startswith('replace_with_'):
+            raise ValueError("Email SMTP is using placeholder values. Please set EMAIL_HOST_USER and EMAIL_HOST_PASSWORD in .env")
+
+        from_email = configured_host_user or getattr(settings, 'DEFAULT_FROM_EMAIL', '')
+        if not from_email:
+            raise ValueError("Email sender is not configured. Set EMAIL_HOST_USER or DEFAULT_FROM_EMAIL.")
+
         # Get site URL from settings
         site_url = getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000')
+
+        # Build email-friendly order items (with absolute image URLs)
+        order_items = []
+        for item in order.items.select_related('product').all():
+            image_url = ''
+
+            if item.product_image:
+                image_url = str(item.product_image).strip()
+            elif item.product and item.product.image:
+                image_url = item.product.image.url
+
+            if image_url:
+                if image_url.startswith('/'):
+                    image_url = f"{site_url}{image_url}"
+                elif not image_url.startswith(('http://', 'https://')):
+                    image_url = f"{site_url}/{image_url.lstrip('/')}"
+
+            order_items.append({
+                'name': item.product_name or (item.product.name if item.product else 'Product'),
+                'size': item.size,
+                'color': item.color,
+                'quantity': item.quantity,
+                'image_url': image_url,
+            })
         
         status_config = {
             'PROCESSING': {
@@ -210,6 +248,7 @@ def send_order_status_update_email(order, old_status, new_status):
         # Render beautiful HTML template
         html_content = render_to_string('emails/order_status_update.html', {
             'order': order,
+            'order_items': order_items,
             'status_type': status_info['type'],
             'status_title': status_info['title'],
             'status_message': status_info['message'],
@@ -232,6 +271,17 @@ def send_order_status_update_email(order, old_status, new_status):
             text_content += f"\nTracking Number: {order.tracking_number}"
         
         text_content += f"\n\nTrack your order at: {site_url}/orders/{order.id}/"
+
+        if order_items:
+            text_content += "\n\nItems:\n"
+            for item in order_items:
+                meta = []
+                if item['size']:
+                    meta.append(f"Size: {item['size']}")
+                if item['color']:
+                    meta.append(f"Color: {item['color']}")
+                meta_text = f" ({', '.join(meta)})" if meta else ''
+                text_content += f"- {item['name']} x {item['quantity']}{meta_text}\n"
         
         # Create email
         subject = f"{status_info['title']} - Order #{order.order_number}"
@@ -239,7 +289,7 @@ def send_order_status_update_email(order, old_status, new_status):
         email = EmailMultiAlternatives(
             subject=subject,
             body=text_content,
-            from_email=settings.EMAIL_HOST_USER,
+            from_email=from_email,
             to=[order.user.email]
         )
         email.attach_alternative(html_content, "text/html")
@@ -269,21 +319,20 @@ def send_order_status_update_email(order, old_status, new_status):
         
     except Exception as e:
         logger.error(f"Failed to send status update email for order {order.order_number}: {str(e)}")
-        
+
+        failed_subject = f"Order Status Update - #{order.order_number}"
+        if 'status_info' in locals():
+            failed_subject = f"{status_info['title']} - Order #{order.order_number}"
+
         EmailLog.objects.create(
             user=order.user,
             email_to=order.user.email,
             email_type='ORDER_STATUS_UPDATE',
-            subject=subject,
+            subject=failed_subject,
             order=order,
-            sent_successfully=True
+            sent_successfully=False,
+            error_message=str(e)
         )
-        
-        logger.info(f"Status update email sent for order {order.order_number}: {old_status} -> {new_status}")
-        return True
-        
-    except Exception as e:
-        logger.error(f"Failed to send status update email: {str(e)}")
         return False
 
 

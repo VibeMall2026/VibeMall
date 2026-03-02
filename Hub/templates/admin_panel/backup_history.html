@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Backup History</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
+</head>
+<body class="p-4">
+<div class="container-fluid">
+  <h3>Backup History</h3>
+  <a class="btn btn-outline-secondary btn-sm mb-3" href="{% url 'admin_backup_dashboard' %}">Back</a>
+  <div class="table-responsive">
+    <table class="table table-bordered table-sm">
+      <thead><tr><th>ID</th><th>Type</th><th>Scope</th><th>Status</th><th>Start</th><th>Records</th><th>Size MB</th><th>Action</th></tr></thead>
+      <tbody>
+        {% for backup in backups %}
+        <tr>
+          <td>{{ backup.id }}</td>
+          <td>{{ backup.get_backup_type_display }}</td>
+          <td>{{ backup.get_backup_scope_display }}</td>
+          <td>{{ backup.status }}</td>
+          <td>{{ backup.start_time }}</td>
+          <td>{{ backup.get_total_records }}</td>
+          <td>{{ backup.file_size_mb }}</td>
+          <td><a class="btn btn-outline-primary btn-sm" href="{% url 'admin_backup_detail' backup.id %}">View</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center">No backups found</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+</body>
+</html>

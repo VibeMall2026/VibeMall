@@ -26,7 +26,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.conf import settings
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.files import File
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from datetime import timedelta, datetime, time
 from urllib.parse import urlencode, urlparse
 from typing import Dict, List, Optional, Tuple, Any, Union, Callable
@@ -3313,7 +3313,9 @@ def admin_orders(request):
                         notes=f"Bulk status update by {request.user.username}"
                     )
                     # Send email notification to customer with beautiful template
-                    send_order_status_update_email(order, old_status, action)
+                    email_sent = send_order_status_update_email(order, old_status, action)
+                    if not email_sent:
+                        messages.warning(request, f"Status updated for {order.order_number}, but email could not be sent.")
                 messages.success(request, f"{len(order_ids)} orders updated to {action}")
                 
             elif action == 'delete':
@@ -3566,8 +3568,11 @@ def admin_order_details(request, order_id):
             )
             
             # Send email notification with beautiful template
-            send_order_status_update_email(order, old_status, new_status)
-            messages.success(request, f'Order status updated to {new_status}')
+            email_sent = send_order_status_update_email(order, old_status, new_status)
+            if email_sent:
+                messages.success(request, f'Order status updated to {new_status}. Email sent to customer.')
+            else:
+                messages.warning(request, f'Order status updated to {new_status}, but email could not be sent. Please check email settings/logs.')
             
         elif action == 'add_tracking':
             order.tracking_number = request.POST.get('tracking_number')
@@ -3632,7 +3637,10 @@ def admin_order_details(request, order_id):
                     changed_by=request.user,
                     notes=status_note
                 )
-                messages.success(request, 'Cancellation approved and order cancelled.')
+                if refund_notes and 'failed' in refund_notes.lower():
+                    messages.warning(request, f'Cancellation approved and order cancelled, but refund issue: {refund_notes}')
+                else:
+                    messages.success(request, 'Cancellation approved and order cancelled.')
             else:
                 cancel_request.status = 'REJECTED'
                 cancel_request.processed_at = now
@@ -7815,64 +7823,60 @@ def razorpay_webhook(request):
 @user_passes_test(lambda u: u.is_staff)
 def razorpay_refund(request, order_id):
     """Process Razorpay Refund for an Order"""
-    import razorpay
-    
     order = get_object_or_404(Order, id=order_id)
     
     # Check if order can be refunded
     if order.payment_status != 'PAID':
-        messages.error(request, 'Only paid orders can be refunded')
+        messages.error(request, 'Only paid orders can be refunded.')
+        return redirect('admin_order_details', order_id=order.id)
+    
+    if order.payment_method != 'RAZORPAY':
+        messages.error(request, 'Only Razorpay orders can be refunded via this method.')
         return redirect('admin_order_details', order_id=order.id)
     
     if not order.razorpay_payment_id:
-        messages.error(request, 'No payment ID found for this order')
+        messages.error(request, 'No Razorpay payment ID found for this order. Cannot process refund.')
         return redirect('admin_order_details', order_id=order.id)
     
-    # Get Razorpay credentials
-    razorpay_key = getattr(settings, 'RAZORPAY_KEY_ID', '')
-    razorpay_secret = getattr(settings, 'RAZORPAY_KEY_SECRET', '')
-    
-    if not razorpay_key or not razorpay_secret:
-        messages.error(request, 'Payment gateway not configured')
-        return redirect('admin_order_details', order_id=order.id)
-    
+    # Get refund amount (can be partial or full)
     try:
-        # Create Razorpay client
-        client = razorpay.Client(auth=(razorpay_key, razorpay_secret))
-        
-        # Get refund amount (can be partial or full)
-        refund_amount = request.POST.get('refund_amount')
+        refund_amount = request.POST.get('refund_amount', '').strip()
         if refund_amount:
-            amount_in_paise = int(float(refund_amount) * 100)
+            refund_amount_value = Decimal(str(refund_amount))
         else:
             # Full refund
-            amount_in_paise = int(order.total_amount * 100)
-        
-        # Create refund
-        refund = client.payment.refund(
-            order.razorpay_payment_id,
-            {
-                'amount': amount_in_paise,
-                'speed': 'normal',
-                'notes': {
-                    'reason': request.POST.get('refund_reason', 'Customer requested refund'),
-                    'order_number': order.order_number,
-                    'refunded_by': request.user.username
-                },
-                'receipt': f'REFUND_{order.order_number}'
-            }
-        )
-        
-        # Update order status
+            refund_amount_value = order.total_amount
+    except (ValueError, InvalidOperation):
+        messages.error(request, 'Invalid refund amount. Please enter a valid number.')
+        return redirect('admin_order_details', order_id=order.id)
+    
+    # Use the centralized refund helper
+    refund_notes = {
+        'reason': request.POST.get('refund_reason', 'Admin-initiated refund'),
+        'order_number': order.order_number,
+        'refunded_by': request.user.username
+    }
+    
+    refund_success, refund_error = _create_razorpay_refund(
+        order.razorpay_payment_id,
+        refund_amount_value,
+        notes=refund_notes
+    )
+    
+    if refund_success:
+        # Update order status only on successful refund
         order.payment_status = 'REFUNDED'
         order.order_status = 'CANCELLED'
-        order.admin_notes = f"Refund ID: {refund['id']}\nRefund Amount: ₹{refund_amount or order.total_amount}\n{order.admin_notes}"
+        refund_note_text = f"Refund Amount: ₹{refund_amount_value}\nReason: {refund_notes.get('reason', 'N/A')}"
+        if order.admin_notes:
+            order.admin_notes = f"{refund_note_text}\n\n{order.admin_notes}"
+        else:
+            order.admin_notes = refund_note_text
         order.save()
-        
-        messages.success(request, f'Refund initiated successfully! Refund ID: {refund["id"]}')
-        
-    except Exception as e:
-        messages.error(request, f'Refund failed: {str(e)}')
+        messages.success(request, f'✓ Refund processed successfully! Amount: ₹{refund_amount_value}')
+    else:
+        # Refund failed - keep order in PAID status so retry is possible
+        messages.error(request, f'Refund failed: {refund_error}')
     
     return redirect('admin_order_details', order_id=order.id)
 
@@ -8127,25 +8131,18 @@ def _process_refund(return_request, amount, refund_method=''):
     refund_success = False
     refund_notes = ''
 
-    if refund_method == 'RAZORPAY' and order.razorpay_payment_id:
-        try:
-            import razorpay
-            razorpay_key = getattr(settings, 'RAZORPAY_KEY_ID', '')
-            razorpay_secret = getattr(settings, 'RAZORPAY_KEY_SECRET', '')
-            if razorpay_key and razorpay_secret:
-                client = razorpay.Client(auth=(razorpay_key, razorpay_secret))
-                client.payment.refund(order.razorpay_payment_id, {
-                    'amount': int(float(net_amount) * 100),
-                    'notes': {
-                        'return_id': str(return_request.id),
-                        'order_number': order.order_number,
-                    }
-                })
-                refund_success = True
-            else:
-                refund_notes = 'Razorpay keys missing'
-        except Exception as exc:
-            refund_notes = f'Razorpay refund failed: {exc}'
+    if refund_method == 'RAZORPAY':
+        if not order.razorpay_payment_id:
+            refund_notes = 'Razorpay payment id missing for this order.'
+        else:
+            refund_success, refund_notes = _create_razorpay_refund(
+                payment_id=order.razorpay_payment_id,
+                amount=net_amount,
+                notes={
+                    'return_id': str(return_request.id),
+                    'order_number': order.order_number,
+                },
+            )
     elif refund_method == 'WALLET':
         profile, _ = UserProfile.objects.get_or_create(user=return_request.user)
         profile.wallet_balance = (profile.wallet_balance or Decimal('0.00')) + net_amount
@@ -8165,7 +8162,7 @@ def _process_refund(return_request, amount, refund_method=''):
         order.payment_status = 'REFUNDED'
         order.save(update_fields=['payment_status'])
 
-    return refund_success
+    return refund_success, refund_notes
 
 
 def _process_cancellation_refund(order, cancel_request):
@@ -8181,24 +8178,14 @@ def _process_cancellation_refund(order, cancel_request):
     refund_notes = ''
 
     if refund_method == 'RAZORPAY' and order.razorpay_payment_id:
-        try:
-            import razorpay
-            razorpay_key = getattr(settings, 'RAZORPAY_KEY_ID', '')
-            razorpay_secret = getattr(settings, 'RAZORPAY_KEY_SECRET', '')
-            if razorpay_key and razorpay_secret:
-                client = razorpay.Client(auth=(razorpay_key, razorpay_secret))
-                client.payment.refund(order.razorpay_payment_id, {
-                    'amount': int(float(amount) * 100),
-                    'notes': {
-                        'cancel_id': str(cancel_request.id),
-                        'order_number': order.order_number,
-                    }
-                })
-                refund_success = True
-            else:
-                refund_notes = 'Razorpay keys missing'
-        except Exception as exc:
-            refund_notes = f'Razorpay refund failed: {exc}'
+        refund_success, refund_notes = _create_razorpay_refund(
+            payment_id=order.razorpay_payment_id,
+            amount=amount,
+            notes={
+                'cancel_id': str(cancel_request.id),
+                'order_number': order.order_number,
+            },
+        )
     elif refund_method == 'WALLET':
         profile, _ = UserProfile.objects.get_or_create(user=order.user)
         profile.wallet_balance = (profile.wallet_balance or Decimal('0.00')) + amount
@@ -8217,6 +8204,140 @@ def _process_cancellation_refund(order, cancel_request):
         order.save(update_fields=['payment_status'])
 
     return refund_success, refund_notes
+
+
+def _create_razorpay_refund(payment_id, amount, notes=None):
+    """
+    Create a Razorpay refund with proper validation and error handling.
+    
+    Args:
+        payment_id: Razorpay payment ID (must start with 'pay_')
+        amount: Refund amount as Decimal
+        notes: Optional dict of notes to attach to refund
+    
+    Returns:
+        (success: bool, error_message: str)
+        - If success=True, error_message is empty ('')
+        - If success=False, error_message contains specific reason
+    """
+    notes = notes or {}
+
+    # Validate payment ID
+    payment_id = (payment_id or '').strip()
+    if not payment_id:
+        return False, 'Razorpay payment ID is missing for this order.'
+    
+    if not payment_id.startswith('pay_'):
+        return False, f'Invalid Razorpay payment ID format: {payment_id}'
+
+    # Validate credentials
+    razorpay_key = getattr(settings, 'RAZORPAY_KEY_ID', '')
+    razorpay_secret = getattr(settings, 'RAZORPAY_KEY_SECRET', '')
+    if not razorpay_key or not razorpay_secret:
+        return False, 'Razorpay API keys are not configured in system settings.'
+
+    # Validate amount
+    try:
+        amount_decimal = Decimal(str(amount or 0))
+    except (ValueError, InvalidOperation):
+        return False, f'Invalid refund amount: {amount}'
+
+    refund_paisa = int((amount_decimal * Decimal('100')).quantize(Decimal('1')))
+    if refund_paisa <= 0:
+        return False, 'Refund amount must be greater than zero.'
+
+    try:
+        import razorpay
+        from razorpay.errors import BadRequestError, NoDataError, ServerError, SignatureVerificationError
+
+        client = razorpay.Client(auth=(razorpay_key, razorpay_secret))
+        
+        # Fetch payment to check if it exists and get remaining refundable amount
+        try:
+            payment = client.payment.fetch(payment_id)
+        except NoDataError:
+            return False, f'Payment {payment_id} not found in Razorpay. Please verify the payment ID.'
+        except BadRequestError as e:
+            return False, f'Invalid payment ID: {str(e)[:100]}'
+        except Exception as e:
+            return False, f'Error fetching payment details: {str(e)[:100]}'
+
+        captured_amount = int(payment.get('amount') or 0)
+        already_refunded = int(payment.get('amount_refunded') or 0)
+        remaining_refundable = max(captured_amount - already_refunded, 0)
+
+        # Check if already fully refunded
+        if remaining_refundable <= 0:
+            return True, 'Payment is already fully refunded on Razorpay.'
+
+        # Cap refund to remaining refundable amount
+        if refund_paisa > remaining_refundable:
+            refund_paisa = remaining_refundable
+
+        # Process refund
+        try:
+            refund_result = client.payment.refund(payment_id, {
+                'amount': refund_paisa,
+                'notes': notes,
+            })
+            return True, ''
+        except BadRequestError as e:
+            error_msg = str(e)
+            if 'invalid request' in error_msg.lower():
+                return False, 'Invalid refund request. Please check payment amount and try again.'
+            elif 'already refunded' in error_msg.lower():
+                return False, 'Payment has already been refunded.'
+            else:
+                return False, f'Refund request failed: {error_msg[:100]}'
+        except ServerError as e:
+            return False, f'Razorpay server error. Please try again later. ({str(e)[:50]})'
+        except Exception as e:
+            return False, f'Refund processing error: {str(e)[:100]}'
+    
+    except ImportError as ie:
+        import sys
+        import logging
+        import os
+        import site
+        
+        logger = logging.getLogger(__name__)
+        
+        # DEEP DEBUG LOGGING
+        debug_info = {
+            'executable': sys.executable,
+            'version': sys.version,
+            'prefix': sys.prefix,
+            'base_prefix': getattr(sys, 'base_prefix', 'N/A'),
+            'is_venv': hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix),
+            'site_packages': site.getsitepackages(),
+            'user_site': site.getusersitepackages(),
+            'cwd': os.getcwd(),
+            'sys_path_first_5': sys.path[:5],
+        }
+        
+        # Log everything
+        logger.error('='*70)
+        logger.error('RAZORPAY IMPORT FAILED - DIAGNOSTIC INFO')
+        logger.error('='*70)
+        for key, value in debug_info.items():
+            logger.error(f'{key}: {value}')
+        logger.error(f'ImportError: {ie}')
+        logger.error('='*70)
+        
+        # Try to list site-packages to verify razorpay exists
+        if debug_info['site_packages']:
+            sp = debug_info['site_packages'][0]
+            if os.path.exists(sp):
+                razorpay_path = os.path.join(sp, 'razorpay')
+                logger.error(f'Razorpay exists in {sp}: {os.path.exists(razorpay_path)}')
+                if os.path.exists(razorpay_path):
+                    contents = os.listdir(razorpay_path)
+                    logger.error(f'Razorpay contents: {contents[:5]}')
+        
+        # Provide specific instruction
+        return False, f'Razorpay SDK not found. Python: {sys.executable[:30]}... Run: pip install razorpay'
+    except Exception as exc:
+        return False, f'Unexpected error: {str(exc)[:100]}'
 
 
 @login_required(login_url='login')
@@ -8520,6 +8641,8 @@ def admin_return_detail(request, return_id):
         now = timezone.now()
         return_request_obj.status = action
 
+        refund_notes = ''
+
         if action == 'APPROVED':
             return_request_obj.approved_at = now
         elif action == 'PICKUP_SCHEDULED':
@@ -8561,21 +8684,36 @@ def admin_return_detail(request, return_id):
                     except Exception:
                         refund_amount = None
                 refund_method = request.POST.get('refund_method', '').strip()
-                _process_refund(return_request_obj, refund_amount, refund_method)
+                refund_success, refund_notes = _process_refund(return_request_obj, refund_amount, refund_method)
+                if not refund_success:
+                    return_request_obj.status = 'REFUND_PENDING'
+                    return_request_obj.resolved_at = None
 
         if notes:
             stamped_notes = f"[{now.strftime('%d %b %Y %H:%M')}] {notes}"
             return_request_obj.admin_notes = f"{stamped_notes}\n{return_request_obj.admin_notes}".strip()
 
+        if refund_notes:
+            stamped_refund_note = f"[{now.strftime('%d %b %Y %H:%M')}] {refund_notes}"
+            return_request_obj.admin_notes = f"{stamped_refund_note}\n{return_request_obj.admin_notes}".strip()
+
         return_request_obj.save()
-        _log_return_history(return_request_obj, old_status, action, request.user, notes)
+        final_action = return_request_obj.status
+        history_notes = notes
+        if refund_notes:
+            history_notes = f"{notes}\n{refund_notes}".strip()
+
+        _log_return_history(return_request_obj, old_status, final_action, request.user, history_notes)
         _send_return_notification(
             return_request_obj,
             f'Return Update - {return_request_obj.order.order_number}',
-            f'Your return request is now {action.replace("_", " ").title()}.'
+            f'Your return request is now {final_action.replace("_", " ").title()}.'
         )
 
-        messages.success(request, f'Return updated to {action}.')
+        if refund_notes and final_action == 'REFUND_PENDING':
+            messages.warning(request, f'Return updated to {final_action}. Refund could not be completed: {refund_notes}')
+        else:
+            messages.success(request, f'Return updated to {final_action}.')
         return redirect('admin_return_detail', return_id=return_request_obj.id)
 
     return render(request, 'admin_panel/return_detail.html', {

@@ -5,6 +5,7 @@ Usage: python manage.py export_excel_backup
 
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
+from django.db.models import Count, Sum
 from Hub.models import Order, OrderItem, Product, User as CustomUser
 import pandas as pd
 from datetime import datetime
@@ -12,6 +13,35 @@ import os
 
 class Command(BaseCommand):
     help = 'Export User, Order, Payment and Product data to Excel backup files'
+
+    def _excel_safe(self, df):
+        for col in df.columns:
+            if pd.api.types.is_datetime64tz_dtype(df[col]):
+                df[col] = df[col].dt.tz_localize(None)
+        return df
+
+    def _auto_adjust_sheet_columns(self, worksheet):
+        if worksheet.max_column == 0:
+            return
+
+        for column_cells in worksheet.iter_cols(min_row=1, max_row=worksheet.max_row, min_col=1, max_col=worksheet.max_column):
+            max_length = 0
+            column_letter = column_cells[0].column_letter
+
+            for cell in column_cells:
+                if cell.value is None:
+                    continue
+                try:
+                    max_length = max(max_length, len(str(cell.value)))
+                except Exception:
+                    continue
+
+            adjusted_width = min(max(max_length + 2, 12), 50)
+            worksheet.column_dimensions[column_letter].width = adjusted_width
+
+    def _auto_adjust_workbook(self, writer):
+        for worksheet in writer.book.worksheets:
+            self._auto_adjust_sheet_columns(worksheet)
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -22,7 +52,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        output_dir = options['output-dir']
+        output_dir = options['output_dir']
         
         # Create backup directory if it doesn't exist
         os.makedirs(output_dir, exist_ok=True)
@@ -81,17 +111,15 @@ class Command(BaseCommand):
             if user_profiles:
                 profiles_df = pd.DataFrame(user_profiles)
                 df = df.merge(profiles_df, left_on='id', right_on='user_id', how='left')
+
+            df = self._excel_safe(df)
             
             file_path = f"{output_dir}/users_backup_{timestamp}.xlsx"
             
             # Create Excel file with formatting
             with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
                 df.to_excel(writer, sheet_name='Users', index=False)
-                
-                # Format columns
-                worksheet = writer.sheets['Users']
-                for idx, col in enumerate(df.columns, 1):
-                    worksheet.column_dimensions[chr(64 + idx)].width = 20
+                self._auto_adjust_workbook(writer)
             
             self.stdout.write(
                 self.style.SUCCESS(f'  ✓ Users exported: {file_path}')
@@ -112,6 +140,7 @@ class Command(BaseCommand):
             )
             
             df_orders = pd.DataFrame(orders)
+            df_orders = self._excel_safe(df_orders)
             
             # Export to Excel with multiple sheets
             file_path = f"{output_dir}/orders_backup_{timestamp}.xlsx"
@@ -123,23 +152,20 @@ class Command(BaseCommand):
                 # Sheet 2: Order Details (Items)
                 order_items = OrderItem.objects.all().values(
                     'order__order_number', 'product__name', 'quantity',
-                    'price', 'discount', 'total'
+                    'product_price', 'subtotal'
                 )
                 df_items = pd.DataFrame(order_items)
+                df_items = self._excel_safe(df_items)
                 df_items.to_excel(writer, sheet_name='Order Items', index=False)
                 
                 # Sheet 3: Order Status Summary
                 status_summary = Order.objects.values('order_status').annotate(
-                    count=pd.Series.count
+                    count=Count('id')
                 )
                 df_status = pd.DataFrame(status_summary)
+                df_status = self._excel_safe(df_status)
                 df_status.to_excel(writer, sheet_name='Status Summary', index=False)
-                
-                # Format columns
-                for sheet_name in ['Orders', 'Order Items', 'Status Summary']:
-                    worksheet = writer.sheets[sheet_name]
-                    for col in worksheet.columns:
-                        worksheet.column_dimensions[col[0].column_letter].width = 20
+                self._auto_adjust_workbook(writer)
             
             self.stdout.write(
                 self.style.SUCCESS(f'  ✓ Orders exported: {file_path}')
@@ -160,6 +186,7 @@ class Command(BaseCommand):
             )
             
             df_payments = pd.DataFrame(payments)
+            df_payments = self._excel_safe(df_payments)
             
             file_path = f"{output_dir}/payments_backup_{timestamp}.xlsx"
             
@@ -169,17 +196,13 @@ class Command(BaseCommand):
                 
                 # Sheet 2: Payment Summary
                 payment_summary = Order.objects.values('payment_status').annotate(
-                    count=pd.Series.count,
-                    total_amount=pd.Series.sum('total_amount')
+                    count=Count('id'),
+                    total_amount=Sum('total_amount')
                 )
                 df_summary = pd.DataFrame(payment_summary)
+                df_summary = self._excel_safe(df_summary)
                 df_summary.to_excel(writer, sheet_name='Payment Summary', index=False)
-                
-                # Format columns
-                for sheet_name in ['Payments', 'Payment Summary']:
-                    worksheet = writer.sheets[sheet_name]
-                    for col in worksheet.columns:
-                        worksheet.column_dimensions[col[0].column_letter].width = 20
+                self._auto_adjust_workbook(writer)
             
             self.stdout.write(
                 self.style.SUCCESS(f'  ✓ Payments exported: {file_path}')
@@ -194,11 +217,12 @@ class Command(BaseCommand):
         """Export product data to Excel"""
         try:
             products = Product.objects.all().values(
-                'id', 'name', 'category', 'price', 'cost_price',
-                'stock', 'sold', 'is_active', 'created_at'
+                'id', 'name', 'category', 'price',
+                'stock', 'sold', 'is_active'
             )
             
             df_products = pd.DataFrame(products)
+            df_products = self._excel_safe(df_products)
             
             file_path = f"{output_dir}/products_backup_{timestamp}.xlsx"
             
@@ -208,11 +232,12 @@ class Command(BaseCommand):
                 
                 # Sheet 2: Stock Status
                 stock_status = Product.objects.values('category').annotate(
-                    total_products=pd.Series.count,
-                    total_stock=pd.Series.sum('stock'),
-                    total_sold=pd.Series.sum('sold')
+                    total_products=Count('id'),
+                    total_stock=Sum('stock'),
+                    total_sold=Sum('sold')
                 )
                 df_stock = pd.DataFrame(stock_status)
+                df_stock = self._excel_safe(df_stock)
                 df_stock.to_excel(writer, sheet_name='Stock Status', index=False)
                 
                 # Sheet 3: Low Stock Products
@@ -220,13 +245,9 @@ class Command(BaseCommand):
                     'name', 'category', 'stock', 'price'
                 )
                 df_low = pd.DataFrame(low_stock)
+                df_low = self._excel_safe(df_low)
                 df_low.to_excel(writer, sheet_name='Low Stock Alert', index=False)
-                
-                # Format columns
-                for sheet_name in ['Products', 'Stock Status', 'Low Stock Alert']:
-                    worksheet = writer.sheets[sheet_name]
-                    for col in worksheet.columns:
-                        worksheet.column_dimensions[col[0].column_letter].width = 20
+                self._auto_adjust_workbook(writer)
             
             self.stdout.write(
                 self.style.SUCCESS(f'  ✓ Products exported: {file_path}')

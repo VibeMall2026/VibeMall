@@ -1194,3 +1194,997 @@
 [INFO] 2026-03-02 06:43:40 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\models.py changed, reloading.
 [INFO] 2026-03-02 06:43:43 autoreload - Watching for file changes with StatReloader
 [INFO] 2026-03-02 06:43:45 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 08:49:26 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\models.py changed, reloading.
+[INFO] 2026-03-02 08:49:27 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\models.py changed, reloading.
+[INFO] 2026-03-02 08:49:30 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 08:49:32 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 09:02:46 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\urls.py changed, reloading.
+[INFO] 2026-03-02 09:02:47 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\urls.py changed, reloading.
+[INFO] 2026-03-02 09:02:48 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 09:02:49 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 09:09:05 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\admin.py changed, reloading.
+[INFO] 2026-03-02 09:09:06 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\admin.py changed, reloading.
+[INFO] 2026-03-02 09:09:07 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 09:09:08 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 09:15:50 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_admin.py changed, reloading.
+[INFO] 2026-03-02 09:15:50 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_admin.py changed, reloading.
+[INFO] 2026-03-02 09:15:54 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 09:15:54 autoreload - Watching for file changes with StatReloader
+[ERROR] 2026-03-02 09:27:13 create_backup - Backup creation failed: Excel does not support datetimes with timezones. Please ensure that datetimes are timezone unaware before writing to Excel.
+Traceback (most recent call last):
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\management\commands\create_backup.py", line 97, in handle
+    files = self._export_selected_files(month_dir, backup_log, data_types, date_from, date_to)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\management\commands\create_backup.py", line 143, in _export_selected_files
+    path, count = self.export_users(output_dir, timestamp, date_from, date_to)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\management\commands\create_backup.py", line 208, in export_users
+    df.to_excel(writer, sheet_name="Users", index=False)
+  File "d:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\core\generic.py", line 2312, in to_excel
+    formatter.write(
+  File "d:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\io\formats\excel.py", line 1012, in write
+    writer._write_cells(
+  File "d:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\io\excel\_openpyxl.py", line 490, in _write_cells
+    for cell in cells:
+  File "d:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\io\formats\excel.py", line 875, in get_formatted_cells
+    cell.val = self._format_value(cell.val)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\io\formats\excel.py", line 601, in _format_value
+    raise ValueError(
+ValueError: Excel does not support datetimes with timezones. Please ensure that datetimes are timezone unaware before writing to Excel.
+[ERROR] 2026-03-02 09:36:31 create_backup - Backup creation failed: Cannot resolve keyword 'created_at' into field. Choices are: additional_images, brand, care_info, cart, category, color, description, descriptionImage, dimensions, discount_percent, id, image, is_active, is_returnable, is_top_deal, main_page_items, margin, name, old_price, orderitem, payment_methods, price, price_alerts, product_link, questions, rating, ready_ship_styles, resell_links, return_days, return_policy, returnitem, review_count, reviews, shipping_info, size, sku, slug, sold, stock, stock_notifications, sub_category, tags, watch_shop_reels, weight, wishlist
+Traceback (most recent call last):
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\management\commands\create_backup.py", line 97, in handle
+    files = self._export_selected_files(month_dir, backup_log, data_types, date_from, date_to)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\management\commands\create_backup.py", line 167, in _export_selected_files
+    path, count = self.export_products(output_dir, timestamp, date_from, date_to)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\management\commands\create_backup.py", line 346, in export_products
+    new_products = new_products.filter(created_at__year=now.year, created_at__month=now.month)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\django\db\models\query.py", line 1495, in filter
+    return self._filter_or_exclude(False, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\django\db\models\query.py", line 1513, in _filter_or_exclude
+    clone._filter_or_exclude_inplace(negate, args, kwargs)
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\django\db\models\query.py", line 1523, in _filter_or_exclude_inplace
+    self._query.add_q(Q(*args, **kwargs))
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\django\db\models\sql\query.py", line 1646, in add_q
+    clause, _ = self._add_q(q_object, can_reuse)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\django\db\models\sql\query.py", line 1678, in _add_q
+    child_clause, needed_inner = self.build_filter(
+                                 ^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\django\db\models\sql\query.py", line 1526, in build_filter
+    lookups, parts, reffed_expression = self.solve_lookup_type(arg, summarize)
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\django\db\models\sql\query.py", line 1333, in solve_lookup_type
+    _, field, _, lookup_parts = self.names_to_path(lookup_splitted, self.get_meta())
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\django\db\models\sql\query.py", line 1806, in names_to_path
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'created_at' into field. Choices are: additional_images, brand, care_info, cart, category, color, description, descriptionImage, dimensions, discount_percent, id, image, is_active, is_returnable, is_top_deal, main_page_items, margin, name, old_price, orderitem, payment_methods, price, price_alerts, product_link, questions, rating, ready_ship_styles, resell_links, return_days, return_policy, returnitem, review_count, reviews, shipping_info, size, sku, slug, sold, stock, stock_notifications, sub_category, tags, watch_shop_reels, weight, wishlist
+[INFO] 2026-03-02 09:39:06 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 09:40:20 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py changed, reloading.
+[INFO] 2026-03-02 09:40:21 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py changed, reloading.
+[INFO] 2026-03-02 09:40:21 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py changed, reloading.
+[INFO] 2026-03-02 09:40:29 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 09:40:29 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 09:43:18 basehttp - "GET /admin-panel/reels/ HTTP/1.1" 200 44329
+[INFO] 2026-03-02 09:43:19 basehttp - "GET /static/admin/assets/css/custom-responsive.css HTTP/1.1" 200 13161
+[INFO] 2026-03-02 09:43:20 basehttp - "GET /media/reels/WhatsApp_Video_2026-02-24_at_3.34.00_PM.mp4 HTTP/1.1" 304 0
+[INFO] 2026-03-02 09:43:33 basehttp - "GET /admin-panel/returns/ HTTP/1.1" 200 30790
+[INFO] 2026-03-02 09:43:52 basehttp - "GET /admin-panel/categories/ HTTP/1.1" 200 50225
+[INFO] 2026-03-02 09:43:52 basehttp - "GET /media/category_icons/Watch.png HTTP/1.1" 200 208266
+[INFO] 2026-03-02 09:43:52 basehttp - "GET /media/category_icons/Homekitchen_rBNPbOl.png HTTP/1.1" 200 1061449
+[INFO] 2026-03-02 09:43:52 basehttp - "GET /media/category_icons/Fashion_9J7YLdN.png HTTP/1.1" 200 44865
+[INFO] 2026-03-02 09:43:52 basehttp - "GET /media/category_icons/women_wear_2_kzTCoNs.png HTTP/1.1" 200 1234042
+[INFO] 2026-03-02 09:43:52 basehttp - "GET /media/category_icons/jewellery.png HTTP/1.1" 200 1855205
+[INFO] 2026-03-02 09:43:52 basehttp - "GET /media/category_icons/MensWear.png HTTP/1.1" 200 1147027
+[INFO] 2026-03-02 09:43:52 basehttp - "GET /media/category_icons/beauth.png HTTP/1.1" 200 868990
+[INFO] 2026-03-02 09:44:07 basehttp - "GET /admin-panel/main-page-banners/ HTTP/1.1" 200 49213
+[INFO] 2026-03-02 09:44:08 basehttp - "GET /admin-panel/main-page-products/ HTTP/1.1" 200 32251
+[INFO] 2026-03-02 09:44:14 basehttp - "GET /static/admin/assets/vendor/css/core.css HTTP/1.1" 200 981701
+[INFO] 2026-03-02 09:44:14 basehttp - "GET /static/admin/assets/js/config.js HTTP/1.1" 200 714
+[INFO] 2026-03-02 09:44:14 basehttp - "GET /admin-panel/main-page-products/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 09:44:14 basehttp - "GET /static/admin/assets/vendor/libs/popper/popper.js HTTP/1.1" 200 57748
+[INFO] 2026-03-02 09:44:14 basehttp - "GET /login/?next=/admin-panel/main-page-products/ HTTP/1.1" 200 78761
+[INFO] 2026-03-02 09:44:15 basehttp - "GET /static/admin/assets/vendor/css/theme-default.css HTTP/1.1" 200 70640
+[INFO] 2026-03-02 09:44:16 basehttp - "GET /static/admin/assets/css/demo.css HTTP/1.1" 200 2543
+[INFO] 2026-03-02 09:44:16 basehttp - "GET /static/admin/assets/vendor/fonts/boxicons.css HTTP/1.1" 200 79999
+[INFO] 2026-03-02 09:44:17 basehttp - "GET /static/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css HTTP/1.1" 200 5008
+[INFO] 2026-03-02 09:44:34 basehttp - "GET /admin-panel/banners/add/ HTTP/1.1" 200 35071
+[INFO] 2026-03-02 09:46:18 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py changed, reloading.
+[INFO] 2026-03-02 09:46:18 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py changed, reloading.
+[INFO] 2026-03-02 09:46:18 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py changed, reloading.
+[INFO] 2026-03-02 09:46:23 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 09:46:25 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 09:46:27 autoreload - Watching for file changes with StatReloader
+[WARNING] 2026-03-02 09:53:00 basehttp - "GET /admin-panel/backup/ HTTP/1.1" 403 13
+[INFO] 2026-03-02 10:17:35 basehttp - "GET / HTTP/1.1" 200 324921
+[INFO] 2026-03-02 10:17:36 basehttp - "GET /static/assets/js/meanmenu.js HTTP/1.1" 200 11264
+[INFO] 2026-03-02 10:17:36 basehttp - "GET /static/assets/js/counterup.js HTTP/1.1" 200 1067
+[INFO] 2026-03-02 10:17:36 basehttp - "GET /static/assets/css/preloader.css HTTP/1.1" 304 0
+[INFO] 2026-03-02 10:17:36 basehttp - "GET /static/assets/js/wow.js HTTP/1.1" 200 8415
+[INFO] 2026-03-02 10:17:36 basehttp - "GET /static/assets/js/nice-select.js HTTP/1.1" 200 2942
+[INFO] 2026-03-02 10:17:36 basehttp - "GET /static/assets/js/isotope-pkgd.js HTTP/1.1" 200 35503
+[INFO] 2026-03-02 10:17:36 basehttp - "GET /static/assets/js/main.js HTTP/1.1" 304 0
+[INFO] 2026-03-02 10:17:36 basehttp - "GET /static/assets/css/pages-responsive.css?v=20260222-03 HTTP/1.1" 304 0
+[INFO] 2026-03-02 10:17:36 basehttp - "GET /static/assets/css/promotional-banners.css?v=20260225-01 HTTP/1.1" 304 0
+[INFO] 2026-03-02 10:17:36 basehttp - "GET /static/assets/css/index-responsive.css?v=20260224-15 HTTP/1.1" 304 0
+[INFO] 2026-03-02 10:17:36 basehttp - "GET /static/assets/js/owl-carousel.js HTTP/1.1" 200 42766
+[INFO] 2026-03-02 10:17:36 basehttp - "GET /static/assets/css/owl-carousel.css HTTP/1.1" 200 2937
+[INFO] 2026-03-02 10:17:37 basehttp - "GET /static/assets/js/magnific-popup.js HTTP/1.1" 200 20216
+[INFO] 2026-03-02 10:17:37 basehttp - "GET /static/assets/css/magnific-popup.css HTTP/1.1" 200 6951
+[INFO] 2026-03-02 10:17:37 basehttp - "GET /media/main_page_banners/3.png HTTP/1.1" 304 0
+[INFO] 2026-03-02 10:17:37 basehttp - "GET /media/main_page_banners/2.png HTTP/1.1" 304 0
+[INFO] 2026-03-02 10:17:37 basehttp - "GET /media/main_page_banners/1.png HTTP/1.1" 304 0
+[INFO] 2026-03-02 10:17:37 basehttp - "GET /media/ready_ship_styles/5.jpg HTTP/1.1" 304 0
+[INFO] 2026-03-02 10:17:37 basehttp - "GET /media/products/1_ulLWfC6.png HTTP/1.1" 200 192016
+[INFO] 2026-03-02 10:17:37 basehttp - "GET /media/products/1_7KrxGvQ.png HTTP/1.1" 200 224291
+[INFO] 2026-03-02 10:17:37 basehttp - "GET /media/products/1_15FqCly.png HTTP/1.1" 200 301201
+[INFO] 2026-03-02 10:17:37 basehttp - "GET /media/ready_ship_styles/4_LlElPLi.jpg HTTP/1.1" 304 0
+[INFO] 2026-03-02 10:17:37 basehttp - "GET /media/products/1_AoMTdoz.png HTTP/1.1" 200 407438
+[INFO] 2026-03-02 10:17:37 basehttp - "GET /static/assets/img/banner/banner-4.jpg HTTP/1.1" 200 21873
+[INFO] 2026-03-02 10:17:37 basehttp - "GET /static/assets/img/quick-view/quick-view-3.jpg HTTP/1.1" 200 19984
+[INFO] 2026-03-02 10:17:37 basehttp - "GET /media/main_page_subcategory_banners/1.png HTTP/1.1" 200 586540
+[INFO] 2026-03-02 10:17:37 basehttp - "GET /media/ready_ship_styles/1.jpeg HTTP/1.1" 200 69788
+[INFO] 2026-03-02 10:17:37 basehttp - "GET /media/products/1_jeaqOxf.png HTTP/1.1" 200 292403
+[INFO] 2026-03-02 10:17:42 basehttp - "GET /media/ready_ship_styles/2.jpg HTTP/1.1" 200 5196008
+[INFO] 2026-03-02 10:17:42 basehttp - "GET /media/main_page_subcategory_banners/HomeDecor.jpg HTTP/1.1" 200 5232066
+[INFO] 2026-03-02 10:17:42 basehttp - "GET /media/ready_ship_styles/3.jpg HTTP/1.1" 200 8274733
+[INFO] 2026-03-02 10:17:42 basehttp - "GET /static/assets/flaticon/flaticon10fb.ttf?845a83d3775f78f799f148d44e25858f HTTP/1.1" 200 3576
+[INFO] 2026-03-02 10:17:42 basehttp - "GET /static/assets/fonts/fa-regular-400.woff2 HTTP/1.1" 200 173220
+[INFO] 2026-03-02 10:17:42 basehttp - "GET /static/assets/fonts/fa-light-300.woff2 HTTP/1.1" 200 189452
+[INFO] 2026-03-02 10:17:42 basehttp - "GET /static/assets/fonts/fa-duotone-900.woff2 HTTP/1.1" 200 186964
+[INFO] 2026-03-02 10:17:42 basehttp - "GET /media/sliders/Slider.png HTTP/1.1" 200 1863295
+[INFO] 2026-03-02 10:17:42 basehttp - "GET /media/sliders/Banner2_2iQKVy0.png HTTP/1.1" 200 2454080
+[INFO] 2026-03-02 10:17:43 basehttp - "GET /static/assets/fonts/fa-solid-900.woff2 HTTP/1.1" 200 140704
+[INFO] 2026-03-02 10:17:44 basehttp - "GET /media/sliders/slider2.jpg HTTP/1.1" 200 9930775
+[INFO] 2026-03-02 10:17:44 basehttp - "GET /static/assets/img/favicon.png HTTP/1.1" 200 887
+[INFO] 2026-03-02 10:17:53 basehttp - "GET /admin-panel/ HTTP/1.1" 200 89883
+[INFO] 2026-03-02 10:17:53 basehttp - "GET /media/products/WhatsApp_Image_2026-02-24_at_3.34.00_PM_1.png HTTP/1.1" 304 0
+[INFO] 2026-03-02 10:17:53 basehttp - "GET /static/admin/assets/vendor/fonts/boxicons/boxicons.woff2 HTTP/1.1" 200 102988
+[INFO] 2026-03-02 10:18:03 basehttp - "GET /admin-panel/backup/ HTTP/1.1" 200 17406
+[WARNING] 2026-03-02 10:18:03 basehttp - "GET /static/admin/css/backup.css HTTP/1.1" 404 1874
+[INFO] 2026-03-02 10:18:19 basehttp - "GET /admin-panel/backup/4/ HTTP/1.1" 200 943
+[INFO] 2026-03-02 10:18:21 basehttp - "GET /admin-panel/backup/history/ HTTP/1.1" 200 2041
+[INFO] 2026-03-02 10:18:23 basehttp - "GET /admin-panel/backup/ HTTP/1.1" 200 17406
+[WARNING] 2026-03-02 10:18:24 basehttp - "GET /static/admin/css/backup.css HTTP/1.1" 404 1874
+[INFO] 2026-03-02 10:18:31 basehttp - "POST /admin-panel/backup/manual/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 10:18:31 basehttp - "GET /admin-panel/backup/ HTTP/1.1" 200 18795
+[WARNING] 2026-03-02 10:18:31 basehttp - "GET /static/admin/css/backup.css HTTP/1.1" 404 1874
+[WARNING] 2026-03-02 10:18:31 basehttp - "GET /favicon.ico HTTP/1.1" 404 51807
+[INFO] 2026-03-02 10:18:47 basehttp - "GET /admin-panel/backup/configuration/ HTTP/1.1" 200 3526
+[ERROR] 2026-03-02 10:19:18 basehttp - "POST /admin-panel/backup/configuration/ HTTP/1.1" 500 86569
+[INFO] 2026-03-02 10:19:28 basehttp - "GET /admin-panel/backup/configuration/ HTTP/1.1" 200 3549
+[INFO] 2026-03-02 10:19:32 basehttp - "GET /admin-panel/backup/4/ HTTP/1.1" 200 943
+[INFO] 2026-03-02 10:19:33 basehttp - "GET /admin-panel/backup/history/ HTTP/1.1" 200 2384
+[INFO] 2026-03-02 10:19:34 basehttp - "GET /admin-panel/backup/ HTTP/1.1" 200 18817
+[WARNING] 2026-03-02 10:19:35 basehttp - "GET /static/admin/css/backup.css HTTP/1.1" 404 1874
+[INFO] 2026-03-02 10:19:38 basehttp - "GET /admin-panel/ HTTP/1.1" 200 91368
+[INFO] 2026-03-02 10:19:43 basehttp - "GET /admin-panel/backup/itr-reports/ HTTP/1.1" 200 1554
+[WARNING] 2026-03-02 10:19:43 basehttp - "GET /favicon.ico HTTP/1.1" 404 51807
+[ERROR] 2026-03-02 10:20:05 basehttp - "POST /admin-panel/backup/itr-reports/ HTTP/1.1" 500 114829
+[INFO] 2026-03-02 10:20:51 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_utils.py changed, reloading.
+[INFO] 2026-03-02 10:20:51 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_utils.py changed, reloading.
+[INFO] 2026-03-02 10:20:54 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 10:20:56 autoreload - Watching for file changes with StatReloader
+[ERROR] 2026-03-02 10:23:53 basehttp - "POST /admin-panel/backup/itr-reports/ HTTP/1.1" 500 114302
+[INFO] 2026-03-02 10:24:32 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py changed, reloading.
+[INFO] 2026-03-02 10:24:33 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_utils.py changed, reloading.
+[INFO] 2026-03-02 10:24:38 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 10:24:39 autoreload - Watching for file changes with StatReloader
+[ERROR] 2026-03-02 10:26:33 basehttp - "POST /admin-panel/backup/itr-reports/ HTTP/1.1" 500 115376
+[ERROR] 2026-03-02 10:26:46 basehttp - "POST /admin-panel/backup/itr-reports/ HTTP/1.1" 500 115640
+[WARNING] 2026-03-02 10:26:46 basehttp - "GET /favicon.ico HTTP/1.1" 404 51807
+[INFO] 2026-03-02 10:26:54 basehttp - "GET /admin-panel/backup/itr-reports/ HTTP/1.1" 200 1554
+[ERROR] 2026-03-02 10:27:07 basehttp - "POST /admin-panel/backup/itr-reports/ HTTP/1.1" 500 115375
+[INFO] 2026-03-02 10:28:27 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 10:29:30 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_utils.py changed, reloading.
+[INFO] 2026-03-02 10:29:31 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py changed, reloading.
+[INFO] 2026-03-02 10:29:31 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py changed, reloading.
+[INFO] 2026-03-02 10:29:34 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 10:29:34 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 10:29:34 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 10:30:29 basehttp - "POST /admin-panel/backup/itr-reports/ HTTP/1.1" 200 6155
+[INFO] 2026-03-02 10:37:23 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py changed, reloading.
+[INFO] 2026-03-02 10:37:24 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py changed, reloading.
+[INFO] 2026-03-02 10:37:24 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py changed, reloading.
+[INFO] 2026-03-02 10:37:26 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 10:37:26 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 10:37:26 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 10:38:30 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\itr_utils.py changed, reloading.
+[INFO] 2026-03-02 10:38:30 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\itr_utils.py changed, reloading.
+[INFO] 2026-03-02 10:38:30 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\itr_utils.py changed, reloading.
+[INFO] 2026-03-02 10:38:32 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 10:38:32 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 10:38:32 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 10:41:50 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\itr_utils.py changed, reloading.
+[INFO] 2026-03-02 10:41:51 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\itr_utils.py changed, reloading.
+[INFO] 2026-03-02 10:41:51 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\itr_utils.py changed, reloading.
+[INFO] 2026-03-02 10:41:58 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 10:41:59 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 10:42:00 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 10:42:06 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\itr_utils.py changed, reloading.
+[INFO] 2026-03-02 10:42:06 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\itr_utils.py changed, reloading.
+[INFO] 2026-03-02 10:42:06 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\itr_utils.py changed, reloading.
+[INFO] 2026-03-02 10:42:12 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 10:42:12 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 10:42:12 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:02:46 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\itr_utils.py changed, reloading.
+[INFO] 2026-03-02 11:02:46 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\itr_utils.py changed, reloading.
+[INFO] 2026-03-02 11:02:47 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\itr_utils.py changed, reloading.
+[INFO] 2026-03-02 11:02:49 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:02:49 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:02:51 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:03:32 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\itr_utils.py changed, reloading.
+[INFO] 2026-03-02 11:03:32 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\itr_utils.py changed, reloading.
+[INFO] 2026-03-02 11:03:32 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\itr_utils.py changed, reloading.
+[INFO] 2026-03-02 11:03:37 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:03:37 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:03:37 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:30:10 basehttp - "GET / HTTP/1.1" 200 324921
+[INFO] 2026-03-02 11:30:10 basehttp - "GET /static/assets/css/magnific-popup.css HTTP/1.1" 200 6951
+[INFO] 2026-03-02 11:30:10 basehttp - "GET /static/assets/js/counterup.js HTTP/1.1" 200 1067
+[INFO] 2026-03-02 11:30:10 basehttp - "GET /static/assets/js/meanmenu.js HTTP/1.1" 200 11264
+[INFO] 2026-03-02 11:30:10 basehttp - "GET /static/assets/js/magnific-popup.js HTTP/1.1" 200 20216
+[INFO] 2026-03-02 11:30:10 basehttp - "GET /static/assets/js/wow.js HTTP/1.1" 200 8415
+[INFO] 2026-03-02 11:30:10 basehttp - "GET /static/assets/css/owl-carousel.css HTTP/1.1" 200 2937
+[INFO] 2026-03-02 11:30:10 basehttp - "GET /static/assets/js/isotope-pkgd.js HTTP/1.1" 200 35503
+[INFO] 2026-03-02 11:30:10 basehttp - "GET /static/assets/js/nice-select.js HTTP/1.1" 200 2942
+[INFO] 2026-03-02 11:30:11 basehttp - "GET /media/main_page_subcategory_banners/1.png HTTP/1.1" 200 586540
+[INFO] 2026-03-02 11:30:11 basehttp - "GET /media/ready_ship_styles/1.jpeg HTTP/1.1" 200 69788
+[INFO] 2026-03-02 11:30:11 basehttp - "GET /static/assets/js/owl-carousel.js HTTP/1.1" 200 42766
+[INFO] 2026-03-02 11:30:11 basehttp - "GET /static/assets/img/banner/banner-4.jpg HTTP/1.1" 200 21873
+[INFO] 2026-03-02 11:30:11 basehttp - "GET /media/products/1_7KrxGvQ.png HTTP/1.1" 200 224291
+[INFO] 2026-03-02 11:30:11 basehttp - "GET /media/site/logo2.png HTTP/1.1" 200 320989
+[INFO] 2026-03-02 11:30:11 basehttp - "GET /media/main_page_banners/1.png HTTP/1.1" 200 196981
+[INFO] 2026-03-02 11:30:11 basehttp - "GET /static/assets/flaticon/flaticon10fb.ttf?845a83d3775f78f799f148d44e25858f HTTP/1.1" 200 3576
+[INFO] 2026-03-02 11:30:11 basehttp - "GET /static/assets/fonts/fa-regular-400.woff2 HTTP/1.1" 200 173220
+[INFO] 2026-03-02 11:30:11 basehttp - "GET /media/main_page_banners/2.png HTTP/1.1" 200 159975
+[INFO] 2026-03-02 11:30:11 basehttp - "GET /media/main_page_banners/3.png HTTP/1.1" 200 146937
+[INFO] 2026-03-02 11:30:11 basehttp - "GET /static/assets/fonts/fa-light-300.woff2 HTTP/1.1" 200 189452
+[INFO] 2026-03-02 11:30:11 basehttp - "GET /media/profile_images/icon.png HTTP/1.1" 200 45977
+[INFO] 2026-03-02 11:30:11 basehttp - "GET /static/assets/fonts/fa-duotone-900.woff2 HTTP/1.1" 200 186964
+[INFO] 2026-03-02 11:30:11 basehttp - "GET /media/sliders/Banner2_2iQKVy0.png HTTP/1.1" 200 2454080
+[INFO] 2026-03-02 11:30:11 basehttp - "GET /media/sliders/Slider.png HTTP/1.1" 200 1863295
+[INFO] 2026-03-02 11:30:11 basehttp - "GET /media/main_page_subcategory_banners/HomeDecor.jpg HTTP/1.1" 200 5232066
+[INFO] 2026-03-02 11:30:11 basehttp - "GET /media/ready_ship_styles/2.jpg HTTP/1.1" 200 5196008
+[INFO] 2026-03-02 11:30:11 basehttp - "GET /static/assets/fonts/fa-solid-900.woff2 HTTP/1.1" 200 140704
+[INFO] 2026-03-02 11:30:12 basehttp - "GET /media/products/1.1.png HTTP/1.1" 200 674692
+[INFO] 2026-03-02 11:30:12 basehttp - "GET /media/ready_ship_styles/3.jpg HTTP/1.1" 200 8274733
+[INFO] 2026-03-02 11:30:12 basehttp - "GET /media/brand_partners/4208a85522e331b2826e3ad1b78f4967.jpg HTTP/1.1" 200 29442
+[INFO] 2026-03-02 11:30:12 basehttp - "GET /media/category_cards/women_wear.webp HTTP/1.1" 200 147502
+[INFO] 2026-03-02 11:30:12 basehttp - "GET /media/reels/reels.MP4 HTTP/1.1" 200 4099791
+[INFO] 2026-03-02 11:30:12 basehttp - "GET /media/sliders/slider2.jpg HTTP/1.1" 200 9930775
+[INFO] 2026-03-02 11:30:12 basehttp - "GET /media/category_cards/watches.jpg HTTP/1.1" 200 4845696
+[INFO] 2026-03-02 11:30:13 basehttp - "GET /media/reels/WhatsApp_Video_2026-02-24_at_3.34.00_PM.mp4 HTTP/1.1" 200 9306369
+[INFO] 2026-03-02 11:30:13 basehttp - "GET /media/main_page_subcategory_banners/women_watches.jpg HTTP/1.1" 200 62355
+[INFO] 2026-03-02 11:30:13 basehttp - "GET /media/main_page_subcategory_banners/WhatsApp_Image_2026-02-24_at_3.34.00_PM_2.jpeg HTTP/1.1" 200 331544
+[INFO] 2026-03-02 11:30:13 basehttp - "GET /media/category_cards/mens_wear.jpg HTTP/1.1" 200 10930323
+[INFO] 2026-03-02 11:30:13 basehttp - "GET /media/category_cards/beautyshoes.jpg HTTP/1.1" 200 10985668
+[INFO] 2026-03-02 11:30:14 basehttp - "GET /media/category_cards/jewellery.jpg HTTP/1.1" 200 15416367
+[INFO] 2026-03-02 11:30:14 basehttp - "GET /media/category_cards/Homekitchen.jpg HTTP/1.1" 200 19340539
+[INFO] 2026-03-02 11:30:14 basehttp - "GET /media/category_cards/Genz_Trends.jpg HTTP/1.1" 200 13215175
+[INFO] 2026-03-02 11:30:14 basehttp - "GET /media/ready_ship_styles/5.jpg HTTP/1.1" 200 2344197
+[INFO] 2026-03-02 11:30:14 basehttp - "GET /media/ready_ship_styles/4_LlElPLi.jpg HTTP/1.1" 200 4570269
+[INFO] 2026-03-02 11:30:14 basehttp - "GET /media/products/1_2r1kGxc.png HTTP/1.1" 200 613067
+[INFO] 2026-03-02 11:30:15 basehttp - "GET /media/products/1_VPbUOMA.png HTTP/1.1" 200 185790
+[INFO] 2026-03-02 11:30:15 basehttp - "GET /media/products/1.png HTTP/1.1" 200 407438
+[INFO] 2026-03-02 11:30:15 basehttp - "GET /media/products/1_7aSQB7b.png HTTP/1.1" 200 193722
+[INFO] 2026-03-02 11:30:15 basehttp - "GET /media/products/1_ulLWfC6.png HTTP/1.1" 200 192016
+[INFO] 2026-03-02 11:30:15 basehttp - "GET /media/products/1_zSJicQY.png HTTP/1.1" 200 158167
+[INFO] 2026-03-02 11:30:16 basehttp - "GET /media/products/1_AoMTdoz.png HTTP/1.1" 200 407438
+[INFO] 2026-03-02 11:30:16 basehttp - "GET /media/products/1_15FqCly.png HTTP/1.1" 200 301201
+[INFO] 2026-03-02 11:30:16 basehttp - "GET /media/products/1_XKXW1sA.png HTTP/1.1" 200 490400
+[INFO] 2026-03-02 11:30:16 basehttp - "GET /media/products/1_yyrY5Xk.png HTTP/1.1" 200 302011
+[INFO] 2026-03-02 11:30:16 basehttp - "GET /media/products/1_SCYBItt.png HTTP/1.1" 200 145844
+[INFO] 2026-03-02 11:30:16 basehttp - "GET /media/products/1_FvJtAU2.png HTTP/1.1" 200 325533
+[INFO] 2026-03-02 11:30:16 basehttp - "GET /media/products/1_nwogpGr.png HTTP/1.1" 200 191921
+[INFO] 2026-03-02 11:30:16 basehttp - "GET /media/products/1_2bsbnGr.png HTTP/1.1" 200 331669
+[INFO] 2026-03-02 11:30:16 basehttp - "GET /media/products/1_GmmWdCK.png HTTP/1.1" 200 496816
+[INFO] 2026-03-02 11:30:16 basehttp - "GET /media/products/1_jeaqOxf.png HTTP/1.1" 200 292403
+[INFO] 2026-03-02 11:30:16 basehttp - "GET /static/assets/img/quick-view/quick-view-3.jpg HTTP/1.1" 200 19984
+[INFO] 2026-03-02 11:30:16 basehttp - "GET /static/assets/img/favicon.png HTTP/1.1" 200 887
+[INFO] 2026-03-02 11:30:21 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\models.py changed, reloading.
+[INFO] 2026-03-02 11:30:22 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_utils.py changed, reloading.
+[INFO] 2026-03-02 11:30:22 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\admin.py changed, reloading.
+[INFO] 2026-03-02 11:30:28 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:30:28 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:30:28 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:30:42 basehttp - "POST /buy-now/36/ HTTP/1.1" 200 118
+[INFO] 2026-03-02 11:30:42 basehttp - "GET /checkout/ HTTP/1.1" 200 120833
+[INFO] 2026-03-02 11:30:42 basehttp - "GET /static/assets/css/checkout-responsive.css HTTP/1.1" 304 0
+[INFO] 2026-03-02 11:31:26 views - Payment method selected: RAZORPAY
+[INFO] 2026-03-02 11:31:27 basehttp - "POST /checkout/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 11:31:27 basehttp - "GET /checkout/confirm/ HTTP/1.1" 200 81930
+[INFO] 2026-03-02 11:31:27 basehttp - "GET /static/assets/css/confirmorder-responsive.css HTTP/1.1" 304 0
+[INFO] 2026-03-02 11:31:34 basehttp - "POST /checkout/confirm/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 11:31:39 basehttp - "GET /razorpay-payment/54/ HTTP/1.1" 200 74708
+[WARNING] 2026-03-02 11:32:41 email_utils - WeasyPrint not installed. Invoice PDF will not be attached. Install with: pip install weasyprint
+[ERROR] 2026-03-02 11:32:41 email_utils - Failed to send order confirmation email for order ORD20260302001: (530, b'5.7.0 Authentication Required. For more information, go to\n5.7.0  https://support.google.com/accounts/troubleshooter/2402620. 5b1f17b1804b1-483c35910f1sm230941215e9.2 - gsmtp', 'VibeMall <info@vibemall.com>')
+[INFO] 2026-03-02 11:32:41 basehttp - "POST /razorpay-payment-success/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 11:32:41 basehttp - "GET /order-confirmation/54/ HTTP/1.1" 200 79853
+[INFO] 2026-03-02 11:32:41 basehttp - "GET /order-confirmation/54/ HTTP/1.1" 200 79853
+[INFO] 2026-03-02 11:32:42 basehttp - "GET /static/assets/css/orderconfirmation-responsive.css HTTP/1.1" 304 0
+[INFO] 2026-03-02 11:33:45 views - Generating invoice PDF for order ORD20260302001 user=VibeMall
+[INFO] 2026-03-02 11:33:45 basehttp - "GET /media/products/1_2r1kGxc.png HTTP/1.1" 200 613067
+[INFO] 2026-03-02 11:33:48 basehttp - "GET /order/download-invoice/ORD20260302001/ HTTP/1.1" 200 1441923
+[INFO] 2026-03-02 11:34:04 basehttp - "GET /admin-panel/ HTTP/1.1" 200 91483
+[INFO] 2026-03-02 11:34:04 basehttp - "GET /media/products/1_7aSQB7b.png HTTP/1.1" 200 193722
+[INFO] 2026-03-02 11:34:04 basehttp - "GET /media/site/ChatGPT_Image_Feb_11_2026_11_31_42_AM_SHxtMMI.png HTTP/1.1" 200 2122199
+[INFO] 2026-03-02 11:34:04 basehttp - "GET /media/products/WhatsApp_Image_2026-02-24_at_3.34.00_PM_1.png HTTP/1.1" 200 1145485
+[INFO] 2026-03-02 11:34:04 basehttp - "GET /media/products/1_yyrY5Xk.png HTTP/1.1" 200 302011
+[INFO] 2026-03-02 11:34:04 basehttp - "GET /media/products/1_SCYBItt.png HTTP/1.1" 200 145844
+[INFO] 2026-03-02 11:34:04 basehttp - "GET /media/products/1.1.png HTTP/1.1" 200 674692
+[INFO] 2026-03-02 11:34:18 basehttp - "GET /admin-panel/orders/ HTTP/1.1" 200 346546
+[INFO] 2026-03-02 11:34:18 basehttp - "GET /media/products/4.1.avif HTTP/1.1" 200 22000
+[INFO] 2026-03-02 11:34:18 basehttp - "GET /media/products/1.avif HTTP/1.1" 200 34299
+[INFO] 2026-03-02 11:34:18 basehttp - "GET /media/products/5.1.jpg HTTP/1.1" 200 31575
+[INFO] 2026-03-02 11:34:18 basehttp - "GET /media/products/2.1.avif HTTP/1.1" 200 42356
+[INFO] 2026-03-02 11:34:18 basehttp - "GET /media/products/1_FvJtAU2.png HTTP/1.1" 200 325533
+[INFO] 2026-03-02 11:34:18 basehttp - "GET /media/products/1_15FqCly.png HTTP/1.1" 200 301201
+[INFO] 2026-03-02 11:34:18 basehttp - "GET /media/products/1_7KrxGvQ.png HTTP/1.1" 200 224291
+[INFO] 2026-03-02 11:34:18 basehttp - "GET /media/products/1.png HTTP/1.1" 200 407438
+[INFO] 2026-03-02 11:34:18 basehttp - "GET /media/products/1_XKXW1sA.png HTTP/1.1" 200 490400
+[INFO] 2026-03-02 11:34:26 basehttp - "GET /admin-panel/orders/54/ HTTP/1.1" 200 40081
+[INFO] 2026-03-02 11:34:39 email_utils - Awarded 37006 loyalty points to VibeMall for order #ORD20260302001
+[ERROR] 2026-03-02 11:34:39 email_utils - Failed to send status update email for order ORD20260302001: (530, b'5.7.0 Authentication Required. For more information, go to\n5.7.0  https://support.google.com/accounts/troubleshooter/2402620. ffacd0b85a97d-439ae3f31dbsm13289496f8f.1 - gsmtp', 'VibeMall <info@vibemall.com>')
+[INFO] 2026-03-02 11:34:39 email_utils - Status update email sent for order ORD20260302001: PROCESSING -> DELIVERED
+[INFO] 2026-03-02 11:34:39 basehttp - "POST /admin-panel/orders/54/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 11:34:39 basehttp - "GET /admin-panel/orders/54/ HTTP/1.1" 200 41767
+[INFO] 2026-03-02 11:39:44 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\email_utils.py changed, reloading.
+[INFO] 2026-03-02 11:39:44 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\email_utils.py changed, reloading.
+[INFO] 2026-03-02 11:39:45 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\email_utils.py changed, reloading.
+[INFO] 2026-03-02 11:39:48 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:39:49 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:39:49 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:40:29 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\admin.py changed, reloading.
+[INFO] 2026-03-02 11:40:30 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\admin.py changed, reloading.
+[INFO] 2026-03-02 11:40:30 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\admin.py changed, reloading.
+[INFO] 2026-03-02 11:40:32 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:40:32 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:40:33 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:41:11 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 11:41:11 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 11:41:11 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 11:41:13 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:41:14 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:41:14 autoreload - Watching for file changes with StatReloader
+[ERROR] 2026-03-02 11:41:37 email_utils - Failed to send status update email for order ORD20260302001: (530, b'5.7.0 Authentication Required. For more information, go to\n5.7.0  https://support.google.com/accounts/troubleshooter/2402620. ffacd0b85a97d-439b130abfasm11215405f8f.34 - gsmtp', 'VibeMall <info@vibemall.com>')
+[INFO] 2026-03-02 11:42:24 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\email_utils.py changed, reloading.
+[INFO] 2026-03-02 11:42:24 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\email_utils.py changed, reloading.
+[INFO] 2026-03-02 11:42:25 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\email_utils.py changed, reloading.
+[INFO] 2026-03-02 11:42:27 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:42:28 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:42:28 autoreload - Watching for file changes with StatReloader
+[ERROR] 2026-03-02 11:43:01 email_utils - Failed to send status update email for order ORD20260302001: Email SMTP is using placeholder values. Please set EMAIL_HOST_USER and EMAIL_HOST_PASSWORD in .env
+[INFO] 2026-03-02 11:43:39 basehttp - "GET /admin-panel/orders/54/ HTTP/1.1" 200 40285
+[WARNING] 2026-03-02 11:43:49 basehttp - "GET /favicon.ico HTTP/1.1" 404 51807
+[INFO] 2026-03-02 11:43:53 views - Approve Order #ORD20260301002 - Current approval_status: PENDING_APPROVAL
+[INFO] 2026-03-02 11:43:53 views - Order approved! New approval_status: APPROVED, order_status: PROCESSING
+[INFO] 2026-03-02 11:43:53 basehttp - "POST /admin-panel/orders/53/approve/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 11:43:53 basehttp - "GET /admin-panel/orders/ HTTP/1.1" 200 347422
+[INFO] 2026-03-02 11:49:50 email_utils - Order status update email sent to info.vibemall@gmail.com for order ORD20260302001 (Status: SHIPPED)
+[INFO] 2026-03-02 11:53:04 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\email_utils.py changed, reloading.
+[INFO] 2026-03-02 11:53:04 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\email_utils.py changed, reloading.
+[INFO] 2026-03-02 11:53:04 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\email_utils.py changed, reloading.
+[INFO] 2026-03-02 11:53:08 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:53:08 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:53:08 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:54:38 email_utils - Order status update email sent to info.vibemall@gmail.com for order ORD20260302001 (Status: SHIPPED)
+[INFO] 2026-03-02 11:55:39 basehttp - "GET /admin-panel/orders/54/ HTTP/1.1" 200 40285
+[INFO] 2026-03-02 11:55:46 basehttp - "POST /admin-panel/orders/54/refund/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 11:55:46 basehttp - "GET /admin-panel/orders/54/ HTTP/1.1" 200 41767
+[INFO] 2026-03-02 11:58:25 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 11:58:25 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 11:58:25 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 11:58:28 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:58:28 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:58:28 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:58:52 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 11:58:52 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 11:58:53 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 11:58:55 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:58:55 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 11:58:57 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 12:00:39 basehttp - "GET /admin-panel/orders/54/ HTTP/1.1" 200 40285
+[INFO] 2026-03-02 12:00:46 basehttp - "POST /admin-panel/orders/54/refund/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 12:00:46 basehttp - "GET /admin-panel/orders/54/ HTTP/1.1" 200 41767
+[INFO] 2026-03-02 12:00:59 basehttp - "GET /admin-panel/orders/54/ HTTP/1.1" 200 40285
+[INFO] 2026-03-02 12:01:00 basehttp - "GET /static/admin/assets/vendor/fonts/boxicons.css HTTP/1.1" 200 79999
+[INFO] 2026-03-02 12:01:00 basehttp - "GET /static/admin/assets/vendor/css/core.css HTTP/1.1" 200 981701
+[INFO] 2026-03-02 12:01:00 basehttp - "GET /static/admin/assets/vendor/css/theme-default.css HTTP/1.1" 200 70640
+[INFO] 2026-03-02 12:01:00 basehttp - "GET /static/admin/assets/vendor/js/helpers.js HTTP/1.1" 200 103079
+[INFO] 2026-03-02 12:01:00 basehttp - "GET /static/admin/assets/js/config.js HTTP/1.1" 200 714
+[INFO] 2026-03-02 12:01:00 basehttp - "GET /static/admin/assets/css/demo.css HTTP/1.1" 200 2543
+[INFO] 2026-03-02 12:01:00 basehttp - "GET /static/admin/assets/vendor/libs/popper/popper.js HTTP/1.1" 200 57748
+[INFO] 2026-03-02 12:01:00 basehttp - "GET /static/admin/assets/css/custom-responsive.css HTTP/1.1" 200 13161
+[INFO] 2026-03-02 12:01:00 basehttp - "GET /static/admin/assets/vendor/js/menu.js HTTP/1.1" 200 80183
+[INFO] 2026-03-02 12:01:00 basehttp - "GET /static/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js HTTP/1.1" 200 108747
+[INFO] 2026-03-02 12:01:00 basehttp - "GET /static/admin/assets/js/main.js HTTP/1.1" 200 3846
+[INFO] 2026-03-02 12:01:00 basehttp - "GET /static/admin/assets/vendor/libs/jquery/jquery.js HTTP/1.1" 200 832974
+[INFO] 2026-03-02 12:01:00 basehttp - "GET /static/admin/assets/vendor/js/bootstrap.js HTTP/1.1" 200 842340
+[INFO] 2026-03-02 12:01:00 basehttp - "GET /static/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css HTTP/1.1" 200 5008
+[INFO] 2026-03-02 12:01:00 basehttp - "GET /media/profile_images/icon.png HTTP/1.1" 200 45977
+[INFO] 2026-03-02 12:01:00 basehttp - "GET /media/site/ChatGPT_Image_Feb_11_2026_11_31_42_AM_SHxtMMI.png HTTP/1.1" 200 2122199
+[INFO] 2026-03-02 12:01:00 basehttp - "GET /media/products/1_2r1kGxc.png HTTP/1.1" 200 613067
+[INFO] 2026-03-02 12:01:00 basehttp - "GET /static/admin/assets/vendor/fonts/boxicons/boxicons.woff2 HTTP/1.1" 200 102988
+[INFO] 2026-03-02 12:01:00 basehttp - "GET /static/admin/assets/img/favicon/favicon.ico HTTP/1.1" 200 1393
+[INFO] 2026-03-02 12:01:13 basehttp - "POST /admin-panel/orders/54/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 12:01:13 basehttp - "GET /admin-panel/orders/54/ HTTP/1.1" 200 41752
+[INFO] 2026-03-02 12:01:22 basehttp - "POST /admin-panel/orders/54/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 12:01:22 basehttp - "GET /admin-panel/orders/54/ HTTP/1.1" 200 41764
+[INFO] 2026-03-02 12:01:33 basehttp - "POST /admin-panel/orders/54/refund/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 12:01:33 basehttp - "GET /admin-panel/orders/54/ HTTP/1.1" 200 41767
+[INFO] 2026-03-02 12:06:13 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 12:06:14 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 12:06:14 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 12:06:18 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 12:06:19 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 12:06:19 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 12:09:28 basehttp - "GET /admin-panel/orders/54/ HTTP/1.1" 200 40285
+[INFO] 2026-03-02 12:09:28 basehttp - "GET /static/admin/assets/vendor/fonts/boxicons.css HTTP/1.1" 200 79999
+[INFO] 2026-03-02 12:09:28 basehttp - "GET /static/admin/assets/vendor/js/helpers.js HTTP/1.1" 200 103079
+[INFO] 2026-03-02 12:09:28 basehttp - "GET /static/admin/assets/js/config.js HTTP/1.1" 200 714
+[INFO] 2026-03-02 12:09:28 basehttp - "GET /static/admin/assets/vendor/libs/jquery/jquery.js HTTP/1.1" 200 832974
+[INFO] 2026-03-02 12:09:28 basehttp - "GET /static/admin/assets/vendor/libs/popper/popper.js HTTP/1.1" 200 57748
+[INFO] 2026-03-02 12:09:28 basehttp - "GET /static/admin/assets/vendor/js/bootstrap.js HTTP/1.1" 200 842340
+[INFO] 2026-03-02 12:09:28 basehttp - "GET /static/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js HTTP/1.1" 200 108747
+[INFO] 2026-03-02 12:09:28 basehttp - "GET /static/admin/assets/css/demo.css HTTP/1.1" 200 2543
+[INFO] 2026-03-02 12:09:28 basehttp - "GET /static/admin/assets/css/custom-responsive.css HTTP/1.1" 200 13161
+[INFO] 2026-03-02 12:09:28 basehttp - "GET /static/admin/assets/vendor/js/menu.js HTTP/1.1" 200 80183
+[INFO] 2026-03-02 12:09:28 basehttp - "GET /static/admin/assets/js/main.js HTTP/1.1" 200 3846
+[INFO] 2026-03-02 12:09:28 basehttp - "GET /static/admin/assets/vendor/css/core.css HTTP/1.1" 200 981701
+[INFO] 2026-03-02 12:09:28 basehttp - "GET /static/admin/assets/vendor/css/theme-default.css HTTP/1.1" 200 70640
+[INFO] 2026-03-02 12:09:28 basehttp - "GET /static/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css HTTP/1.1" 200 5008
+[INFO] 2026-03-02 12:09:29 basehttp - "GET /media/profile_images/icon.png HTTP/1.1" 200 45977
+[INFO] 2026-03-02 12:09:29 basehttp - "GET /media/products/1_2r1kGxc.png HTTP/1.1" 200 613067
+[INFO] 2026-03-02 12:09:29 basehttp - "GET /media/site/ChatGPT_Image_Feb_11_2026_11_31_42_AM_SHxtMMI.png HTTP/1.1" 200 2122199
+[INFO] 2026-03-02 12:09:29 basehttp - "GET /static/admin/assets/vendor/fonts/boxicons/boxicons.woff2 HTTP/1.1" 200 102988
+[INFO] 2026-03-02 12:09:29 basehttp - "GET /static/admin/assets/img/favicon/favicon.ico HTTP/1.1" 200 1393
+[INFO] 2026-03-02 12:09:39 basehttp - "POST /admin-panel/orders/54/refund/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 12:09:39 basehttp - "GET /admin-panel/orders/54/ HTTP/1.1" 200 41767
+[INFO] 2026-03-02 12:28:19 basehttp - "GET /admin-panel/orders/54/ HTTP/1.1" 200 40285
+[INFO] 2026-03-02 12:28:19 basehttp - "GET /static/admin/assets/vendor/fonts/boxicons.css HTTP/1.1" 200 79999
+[INFO] 2026-03-02 12:28:19 basehttp - "GET /static/admin/assets/css/custom-responsive.css HTTP/1.1" 200 13161
+[INFO] 2026-03-02 12:28:19 basehttp - "GET /static/admin/assets/js/config.js HTTP/1.1" 200 714
+[INFO] 2026-03-02 12:28:19 basehttp - "GET /static/admin/assets/vendor/css/core.css HTTP/1.1" 200 981701
+[INFO] 2026-03-02 12:28:19 basehttp - "GET /static/admin/assets/vendor/libs/jquery/jquery.js HTTP/1.1" 200 832974
+[INFO] 2026-03-02 12:28:19 basehttp - "GET /static/admin/assets/vendor/css/theme-default.css HTTP/1.1" 200 70640
+[INFO] 2026-03-02 12:28:19 basehttp - "GET /static/admin/assets/vendor/libs/popper/popper.js HTTP/1.1" 200 57748
+[INFO] 2026-03-02 12:28:19 basehttp - "GET /static/admin/assets/css/demo.css HTTP/1.1" 200 2543
+[INFO] 2026-03-02 12:28:19 basehttp - "GET /static/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js HTTP/1.1" 200 108747
+[INFO] 2026-03-02 12:28:19 basehttp - "GET /static/admin/assets/vendor/js/bootstrap.js HTTP/1.1" 200 842340
+[INFO] 2026-03-02 12:28:19 basehttp - "GET /static/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css HTTP/1.1" 200 5008
+[INFO] 2026-03-02 12:28:19 basehttp - "GET /static/admin/assets/js/main.js HTTP/1.1" 200 3846
+[INFO] 2026-03-02 12:28:19 basehttp - "GET /static/admin/assets/vendor/js/menu.js HTTP/1.1" 200 80183
+[INFO] 2026-03-02 12:28:19 basehttp - "GET /static/admin/assets/vendor/js/helpers.js HTTP/1.1" 200 103079
+[INFO] 2026-03-02 12:28:19 basehttp - "GET /media/profile_images/icon.png HTTP/1.1" 200 45977
+[INFO] 2026-03-02 12:28:19 basehttp - "GET /media/products/1_2r1kGxc.png HTTP/1.1" 200 613067
+[INFO] 2026-03-02 12:28:19 basehttp - "GET /media/site/ChatGPT_Image_Feb_11_2026_11_31_42_AM_SHxtMMI.png HTTP/1.1" 200 2122199
+[INFO] 2026-03-02 12:28:19 basehttp - "GET /static/admin/assets/vendor/fonts/boxicons/boxicons.woff2 HTTP/1.1" 200 102988
+[INFO] 2026-03-02 12:28:19 basehttp - "GET /static/admin/assets/img/favicon/favicon.ico HTTP/1.1" 200 1393
+[INFO] 2026-03-02 12:28:27 basehttp - "POST /admin-panel/orders/54/refund/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 12:28:27 basehttp - "GET /admin-panel/orders/54/ HTTP/1.1" 200 41767
+[INFO] 2026-03-02 12:32:12 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 12:32:12 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 12:32:13 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 12:32:15 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 12:32:15 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 12:32:16 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 12:33:19 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 12:33:19 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 12:33:19 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 12:33:22 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 12:33:22 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 12:33:22 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 12:33:56 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 12:33:56 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 12:33:57 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 12:33:59 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 12:33:59 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 12:33:59 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 12:39:49 basehttp - "GET /admin-panel/orders/54/ HTTP/1.1" 200 40285
+[INFO] 2026-03-02 12:39:49 basehttp - "GET /static/admin/assets/vendor/css/core.css HTTP/1.1" 200 981701
+[INFO] 2026-03-02 12:39:49 basehttp - "GET /static/admin/assets/vendor/fonts/boxicons.css HTTP/1.1" 200 79999
+[INFO] 2026-03-02 12:39:49 basehttp - "GET /static/admin/assets/vendor/js/helpers.js HTTP/1.1" 200 103079
+[INFO] 2026-03-02 12:39:49 basehttp - "GET /static/admin/assets/js/config.js HTTP/1.1" 200 714
+[INFO] 2026-03-02 12:39:49 basehttp - "GET /static/admin/assets/vendor/libs/jquery/jquery.js HTTP/1.1" 200 832974
+[INFO] 2026-03-02 12:39:49 basehttp - "GET /static/admin/assets/vendor/css/theme-default.css HTTP/1.1" 200 70640
+[INFO] 2026-03-02 12:39:49 basehttp - "GET /static/admin/assets/vendor/libs/popper/popper.js HTTP/1.1" 200 57748
+[INFO] 2026-03-02 12:39:49 basehttp - "GET /static/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js HTTP/1.1" 200 108747
+[INFO] 2026-03-02 12:39:49 basehttp - "GET /static/admin/assets/vendor/js/bootstrap.js HTTP/1.1" 200 842340
+[INFO] 2026-03-02 12:39:50 basehttp - "GET /static/admin/assets/css/demo.css HTTP/1.1" 200 2543
+[INFO] 2026-03-02 12:39:50 basehttp - "GET /static/admin/assets/vendor/js/menu.js HTTP/1.1" 200 80183
+[INFO] 2026-03-02 12:39:50 basehttp - "GET /static/admin/assets/js/main.js HTTP/1.1" 200 3846
+[INFO] 2026-03-02 12:39:50 basehttp - "GET /static/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css HTTP/1.1" 200 5008
+[INFO] 2026-03-02 12:39:50 basehttp - "GET /static/admin/assets/css/custom-responsive.css HTTP/1.1" 200 13161
+[INFO] 2026-03-02 12:39:50 basehttp - "GET /media/products/1_2r1kGxc.png HTTP/1.1" 200 613067
+[INFO] 2026-03-02 12:39:50 basehttp - "GET /media/profile_images/icon.png HTTP/1.1" 200 45977
+[INFO] 2026-03-02 12:39:50 basehttp - "GET /media/site/ChatGPT_Image_Feb_11_2026_11_31_42_AM_SHxtMMI.png HTTP/1.1" 200 2122199
+[INFO] 2026-03-02 12:39:50 basehttp - "GET /static/admin/assets/vendor/fonts/boxicons/boxicons.woff2 HTTP/1.1" 200 102988
+[INFO] 2026-03-02 12:39:50 basehttp - "GET /static/admin/assets/img/favicon/favicon.ico HTTP/1.1" 200 1393
+[INFO] 2026-03-02 12:39:55 basehttp - "POST /admin-panel/orders/54/refund/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 12:39:55 basehttp - "GET /admin-panel/orders/54/ HTTP/1.1" 200 41807
+[INFO] 2026-03-02 12:45:38 basehttp - "GET /admin-panel/orders/54/ HTTP/1.1" 200 40285
+[INFO] 2026-03-02 12:45:38 basehttp - "GET /static/admin/assets/vendor/fonts/boxicons.css HTTP/1.1" 200 79999
+[INFO] 2026-03-02 12:45:38 basehttp - "GET /static/admin/assets/vendor/js/helpers.js HTTP/1.1" 200 103079
+[INFO] 2026-03-02 12:45:38 basehttp - "GET /static/admin/assets/css/demo.css HTTP/1.1" 200 2543
+[INFO] 2026-03-02 12:45:38 basehttp - "GET /static/admin/assets/vendor/css/theme-default.css HTTP/1.1" 200 70640
+[INFO] 2026-03-02 12:45:38 basehttp - "GET /static/admin/assets/vendor/css/core.css HTTP/1.1" 200 981701
+[INFO] 2026-03-02 12:45:38 basehttp - "GET /static/admin/assets/js/config.js HTTP/1.1" 200 714
+[INFO] 2026-03-02 12:45:38 basehttp - "GET /static/admin/assets/css/custom-responsive.css HTTP/1.1" 200 13161
+[INFO] 2026-03-02 12:45:38 basehttp - "GET /static/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css HTTP/1.1" 200 5008
+[INFO] 2026-03-02 12:45:38 basehttp - "GET /static/admin/assets/vendor/libs/popper/popper.js HTTP/1.1" 200 57748
+[INFO] 2026-03-02 12:45:38 basehttp - "GET /static/admin/assets/vendor/js/bootstrap.js HTTP/1.1" 200 842340
+[INFO] 2026-03-02 12:45:38 basehttp - "GET /static/admin/assets/vendor/libs/jquery/jquery.js HTTP/1.1" 200 832974
+[INFO] 2026-03-02 12:45:38 basehttp - "GET /static/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js HTTP/1.1" 200 108747
+[INFO] 2026-03-02 12:45:38 basehttp - "GET /static/admin/assets/vendor/js/menu.js HTTP/1.1" 200 80183
+[INFO] 2026-03-02 12:45:38 basehttp - "GET /static/admin/assets/js/main.js HTTP/1.1" 200 3846
+[INFO] 2026-03-02 12:45:38 basehttp - "GET /media/profile_images/icon.png HTTP/1.1" 200 45977
+[INFO] 2026-03-02 12:45:38 basehttp - "GET /media/products/1_2r1kGxc.png HTTP/1.1" 200 613067
+[INFO] 2026-03-02 12:45:38 basehttp - "GET /media/site/ChatGPT_Image_Feb_11_2026_11_31_42_AM_SHxtMMI.png HTTP/1.1" 200 2122199
+[INFO] 2026-03-02 12:45:38 basehttp - "GET /static/admin/assets/vendor/fonts/boxicons/boxicons.woff2 HTTP/1.1" 200 102988
+[INFO] 2026-03-02 12:45:38 basehttp - "GET /static/admin/assets/img/favicon/favicon.ico HTTP/1.1" 200 1393
+[INFO] 2026-03-02 12:45:42 basehttp - "POST /admin-panel/orders/54/refund/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 12:45:42 basehttp - "GET /admin-panel/orders/54/ HTTP/1.1" 200 41807
+[INFO] 2026-03-02 12:45:48 basehttp - "GET / HTTP/1.1" 200 334578
+[INFO] 2026-03-02 12:45:48 basehttp - "GET /static/assets/css/pages-responsive.css?v=20260222-03 HTTP/1.1" 304 0
+[INFO] 2026-03-02 12:45:48 basehttp - "GET /static/assets/js/base-custom.js?v=20260224-01 HTTP/1.1" 304 0
+[INFO] 2026-03-02 12:45:48 basehttp - "GET /media/category_cards/women_wear.webp HTTP/1.1" 200 147502
+[INFO] 2026-03-02 12:45:48 basehttp - "GET /media/site/logo2.png HTTP/1.1" 200 320989
+[INFO] 2026-03-02 12:45:48 basehttp - "GET /media/main_page_subcategory_banners/women_watches.jpg HTTP/1.1" 200 62355
+[INFO] 2026-03-02 12:45:48 basehttp - "GET /media/main_page_subcategory_banners/1.png HTTP/1.1" 200 586540
+[INFO] 2026-03-02 12:45:49 basehttp - "GET /media/category_cards/watches.jpg HTTP/1.1" 200 4845696
+[INFO] 2026-03-02 12:45:49 basehttp - "GET /media/sliders/Banner2_2iQKVy0.png HTTP/1.1" 200 2454080
+[INFO] 2026-03-02 12:45:49 basehttp - "GET /media/category_cards/mens_wear.jpg HTTP/1.1" 200 10930323
+[INFO] 2026-03-02 12:45:49 basehttp - "GET /media/sliders/Slider.png HTTP/1.1" 200 1863295
+[INFO] 2026-03-02 12:45:50 basehttp - "GET /media/category_cards/beautyshoes.jpg HTTP/1.1" 200 10985668
+[INFO] 2026-03-02 12:45:50 basehttp - "GET /media/main_page_subcategory_banners/HomeDecor.jpg HTTP/1.1" 200 5232066
+[INFO] 2026-03-02 12:45:50 basehttp - "GET /media/category_cards/Genz_Trends.jpg HTTP/1.1" 200 13215175
+[INFO] 2026-03-02 12:45:50 basehttp - "GET /media/category_cards/jewellery.jpg HTTP/1.1" 200 15416367
+[INFO] 2026-03-02 12:45:50 basehttp - "GET /media/main_page_subcategory_banners/WhatsApp_Image_2026-02-24_at_3.34.00_PM_2.jpeg HTTP/1.1" 200 331544
+[INFO] 2026-03-02 12:45:50 basehttp - "GET /media/category_cards/Homekitchen.jpg HTTP/1.1" 200 19340539
+[INFO] 2026-03-02 12:45:51 basehttp - "GET /media/main_page_banners/1.png HTTP/1.1" 200 196981
+[INFO] 2026-03-02 12:45:51 basehttp - "GET /media/reels/reels.MP4 HTTP/1.1" 200 4099791
+[INFO] 2026-03-02 12:45:51 basehttp - "GET /media/main_page_banners/3.png HTTP/1.1" 200 146937
+[INFO] 2026-03-02 12:45:51 basehttp - "GET /media/products/1.1.png HTTP/1.1" 200 674692
+[INFO] 2026-03-02 12:45:51 basehttp - "GET /media/main_page_banners/2.png HTTP/1.1" 200 159975
+[INFO] 2026-03-02 12:45:51 basehttp - "GET /media/ready_ship_styles/4_LlElPLi.jpg HTTP/1.1" 200 4570269
+[INFO] 2026-03-02 12:45:51 basehttp - "GET /media/reels/WhatsApp_Video_2026-02-24_at_3.34.00_PM.mp4 HTTP/1.1" 200 9306369
+[INFO] 2026-03-02 12:45:51 basehttp - "GET /media/brand_partners/4208a85522e331b2826e3ad1b78f4967.jpg HTTP/1.1" 200 29442
+[INFO] 2026-03-02 12:45:51 basehttp - "GET /media/ready_ship_styles/1.jpeg HTTP/1.1" 200 69788
+[INFO] 2026-03-02 12:45:52 basehttp - "GET /media/ready_ship_styles/3.jpg HTTP/1.1" 200 8274733
+[INFO] 2026-03-02 12:45:52 basehttp - "GET /media/products/1_7aSQB7b.png HTTP/1.1" 200 193722
+[INFO] 2026-03-02 12:45:52 basehttp - "GET /media/ready_ship_styles/2.jpg HTTP/1.1" 200 5196008
+[INFO] 2026-03-02 12:45:52 basehttp - "GET /media/products/1_VPbUOMA.png HTTP/1.1" 200 185790
+[INFO] 2026-03-02 12:45:52 basehttp - "GET /media/ready_ship_styles/5.jpg HTTP/1.1" 200 2344197
+[INFO] 2026-03-02 12:45:52 basehttp - "GET /media/products/1_7KrxGvQ.png HTTP/1.1" 200 224291
+[INFO] 2026-03-02 12:45:52 basehttp - "GET /media/products/1_15FqCly.png HTTP/1.1" 200 301201
+[INFO] 2026-03-02 12:45:52 basehttp - "GET /media/products/1_AoMTdoz.png HTTP/1.1" 200 407438
+[INFO] 2026-03-02 12:45:52 basehttp - "GET /media/products/1_zSJicQY.png HTTP/1.1" 200 158167
+[INFO] 2026-03-02 12:45:52 basehttp - "GET /media/products/1_yyrY5Xk.png HTTP/1.1" 200 302011
+[INFO] 2026-03-02 12:45:52 basehttp - "GET /media/products/1_ulLWfC6.png HTTP/1.1" 200 192016
+[INFO] 2026-03-02 12:45:53 basehttp - "GET /media/products/1_XKXW1sA.png HTTP/1.1" 200 490400
+[INFO] 2026-03-02 12:45:53 basehttp - "GET /media/products/1_SCYBItt.png HTTP/1.1" 200 145844
+[INFO] 2026-03-02 12:45:53 basehttp - "GET /media/products/1_nwogpGr.png HTTP/1.1" 200 191921
+[INFO] 2026-03-02 12:45:53 basehttp - "GET /media/products/1.png HTTP/1.1" 200 407438
+[INFO] 2026-03-02 12:45:53 basehttp - "GET /media/products/1_FvJtAU2.png HTTP/1.1" 200 325533
+[INFO] 2026-03-02 12:45:53 basehttp - "GET /media/products/1_GmmWdCK.png HTTP/1.1" 200 496816
+[INFO] 2026-03-02 12:45:53 basehttp - "GET /media/products/1_2bsbnGr.png HTTP/1.1" 200 331669
+[INFO] 2026-03-02 12:45:53 basehttp - "GET /media/products/1_jeaqOxf.png HTTP/1.1" 200 292403
+[INFO] 2026-03-02 12:45:53 basehttp - "GET /media/sliders/slider2.jpg HTTP/1.1" 200 9930775
+[INFO] 2026-03-02 12:45:59 basehttp - "GET /profile/ HTTP/1.1" 200 107211
+[INFO] 2026-03-02 12:45:59 basehttp - "GET /static/assets/css/profile-custom.css HTTP/1.1" 200 7721
+[INFO] 2026-03-02 12:45:59 basehttp - "GET /static/assets/css/profile-responsive.css?v=20260222-01 HTTP/1.1" 200 7984
+[INFO] 2026-03-02 12:46:00 basehttp - "GET /api/profile/stats/ HTTP/1.1" 200 2294
+[INFO] 2026-03-02 12:46:00 basehttp - "GET /media/products/WhatsApp_Image_2026-02-24_at_3.34.00_PM_1.png HTTP/1.1" 200 1145485
+[INFO] 2026-03-02 12:46:04 basehttp - "GET / HTTP/1.1" 200 324921
+[INFO] 2026-03-02 12:46:13 basehttp - "POST /buy-now/35/ HTTP/1.1" 200 128
+[INFO] 2026-03-02 12:46:14 basehttp - "GET /checkout/ HTTP/1.1" 200 120551
+[INFO] 2026-03-02 12:46:54 views - Payment method selected: RAZORPAY
+[INFO] 2026-03-02 12:46:56 basehttp - "POST /checkout/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 12:46:56 basehttp - "GET /checkout/confirm/ HTTP/1.1" 200 81970
+[INFO] 2026-03-02 12:47:02 basehttp - "POST /checkout/confirm/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 12:47:03 basehttp - "GET /razorpay-payment/55/ HTTP/1.1" 200 74708
+[WARNING] 2026-03-02 12:47:43 email_utils - WeasyPrint not installed. Invoice PDF will not be attached. Install with: pip install weasyprint
+[INFO] 2026-03-02 12:47:45 email_utils - Order confirmation email sent successfully to info.vibemall@gmail.com for order ORD20260302002
+[INFO] 2026-03-02 12:47:45 basehttp - "POST /razorpay-payment-success/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 12:47:45 basehttp - "GET /order-confirmation/55/ HTTP/1.1" 200 79853
+[INFO] 2026-03-02 12:47:45 basehttp - "GET /order-confirmation/55/ HTTP/1.1" 200 79853
+[INFO] 2026-03-02 12:48:01 basehttp - "GET /admin-panel/orders/54/ HTTP/1.1" 200 41784
+[INFO] 2026-03-02 12:48:20 basehttp - "GET /admin-panel/orders/ HTTP/1.1" 200 345991
+[INFO] 2026-03-02 12:48:21 basehttp - "GET /media/products/WhatsApp_Image_2026-02-24_at_3.34.00_PM_1.png HTTP/1.1" 200 1145485
+[INFO] 2026-03-02 12:48:21 basehttp - "GET /media/products/1_7aSQB7b.png HTTP/1.1" 200 193722
+[INFO] 2026-03-02 12:48:21 basehttp - "GET /media/products/1.1.png HTTP/1.1" 200 674692
+[INFO] 2026-03-02 12:48:21 basehttp - "GET /media/products/1_SCYBItt.png HTTP/1.1" 200 145844
+[INFO] 2026-03-02 12:48:21 basehttp - "GET /media/products/1_7KrxGvQ.png HTTP/1.1" 200 224291
+[INFO] 2026-03-02 12:48:21 basehttp - "GET /media/products/1_yyrY5Xk.png HTTP/1.1" 200 302011
+[INFO] 2026-03-02 12:48:21 basehttp - "GET /media/products/1.png HTTP/1.1" 200 407438
+[INFO] 2026-03-02 12:48:21 basehttp - "GET /media/products/2.1.avif HTTP/1.1" 200 42356
+[INFO] 2026-03-02 12:48:21 basehttp - "GET /media/products/1.avif HTTP/1.1" 200 34299
+[INFO] 2026-03-02 12:48:21 basehttp - "GET /media/products/1_FvJtAU2.png HTTP/1.1" 200 325533
+[INFO] 2026-03-02 12:48:21 basehttp - "GET /media/products/4.1.avif HTTP/1.1" 200 22000
+[INFO] 2026-03-02 12:48:21 basehttp - "GET /media/products/1_15FqCly.png HTTP/1.1" 200 301201
+[INFO] 2026-03-02 12:48:27 basehttp - "GET /admin-panel/orders/55/ HTTP/1.1" 200 40101
+[INFO] 2026-03-02 12:48:33 email_utils - Awarded 36139 loyalty points to VibeMall for order #ORD20260302002
+[INFO] 2026-03-02 12:48:35 email_utils - Order status update email sent to info.vibemall@gmail.com for order ORD20260302002 (Status: DELIVERED)
+[INFO] 2026-03-02 12:48:35 basehttp - "POST /admin-panel/orders/55/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 12:48:35 basehttp - "GET /admin-panel/orders/55/ HTTP/1.1" 200 41812
+[INFO] 2026-03-02 12:48:43 basehttp - "POST /admin-panel/orders/55/refund/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 12:48:43 basehttp - "GET /admin-panel/orders/55/ HTTP/1.1" 200 41827
+[INFO] 2026-03-02 12:50:53 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 12:50:53 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 12:50:53 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 12:50:55 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 12:50:56 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 12:50:56 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 12:50:58 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 12:50:59 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 12:51:00 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 12:51:01 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 12:51:02 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 12:51:03 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 12:51:08 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 12:51:08 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 12:51:08 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 12:51:10 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 12:51:10 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 12:51:10 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 12:56:07 basehttp - "GET /admin-panel/orders/55/ HTTP/1.1" 200 40305
+[INFO] 2026-03-02 12:58:53 basehttp - "GET /admin-panel/orders/55/ HTTP/1.1" 200 40305
+[INFO] 2026-03-02 12:58:54 basehttp - "GET /static/admin/assets/vendor/fonts/boxicons.css HTTP/1.1" 200 79999
+[INFO] 2026-03-02 12:58:54 basehttp - "GET /static/admin/assets/vendor/js/helpers.js HTTP/1.1" 200 103079
+[INFO] 2026-03-02 12:58:54 basehttp - "GET /static/admin/assets/css/demo.css HTTP/1.1" 200 2543
+[INFO] 2026-03-02 12:58:54 basehttp - "GET /static/admin/assets/js/config.js HTTP/1.1" 200 714
+[INFO] 2026-03-02 12:58:54 basehttp - "GET /static/admin/assets/vendor/libs/popper/popper.js HTTP/1.1" 200 57748
+[INFO] 2026-03-02 12:58:54 basehttp - "GET /static/admin/assets/vendor/css/theme-default.css HTTP/1.1" 200 70640
+[INFO] 2026-03-02 12:58:54 basehttp - "GET /static/admin/assets/vendor/js/bootstrap.js HTTP/1.1" 200 842340
+[INFO] 2026-03-02 12:58:54 basehttp - "GET /static/admin/assets/css/custom-responsive.css HTTP/1.1" 200 13161
+[INFO] 2026-03-02 12:58:54 basehttp - "GET /static/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js HTTP/1.1" 200 108747
+[INFO] 2026-03-02 12:58:54 basehttp - "GET /static/admin/assets/vendor/libs/jquery/jquery.js HTTP/1.1" 200 832974
+[INFO] 2026-03-02 12:58:54 basehttp - "GET /static/admin/assets/vendor/css/core.css HTTP/1.1" 200 981701
+[INFO] 2026-03-02 12:58:54 basehttp - "GET /static/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css HTTP/1.1" 200 5008
+[INFO] 2026-03-02 12:58:54 basehttp - "GET /static/admin/assets/js/main.js HTTP/1.1" 200 3846
+[INFO] 2026-03-02 12:58:54 basehttp - "GET /static/admin/assets/vendor/js/menu.js HTTP/1.1" 200 80183
+[INFO] 2026-03-02 12:58:54 basehttp - "GET /media/site/ChatGPT_Image_Feb_11_2026_11_31_42_AM_SHxtMMI.png HTTP/1.1" 200 2122199
+[INFO] 2026-03-02 12:58:54 basehttp - "GET /media/profile_images/icon.png HTTP/1.1" 200 45977
+[INFO] 2026-03-02 12:58:54 basehttp - "GET /media/products/1_XKXW1sA.png HTTP/1.1" 200 490400
+[INFO] 2026-03-02 12:58:54 basehttp - "GET /static/admin/assets/vendor/fonts/boxicons/boxicons.woff2 HTTP/1.1" 200 102988
+[INFO] 2026-03-02 12:58:54 basehttp - "GET /static/admin/assets/img/favicon/favicon.ico HTTP/1.1" 200 1393
+[ERROR] 2026-03-02 12:58:58 views - Razorpay import failed. Python: D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Scripts\python.exe. Error: cannot import name 'NoDataError' from 'razorpay.errors' (D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\razorpay\errors.py)
+[ERROR] 2026-03-02 12:58:58 views - Python path: ['D:\\Iu University\\OneDrive - IU International University of Applied Sciences\\Desktop\\VibeMall', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311\\python311.zip']
+[INFO] 2026-03-02 12:58:58 basehttp - "POST /admin-panel/orders/55/refund/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 12:58:58 basehttp - "GET /admin-panel/orders/55/ HTTP/1.1" 200 41816
+[INFO] 2026-03-02 12:59:16 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 12:59:54 basehttp - "GET /admin-panel/orders/55/ HTTP/1.1" 200 40305
+[INFO] 2026-03-02 12:59:54 basehttp - "GET /static/admin/assets/vendor/fonts/boxicons.css HTTP/1.1" 200 79999
+[INFO] 2026-03-02 12:59:54 basehttp - "GET /static/admin/assets/css/custom-responsive.css HTTP/1.1" 200 13161
+[INFO] 2026-03-02 12:59:54 basehttp - "GET /static/admin/assets/vendor/css/core.css HTTP/1.1" 200 981701
+[INFO] 2026-03-02 12:59:54 basehttp - "GET /static/admin/assets/js/config.js HTTP/1.1" 200 714
+[INFO] 2026-03-02 12:59:54 basehttp - "GET /static/admin/assets/vendor/libs/jquery/jquery.js HTTP/1.1" 200 832974
+[INFO] 2026-03-02 12:59:54 basehttp - "GET /static/admin/assets/vendor/css/theme-default.css HTTP/1.1" 200 70640
+[INFO] 2026-03-02 12:59:54 basehttp - "GET /static/admin/assets/vendor/libs/popper/popper.js HTTP/1.1" 200 57748
+[INFO] 2026-03-02 12:59:54 basehttp - "GET /static/admin/assets/vendor/js/bootstrap.js HTTP/1.1" 200 842340
+[INFO] 2026-03-02 12:59:54 basehttp - "GET /static/admin/assets/css/demo.css HTTP/1.1" 200 2543
+[INFO] 2026-03-02 12:59:54 basehttp - "GET /static/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css HTTP/1.1" 200 5008
+[INFO] 2026-03-02 12:59:54 basehttp - "GET /static/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js HTTP/1.1" 200 108747
+[INFO] 2026-03-02 12:59:54 basehttp - "GET /static/admin/assets/vendor/js/helpers.js HTTP/1.1" 200 103079
+[INFO] 2026-03-02 12:59:54 basehttp - "GET /static/admin/assets/vendor/js/menu.js HTTP/1.1" 200 80183
+[INFO] 2026-03-02 12:59:54 basehttp - "GET /static/admin/assets/js/main.js HTTP/1.1" 200 3846
+[INFO] 2026-03-02 12:59:54 basehttp - "GET /media/products/1_XKXW1sA.png HTTP/1.1" 200 490400
+[INFO] 2026-03-02 12:59:54 basehttp - "GET /media/profile_images/icon.png HTTP/1.1" 200 45977
+[INFO] 2026-03-02 12:59:54 basehttp - "GET /media/site/ChatGPT_Image_Feb_11_2026_11_31_42_AM_SHxtMMI.png HTTP/1.1" 200 2122199
+[INFO] 2026-03-02 12:59:54 basehttp - "GET /static/admin/assets/vendor/fonts/boxicons/boxicons.woff2 HTTP/1.1" 200 102988
+[INFO] 2026-03-02 12:59:54 basehttp - "GET /static/admin/assets/img/favicon/favicon.ico HTTP/1.1" 200 1393
+[ERROR] 2026-03-02 12:59:58 views - Razorpay import failed. Python: D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Scripts\python.exe. Error: cannot import name 'NoDataError' from 'razorpay.errors' (D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\razorpay\errors.py)
+[ERROR] 2026-03-02 12:59:58 views - Python path: ['D:\\Iu University\\OneDrive - IU International University of Applied Sciences\\Desktop\\VibeMall', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311\\python311.zip']
+[INFO] 2026-03-02 12:59:58 basehttp - "POST /admin-panel/orders/55/refund/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 12:59:58 basehttp - "GET /admin-panel/orders/55/ HTTP/1.1" 200 41816
+[INFO] 2026-03-02 13:05:36 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 13:05:49 basehttp - "GET /admin-panel/orders/55/ HTTP/1.1" 200 40305
+[INFO] 2026-03-02 13:05:49 basehttp - "GET /static/admin/assets/vendor/fonts/boxicons.css HTTP/1.1" 200 79999
+[INFO] 2026-03-02 13:05:49 basehttp - "GET /static/admin/assets/css/demo.css HTTP/1.1" 200 2543
+[INFO] 2026-03-02 13:05:49 basehttp - "GET /static/admin/assets/vendor/js/helpers.js HTTP/1.1" 200 103079
+[INFO] 2026-03-02 13:05:49 basehttp - "GET /static/admin/assets/vendor/libs/jquery/jquery.js HTTP/1.1" 200 832974
+[INFO] 2026-03-02 13:05:49 basehttp - "GET /static/admin/assets/vendor/libs/popper/popper.js HTTP/1.1" 200 57748
+[INFO] 2026-03-02 13:05:49 basehttp - "GET /static/admin/assets/vendor/css/core.css HTTP/1.1" 200 981701
+[INFO] 2026-03-02 13:05:49 basehttp - "GET /static/admin/assets/vendor/js/bootstrap.js HTTP/1.1" 200 842340
+[INFO] 2026-03-02 13:05:49 basehttp - "GET /static/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js HTTP/1.1" 200 108747
+[INFO] 2026-03-02 13:05:49 basehttp - "GET /static/admin/assets/vendor/css/theme-default.css HTTP/1.1" 200 70640
+[INFO] 2026-03-02 13:05:49 basehttp - "GET /static/admin/assets/vendor/js/menu.js HTTP/1.1" 200 80183
+[INFO] 2026-03-02 13:05:49 basehttp - "GET /static/admin/assets/js/main.js HTTP/1.1" 200 3846
+[INFO] 2026-03-02 13:05:49 basehttp - "GET /static/admin/assets/css/custom-responsive.css HTTP/1.1" 200 13161
+[INFO] 2026-03-02 13:05:49 basehttp - "GET /static/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css HTTP/1.1" 200 5008
+[INFO] 2026-03-02 13:05:49 basehttp - "GET /static/admin/assets/js/config.js HTTP/1.1" 200 714
+[INFO] 2026-03-02 13:05:49 basehttp - "GET /media/profile_images/icon.png HTTP/1.1" 200 45977
+[INFO] 2026-03-02 13:05:49 basehttp - "GET /media/products/1_XKXW1sA.png HTTP/1.1" 200 490400
+[INFO] 2026-03-02 13:05:49 basehttp - "GET /static/admin/assets/vendor/fonts/boxicons/boxicons.woff2 HTTP/1.1" 200 102988
+[INFO] 2026-03-02 13:05:49 basehttp - "GET /media/site/ChatGPT_Image_Feb_11_2026_11_31_42_AM_SHxtMMI.png HTTP/1.1" 200 2122199
+[INFO] 2026-03-02 13:05:49 basehttp - "GET /static/admin/assets/img/favicon/favicon.ico HTTP/1.1" 200 1393
+[ERROR] 2026-03-02 13:05:53 views - Razorpay import failed. Python: D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Scripts\python.exe. Error: cannot import name 'NoDataError' from 'razorpay.errors' (D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\razorpay\errors.py)
+[ERROR] 2026-03-02 13:05:53 views - Python path: ['D:\\Iu University\\OneDrive - IU International University of Applied Sciences\\Desktop\\VibeMall', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311\\python311.zip']
+[INFO] 2026-03-02 13:05:53 basehttp - "POST /admin-panel/orders/55/refund/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 13:05:53 basehttp - "GET /admin-panel/orders/55/ HTTP/1.1" 200 41816
+[INFO] 2026-03-02 13:07:40 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 13:07:40 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 13:07:41 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 13:07:45 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 13:07:45 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 13:07:45 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 13:19:31 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 13:19:37 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\email_utils.py changed, reloading.
+[INFO] 2026-03-02 13:19:37 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\views.py changed, reloading.
+[INFO] 2026-03-02 13:19:38 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\email_utils.py changed, reloading.
+[INFO] 2026-03-02 13:19:40 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 13:19:40 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 13:19:42 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 13:19:45 basehttp - "GET /admin-panel/orders/55/ HTTP/1.1" 200 40305
+[INFO] 2026-03-02 13:19:45 basehttp - "GET /static/admin/assets/vendor/fonts/boxicons.css HTTP/1.1" 200 79999
+[INFO] 2026-03-02 13:19:45 basehttp - "GET /static/admin/assets/vendor/js/helpers.js HTTP/1.1" 200 103079
+[INFO] 2026-03-02 13:19:45 basehttp - "GET /static/admin/assets/js/config.js HTTP/1.1" 200 714
+[INFO] 2026-03-02 13:19:46 basehttp - "GET /static/admin/assets/vendor/libs/jquery/jquery.js HTTP/1.1" 200 832974
+[INFO] 2026-03-02 13:19:46 basehttp - "GET /static/admin/assets/vendor/libs/popper/popper.js HTTP/1.1" 200 57748
+[INFO] 2026-03-02 13:19:46 basehttp - "GET /static/admin/assets/vendor/js/bootstrap.js HTTP/1.1" 200 842340
+[INFO] 2026-03-02 13:19:46 basehttp - "GET /static/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js HTTP/1.1" 200 108747
+[INFO] 2026-03-02 13:19:46 basehttp - "GET /static/admin/assets/vendor/js/menu.js HTTP/1.1" 200 80183
+[INFO] 2026-03-02 13:19:46 basehttp - "GET /static/admin/assets/js/main.js HTTP/1.1" 200 3846
+[INFO] 2026-03-02 13:19:46 basehttp - "GET /static/admin/assets/vendor/css/core.css HTTP/1.1" 200 981701
+[INFO] 2026-03-02 13:19:46 basehttp - "GET /static/admin/assets/css/custom-responsive.css HTTP/1.1" 200 13161
+[INFO] 2026-03-02 13:19:46 basehttp - "GET /static/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css HTTP/1.1" 200 5008
+[INFO] 2026-03-02 13:19:46 basehttp - "GET /static/admin/assets/vendor/css/theme-default.css HTTP/1.1" 200 70640
+[INFO] 2026-03-02 13:19:46 basehttp - "GET /static/admin/assets/css/demo.css HTTP/1.1" 200 2543
+[INFO] 2026-03-02 13:19:46 basehttp - "GET /media/profile_images/icon.png HTTP/1.1" 200 45977
+[INFO] 2026-03-02 13:19:46 basehttp - "GET /media/products/1_XKXW1sA.png HTTP/1.1" 200 490400
+[INFO] 2026-03-02 13:19:46 basehttp - "GET /media/site/ChatGPT_Image_Feb_11_2026_11_31_42_AM_SHxtMMI.png HTTP/1.1" 200 2122199
+[INFO] 2026-03-02 13:19:46 basehttp - "GET /static/admin/assets/vendor/fonts/boxicons/boxicons.woff2 HTTP/1.1" 200 102988
+[INFO] 2026-03-02 13:19:46 basehttp - "GET /static/admin/assets/img/favicon/favicon.ico HTTP/1.1" 200 1393
+[ERROR] 2026-03-02 13:19:50 views - ======================================================================
+[ERROR] 2026-03-02 13:19:50 views - RAZORPAY IMPORT FAILED - DIAGNOSTIC INFO
+[ERROR] 2026-03-02 13:19:50 views - ======================================================================
+[ERROR] 2026-03-02 13:19:50 views - executable: D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Scripts\python.exe
+[ERROR] 2026-03-02 13:19:50 views - version: 3.11.4 (tags/v3.11.4:d2340ef, Jun  7 2023, 05:45:37) [MSC v.1934 64 bit (AMD64)]
+[ERROR] 2026-03-02 13:19:50 views - prefix: D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv
+[ERROR] 2026-03-02 13:19:50 views - base_prefix: C:\Users\ADMIN\AppData\Local\Programs\Python\Python311
+[ERROR] 2026-03-02 13:19:50 views - is_venv: True
+[ERROR] 2026-03-02 13:19:50 views - site_packages: ['D:\\Iu University\\OneDrive - IU International University of Applied Sciences\\Desktop\\VibeMall\\venv', 'D:\\Iu University\\OneDrive - IU International University of Applied Sciences\\Desktop\\VibeMall\\venv\\Lib\\site-packages']
+[ERROR] 2026-03-02 13:19:50 views - user_site: C:\Users\ADMIN\AppData\Roaming\Python\Python311\site-packages
+[ERROR] 2026-03-02 13:19:50 views - cwd: D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall
+[ERROR] 2026-03-02 13:19:50 views - sys_path_first_5: ['D:\\Iu University\\OneDrive - IU International University of Applied Sciences\\Desktop\\VibeMall', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311\\python311.zip', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311\\DLLs', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311\\Lib', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311']
+[ERROR] 2026-03-02 13:19:50 views - ImportError: cannot import name 'NoDataError' from 'razorpay.errors' (D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\razorpay\errors.py)
+[ERROR] 2026-03-02 13:19:50 views - ======================================================================
+[ERROR] 2026-03-02 13:19:50 views - Razorpay exists in D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv: False
+[INFO] 2026-03-02 13:19:50 basehttp - "POST /admin-panel/orders/55/refund/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 13:19:50 basehttp - "GET /admin-panel/orders/55/ HTTP/1.1" 200 41858
+[ERROR] 2026-03-02 13:20:21 views - ======================================================================
+[ERROR] 2026-03-02 13:20:21 views - RAZORPAY IMPORT FAILED - DIAGNOSTIC INFO
+[ERROR] 2026-03-02 13:20:21 views - ======================================================================
+[ERROR] 2026-03-02 13:20:21 views - executable: D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Scripts\python.exe
+[ERROR] 2026-03-02 13:20:21 views - version: 3.11.4 (tags/v3.11.4:d2340ef, Jun  7 2023, 05:45:37) [MSC v.1934 64 bit (AMD64)]
+[ERROR] 2026-03-02 13:20:21 views - prefix: D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv
+[ERROR] 2026-03-02 13:20:21 views - base_prefix: C:\Users\ADMIN\AppData\Local\Programs\Python\Python311
+[ERROR] 2026-03-02 13:20:21 views - is_venv: True
+[ERROR] 2026-03-02 13:20:21 views - site_packages: ['D:\\Iu University\\OneDrive - IU International University of Applied Sciences\\Desktop\\VibeMall\\venv', 'D:\\Iu University\\OneDrive - IU International University of Applied Sciences\\Desktop\\VibeMall\\venv\\Lib\\site-packages']
+[ERROR] 2026-03-02 13:20:21 views - user_site: C:\Users\ADMIN\AppData\Roaming\Python\Python311\site-packages
+[ERROR] 2026-03-02 13:20:21 views - cwd: D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall
+[ERROR] 2026-03-02 13:20:21 views - sys_path_first_5: ['D:\\Iu University\\OneDrive - IU International University of Applied Sciences\\Desktop\\VibeMall', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311\\python311.zip', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311\\DLLs', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311\\Lib', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311']
+[ERROR] 2026-03-02 13:20:21 views - ImportError: cannot import name 'NoDataError' from 'razorpay.errors' (D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\razorpay\errors.py)
+[ERROR] 2026-03-02 13:20:21 views - ======================================================================
+[ERROR] 2026-03-02 13:20:21 views - Razorpay exists in D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv: False
+[INFO] 2026-03-02 13:20:21 basehttp - "POST /admin-panel/orders/55/refund/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 13:20:21 basehttp - "GET /admin-panel/orders/55/ HTTP/1.1" 200 41858
+[INFO] 2026-03-02 13:20:50 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\razorpay\__init__.py changed, reloading.
+[INFO] 2026-03-02 13:20:52 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 13:21:29 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 13:23:58 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\urllib3\contrib\__init__.py changed, reloading.
+[INFO] 2026-03-02 13:23:58 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\urllib3\__init__.py changed, reloading.
+[INFO] 2026-03-02 13:24:03 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 13:24:04 autoreload - Watching for file changes with StatReloader
+[ERROR] 2026-03-02 13:31:45 views - ======================================================================
+[ERROR] 2026-03-02 13:31:45 views - RAZORPAY IMPORT FAILED - DIAGNOSTIC INFO
+[ERROR] 2026-03-02 13:31:45 views - ======================================================================
+[ERROR] 2026-03-02 13:31:45 views - executable: C:\Users\ADMIN\AppData\Local\Programs\Python\Python311\python.exe
+[ERROR] 2026-03-02 13:31:45 views - version: 3.11.4 (tags/v3.11.4:d2340ef, Jun  7 2023, 05:45:37) [MSC v.1934 64 bit (AMD64)]
+[ERROR] 2026-03-02 13:31:45 views - prefix: C:\Users\ADMIN\AppData\Local\Programs\Python\Python311
+[ERROR] 2026-03-02 13:31:45 views - base_prefix: C:\Users\ADMIN\AppData\Local\Programs\Python\Python311
+[ERROR] 2026-03-02 13:31:45 views - is_venv: False
+[ERROR] 2026-03-02 13:31:45 views - site_packages: ['C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages']
+[ERROR] 2026-03-02 13:31:45 views - user_site: C:\Users\ADMIN\AppData\Roaming\Python\Python311\site-packages
+[ERROR] 2026-03-02 13:31:45 views - cwd: D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall
+[ERROR] 2026-03-02 13:31:45 views - sys_path_first_5: ['D:\\Iu University\\OneDrive - IU International University of Applied Sciences\\Desktop\\VibeMall', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311\\python311.zip', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311\\DLLs', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311\\Lib', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311']
+[ERROR] 2026-03-02 13:31:45 views - ImportError: cannot import name 'NoDataError' from 'razorpay.errors' (C:\Users\ADMIN\AppData\Local\Programs\Python\Python311\Lib\site-packages\razorpay\errors.py)
+[ERROR] 2026-03-02 13:31:45 views - ======================================================================
+[ERROR] 2026-03-02 13:31:45 views - Razorpay exists in C:\Users\ADMIN\AppData\Local\Programs\Python\Python311: False
+[INFO] 2026-03-02 13:31:45 basehttp - "POST /admin-panel/orders/55/refund/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 13:31:45 basehttp - "GET /admin-panel/orders/55/ HTTP/1.1" 200 41858
+[INFO] 2026-03-02 13:32:36 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 13:32:53 basehttp - "GET /admin-panel/orders/55/ HTTP/1.1" 200 40305
+[INFO] 2026-03-02 13:32:54 basehttp - "GET /static/admin/assets/vendor/fonts/boxicons.css HTTP/1.1" 200 79999
+[INFO] 2026-03-02 13:32:54 basehttp - "GET /static/admin/assets/css/demo.css HTTP/1.1" 200 2543
+[INFO] 2026-03-02 13:32:54 basehttp - "GET /static/admin/assets/vendor/js/helpers.js HTTP/1.1" 200 103079
+[INFO] 2026-03-02 13:32:54 basehttp - "GET /static/admin/assets/vendor/css/theme-default.css HTTP/1.1" 200 70640
+[INFO] 2026-03-02 13:32:54 basehttp - "GET /static/admin/assets/js/config.js HTTP/1.1" 200 714
+[INFO] 2026-03-02 13:32:54 basehttp - "GET /static/admin/assets/vendor/libs/popper/popper.js HTTP/1.1" 200 57748
+[INFO] 2026-03-02 13:32:54 basehttp - "GET /static/admin/assets/vendor/css/core.css HTTP/1.1" 200 981701
+[INFO] 2026-03-02 13:32:54 basehttp - "GET /static/admin/assets/vendor/libs/jquery/jquery.js HTTP/1.1" 200 832974
+[INFO] 2026-03-02 13:32:54 basehttp - "GET /static/admin/assets/vendor/js/bootstrap.js HTTP/1.1" 200 842340
+[INFO] 2026-03-02 13:32:54 basehttp - "GET /static/admin/assets/css/custom-responsive.css HTTP/1.1" 200 13161
+[INFO] 2026-03-02 13:32:54 basehttp - "GET /static/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css HTTP/1.1" 200 5008
+[INFO] 2026-03-02 13:32:54 basehttp - "GET /static/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js HTTP/1.1" 200 108747
+[INFO] 2026-03-02 13:32:54 basehttp - "GET /static/admin/assets/js/main.js HTTP/1.1" 200 3846
+[INFO] 2026-03-02 13:32:54 basehttp - "GET /media/profile_images/icon.png HTTP/1.1" 200 45977
+[INFO] 2026-03-02 13:32:54 basehttp - "GET /static/admin/assets/vendor/js/menu.js HTTP/1.1" 200 80183
+[INFO] 2026-03-02 13:32:54 basehttp - "GET /media/products/1_XKXW1sA.png HTTP/1.1" 200 490400
+[INFO] 2026-03-02 13:32:54 basehttp - "GET /media/site/ChatGPT_Image_Feb_11_2026_11_31_42_AM_SHxtMMI.png HTTP/1.1" 200 2122199
+[INFO] 2026-03-02 13:32:54 basehttp - "GET /static/admin/assets/vendor/fonts/boxicons/boxicons.woff2 HTTP/1.1" 200 102988
+[INFO] 2026-03-02 13:32:55 basehttp - "GET /static/admin/assets/img/favicon/favicon.ico HTTP/1.1" 200 1393
+[ERROR] 2026-03-02 13:33:00 views - ======================================================================
+[ERROR] 2026-03-02 13:33:00 views - RAZORPAY IMPORT FAILED - DIAGNOSTIC INFO
+[ERROR] 2026-03-02 13:33:00 views - ======================================================================
+[ERROR] 2026-03-02 13:33:00 views - executable: C:\Users\ADMIN\AppData\Local\Programs\Python\Python311\python.exe
+[ERROR] 2026-03-02 13:33:00 views - version: 3.11.4 (tags/v3.11.4:d2340ef, Jun  7 2023, 05:45:37) [MSC v.1934 64 bit (AMD64)]
+[ERROR] 2026-03-02 13:33:00 views - prefix: C:\Users\ADMIN\AppData\Local\Programs\Python\Python311
+[ERROR] 2026-03-02 13:33:00 views - base_prefix: C:\Users\ADMIN\AppData\Local\Programs\Python\Python311
+[ERROR] 2026-03-02 13:33:00 views - is_venv: False
+[ERROR] 2026-03-02 13:33:00 views - site_packages: ['C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages']
+[ERROR] 2026-03-02 13:33:00 views - user_site: C:\Users\ADMIN\AppData\Roaming\Python\Python311\site-packages
+[ERROR] 2026-03-02 13:33:00 views - cwd: D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall
+[ERROR] 2026-03-02 13:33:00 views - sys_path_first_5: ['D:\\Iu University\\OneDrive - IU International University of Applied Sciences\\Desktop\\VibeMall', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311\\python311.zip', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311\\DLLs', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311\\Lib', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311']
+[ERROR] 2026-03-02 13:33:00 views - ImportError: cannot import name 'NoDataError' from 'razorpay.errors' (C:\Users\ADMIN\AppData\Local\Programs\Python\Python311\Lib\site-packages\razorpay\errors.py)
+[ERROR] 2026-03-02 13:33:00 views - ======================================================================
+[ERROR] 2026-03-02 13:33:00 views - Razorpay exists in C:\Users\ADMIN\AppData\Local\Programs\Python\Python311: False
+[INFO] 2026-03-02 13:33:00 basehttp - "POST /admin-panel/orders/55/refund/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 13:33:00 basehttp - "GET /admin-panel/orders/55/ HTTP/1.1" 200 41858
+[INFO] 2026-03-02 13:34:39 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 13:35:49 basehttp - "GET /admin-panel/orders/55/ HTTP/1.1" 200 40305
+[INFO] 2026-03-02 13:35:56 basehttp - "GET /admin-panel/orders/55/ HTTP/1.1" 200 40305
+[INFO] 2026-03-02 13:35:56 basehttp - "GET /static/admin/assets/vendor/fonts/boxicons.css HTTP/1.1" 200 79999
+[INFO] 2026-03-02 13:35:56 basehttp - "GET /static/admin/assets/vendor/css/theme-default.css HTTP/1.1" 200 70640
+[INFO] 2026-03-02 13:35:56 basehttp - "GET /static/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css HTTP/1.1" 200 5008
+[INFO] 2026-03-02 13:35:56 basehttp - "GET /static/admin/assets/vendor/libs/jquery/jquery.js HTTP/1.1" 200 832974
+[INFO] 2026-03-02 13:35:56 basehttp - "GET /static/admin/assets/vendor/css/core.css HTTP/1.1" 200 981701
+[INFO] 2026-03-02 13:35:56 basehttp - "GET /static/admin/assets/vendor/libs/popper/popper.js HTTP/1.1" 200 57748
+[INFO] 2026-03-02 13:35:56 basehttp - "GET /static/admin/assets/css/demo.css HTTP/1.1" 200 2543
+[INFO] 2026-03-02 13:35:56 basehttp - "GET /static/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js HTTP/1.1" 200 108747
+[INFO] 2026-03-02 13:35:56 basehttp - "GET /static/admin/assets/vendor/js/menu.js HTTP/1.1" 200 80183
+[INFO] 2026-03-02 13:35:56 basehttp - "GET /static/admin/assets/js/main.js HTTP/1.1" 200 3846
+[INFO] 2026-03-02 13:35:56 basehttp - "GET /static/admin/assets/css/custom-responsive.css HTTP/1.1" 200 13161
+[INFO] 2026-03-02 13:35:56 basehttp - "GET /static/admin/assets/vendor/js/bootstrap.js HTTP/1.1" 200 842340
+[INFO] 2026-03-02 13:35:56 basehttp - "GET /static/admin/assets/vendor/js/helpers.js HTTP/1.1" 200 103079
+[INFO] 2026-03-02 13:35:56 basehttp - "GET /static/admin/assets/js/config.js HTTP/1.1" 200 714
+[INFO] 2026-03-02 13:35:56 basehttp - "GET /media/profile_images/icon.png HTTP/1.1" 200 45977
+[INFO] 2026-03-02 13:35:56 basehttp - "GET /media/products/1_XKXW1sA.png HTTP/1.1" 200 490400
+[INFO] 2026-03-02 13:35:56 basehttp - "GET /media/site/ChatGPT_Image_Feb_11_2026_11_31_42_AM_SHxtMMI.png HTTP/1.1" 200 2122199
+[INFO] 2026-03-02 13:35:56 basehttp - "GET /static/admin/assets/vendor/fonts/boxicons/boxicons.woff2 HTTP/1.1" 200 102988
+[INFO] 2026-03-02 13:35:56 basehttp - "GET /static/admin/assets/img/favicon/favicon.ico HTTP/1.1" 200 1393
+[ERROR] 2026-03-02 13:36:03 views - ======================================================================
+[ERROR] 2026-03-02 13:36:03 views - RAZORPAY IMPORT FAILED - DIAGNOSTIC INFO
+[ERROR] 2026-03-02 13:36:03 views - ======================================================================
+[ERROR] 2026-03-02 13:36:03 views - executable: C:\Users\ADMIN\AppData\Local\Programs\Python\Python311\python.exe
+[ERROR] 2026-03-02 13:36:03 views - version: 3.11.4 (tags/v3.11.4:d2340ef, Jun  7 2023, 05:45:37) [MSC v.1934 64 bit (AMD64)]
+[ERROR] 2026-03-02 13:36:03 views - prefix: C:\Users\ADMIN\AppData\Local\Programs\Python\Python311
+[ERROR] 2026-03-02 13:36:03 views - base_prefix: C:\Users\ADMIN\AppData\Local\Programs\Python\Python311
+[ERROR] 2026-03-02 13:36:03 views - is_venv: False
+[ERROR] 2026-03-02 13:36:03 views - site_packages: ['C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages']
+[ERROR] 2026-03-02 13:36:03 views - user_site: C:\Users\ADMIN\AppData\Roaming\Python\Python311\site-packages
+[ERROR] 2026-03-02 13:36:03 views - cwd: D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall
+[ERROR] 2026-03-02 13:36:03 views - sys_path_first_5: ['D:\\Iu University\\OneDrive - IU International University of Applied Sciences\\Desktop\\VibeMall', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311\\python311.zip', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311\\DLLs', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311\\Lib', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311']
+[ERROR] 2026-03-02 13:36:03 views - ImportError: cannot import name 'NoDataError' from 'razorpay.errors' (C:\Users\ADMIN\AppData\Local\Programs\Python\Python311\Lib\site-packages\razorpay\errors.py)
+[ERROR] 2026-03-02 13:36:03 views - ======================================================================
+[ERROR] 2026-03-02 13:36:03 views - Razorpay exists in C:\Users\ADMIN\AppData\Local\Programs\Python\Python311: False
+[INFO] 2026-03-02 13:36:03 basehttp - "POST /admin-panel/orders/55/refund/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 13:36:03 basehttp - "GET /admin-panel/orders/55/ HTTP/1.1" 200 41858
+[INFO] 2026-03-02 13:40:04 basehttp - "GET /admin-panel/main-page-products/ HTTP/1.1" 200 32251
+[INFO] 2026-03-02 13:40:47 basehttp - "GET /admin-panel/resell/orders/ HTTP/1.1" 200 42450
+[INFO] 2026-03-02 13:41:20 basehttp - "GET /admin-panel/orders/52/ HTTP/1.1" 200 47202
+[INFO] 2026-03-02 13:41:20 basehttp - "GET /media/products/1_7aSQB7b.png HTTP/1.1" 200 193722
+[INFO] 2026-03-02 13:41:37 basehttp - - Broken pipe from ('127.0.0.1', 58209)
+[INFO] 2026-03-02 13:41:59 basehttp - "GET /admin-panel/resell/orders/ HTTP/1.1" 200 42450
+[INFO] 2026-03-02 13:42:02 basehttp - "GET /admin-panel/resell/orders/ HTTP/1.1" 200 42450
+[INFO] 2026-03-02 13:42:21 basehttp - "GET /admin-panel/resell/orders/ HTTP/1.1" 200 42450
+[INFO] 2026-03-02 13:42:32 basehttp - "GET /admin-panel/resell/analytics/?reseller_id=11 HTTP/1.1" 200 33679
+[INFO] 2026-03-02 13:42:39 basehttp - "GET /admin-panel/resell/analytics/ HTTP/1.1" 200 32322
+[INFO] 2026-03-02 13:42:43 basehttp - "GET /admin-panel/resell/analytics/?reseller_id=11 HTTP/1.1" 200 33679
+[INFO] 2026-03-02 13:42:52 basehttp - "GET /admin-panel/resell/orders/ HTTP/1.1" 200 42450
+[INFO] 2026-03-02 13:42:57 basehttp - "GET /admin-panel/orders/52/ HTTP/1.1" 200 47202
+[INFO] 2026-03-02 13:43:36 basehttp - "GET /admin-panel/orders/ HTTP/1.1" 200 345998
+[INFO] 2026-03-02 13:43:36 basehttp - "GET /media/products/WhatsApp_Image_2026-02-24_at_3.34.00_PM_1.png HTTP/1.1" 200 1145485
+[INFO] 2026-03-02 13:43:36 basehttp - "GET /media/products/1.png HTTP/1.1" 200 407438
+[INFO] 2026-03-02 13:43:36 basehttp - "GET /media/products/1_yyrY5Xk.png HTTP/1.1" 200 302011
+[INFO] 2026-03-02 13:43:36 basehttp - "GET /media/products/1_SCYBItt.png HTTP/1.1" 200 145844
+[INFO] 2026-03-02 13:43:36 basehttp - "GET /media/products/1_7KrxGvQ.png HTTP/1.1" 200 224291
+[INFO] 2026-03-02 13:43:36 basehttp - "GET /media/products/4.1.avif HTTP/1.1" 200 22000
+[INFO] 2026-03-02 13:43:36 basehttp - "GET /media/products/1_15FqCly.png HTTP/1.1" 200 301201
+[INFO] 2026-03-02 13:43:36 basehttp - "GET /media/products/2.1.avif HTTP/1.1" 200 42356
+[INFO] 2026-03-02 13:43:36 basehttp - "GET /media/products/1_FvJtAU2.png HTTP/1.1" 200 325533
+[INFO] 2026-03-02 13:43:37 basehttp - "GET /media/products/1.1.png HTTP/1.1" 200 674692
+[INFO] 2026-03-02 13:43:37 basehttp - "GET /media/products/1.avif HTTP/1.1" 200 34299
+[INFO] 2026-03-02 13:43:44 basehttp - "GET /admin-panel/orders/?export=csv HTTP/1.1" 200 7555
+[INFO] 2026-03-02 13:43:56 basehttp - "GET /admin-panel/backup/itr-reports/ HTTP/1.1" 200 1554
+[WARNING] 2026-03-02 13:43:56 basehttp - "GET /favicon.ico HTTP/1.1" 404 51807
+[INFO] 2026-03-02 13:43:58 basehttp - "GET /admin-panel/backup/ HTTP/1.1" 200 21615
+[WARNING] 2026-03-02 13:43:58 basehttp - "GET /static/admin/css/backup.css HTTP/1.1" 404 1874
+[ERROR] 2026-03-02 13:44:02 backup_views - Manual backup failed: No module named 'pandas'
+Traceback (most recent call last):
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py", line 149, in create_manual_backup
+    call_command('create_backup', '--type', 'manual', '--mode', 'regular', stdout=output, stderr=output)
+  File "C:\Users\ADMIN\AppData\Local\Programs\Python\Python311\Lib\site-packages\django\core\management\__init__.py", line 118, in call_command
+    command = load_command_class(app_name, command_name)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\AppData\Local\Programs\Python\Python311\Lib\site-packages\django\core\management\__init__.py", line 48, in load_command_class
+    module = import_module("%s.management.commands.%s" % (app_name, name))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\AppData\Local\Programs\Python\Python311\Lib\importlib\__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\management\commands\create_backup.py", line 10, in <module>
+    import pandas as pd
+ModuleNotFoundError: No module named 'pandas'
+[INFO] 2026-03-02 13:44:02 basehttp - "POST /admin-panel/backup/manual/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 13:44:02 basehttp - "GET /admin-panel/backup/ HTTP/1.1" 200 21615
+[WARNING] 2026-03-02 13:44:02 basehttp - "GET /static/admin/css/backup.css HTTP/1.1" 404 1874
+[WARNING] 2026-03-02 13:44:02 basehttp - "GET /favicon.ico HTTP/1.1" 404 51807
+[INFO] 2026-03-02 13:44:11 basehttp - "GET /admin-panel/backup/7/ HTTP/1.1" 200 937
+[INFO] 2026-03-02 13:44:55 basehttp - "GET /admin-panel/backup/history/ HTTP/1.1" 200 3077
+[INFO] 2026-03-02 13:44:58 basehttp - "GET /admin-panel/backup/7/ HTTP/1.1" 200 937
+[INFO] 2026-03-02 13:45:00 basehttp - "GET /admin-panel/backup/history/ HTTP/1.1" 200 3077
+[INFO] 2026-03-02 13:45:03 basehttp - "GET /admin-panel/backup/history/ HTTP/1.1" 200 3077
+[INFO] 2026-03-02 13:45:06 basehttp - "GET /admin-panel/backup/ HTTP/1.1" 200 21615
+[WARNING] 2026-03-02 13:45:06 basehttp - "GET /static/admin/css/backup.css HTTP/1.1" 404 1874
+[ERROR] 2026-03-02 13:45:13 basehttp - "GET /admin-panel/backup/analytics/ HTTP/1.1" 500 122822
+[INFO] 2026-03-02 13:47:17 basehttp - "GET /admin-panel/backup/history/ HTTP/1.1" 200 3077
+[INFO] 2026-03-02 13:47:19 basehttp - "GET /admin-panel/backup/ HTTP/1.1" 200 21615
+[WARNING] 2026-03-02 13:47:19 basehttp - "GET /static/admin/css/backup.css HTTP/1.1" 404 1874
+[INFO] 2026-03-02 13:47:29 basehttp - "GET /admin-panel/backup/configuration/ HTTP/1.1" 200 3549
+[INFO] 2026-03-02 13:47:29 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py changed, reloading.
+[INFO] 2026-03-02 13:47:30 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py changed, reloading.
+[INFO] 2026-03-02 13:47:30 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py changed, reloading.
+[INFO] 2026-03-02 13:47:37 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 13:47:37 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 13:47:37 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 13:47:39 basehttp - "POST /admin-panel/backup/configuration/ HTTP/1.1" 302 0
+[INFO] 2026-03-02 13:47:39 basehttp - "GET /admin-panel/backup/configuration/ HTTP/1.1" 200 3549
+[WARNING] 2026-03-02 13:47:39 basehttp - "GET /favicon.ico HTTP/1.1" 404 51807
+[INFO] 2026-03-02 13:47:46 basehttp - "GET /admin-panel/backup/itr-reports/ HTTP/1.1" 200 1554
+[INFO] 2026-03-02 13:48:09 basehttp - "POST /admin-panel/backup/itr-reports/ HTTP/1.1" 200 13823
+[INFO] 2026-03-02 13:49:10 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py changed, reloading.
+[INFO] 2026-03-02 13:49:11 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py changed, reloading.
+[INFO] 2026-03-02 13:49:12 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py changed, reloading.
+[INFO] 2026-03-02 13:49:23 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 13:49:23 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 13:49:24 autoreload - Watching for file changes with StatReloader
+[WARNING] 2026-03-02 13:51:25 basehttp - "GET /favicon.ico HTTP/1.1" 404 51807
+[INFO] 2026-03-02 13:52:03 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py changed, reloading.
+[INFO] 2026-03-02 13:52:03 autoreload - D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py changed, reloading.
+[INFO] 2026-03-02 13:52:08 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 13:52:09 autoreload - Watching for file changes with StatReloader
+[INFO] 2026-03-02 14:00:47 basehttp - "GET /admin-panel/backup/7/ HTTP/1.1" 200 937
+[INFO] 2026-03-02 16:25:33 basehttp - "GET /admin-panel/backup/history/ HTTP/1.1" 200 3428
+[INFO] 2026-03-02 16:25:37 basehttp - "GET /admin-panel/backup/ HTTP/1.1" 200 23012
+[WARNING] 2026-03-02 16:25:37 basehttp - "GET /static/admin/css/backup.css HTTP/1.1" 404 1874
+[INFO] 2026-03-02 16:25:52 basehttp - "GET /admin-panel/backup/ HTTP/1.1" 200 23012
+[WARNING] 2026-03-02 16:25:52 basehttp - "GET /static/admin/css/backup.css HTTP/1.1" 404 1874
+[INFO] 2026-03-02 16:25:58 basehttp - "GET /admin-panel/backup/analytics/ HTTP/1.1" 200 3580
+[INFO] 2026-03-02 16:26:06 basehttp - "GET /admin-panel/backup/ HTTP/1.1" 200 23012
+[WARNING] 2026-03-02 16:26:06 basehttp - "GET /static/admin/css/backup.css HTTP/1.1" 404 1874
+[INFO] 2026-03-02 16:26:10 basehttp - "GET /admin-panel/backup/history/ HTTP/1.1" 200 3428
+[INFO] 2026-03-02 16:26:14 basehttp - "GET /admin-panel/backup/ HTTP/1.1" 200 23012
+[WARNING] 2026-03-02 16:26:14 basehttp - "GET /static/admin/css/backup.css HTTP/1.1" 404 1874
+[WARNING] 2026-03-02 16:30:14 basehttp - "GET /admin-panel/backup/history/ HTTP/1.1" 403 13
+[WARNING] 2026-03-02 16:30:14 basehttp - "GET /favicon.ico HTTP/1.1" 404 51807
+[WARNING] 2026-03-02 16:30:17 basehttp - "GET /admin-panel/backup/history/ HTTP/1.1" 403 13
+[INFO] 2026-03-02 16:30:25 autoreload - Watching for file changes with StatReloader
+[WARNING] 2026-03-02 16:30:57 basehttp - "GET /admin-panel/backup/history/ HTTP/1.1" 403 13
+[WARNING] 2026-03-02 16:30:58 basehttp - "GET /admin-panel/backup/history/ HTTP/1.1" 403 13
+[WARNING] 2026-03-02 16:30:58 basehttp - "GET /admin-panel/backup/history/ HTTP/1.1" 403 13
+[WARNING] 2026-03-02 16:30:59 basehttp - "GET /admin-panel/backup/history/ HTTP/1.1" 403 13
+[WARNING] 2026-03-02 16:31:02 basehttp - "GET /admin-panel/backup/analytics/ HTTP/1.1" 403 13

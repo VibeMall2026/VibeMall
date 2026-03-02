@@ -376,25 +376,29 @@
             <!-- Products -->
             <div class="product-list">
                 <h4>📦 Items in Your Order</h4>
-                {% for item in order.orderitem_set.all %}
+                {% for item in order_items %}
                 <div class="product-item">
                     <div class="product-image">
-                        {% if item.product_image %}
-                            <img src="{{ item.product_image }}" alt="{{ item.product_name }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">
-                        {% elif item.product and item.product.image %}
-                            <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">
+                        {% if item.image_url %}
+                            <img src="{{ item.image_url }}" alt="{{ item.name }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">
                         {% else %}
                             📦
                         {% endif %}
                     </div>
                     <div class="product-info">
-                        <div class="product-name">{{ item.product_name|default:item.product.name }}</div>
+                        <div class="product-name">{{ item.name }}</div>
                         <div class="product-meta">
                             {% if item.size %}<span>Size: {{ item.size }}</span>{% endif %}
                             {% if item.color %}<span> | Color: {{ item.color }}</span>{% endif %}
                         </div>
                     </div>
                     <div class="product-qty">Qty: {{ item.quantity }}</div>
+                </div>
+                {% empty %}
+                <div class="product-item">
+                    <div class="product-info">
+                        <div class="product-name">Product details are not available for this order.</div>
+                    </div>
                 </div>
                 {% endfor %}
             </div>

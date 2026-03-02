@@ -1,6 +1,7 @@
 # admin.py
 from django.contrib import admin
 from django.utils.html import format_html
+from .email_utils import send_order_status_update_email
 from .models import (
     CategoryIcon,
     Slider,
@@ -528,6 +529,31 @@ class OrderAdmin(admin.ModelAdmin):
         self.message_user(request, f'{updated} orders rejected.')
     reject_orders.short_description = "❌ Reject selected orders"
 
+    def save_model(self, request, obj, form, change):
+        old_status = None
+        if change:
+            try:
+                old_status = Order.objects.only('order_status').get(pk=obj.pk).order_status
+            except Order.DoesNotExist:
+                old_status = None
+
+        super().save_model(request, obj, form, change)
+
+        if change and old_status and old_status != obj.order_status:
+            OrderStatusHistory.objects.create(
+                order=obj,
+                old_status=old_status,
+                new_status=obj.order_status,
+                changed_by=request.user,
+                notes='Status updated from Django admin',
+            )
+
+            sent = send_order_status_update_email(obj, old_status, obj.order_status)
+            if sent:
+                self.message_user(request, f'Status email sent to {obj.user.email}.')
+            else:
+                self.message_user(request, 'Order status updated, but email failed. Check SMTP env and logs.', level='warning')
+
 
 @admin.register(OrderItem)
 class OrderItemAdmin(admin.ModelAdmin):
@@ -1043,3 +1069,7 @@ class PayoutTransactionAdmin(admin.ModelAdmin):
         
         self.message_user(request, f'{failed_count} payouts marked as failed and balance refunded.')
     mark_as_failed.short_description = 'Mark as failed (refund balance)'
+
+
+# Load backup model admin registrations
+from . import backup_admin  # noqa: E402,F401

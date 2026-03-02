@@ -10,7 +10,7 @@ from django.db.models import Sum, Count
 from datetime import timedelta
 from django.utils import timezone
 
-from Hub.models import BackupConfiguration, BackupLog, TeraboxSettings
+from Hub.models import BackupConfiguration, BackupLog, TeraboxSettings, BackupCleanupRequest
 
 
 @admin.register(BackupConfiguration)
@@ -40,7 +40,15 @@ class BackupConfigurationAdmin(admin.ModelAdmin):
                 'enable_terabox_backup',
                 'terabox_auto_folder_create',
             ),
-            'description': 'Enable automatic cloud backup to Terabox'
+            'description': 'Legacy cloud options (keep disabled for local backup mode)'
+        }),
+        ('📁 Local Storage', {
+            'fields': (
+                'backup_root_path',
+                'regular_folder_name',
+                'special_folder_name',
+            ),
+            'description': 'Local backup root and subfolder configuration'
         }),
         ('📧 Email Notifications', {
             'fields': (
@@ -148,7 +156,9 @@ class BackupConfigurationAdmin(admin.ModelAdmin):
         info += '<strong>Configuration Summary:</strong><br>'
         info += f'Frequency: {obj.get_backup_frequency_display()}<br>'
         info += f'Schedule Time: {obj.schedule_time}<br>'
-        info += f'Terabox: {"Enabled" if obj.enable_terabox_backup else "Disabled"}<br>'
+        info += f'Backup Root: {obj.backup_root_path}<br>'
+        info += f'Regular Folder: {obj.regular_folder_name}<br>'
+        info += f'Special Folder: {obj.special_folder_name}<br>'
         info += f'Emails: {obj.notification_emails or "Not configured"}<br><br>'
         info += '<strong>Backup Statistics:</strong><br>'
         info += f'Total Backups: {total_logs}<br>'
@@ -443,3 +453,11 @@ class TeraboxSettingsAdmin(admin.ModelAdmin):
     
     def has_delete_permission(self, request, obj=None):
         return False  # Don't delete settings
+
+
+@admin.register(BackupCleanupRequest)
+class BackupCleanupRequestAdmin(admin.ModelAdmin):
+    list_display = ['id', 'folder_label', 'status', 'email_sent', 'requested_at', 'confirmed_at', 'confirmed_by']
+    list_filter = ['status', 'email_sent', 'requested_at']
+    search_fields = ['folder_label', 'folder_path']
+    readonly_fields = ['backup_log', 'folder_path', 'folder_label', 'confirmation_token', 'requested_at', 'confirmed_at', 'confirmed_by']

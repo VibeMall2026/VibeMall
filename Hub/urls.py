@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from . import views_resell
 from . import views_admin_resell
+from . import backup_views
 
 urlpatterns = [
     # Admin Panel URLs
@@ -68,6 +69,21 @@ urlpatterns = [
     path('admin-panel/returns-analytics/', views.admin_return_analytics, name='admin_return_analytics'),
     path('admin-panel/marketing-studio/', views.admin_marketing_studio, name='admin_marketing_studio'),
     path('admin-panel/razorpay/health/', views.admin_razorpay_health, name='admin_razorpay_health'),
+
+    # Backup Management (Local D Drive)
+    path('admin-panel/backup/', backup_views.backup_dashboard, name='admin_backup_dashboard'),
+    path('admin-panel/backup/configuration/', backup_views.backup_configuration, name='admin_backup_configuration'),
+    path('admin-panel/backup/history/', backup_views.backup_history, name='admin_backup_history'),
+    path('admin-panel/backup/analytics/', backup_views.backup_analytics, name='admin_backup_analytics'),
+    path('admin-panel/backup/manual/', backup_views.create_manual_backup, name='admin_create_manual_backup'),
+    path('admin-panel/backup/special/', backup_views.create_special_backup, name='admin_create_special_backup'),
+    path('admin-panel/backup/<int:backup_id>/', backup_views.backup_detail, name='admin_backup_detail'),
+    path('admin-panel/backup/api/status/', backup_views.api_backup_status, name='admin_api_backup_status'),
+    path('admin-panel/backup/api/data-stats/', backup_views.api_data_stats, name='admin_api_data_stats'),
+    path('admin-panel/backup/cleanup/<uuid:token>/', backup_views.cleanup_confirmation, name='admin_backup_cleanup_confirmation'),
+
+    # ITR Financial Reports
+    path('admin-panel/backup/itr-reports/', backup_views.itr_reports, name='admin_itr_reports'),
     
     # Resell Management URLs (Admin Panel)
     path('admin-panel/resell/orders/', views_admin_resell.admin_resell_orders, name='admin_resell_orders'),

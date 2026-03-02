@@ -352,3 +352,172 @@ Traceback (most recent call last):
     banners = MainPageBanner.objects.all().order_by('banner_area', 'order', 'id')
               ^^^^^^^^^^^^^^
 NameError: name 'MainPageBanner' is not defined
+[ERROR] 2026-03-02 10:19:18 log - Internal Server Error: /admin-panel/backup/configuration/
+Traceback (most recent call last):
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py", line 38, in wrapped
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py", line 87, in backup_configuration
+    config.next_backup_at = calculate_next_backup_time(config)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_utils.py", line 163, in calculate_next_backup_time
+    naive = datetime.combine(next_date, schedule_time)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: combine() argument 2 must be datetime.time, not str
+[ERROR] 2026-03-02 10:20:05 log - Internal Server Error: /admin-panel/backup/itr-reports/
+Traceback (most recent call last):
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py", line 38, in wrapped
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py", line 250, in itr_reports
+    pd.DataFrame(order_rows).to_excel(writer, sheet_name='Orders', index=False)
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\core\generic.py", line 2312, in to_excel
+    formatter.write(
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\io\formats\excel.py", line 1012, in write
+    writer._write_cells(
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\io\excel\_openpyxl.py", line 490, in _write_cells
+    for cell in cells:
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\io\formats\excel.py", line 875, in get_formatted_cells
+    cell.val = self._format_value(cell.val)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\io\formats\excel.py", line 601, in _format_value
+    raise ValueError(
+ValueError: Excel does not support datetimes with timezones. Please ensure that datetimes are timezone unaware before writing to Excel.
+[ERROR] 2026-03-02 10:23:53 log - Internal Server Error: /admin-panel/backup/itr-reports/
+Traceback (most recent call last):
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py", line 38, in wrapped
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py", line 260, in itr_reports
+    pd.DataFrame(order_rows).to_excel(writer, sheet_name='Orders', index=False)
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\core\generic.py", line 2312, in to_excel
+    formatter.write(
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\io\formats\excel.py", line 1012, in write
+    writer._write_cells(
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\io\excel\_openpyxl.py", line 490, in _write_cells
+    for cell in cells:
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\io\formats\excel.py", line 875, in get_formatted_cells
+    cell.val = self._format_value(cell.val)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\io\formats\excel.py", line 601, in _format_value
+    raise ValueError(
+ValueError: Excel does not support datetimes with timezones. Please ensure that datetimes are timezone unaware before writing to Excel.
+[ERROR] 2026-03-02 10:26:33 log - Internal Server Error: /admin-panel/backup/itr-reports/
+Traceback (most recent call last):
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py", line 38, in wrapped
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py", line 263, in itr_reports
+    orders_df.to_excel(writer, sheet_name='Orders', index=False)
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\core\generic.py", line 2312, in to_excel
+    formatter.write(
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\io\formats\excel.py", line 1012, in write
+    writer._write_cells(
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\io\excel\_openpyxl.py", line 490, in _write_cells
+    for cell in cells:
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\io\formats\excel.py", line 875, in get_formatted_cells
+    cell.val = self._format_value(cell.val)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\io\formats\excel.py", line 601, in _format_value
+    raise ValueError(
+ValueError: Excel does not support datetimes with timezones. Please ensure that datetimes are timezone unaware before writing to Excel.
+[ERROR] 2026-03-02 10:26:46 log - Internal Server Error: /admin-panel/backup/itr-reports/
+Traceback (most recent call last):
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py", line 38, in wrapped
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py", line 263, in itr_reports
+    orders_df.to_excel(writer, sheet_name='Orders', index=False)
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\core\generic.py", line 2312, in to_excel
+    formatter.write(
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\io\formats\excel.py", line 1012, in write
+    writer._write_cells(
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\io\excel\_openpyxl.py", line 490, in _write_cells
+    for cell in cells:
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\io\formats\excel.py", line 875, in get_formatted_cells
+    cell.val = self._format_value(cell.val)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\io\formats\excel.py", line 601, in _format_value
+    raise ValueError(
+ValueError: Excel does not support datetimes with timezones. Please ensure that datetimes are timezone unaware before writing to Excel.
+[ERROR] 2026-03-02 10:27:07 log - Internal Server Error: /admin-panel/backup/itr-reports/
+Traceback (most recent call last):
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py", line 38, in wrapped
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py", line 263, in itr_reports
+    orders_df.to_excel(writer, sheet_name='Orders', index=False)
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\core\generic.py", line 2312, in to_excel
+    formatter.write(
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\io\formats\excel.py", line 1012, in write
+    writer._write_cells(
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\io\excel\_openpyxl.py", line 490, in _write_cells
+    for cell in cells:
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\io\formats\excel.py", line 875, in get_formatted_cells
+    cell.val = self._format_value(cell.val)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\venv\Lib\site-packages\pandas\io\formats\excel.py", line 601, in _format_value
+    raise ValueError(
+ValueError: Excel does not support datetimes with timezones. Please ensure that datetimes are timezone unaware before writing to Excel.
+[ERROR] 2026-03-02 13:45:13 log - Internal Server Error: /admin-panel/backup/analytics/
+Traceback (most recent call last):
+  File "C:\Users\ADMIN\AppData\Local\Programs\Python\Python311\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\AppData\Local\Programs\Python\Python311\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py", line 39, in wrapped
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall\Hub\backup_views.py", line 322, in backup_analytics
+    'size_trend_json': json.dumps(list(size_trend.values())),
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\AppData\Local\Programs\Python\Python311\Lib\json\__init__.py", line 231, in dumps
+    return _default_encoder.encode(obj)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\AppData\Local\Programs\Python\Python311\Lib\json\encoder.py", line 200, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\AppData\Local\Programs\Python\Python311\Lib\json\encoder.py", line 258, in iterencode
+    return _iterencode(o, 0)
+           ^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\AppData\Local\Programs\Python\Python311\Lib\json\encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type datetime is not JSON serializable

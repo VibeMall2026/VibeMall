@@ -1,0 +1,68 @@
+# 🚀 QUICK FIX - DO THIS NOW
+
+## The Error You're Seeing
+```
+Refund failed: Razorpay SDK not found. Run: pip install razorpay
+```
+
+## Why It Happens
+Django is running with SYSTEM Python instead of venv Python (which has razorpay)
+
+## Fix It NOW (Pick ONE)
+
+### ⭐ EASIEST - Double-Click Script
+```
+1. Find: run_django.bat (in project folder)
+2. Double-click it
+3. Done! Django starts with correct Python
+```
+
+### 🔥 QUICKEST - One Command
+Open Command Prompt and run:
+```
+cd "d:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall"
+venv\Scripts\python.exe manage.py runserver
+```
+Then test refund: Admin → Orders → PAID → Refund
+
+### ✅ MOST COMMON - Activate venv
+```
+cd "d:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall"
+venv\Scripts\activate.bat
+python manage.py runserver
+```
+Then test refund: Admin → Orders → PAID → Refund
+
+---
+
+## Verify It Worked
+In Command Prompt:
+```
+python -c "import razorpay; print('RAZORPAY WORKS')"
+```
+
+Should print: `RAZORPAY WORKS`
+
+---
+
+## Test the Refund
+1. Start Django (using one method above)
+2. Admin Panel → Orders
+3. Click any order with status "PAID" (green)
+4. Click "Refund" button
+5. Try processing refund
+6. ✅ Should work now!
+
+---
+
+## If Still Not Working
+1. Make sure you see `(venv)` in Command Prompt before Django starts
+2. Run: `pip install razorpay --upgrade`
+3. Restart Django
+4. Try refund again
+
+---
+
+**That's it! One of these 3 methods WILL work.** Start with EASIEST (run_django.bat).
+
+For full details: Read `RAZORPAY_PERMANENT_FIX.md`
