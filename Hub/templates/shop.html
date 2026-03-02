@@ -3,6 +3,7 @@
 {% load custom_filters %}
 
 {% block title %}Shop - VibeMall{% endblock %}
+{% block meta_description %}Shop all categories on VibeMall - Browse exclusive deals on mobiles, food & health, furniture, sports, and more with free shipping.{% endblock %}
 
 {% block content %}
 <style>
@@ -202,13 +203,13 @@
                 </div>
                 <div class="filter-card">
                     <h5 class="filter-title">Filters</h5>
-                    <form method="get" id="shopFiltersForm" class="filter-form">
+                    <form method="get" id="shopFiltersForm" class="filter-form" aria-label="Product filters">
                         <div class="filter-block mb-20">
-                            <p class="filter-label mb-1">Product categories</p>
-                            <div class="widget-category-list">
+                            <p class="filter-label mb-1" id="categoryLabel">Product categories</p>
+                            <div class="widget-category-list" role="group" aria-labelledby="categoryLabel">
                                 {% for value,label,count in category_data %}
                                     <div class="single-widget-category">
-                                        <input type="radio" id="cat-{{ forloop.counter }}" name="category" value="{{ value }}" {% if selected_category == value %}checked{% endif %}>
+                                        <input type="radio" id="cat-{{ forloop.counter }}" name="category" value="{{ value }}" {% if selected_category == value %}checked{% endif %} aria-label="{{ label }} category ({{ count }} products)">
                                         <label for="cat-{{ forloop.counter }}">{{ label }} <span class="text-muted">({{ count }})</span></label>
                                     </div>
                                 {% empty %}
@@ -218,12 +219,12 @@
                         </div>
 
                         <div class="filter-block mb-20">
-                            <p class="filter-label mb-1">Sub-category</p>
-                            <div class="widget-category-list">
+                            <p class="filter-label mb-1" id="subcategoryLabel">Sub-category</p>
+                            <div class="widget-category-list" role="group" aria-labelledby="subcategoryLabel">
                                 {% if selected_category %}
                                     {% for value,label,count in sub_category_data %}
                                         <div class="single-widget-category">
-                                            <input type="radio" id="subcat-{{ forloop.counter }}" name="sub_category" value="{{ value }}" {% if selected_sub_category == value %}checked{% endif %}>
+                                            <input type="radio" id="subcat-{{ forloop.counter }}" name="sub_category" value="{{ value }}" {% if selected_sub_category == value %}checked{% endif %} aria-label="{{ label }} sub-category ({{ count }} products)">
                                             <label for="subcat-{{ forloop.counter }}">{{ label }} <span class="text-muted">({{ count }})</span></label>
                                         </div>
                                     {% empty %}
@@ -236,26 +237,26 @@
                         </div>
 
                         <div class="filter-block mb-20">
-                            <p class="filter-label mb-2">Price range</p>
-                            <div class="d-flex align-items-center" style="gap:10px;">
-                                <input type="number" name="min_price" value="{{ min_price }}" placeholder="Min" class="form-control" style="max-width:120px;">
-                                <span class="text-muted">-</span>
-                                <input type="number" name="max_price" value="{{ max_price }}" placeholder="Max" class="form-control" style="max-width:120px;">
+                            <p class="filter-label mb-2" id="priceLabel">Price range</p>
+                            <div class="d-flex align-items-center" style="gap:10px;" role="group" aria-labelledby="priceLabel">
+                                <input type="number" name="min_price" value="{{ min_price }}" placeholder="Min" class="form-control" style="max-width:120px;" aria-label="Minimum price">
+                                <span class="text-muted" aria-hidden="true">-</span>
+                                <input type="number" name="max_price" value="{{ max_price }}" placeholder="Max" class="form-control" style="max-width:120px;" aria-label="Maximum price">
                             </div>
                         </div>
 
                         <div class="filter-block mb-20">
-                            <p class="filter-label mb-2">Minimum rating</p>
-                            <div class="widget-category-list star-list">
+                            <p class="filter-label mb-2" id="ratingLabel">Minimum rating</p>
+                            <div class="widget-category-list star-list" role="group" aria-labelledby="ratingLabel">
                                 {% for star in "54321" %}
                                     <div class="single-widget-category">
-                                        <input type="radio" id="star-{{ star }}" name="min_rating" value="{{ star }}" {% if selected_rating == star %}checked{% endif %}>
+                                        <input type="radio" id="star-{{ star }}" name="min_rating" value="{{ star }}" {% if selected_rating == star %}checked{% endif %} aria-label="{{ star }} star rating and above">
                                         <label for="star-{{ star }}">
                                             {% for i in "12345" %}
                                                 {% if forloop.counter <= star|add:'0' %}
-                                                    <i class="fas fa-star"></i>
+                                                    <i class="fas fa-star" aria-hidden="true"></i>
                                                 {% else %}
-                                                    <i class="fal fa-star"></i>
+                                                    <i class="fal fa-star" aria-hidden="true"></i>
                                                 {% endif %}
                                             {% endfor %}
                                         </label>
@@ -265,8 +266,8 @@
                         </div>
 
                         <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-dark btn-sm">Apply filters</button>
-                            <a href="{% url 'shop' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+                            <button type="submit" class="btn btn-dark btn-sm" aria-label="Apply selected product filters">Apply filters</button>
+                            <a href="{% url 'shop' %}" class="btn btn-outline-secondary btn-sm" role="button" aria-label="Reset all product filters\">Reset</a>
                         </div>
                     </form>
                 </div>

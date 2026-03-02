@@ -6,18 +6,23 @@ This module contains custom admin panel views for managing resell operations:
 - Reseller analytics view
 - Resell reports view
 - Reseller management view
-- Payout management view
+- Payout management view (with 7-day eligibility)
 """
 
 from decimal import Decimal
 from datetime import datetime, timedelta
+import logging
+import os
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
-from django.http import JsonResponse, HttpResponse
-from django.db.models import Sum, Count, Q, Avg
+from django.http import JsonResponse, HttpResponse, FileResponse
+from django.db import transaction
+from django.db.models import Sum, Count, Q, Avg, F
 from django.utils import timezone
 from django.core.paginator import Paginator
+from django.core.exceptions import ValidationError
+from django.conf import settings
 import csv
 
 from .models import (
@@ -27,8 +32,53 @@ from .models import (
     ResellerProfile,
     ResellerEarning,
     PayoutTransaction,
-    User
+    User,
+    ReturnRequest
 )
+from .resell_payout_service import (
+    PayoutEligibilityManager,
+    PayoutEmailService,
+    PayoutInvoiceGenerator,
+    RazorpayPaymentProcessor,
+    BankTransferPaymentProcessor,
+    UPIPaymentProcessor,
+)
+
+
+logger = logging.getLogger(__name__)
+
+
+def _parse_admin_date(date_str, field_label):
+    """Parse admin date filter in YYYY-MM-DD format."""
+    if not date_str:
+        return None
+
+    try:
+        parsed_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError as exc:
+        raise ValidationError(f"{field_label} must be in YYYY-MM-DD format.") from exc
+
+    ten_years_ago = (timezone.now() - timedelta(days=3650)).date()
+    today = timezone.now().date()
+
+    if parsed_date < ten_years_ago:
+        raise ValidationError(f"{field_label} cannot be older than 10 years.")
+    if parsed_date > today:
+        raise ValidationError(f"{field_label} cannot be in the future.")
+
+    return parsed_date
+
+
+def _get_safe_page_size(request, default=25, maximum=100):
+    """Return validated page size for pagination."""
+    try:
+        page_size = int(request.GET.get('page_size', default))
+    except (TypeError, ValueError):
+        return default
+
+    if page_size < 1:
+        return default
+    return min(page_size, maximum)
 
 
 # ============================================
@@ -55,31 +105,44 @@ def admin_resell_orders(request):
     order_status = request.GET.get('status', '')
     payment_status = request.GET.get('payment_status', '')
     search_query = request.GET.get('search', '')
+    sort_by = request.GET.get('sort', '-created_at')
+    page_size = _get_safe_page_size(request)
+
+    order_sort_fields = {
+        'created_at': 'created_at',
+        '-created_at': '-created_at',
+        'total_amount': 'total_amount',
+        '-total_amount': '-total_amount',
+        'total_margin': 'total_margin',
+        '-total_margin': '-total_margin',
+        'order_number': 'order_number',
+        '-order_number': '-order_number',
+    }
+    order_by = order_sort_fields.get(sort_by, '-created_at')
     
     # Base queryset
     orders = Order.objects.filter(is_resell=True).select_related(
         'user', 'reseller', 'resell_link'
-    ).prefetch_related('items').order_by('-created_at')
+    ).prefetch_related('items').order_by(order_by)
     
     # Apply filters
     if reseller_id:
         orders = orders.filter(reseller_id=reseller_id)
     
-    if date_from:
-        try:
-            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
-            orders = orders.filter(created_at__gte=date_from_obj)
-        except ValueError:
-            pass
-    
-    if date_to:
-        try:
-            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d')
-            # Add one day to include the entire end date
-            date_to_obj = date_to_obj + timedelta(days=1)
-            orders = orders.filter(created_at__lt=date_to_obj)
-        except ValueError:
-            pass
+    parsed_date_from = None
+    parsed_date_to = None
+    try:
+        parsed_date_from = _parse_admin_date(date_from, 'Date from')
+        parsed_date_to = _parse_admin_date(date_to, 'Date to')
+        if parsed_date_from and parsed_date_to and parsed_date_from > parsed_date_to:
+            raise ValidationError('Date from cannot be after date to.')
+    except ValidationError as exc:
+        messages.error(request, str(exc))
+
+    if parsed_date_from:
+        orders = orders.filter(created_at__gte=parsed_date_from)
+    if parsed_date_to:
+        orders = orders.filter(created_at__lt=(parsed_date_to + timedelta(days=1)))
     
     if order_status:
         orders = orders.filter(order_status=order_status)
@@ -96,13 +159,19 @@ def admin_resell_orders(request):
         )
     
     # Calculate summary statistics
-    total_orders = orders.count()
-    total_revenue = orders.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
-    total_margin = orders.aggregate(total=Sum('total_margin'))['total'] or Decimal('0.00')
-    total_base = orders.aggregate(total=Sum('base_amount'))['total'] or Decimal('0.00')
+    summary = orders.aggregate(
+        total_orders=Count('id'),
+        total_revenue=Sum('total_amount'),
+        total_margin=Sum('total_margin'),
+        total_base=Sum('base_amount')
+    )
+    total_orders = summary['total_orders'] or 0
+    total_revenue = summary['total_revenue'] or Decimal('0.00')
+    total_margin = summary['total_margin'] or Decimal('0.00')
+    total_base = summary['total_base'] or Decimal('0.00')
     
     # Pagination
-    paginator = Paginator(orders, 25)
+    paginator = Paginator(orders, page_size)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
     
@@ -126,6 +195,8 @@ def admin_resell_orders(request):
         'filter_status': order_status,
         'filter_payment_status': payment_status,
         'filter_search': search_query,
+        'filter_sort': sort_by,
+        'page_size': page_size,
     }
     
     return render(request, 'admin_panel/resell/orders.html', context)
@@ -152,12 +223,20 @@ def admin_reseller_analytics(request):
         profile = get_object_or_404(ResellerProfile, user=reseller)
         
         # Get reseller's orders
-        orders = Order.objects.filter(reseller=reseller, is_resell=True)
-        
-        # Calculate metrics
-        total_orders = orders.count()
-        total_revenue = orders.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
-        total_margin = orders.aggregate(total=Sum('total_margin'))['total'] or Decimal('0.00')
+        orders = Order.objects.filter(
+            reseller=reseller,
+            is_resell=True
+        ).select_related('user', 'reseller', 'resell_link')
+
+        # Calculate metrics in one query
+        order_summary = orders.aggregate(
+            total_orders=Count('id'),
+            total_revenue=Sum('total_amount'),
+            total_margin=Sum('total_margin')
+        )
+        total_orders = order_summary['total_orders'] or 0
+        total_revenue = order_summary['total_revenue'] or Decimal('0.00')
+        total_margin = order_summary['total_margin'] or Decimal('0.00')
         
         # Get resell links
         links = ResellLink.objects.filter(reseller=reseller)
@@ -168,11 +247,16 @@ def admin_reseller_analytics(request):
         # Calculate conversion rate
         conversion_rate = (total_orders / total_views * 100) if total_views > 0 else 0
         
-        # Get earnings breakdown
+        # Get earnings breakdown in one query
         earnings = ResellerEarning.objects.filter(reseller=reseller)
-        pending_earnings = earnings.filter(status='PENDING').aggregate(total=Sum('margin_amount'))['total'] or Decimal('0.00')
-        confirmed_earnings = earnings.filter(status='CONFIRMED').aggregate(total=Sum('margin_amount'))['total'] or Decimal('0.00')
-        paid_earnings = earnings.filter(status='PAID').aggregate(total=Sum('margin_amount'))['total'] or Decimal('0.00')
+        earnings_summary = earnings.aggregate(
+            pending_earnings=Sum('margin_amount', filter=Q(status='PENDING')),
+            confirmed_earnings=Sum('margin_amount', filter=Q(status='CONFIRMED')),
+            paid_earnings=Sum('margin_amount', filter=Q(status='PAID')),
+        )
+        pending_earnings = earnings_summary['pending_earnings'] or Decimal('0.00')
+        confirmed_earnings = earnings_summary['confirmed_earnings'] or Decimal('0.00')
+        paid_earnings = earnings_summary['paid_earnings'] or Decimal('0.00')
         
         # Get recent orders
         recent_orders = orders.order_by('-created_at')[:10]
@@ -201,25 +285,43 @@ def admin_reseller_analytics(request):
     
     else:
         # All resellers analytics
+        sort_by = request.GET.get('sort', '-total_earnings')
+        page_size = _get_safe_page_size(request)
+        reseller_sort_fields = {
+            'total_earnings': 'total_earnings',
+            '-total_earnings': '-total_earnings',
+            'available_balance': 'available_balance',
+            '-available_balance': '-available_balance',
+            'total_orders': 'total_orders',
+            '-total_orders': '-total_orders',
+            'created_at': 'created_at',
+            '-created_at': '-created_at',
+            'user__username': 'user__username',
+            '-user__username': '-user__username',
+        }
+        order_by = reseller_sort_fields.get(sort_by, '-total_earnings')
+
         resellers = ResellerProfile.objects.filter(
             is_reseller_enabled=True
-        ).select_related('user').order_by('-total_earnings')
+        ).select_related('user').order_by(order_by)
         
         # Calculate overall metrics
         total_resellers = resellers.count()
-        total_orders = Order.objects.filter(is_resell=True).count()
-        total_revenue = Order.objects.filter(is_resell=True).aggregate(
-            total=Sum('total_amount')
-        )['total'] or Decimal('0.00')
-        total_margin = Order.objects.filter(is_resell=True).aggregate(
-            total=Sum('total_margin')
-        )['total'] or Decimal('0.00')
+        all_resell_orders = Order.objects.filter(is_resell=True)
+        order_metrics = all_resell_orders.aggregate(
+            total_orders=Count('id'),
+            total_revenue=Sum('total_amount'),
+            total_margin=Sum('total_margin')
+        )
+        total_orders = order_metrics['total_orders'] or 0
+        total_revenue = order_metrics['total_revenue'] or Decimal('0.00')
+        total_margin = order_metrics['total_margin'] or Decimal('0.00')
         
         # Get top performers
         top_resellers = resellers[:10]
         
         # Pagination
-        paginator = Paginator(resellers, 25)
+        paginator = Paginator(resellers, page_size)
         page_number = request.GET.get('page', 1)
         page_obj = paginator.get_page(page_number)
         
@@ -231,6 +333,8 @@ def admin_reseller_analytics(request):
             'total_revenue': total_revenue,
             'total_margin': total_margin,
             'top_resellers': top_resellers,
+            'filter_sort': sort_by,
+            'page_size': page_size,
         }
         
         return render(request, 'admin_panel/resell/analytics.html', context)
@@ -264,10 +368,14 @@ def admin_resell_reports(request):
     
     # Parse dates
     try:
-        date_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
-        date_to_obj = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
-    except ValueError:
-        messages.error(request, 'Invalid date format.')
+        parsed_date_from = _parse_admin_date(date_from, 'Date from')
+        parsed_date_to = _parse_admin_date(date_to, 'Date to')
+        if parsed_date_from and parsed_date_to and parsed_date_from > parsed_date_to:
+            raise ValidationError('Date from cannot be after date to.')
+        date_from_obj = parsed_date_from
+        date_to_obj = parsed_date_to + timedelta(days=1)
+    except ValidationError as exc:
+        messages.error(request, str(exc))
         return redirect('admin_resell_reports')
     
     # Get data for date range
@@ -401,9 +509,25 @@ def admin_reseller_management(request):
     """
     search_query = request.GET.get('search', '')
     status_filter = request.GET.get('status', '')
+    sort_by = request.GET.get('sort', '-created_at')
+    page_size = _get_safe_page_size(request)
+
+    sort_fields = {
+        'created_at': 'created_at',
+        '-created_at': '-created_at',
+        'total_earnings': 'total_earnings',
+        '-total_earnings': '-total_earnings',
+        'available_balance': 'available_balance',
+        '-available_balance': '-available_balance',
+        'total_orders': 'total_orders',
+        '-total_orders': '-total_orders',
+        'user__username': 'user__username',
+        '-user__username': '-user__username',
+    }
+    order_by = sort_fields.get(sort_by, '-created_at')
     
     # Base queryset
-    resellers = ResellerProfile.objects.select_related('user').order_by('-created_at')
+    resellers = ResellerProfile.objects.select_related('user').order_by(order_by)
     
     # Apply filters
     if search_query:
@@ -419,7 +543,7 @@ def admin_reseller_management(request):
         resellers = resellers.filter(is_reseller_enabled=False)
     
     # Pagination
-    paginator = Paginator(resellers, 25)
+    paginator = Paginator(resellers, page_size)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
     
@@ -436,6 +560,8 @@ def admin_reseller_management(request):
         'disabled_resellers': disabled_resellers,
         'filter_search': search_query,
         'filter_status': status_filter,
+        'filter_sort': sort_by,
+        'page_size': page_size,
     }
     
     return render(request, 'admin_panel/resell/resellers.html', context)
@@ -447,13 +573,20 @@ def admin_toggle_reseller_status(request, reseller_id):
     Toggle reseller enabled/disabled status
     POST /admin-panel/resell/resellers/<id>/toggle/
     """
-    if request.method == 'POST':
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method for status update.')
+        return redirect('admin_reseller_management')
+
+    try:
         profile = get_object_or_404(ResellerProfile, id=reseller_id)
         profile.is_reseller_enabled = not profile.is_reseller_enabled
-        profile.save()
-        
+        profile.save(update_fields=['is_reseller_enabled'])
+
         status = 'enabled' if profile.is_reseller_enabled else 'disabled'
         messages.success(request, f'Reseller {profile.user.username} has been {status}.')
+    except Exception:
+        logger.exception('Failed to toggle reseller status. reseller_id=%s', reseller_id)
+        messages.error(request, 'Unable to update reseller status right now.')
     
     return redirect('admin_reseller_management')
 
@@ -465,130 +598,377 @@ def admin_toggle_reseller_status(request, reseller_id):
 @staff_member_required
 def admin_payout_management(request):
     """
-    Admin payout management view
+    Admin payout management view with 7-day eligibility
     GET /admin-panel/resell/payouts/
     
-    View and manage payout transactions
+    Displays:
+    - Eligible payouts (7+ days after delivery, no returns)
+    - Pending payouts (under 7 days, in return window)
+    - Completed/failed payouts
     """
-    status_filter = request.GET.get('status', '')
+    view_type = request.GET.get('view', 'eligible')  # eligible, pending, completed
     reseller_id = request.GET.get('reseller', '')
-    date_from = request.GET.get('date_from', '')
-    date_to = request.GET.get('date_to', '')
-    
-    # Base queryset
-    payouts = PayoutTransaction.objects.select_related('reseller').order_by('-initiated_at')
-    
-    # Apply filters
-    if status_filter:
-        payouts = payouts.filter(status=status_filter)
-    
-    if reseller_id:
-        payouts = payouts.filter(reseller_id=reseller_id)
-    
-    if date_from:
-        try:
-            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
-            payouts = payouts.filter(initiated_at__gte=date_from_obj)
-        except ValueError:
-            pass
-    
-    if date_to:
-        try:
-            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
-            payouts = payouts.filter(initiated_at__lt=date_to_obj)
-        except ValueError:
-            pass
-    
-    # Pagination
-    paginator = Paginator(payouts, 25)
-    page_number = request.GET.get('page', 1)
-    page_obj = paginator.get_page(page_number)
-    
-    # Calculate summary
-    total_payouts = PayoutTransaction.objects.count()
-    initiated_payouts = PayoutTransaction.objects.filter(status='INITIATED').count()
-    completed_payouts = PayoutTransaction.objects.filter(status='COMPLETED').count()
-    failed_payouts = PayoutTransaction.objects.filter(status='FAILED').count()
-    total_amount = PayoutTransaction.objects.filter(status='COMPLETED').aggregate(
-        total=Sum('amount')
-    )['total'] or Decimal('0.00')
-    
+    sort_by = request.GET.get('sort', '-margin_amount')
+    page_size = _get_safe_page_size(request)
+
     # Get all resellers for filter
     resellers = User.objects.filter(
         reseller_profile__is_reseller_enabled=True
     ).order_by('username')
-    
-    context = {
-        'page_obj': page_obj,
-        'payouts': page_obj.object_list,
-        'total_payouts': total_payouts,
-        'initiated_payouts': initiated_payouts,
-        'completed_payouts': completed_payouts,
-        'failed_payouts': failed_payouts,
-        'total_amount': total_amount,
-        'resellers': resellers,
-        'filter_status': status_filter,
-        'filter_reseller': reseller_id,
-        'filter_date_from': date_from,
-        'filter_date_to': date_to,
-    }
+
+    if view_type == 'eligible':
+        # Show earnings ready for payout (passed 7-day hold)
+        earnings = PayoutEligibilityManager.get_eligible_payouts_for_admin()
+        earnings = earnings.select_related('order__user', 'reseller__reseller_profile')
+        
+        # Add eligibility status for each
+        earnings_list = []
+        for earning in earnings:
+            status, extra_date = PayoutEligibilityManager.get_payout_eligibility_status(earning)
+            earnings_list.append({
+                'earning': earning,
+                'status': status,
+                'extra_date': extra_date,
+                'days_since_delivery': (timezone.now() - earning.order.delivery_date).days if earning.order.delivery_date else 0,
+            })
+        
+        # Sort
+        sort_map = {
+            'margin_amount': lambda x: x['earning'].margin_amount,
+            '-margin_amount': lambda x: -x['earning'].margin_amount,
+            'delivery_date': lambda x: x['earning'].order.delivery_date or timezone.now(),
+            '-delivery_date': lambda x: -(x['earning'].order.delivery_date.timestamp() if x['earning'].order.delivery_date else 0),
+            'reseller': lambda x: x['earning'].reseller.username,
+            '-reseller': lambda x: x['earning'].reseller.username,
+        }
+        
+        reverse = sort_by.startswith('-')
+        sort_key = sort_map.get(sort_by, sort_map['-margin_amount'])
+        earnings_list.sort(key=sort_key, reverse=reverse)
+        
+        # Paginate
+        paginator = Paginator(earnings_list, page_size)
+        page_number = request.GET.get('page', 1)
+        page_obj = paginator.get_page(page_number)
+        
+        # Summary for eligible
+        total_earnings = ResellerEarning.objects.filter(
+            status='CONFIRMED',
+            payout_transaction__isnull=True
+        ).aggregate(total=Sum('margin_amount'))['total'] or Decimal('0.00')
+        
+        context = {
+            'view_type': 'eligible',
+            'page_obj': page_obj,
+            'earnings': page_obj.object_list,
+            'total_eligible_amount': total_earnings,
+            'resellers': resellers,
+            'filter_reseller': reseller_id,
+            'filter_sort': sort_by,
+            'payout_methods': dict(PayoutTransaction.PAYOUT_METHOD_CHOICES),
+        }
+
+    else:
+        # Show completed payouts (old behavior)
+        status_filter = request.GET.get('status', 'COMPLETED')
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+
+        payout_sort_fields = {
+            'initiated_at': 'initiated_at',
+            '-initiated_at': '-initiated_at',
+            'amount': 'amount',
+            '-amount': '-amount',
+            'status': 'status',
+        }
+        order_by = payout_sort_fields.get(sort_by, '-initiated_at')
+        
+        payouts = PayoutTransaction.objects.select_related('reseller').order_by(order_by)
+        
+        if status_filter:
+            payouts = payouts.filter(status=status_filter)
+        
+        if reseller_id:
+            payouts = payouts.filter(reseller_id=reseller_id)
+        
+        parsed_date_from = None
+        parsed_date_to = None
+        try:
+            parsed_date_from = _parse_admin_date(date_from, 'Date from')
+            parsed_date_to = _parse_admin_date(date_to, 'Date to')
+            if parsed_date_from and parsed_date_to and parsed_date_from > parsed_date_to:
+                raise ValidationError('Date from cannot be after date to.')
+        except ValidationError as exc:
+            messages.error(request, str(exc))
+
+        if parsed_date_from:
+            payouts = payouts.filter(initiated_at__gte=parsed_date_from)
+        if parsed_date_to:
+            payouts = payouts.filter(initiated_at__lt=(parsed_date_to + timedelta(days=1)))
+        
+        paginator = Paginator(payouts, page_size)
+        page_number = request.GET.get('page', 1)
+        page_obj = paginator.get_page(page_number)
+        
+        total_payouts = PayoutTransaction.objects.count()
+        initiated_payouts = PayoutTransaction.objects.filter(status='INITIATED').count()
+        completed_payouts = PayoutTransaction.objects.filter(status='COMPLETED').count()
+        failed_payouts = PayoutTransaction.objects.filter(status='FAILED').count()
+        total_amount = PayoutTransaction.objects.filter(status='COMPLETED').aggregate(
+            total=Sum('amount')
+        )['total'] or Decimal('0.00')
+        
+        context = {
+            'view_type': 'completed',
+            'page_obj': page_obj,
+            'payouts': page_obj.object_list,
+            'total_payouts': total_payouts,
+            'initiated_payouts': initiated_payouts,
+            'completed_payouts': completed_payouts,
+            'failed_payouts': failed_payouts,
+            'total_amount': total_amount,
+            'resellers': resellers,
+            'filter_status': status_filter,
+            'filter_reseller': reseller_id,
+            'filter_date_from': date_from,
+            'filter_date_to': date_to,
+            'filter_sort': sort_by,
+        }
     
     return render(request, 'admin_panel/resell/payouts.html', context)
 
 
 @staff_member_required
-def admin_approve_payout(request, payout_id):
+def admin_process_payout(request):
     """
-    Approve a payout transaction
-    POST /admin-panel/resell/payouts/<id>/approve/
+    Process payout for eligible earnings with payment method selection
+    POST /admin-panel/resell/payouts/process/
+    
+    Form data:
+    - earning_ids: comma-separated list of ResellerEarning IDs
+    - payout_method: BANK_TRANSFER, UPI, RAZORPAY, or WALLET
+    - bank_account (if BANK_TRANSFER): account number to transfer to
+    - upi_id (if UPI): UPI ID to transfer to
     """
-    if request.method == 'POST':
-        payout = get_object_or_404(PayoutTransaction, id=payout_id)
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
+    
+    try:
+        earning_ids = request.POST.get('earning_ids', '').split(',')
+        earning_ids = [int(eid.strip()) for eid in earning_ids if eid.strip().isdigit()]
         
-        if payout.status == 'INITIATED':
-            payout.status = 'COMPLETED'
-            payout.completed_at = timezone.now()
-            payout.save()
-            
-            # Update associated earnings to PAID
-            ResellerEarning.objects.filter(
-                reseller=payout.reseller,
+        if not earning_ids:
+            return JsonResponse({'success': False, 'error': 'No earnings selected'}, status=400)
+        
+        payout_method = request.POST.get('payout_method', '').upper()
+        valid_methods = dict(PayoutTransaction.PAYOUT_METHOD_CHOICES).keys()
+        if payout_method not in valid_methods:
+            return JsonResponse({'success': False, 'error': f'Invalid payment method. Valid: {", ".join(valid_methods)}'}, status=400)
+        
+        with transaction.atomic():
+            earnings = ResellerEarning.objects.filter(
+                id__in=earning_ids,
                 status='CONFIRMED',
                 payout_transaction__isnull=True
-            ).update(
-                status='PAID',
-                paid_at=timezone.now(),
-                payout_transaction=payout
+            ).select_related('reseller', 'order__user')
+            
+            if not earnings.exists():
+                return JsonResponse({'success': False, 'error': 'No valid earnings found'}, status=400)
+            
+            # All earnings must belong to same reseller (for now)
+            resellers = set(e.reseller_id for e in earnings)
+            if len(resellers) > 1:
+                return JsonResponse(
+                    {'success': False, 'error': 'Cannot process payouts for multiple resellers in one request'},
+                    status=400
+                )
+            
+            reseller = earnings.first().reseller
+            total_amount = sum(e.margin_amount for e in earnings)
+            
+            # Create payout transaction
+            payout = PayoutTransaction.objects.create(
+                reseller=reseller,
+                amount=total_amount,
+                payout_method=payout_method,
+                bank_account=request.POST.get('bank_account', ''),
+                upi_id=request.POST.get('upi_id', ''),
+                status='INITIATED'
             )
             
-            messages.success(request, f'Payout of ₹{payout.amount} approved successfully.')
-        else:
-            messages.error(request, 'Payout cannot be approved in its current status.')
+            # Link earnings to payout
+            earnings_list = list(earnings)
+            ResellerEarning.objects.filter(id__in=earning_ids).update(payout_transaction=payout)
+            
+            # Generate invoice
+            invoice_path = PayoutInvoiceGenerator.generate_payout_invoice_pdf(
+                payout,
+                earnings_list
+            )
+            
+            # Process payment based on method
+            if payout_method == 'RAZORPAY':
+                result = RazorpayPaymentProcessor.initiate_razorpay_payout(payout)
+                if result:
+                    payout.status = 'PROCESSING'
+                    payout.save()
+                    logger.info(f"Razorpay payout initiated: {payout.id}")
+                else:
+                    payout.status = 'FAILED'
+                    payout.admin_notes = 'Razorpay API error'
+                    payout.save()
+                    return JsonResponse(
+                        {'success': False, 'error': 'Failed to initiate Razorpay payout'},
+                        status=500
+                    )
+            elif payout_method == 'BANK_TRANSFER':
+                BankTransferPaymentProcessor.process_bank_transfer(payout)
+                payout.status = 'PROCESSING'
+                payout.save()
+            elif payout_method == 'UPI':
+                UPIPaymentProcessor.process_upi_payment(payout)
+                payout.status = 'PROCESSING'
+                payout.save()
+            
+            # Send confirmation email to reseller with invoice
+            PayoutEmailService.send_payout_confirmation_to_reseller(payout, invoice_path)
+            
+            messages.success(
+                request,
+                f'Payout of ₹{total_amount} initiated for {reseller.username} ({payout_method})'
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'payout_id': payout.id,
+                'amount': str(total_amount),
+                'redirect': '?view=completed'
+            })
     
-    return redirect('admin_payout_management')
+    except ValidationError as e:
+        logger.warning(f"Validation error in payout processing: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+    except Exception as e:
+        logger.exception('Failed to process payout')
+        return JsonResponse(
+            {'success': False, 'error': 'An error occurred while processing payout'},
+            status=500
+        )
+
+
+@staff_member_required
+def admin_approve_payout(request, payout_id):
+    """
+    Mark payout as completed (for already-processed payments)
+    POST /admin-panel/resell/payouts/<id>/approve/
+    """
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method for payout approval.')
+        return redirect('admin_payout_management')
+
+    try:
+        with transaction.atomic():
+            payout = PayoutTransaction.objects.select_for_update().select_related('reseller').get(id=payout_id)
+
+            if payout.status not in ('INITIATED', 'PROCESSING'):
+                messages.error(request, 'Payout cannot be approved in its current status.')
+                return redirect('admin_payout_management')
+
+            payout.status = 'COMPLETED'
+            payout.completed_at = timezone.now()
+            payout.save(update_fields=['status', 'completed_at'])
+
+            # Mark earnings as PAID
+            ResellerEarning.objects.filter(
+                payout_transaction=payout,
+                status='CONFIRMED'
+            ).update(
+                status='PAID',
+                paid_at=timezone.now()
+            )
+
+            messages.success(request, f'Payout of ₹{payout.amount} marked as completed.')
+    except PayoutTransaction.DoesNotExist:
+        messages.error(request, 'Payout transaction not found.')
+    except Exception:
+        logger.exception('Failed to approve payout. payout_id=%s', payout_id)
+        messages.error(request, 'Unable to approve payout right now. Please try again.')
+    
+    return redirect('admin_payout_management' + '?view=completed')
 
 
 @staff_member_required
 def admin_reject_payout(request, payout_id):
     """
-    Reject a payout transaction and refund balance
+    Reject a payout transaction and release earnings for re-payout
     POST /admin-panel/resell/payouts/<id>/reject/
     """
-    if request.method == 'POST':
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method for payout rejection.')
+        return redirect('admin_payout_management')
+
+    try:
+        with transaction.atomic():
+            payout = PayoutTransaction.objects.select_for_update().select_related('reseller').get(id=payout_id)
+
+            if payout.status not in ('INITIATED', 'PROCESSING', 'FAILED'):
+                messages.error(request, 'Payout cannot be rejected in its current status.')
+                return redirect('admin_payout_management')
+
+            rejection_reason = (request.POST.get('reason') or 'Rejected by admin').strip()
+            payout.status = 'FAILED'
+            payout.admin_notes = rejection_reason
+            payout.save(update_fields=['status', 'admin_notes'])
+
+            # Release earnings back to eligible for re-payout
+            ResellerEarning.objects.filter(
+                payout_transaction=payout,
+                status__in=['CONFIRMED', 'PENDING']
+            ).update(payout_transaction=None)
+
+            messages.success(request, f'Payout rejected. Earnings released for re-payout.')
+    except PayoutTransaction.DoesNotExist:
+        messages.error(request, 'Payout transaction not found.')
+    except Exception:
+        logger.exception('Failed to reject payout. payout_id=%s', payout_id)
+        messages.error(request, 'Unable to reject payout right now. Please try again.')
+    
+    return redirect('admin_payout_management' + '?view=completed')
+
+
+@staff_member_required
+def admin_download_payout_invoice(request, payout_id):
+    """
+    Download payout invoice PDF
+    GET /admin-panel/resell/payouts/<id>/invoice/
+    """
+    try:
         payout = get_object_or_404(PayoutTransaction, id=payout_id)
         
-        if payout.status == 'INITIATED':
-            payout.status = 'FAILED'
-            payout.admin_notes = request.POST.get('reason', 'Rejected by admin')
-            payout.save()
-            
-            # Refund to reseller balance
-            profile = payout.reseller.reseller_profile
-            profile.available_balance += payout.amount
-            profile.save()
-            
-            messages.success(request, f'Payout rejected and ₹{payout.amount} refunded to reseller balance.')
+        # Generate invoice if doesn't exist
+        earnings = ResellerEarning.objects.filter(payout_transaction=payout)
+        if not earnings.exists():
+            messages.error(request, 'No earnings found for this payout.')
+            return redirect('admin_payout_management')
+        
+        invoice_path = PayoutInvoiceGenerator.generate_payout_invoice_pdf(
+            payout,
+            list(earnings)
+        )
+        
+        if invoice_path and os.path.exists(invoice_path):
+            response = FileResponse(
+                open(invoice_path, 'rb'),
+                as_attachment=True,
+                filename=f'payout_invoice_{payout_id}.pdf'
+            )
+            response['Content-Type'] = 'application/pdf'
+            return response
         else:
-            messages.error(request, 'Payout cannot be rejected in its current status.')
+            messages.error(request, 'Unable to generate invoice. Please try again.')
+            return redirect('admin_payout_management')
     
-    return redirect('admin_payout_management')
+    except Exception:
+        logger.exception(f'Failed to download payout invoice {payout_id}')
+        messages.error(request, 'Unable to download invoice.')
+        return redirect('admin_payout_management')

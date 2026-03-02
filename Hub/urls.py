@@ -46,6 +46,10 @@ urlpatterns = [
     path('admin-panel/banners/add/', views.admin_add_banner, name='admin_add_banner'),
     path('admin-panel/banners/edit/<int:banner_id>/', views.admin_edit_banner, name='admin_edit_banner'),
     path('admin-panel/banners/delete/<int:banner_id>/', views.admin_delete_banner, name='admin_delete_banner'),
+    path('admin-panel/main-page-banners/', views.admin_main_page_banners, name='admin_main_page_banners'),
+    path('admin-panel/main-page-banners/add/', views.admin_add_main_page_banner, name='admin_add_main_page_banner'),
+    path('admin-panel/main-page-banners/edit/<int:banner_id>/', views.admin_edit_main_page_banner, name='admin_edit_main_page_banner'),
+    path('admin-panel/main-page-banners/delete/<int:banner_id>/', views.admin_delete_main_page_banner, name='admin_delete_main_page_banner'),
     path('admin-panel/sliders/', views.admin_sliders, name='admin_sliders'),
     path('admin-panel/sliders/add/', views.admin_add_slider, name='admin_add_slider'),
     path('admin-panel/sliders/edit/<int:slider_id>/', views.admin_edit_slider, name='admin_edit_slider'),
@@ -72,8 +76,10 @@ urlpatterns = [
     path('admin-panel/resell/resellers/', views_admin_resell.admin_reseller_management, name='admin_reseller_management'),
     path('admin-panel/resell/resellers/<int:reseller_id>/toggle/', views_admin_resell.admin_toggle_reseller_status, name='admin_toggle_reseller_status'),
     path('admin-panel/resell/payouts/', views_admin_resell.admin_payout_management, name='admin_payout_management'),
+    path('admin-panel/resell/payouts/process/', views_admin_resell.admin_process_payout, name='admin_process_payout'),
     path('admin-panel/resell/payouts/<int:payout_id>/approve/', views_admin_resell.admin_approve_payout, name='admin_approve_payout'),
     path('admin-panel/resell/payouts/<int:payout_id>/reject/', views_admin_resell.admin_reject_payout, name='admin_reject_payout'),
+    path('admin-panel/resell/payouts/<int:payout_id>/invoice/', views_admin_resell.admin_download_payout_invoice, name='admin_download_payout_invoice'),
     
     # Reel Management URLs
     path('admin-panel/reels/', views.admin_reels, name='admin_reels'),

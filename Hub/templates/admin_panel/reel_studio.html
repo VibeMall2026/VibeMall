@@ -93,16 +93,16 @@
                 <a href="{% url 'admin_reels' %}" class="canvas-btn" style="text-decoration: none; color: inherit;">
                     <i class="fas fa-arrow-left"></i> Back
                 </a>
-                <button class="canvas-btn" onclick="undoAction()">
+                <button class="canvas-btn" id="undoBtn">
                     <i class="fas fa-undo"></i> Undo
                 </button>
-                <button class="canvas-btn" onclick="redoAction()">
+                <button class="canvas-btn" id="redoBtn">
                     <i class="fas fa-redo"></i> Redo
                 </button>
                 <span style="color: #888; margin-left: 10px;" id="projectName">Untitled Reel</span>
             </div>
             <div class="canvas-controls">
-                <button class="canvas-btn" onclick="saveProject()">
+                <button class="canvas-btn" id="saveProjectBtn">
                     <i class="fas fa-save"></i> Save
                 </button>
                 <button class="canvas-btn primary" onclick="exportVideo()">
@@ -167,6 +167,15 @@
     // Initialize Studio
     document.addEventListener('DOMContentLoaded', function() {
         ReelStudio.init();
+        
+        // Unobtrusive event listeners for studio controls
+        const undoBtn = document.getElementById('undoBtn');
+        const redoBtn = document.getElementById('redoBtn');
+        const saveBtn = document.getElementById('saveProjectBtn');
+        
+        if (undoBtn) undoBtn.addEventListener('click', undoAction);
+        if (redoBtn) redoBtn.addEventListener('click', redoAction);
+        if (saveBtn) saveBtn.addEventListener('click', saveProject);
     });
 </script>
 {% endblock %}

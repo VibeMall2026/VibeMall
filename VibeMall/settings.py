@@ -17,6 +17,14 @@ from decouple import config
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Validate environment variables on startup
+# This ensures all critical and important configuration is set before Django initializes
+from VibeMall.env_validator import EnvironmentValidator
+_env_validation = EnvironmentValidator()
+_env_validation.log_summary()
+# Note: We log warnings but don't fail startup to allow for development environments
+# Production deployments should ensure all variables are properly set
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -53,6 +61,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'Hub.middleware.BlockedUserMiddleware',  # Block users who are marked as blocked
     'Hub.middleware.ResellLinkMiddleware',  # Handle resell links from URL parameters
+    'Hub.rate_limiter.check_rate_limit_middleware',  # Global rate limiting for DDoS protection
     # 'livereload.middleware.LiveReloadScript',  # Commented out - not needed
 ]
 
@@ -166,10 +175,98 @@ RAZORPAY_WEBHOOK_SECRET = config('RAZORPAY_WEBHOOK_SECRET', default='your_webhoo
 
 # Security Settings for Production
 if not DEBUG:
+    # SSL/HTTPS Settings
     SECURE_SSL_REDIRECT = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    
+    # Session and Cookie Security
     SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Strict'
     CSRF_COOKIE_SECURE = True
+    CSRF_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_SAMESITE = 'Strict'
+    
+    # HTTP Security Headers
     SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+    
+    # Strict Transport Security (HSTS)
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    
+    # Content Security Policy
     SECURE_CONTENT_SECURITY_POLICY = {
-        "default-src": ("'self'",),
+        'default-src': ("'self'",),
+        'script-src': ("'self'", "'unsafe-inline'", "cdnjs.cloudflare.com", "cdn.jsdelivr.net", "checkout.razorpay.com"),
+        'style-src': ("'self'", "'unsafe-inline'", "cdnjs.cloudflare.com", "fonts.googleapis.com"),
+        'img-src': ("'self'", "data:", "https:"),
+        'font-src': ("'self'", "fonts.gstatic.com", "cdnjs.cloudflare.com"),
+        'connect-src': ("'self'", "api.razorpay.com", "checkout.razorpay.com"),
+        'frame-src': ("checkout.razorpay.com",),
     }
+
+# Logging Configuration
+import logging
+import os
+
+LOGS_DIR = BASE_DIR / 'logs'
+os.makedirs(LOGS_DIR, exist_ok=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{levelname}] {asctime} {module} - {message}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'vibemall.log',
+            'maxBytes': 1024 * 1024 * 10,  # 10MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+        'error_file': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'errors.log',
+            'maxBytes': 1024 * 1024 * 10,
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['error_file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'Hub': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}

@@ -1,0 +1,66 @@
+{% autoescape off %}
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #f8f9fa; padding: 20px; border-bottom: 3px solid #007bff; }
+        .content { padding: 20px; }
+        .details { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .details-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e9ecef; }
+        .details-row:last-child { border-bottom: none; }
+        .label { font-weight: bold; color: #495057; }
+        .value { color: #000; }
+        .amount { font-size: 18px; font-weight: bold; color: #28a745; }
+        .action-btn { display: inline-block; background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+        .footer { border-top: 1px solid #e9ecef; margin-top: 20px; padding-top: 20px; font-size: 12px; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>✓ Payout Ready for Processing</h2>
+            <p>A reseller's margin is now eligible for payout</p>
+        </div>
+
+        <div class="content">
+            <p>Hello Admin,</p>
+
+            <p>A reseller's payout is now ready for your review and processing after the 7-day hold period.</p>
+
+            <div class="details">
+                <div class="details-row">
+                    <span class="label">Reseller:</span>
+                    <span class="value">{{ reseller_name }}</span>
+                </div>
+                <div class="details-row">
+                    <span class="label">Customer:</span>
+                    <span class="value">{{ customer_name }}</span>
+                </div>
+                <div class="details-row">
+                    <span class="label">Order #:</span>
+                    <span class="value">{{ order_number }}</span>
+                </div>
+                <div class="details-row">
+                    <span class="label">Delivered:</span>
+                    <span class="value">{{ delivery_date|date:"M d, Y" }}</span>
+                </div>
+                <div class="details-row">
+                    <span class="label">Margin Amount:</span>
+                    <span class="value amount">₹{{ margin_amount }}</span>
+                </div>
+            </div>
+
+            <a href="{{ payout_url }}" class="action-btn">Review Payouts</a>
+
+            <p><strong>Note:</strong> The 7-day customer return window has passed and no return requests were filed. This margin is now eligible for payout.</p>
+
+            <div class="footer">
+                <p>This is an automated notification from VibeMall Resell Management System</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+{% endautoescape %}

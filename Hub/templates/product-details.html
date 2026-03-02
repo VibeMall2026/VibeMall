@@ -4,11 +4,47 @@
 {% load hub_filters %}
 
 
-{% block title %}Product Details - VibeMall{% endblock %}
+{% block title %}{{ product.name }} - Buy Online on VibeMall{% endblock %}
+{% block meta_description %}Buy {{ product.name }} online on VibeMall. Get exclusive deals, fast shipping, and secure checkout. {% if product.old_price %}Save {{ product.discount_percent }}%!{% endif %}{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'assets/css/product-details-responsive.css' %}">
 {% endblock %}
+
+<!-- JSON-LD Schema for Product -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "name": "{{ product.name }}",
+  "description": "{{ product.description|truncatewords:30 }}",
+  "image": "{{ request.build_absolute_uri }}{{ product.image.url }}",
+  "brand": {
+    "@type": "Brand",
+    "name": "{{ product.brand|default:'VibeMall' }}"
+  },
+  "offers": {
+    "@type": "Offer",
+    "url": "{{ request.build_absolute_uri }}{{ request.path }}",
+    "priceCurrency": "INR",
+    "price": "{{ product.price }}",
+    "availability": "{% if product.stock > 0 %}https://schema.org/InStock{% else %}https://schema.org/OutOfStock{% endif %}",
+    "seller": {
+      "@type": "Organization",
+      "name": "VibeMall"
+    }
+  },
+  "aggregateRating": {% if product.average_rating %}
+  {
+    "@type": "AggregateRating",
+    "ratingValue": "{{ product.average_rating }}",
+    "bestRating": "5",
+    "worstRating": "1",
+    "ratingCount": "{{ product.review_count|default:0 }}"
+  }
+  {% else %}null{% endif %}
+}
+</script>
 
 {% block content %}
 
@@ -172,11 +208,12 @@
                     <div class="col-xl-6">
                         <div class="product__details-nav d-sm-flex align-items-start" style="gap: 15px;">
                             <!-- Thumbnail Navigation -->
-                            <ul class="nav nav-tabs flex-sm-column" id="productThumbTab" role="tablist" style="gap: 10px; min-width: 100px;">
+                            <ul class="nav nav-tabs flex-sm-column" id="productThumbTab" role="tablist" aria-label="Product image gallery" style="gap: 10px; min-width: 100px;">
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link active p-2 border rounded product-thumb-button" id="thumbOne-tab"
                                             type="button"
                                             data-large-src="{% if product.image and product.image.name %}{{ product.image.url }}{% else %}{% static 'assets/img/product/tp-1.jpg' %}{% endif %}"
+                                            aria-label="View main product image"
                                             style="width: 100px; height: 100px; padding: 5px !important; display: flex; align-items: center; justify-content: center;">
                                         {% if product.image and product.image.name %}
                                             <img src="{{ product.image.url }}" alt="{{ product.name }}" 
@@ -193,6 +230,7 @@
                                         <button class="nav-link p-2 border rounded product-thumb-button" id="thumb{{ forloop.counter }}-tab"
                                                 type="button"
                                                 data-large-src="{{ additional_image.image.url }}"
+                                                aria-label="View product image {{ forloop.counter }}"
                                                 style="width: 100px; height: 100px; padding: 5px !important; display: flex; align-items: center; justify-content: center;">
                                             <img src="{{ additional_image.image.url }}" alt="{{ product.name }}" 
                                                  style="width: 90px; height: 90px; object-fit: cover; display: block;">
@@ -271,10 +309,10 @@
                                             <input class="qty-input" type="number" name="quantity" value="1" min="1" max="{{ product.stock }}" inputmode="numeric" aria-label="Quantity">
                                             <button type="button" class="qty-btn" data-step="1" aria-label="Increase quantity">+</button>
                                         </div>
-                                        <button type="submit" class="cart-btn" {% if product.stock == 0 %}disabled{% endif %}>
+                                        <button type="submit" class="cart-btn" {% if product.stock == 0 %}disabled{% endif %} aria-label="Add {{ product.name }} to shopping cart">
                                             <i class="fas fa-shopping-cart"></i> Add to Cart
                                         </button>
-                                        <button type="button" class="buy-now-btn" onclick="buyNow({{ product.id }}, this.closest('form').querySelector('.qty-input').value)" {% if product.stock == 0 %}disabled{% endif %}>
+                                        <button type="button" class="buy-now-btn" onclick="buyNow({{ product.id }}, this.closest('form').querySelector('.qty-input').value)" {% if product.stock == 0 %}disabled{% endif %} aria-label="Buy {{ product.name }} now">
                                             <i class="fas fa-bolt"></i> Buy Now
                                         </button>
                                     </div>
@@ -288,20 +326,20 @@
                                     {% if user.is_authenticated and user.email %}
                                         <input type="hidden" name="email" value="{{ user.email }}">
                                     {% else %}
-                                        <input type="email" name="email" class="form-control" placeholder="Your email" required style="max-width: 280px;">
+                                        <input type="email" name="email" class="form-control" placeholder="Your email" required style="max-width: 280px;" aria-label="Email address for stock notification">
                                     {% endif %}
-                                    <button type="submit" class="btn btn-outline-dark">Notify me</button>
+                                    <button type="submit" class="btn btn-outline-dark" aria-label="Notify me when {{ product.name }} is back in stock">Notify me</button>
                                 </form>
                                 <p class="text-muted small mb-0">We will email you when this item is back in stock.</p>
                             </div>
                             {% endif %}
                             <div class="details-meta">
                                 <div class="details-actions">
-                                    <button type="button" class="action-chip wishlist-chip {% if in_wishlist %}wishlisted{% endif %}" data-product-id="{{ product.id }}" data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}" onclick="handlePdWishlistClick(this);">
+                                    <button type="button" class="action-chip wishlist-chip {% if in_wishlist %}wishlisted{% endif %}" data-product-id="{{ product.id }}" data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}" onclick="handlePdWishlistClick(this);" aria-label="Add {{ product.name }} to wishlist" aria-pressed="{% if in_wishlist %}true{% else %}false{% endif %}">
                                         <span class="icon"><i class="{% if in_wishlist %}fas{% else %}fal{% endif %} fa-heart"></i></span>
                                         <span>{% if in_wishlist %}In wishlist{% else %}Add to wishlist{% endif %}</span>
                                     </button>
-                                    <button type="button" class="action-chip" onclick="shareProduct();">
+                                    <button type="button" class="action-chip" onclick="shareProduct();" aria-label="Share {{ product.name }}">
                                         <span class="icon"><i class="fal fa-share-alt"></i></span>
                                         <span>Share</span>
                                     </button>

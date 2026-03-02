@@ -6,6 +6,7 @@ from .models import (
     Slider,
     Feature,
     Banner,
+    MainPageBanner,
     Product,
     ProductImage,
     DealCountdown,
@@ -101,6 +102,64 @@ class BannerAdmin(admin.ModelAdmin):
             'description': 'Display order and active status'
         }),
     )
+    
+    def image_thumbnail(self, obj):
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="width: 80px; height: 50px; border-radius: 5px; object-fit: cover;" />',
+                obj.image.url
+            )
+        return '-'
+    image_thumbnail.short_description = 'Preview'
+    
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="max-width: 400px; height: auto; border-radius: 8px; border: 1px solid #ddd; padding: 10px;" />',
+                obj.image.url
+            )
+        return 'No image uploaded yet'
+    image_preview.short_description = 'Full Preview'
+
+@admin.register(MainPageBanner)
+class MainPageBannerAdmin(admin.ModelAdmin):
+    list_display = ('title', 'banner_area_display', 'order', 'is_active', 'image_thumbnail')
+    list_filter = ('banner_area', 'is_active')
+    list_editable = ('order', 'is_active')
+    search_fields = ('title', 'badge_text', 'description')
+    readonly_fields = ('image_preview', 'created_at', 'updated_at')
+    
+    fieldsets = (
+        ('📍 BANNER AREA', {
+            'fields': ('banner_area',),
+            'description': 'Select which banner area this banner belongs to'
+        }),
+        ('📋 CONTENT', {
+            'fields': ('badge_text', 'title', 'description'),
+            'description': 'Badge text, title, and description text'
+        }),
+        ('🖼️ IMAGE', {
+            'fields': ('image', 'image_preview'),
+            'description': 'Upload banner image (recommended size: 600x400px)'
+        }),
+        ('🔗 LINK & SETTINGS', {
+            'fields': ('link_url', 'order', 'is_active'),
+            'description': 'Set link URL, display order, and active status'
+        }),
+        ('⏰ METADATA', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+            'description': 'Creation and update timestamps'
+        }),
+    )
+    
+    def banner_area_display(self, obj):
+        area_names = {
+            'first': '🎯 Promotion area 3 card',
+            'second': '🎯 Marketing area 2 card',
+        }
+        return area_names.get(obj.banner_area, obj.get_banner_area_display())
+    banner_area_display.short_description = 'Banner Area'
     
     def image_thumbnail(self, obj):
         if obj.image:
@@ -948,15 +1007,13 @@ class PayoutTransactionAdmin(admin.ModelAdmin):
             payout.completed_at = timezone.now()
             payout.save()
             
-            # Update associated earnings to PAID
+            # Mark only earnings reserved for this payout as PAID.
             ResellerEarning.objects.filter(
-                reseller=payout.reseller,
                 status='CONFIRMED',
-                payout_transaction__isnull=True
+                payout_transaction=payout
             ).update(
                 status='PAID',
-                paid_at=timezone.now(),
-                payout_transaction=payout
+                paid_at=timezone.now()
             )
             
             completed_count += 1
@@ -970,6 +1027,12 @@ class PayoutTransactionAdmin(admin.ModelAdmin):
         for payout in queryset.filter(status='INITIATED'):
             payout.status = 'FAILED'
             payout.save()
+
+            # Release reserved earnings for failed payout.
+            ResellerEarning.objects.filter(
+                payout_transaction=payout,
+                status='CONFIRMED'
+            ).update(payout_transaction=None)
             
             # Refund to reseller balance
             profile = payout.reseller.reseller_profile

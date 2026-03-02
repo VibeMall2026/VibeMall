@@ -152,3 +152,23 @@ def auto_confirm_reseller_earnings(sender, instance, created, **kwargs):
             import logging
             logger = logging.getLogger(__name__)
             logger.error(f"Failed to auto-confirm earnings for order {instance.order_number}: {str(e)}")
+
+
+@receiver(post_save, sender=Order)
+def auto_cancel_reseller_earnings(sender, instance, created, **kwargs):
+    """Automatically cancel reseller earnings when a resell order is cancelled."""
+    if created or instance.order_status != 'CANCELLED' or not instance.is_resell:
+        return
+
+    try:
+        from .models import ResellerEarning
+        from .resell_services import cancel_resell_order
+
+        earning = ResellerEarning.objects.filter(order=instance).first()
+        if not earning or earning.status == 'CANCELLED':
+            return
+        cancel_resell_order(instance)
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Failed to cancel reseller earnings for order {instance.order_number}: {str(e)}")

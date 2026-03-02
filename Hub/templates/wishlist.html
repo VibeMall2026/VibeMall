@@ -100,7 +100,7 @@
                                             </form>
                                         </td>
                                         <td class="product-remove">
-                                            <a href="{% url 'remove_from_wishlist' item.id %}" class="btn btn-sm btn-danger" onclick="return confirm('Remove this item?');">
+                                            <a href="{% url 'remove_from_wishlist' item.id %}" class="btn btn-sm btn-danger js-confirm-remove" data-confirm-message="Remove this item?">
                                                 <i class="fa fa-times"></i>
                                             </a>
                                         </td>
@@ -145,7 +145,7 @@
                                                 </button>
                                             </form>
 
-                                            <a href="{% url 'remove_from_wishlist' item.id %}" class="btn btn-sm btn-danger wishlist-mobile-remove" onclick="return confirm('Remove this item?');">
+                                            <a href="{% url 'remove_from_wishlist' item.id %}" class="btn btn-sm btn-danger wishlist-mobile-remove js-confirm-remove" data-confirm-message="Remove this item?">
                                                 <i class="fa fa-times"></i>
                                             </a>
                                         </div>
@@ -229,6 +229,19 @@
 
         </section>
         <!-- cta-area-end -->
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                document.querySelectorAll('.js-confirm-remove').forEach(function (element) {
+                    element.addEventListener('click', function (event) {
+                        const message = this.getAttribute('data-confirm-message') || 'Are you sure?';
+                        if (!window.confirm(message)) {
+                            event.preventDefault();
+                        }
+                    });
+                });
+            });
+        </script>
 
     </main>
 

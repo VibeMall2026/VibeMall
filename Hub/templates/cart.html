@@ -4,6 +4,7 @@
 
 
 {% block title %}Cart - VibeMall{% endblock %}
+{% block meta_description %}View your shopping cart on VibeMall. Review items, apply coupons, and proceed to secure checkout with multiple payment options.{% endblock %}
 
 {% block content %}
 
@@ -81,22 +82,22 @@
                                  </div>
                               </div>
 
-                              <form method="POST" action="{% url 'update_cart_quantity' item.id %}" class="cart-r-qty-form">
+                              <form method="POST" action="{% url 'update_cart_quantity' item.id %}" class="cart-r-qty-form" aria-label="Update quantity for {{ item.product.name }}">
                                  {% csrf_token %}
-                                 <label class="cart-r-label">Quantity</label>
-                                 <div class="cart-qty-wrap" data-max="999">
+                                 <label class="cart-r-label" id="label-qty-{{ item.id }}">Quantity</label>
+                                 <div class="cart-qty-wrap" data-max="999" role="group" aria-labelledby="label-qty-{{ item.id }}">
                                     <div class="cart-qty">
-                                       <button type="button" class="cart-qty-btn" data-step="-1" aria-label="Decrease quantity">-</button>
-                                       <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="999" class="cart-qty-input" inputmode="numeric">
-                                       <button type="button" class="cart-qty-btn" data-step="1" aria-label="Increase quantity">+</button>
+                                       <button type="button" class="cart-qty-btn" data-step="-1" aria-label="Decrease quantity for {{ item.product.name }}">-</button>
+                                       <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="999" class="cart-qty-input" inputmode="numeric" aria-label="Quantity for {{ item.product.name }}">
+                                       <button type="button" class="cart-qty-btn" data-step="1" aria-label="Increase quantity for {{ item.product.name }}">+</button>
                                     </div>
-                                    <button type="submit" class="btn btn-sm btn-primary cart-qty-action">Update</button>
+                                    <button type="submit" class="btn btn-sm btn-primary cart-qty-action" aria-label="Update quantity in cart">Update</button>
                                  </div>
                               </form>
 
                               <div class="cart-r-footer">
-                                 <a href="{% url 'remove_from_cart' item.id %}" class="btn btn-sm btn-danger cart-r-remove" onclick="return confirm('Remove this item?');">
-                                    <i class="fa fa-times"></i>
+                                 <a href="{% url 'remove_from_cart' item.id %}" class="btn btn-sm btn-danger cart-r-remove js-confirm-remove" data-confirm-message="Remove this item?" aria-label="Remove {{ item.product.name }} from cart">
+                                    <i class="fa fa-times" aria-hidden="true"></i>
                                  </a>
                               </div>
                            </div>
@@ -144,7 +145,7 @@
                                        </td>
                                        <td class="product-subtotal"><span class="amount">&#8377;{{ item.get_total_price }}</span></td>
                                        <td class="product-remove">
-                                          <a href="{% url 'remove_from_cart' item.id %}" class="btn btn-sm btn-danger" onclick="return confirm('Remove this item?');">
+                                          <a href="{% url 'remove_from_cart' item.id %}" class="btn btn-sm btn-danger js-confirm-remove" data-confirm-message="Remove this item?">
                                              <i class="fa fa-times"></i>
                                           </a>
                                        </td>
@@ -447,6 +448,15 @@
                         sessionStorage.removeItem('appliedCoupon');
                     }
                 }
+
+                document.querySelectorAll('.js-confirm-remove').forEach(function (element) {
+                    element.addEventListener('click', function (event) {
+                        const message = this.getAttribute('data-confirm-message') || 'Are you sure?';
+                        if (!window.confirm(message)) {
+                            event.preventDefault();
+                        }
+                    });
+                });
             });
         </script>
 

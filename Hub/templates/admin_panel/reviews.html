@@ -99,14 +99,14 @@
                             <option value="reject">Reject Selected</option>
                             <option value="delete">Delete Selected</option>
                         </select>
-                        <button type="submit" class="btn btn-primary" onclick="return confirm('Are you sure you want to perform this action?')">Apply</button>
+                        <button type="submit" class="btn btn-primary" id="bulkActionSubmitBtn" data-confirm-message="Are you sure you want to perform this action?">Apply</button>
                     </div>
                 </div>
                 <div class="col-md-6 text-end">
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectAll()">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="selectAllBtn">
                         <i class='bx bx-check-square'></i> Select All
                     </button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAll()">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectAllBtn">
                         <i class='bx bx-square'></i> Deselect All
                     </button>
                 </div>
@@ -116,7 +116,7 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th><input type="checkbox" id="selectAllCheckbox" onclick="toggleAll(this)"></th>
+                            <th><input type="checkbox" id="selectAllCheckbox"></th>
                             <th>ID</th>
                             <th>Product</th>
                             <th>Customer</th>
@@ -187,19 +187,19 @@
                                         <i class="bx bx-dots-vertical-rounded"></i>
                                     </button>
                                     <div class="dropdown-menu">
-                                        <a class="dropdown-item" href="javascript:void(0);" onclick="viewReview({{ review.id }})">
+                                        <a class="dropdown-item js-view-review" href="javascript:void(0);" data-review-id="{{ review.id }}">
                                             <i class="bx bx-show me-1"></i> View Full Review
                                         </a>
                                         {% if not review.is_approved %}
-                                        <a class="dropdown-item" href="javascript:void(0);" onclick="quickApprove({{ review.id }})">
+                                        <a class="dropdown-item js-quick-approve" href="javascript:void(0);" data-review-id="{{ review.id }}">
                                             <i class="bx bx-check me-1"></i> Approve
                                         </a>
                                         {% else %}
-                                        <a class="dropdown-item" href="javascript:void(0);" onclick="quickReject({{ review.id }})">
+                                        <a class="dropdown-item js-quick-reject" href="javascript:void(0);" data-review-id="{{ review.id }}">
                                             <i class="bx bx-x me-1"></i> Reject
                                         </a>
                                         {% endif %}
-                                        <a class="dropdown-item text-danger" href="javascript:void(0);" onclick="deleteReview({{ review.id }})">
+                                        <a class="dropdown-item text-danger js-delete-review" href="javascript:void(0);" data-review-id="{{ review.id }}">
                                             <i class="bx bx-trash me-1"></i> Delete
                                         </a>
                                     </div>
@@ -508,15 +508,15 @@ function viewReview(reviewId) {
                     <!-- Actions -->
                     <div class="mt-4 pt-3 border-top">
                         ${!data.is_approved ? `
-                            <button type="button" class="btn btn-success me-2" onclick="approveWithEdits(${data.id})">
+                            <button type="button" class="btn btn-success me-2 js-approve-with-edits" data-review-id="${data.id}">
                                 <i class="bx bx-check"></i> Approve Review
                             </button>
                         ` : `
-                            <button type="button" class="btn btn-warning me-2" onclick="quickReject(${data.id})">
+                            <button type="button" class="btn btn-warning me-2 js-quick-reject-modal" data-review-id="${data.id}">
                                 <i class="bx bx-x"></i> Reject Review
                             </button>
                         `}
-                        <button type="button" class="btn btn-danger" onclick="deleteReview(${data.id})">
+                        <button type="button" class="btn btn-danger js-delete-review-modal" data-review-id="${data.id}">
                             <i class="bx bx-trash"></i> Delete Review
                         </button>
                     </div>
@@ -534,5 +534,70 @@ function viewReview(reviewId) {
             console.error('Error:', error);
         });
 }
+
+// Unobtrusive event listeners for bulk actions
+document.addEventListener('DOMContentLoaded', function () {
+    // Bulk action submit with confirmation
+    const bulkSubmitBtn = document.getElementById('bulkActionSubmitBtn');
+    if (bulkSubmitBtn) {
+        bulkSubmitBtn.addEventListener('click', function (event) {
+            const message = this.getAttribute('data-confirm-message') || 'Are you sure?';
+            if (!window.confirm(message)) {
+                event.preventDefault();
+            }
+        });
+    }
+    
+    // Select All button
+    document.getElementById('selectAllBtn')?.addEventListener('click', selectAll);
+    
+    // Deselect All button
+    document.getElementById('deselectAllBtn')?.addEventListener('click', deselectAll);
+    
+    // Checkbox toggle all
+    document.getElementById('selectAllCheckbox')?.addEventListener('change', function (event) {
+        toggleAll(this);
+    });
+    
+    // Dropdown action listeners (delegated)
+    document.addEventListener('click', function (event) {
+        if (event.target.closest('.js-view-review')) {
+            event.preventDefault();
+            const reviewId = event.target.closest('.js-view-review').getAttribute('data-review-id');
+            viewReview(reviewId);
+        }
+        if (event.target.closest('.js-quick-approve')) {
+            event.preventDefault();
+            const reviewId = event.target.closest('.js-quick-approve').getAttribute('data-review-id');
+            quickApprove(reviewId);
+        }
+        if (event.target.closest('.js-quick-reject')) {
+            event.preventDefault();
+            const reviewId = event.target.closest('.js-quick-reject').getAttribute('data-review-id');
+            quickReject(reviewId);
+        }
+        if (event.target.closest('.js-delete-review')) {
+            event.preventDefault();
+            const reviewId = event.target.closest('.js-delete-review').getAttribute('data-review-id');
+            deleteReview(reviewId);
+        }
+        // Modal buttons
+        if (event.target.closest('.js-approve-with-edits')) {
+            event.preventDefault();
+            const reviewId = event.target.closest('.js-approve-with-edits').getAttribute('data-review-id');
+            approveWithEdits(reviewId);
+        }
+        if (event.target.closest('.js-quick-reject-modal')) {
+            event.preventDefault();
+            const reviewId = event.target.closest('.js-quick-reject-modal').getAttribute('data-review-id');
+            quickReject(reviewId);
+        }
+        if (event.target.closest('.js-delete-review-modal')) {
+            event.preventDefault();
+            const reviewId = event.target.closest('.js-delete-review-modal').getAttribute('data-review-id');
+            deleteReview(reviewId);
+        }
+    });
+});
 </script>
 {% endblock %}

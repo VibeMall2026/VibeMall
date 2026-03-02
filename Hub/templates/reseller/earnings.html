@@ -112,7 +112,31 @@
                             <div class="card bg-light">
                                 <div class="card-body text-center">
                                     <h6 class="text-muted">Total Earnings</h6>
-                                    <h4>₹{% widthratio earnings|length 1 1 %}</h4>
+                                    <h4>₹{{ total_earnings|floatformat:2 }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Pending</h6>
+                                    <h4 class="text-warning">₹{{ pending_earnings|floatformat:2 }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Confirmed</h6>
+                                    <h4 class="text-info">₹{{ confirmed_earnings|floatformat:2 }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Paid</h6>
+                                    <h4 class="text-success">₹{{ paid_earnings|floatformat:2 }}</h4>
                                 </div>
                             </div>
                         </div>
@@ -121,7 +145,7 @@
                     <div class="text-center py-5">
                         <i class="fas fa-coins fa-3x text-muted mb-3"></i>
                         <p class="text-muted">No earnings yet.</p>
-                        <a href="{% url 'reseller_links_page' %}" class="btn btn-primary">
+                        <a href="{% url 'reseller_links' %}" class="btn btn-primary">
                             Create Resell Links
                         </a>
                     </div>
@@ -147,3 +171,4 @@
     </div>
 </div>
 {% endblock %}
+

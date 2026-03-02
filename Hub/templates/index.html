@@ -5,11 +5,30 @@
 {% load custom_filters %}
 
 {% block title %}Home - VibeMall{% endblock %}
+{% block meta_description %}Welcome to VibeMall - India's leading online shopping platform. Discover amazing deals on electronics, fashion, home & kitchen, and much more with secure payment options.{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'assets/css/index-responsive.css' %}?v=20260224-15">
 <link rel="stylesheet" href="{% static 'assets/css/promotional-banners.css' %}?v=20260225-01">
 {% endblock %}
+
+<!-- JSON-LD Schema for Organization -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "VibeMall",
+  "url": "https://vibemall.com",
+  "logo": "https://vibemall.com{% static 'assets/img/logo/vibemall-brand.png' %}",
+  "description": "VibeMall - Your trusted online shopping destination",
+  "sameAs": [],
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "contactType": "Customer Service",
+    "availableLanguageID": "en-US"
+  }
+}
+</script>
 
 {% block content %}
 
@@ -1228,33 +1247,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
         
 
+<!-- PROMOTION AREA - 3 CARD BANNERS (IMAGE + LINK ONLY) -->
+{% if first_banners %}
 <section class="banner__area pt-20 pb-10">
     <div class="container">
         <div class="row">
-
-            {% for banner in banners %}
+            {% for banner in first_banners %}
             <div class="col-xl-4 col-lg-4 col-md-6">
                 <div class="banner__item p-relative w-img mb-30">
                     <div class="banner__img">
                         <a href="{{ banner.link_url }}">
-                            {% if banner.image %}<img src="{{ banner.image.url }}" alt="{{ banner.title }}">{% else %}<img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ banner.title }}" style="background-color: #f0f0f0;">{% endif %}
+                            {% if banner.image_url %}
+                                <img src="{{ banner.image_url }}" alt="Banner" style="width: 100%; height: auto; display: block; border-radius: 8px;">
+                            {% else %}
+                                <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Banner" style="background-color: #f0f0f0; border-radius: 8px;">
+                            {% endif %}
                         </a>
-                    </div>
-                    <div class="banner__content">
-                        <h6>
-                            <a href="{{ banner.link_url }}">
-                                {{ banner.title|linebreaksbr }}
-                            </a>
-                        </h6>
-                        <p>{{ banner.subtitle }}</p>
                     </div>
                 </div>
             </div>
             {% endfor %}
-
         </div>
     </div>
 </section>
+{% endif %}
 
 
 
@@ -1791,36 +1807,7 @@ document.addEventListener('DOMContentLoaded', function () {
     </div>
 </section>
 
- <section class="banner__area banner__area-d pb-10">
-            <div class="container">
-                <div class="row">
-                    <div class="col-xl-6 col-lg-6 col-md-12">
-                        <div class="banner__item p-relative w-img mb-30">
-                            <div class="banner__img">
-                                <a href="{% url 'product-details' %}"><img src="{% static 'assets/img/banner/banner-4.jpg' %}" alt=""></a>
-                            </div>
-                            <div class="banner__content">
-                                <span>Bestseller Products</span>
-                                <h6><a href="{% url 'product-details' %}">PC & Docking Station</a></h6>
-                                <p>Discount 20% Off, Top Quality Products</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-xl-6 col-lg-6 col-md-12">
-                        <div class="banner__item p-relative mb-30 w-img">
-                            <div class="banner__img">
-                                <a href="{% url 'product-details' %}"><img src="{% static 'assets/img/banner/banner-5.jpg' %}" alt=""></a>
-                            </div>
-                            <div class="banner__content">
-                                <span>Featured Products</span>
-                                <h6><a href="{% url 'product-details' %}">Accessories iPhone</a></h6>
-                                <p>Free Shipping All Order Over ₹999</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
+ 
 
 
 
@@ -2097,6 +2084,66 @@ document.addEventListener('DOMContentLoaded', function () {
     </div>
 </section>
 
+<!-- DYNAMIC MAIN PAGE BANNERS -->
+<section class="banner__area banner__area-d pb-10">
+    <div class="container">
+        {% if second_banners %}
+        <div class="row">
+            {% for banner in second_banners %}
+            <div class="col-xl-6 col-lg-6 col-md-12">
+                <div class="banner__item p-relative w-img mb-30">
+                    <div class="banner__img">
+                        <a href="{{ banner.link_url }}">
+                            {% if banner.image_url %}
+                                <img src="{{ banner.image_url }}" alt="{{ banner.title }}" style="width: 100%; height: auto; display: block;">
+                            {% else %}
+                                <img src="{% static 'assets/img/banner/banner-4.jpg' %}" alt="{{ banner.title }}" style="background-color: #f0f0f0;">
+                            {% endif %}
+                        </a>
+                    </div>
+                    <div class="banner__content">
+                        {% if banner.badge_text %}<span>{{ banner.badge_text }}</span>{% endif %}
+                        <h6><a href="{{ banner.link_url }}">{{ banner.title }}</a></h6>
+                        {% if banner.description %}<p>{{ banner.description }}</p>{% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% if second_banners|length == 1 %}
+            <!-- Fallback empty space if only one banner -->
+            <div class="col-xl-6 col-lg-6 col-md-12"></div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="row">
+            <div class="col-xl-6 col-lg-6 col-md-12">
+                <div class="banner__item p-relative w-img mb-30">
+                    <div class="banner__img">
+                        <a href="#"><img src="{% static 'assets/img/banner/banner-4.jpg' %}" alt=""></a>
+                    </div>
+                    <div class="banner__content">
+                        <span>Bestseller Products</span>
+                        <h6><a href="#">PC & Docking Station</a></h6>
+                        <p>Discount 20% Off, Top Quality Products</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-6 col-lg-6 col-md-12">
+                <div class="banner__item p-relative mb-30 w-img">
+                    <div class="banner__img">
+                        <a href="#"><img src="{% static 'assets/img/banner/banner-5.jpg' %}" alt=""></a>
+                    </div>
+                    <div class="banner__content">
+                        <span>Featured Products</span>
+                        <h6><a href="#">Accessories iPhone</a></h6>
+                        <p>Free Shipping All Order Over ₹999</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
 <!-- TOP FEATURED MOBILE/TABLET SWIPER -->
 <section class="topsell__area-1 pt-15 mobile-products-section top-featured-mobile-section">
     <div class="container">

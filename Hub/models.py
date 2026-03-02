@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.utils.text import slugify
 from django.utils import timezone
 from decimal import Decimal
+from typing import Optional, Dict, Any, List
 
 class PasswordResetLog(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
@@ -317,6 +318,12 @@ class Product(models.Model):
         ordering = ['-id']
 
     def save(self, *args, **kwargs):
+        # Sanitize user-input fields to prevent XSS attacks
+        from Hub.sanitizer import sanitize_text, sanitize_html
+        
+        self.description = sanitize_html(self.description)  # Allow safe HTML tags in description
+        self.return_policy = sanitize_text(self.return_policy)  # Remove HTML from return policy
+        
         if not self.slug:
             base_slug = slugify(self.name)
             slug = base_slug
@@ -468,10 +475,11 @@ class Cart(models.Model):
         unique_together = ('user', 'product')
         verbose_name_plural = 'Cart Items'
 
-    def get_total_price(self):
+    def get_total_price(self) -> Decimal:
+        """Calculate total price for cart item (price * quantity)"""
         return self.product.price * self.quantity
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.user.username} - {self.product.name} x{self.quantity}"
 
 
@@ -528,7 +536,14 @@ class ProductReview(models.Model):
         return int((self.helpful_count / total_votes) * 100)
     
     def save(self, *args, **kwargs):
-        """Override save to auto-update product rating and review count"""
+        """Override save to auto-update product rating and review count and sanitize inputs"""
+        # Sanitize user inputs to prevent XSS attacks
+        from Hub.sanitizer import sanitize_text, sanitize_email
+        
+        self.name = sanitize_text(self.name)  # Remove HTML from reviewer name
+        self.comment = sanitize_text(self.comment)  # Remove HTML from comment
+        self.email = sanitize_email(self.email) or self.email  # Validate and normalize email
+        
         super().save(*args, **kwargs)
         
         # Update product review count and rating
@@ -601,6 +616,16 @@ class ProductQuestion(models.Model):
     def __str__(self):
         status = "Answered" if self.is_answered else "Pending"
         return f"Q&A for {self.product.name} - {status}"
+    
+    def save(self, *args, **kwargs):
+        """Sanitize user inputs to prevent XSS attacks"""
+        from Hub.sanitizer import sanitize_text
+        
+        self.question = sanitize_text(self.question)  # Remove HTML from question
+        if self.answer:
+            self.answer = sanitize_text(self.answer)  # Remove HTML from answer
+        
+        super().save(*args, **kwargs)
 
 
 # ==================== ORDER MANAGEMENT MODELS ====================
@@ -743,12 +768,22 @@ class Order(models.Model):
         """Validate order data"""
         from django.core.exceptions import ValidationError
         
-        # If is_resell is True, reseller and resell_link must be set
+        # If is_resell is True, reseller must be set.
+        # resell_link can be null for manual (Meesho-style) resell orders.
         if self.is_resell:
             if not self.reseller:
                 raise ValidationError({'reseller': 'Reseller must be set for resell orders.'})
-            if not self.resell_link:
-                raise ValidationError({'resell_link': 'Resell link must be set for resell orders.'})
+            if self.resell_link and self.resell_link.reseller_id != self.reseller_id:
+                raise ValidationError({'resell_link': 'Selected resell link does not belong to this reseller.'})
+            if not self.resell_link and not (self.resell_from_name or self.resell_from_phone):
+                raise ValidationError({
+                    'resell_from_name': 'Provide reseller FROM details when resell link is not used.'
+                })
+
+        if self.total_margin is not None and self.total_margin < 0:
+            raise ValidationError({'total_margin': 'Total margin cannot be negative.'})
+        if self.base_amount is not None and self.base_amount < 0:
+            raise ValidationError({'base_amount': 'Base amount cannot be negative.'})
     
     def save(self, *args, **kwargs):
         if not self.order_number:
@@ -785,7 +820,7 @@ class Order(models.Model):
         }
         return payment_colors.get(self.payment_status, 'secondary')
     
-    def calculate_risk_score(self):
+    def calculate_risk_score(self) -> int:
         """Calculate fraud risk score for this order"""
         risk = 0
         
@@ -817,7 +852,7 @@ class Order(models.Model):
         
         return min(risk, 100)  # Cap at 100
     
-    def check_auto_approval_eligibility(self):
+    def check_auto_approval_eligibility(self) -> bool:
         """Check if order should be auto-approved"""
         # Trusted customer (>5 successful orders)
         successful_orders = Order.objects.filter(
@@ -835,7 +870,7 @@ class Order(models.Model):
         
         return False
     
-    def auto_process_approval(self):
+    def auto_process_approval(self) -> None:
         """Automatically approve/flag order based on rules"""
         self.risk_score = self.calculate_risk_score()
         
@@ -1410,6 +1445,67 @@ class MainPageSubCategoryBanner(models.Model):
         return (self.title or '').strip() or self.sub_category.name
 
 
+class MainPageBanner(models.Model):
+    """Custom banners for main page banner areas (Promotion area 3 card & Marketing area 2 card)."""
+    BANNER_AREA_CHOICES = [
+        ('first', 'Promotion area 3 card'),
+        ('second', 'Marketing area 2 card'),
+    ]
+    
+    banner_area = models.CharField(
+        max_length=20,
+        choices=BANNER_AREA_CHOICES,
+        default='first',
+        help_text="Select which banner area this belongs to"
+    )
+    badge_text = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Text above the title (e.g., 'Bestseller Products', 'Featured Products')"
+    )
+    title = models.CharField(
+        max_length=200,
+        help_text="Main banner title/heading (e.g., 'PC & Docking Station')"
+    )
+    description = models.CharField(
+        max_length=300,
+        blank=True,
+        help_text="Banner description/subtitle (e.g., 'Discount 20% Off, Top Quality Products')"
+    )
+    image = models.ImageField(
+        upload_to='main_page_banners/',
+        help_text="Banner background image. Recommended size: 600 x 400 px"
+    )
+    link_url = models.CharField(
+        max_length=500,
+        default='#',
+        help_text="URL to redirect when banner is clicked (e.g., /shop?category=electronics)"
+    )
+    order = models.PositiveIntegerField(
+        default=0,
+        help_text="Display order (lower numbers appear first in each area). Promotion area: 3 banners, Marketing area: 2 banners."
+    )
+    is_active = models.BooleanField(default=True, help_text="Activate/Deactivate this banner")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['banner_area', 'order', 'id']
+        verbose_name = "Main Page Banner"
+        verbose_name_plural = "Main Page Banners"
+        indexes = [
+            models.Index(fields=['banner_area', 'is_active', 'order']),
+        ]
+
+    def __str__(self):
+        return f"{self.get_banner_area_display()} - {self.title}"
+
+    @property
+    def display_area(self):
+        """Return display name for the banner area."""
+        return dict(self.BANNER_AREA_CHOICES).get(self.banner_area, self.banner_area)
+
+
 class ReadyShipStyle(models.Model):
     """Products shown in the Ready-to-Ship Styles section on home page."""
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='ready_ship_styles')
@@ -1854,3 +1950,360 @@ class PayoutTransaction(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
+
+# ==================== BACKUP SYSTEM MODELS ====================
+
+class BackupConfiguration(models.Model):
+    """Store backup scheduling and frequency configuration for automated backups."""
+    
+    FREQUENCY_CHOICES = [
+        ('DAILY', 'Daily'),
+        ('WEEKLY', 'Weekly'),
+        ('BIWEEKLY', 'Every 15 Days'),
+        ('MONTHLY', 'Monthly'),
+        ('CUSTOM', 'Custom Dates'),
+    ]
+    
+    backup_frequency = models.CharField(
+        max_length=20,
+        choices=FREQUENCY_CHOICES,
+        default='DAILY',
+        help_text="How often should backups run?"
+    )
+    
+    schedule_time = models.TimeField(
+        default='03:00',
+        help_text="What time should the backup run? (HH:MM in 24-hour format)"
+    )
+    
+    # For WEEKLY backups: 0=Monday, 1=Tuesday, ..., 6=Sunday
+    schedule_weekday = models.IntegerField(
+        default=0,
+        help_text="Day of week for weekly backups (0=Monday, 6=Sunday)",
+        null=True,
+        blank=True
+    )
+    
+    # For CUSTOM backups: store as comma-separated list [1, 7, 15, 30]
+    custom_dates = models.CharField(
+        max_length=50,
+        default='1,7,15,30',
+        help_text="Comma-separated dates for custom backups (e.g., 1,7,15,30)"
+    )
+    
+    # Terabox Configuration
+    enable_terabox_backup = models.BooleanField(
+        default=True,
+        help_text="Enable automatic backup to Terabox cloud storage?"
+    )
+    
+    terabox_auto_folder_create = models.BooleanField(
+        default=True,
+        help_text="Automatically create dated folders in Terabox (01, 07, 15, 30)?"
+    )
+    
+    # Notification Settings
+    notification_emails = models.TextField(
+        default='',
+        blank=True,
+        help_text="Comma-separated email addresses for backup notifications"
+    )
+    
+    send_success_email = models.BooleanField(
+        default=True,
+        help_text="Send email when backup completes successfully?"
+    )
+    
+    send_failure_email = models.BooleanField(
+        default=True,
+        help_text="Send email when backup fails?"
+    )
+    
+    # Data retention policy
+    keep_local_backups_days = models.IntegerField(
+        default=30,
+        help_text="Keep local backups for how many days?"
+    )
+    
+    keep_cloud_backups_days = models.IntegerField(
+        default=365,
+        help_text="Keep cloud backups for how many days?"
+    )
+    
+    # Status
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Enable or disable automatic backups?"
+    )
+    
+    last_backup_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp of last completed backup"
+    )
+    
+    next_backup_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Calculated timestamp of next scheduled backup"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Backup Configuration"
+        verbose_name_plural = "Backup Configurations"
+        ordering = ['-updated_at']
+    
+    def __str__(self):
+        return f"Backup Config - {self.get_backup_frequency_display()}"
+    
+    def get_notification_emails(self):
+        """Return list of notification emails."""
+        if not self.notification_emails:
+            return []
+        return [email.strip() for email in self.notification_emails.split(',') if email.strip()]
+    
+    def get_custom_dates(self):
+        """Return list of custom backup dates."""
+        if self.backup_frequency != 'CUSTOM':
+            return []
+        try:
+            return [int(d.strip()) for d in self.custom_dates.split(',') if d.strip()]
+        except ValueError:
+            return []
+
+
+class BackupLog(models.Model):
+    """Log entry for each backup operation - tracks success, failure, duration, size, etc."""
+    
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('IN_PROGRESS', 'In Progress'),
+        ('SUCCESS', 'Success'),
+        ('FAILED', 'Failed'),
+        ('PARTIAL', 'Partial Success'),
+    ]
+    
+    BACKUP_TYPE_CHOICES = [
+        ('MANUAL', 'Manual Trigger'),
+        ('SCHEDULED', 'Scheduled'),
+        ('ON_DEMAND', 'On Demand'),
+    ]
+    
+    backup_type = models.CharField(
+        max_length=20,
+        choices=BACKUP_TYPE_CHOICES,
+        default='SCHEDULED'
+    )
+    
+    backup_frequency = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        help_text="Which schedule triggered this backup?"
+    )
+    
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='PENDING'
+    )
+    
+    # Timing
+    start_time = models.DateTimeField(auto_now_add=True)
+    end_time = models.DateTimeField(null=True, blank=True)
+    
+    @property
+    def duration_seconds(self):
+        """Calculate backup duration in seconds."""
+        if self.end_time and self.start_time:
+            return int((self.end_time - self.start_time).total_seconds())
+        return None
+    
+    # Data counts (stored as JSON to be flexible)
+    users_count = models.IntegerField(default=0)
+    orders_count = models.IntegerField(default=0)
+    payments_count = models.IntegerField(default=0)
+    products_count = models.IntegerField(default=0)
+    returns_count = models.IntegerField(default=0)
+    transactions_count = models.IntegerField(default=0)
+    
+    # File information
+    local_file_path = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text="Path to local backup file"
+    )
+    
+    terabox_file_path = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text="Path to cloud backup in Terabox"
+    )
+    
+    file_size_mb = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Size of backup file in MB"
+    )
+    
+    # Status tracking
+    terabox_synced = models.BooleanField(
+        default=False,
+        help_text="Was this backup successfully synced to Terabox?"
+    )
+    
+    email_sent = models.BooleanField(
+        default=False,
+        help_text="Was notification email sent?"
+    )
+    
+    # Error tracking
+    error_message = models.TextField(
+        blank=True,
+        help_text="Error details if backup failed"
+    )
+    
+    error_trace = models.TextField(
+        blank=True,
+        help_text="Full error traceback for debugging"
+    )
+    
+    # Additional metadata
+    backup_data_types = models.CharField(
+        max_length=200,
+        default='users,orders,payments,products,returns,transactions',
+        help_text="Comma-separated list of data types in this backup"
+    )
+    
+    notes = models.TextField(blank=True, help_text="Admin notes for this backup")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Backup Log"
+        verbose_name_plural = "Backup Logs"
+        ordering = ['-start_time']
+        indexes = [
+            models.Index(fields=['status']),
+            models.Index(fields=['start_time']),
+            models.Index(fields=['backup_type', 'status']),
+        ]
+    
+    def __str__(self):
+        return f"Backup {self.get_status_display()} - {self.start_time.strftime('%Y-%m-%d %H:%M')}"
+    
+    def get_total_records(self):
+        """Get total number of records backed up."""
+        return (self.users_count + self.orders_count + self.payments_count + 
+                self.products_count + self.returns_count + self.transactions_count)
+    
+    def get_data_summary(self):
+        """Return summary of backed up data."""
+        return {
+            'users': self.users_count,
+            'orders': self.orders_count,
+            'payments': self.payments_count,
+            'products': self.products_count,
+            'returns': self.returns_count,
+            'transactions': self.transactions_count,
+            'total': self.get_total_records(),
+        }
+
+
+class TeraboxSettings(models.Model):
+    """Store Terabox API authentication and configuration."""
+    
+    # Authentication
+    api_access_token = models.TextField(
+        blank=True,
+        help_text="Terabox API access token (keep confidential!)"
+    )
+    
+    refresh_token = models.TextField(
+        blank=True,
+        help_text="Terabox refresh token for token renewal"
+    )
+    
+    token_expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When does the current token expire?"
+    )
+    
+    # Folder Configuration
+    folder_root_path = models.CharField(
+        max_length=500,
+        default='/VibeMall_Backups',
+        help_text="Root folder path in Terabox for backups"
+    )
+    
+    auto_create_folders = models.BooleanField(
+        default=True,
+        help_text="Automatically create dated folders (01, 07, 15, 30)?"
+    )
+    
+    # Status
+    is_connected = models.BooleanField(
+        default=False,
+        help_text="Is Terabox account successfully connected?"
+    )
+    
+    connection_status_message = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Last connection status message"
+    )
+    
+    # Usage tracking
+    last_sync_time = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Last successful sync/upload to Terabox"
+    )
+    
+    total_backups_synced = models.IntegerField(
+        default=0,
+        help_text="Total number of backups uploaded to Terabox"
+    )
+    
+    cloud_storage_used_mb = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text="Approximate storage used in Terabox (MB)"
+    )
+    
+    # Metadata
+    account_info = models.TextField(
+        blank=True,
+        help_text="Terabox account info (JSON - email, display_name, etc)"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Terabox Settings"
+        verbose_name_plural = "Terabox Settings"
+    
+    def __str__(self):
+        return f"Terabox Config - {'Connected' if self.is_connected else 'Not Connected'}"
+    
+    def is_token_expired(self):
+        """Check if access token has expired."""
+        if not self.token_expires_at:
+            return True
+        return timezone.now() > self.token_expires_at
+    
+    def token_expiry_in_hours(self):
+        """Get remaining hours before token expires."""
+        if not self.token_expires_at:
+            return 0
+        delta = self.token_expires_at - timezone.now()
+        return max(0, int(delta.total_seconds() / 3600))

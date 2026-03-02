@@ -131,16 +131,16 @@
         <!-- Filter & Sort Controls -->
         <div class="review-controls">
             <div class="review-filter-btns">
-                <button type="button" class="filter-btn {% if rating_filter == 'all' %}active{% endif %}" onclick="filterReviews('all')">All</button>
-                <button type="button" class="filter-btn {% if rating_filter == '5' %}active{% endif %}" onclick="filterReviews('5')">5 ⭐</button>
-                <button type="button" class="filter-btn {% if rating_filter == '4' %}active{% endif %}" onclick="filterReviews('4')">4 ⭐</button>
-                <button type="button" class="filter-btn {% if rating_filter == '3' %}active{% endif %}" onclick="filterReviews('3')">3 ⭐</button>
-                <button type="button" class="filter-btn {% if rating_filter == '2' %}active{% endif %}" onclick="filterReviews('2')">2 ⭐</button>
-                <button type="button" class="filter-btn {% if rating_filter == '1' %}active{% endif %}" onclick="filterReviews('1')">1 ⭐</button>
+                <button type="button" class="filter-btn js-filter-btn {% if rating_filter == 'all' %}active{% endif %}" data-filter="all">All</button>
+                <button type="button" class="filter-btn js-filter-btn {% if rating_filter == '5' %}active{% endif %}" data-filter="5">5 ⭐</button>
+                <button type="button" class="filter-btn js-filter-btn {% if rating_filter == '4' %}active{% endif %}" data-filter="4">4 ⭐</button>
+                <button type="button" class="filter-btn js-filter-btn {% if rating_filter == '3' %}active{% endif %}" data-filter="3">3 ⭐</button>
+                <button type="button" class="filter-btn js-filter-btn {% if rating_filter == '2' %}active{% endif %}" data-filter="2">2 ⭐</button>
+                <button type="button" class="filter-btn js-filter-btn {% if rating_filter == '1' %}active{% endif %}" data-filter="1">1 ⭐</button>
             </div>
             
             <div class="review-sort">
-                <select id="sortSelect" onchange="sortReviews(this.value)">
+                <select id="sortSelect">
                     <option value="recent" {% if sort_by == 'recent' %}selected{% endif %}>Most Recent</option>
                     <option value="rating_high" {% if sort_by == 'rating_high' %}selected{% endif %}>Highest Rating</option>
                     <option value="rating_low" {% if sort_by == 'rating_low' %}selected{% endif %}>Lowest Rating</option>
@@ -186,7 +186,7 @@
                     {% if review.images.all %}
                     <div class="review-images">
                         {% for image in review.images.all %}
-                        <div class="review-image" onclick="window.open('{{ image.image.url }}', '_blank')">
+                        <div class=\"review-image js-review-image\" data-image-url=\"{{ image.image.url }}\" title=\"Click to open\">
                             <img src="{{ image.image.url }}" alt="Review image">
                         </div>
                         {% endfor %}
@@ -198,15 +198,13 @@
                         <span class="helpful-text">Was this helpful?</span>
                         <div class="helpful-btns">
                             {% if user.is_authenticated %}
-                                <button class="helpful-btn {% if user_votes|get_item:review.id %}voted{% endif %}" 
-                                        onclick="voteReview({{ review.id }}, true, this)" 
-                                        data-review-id="{{ review.id }}">
+                                <button class="helpful-btn js-vote-helpful {% if user_votes|get_item:review.id %}voted{% endif %}" 
+                                        data-review-id="{{ review.id }}" data-is-helpful="true">
                                     <i class="fas fa-thumbs-up"></i>
                                     <span class="helpful-count">{{ review.helpful_count }}</span>
                                 </button>
-                                <button class="helpful-btn {% if user_votes|get_item:review.id == False %}voted{% endif %}" 
-                                        onclick="voteReview({{ review.id }}, false, this)"
-                                        data-review-id="{{ review.id }}">
+                                <button class="helpful-btn js-vote-helpful {% if user_votes|get_item:review.id == False %}voted{% endif %}" 
+                                        data-review-id="{{ review.id }}" data-is-helpful="false">
                                     <i class="fas fa-thumbs-down"></i>
                                     <span class="not-helpful-count">{{ review.not_helpful_count }}</span>
                                 </button>
@@ -556,3 +554,40 @@ document.addEventListener('DOMContentLoaded', function() {
 </div> <!-- End Questions Tab -->
 
 </div> <!-- End product__details-review -->
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Filter buttons
+    document.querySelectorAll('.js-filter-btn').forEach(function (btn) {
+        btn.addEventListener('click', function (event) {
+            const filter = this.getAttribute('data-filter');
+            filterReviews(filter);
+        });
+    });
+    
+    // Sort dropdown
+    const sortSelect = document.getElementById('sortSelect');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', function (event) {
+            sortReviews(this.value);
+        });
+    }
+    
+    // Review images
+    document.querySelectorAll('.js-review-image').forEach(function (img) {
+        img.addEventListener('click', function (event) {
+            const url = this.getAttribute('data-image-url');
+            window.open(url, '_blank');
+        });
+    });
+    
+    // Vote buttons
+    document.querySelectorAll('.js-vote-helpful').forEach(function (btn) {
+        btn.addEventListener('click', function (event) {
+            const reviewId = this.getAttribute('data-review-id');
+            const isHelpful = this.getAttribute('data-is-helpful') === 'true';
+            voteReview(reviewId, isHelpful, this);
+        });
+    });
+});
+</script>

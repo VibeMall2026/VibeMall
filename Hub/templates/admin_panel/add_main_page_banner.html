@@ -1,0 +1,258 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Add Main Page Banner - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="fw-bold py-3 mb-4">
+        <span class="text-muted fw-light">Content / Main Page Banners /</span> Add New Banner
+    </h4>
+
+    <!-- Display messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="row">
+            <!-- Left Column -->
+            <div class="col-xl-8">
+                <!-- Banner Area Selection Card -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">📍 Banner Area</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-3">Select which banner area this banner should appear in:</p>
+                        <div class="form-check mb-3 p-3" style="border: 2px solid #3b82f6; border-radius: 8px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(96, 165, 250, 0.05) 100%);">
+                            <input class="form-check-input" type="radio" id="first_area" name="banner_area" value="first" checked>
+                            <label class="form-check-label" for="first_area" style="cursor: pointer; width: 100%;">
+                                <span class="badge mb-2" style="background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%); color: white;">
+                                    <i class='bx bx-layer'></i> PROMOTION AREA 3 CARD
+                                </span>
+                                <div><strong style="color: #3b82f6;">Premium Section Above Featured Products</strong></div>
+                                <small class="text-muted d-block mt-1">✓ High visibility position<br>✓ Best for major promotions and seasonal sales</small>
+                            </label>
+                        </div>
+                        <div class="form-check p-3" style="border: 2px solid #e5e7eb; border-radius: 8px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(52, 211, 153, 0.05) 100%);">
+                            <input class="form-check-input" type="radio" id="second_area" name="banner_area" value="second">
+                            <label class="form-check-label" for="second_area" style="cursor: pointer; width: 100%;">
+                                <span class="badge mb-2" style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white;">
+                                    <i class='bx bx-layer'></i> MARKETING AREA 2 CARD
+                                </span>
+                                <div><strong style="color: #10b981;">Section Below Featured Products</strong></div>
+                                <small class="text-muted d-block mt-1">✓ Good engagement position<br>✓ Perfect for category highlights and collections</small>
+                            </label>
+                        </div>
+                        <div class="alert alert-info mt-3 mb-0" style="font-size: 13px;">
+                            <i class='bx bx-info-circle me-1'></i>
+                            <strong>Tip:</strong> Promotion area supports 3 banners (33% width each), Marketing area supports 2 banners (50% width each).
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Content Card (For Second Banner Area Only) -->
+                <div class="card mb-4" id="content-card" style="display: none;">
+                    <div class="card-header">
+                        <h5 class="mb-0">📋 Banner Content</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="title">Banner Title *</label>
+                            <input type="text" class="form-control" id="title" name="title" 
+                                   placeholder="e.g., PC & Docking Station" />
+                            <small class="text-muted">Main heading text for the banner</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="badge_text">Badge Text</label>
+                            <input type="text" class="form-control" id="badge_text" name="badge_text" 
+                                   placeholder="e.g., Bestseller Products, Featured Products" />
+                            <small class="text-muted">Small text displayed above the title (optional)</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="description">Description</label>
+                            <textarea class="form-control" id="description" name="description" 
+                                      placeholder="e.g., Discount 20% Off, Top Quality Products" rows="3"></textarea>
+                            <small class="text-muted">Short description or tagline (optional)</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Promotion Area Info -->
+                <div class="card mb-4" id="first-banner-info" style="border-left: 4px solid #3b82f6;">
+                    <div class="card-header" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(96, 165, 250, 0.1) 100%);">
+                        <h5 class="mb-0" style="color: #3b82f6;"><i class='bx bx-layer me-2'></i>Promotion area 3 card</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info mb-0">
+                            <p><strong><i class='bx bx-check-circle me-2'></i>Sirf Image aur Link chahiye!</strong></p>
+                            <p class="mb-0">Title, Badge, Description - kuch nahi. Pure image dikhega homepage par.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Link & Display Card -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">🔗 Link & Display</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="link_url">Link URL *</label>
+                            <input type="text" class="form-control" id="link_url" name="link_url" 
+                                   value="#" placeholder="e.g., /shop/?category=electronics" required />
+                            <small class="text-muted">URL to redirect when banner is clicked</small>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="order">Display Order</label>
+                                <input type="number" class="form-control" id="order" name="order" 
+                                       value="0" min="0" />
+                                <small class="text-muted">Lower numbers appear first (0, 1, 2...)</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="is_active">
+                                    <input type="checkbox" id="is_active" name="is_active" checked class="form-check-input">
+                                    Active
+                                </label>
+                                <small class="text-muted d-block">Check to display this banner</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Image & Preview -->
+            <div class="col-xl-4">
+                <!-- Image Upload Card -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">🖼️ Banner Image</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="image">Upload Image *</label>
+                            <input type="file" class="form-control" id="image" name="image" 
+                                   accept="image/*" required />
+                            <small class="text-muted">JPEG or PNG, max 5MB</small>
+                        </div>
+
+                        <!-- Image Preview -->
+                        <div id="preview-container" style="display: none;">
+                            <label class="form-label">Preview</label>
+                            <img id="preview-img" src="" alt="Preview" 
+                                 style="width: 100%; height: auto; border-radius: 8px; border: 1px solid #ddd; padding: 8px;">
+                        </div>
+
+                        <div class="alert alert-info mt-3" role="alert">
+                            <h6><i class="bx bx-info-circle me-2"></i>Image Size Guide</h6>
+                            <ul class="small mb-0">
+                                <li><strong>Recommended:</strong> 600 x 400 px</li>
+                                <li><strong>Ratio:</strong> 3:2 (landscape)</li>
+                                <li><strong>Min Width:</strong> 400 px</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">💾 Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <button type="submit" class="btn btn-primary w-100 mb-2">
+                            <i class="bx bx-save me-2"></i> Create Banner
+                        </button>
+                        <a href="{% url 'admin_main_page_banners' %}" class="btn btn-label-secondary w-100">
+                            <i class="bx bx-arrow-back me-2"></i> Cancel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+// Toggle content fields based on banner area selection
+function toggleBannerContentFields() {
+    const bannerArea = document.querySelector('input[name="banner_area"]:checked').value;
+    const contentCard = document.getElementById('content-card');
+    const firstBannerInfo = document.getElementById('first-banner-info');
+    const titleInput = document.getElementById('title');
+    
+    if (bannerArea === 'first') {
+        contentCard.style.display = 'none';
+        firstBannerInfo.style.display = 'block';
+        titleInput.removeAttribute('required');
+        document.getElementById('badge_text').removeAttribute('required');
+        document.getElementById('description').removeAttribute('required');
+    } else {
+        contentCard.style.display = 'block';
+        firstBannerInfo.style.display = 'none';
+        titleInput.setAttribute('required', 'required');
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    toggleBannerContentFields();
+    
+    // Add event listeners to radio buttons
+    document.querySelectorAll('input[name="banner_area"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            toggleBannerContentFields();
+            updateSelection();
+        });
+    });
+});
+
+// Image preview functionality
+document.getElementById('image').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            document.getElementById('preview-img').src = event.target.result;
+            document.getElementById('preview-container').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// Banner area selection visual feedback
+const firstArea = document.getElementById('first_area');
+const secondArea = document.getElementById('second_area');
+const firstAreaDiv = firstArea.closest('.form-check');
+const secondAreaDiv = secondArea.closest('.form-check');
+
+function updateSelection() {
+    if (firstArea.checked) {
+        firstAreaDiv.style.borderColor = '#3b82f6';
+        firstAreaDiv.style.borderWidth = '2px';
+        secondAreaDiv.style.borderColor = '#e5e7eb';
+        secondAreaDiv.style.borderWidth = '2px';
+    } else {
+        firstAreaDiv.style.borderColor = '#e5e7eb';
+        firstAreaDiv.style.borderWidth = '2px';
+        secondAreaDiv.style.borderColor = '#10b981';
+        secondAreaDiv.style.borderWidth = '2px';
+    }
+}
+
+firstArea.addEventListener('change', updateSelection);
+secondArea.addEventListener('change', updateSelection);
+</script>
+{% endblock %}

@@ -269,11 +269,11 @@ def reseller_dashboard(request):
         
         if not profile.is_reseller_enabled:
             messages.warning(request, 'You do not have reseller permissions.')
-            return redirect('home')
+            return redirect('index')
         
     except ResellerProfile.DoesNotExist:
         messages.warning(request, 'You do not have a reseller profile.')
-        return redirect('home')
+        return redirect('index')
     
     # Get dashboard data
     recent_orders = Order.objects.filter(
@@ -315,11 +315,11 @@ def reseller_links_page(request):
         
         if not profile.is_reseller_enabled:
             messages.warning(request, 'You do not have reseller permissions.')
-            return redirect('home')
+            return redirect('index')
         
     except ResellerProfile.DoesNotExist:
         messages.warning(request, 'You do not have a reseller profile.')
-        return redirect('home')
+        return redirect('index')
     
     # Get all links
     links = ResellLink.objects.filter(
@@ -350,11 +350,11 @@ def earnings_history(request):
         
         if not profile.is_reseller_enabled:
             messages.warning(request, 'You do not have reseller permissions.')
-            return redirect('home')
+            return redirect('index')
         
     except ResellerProfile.DoesNotExist:
         messages.warning(request, 'You do not have a reseller profile.')
-        return redirect('home')
+        return redirect('index')
     
     # Get earnings with filters
     status_filter = request.GET.get('status', '')
@@ -367,10 +367,18 @@ def earnings_history(request):
         earnings = earnings.filter(status=status_filter)
     
     earnings = earnings.order_by('-created_at')
+    total_earnings = earnings.aggregate(total=Sum('margin_amount'))['total'] or Decimal('0.00')
+    pending_earnings = earnings.filter(status='PENDING').aggregate(total=Sum('margin_amount'))['total'] or Decimal('0.00')
+    confirmed_earnings = earnings.filter(status='CONFIRMED').aggregate(total=Sum('margin_amount'))['total'] or Decimal('0.00')
+    paid_earnings = earnings.filter(status='PAID').aggregate(total=Sum('margin_amount'))['total'] or Decimal('0.00')
     
     context = {
         'earnings': earnings,
         'status_filter': status_filter,
+        'total_earnings': total_earnings,
+        'pending_earnings': pending_earnings,
+        'confirmed_earnings': confirmed_earnings,
+        'paid_earnings': paid_earnings,
     }
     
     return render(request, 'reseller/earnings.html', context)
@@ -393,11 +401,11 @@ def payout_request_page(request):
         
         if not profile.is_reseller_enabled:
             messages.warning(request, 'You do not have reseller permissions.')
-            return redirect('home')
+            return redirect('index')
         
     except ResellerProfile.DoesNotExist:
         messages.warning(request, 'You do not have a reseller profile.')
-        return redirect('home')
+        return redirect('index')
     
     # Get payout history
     payouts = PayoutTransaction.objects.filter(

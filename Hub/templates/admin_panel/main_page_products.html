@@ -193,6 +193,16 @@
                     <p>Hero + grid cards mate product/image order manage karo.</p>
                     <span class="section-pill">{{ ready_ship_count }} Styles</span>
                 </a>
+                <a class="section-card" href="{% url 'admin_main_page_banners' %}">
+                    <h6>Main Page Banners</h6>
+                    <p>First & Second banner area manage karo homepage mate.</p>
+                    <span class="section-pill">Manage Banners</span>
+                </a>
+                <a class="section-card" href="/admin-panel/brand-partners/">
+                    <h6>Brand Partners</h6>
+                    <p>Homepage par brand partner logos manage karo.</p>
+                    <span class="section-pill">Manage Brands</span>
+                </a>
                 <a class="section-card" href="{% url 'admin_upload_reel_file' %}">
                     <h6>Upload Reel Video</h6>
                     <p>Direct reel upload tool open karva mate ahiya click karo.</p>
@@ -279,8 +289,8 @@
                                 <input type="hidden" name="action" value="remove">
                                 <input type="hidden" name="section" value="categories">
                                 <input type="hidden" name="item_id" value="{{ item.id }}">
-                                <button type="submit" class="btn btn-sm btn-danger remove-btn"
-                                        onclick="return confirm('Remove this product?');">
+                                <button type="submit" class="btn btn-sm btn-danger remove-btn js-confirm-submit"
+                                        data-confirm-message="Remove this product?">
                                     <i class='bx bx-trash'></i>
                                 </button>
                             </form>
@@ -431,8 +441,8 @@
                                 <input type="hidden" name="action" value="delete_subcategory_banner">
                                 <input type="hidden" name="section" value="subcat_banners">
                                 <input type="hidden" name="banner_id" value="{{ banner.id }}">
-                                <button type="submit" class="btn btn-sm btn-danger"
-                                        onclick="return confirm('Delete this sub-category banner?');">
+                                <button type="submit" class="btn btn-sm btn-danger js-confirm-submit"
+                                        data-confirm-message="Delete this sub-category banner?">
                                     <i class='bx bx-trash'></i> Delete
                                 </button>
                             </form>
@@ -610,4 +620,18 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.js-confirm-submit').forEach(function (button) {
+        button.addEventListener('click', function (event) {
+            const message = this.getAttribute('data-confirm-message') || 'Are you sure?';
+            if (!window.confirm(message)) {
+                event.preventDefault();
+            }
+        });
+    });
+});
+</script>
+
 {% endblock %}

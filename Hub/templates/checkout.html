@@ -3,6 +3,7 @@
 {% load static %}
 
 {% block title %}Checkout - VibeMall{% endblock %}
+{% block meta_description %}Secure checkout on VibeMall. Choose from multiple payment methods including Razorpay, UPI, and cash on delivery. Track your order in real-time.{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'assets/css/checkout-responsive.css' %}">
@@ -64,12 +65,12 @@
                             <h4 class="mb-3">
                                 <i class="fas fa-shopping-cart"></i> Select Order Type
                             </h4>
-                            <div class="row g-3">
+                            <div class="row g-3" role="group" aria-label="Order type selection">
                                 <div class="col-md-6">
                                     <label class="order-type-card" style="cursor: pointer; display: block; padding: 20px; border: 2px solid #ddd; border-radius: 10px; transition: all 0.3s;">
-                                        <input type="radio" name="order_type" value="for_self" id="order_type_self" {% if selected_order_type != 'for_resell' and not resell_link %}checked{% endif %} {% if resell_link %}disabled{% endif %} style="margin-right: 10px;">
+                                        <input type="radio" name="order_type" value="for_self" id="order_type_self" {% if selected_order_type != 'for_resell' and not resell_link %}checked{% endif %} {% if resell_link %}disabled{% endif %} style="margin-right: 10px;" aria-label="For Self - Buying for personal use">
                                         <div class="d-flex align-items-center gap-3">
-                                            <div style="font-size: 2.5rem;">🛍️</div>
+                                            <div style="font-size: 2.5rem;" aria-hidden="true">🛍️</div>
                                             <div>
                                                 <h5 class="mb-1">For Self</h5>
                                                 <small class="text-muted">Buying for personal use</small>
@@ -79,9 +80,9 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="order-type-card" style="cursor: pointer; display: block; padding: 20px; border: 2px solid #ddd; border-radius: 10px; transition: all 0.3s;">
-                                        <input type="radio" name="order_type" value="for_resell" id="order_type_resell" {% if selected_order_type == 'for_resell' or resell_link %}checked{% endif %} style="margin-right: 10px;">
+                                        <input type="radio" name="order_type" value="for_resell" id="order_type_resell" {% if selected_order_type == 'for_resell' or resell_link %}checked{% endif %} style="margin-right: 10px;" aria-label="For Resell - Reselling to another customer">
                                         <div class="d-flex align-items-center gap-3">
-                                            <div style="font-size: 2.5rem;">🔄</div>
+                                            <div style="font-size: 2.5rem;" aria-hidden="true">🔄</div>
                                             <div>
                                                 <h5 class="mb-1">For Resell</h5>
                                                 <small class="text-muted">Reselling to another customer</small>
@@ -106,12 +107,13 @@
                                 <strong>Default Address</strong><br>
                                 <small class="text-muted">{{ default_address.full_name }} - {{ default_address.city }}, {{ default_address.state }} {{ default_address.pincode }}</small>
                             </div>
-                            <label class="d-flex align-items-center gap-2 mb-0">
+                            <label class="d-flex align-items-center gap-2 mb-0" for="useDefaultAddress">
                                 <input
                                     type="checkbox"
                                     name="use_default_address"
                                     id="useDefaultAddress"
                                     {% if checkout_form.use_default_address %}checked{% endif %}
+                                    aria-label="Use your default address for this order"
                                     data-full-name="{{ default_address.full_name }}"
                                     data-phone="{{ default_address.mobile_number }}"
                                     data-address1="{{ default_address.address_line1 }}"
@@ -128,32 +130,32 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="checkout-form-list mb-3">
-                                    <label>First Name <span class="required">*</span></label>
-                                    <input type="text" id="firstNameField" name="first_name" value="{{ checkout_form.first_name|default:user.first_name }}" required>
+                                    <label for="firstNameField">First Name <span class="required">*</span></label>
+                                    <input type="text" id="firstNameField" name="first_name" value="{{ checkout_form.first_name|default:user.first_name }}" required aria-label="First name" aria-required="true">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="checkout-form-list mb-3">
-                                    <label>Last Name <span class="required">*</span></label>
-                                    <input type="text" id="lastNameField" name="last_name" value="{{ checkout_form.last_name|default:user.last_name }}" required>
+                                    <label for="lastNameField">Last Name <span class="required">*</span></label>
+                                    <input type="text" id="lastNameField" name="last_name" value="{{ checkout_form.last_name|default:user.last_name }}" required aria-label="Last name" aria-required="true">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="checkout-form-list mb-3">
-                                    <label>Email Address <span class="required">*</span></label>
-                                    <input type="email" id="emailField" name="email" value="{{ checkout_form.email|default:user.email }}" required>
+                                    <label for="emailField">Email Address <span class="required">*</span></label>
+                                    <input type="email" id="emailField" name="email" value="{{ checkout_form.email|default:user.email }}" required aria-label="Email address" aria-required="true">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="checkout-form-list mb-3">
-                                    <label>Phone <span class="required">*</span></label>
-                                    <input type="text" id="phoneField" name="phone" value="{{ checkout_form.phone|default:user_profile.mobile_number|default:'' }}" required>
+                                    <label for="phoneField">Phone <span class="required">*</span></label>
+                                    <input type="text" id="phoneField" name="phone" value="{{ checkout_form.phone|default:user_profile.mobile_number|default:'' }}" required aria-label="Phone number" aria-required="true">
                                 </div>
                             </div>
                             <div class="col-md-12">
                                 <div class="country-select mb-3">
-                                    <label>Country <span class="required">*</span></label>
-                                    <select name="country" required>
+                                    <label for="countrySelect">Country <span class="required">*</span></label>
+                                    <select name="country" id="countrySelect" required aria-label="Shipping country" aria-required="true">
                                         <option value="India" {% if checkout_form.country == 'India' or not checkout_form.country %}selected{% endif %}>India</option>
                                         <option value="USA" {% if checkout_form.country == 'USA' %}selected{% endif %}>USA</option>
                                         <option value="UK" {% if checkout_form.country == 'UK' %}selected{% endif %}>UK</option>
@@ -164,27 +166,27 @@
                             </div>
                             <div class="col-md-12">
                                 <div class="checkout-form-list mb-3">
-                                    <label>Address <span class="required">*</span></label>
-                                    <input type="text" id="addressField" name="address" value="{{ checkout_form.address|default:'' }}" placeholder="Street address" required>
+                                    <label for="addressField">Address <span class="required">*</span></label>
+                                    <input type="text" id="addressField" name="address" value="{{ checkout_form.address|default:'' }}" placeholder="Street address" required aria-label="Street address" aria-required="true">
                                 </div>
                             </div>
                             <div class="col-md-12">
                                 <div class="checkout-form-list mb-3">
-                                    <label>Town / City <span class="required">*</span></label>
-                                    <input type="text" name="city" id="cityField" value="{{ checkout_form.city|default:'' }}" placeholder="Town / City" required>
+                                    <label for="cityField">Town / City <span class="required">*</span></label>
+                                    <input type="text" name="city" id="cityField" value="{{ checkout_form.city|default:'' }}" placeholder="Town / City" required aria-label="City or Town" aria-required="true">
                                     <small class="text-muted" id="cityHint"></small>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="checkout-form-list mb-3">
-                                    <label>State / County <span class="required">*</span></label>
-                                    <input type="text" id="stateField" name="state" value="{{ checkout_form.state|default:'' }}" placeholder="State" required>
+                                    <label for="stateField">State / County <span class="required">*</span></label>
+                                    <input type="text" id="stateField" name="state" value="{{ checkout_form.state|default:'' }}" placeholder="State" required aria-label="State or County" aria-required="true">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="checkout-form-list mb-3">
-                                    <label>Postcode / Zip <span class="required">*</span></label>
-                                    <input type="text" name="postcode" id="postcodeField" value="{{ checkout_form.postcode|default:'' }}" placeholder="Postcode / Zip" required>
+                                    <label for="postcodeField">Postcode / Zip <span class="required">*</span></label>
+                                    <input type="text" name="postcode" id="postcodeField" value="{{ checkout_form.postcode|default:'' }}" placeholder="Postcode / Zip" required aria-label="Postal code or ZIP" aria-required="true">
                                     <small class="text-danger" id="pincodeError"></small>
                                 </div>
                             </div>
@@ -316,18 +318,14 @@
                                         <th>
                                             <span style="color: #856404;">
                                                 <i class="fas fa-share-alt"></i> Reseller Margin
+                                                {% if resell_link_matching_qty %}
+                                                    ({{ resell_link_matching_qty }} linked items)
+                                                {% endif %}
                                             </span>
                                         </th>
                                         <td>
                                             <span class="amount" style="color: #856404; font-weight: 600;">
-                                                +&#8377;{% widthratio resell_link.margin_amount 1 1 %}
-                                                {% if cart_items|length == 1 %}
-                                                    {% for item in cart_items %}
-                                                        {% if item.quantity > 1 %}
-                                                            × {{ item.quantity }} = &#8377;{% widthratio resell_link.margin_amount item.quantity 1 %}
-                                                        {% endif %}
-                                                    {% endfor %}
-                                                {% endif %}
+                                                +&#8377;{{ manual_resell_margin_total|floatformat:2 }}
                                             </span>
                                         </td>
                                     </tr>
@@ -517,6 +515,7 @@ const checkoutFormEl = document.getElementById('checkoutForm');
 
 const baseCartSubtotal = Number('{{ cart_base_total|default:0|floatformat:2 }}');
 const totalItemQty = Number('{{ total_item_qty|default:0 }}');
+const linkedResellQty = Number('{{ resell_link_matching_qty|default:0 }}');
 const hasAutoResellLink = {% if resell_link %}true{% else %}false{% endif %};
 
 function isManualResellSelected() {
@@ -533,7 +532,7 @@ function currentMarginPerItem() {
 
 function calculateSubtotalWithMargin() {
     if (hasAutoResellLink) {
-        const marginTotal = currentMarginPerItem() * totalItemQty;
+        const marginTotal = currentMarginPerItem() * linkedResellQty;
         return baseCartSubtotal + marginTotal;
     }
     if (!isManualResellSelected()) {
@@ -563,7 +562,7 @@ function calculateBaseTotalBeforeDiscounts() {
         }
     }
     if (manualMarginRow && manualMarginAmount) {
-        const marginTotal = currentMarginPerItem() * totalItemQty;
+        const marginTotal = currentMarginPerItem() * (hasAutoResellLink ? linkedResellQty : totalItemQty);
         if (hasAutoResellLink || isManualResellSelected()) {
             manualMarginRow.style.display = hasAutoResellLink ? 'none' : 'table-row';
             manualMarginAmount.textContent = `+₹${marginTotal.toFixed(2)}`;
@@ -918,9 +917,9 @@ function updateFinalTotal() {
     // Apply points discount if active
     {% if user.is_authenticated and loyalty_account and loyalty_account.points_available > 0 %}
     const redeemCheckbox = document.getElementById('redeem_points');
-    const pointsToRedeemInput = document.getElementById('points_to_redeem');
-    if (redeemCheckbox && redeemCheckbox.checked && pointsToRedeemInput) {
-        const points = parseInt(pointsToRedeemInput.value) || 0;
+    const pointsInput = document.getElementById('points_to_redeem');
+    if (redeemCheckbox && redeemCheckbox.checked && pointsInput) {
+        const points = parseInt(pointsInput.value) || 0;
         const pointsDiscount = points * 0.03;
         total -= pointsDiscount;
     }
@@ -934,10 +933,10 @@ function updateFinalTotal() {
         finalTotalDisplay.textContent = '₹' + total.toFixed(2);
     }
     {% if user.is_authenticated and loyalty_account and loyalty_account.points_available > 0 %}
-    const pointsToRedeemInput = document.getElementById('points_to_redeem');
+    const pointsToRedeemInputFinal = document.getElementById('points_to_redeem');
     const pointsDiscountAmount = document.getElementById('points_discount_amount');
-    if (pointsToRedeemInput && pointsDiscountAmount) {
-        const points = parseInt(pointsToRedeemInput.value) || 0;
+    if (pointsToRedeemInputFinal && pointsDiscountAmount) {
+        const points = parseInt(pointsToRedeemInputFinal.value) || 0;
         const pointsDiscount = points * 0.03;
         pointsDiscountAmount.textContent = `-₹${pointsDiscount.toFixed(2)}`;
     }

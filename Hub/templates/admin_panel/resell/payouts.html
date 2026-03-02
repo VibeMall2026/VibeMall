@@ -5,7 +5,177 @@
 
 {% block content %}
 <div class="container-xxl flex-grow-1 container-p-y">
-    <h4 class="fw-bold py-3 mb-4">Payout Management</h4>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold">Payout Management</h4>
+        <!-- Tab Navigation -->
+        <div class="btn-group" role="group">
+            <a href="?view=eligible" class="btn btn-outline-primary {% if view_type == 'eligible' %}active{% endif %}">
+                <i class='bx bx-check-circle'></i> Eligible Payouts
+            </a>
+            <a href="?view=completed" class="btn btn-outline-primary {% if view_type == 'completed' %}active{% endif %}">
+                <i class='bx bx-history'></i> History
+            </a>
+        </div>
+    </div>
+
+    <!-- ELIGIBLE PAYOUTS VIEW -->
+    {% if view_type == 'eligible' %}
+    
+    <!-- Summary Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div>
+                                <h6 class="text-muted mb-1">Eligible for Payout</h6>
+                                <h3 class="text-success">₹{{ total_eligible_amount }}</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-9">
+                            <p class="text-muted mb-0"><i class='bx bx-info-circle'></i> 
+                                Earnings here have completed the 7-day hold period and have no active return requests. 
+                                Select earnings below and choose a payment method to process payout.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Eligible Payouts Table -->
+    <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h5 class="card-title mb-0">Ready for Payout</h5>
+            <small class="text-muted">Showing {{ earnings|length }} eligible earnings</small>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th><input type="checkbox" id="selectAll" class="form-check-input"></th>
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th>Reseller</th>
+                        <th>Margin Amount</th>
+                        <th>Delivered</th>
+                        <th>Days Held</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody class="table-border-bottom-0">
+                    {% if earnings %}
+                        {% for item in earnings %}
+                        <tr>
+                            <td>
+                                <input type="checkbox" class="form-check-input earning-checkbox" value="{{ item.earning.id }}">
+                            </td>
+                            <td><strong>#{{ item.earning.order.id }}</strong></td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar avatar-sm me-2">
+                                        <span class="avatar-initial rounded-circle bg-label-primary">
+                                            {{ item.earning.order.user.username|slice:":1"|upper }}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <small>{{ item.earning.order.user.first_name|default:item.earning.order.user.username }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ item.earning.reseller.username }}</td>
+                            <td><strong class="text-success">₹{{ item.earning.margin_amount }}</strong></td>
+                            <td>{{ item.earning.order.delivery_date|date:"M d, Y" }}</td>
+                            <td>
+                                <span class="badge bg-label-info">{{ item.days_since_delivery }} days</span>
+                            </td>
+                            <td>
+                                {% if item.status == 'eligible' %}
+                                <span class="badge bg-label-success">Eligible Now</span>
+                                {% elif item.status == 'hold_period' %}
+                                <span class="badge bg-label-warning">Hold Period</span>
+                                {% elif item.status == 'return_pending' %}
+                                <span class="badge bg-label-danger">Return Pending</span>
+                                {% else %}
+                                <span class="badge bg-label-secondary">{{ item.status }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4">
+                            <i class='bx bx-inbox'></i>
+                            <p class="text-muted mb-0">No eligible earnings at the moment.</p>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Payout Processing Form -->
+    {% if earnings %}
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Process Payout</h5>
+        </div>
+        <div class="card-body">
+            <form id="payoutForm" method="post" action="{% url 'admin_process_payout' %}" class="row g-3">
+                {% csrf_token %}
+                
+                <div class="col-md-4">
+                    <label class="form-label">
+                        <strong>Select Payment Method</strong>
+                        <span class="text-danger">*</span>
+                    </label>
+                    <select name="payout_method" id="payoutMethod" class="form-select" required>
+                        <option value="">-- Choose Method --</option>
+                        <option value="RAZORPAY">💳 Razorpay (Instant)</option>
+                        <option value="BANK_TRANSFER">🏦 Bank Transfer</option>
+                        <option value="UPI">📱 UPI Transfer</option>
+                    </select>
+                    <small class="text-muted">Select how to send the payout</small>
+                </div>
+
+                <!-- Bank Transfer Fields -->
+                <div class="col-md-4" id="bankFields" style="display: none;">
+                    <label class="form-label">Bank Account (IFSC)</label>
+                    <input type="text" name="bank_account" class="form-control" placeholder="e.g., 1234567890@HDFC">
+                    <small class="text-muted">Reseller's bank account or gateway identifier</small>
+                </div>
+
+                <!-- UPI Fields -->
+                <div class="col-md-4" id="upiFields" style="display: none;">
+                    <label class="form-label">UPI ID</label>
+                    <input type="text" name="upi_id" class="form-control" placeholder="e.g., user@okhdfcbank">
+                    <small class="text-muted">Reseller's UPI ID for instant transfer</small>
+                </div>
+
+                <div class="col-12">
+                    <div class="alert alert-info mb-0">
+                        <strong>Selected Amount:</strong> 
+                        <span id="totalAmount">₹0</span> 
+                        (<span id="selectedCount">0</span> earnings)
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                        <i class='bx bx-send'></i> Process Payout
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="resetBtn">Clear Selection</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- HISTORY VIEW -->
+    {% else %}
 
     <!-- Summary Cards -->
     <div class="row mb-4">
@@ -30,7 +200,7 @@
                             <i class='bx bx-time text-warning' style="font-size: 2rem;"></i>
                         </div>
                     </div>
-                    <span class="fw-semibold d-block mb-1">Pending</span>
+                    <span class="fw-semibold d-block mb-1">Processing</span>
                     <h3 class="card-title mb-2">{{ initiated_payouts }}</h3>
                 </div>
             </div>
@@ -67,12 +237,13 @@
     <div class="card mb-4">
         <div class="card-body">
             <form method="get" class="row g-3">
+                <input type="hidden" name="view" value="completed">
+                
                 <div class="col-md-3">
                     <label class="form-label">Status</label>
                     <select name="status" class="form-select">
-                        <option value="">All</option>
-                        <option value="INITIATED" {% if filter_status == 'INITIATED' %}selected{% endif %}>Pending</option>
-                        <option value="PROCESSING" {% if filter_status == 'PROCESSING' %}selected{% endif %}>Processing</option>
+                        <option value="">All Status</option>
+                        <option value="INITIATED" {% if filter_status == 'INITIATED' %}selected{% endif %}>Processing</option>
                         <option value="COMPLETED" {% if filter_status == 'COMPLETED' %}selected{% endif %}>Completed</option>
                         <option value="FAILED" {% if filter_status == 'FAILED' %}selected{% endif %}>Failed</option>
                     </select>
@@ -104,9 +275,9 @@
         </div>
     </div>
 
-    <!-- Payouts Table -->
+    <!-- Payouts History Table -->
     <div class="card">
-        <h5 class="card-header">Payout Transactions</h5>
+        <h5 class="card-header">Payout History</h5>
         <div class="table-responsive text-nowrap">
             <table class="table">
                 <thead>
@@ -129,44 +300,81 @@
                         <td><strong>₹{{ payout.amount }}</strong></td>
                         <td>
                             {% if payout.payout_method == 'BANK_TRANSFER' %}
-                            <span class="badge bg-label-primary">Bank Transfer</span>
+                            <span class="badge bg-label-primary">🏦 Bank</span>
                             {% elif payout.payout_method == 'UPI' %}
-                            <span class="badge bg-label-info">UPI</span>
+                            <span class="badge bg-label-info">📱 UPI</span>
+                            {% elif payout.payout_method == 'RAZORPAY' %}
+                            <span class="badge bg-label-warning">💳 Razorpay</span>
                             {% else %}
                             <span class="badge bg-label-secondary">{{ payout.get_payout_method_display }}</span>
                             {% endif %}
                         </td>
                         <td>
                             {% if payout.status == 'INITIATED' %}
-                            <span class="badge bg-label-warning">Pending</span>
-                            {% elif payout.status == 'PROCESSING' %}
                             <span class="badge bg-label-info">Processing</span>
+                            {% elif payout.status == 'PROCESSING' %}
+                            <span class="badge bg-label-warning">In Progress</span>
                             {% elif payout.status == 'COMPLETED' %}
-                            <span class="badge bg-label-success">Completed</span>
+                            <span class="badge bg-label-success">✓ Completed</span>
                             {% elif payout.status == 'FAILED' %}
-                            <span class="badge bg-label-danger">Failed</span>
+                            <span class="badge bg-label-danger">✗ Failed</span>
                             {% endif %}
                         </td>
-                        <td>{{ payout.initiated_at|date:"M d, Y H:i" }}</td>
+                        <td><small>{{ payout.initiated_at|date:"M d, Y H:i" }}</small></td>
                         <td>
-                            {% if payout.payout_method == 'BANK_TRANSFER' %}
-                            <small>{{ payout.bank_account }}</small>
-                            {% elif payout.payout_method == 'UPI' %}
-                            <small>{{ payout.upi_id }}</small>
+                            {% if payout.payout_method == 'BANK_TRANSFER' and payout.bank_account %}
+                            <small class="text-muted">{{ payout.bank_account }}</small>
+                            {% elif payout.payout_method == 'UPI' and payout.upi_id %}
+                            <small class="text-muted">{{ payout.upi_id }}</small>
+                            {% elif payout.transaction_id %}
+                            <small class="text-muted">TXN: {{ payout.transaction_id }}</small>
+                            {% else %}
+                            <small class="text-muted">-</small>
                             {% endif %}
                         </td>
                         <td>
-                            {% if payout.status == 'INITIATED' %}
-                            <form method="post" action="{% url 'admin_approve_payout' payout.id %}" style="display: inline;">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Approve this payout?')">
-                                    <i class='bx bx-check'></i> Approve
+                            <div class="dropdown">
+                                <button type="button" class="btn btn-sm btn-icon dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                    <i class='bx bx-dots-vertical-rounded'></i>
                                 </button>
-                            </form>
-                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal{{ payout.id }}">
-                                <i class='bx bx-x'></i> Reject
-                            </button>
-                            
+                                <div class="dropdown-menu dropdown-menu-end">
+                                    <a class="dropdown-item" href="{% url 'admin_download_payout_invoice' payout.id %}">
+                                        <i class='bx bx-download me-2'></i> Download Invoice
+                                    </a>
+                                    {% if payout.status in 'INITIATED,PROCESSING' %}
+                                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#approveModal{{ payout.id }}">
+                                        <i class='bx bx-check me-2 text-success'></i> Mark Complete
+                                    </a>
+                                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#rejectModal{{ payout.id }}">
+                                        <i class='bx bx-x me-2 text-danger'></i> Reject
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Approve Modal -->
+                            <div class="modal fade" id="approveModal{{ payout.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Confirm Payout Completion</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form method="post" action="{% url 'admin_approve_payout' payout.id %}">
+                                            {% csrf_token %}
+                                            <div class="modal-body">
+                                                <p>Mark payout <strong>#{{ payout.id }}</strong> as completed?</p>
+                                                <p class="text-muted">Amount: <strong>₹{{ payout.amount }}</strong></p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-success">Mark Complete</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Reject Modal -->
                             <div class="modal fade" id="rejectModal{{ payout.id }}" tabindex="-1">
                                 <div class="modal-dialog">
@@ -182,23 +390,26 @@
                                                     <label class="form-label">Reason for Rejection</label>
                                                     <textarea name="reason" class="form-control" rows="3" required></textarea>
                                                 </div>
+                                                <p class="alert alert-info mb-0">
+                                                    <small>Earnings will be released and can be included in a new payout request.</small>
+                                                </p>
                                             </div>
                                             <div class="modal-footer">
                                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                <button type="submit" class="btn btn-danger">Reject Payout</button>
+                                                <button type="submit" class="btn btn-danger">Reject &amp; Release</button>
                                             </div>
                                         </form>
                                     </div>
                                 </div>
                             </div>
-                            {% else %}
-                            <span class="text-muted">-</span>
-                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="text-center">No payout transactions found.</td>
+                        <td colspan="8" class="text-center py-4">
+                            <i class='bx bx-inbox'></i>
+                            <p class="text-muted mb-0">No payout history found.</p>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -212,7 +423,7 @@
         <ul class="pagination justify-content-center">
             {% if page_obj.has_previous %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_reseller %}&reseller={{ filter_reseller }}{% endif %}{% if filter_date_from %}&date_from={{ filter_date_from }}{% endif %}{% if filter_date_to %}&date_to={{ filter_date_to }}{% endif %}">Previous</a>
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}&view=completed{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_reseller %}&reseller={{ filter_reseller }}{% endif %}{% if filter_date_from %}&date_from={{ filter_date_from }}{% endif %}{% if filter_date_to %}&date_to={{ filter_date_to }}{% endif %}">Previous</a>
             </li>
             {% endif %}
             
@@ -221,18 +432,147 @@
             <li class="page-item active"><span class="page-link">{{ num }}</span></li>
             {% else %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ num }}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_reseller %}&reseller={{ filter_reseller }}{% endif %}{% if filter_date_from %}&date_from={{ filter_date_from }}{% endif %}{% if filter_date_to %}&date_to={{ filter_date_to }}{% endif %}">{{ num }}</a>
+                <a class="page-link" href="?page={{ num }}&view=completed{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_reseller %}&reseller={{ filter_reseller }}{% endif %}{% if filter_date_from %}&date_from={{ filter_date_from }}{% endif %}{% if filter_date_to %}&date_to={{ filter_date_to }}{% endif %}">{{ num }}</a>
             </li>
             {% endif %}
             {% endfor %}
             
             {% if page_obj.has_next %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_reseller %}&reseller={{ filter_reseller }}{% endif %}{% if filter_date_from %}&date_from={{ filter_date_from }}{% endif %}{% if filter_date_to %}&date_to={{ filter_date_to }}{% endif %}">Next</a>
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}&view=completed{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_reseller %}&reseller={{ filter_reseller }}{% endif %}{% if filter_date_from %}&date_from={{ filter_date_from }}{% endif %}{% if filter_date_to %}&date_to={{ filter_date_to }}{% endif %}">Next</a>
             </li>
             {% endif %}
         </ul>
     </nav>
     {% endif %}
+
+    {% endif %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const earningCheckboxes = document.querySelectorAll('.earning-checkbox');
+    const payoutMethodSelect = document.getElementById('payoutMethod');
+    const bankFields = document.getElementById('bankFields');
+    const upiFields = document.getElementById('upiFields');
+    const submitBtn = document.getElementById('submitBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const payoutForm = document.getElementById('payoutForm');
+    const totalAmountSpan = document.getElementById('totalAmount');
+    const selectedCountSpan = document.getElementById('selectedCount');
+
+    // Select All functionality
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            earningCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateTotals();
+        });
+    }
+
+    // Update totals when checkboxes change
+    earningCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateTotals);
+    });
+
+    // Payment method visibility
+    if (payoutMethodSelect) {
+        payoutMethodSelect.addEventListener('change', function() {
+            bankFields.style.display = this.value === 'BANK_TRANSFER' ? 'block' : 'none';
+            upiFields.style.display = this.value === 'UPI' ? 'block' : 'none';
+            updateSubmitBtn();
+        });
+    }
+
+    // Reset button
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function() {
+            earningCheckboxes.forEach(checkbox => checkbox.checked = false);
+            if (selectAllCheckbox) selectAllCheckbox.checked = false;
+            if (payoutMethodSelect) payoutMethodSelect.value = '';
+            bankFields.style.display = 'none';
+            upiFields.style.display = 'none';
+            updateTotals();
+            updateSubmitBtn();
+        });
+    }
+
+    // Update totals
+    function updateTotals() {
+        let total = 0;
+        let count = 0;
+        earningCheckboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                const row = checkbox.closest('tr');
+                const amount = parseFloat(row.querySelector('td:nth-child(5)').textContent.replace('₹', ''));
+                total += amount;
+                count++;
+            }
+        });
+        
+        totalAmountSpan.textContent = '₹' + total.toFixed(2);
+        selectedCountSpan.textContent = count;
+        updateSubmitBtn();
+    }
+
+    // Update submit button state
+    function updateSubmitBtn() {
+        const selected = document.querySelectorAll('.earning-checkbox:checked').length > 0;
+        const methodSelected = payoutMethodSelect.value !== '';
+        submitBtn.disabled = !(selected && methodSelected);
+    }
+
+    // Form submission
+    if (payoutForm) {
+        payoutForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const selectedIds = Array.from(earningCheckboxes)
+                .filter(cb => cb.checked)
+                .map(cb => cb.value)
+                .join(',');
+            
+            const formData = new FormData(this);
+            formData.set('earning_ids', selectedIds);
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Processing...';
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Payout processed successfully!');
+                    window.location.href = '?view=completed';
+                } else {
+                    alert('Error: ' + data.error);
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
+            })
+            .catch(error => {
+                alert('An error occurred: ' + error);
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        });
+    }
+});
+</script>
+
+<style>
+.earning-checkbox {
+    cursor: pointer;
+}
+</style>
 {% endblock %}

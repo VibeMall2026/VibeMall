@@ -1,0 +1,27 @@
+{% autoescape off %}
+Payout Reminder - VibeMall Admin
+
+Hello Admin,
+
+A reseller payout is now ready for processing.
+
+=== PAYOUT DETAILS ===
+Reseller: {{ reseller_name }}
+Customer: {{ customer_name }}
+Order #: {{ order_number }}
+Margin Amount: ₹{{ margin_amount }}
+Order Total: ₹{{ total_order_amount }}
+Delivered On: {{ delivery_date|date:"M d, Y" }}
+
+=== ACTION REQUIRED ===
+Visit the Payout Management page to review and process this payout:
+{{ payout_url }}
+
+Note:
+- The 7-day hold period has passed
+- No return requests were filed
+- Earning is now eligible for payout
+
+---
+This is an automated message from VibeMall Resell Management System
+{% endautoescape %}

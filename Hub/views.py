@@ -3,13 +3,13 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib import messages 
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, HttpRequest
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
-from django.db.models import Count, Q, Avg, Sum, F, DecimalField, ExpressionWrapper, Case, When, Value, IntegerField
-from django.db.models.functions import Coalesce
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db.models import Count, Q, Avg, Sum, F, DecimalField, ExpressionWrapper, Case, When, Value, IntegerField, QuerySet
+from django.db.models.functions import Coalesce, Lower, Trim
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger, Page
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime, parse_date
@@ -29,6 +29,7 @@ from django.core.files import File
 from decimal import Decimal
 from datetime import timedelta, datetime, time
 from urllib.parse import urlencode, urlparse
+from typing import Dict, List, Optional, Tuple, Any, Union, Callable
 import ipaddress
 import re
 import json
@@ -64,8 +65,18 @@ RETURN_STATUS_FLOW = {
     'QC_FAILED': ['REFUND_PENDING', 'WRONG_RETURN', 'REFUNDED', 'REPLACED'],
 }
 
-from .models import CategoryIcon, SubCategory, Slider, Feature, Banner, Product, DealCountdown, UserProfile, Address, Cart, Wishlist, ProductImage, ProductReview, ReviewImage, ReviewVote, ProductQuestion, Order, OrderItem, OrderStatusHistory, OrderCancellationRequest, ReturnRequest, ReturnItem, ReturnHistory, ReturnAttachment, ReturnLabel, AdminEmailSettings, ProductStockNotification, BrandPartner, SiteSettings, LoyaltyPoints, PointsTransaction, MainPageProduct, MainPageSubCategoryBanner, ChatThread, ChatMessage, ChatAttachment, NewsletterSubscription
+from .models import CategoryIcon, SubCategory, Slider, Feature, Banner, Product, DealCountdown, UserProfile, Address, Cart, Wishlist, ProductImage, ProductReview, ReviewImage, ReviewVote, ProductQuestion, Order, OrderItem, OrderStatusHistory, OrderCancellationRequest, ReturnRequest, ReturnItem, ReturnHistory, ReturnAttachment, ReturnLabel, AdminEmailSettings, ProductStockNotification, BrandPartner, SiteSettings, LoyaltyPoints, PointsTransaction, MainPageProduct, MainPageSubCategoryBanner, MainPageBanner, ChatThread, ChatMessage, ChatAttachment, NewsletterSubscription
 from .email_utils import send_order_confirmation_email, send_order_status_update_email, send_admin_order_notification
+from .view_helpers import (
+    _split_full_name,
+    _get_checkout_items,
+    _get_checkout_total_quantity,
+    _get_resell_link_matching_quantity,
+    _get_checkout_min_unit_price,
+    _verify_upi_with_razorpay,
+    _validate_indian_pincode,
+    _lookup_ifsc_details,
+)
 
 # ===== ADMIN PANEL VIEWS =====
 
@@ -77,7 +88,7 @@ def admin_test(request):
 
 @login_required(login_url='login')
 @staff_member_required(login_url='login')
-def admin_dashboard(request):
+def admin_dashboard(request: HttpRequest) -> HttpResponse:
     """Admin Dashboard with comprehensive e-commerce statistics"""
     from datetime import timedelta
     from django.db.models.functions import TruncDate, TruncMonth, ExtractHour
@@ -3734,11 +3745,8 @@ def admin_approve_order(request, order_id):
     """Approve a pending order"""
     order = get_object_or_404(Order, id=order_id)
     
-    # Debug: Log current status
-    print(f"[DEBUG] Approve Order #{order.order_number}")
-    print(f"[DEBUG] Current approval_status: {order.approval_status}")
-    print(f"[DEBUG] Current order_status: {order.order_status}")
-    print(f"[DEBUG] Request method: {request.method}")
+    # Log current status
+    logger.info(f"Approve Order #{order.order_number} - Current approval_status: {order.approval_status}")
     
     if order.approval_status != 'PENDING_APPROVAL':
         messages.warning(request, f'Order is not pending approval. Current status: {order.approval_status}')
@@ -3761,8 +3769,7 @@ def admin_approve_order(request, order_id):
     
     order.save()
     
-    print(f"[DEBUG] Order saved! New approval_status: {order.approval_status}")
-    print(f"[DEBUG] New order_status: {order.order_status}")
+    logger.info(f"Order approved! New approval_status: {order.approval_status}, order_status: {order.order_status}")
     
     # Send approval email to customer
     try:
@@ -4599,7 +4606,7 @@ def index(request):
                 category_fallback_images[key] = product.image.url
     
     # Get products from MainPageProduct model (4 categories)
-    from .models import MainPageProduct, Reel, ReadyShipStyle, MainPageSubCategoryBanner
+    from .models import MainPageProduct, Reel, ReadyShipStyle, MainPageSubCategoryBanner, MainPageBanner
     
     category1_products = MainPageProduct.objects.filter(category='category1').select_related('product').order_by('order')
     category2_products = MainPageProduct.objects.filter(category='category2').select_related('product').order_by('order')
@@ -4651,6 +4658,36 @@ def index(request):
             'sub_category': item.sub_category.name,
         }
         for item in subcategory_banner_records
+    ]
+
+    first_banner_records = MainPageBanner.objects.filter(
+        banner_area='first',
+        is_active=True
+    ).order_by('order', 'id')[:3]
+    second_banner_records = MainPageBanner.objects.filter(
+        banner_area='second',
+        is_active=True
+    ).order_by('order', 'id')[:2]
+
+    first_banners = [
+        {
+            'badge_text': item.badge_text,
+            'title': item.title,
+            'description': item.description,
+            'image_url': item.image.url if item.image else '',
+            'link_url': item.link_url,
+        }
+        for item in first_banner_records
+    ]
+    second_banners = [
+        {
+            'badge_text': item.badge_text,
+            'title': item.title,
+            'description': item.description,
+            'image_url': item.image.url if item.image else '',
+            'link_url': item.link_url,
+        }
+        for item in second_banner_records
     ]
 
     # Build product rating stats for cards
@@ -4736,6 +4773,8 @@ def index(request):
             'recommended': recommended,
             'ready_ship_cards': ready_ship_cards,
             'subcategory_banners': subcategory_banners,
+                        'first_banners': first_banners,
+                        'second_banners': second_banners,
             'countdown': countdown,
             'wishlist_product_ids': wishlist_product_ids,
             'cart_product_ids': cart_product_ids,
@@ -4908,7 +4947,7 @@ def subscribe_newsletter(request):
 
 
 @login_required(login_url='login')
-def cart(request):
+def cart(request: HttpRequest) -> HttpResponse:
     cart_items = Cart.objects.filter(user=request.user).select_related('product')
     total_price = sum(item.get_total_price() for item in cart_items)
     cart_count = cart_items.count()
@@ -4961,7 +5000,7 @@ def buy_now(request, product_id):
 
 
 @login_required(login_url='login')
-def checkout(request):
+def checkout(request: HttpRequest) -> HttpResponse:
     """Dynamic Checkout Page"""
     cart_items, buy_now_item, total_price = _get_checkout_items(request)
     base_cart_total = Decimal(str(total_price))
@@ -4984,6 +5023,8 @@ def checkout(request):
         payment_method = request.POST.get('payment_method', 'COD')
         customer_notes = request.POST.get('customer_notes', '')
         is_resell = (order_type == 'for_resell') or (request.POST.get('is_resell') == 'on')
+        user_selected_resell = is_resell
+        explicit_self_selected = order_type == 'for_self'
         use_default_address = request.POST.get('use_default_address') == 'on'
         set_default_address = request.POST.get('set_default_address') == 'on'
         resell_margin_raw = normalize_decimal_input(request.POST.get('resell_margin', '0'))
@@ -5001,15 +5042,11 @@ def checkout(request):
         # Coupon handling
         coupon_id = request.POST.get('coupon_id', '')
         
-        # Debug: Show selected payment method
-        print(f"[DEBUG] Selected payment method: {payment_method}")
+        # Log selected payment method
+        logger.info(f"Payment method selected: {payment_method}")
         if not payment_method or payment_method not in ['COD', 'RAZORPAY']:
             messages.error(request, 'Please select a valid payment method.')
-            return render(request, 'checkout.html', {
-                'cart_items': cart_items,
-                'total_price': total_price,
-                'buy_now_item': buy_now_item
-            })
+            return redirect('checkout')
         
         # Resell FROM details
         from_name = (request.POST.get('from_name') or '').strip()
@@ -5019,11 +5056,7 @@ def checkout(request):
             default_address = Address.objects.filter(user=request.user, is_default=True).first()
             if not default_address:
                 messages.error(request, 'Default address not found. Please enter address manually.')
-                return render(request, 'checkout.html', {
-                    'cart_items': cart_items,
-                    'total_price': total_price,
-                    'buy_now_item': buy_now_item
-                })
+                return redirect('checkout')
             first_name, last_name = _split_full_name(default_address.full_name)
             phone = default_address.mobile_number
             address = default_address.address_line1
@@ -5042,13 +5075,30 @@ def checkout(request):
                     id=resell_link_id,
                     is_active=True
                 )
-                is_resell = True
-                order_type = 'for_resell'
-                resell_margin_per_unit = Decimal(str(resell_link.margin_amount or 0))
-                if not from_name:
-                    from_name = resell_link.reseller.get_full_name() or resell_link.reseller.username
-                if not from_phone and hasattr(resell_link.reseller, 'userprofile'):
-                    from_phone = resell_link.reseller.userprofile.mobile_number or ''
+                matched_link_qty = _get_resell_link_matching_quantity(cart_items, resell_link)
+                if matched_link_qty > 0 and not explicit_self_selected:
+                    is_resell = True
+                    order_type = 'for_resell'
+                    resell_margin_per_unit = Decimal(str(resell_link.margin_amount or 0))
+                    if not from_name:
+                        from_name = resell_link.reseller.get_full_name() or resell_link.reseller.username
+                    if not from_phone and hasattr(resell_link.reseller, 'userprofile'):
+                        from_phone = resell_link.reseller.userprofile.mobile_number or ''
+                elif explicit_self_selected:
+                    # User explicitly switched to self-order, so clear stale resell session.
+                    request.session.pop('resell_link_id', None)
+                    request.session.pop('resell_code', None)
+                    resell_link = None
+                    is_resell = False
+                    order_type = 'for_self'
+                    resell_margin_per_unit = Decimal('0')
+                else:
+                    # Link product no longer in checkout (cart changed), so disable link mode.
+                    request.session.pop('resell_link_id', None)
+                    request.session.pop('resell_code', None)
+                    resell_link = None
+                    is_resell = user_selected_resell
+                    order_type = 'for_resell' if user_selected_resell else 'for_self'
             except ResellLink.DoesNotExist:
                 request.session.pop('resell_link_id', None)
                 request.session.pop('resell_code', None)
@@ -5057,52 +5107,29 @@ def checkout(request):
         # Validation
         if not all([first_name, last_name, email, phone, address, city, state, postcode]):
             messages.error(request, 'Please fill all required fields')
-            return render(request, 'checkout.html', {
-                'cart_items': cart_items,
-                'total_price': total_price,
-                'buy_now_item': buy_now_item
-            })
+            return redirect('checkout')
 
         if (country or '').strip().lower() == 'india':
             if not re.fullmatch(r"[0-9]{6}", postcode or ''):
                 messages.error(request, 'Please enter a valid 6-digit pincode.')
-                return render(request, 'checkout.html', {
-                    'cart_items': cart_items,
-                    'total_price': total_price,
-                    'buy_now_item': buy_now_item
-                })
+                return redirect('checkout')
             if pincode_valid != '1' and not _validate_indian_pincode(postcode):
                 messages.error(request, 'Pincode not found. Please enter a valid pincode.')
-                return render(request, 'checkout.html', {
-                    'cart_items': cart_items,
-                    'total_price': total_price,
-                    'buy_now_item': buy_now_item
-                })
+                return redirect('checkout')
         
         # Validate resell FROM details if resell order
         if is_resell and (not from_name or not from_phone):
             messages.error(request, 'Please provide FROM details for resell order')
-            return render(request, 'checkout.html', {
-                'cart_items': cart_items,
-                'total_price': total_price,
-                'buy_now_item': buy_now_item
-            })
+            return redirect('checkout')
         if is_resell and resell_margin_per_unit < 0:
             messages.error(request, 'Margin cannot be negative.')
-            return render(request, 'checkout.html', {
-                'cart_items': cart_items,
-                'total_price': total_price,
-                'buy_now_item': buy_now_item
-            })
+            return redirect('checkout')
         if is_resell and resell_link is None and resell_margin_per_unit > 0 and base_cart_total > 0:
-            max_margin = (base_cart_total / Decimal(max(total_item_qty, 1))) * Decimal('0.50')
+            min_unit_price = _get_checkout_min_unit_price(cart_items)
+            max_margin = min_unit_price * Decimal('0.50')
             if resell_margin_per_unit > max_margin:
                 messages.error(request, f'Margin cannot exceed 50% of item price (max ₹{max_margin:.2f} per item).')
-                return render(request, 'checkout.html', {
-                    'cart_items': cart_items,
-                    'total_price': total_price,
-                    'buy_now_item': buy_now_item
-                })
+                return redirect('checkout')
 
         request.session['checkout_form'] = {
             'first_name': first_name,
@@ -5141,10 +5168,22 @@ def checkout(request):
         manual_margin_per_unit = Decimal('0')
     if manual_margin_per_unit < 0:
         manual_margin_per_unit = Decimal('0')
+    if selected_order_type == 'for_resell' and manual_margin_per_unit > 0:
+        min_unit_price = _get_checkout_min_unit_price(cart_items)
+        max_margin = min_unit_price * Decimal('0.50')
+        if max_margin >= 0 and manual_margin_per_unit > max_margin:
+            manual_margin_per_unit = max_margin
     
     # Check for resell link in session
     resell_link = None
+    matched_link_qty = 0
     resell_link_id = request.session.get('resell_link_id')
+    if resell_link_id:
+        if order_type == 'for_self':
+            request.session.pop('resell_link_id', None)
+            request.session.pop('resell_code', None)
+            resell_link_id = None
+    
     if resell_link_id:
         try:
             from .models import ResellLink
@@ -5152,6 +5191,11 @@ def checkout(request):
                 id=resell_link_id,
                 is_active=True
             )
+            matched_link_qty = _get_resell_link_matching_quantity(cart_items, resell_link)
+            if matched_link_qty <= 0:
+                request.session.pop('resell_link_id', None)
+                request.session.pop('resell_code', None)
+                resell_link = None
         except ResellLink.DoesNotExist:
             # Clear invalid resell link from session
             request.session.pop('resell_link_id', None)
@@ -5175,10 +5219,7 @@ def checkout(request):
     display_subtotal = base_cart_total
 
     if resell_link:
-        link_margin_total = Decimal('0')
-        for item in cart_items:
-            item_qty = int(item.get('quantity', 0)) if isinstance(item, dict) else int(item.quantity or 0)
-            link_margin_total += Decimal(str(resell_link.margin_amount or 0)) * item_qty
+        link_margin_total = Decimal(str(resell_link.margin_amount or 0)) * Decimal(str(matched_link_qty))
         display_subtotal = base_cart_total + link_margin_total
         manual_margin_per_unit = Decimal(str(resell_link.margin_amount or 0))
         manual_margin_total = link_margin_total
@@ -5202,6 +5243,7 @@ def checkout(request):
         'selected_order_type': selected_order_type,
         'loyalty_account': loyalty_account,
         'resell_link': resell_link,  # Add resell link to context
+        'resell_link_matching_qty': matched_link_qty if resell_link else 0,
         'manual_resell_margin_per_unit': manual_margin_per_unit,
         'manual_resell_margin_total': manual_margin_total,
         'tax_amount': tax_amount,
@@ -5235,12 +5277,18 @@ def checkout_confirm(request):
         resell_margin_per_unit = Decimal('0')
     if resell_margin_per_unit < 0:
         resell_margin_per_unit = Decimal('0')
+    if is_resell and resell_margin_per_unit > 0:
+        min_unit_price = _get_checkout_min_unit_price(cart_items)
+        max_margin = min_unit_price * Decimal('0.50')
+        if max_margin >= 0 and resell_margin_per_unit > max_margin:
+            resell_margin_per_unit = max_margin
 
     # Check for resell link in session
     resell_link = None
     resell_link_id = request.session.get('resell_link_id')
     total_margin = Decimal('0')
     base_amount = base_cart_total
+    matched_link_qty = 0
 
     if resell_link_id:
         try:
@@ -5249,17 +5297,26 @@ def checkout_confirm(request):
                 id=resell_link_id,
                 is_active=True
             )
-            # Recalculate with link margin
-            for item in cart_items:
-                item_qty = int(item.get('quantity', 0)) if isinstance(item, dict) else int(item.quantity or 0)
-                total_margin += Decimal(str(resell_link.margin_amount or 0)) * item_qty
-            resell_margin_per_unit = Decimal(str(resell_link.margin_amount or 0))
-            is_resell = True
-            order_type = 'for_resell'
+            matched_link_qty = _get_resell_link_matching_quantity(cart_items, resell_link)
+            if matched_link_qty > 0:
+                total_margin = Decimal(str(resell_link.margin_amount or 0)) * Decimal(str(matched_link_qty))
+                resell_margin_per_unit = Decimal(str(resell_link.margin_amount or 0))
+                is_resell = True
+                order_type = 'for_resell'
+            else:
+                request.session.pop('resell_link_id', None)
+                request.session.pop('resell_code', None)
+                resell_link = None
+                is_resell = False
+                order_type = 'for_self'
+                resell_margin_per_unit = Decimal('0')
         except ResellLink.DoesNotExist:
             # Clear invalid resell link from session
             request.session.pop('resell_link_id', None)
             request.session.pop('resell_code', None)
+            is_resell = False
+            order_type = 'for_self'
+            resell_margin_per_unit = Decimal('0')
     elif is_resell and resell_margin_per_unit > 0 and total_item_qty > 0:
         total_margin = resell_margin_per_unit * Decimal(str(total_item_qty))
 
@@ -5360,6 +5417,7 @@ def checkout_confirm(request):
                         tax=tax,
                         shipping_cost=shipping_cost,
                         coupon_discount=coupon_discount,
+                        points_discount=points_discount,
                         coupon=applied_coupon,
                         payment_status='PENDING',
                     )
@@ -5552,6 +5610,7 @@ def checkout_confirm(request):
         'total_margin': total_margin,
         'resell_margin_per_unit': resell_margin_per_unit,
         'total_item_qty': total_item_qty,
+        'resell_margin_item_qty': matched_link_qty if resell_link else total_item_qty,
         'is_resell': is_resell,
         'order_type': order_type,
         'from_name': checkout_form.get('from_name', ''),
@@ -5654,7 +5713,7 @@ info.vibemall@gmail.com
 def faq(request): return render(request, 'faq.html')
 
 
-def login_view(request):
+def login_view(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
@@ -5681,10 +5740,10 @@ def my_account(request): return render(request, 'profile.html')
 def product(request): return render(request, 'product.html')
 
 
-def product_detail(request, slug):
+def product_detail(request: HttpRequest, slug: str) -> HttpResponse:
     product = get_object_or_404(Product, slug=slug, is_active=True)
     return redirect('product-details', product_id=product.id)
-def product_details(request, product_id=None):
+def product_details(request: HttpRequest, product_id: Optional[int] = None) -> HttpResponse:
     """Display product details with dynamic data and enhanced reviews"""
     if product_id:
         try:
@@ -5846,16 +5905,42 @@ def shop(request):
     def normalize_category_key(raw_key):
         return (raw_key or '').strip()
 
-    category_keys = {normalize_category_key(cat.category_key) for cat in category_icons}
+    def normalize_for_compare(raw_key):
+        return normalize_category_key(raw_key).casefold()
+
+    category_keys = {normalize_for_compare(cat.category_key) for cat in category_icons}
 
     selected_category = normalize_category_key(selected_category)
-    if selected_category and selected_category in category_keys:
-        products = products.filter(category__iexact=selected_category)
+    selected_category_norm = normalize_for_compare(selected_category)
+    if selected_category_norm and selected_category_norm in category_keys:
+        products = products.annotate(
+            _category_norm=Lower(Trim(Coalesce('category', Value(''))))
+        ).filter(_category_norm=selected_category_norm)
     else:
         selected_category = ''
+        selected_category_norm = ''
 
     if selected_sub_category:
-        products = products.filter(sub_category__iexact=selected_sub_category)
+        selected_sub_category = normalize_category_key(selected_sub_category)
+        selected_sub_category_norm = normalize_for_compare(selected_sub_category)
+        valid_sub_category_qs = Product.objects.filter(is_active=True)
+        if selected_category_norm:
+            valid_sub_category_qs = valid_sub_category_qs.annotate(
+                _category_norm=Lower(Trim(Coalesce('category', Value(''))))
+            ).filter(_category_norm=selected_category_norm)
+
+        valid_sub_categories = set(
+            normalize_for_compare(item)
+            for item in valid_sub_category_qs.exclude(sub_category='').values_list('sub_category', flat=True)
+            if normalize_category_key(item)
+        )
+
+        if selected_sub_category_norm in valid_sub_categories:
+            products = products.annotate(
+                _sub_category_norm=Lower(Trim(Coalesce('sub_category', Value(''))))
+            ).filter(_sub_category_norm=selected_sub_category_norm)
+        else:
+            selected_sub_category = ''
     else:
         selected_sub_category = ''
 
@@ -5875,8 +5960,10 @@ def shop(request):
     ]
 
     sub_category_data = []
-    if selected_category:
-        sub_category_qs = Product.objects.filter(is_active=True).filter(category__iexact=selected_category)
+    if selected_category_norm:
+        sub_category_qs = Product.objects.filter(is_active=True).annotate(
+            _category_norm=Lower(Trim(Coalesce('category', Value(''))))
+        ).filter(_category_norm=selected_category_norm)
         sub_category_counts_qs = (
             sub_category_qs.exclude(sub_category='')
             .values('sub_category')
@@ -6006,7 +6093,7 @@ def shop_details(request): return render(request, 'shop-details.html')
 
 
 @login_required(login_url='login')
-def wishlist(request):
+def wishlist(request: HttpRequest) -> HttpResponse:
     wishlist_items = Wishlist.objects.filter(user=request.user).select_related('product')
     wishlist_count = wishlist_items.count()
     
@@ -6029,7 +6116,7 @@ def order_tracking(request):return render(request, 'order-tracking.html')
 
 
 
-def register_view(request):
+def register_view(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         name = request.POST.get("name")
         username = request.POST.get("username")
@@ -6264,7 +6351,7 @@ def password_reset_complete_view(request):
 
 @login_required(login_url='login')
 @require_POST
-def add_to_cart(request):
+def add_to_cart(request: HttpRequest) -> JsonResponse:
     """Add product to cart or increase quantity"""
     product_id = request.POST.get('product_id')
     quantity = int(request.POST.get('quantity', 1))
@@ -6321,7 +6408,7 @@ def add_to_cart(request):
 
 
 @login_required(login_url='login')
-def cart_summary(request):
+def cart_summary(request: HttpRequest) -> JsonResponse:
     cart_items = Cart.objects.filter(user=request.user).select_related('product')
     cart_count = cart_items.count()
     cart_total_value = sum(item.get_total_price() for item in cart_items)
@@ -6458,7 +6545,7 @@ def update_cart_quantity(request, cart_id):
 
 @login_required(login_url='login')
 @require_POST
-def add_to_wishlist(request):
+def add_to_wishlist(request: HttpRequest) -> JsonResponse:
     """Add product to wishlist"""
     product_id = request.POST.get('product_id')
     
@@ -7652,7 +7739,13 @@ from django.views.decorators.csrf import csrf_exempt
 @csrf_exempt
 @require_POST
 def razorpay_webhook(request):
-    """Handle Razorpay Webhook Events (no auth, signature verified)"""
+    """Handle Razorpay Webhook Events - CSRF exempt because webhook is from external service
+    
+    Security: CSRF exemption is secure here because:
+    1. Webhook signature is verified using RAZORPAY_WEBHOOK_SECRET
+    2. External payment gateway cannot send CSRF tokens
+    3. Signature verification provides the protection needed
+    """
     import razorpay
     import json
     from django.views.decorators.csrf import csrf_exempt
@@ -7825,7 +7918,7 @@ def resell_order(request, order_id):
         return redirect('profile')
 
 
-def order_list(request):
+def order_list(request: HttpRequest) -> HttpResponse:
     """Display list of user's orders"""
     if not request.user.is_authenticated:
         return redirect('login')
@@ -7922,51 +8015,6 @@ def _cancel_eligibility(order):
         return False, f'Cancellation window closed at {deadline.strftime("%d %b %Y, %I:%M %p")}.', deadline
 
     return True, '', deadline
-
-
-def _split_full_name(full_name):
-    parts = (full_name or '').strip().split()
-    if not parts:
-        return '', ''
-    if len(parts) == 1:
-        return parts[0], ''
-    return parts[0], ' '.join(parts[1:])
-
-
-def _get_checkout_items(request):
-    cart_items = []
-    buy_now_item = None
-    total_price = 0
-
-    if 'buy_now_item' in request.session:
-        buy_now_data = request.session['buy_now_item']
-        try:
-            product = Product.objects.get(id=buy_now_data['product_id'])
-            buy_now_item = {
-                'product': product,
-                'quantity': buy_now_data['quantity'],
-                'price': float(buy_now_data['price']),
-                'subtotal': float(buy_now_data['price']) * buy_now_data['quantity']
-            }
-            total_price = buy_now_item['subtotal']
-            cart_items = [buy_now_item]
-        except Product.DoesNotExist:
-            del request.session['buy_now_item']
-    else:
-        cart_items = Cart.objects.filter(user=request.user).select_related('product')
-        total_price = sum(item.get_total_price() for item in cart_items)
-
-    return cart_items, buy_now_item, total_price
-
-
-def _get_checkout_total_quantity(cart_items):
-    total_qty = 0
-    for item in cart_items:
-        if isinstance(item, dict):
-            total_qty += int(item.get('quantity', 0) or 0)
-        else:
-            total_qty += int(getattr(item, 'quantity', 0) or 0)
-    return max(total_qty, 0)
 
 
 def _log_return_history(return_request, old_status, new_status, user=None, notes=''):
@@ -8171,98 +8219,6 @@ def _process_cancellation_refund(order, cancel_request):
     return refund_success, refund_notes
 
 
-def _verify_upi_with_razorpay(upi_id):
-    razorpay_key = getattr(settings, 'RAZORPAY_KEY_ID', '')
-    razorpay_secret = getattr(settings, 'RAZORPAY_KEY_SECRET', '')
-    if not razorpay_key or not razorpay_secret:
-        return False, '', 'Razorpay keys missing'
-
-    url = 'https://api.razorpay.com/v1/payments/validate/vpa'
-    payload = urlencode({'vpa': upi_id}).encode('utf-8')
-    auth = base64.b64encode(f"{razorpay_key}:{razorpay_secret}".encode('utf-8')).decode('utf-8')
-    headers = {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': f'Basic {auth}',
-    }
-
-    request = Request(url, data=payload, headers=headers, method='POST')
-    try:
-        with urlopen(request, timeout=10) as response:
-            data = json.loads(response.read().decode('utf-8'))
-        if getattr(settings, 'RAZORPAY_UPI_DEBUG', False):
-            masked_upi = f"{upi_id[:3]}***{upi_id[upi_id.find('@'):]}" if '@' in upi_id else '***'
-            logger.info('Razorpay UPI validate response for %s: %s', masked_upi, data)
-    except HTTPError as exc:
-        body = ''
-        try:
-            body = exc.read().decode('utf-8')
-            parsed = json.loads(body) if body else {}
-        except Exception:
-            parsed = {}
-        if getattr(settings, 'RAZORPAY_UPI_DEBUG', False):
-            logger.warning('Razorpay UPI validate HTTPError %s: %s', exc.code, body)
-        message = (
-            parsed.get('error', {}).get('description')
-            if isinstance(parsed, dict)
-            else ''
-        )
-        return False, '', message or f'Validation failed: {exc.code}'
-    except URLError:
-        return False, '', 'Unable to reach Razorpay'
-    except Exception:
-        return False, '', 'Validation failed'
-
-    name = (data.get('customer_name') or data.get('name') or '').strip()
-    valid = data.get('success') is True or data.get('valid') is True or bool(name)
-    if not valid:
-        return False, '', 'UPI ID not found'
-
-    return True, name, ''
-
-
-def _validate_indian_pincode(pincode):
-    if not re.fullmatch(r"[0-9]{6}", pincode or ''):
-        return False
-
-    url = f"https://api.postalpincode.in/pincode/{pincode}"
-    request = Request(url, method='GET')
-    try:
-        with urlopen(request, timeout=8) as response:
-            data = json.loads(response.read().decode('utf-8'))
-        result = data[0] if isinstance(data, list) and data else None
-        if not result or result.get('Status') != 'Success':
-            return False
-        return True
-    except Exception:
-        return False
-
-
-def _lookup_ifsc_details(ifsc_code):
-    if not ifsc_code:
-        return False, '', '', 'IFSC code is required.'
-    ifsc_code = ifsc_code.strip().upper()
-    if not re.fullmatch(r"[A-Z]{4}0[A-Z0-9]{6}", ifsc_code):
-        return False, '', '', 'Please enter a valid IFSC code.'
-
-    url = f"https://ifsc.razorpay.com/{ifsc_code}"
-    try:
-        with urlopen(url, timeout=6) as response:
-            payload = json.loads(response.read().decode('utf-8'))
-        bank = (payload.get('BANK') or '').strip()
-        branch = (payload.get('BRANCH') or '').strip()
-        if not bank and not branch:
-            return False, '', '', 'IFSC details not found.'
-        return True, bank, branch, ''
-    except HTTPError as exc:
-        if exc.code == 404:
-            return False, '', '', 'IFSC details not found.'
-        return False, '', '', 'Unable to fetch IFSC details.'
-    except URLError:
-        return False, '', '', 'Unable to reach IFSC service.'
-    except Exception:
-        return False, '', '', 'IFSC lookup failed. Try again later.'
-
-
 @login_required(login_url='login')
 @require_POST
 def validate_upi_id(request):
@@ -8273,7 +8229,7 @@ def validate_upi_id(request):
     if not re.fullmatch(r"[a-z0-9._-]{2,256}@[a-z]{2,64}", upi_id):
         return JsonResponse({'valid': False, 'message': 'UPI ID format is invalid.'}, status=400)
 
-    valid, name, message = _verify_upi_with_razorpay(upi_id)
+    valid, name, message = _verify_upi_with_razorpay(upi_id, logger=logger)
     if not valid:
         return JsonResponse({'valid': False, 'message': message or 'UPI ID not found.'}, status=400)
 
@@ -8436,7 +8392,7 @@ def return_request(request, order_id):
             if not re.fullmatch(r"[a-z0-9._-]{2,256}@[a-z]{2,64}", upi_id):
                 messages.error(request, 'Please enter a valid UPI ID.')
                 return redirect('return_request', order_id=order.id)
-            valid_upi, upi_name, error_msg = _verify_upi_with_razorpay(upi_id)
+            valid_upi, upi_name, error_msg = _verify_upi_with_razorpay(upi_id, logger=logger)
             if not valid_upi:
                 messages.error(request, error_msg or 'UPI ID not found.')
                 return redirect('return_request', order_id=order.id)
@@ -8923,7 +8879,7 @@ def customer_cancel_order(request, order_id):
             if not re.fullmatch(r"[a-z0-9._-]{2,256}@[a-z]{2,64}", upi_id):
                 messages.error(request, 'Please enter a valid UPI ID.')
                 return redirect(request.META.get('HTTP_REFERER', 'order_list'))
-            valid_upi, resolved_name, error_msg = _verify_upi_with_razorpay(upi_id)
+            valid_upi, resolved_name, error_msg = _verify_upi_with_razorpay(upi_id, logger=logger)
             if not valid_upi:
                 messages.error(request, error_msg or 'UPI ID not found.')
                 return redirect(request.META.get('HTTP_REFERER', 'order_list'))
@@ -10044,9 +10000,17 @@ from datetime import timedelta
 import json
 
 @require_POST
+# NOTE: CSRF exemption valid for webhook endpoints that verify signatures
+# For AJAX endpoints, ensure frontend sends CSRF token in headers:
+# headers: {'X-CSRFToken': csrfToken, 'Content-Type': 'application/json'}
 @csrf_exempt
 def validate_coupon(request):
-    """Validate coupon code and return discount details"""
+    """Validate coupon code and return discount details
+    
+    Security: This endpoint should ideally use CSRF token from frontend.
+    To enable CSRF protection, remove @csrf_exempt and ensure frontend sends
+    X-CSRFToken header with the CSRF token from the form.
+    """
     try:
         data = json.loads(request.body)
         code = data.get('code', '').upper().strip()
@@ -10115,9 +10079,15 @@ def validate_coupon(request):
 
 
 @require_POST
+# NOTE: CSRF exemption for AJAX endpoint - consider using CSRF token from frontend
+# Recommendation: Pass X-CSRFToken header from frontend in AJAX requests
 @csrf_exempt
 def get_available_coupons(request):
-    """Get list of available coupons for the user"""
+    """Get list of available coupons for the user
+    
+    Security: This endpoint should ideally use CSRF token from frontend.
+    Frontend should send X-CSRFToken header in the AJAX request.
+    """
     try:
         if not request.user.is_authenticated:
             return JsonResponse({'coupons': []})
@@ -10198,3 +10168,144 @@ def get_available_coupons(request):
         
     except Exception as e:
         return JsonResponse({'success': False, 'coupons': [], 'error': str(e)})
+
+# ===== MAIN PAGE BANNER MANAGEMENT VIEWS =====
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_main_page_banners(request):
+    """Admin List Main Page Banners"""
+    banners = MainPageBanner.objects.all().order_by('banner_area', 'order', 'id')
+    
+    # Get preview banners (first 3 active banners for promotion area, 2 for marketing area)
+    first_preview = MainPageBanner.objects.filter(banner_area='first', is_active=True).order_by('order', 'id')[:3]
+    second_preview = MainPageBanner.objects.filter(banner_area='second', is_active=True).order_by('order', 'id')[:2]
+    
+    context = {
+        'banners': banners,
+        'first_preview': first_preview,
+        'second_preview': second_preview,
+    }
+    return render(request, 'admin_panel/main_page_banners.html', context)
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_add_main_page_banner(request):
+    """Admin Add Main Page Banner"""
+    if request.method == 'POST':
+        try:
+            banner_area = request.POST.get('banner_area', 'first')
+            link_url = request.POST.get('link_url', '#').strip() or '#'
+            order = request.POST.get('order', '0')
+            is_active = request.POST.get('is_active') == 'on'
+            image = request.FILES.get('image')
+            
+            if not image:
+                messages.error(request, 'Banner image is required.')
+                return render(request, 'admin_panel/add_main_page_banner.html')
+            
+            try:
+                order = int(order or 0)
+            except (TypeError, ValueError):
+                order = 0
+            
+            # For promotion area (first), only image and link are needed
+            if banner_area == 'first':
+                badge_text = ''
+                title = f'Banner {order}' if order else 'Banner'
+                description = ''
+            else:
+                # For marketing area (second), title is required
+                title = request.POST.get('title', '').strip()
+                badge_text = request.POST.get('badge_text', '').strip()
+                description = request.POST.get('description', '').strip()
+                
+                if not title:
+                    messages.error(request, 'Banner title is required for Marketing area 2 card.')
+                    return render(request, 'admin_panel/add_main_page_banner.html')
+            
+            MainPageBanner.objects.create(
+                banner_area=banner_area,
+                badge_text=badge_text,
+                title=title,
+                description=description,
+                link_url=link_url,
+                order=order,
+                is_active=is_active,
+                image=image
+            )
+            
+            messages.success(request, f'Banner "{title}" added successfully!')
+            return redirect('admin_main_page_banners')
+            
+        except Exception as e:
+            messages.error(request, f'Error adding banner: {str(e)}')
+    
+    return render(request, 'admin_panel/add_main_page_banner.html')
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_edit_main_page_banner(request, banner_id):
+    """Admin Edit Main Page Banner"""
+    banner = get_object_or_404(MainPageBanner, id=banner_id)
+    
+    if request.method == 'POST':
+        try:
+            banner.banner_area = request.POST.get('banner_area', banner.banner_area)
+            banner.link_url = request.POST.get('link_url', '#').strip() or '#'
+            banner.order = int(request.POST.get('order', banner.order) or 0)
+            banner.is_active = request.POST.get('is_active') == 'on'
+            
+            # For promotion area (first), only image and link are needed
+            if banner.banner_area == 'first':
+                banner.badge_text = ''
+                banner.title = f'Banner {banner.order}' if banner.order else 'Banner'
+                banner.description = ''
+            else:
+                # For marketing area (second), update all fields
+                banner.badge_text = request.POST.get('badge_text', '').strip()
+                title = request.POST.get('title', '').strip()
+                if not title:
+                    messages.error(request, 'Banner title is required for Marketing area 2 card.')
+                    return render(request, 'admin_panel/edit_main_page_banner.html', {'banner': banner})
+                banner.title = title
+                banner.description = request.POST.get('description', '').strip()
+            
+            if 'image' in request.FILES:
+                # Delete old image if exists
+                if banner.image:
+                    banner.image.delete()
+                banner.image = request.FILES['image']
+            
+            banner.save()
+            messages.success(request, f'Banner updated successfully!')
+            return redirect('admin_main_page_banners')
+            
+        except Exception as e:
+            messages.error(request, f'Error updating banner: {str(e)}')
+    
+    context = {
+        'banner': banner,
+    }
+    return render(request, 'admin_panel/edit_main_page_banner.html', context)
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_delete_main_page_banner(request, banner_id):
+    """Admin Delete Main Page Banner"""
+    banner = get_object_or_404(MainPageBanner, id=banner_id)
+    
+    if request.method == 'POST':
+        banner_title = banner.title
+        if banner.image:
+            banner.image.delete()
+        banner.delete()
+        messages.success(request, f'Banner "{banner_title}" deleted successfully!')
+    
+    return redirect('admin_main_page_banners')
+
+
+# ===== SLIDER MANAGEMENT VIEWS =====

@@ -406,7 +406,7 @@
                         <i class="fas fa-save me-2"></i>Save Changes
                     </button>
                     
-                    <button type="button" class="btn btn-danger" onclick="deleteReel()">
+                    <button type="button" class="btn btn-danger" id="deleteReelBtn">
                         <i class="fas fa-trash me-2"></i>Delete Reel
                     </button>
                 </div>
@@ -423,5 +423,14 @@
             window.location.href = '{% url "admin_delete_reel" reel.id %}';
         }
     }
+    
+    // Unobtrusive event listener for delete button
+    document.addEventListener('DOMContentLoaded', function () {
+        const deleteBtn = document.getElementById('deleteReelBtn');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', deleteReel);
+        }
+    });
+
 </script>
 {% endblock %}

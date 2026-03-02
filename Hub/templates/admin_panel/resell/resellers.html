@@ -109,11 +109,11 @@
                                     <form method="post" action="{% url 'admin_toggle_reseller_status' reseller.id %}" style="display: inline;">
                                         {% csrf_token %}
                                         {% if reseller.is_reseller_enabled %}
-                                        <button type="submit" class="dropdown-item" onclick="return confirm('Disable this reseller?')">
+                                        <button type="submit" class="dropdown-item js-confirm-submit" data-confirm-message="Disable this reseller?">
                                             <i class="bx bx-x-circle me-1"></i> Disable
                                         </button>
                                         {% else %}
-                                        <button type="submit" class="dropdown-item" onclick="return confirm('Enable this reseller?')">
+                                        <button type="submit" class="dropdown-item js-confirm-submit" data-confirm-message="Enable this reseller?">
                                             <i class="bx bx-check-circle me-1"></i> Enable
                                         </button>
                                         {% endif %}
@@ -161,4 +161,18 @@
     </nav>
     {% endif %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.js-confirm-submit').forEach(function (button) {
+        button.addEventListener('click', function (event) {
+            const message = this.getAttribute('data-confirm-message') || 'Are you sure?';
+            if (!window.confirm(message)) {
+                event.preventDefault();
+            }
+        });
+    });
+});
+</script>
+
 {% endblock %}

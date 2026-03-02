@@ -5,9 +5,26 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="x-ua-compatible" content="ie=edge">
-    <title>{% block title %}VibeMall{% endblock %}</title>
-    <meta name="description" content="">
+    <title>{% block title %}VibeMall - Your Shopping Destination{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}VibeMall - Shop the latest products with amazing deals, fast shipping, and secure checkout. Browse mobiles, food, home, furniture, sports and more.{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}online shopping, ecommerce, fashion, electronics, deals{% endblock %}">
+    <meta name="author" content="VibeMall">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:url" content="{% block og_url %}https://vibemall.com/{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}VibeMall - Your Shopping Destination{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}VibeMall - Shop the latest products with amazing deals, fast shipping, and secure checkout.{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{% static 'assets/img/logo/vibemall-brand.png' %}{% endblock %}">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="{% block twitter_url %}https://vibemall.com/{% endblock %}">
+    <meta property="twitter:title" content="{% block twitter_title %}VibeMall - Your Shopping Destination{% endblock %}">
+    <meta property="twitter:description" content="{% block twitter_description %}VibeMall - Shop the latest products with amazing deals.{% endblock %}">
+    <meta property="twitter:image" content="{% block twitter_image %}{% static 'assets/img/logo/vibemall-brand.png' %}{% endblock %}">
+    
     <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicon.png' %}">
     <link rel="stylesheet" href="{% static 'assets/css/preloader.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/bootstrap.css' %}">
@@ -169,29 +186,29 @@
         </nav>
 
         <div id="supportChatWidget">
-            <button id="supportChatToggle" type="button">Support</button>
-            <div id="supportChatPanel" class="chat-hidden">
+            <button id="supportChatToggle" type="button" aria-label="Open support chat widget" aria-expanded="false" aria-controls="supportChatPanel">Support</button>
+            <div id="supportChatPanel" class="chat-hidden" role="region" aria-label="Support chat window">
                 <div class="chat-header">
                     <span>Support</span>
-                    <button id="supportChatClose" type="button">x</button>
+                    <button id="supportChatClose" type="button" aria-label="Close support chat" aria-expanded="true" aria-controls="supportChatPanel">x</button>
                 </div>
                 <div id="supportChatMessages" class="chat-messages"></div>
                 {% if not user.is_authenticated %}
                 <div id="supportChatGuest" class="chat-guest chat-hidden">
-                    <input type="text" id="supportGuestName" placeholder="Your name">
-                    <input type="email" id="supportGuestEmail" placeholder="Your email">
+                    <input type="text" id="supportGuestName" placeholder="Your name" aria-label="Your name">
+                    <input type="email" id="supportGuestEmail" placeholder="Your email" aria-label="Your email address">
                 </div>
                 {% endif %}
                 <div class="chat-quick-replies">
-                    <button type="button" class="chat-quick" data-text="Size guide">Size guide</button>
-                    <button type="button" class="chat-quick" data-text="Return policy">Return policy</button>
-                    <button type="button" class="chat-quick" data-text="Shipping">Shipping</button>
+                    <button type="button" class="chat-quick" data-text="Size guide" aria-label="Ask about size guide">Size guide</button>
+                    <button type="button" class="chat-quick" data-text="Return policy" aria-label="Ask about return policy">Return policy</button>
+                    <button type="button" class="chat-quick" data-text="Shipping" aria-label="Ask about shipping">Shipping</button>
                 </div>
                 <div class="chat-input">
-                    <label for="supportChatFiles" class="chat-attach">Attach</label>
-                    <input type="file" id="supportChatFiles" class="chat-file-input" multiple accept="image/*,video/mp4,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
-                    <input type="text" id="supportChatInput" placeholder="Type your message...">
-                    <button id="supportChatSend" type="button">Send</button>
+                    <label for="supportChatFiles" class="chat-attach" aria-label="Attach files to message">Attach</label>
+                    <input type="file" id="supportChatFiles" class="chat-file-input" multiple accept="image/*,video/mp4,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" aria-label="Choose files to attach">
+                    <input type="text" id="supportChatInput" placeholder="Type your message..." aria-label="Message input field">
+                    <button id="supportChatSend" type="button" aria-label="Send message">Send</button>
                 </div>
             </div>
         </div>

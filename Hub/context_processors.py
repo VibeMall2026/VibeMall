@@ -1,10 +1,12 @@
 """
-Context processors for FashioHub
-Adds cart and wishlist counts to every template
+Context processors for VibeMall
+Adds cart, wishlist, and site configuration to every template
+Implements caching to optimize database queries
 """
 from collections import defaultdict
 
 from django.utils import timezone
+from django.core.cache import cache
 
 from .models import Cart, Wishlist, SiteSettings, LoyaltyPoints, CategoryIcon, Product, SubCategory, Coupon
 from django.db.models import F, Sum
@@ -59,6 +61,16 @@ def site_settings_context(request):
 
 
 def header_menu_context(request):
+    """
+    Add header menu data to context with caching for performance
+    Cache invalidated when categories are updated
+    """
+    # Try to get from cache
+    cache_key = 'header_menu_context'
+    cached_context = cache.get(cache_key)
+    if cached_context is not None:
+        return cached_context
+    
     badge_map = {
         'TOP_DEALS': {'text': 'HOT', 'class': ''},
         'TOP_SELLING': {'text': 'HOT', 'class': ''},
@@ -71,8 +83,10 @@ def header_menu_context(request):
     header_categories = []
     subcategory_map = defaultdict(list)
 
+    # Use only() to fetch only needed fields for performance
     active_subcategories = (
         SubCategory.objects
+        .only('category_key', 'name', 'order')
         .filter(is_active=True)
         .order_by('category_key', 'order', 'name')
     )
@@ -88,6 +102,7 @@ def header_menu_context(request):
     product_subcategory_map = defaultdict(list)
     product_subcategory_rows = (
         Product.objects
+        .only('category', 'sub_category')
         .filter(is_active=True)
         .exclude(sub_category='')
         .values('category', 'sub_category')
@@ -164,10 +179,16 @@ def header_menu_context(request):
     except Exception:
         header_offer_coupon = None
 
-    return {
+    # Build context and cache for 1 hour
+    context = {
         'header_categories': header_categories,
         'header_links': header_links,
         'header_offer_coupon': header_offer_coupon,
         'header_offer_heading': header_offer_heading,
         'header_offer_message': header_offer_message,
     }
+    
+    # Cache the context for performance (1 hour TTL)
+    cache.set(cache_key, context, 3600)
+    
+    return context

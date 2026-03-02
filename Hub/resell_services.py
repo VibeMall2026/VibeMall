@@ -369,6 +369,13 @@ class ResellerPaymentManager:
                 f"Insufficient balance. Available: ₹{profile.available_balance}"
             )
         
+        # Current model links payouts with whole earnings only (no split allocations),
+        # so keep payout reconciliation deterministic by enforcing full-balance payouts.
+        if amount != profile.available_balance:
+            raise ValidationError(
+                f"Please request full available balance only (₹{profile.available_balance})."
+            )
+
         # Validate payment details based on method
         if payout_method == 'BANK_TRANSFER':
             if not payment_details.get('bank_account_number') or not payment_details.get('bank_ifsc_code'):
@@ -387,6 +394,16 @@ class ResellerPaymentManager:
             upi_id=payment_details.get('upi_id', ''),
             initiated_at=timezone.now()
         )
+
+        # Reserve current confirmed earnings for this payout to avoid paying
+        # newly confirmed earnings that arrive after request initiation.
+        reserved_count = ResellerEarning.objects.filter(
+            reseller=user,
+            status='CONFIRMED',
+            payout_transaction__isnull=True
+        ).update(payout_transaction=payout)
+        if reserved_count == 0:
+            raise ValidationError("No confirmed earnings available for payout.")
         
         # Deduct from available balance
         profile.available_balance -= amount
@@ -398,7 +415,7 @@ class ResellerPaymentManager:
             notification_type='PAYOUT_INITIATED',
             title='Payout Request Initiated',
             message=f'Your payout request of ₹{amount} has been initiated and is pending admin approval.',
-            link='/reseller/payouts/'
+            link='/reseller/payout/'
         )
         
         return payout
@@ -435,11 +452,10 @@ class ResellerPaymentManager:
         payout.completed_at = timezone.now()
         payout.save()
         
-        # Update associated earnings to PAID
+        # Update reserved earnings to PAID
         earnings = ResellerEarning.objects.filter(
-            reseller=payout.reseller,
             status='CONFIRMED',
-            payout_transaction__isnull=True
+            payout_transaction=payout
         )
         
         for earning in earnings:
@@ -454,7 +470,7 @@ class ResellerPaymentManager:
             notification_type='PAYOUT_COMPLETED',
             title='Payout Completed',
             message=f'Your payout of ₹{payout.amount} has been completed successfully.',
-            link='/reseller/payouts/'
+            link='/reseller/payout/'
         )
         
         return payout
@@ -487,6 +503,12 @@ class ResellerPaymentManager:
         payout.status = 'FAILED'
         payout.admin_notes = admin_notes
         payout.save()
+
+        # Release reserved earnings for this payout.
+        ResellerEarning.objects.filter(
+            payout_transaction=payout,
+            status='CONFIRMED'
+        ).update(payout_transaction=None)
         
         # Refund balance to reseller
         profile = payout.reseller.reseller_profile
@@ -499,7 +521,7 @@ class ResellerPaymentManager:
             notification_type='PAYOUT_FAILED',
             title='Payout Failed',
             message=f'Your payout request of ₹{payout.amount} has failed. Amount has been refunded to your balance. Reason: {admin_notes}',
-            link='/reseller/payouts/'
+            link='/reseller/payout/'
         )
         
         return payout
@@ -533,23 +555,54 @@ class ResellOrderProcessor:
         if not resell_link.is_active:
             raise ValidationError("Resell link is no longer active.")
         
-        # Calculate amounts
+        # Normalize cart items and calculate amounts.
+        # Margin is applied only to the product linked by the resell link.
         base_amount = Decimal('0.00')
         total_margin = Decimal('0.00')
-        
-        for item in cart_items:
-            base_price = item.product.price
-            margin_amount = resell_link.margin_amount
-            quantity = item.quantity
-            
+        applicable_link_qty = 0
+        normalized_items = []
+
+        def _extract_item(item):
+            if isinstance(item, dict):
+                product = item.get('product')
+                quantity = int(item.get('quantity', 0) or 0)
+                size = item.get('size', '') or ''
+                color = item.get('color', '') or ''
+            else:
+                product = getattr(item, 'product', None)
+                quantity = int(getattr(item, 'quantity', 0) or 0)
+                size = getattr(item, 'size', '') or ''
+                color = getattr(item, 'color', '') or ''
+            return product, quantity, size, color
+
+        for raw_item in cart_items:
+            product, quantity, size, color = _extract_item(raw_item)
+            if not product or quantity <= 0:
+                continue
+
+            base_price = Decimal(str(product.price or 0))
+            margin_amount = Decimal(str(resell_link.margin_amount or 0)) if product.id == resell_link.product_id else Decimal('0.00')
+            if margin_amount > 0:
+                applicable_link_qty += quantity
+
             base_amount += base_price * quantity
             total_margin += margin_amount * quantity
+            normalized_items.append((product, quantity, size, color, base_price, margin_amount))
+
+        if not normalized_items:
+            raise ValidationError("No valid cart items found for creating order.")
+
+        if applicable_link_qty <= 0:
+            raise ValidationError("Linked resell product is not present in checkout items.")
         
         subtotal = base_amount + total_margin
         tax = kwargs.get('tax', Decimal('0.00'))
         shipping_cost = kwargs.get('shipping_cost', Decimal('0.00'))
         coupon_discount = kwargs.get('coupon_discount', Decimal('0.00'))
-        total_amount = subtotal + tax + shipping_cost - coupon_discount
+        points_discount = kwargs.get('points_discount', Decimal('0.00'))
+        total_amount = subtotal + tax + shipping_cost - coupon_discount - points_discount
+        if total_amount < Decimal('0.00'):
+            total_amount = Decimal('0.00')
         
         # Create order
         order = Order.objects.create(
@@ -573,18 +626,18 @@ class ResellOrderProcessor:
         )
         
         # Create order items
-        for item in cart_items:
+        for product, quantity, size, color, base_price, margin_amount in normalized_items:
             OrderItem.objects.create(
                 order=order,
-                product=item.product,
-                product_name=item.product.name,
-                base_price=item.product.price,
-                margin_amount=resell_link.margin_amount,
-                product_price=item.product.price + resell_link.margin_amount,
-                product_image=item.product.image.url if item.product.image else '',
-                quantity=item.quantity,
-                size=getattr(item, 'size', ''),
-                color=getattr(item, 'color', ''),
+                product=product,
+                product_name=product.name,
+                base_price=base_price,
+                margin_amount=margin_amount,
+                product_price=base_price + margin_amount,
+                product_image=product.image.url if getattr(product, 'image', None) else '',
+                quantity=quantity,
+                size=size,
+                color=color,
             )
         
         # Create reseller earning record
@@ -753,14 +806,15 @@ def cancel_resell_order(order):
             reseller_profile.available_balance = Decimal('0.00')
         reseller_profile.save(update_fields=['available_balance'])
     
-    # Update resell link statistics
+    # Update resell link statistics (if this earning came from a share link)
     resell_link = earning.resell_link
-    if resell_link.orders_count > 0:
-        resell_link.orders_count -= 1
-    resell_link.total_earnings -= earning.margin_amount
-    if resell_link.total_earnings < 0:
-        resell_link.total_earnings = Decimal('0.00')
-    resell_link.save(update_fields=['orders_count', 'total_earnings'])
+    if resell_link:
+        if resell_link.orders_count > 0:
+            resell_link.orders_count -= 1
+        resell_link.total_earnings -= earning.margin_amount
+        if resell_link.total_earnings < 0:
+            resell_link.total_earnings = Decimal('0.00')
+        resell_link.save(update_fields=['orders_count', 'total_earnings'])
     
     # Send notification to reseller
     send_resell_notification(

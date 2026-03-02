@@ -1,0 +1,201 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
+        
+        /* Header */
+        .header { margin-bottom: 40px; border-bottom: 3px solid #007bff; padding-bottom: 20px; }
+        .company-info { display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px; }
+        .company-name { font-size: 28px; font-weight: bold; color: #007bff; }
+        .company-details { text-align: right; font-size: 12px; color: #666; }
+        .invoice-title { font-size: 24px; font-weight: bold; color: #000; }
+        
+        /* Key Info */
+        .key-info { display: flex; justify-content: space-between; margin-bottom: 30px; background: #f8f9fa; padding: 20px; border-radius: 5px; }
+        .key-info-item { flex: 1; }
+        .key-info-label { font-weight: bold; font-size: 12px; color: #666; text-transform: uppercase; margin-bottom: 5px; }
+        .key-info-value { font-size: 16px; font-weight: bold; color: #000; }
+        
+        /* Section */
+        .section { margin: 30px 0; }
+        .section-title { font-size: 14px; font-weight: bold; background: #e9ecef; padding: 10px 15px; margin-bottom: 15px; border-left: 4px solid #007bff; }
+        
+        /* Reseller Info */
+        .info-box { background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        .info-row { margin: 8px 0; }
+        .info-label { font-weight: bold; color: #666; font-size: 12px; }
+        .info-value { color: #000; margin-left: 10px; }
+        
+        /* Table */
+        .earnings-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+        .earnings-table th { background: #007bff; color: white; padding: 12px; text-align: left; font-size: 12px; font-weight: bold; }
+        .earnings-table td { padding: 12px; border-bottom: 1px solid #ddd; font-size: 12px; }
+        .earnings-table tr:nth-child(even) { background: #f8f9fa; }
+        .amount-cell { text-align: right; font-weight: bold; }
+        .order-number { color: #007bff; font-weight: bold; }
+        
+        /* Summary */
+        .summary { float: right; width: 300px; background: #f8f9fa; padding: 20px; border-radius: 5px; border: 2px solid #007bff; }
+        .summary-row { display: flex; justify-content: space-between; margin: 10px 0; }
+        .summary-label { font-weight: bold; font-size: 12px; color: #666; }
+        .summary-value { font-weight: bold; color: #000; }
+        .summary-row.total { border-top: 2px solid #ddd; padding-top: 10px; margin-top: 10px; font-size: 16px; color: #28a745; }
+        .summary-row.total .summary-label { color: #28a745; font-size: 14px; }
+        .summary-row.total .summary-value { color: #28a745; font-size: 18px; }
+        
+        /* Footer */
+        .footer { clear: both; margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; font-size: 11px; color: #999; }
+        .footer-item { margin: 5px 0; }
+        
+        /* Payment Method */
+        .payment-method { background: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #28a745; }
+        .payment-method-title { font-weight: bold; color: #155724; margin-bottom: 10px; }
+        .payment-method-details { font-size: 12px; color: #155724; }
+        
+        /* Print */
+        @media print {
+            body { background: white; }
+            .container { padding: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="company-info">
+                <div>
+                    <div class="company-name">{{ company_name }}</div>
+                </div>
+                <div class="company-details">
+                    <div>{{ company_address }}</div>
+                    <div>{{ company_phone }}</div>
+                    <div>{{ company_email }}</div>
+                </div>
+            </div>
+            <div class="invoice-title">PAYOUT INVOICE</div>
+        </div>
+
+        <!-- Key Info -->
+        <div class="key-info">
+            <div class="key-info-item">
+                <div class="key-info-label">Invoice #</div>
+                <div class="key-info-value">{{ payout_id }}</div>
+            </div>
+            <div class="key-info-item">
+                <div class="key-info-label">Generated</div>
+                <div class="key-info-value">{{ generated_date|date:"M d, Y" }}</div>
+            </div>
+            <div class="key-info-item">
+                <div class="key-info-label">Status</div>
+                <div class="key-info-value" style="color: #28a745;">{{ payout_transaction.get_status_display }}</div>
+            </div>
+        </div>
+
+        <!-- Reseller Info -->
+        <div class="section">
+            <div class="section-title">Payout Recipient</div>
+            <div class="info-box">
+                <div class="info-row">
+                    <span class="info-label">Name:</span>
+                    <span class="info-value">{{ reseller.get_full_name|default:reseller.username }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Email:</span>
+                    <span class="info-value">{{ reseller.email }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Username:</span>
+                    <span class="info-value">{{ reseller.username }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Earnings Table -->
+        <div class="section">
+            <div class="section-title">Earnings Breakdown</div>
+            <table class="earnings-table">
+                <thead>
+                    <tr>
+                        <th>Order #</th>
+                        <th>Customer</th>
+                        <th>Delivery Date</th>
+                        <th class="amount-cell">Margin Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for earning in earnings %}
+                    <tr>
+                        <td><span class="order-number">#{{ earning.order.order_number }}</span></td>
+                        <td>{{ earning.order.user.get_full_name|default:earning.order.user.username }}</td>
+                        <td>{{ earning.order.delivery_date|date:"M d, Y" }}</td>
+                        <td class="amount-cell">₹{% if earning.margin_amount %}{{ earning.margin_amount|floatformat:2 }}{% else %}0.00{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Summary Box -->
+        <div class="summary">
+            <div class="summary-row">
+                <span class="summary-label">Total Earnings:</span>
+                <span class="summary-value">₹{{ total_margin|floatformat:2 }}</span>
+            </div>
+            <div class="summary-row">
+                <span class="summary-label">Payout Method:</span>
+                <span class="summary-value">{{ payout_transaction.get_payout_method_display }}</span>
+            </div>
+            <div class="summary-row">
+                <span class="summary-label">Transaction ID:</span>
+                <span class="summary-value">{{ payout_transaction.transaction_id|default:"—" }}</span>
+            </div>
+            <div class="summary-row total">
+                <span class="summary-label">Payout Amount:</span>
+                <span class="summary-value">₹{{ payout_transaction.amount|floatformat:2 }}</span>
+            </div>
+        </div>
+
+        <!-- Payment Method Info -->
+        <div style="clear: both; margin-top: 40px;">
+            <div class="payment-method">
+                <div class="payment-method-title">✓ Payment Method Details</div>
+                <div class="payment-method-details">
+                    {% if payout_transaction.payout_method == 'BANK_TRANSFER' %}
+                        Bank Transfer - Your funds will be transferred to the registered bank account
+                    {% elif payout_transaction.payout_method == 'UPI' %}
+                        UPI Transfer - Your funds will be sent to the registered UPI ID
+                    {% elif payout_transaction.payout_method == 'RAZORPAY' %}
+                        Razorpay Payout - Your funds will be processed via Razorpay
+                    {% else %}
+                        {{ payout_transaction.get_payout_method_display }}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="section">
+            <div class="section-title">Important Notes</div>
+            <div style="padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 5px; font-size: 12px; color: #856404;">
+                <p style="margin-bottom: 10px;">• The funds should reach your account within 1-2 business days, depending on your bank</p>
+                <p style="margin-bottom: 10px;">• This invoice serves as proof of payout for accounting purposes</p>
+                <p>• If you have any questions, please contact our support team</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div class="footer-item">This is an automated payout invoice generated on {{ generated_date|date:"M d, Y H:i" }}</div>
+            <div class="footer-item">{{ company_name }} - Resell Management System</div>
+            <div class="footer-item">Thank you for your partnership!</div>
+        </div>
+    </div>
+</body>
+</html>
