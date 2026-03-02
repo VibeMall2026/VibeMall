@@ -12,6 +12,7 @@ Key Functions:
 
 import re
 import logging
+import html
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -20,7 +21,6 @@ try:
     BLEACH_AVAILABLE = True
 except ImportError:
     BLEACH_AVAILABLE = False
-    import html
 
 logger = logging.getLogger(__name__)
 
