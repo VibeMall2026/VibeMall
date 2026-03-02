@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-i^r#ehtun$tu8)w!uz)g_@7!4&hfxo9=cf7brdr0!ufwnaeeb!
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['vibemall.in', 'www.vibemall.in', 'vibemall.cloud', 'www.vibemall.cloud', 'localhost', '127.0.0.1', '187.124.98.177']
 
 
 # Application definition

@@ -252,6 +252,22 @@ CATEGORY_CHOICES = [
 
 
 class Product(models.Model):
+    # Category choices - also available as class attribute for templates
+    CATEGORY_CHOICES = [
+        ('TOP_DEALS', 'Top Deals Of The Day'),
+        ('TOP_SELLING', 'Top Selling Products'),
+        ('TOP_FEATURED', 'Top Featured Products'),
+        ('RECOMMENDED', 'Recommended For You'),
+        ('MOBILES', 'Mobiles'),
+        ('FOOD_HEALTH', 'Food & Health'),
+        ('HOME_KITCHEN', 'Home & Kitchen'),
+        ('AUTO_ACC', 'Auto Acc'),
+        ('FURNITURE', 'Furniture'),
+        ('SPORTS', 'Sports'),
+        ('GENZ_TRENDS', 'GenZ Trends'),
+        ('NEXT_GEN', 'Next Gen'),
+    ]
+    
     name = models.CharField(max_length=200)
     slug = models.SlugField(max_length=200, unique=True, null=True, blank=True)
     sku = models.CharField(max_length=100, unique=True, blank=True, null=True, help_text="Stock Keeping Unit")
