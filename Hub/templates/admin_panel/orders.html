@@ -426,11 +426,8 @@
                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center gap-2">
-                                        {% if item.product_image %}
-                                        <img src="{{ item.product_image }}" alt="{{ item.product_name }}" 
-                                             style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 2px solid #f0f0f0;">
-                                        {% elif item.product and item.product.image %}
-                                        <img src="{{ item.product.image.url }}" alt="{{ item.product_name }}" 
+                                        {% if item.display_image_url %}
+                                        <img src="{{ item.display_image_url }}" alt="{{ item.product_name }}" 
                                              style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 2px solid #f0f0f0;">
                                         {% else %}
                                         <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center;">

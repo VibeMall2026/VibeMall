@@ -696,6 +696,14 @@ def _get_admin_chat_email():
     return admin_settings.admin_email if admin_settings else 'info.vibemall@gmail.com'
 
 
+def _get_from_email():
+    return (
+        getattr(settings, 'DEFAULT_FROM_EMAIL', '').strip() or
+        getattr(settings, 'EMAIL_HOST_USER', '').strip() or
+        'info.vibemall@gmail.com'
+    )
+
+
 def _get_thread_for_request(request, thread_id=None):
     thread = None
     if thread_id:
@@ -748,7 +756,7 @@ Message:
 {message_text}
 """
 
-    email = EmailMultiAlternatives(subject, text_content, settings.EMAIL_HOST_USER, [admin_email])
+    email = EmailMultiAlternatives(subject, text_content, _get_from_email(), [admin_email])
     email.attach_alternative(html_content, "text/html")
     email.send(fail_silently=True)
 
@@ -775,7 +783,7 @@ Hello {thread.display_name()},
 {message_text}
 """
 
-    email = EmailMultiAlternatives(subject, text_content, settings.EMAIL_HOST_USER, [recipient])
+    email = EmailMultiAlternatives(subject, text_content, _get_from_email(), [recipient])
     email.attach_alternative(html_content, "text/html")
     email.send(fail_silently=True)
 
@@ -3814,7 +3822,7 @@ def admin_approve_order(request, order_id):
         '''
         
         # Send email
-        email = EmailMultiAlternatives(subject, text_content, settings.EMAIL_HOST_USER, [order.user.email])
+        email = EmailMultiAlternatives(subject, text_content, _get_from_email(), [order.user.email])
         email.attach_alternative(html_content, "text/html")
         email.send()
         
@@ -3904,7 +3912,7 @@ FashioHub Team
         '''
         
         # Send email
-        email = EmailMultiAlternatives(subject, text_content, settings.EMAIL_HOST_USER, [order.user.email])
+        email = EmailMultiAlternatives(subject, text_content, _get_from_email(), [order.user.email])
         email.attach_alternative(html_content, "text/html")
         email.send()
         
@@ -7749,7 +7757,7 @@ FashioHub Team
         '''
         
         # Send email
-        email = EmailMultiAlternatives(subject, text_content, settings.EMAIL_HOST_USER, [order.user.email])
+        email = EmailMultiAlternatives(subject, text_content, _get_from_email(), [order.user.email])
         email.attach_alternative(html_content, "text/html")
         email.send()
         
@@ -8080,7 +8088,7 @@ View: {full_status_url}
             'status_label': return_request.get_status_display(),
             'status_url': full_status_url,
         })
-        email = EmailMultiAlternatives(subject, text_content, settings.EMAIL_HOST_USER, recipients)
+        email = EmailMultiAlternatives(subject, text_content, _get_from_email(), recipients)
         email.attach_alternative(html_content, "text/html")
         email.send(fail_silently=True)
     except Exception:
@@ -8122,7 +8130,7 @@ Open: {admin_return_url}
             'return_request': return_request,
             'admin_return_url': admin_return_url,
         })
-        email = EmailMultiAlternatives(subject, text_content, settings.EMAIL_HOST_USER, [admin_email])
+        email = EmailMultiAlternatives(subject, text_content, _get_from_email(), [admin_email])
         email.attach_alternative(html_content, "text/html")
         email.send(fail_silently=True)
     except Exception:

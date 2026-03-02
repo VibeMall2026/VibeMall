@@ -16,6 +16,40 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
+def _load_env_file() -> None:
+    env_path = BASE_DIR / '.env'
+    if not env_path.exists():
+        return
+
+    try:
+        for raw_line in env_path.read_text(encoding='utf-8').splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith('#') or '=' not in line:
+                continue
+            key, value = line.split('=', 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+    except Exception:
+        pass
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = str(os.getenv(name, str(default))).strip().lower()
+    return value in ('1', 'true', 't', 'yes', 'y', 'on')
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(str(os.getenv(name, default)).strip())
+    except (TypeError, ValueError):
+        return default
+
+
+_load_env_file()
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -23,9 +57,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-i^r#ehtun$tu8)w!uz)g_@7!4&hfxo9=cf7brdr0!ufwnaeeb!'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = _env_bool('DEBUG', True)
 
-ALLOWED_HOSTS = ['vibemall.in', 'www.vibemall.in', 'vibemall.cloud', 'www.vibemall.cloud', 'localhost', '127.0.0.1', '187.124.98.177']
+ALLOWED_HOSTS = [
+    host.strip() for host in os.getenv(
+        'ALLOWED_HOSTS',
+        'vibemall.in,www.vibemall.in,vibemall.cloud,www.vibemall.cloud,localhost,127.0.0.1,187.124.98.177'
+    ).split(',') if host.strip()
+]
 
 
 # Application definition
@@ -107,13 +146,17 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = ''
-EMAIL_HOST_PASSWORD = ''
-DEFAULT_FROM_EMAIL = 'VibeMall <info@vibemall.com>'
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = _env_int('EMAIL_PORT', 587)
+EMAIL_USE_TLS = _env_bool('EMAIL_USE_TLS', True)
+EMAIL_USE_SSL = _env_bool('EMAIL_USE_SSL', False)
+EMAIL_TIMEOUT = _env_int('EMAIL_TIMEOUT', 20)
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '').strip()
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '').strip()
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'VibeMall <info.vibemall@gmail.com>').strip()
+SERVER_EMAIL = os.getenv('SERVER_EMAIL', EMAIL_HOST_USER or 'info.vibemall@gmail.com').strip()
+SITE_URL = os.getenv('SITE_URL', 'https://vibemall.in').rstrip('/')
 
 
 # Internationalization

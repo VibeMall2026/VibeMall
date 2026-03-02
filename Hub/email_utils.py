@@ -12,6 +12,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _get_from_email() -> str:
+    return (
+        getattr(settings, 'DEFAULT_FROM_EMAIL', '').strip() or
+        getattr(settings, 'EMAIL_HOST_USER', '').strip() or
+        'info.vibemall@gmail.com'
+    )
+
+
 def send_order_confirmation_email(order):
     """
     Send order confirmation email to customer after successful order placement
@@ -66,7 +74,7 @@ def send_order_confirmation_email(order):
         
         # Create email
         subject = f'Order Confirmation - #{order.order_number} - VibeMall'
-        from_email = settings.EMAIL_HOST_USER
+        from_email = _get_from_email()
         to_email = order.user.email
         
         # Send email with both HTML and plain text versions
@@ -393,7 +401,7 @@ VibeMall System
         email = EmailMultiAlternatives(
             subject=subject,
             body=text_content,
-            from_email=settings.EMAIL_HOST_USER,
+            from_email=_get_from_email(),
             to=admin_emails
         )
         email.attach_alternative(html_content, "text/html")
@@ -496,7 +504,7 @@ Email: support@vibemall.com
 
         # Create email
         subject = 'Welcome to VibeMall - Registration Successful! 🎉'
-        from_email = settings.EMAIL_HOST_USER
+        from_email = _get_from_email()
         to_email = user.email
 
         email = EmailMultiAlternatives(
@@ -644,7 +652,7 @@ Email: support@vibemall.com
         
         # Create email
         subject = 'Welcome to VibeMall - Registration Successful! 🎉'
-        from_email = settings.EMAIL_HOST_USER
+        from_email = _get_from_email()
         to_email = user.email
         
         email = EmailMultiAlternatives(

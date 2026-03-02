@@ -948,6 +948,43 @@ class OrderItem(models.Model):
         self.subtotal = self.product_price * self.quantity
         super().save(*args, **kwargs)
 
+    @property
+    def display_image_url(self):
+        """Return safest available image URL for admin/front display."""
+        if self.product and self.product.image:
+            try:
+                return self.product.image.url
+            except Exception:
+                pass
+
+        raw_url = (self.product_image or '').strip()
+        if not raw_url:
+            return ''
+
+        local_hosts = (
+            'http://127.0.0.1', 'https://127.0.0.1',
+            'http://localhost', 'https://localhost'
+        )
+
+        if raw_url.startswith(local_hosts):
+            try:
+                from urllib.parse import urlparse
+                parsed = urlparse(raw_url)
+                return parsed.path if parsed.path.startswith('/media/') else ''
+            except Exception:
+                return ''
+
+        if raw_url.startswith('/media/'):
+            return raw_url
+
+        if raw_url.startswith('media/'):
+            return f"/{raw_url}"
+
+        if raw_url.startswith(('http://', 'https://')):
+            return raw_url
+
+        return raw_url
+
 
 class OrderStatusHistory(models.Model):
     """Track order status changes over time"""

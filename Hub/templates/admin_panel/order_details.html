@@ -233,8 +233,8 @@
                             <tr>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        {% if item.product_image %}
-                                        <img src="{{ item.product_image }}" alt="{{ item.product_name }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; margin-right: 10px;">
+                                        {% if item.display_image_url %}
+                                        <img src="{{ item.display_image_url }}" alt="{{ item.product_name }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; margin-right: 10px;">
                                         {% endif %}
                                         <div>
                                             <strong>{{ item.product_name }}</strong>
