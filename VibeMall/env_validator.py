@@ -114,7 +114,8 @@ class EnvironmentValidator:
             logger.info(msg)
         
         # Log validation summary
-        debug_mode = config('DEBUG', default=True, cast=bool)
+        raw_debug = str(config('DEBUG', default='True')).strip().lower()
+        debug_mode = raw_debug in ('1', 'true', 't', 'yes', 'y', 'on')
         if debug_mode:
             logger.info("[ENV VALIDATOR] Running in DEBUG mode")
         else:
