@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.contrib.auth import logout
 from django.urls import reverse
 from django.utils import timezone
+from datetime import timedelta
 
 
 class BlockedUserMiddleware:
@@ -37,8 +38,14 @@ class BlockedUserMiddleware:
                     
                     # Update last activity timestamp (only for non-admin panel requests to avoid overhead)
                     if not request.path.startswith('/admin-panel/'):
-                        profile.last_activity = timezone.now()
-                        profile.save(update_fields=['last_activity'])
+                        now = timezone.now()
+                        should_update = (
+                            profile.last_activity is None or
+                            profile.last_activity < (now - timedelta(minutes=5))
+                        )
+                        if should_update:
+                            profile.last_activity = now
+                            profile.save(update_fields=['last_activity'])
                     
                     # Check if blocked
                     if profile.is_blocked:

@@ -5723,11 +5723,21 @@ def faq(request): return render(request, 'faq.html')
 
 def login_view(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
-        username = request.POST.get("username")
+        username = (request.POST.get("username") or "").strip()
         password = request.POST.get("password")
         remember_me = request.POST.get("remember_me")
+        next_url = request.POST.get("next") or request.GET.get("next")
 
-        user = authenticate(request, username=username, password=password)
+        login_username = username
+        if "@" in username:
+            try:
+                matched_user = User.objects.filter(email__iexact=username).only('username').first()
+                if matched_user:
+                    login_username = matched_user.username
+            except Exception:
+                login_username = username
+
+        user = authenticate(request, username=login_username, password=password)
         if user:
             login(request, user)
             # Set session expiry based on remember me checkbox
@@ -5735,11 +5745,20 @@ def login_view(request: HttpRequest) -> HttpResponse:
                 request.session.set_expiry(30 * 24 * 60 * 60)  # 30 days
             else:
                 request.session.set_expiry(0)  # Session expires when browser closes
+
+            if next_url and next_url.startswith('/') and not next_url.startswith('//'):
+                return redirect(next_url)
+
+            if user.is_staff:
+                return redirect("admin_dashboard")
+
             return redirect("index")
         else:
             messages.error(request, "Invalid username or password. Please check your credentials and try again.")
 
-    return render(request, "login.html")
+    return render(request, "login.html", {
+        "next": request.GET.get("next", "")
+    })
 
 
 

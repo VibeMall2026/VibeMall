@@ -63,6 +63,9 @@
 
                     <form method="POST">
                         {% csrf_token %}
+                        {% if next %}
+                            <input type="hidden" name="next" value="{{ next }}">
+                        {% endif %}
 
                         <!-- Login Form Section -->
                         <div class="form-section mb-35">
