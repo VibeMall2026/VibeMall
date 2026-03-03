@@ -103,111 +103,61 @@
 }
 
 @media (min-width: 992px) and (max-width: 1199.98px) {
-  /* Override Bootstrap container max-width constraint on header-top */
-  .header-top {
-    width: 100% !important;
-  }
-
   .header-top .container {
-    width: 100% !important;
-    max-width: 100% !important;
-    padding-left: 8px !important;
-    padding-right: 8px !important;
+    max-width: 100%;
+    padding-left: 12px;
+    padding-right: 12px;
   }
 
-  .header-top .header-inner {
-    width: 100% !important;
-  }
-
-  /* Override Bootstrap row gutter */
   .header-top .header-inner > .row {
-    --bs-gutter-x: 0 !important;
-    --bs-gutter-y: 0 !important;
-    width: 100% !important;
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    justify-content: flex-end !important;
-    margin: 0 !important;
-    padding: 4px 0 !important;
-    margin-right: 0 !important;
-    margin-left: 0 !important;
+    --bs-gutter-x: 10px;
+    align-items: center;
   }
 
-  /* Hide empty first column completely */
-  .header-top .col-xl-6:first-child {
-    display: none !important;
-    width: 0 !important;
-    padding: 0 !important;
-    flex: 0 0 0 !important;
-    margin: 0 !important;
+  .header-top .header-inner > .row > div:first-child {
+    padding-right: 0;
   }
 
-  /* Make navigation column full width */
-  .header-top .col-xl-6:last-child {
-    width: 100% !important;
-    max-width: 100% !important;
-    flex: 0 0 100% !important;
-    padding: 0 !important;
-    margin: 0 !important;
+  .header-top .header-inner > .row > div:last-child {
+    padding-left: 0;
   }
 
-  .header-top .header-inner-end {
-    width: 100% !important;
-    text-align: end !important;
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-
+  .header-top .header-inner-end,
   .header-top .ovic-menu-wrapper {
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
+    width: 100%;
   }
 
-  /* Force menu list to single row */
   .header-top .ovic-menu-wrapper ul {
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    justify-content: flex-end !important;
-    align-items: center !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 0 2px !important;
-    gap: 0 !important;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    margin: 0;
+    padding: 0;
+    gap: 0;
+    width: 100%;
   }
 
-  /* Compress menu items maximally */
   .header-top .ovic-menu-wrapper ul li {
-    display: inline-flex !important;
-    align-items: center !important;
-    margin-right: 2px !important;
-    margin-left: 0 !important;
-    padding: 0 !important;
-    flex-shrink: 0 !important;
-    white-space: nowrap !important;
-    position: relative !important;
+    display: inline-flex;
+    align-items: center;
+    margin-right: 10px;
+    position: relative;
+    flex-shrink: 0;
   }
 
-  /* Hide separator lines */
   .header-top .ovic-menu-wrapper ul li::before {
-    display: none !important;
+    right: -5px;
+    bottom: 4px;
+    height: 12px;
   }
 
-  /* Ultra-tight link styling */
   .header-top .ovic-menu-wrapper ul li a {
-    color: #ffffff !important;
-    font-size: 7.5px !important;
-    font-weight: 500 !important;
-    padding: 2px 1px !important;
-    margin: 0 !important;
-    white-space: nowrap !important;
-    text-decoration: none !important;
-    line-height: 1 !important;
-    letter-spacing: -0.3px !important;
-  }
-
-  .header-top .ovic-menu-wrapper ul li a:hover {
-    color: #fcbe00 !important;
+    font-size: 12px;
+    line-height: 1.2;
+    padding: 4px 3px;
+    white-space: nowrap;
   }
 
   /* Header-mid styles */
@@ -279,17 +229,17 @@
   }
 
   .header-top .ovic-menu-wrapper ul li {
-    margin-right: 10px;
+    margin-right: 8px;
   }
 
   .header-top .ovic-menu-wrapper ul li::before {
-    right: -6px;
+    right: -4px;
   }
 
   .header-top .ovic-menu-wrapper ul li a {
     font-size: 11px;
-    padding-left: 6px;
-    padding-right: 6px;
+    padding-left: 2px;
+    padding-right: 2px;
   }
 }
 
