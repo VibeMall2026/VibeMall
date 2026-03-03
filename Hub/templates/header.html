@@ -62,7 +62,7 @@
                             <span class="count cart-count">{{ cart_count }}</span>
                         </a>
                     </div>
-                    <div class="col-xl-5 col-lg-4 d-none d-lg-block">
+                    <div class="col-xl-5 col-lg-4 d-none d-lg-block header-search-col">
                         <div class="header__search">
                             <form action="{% url 'shop' %}" method="get">
                                 <div class="header__search-box search-suggest">
@@ -89,7 +89,7 @@
                             </form>
                         </div>
                     </div>
-                    <div class="col-xl-4 col-lg-5 d-none d-lg-block">
+                    <div class="col-xl-4 col-lg-5 d-none d-lg-block header-action-col">
                         <div class="header-action header-action--mobile">
                     <div class="block-userlink">
                             {% if user.is_authenticated %}

@@ -12,9 +12,12 @@ Key Functions:
 
 import re
 import logging
-import html
+import html  # CRITICAL: Must be imported before bleach check
 from typing import Optional
 from urllib.parse import urlparse
+
+# Verify html module is available
+assert html, "Python html module failed to import"
 
 try:
     import bleach
