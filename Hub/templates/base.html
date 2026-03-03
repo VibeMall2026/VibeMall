@@ -40,7 +40,7 @@
     <link rel="stylesheet" href="{% static 'assets/css/default.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/custom-fixes.css' %}">
-    <link rel="stylesheet" href="{% static 'assets/css/header-responsive.css' %}?v=20260303-03">
+    <link rel="stylesheet" href="{% static 'assets/css/header-responsive.css' %}?v=20260303-04">
     <link rel="stylesheet" href="{% static 'assets/css/pages-responsive.css' %}?v=20260222-03">
     <link rel="stylesheet" href="{% static 'assets/css/buttons-rounded.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/base-custom.css' %}?v=20260222-02">
@@ -237,6 +237,17 @@
             const nav = document.getElementById('mobileBottomNav');
             if (!nav) return;
 
+            const setViewportBottomOffset = () => {
+                const vv = window.visualViewport;
+                let bottomOffset = 0;
+
+                if (vv) {
+                    bottomOffset = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop));
+                }
+
+                nav.style.setProperty('bottom', `${bottomOffset}px`, 'important');
+            };
+
             const apply = () => {
                 const isMobileTablet = window.matchMedia('(max-width: 1199.98px)').matches;
                 if (!isMobileTablet) {
@@ -252,12 +263,21 @@
                 nav.style.setProperty('width', '100vw', 'important');
                 nav.style.setProperty('max-width', '100vw', 'important');
                 nav.style.setProperty('z-index', '9999', 'important');
-                nav.style.setProperty('bottom', '0', 'important');
+                nav.style.setProperty('transform', 'translate3d(0,0,0)', 'important');
+                nav.style.setProperty('-webkit-transform', 'translate3d(0,0,0)', 'important');
+
+                setViewportBottomOffset();
             };
 
             apply();
             window.addEventListener('resize', apply, { passive: true });
             window.addEventListener('orientationchange', apply, { passive: true });
+            window.addEventListener('scroll', setViewportBottomOffset, { passive: true });
+
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', setViewportBottomOffset, { passive: true });
+                window.visualViewport.addEventListener('scroll', setViewportBottomOffset, { passive: true });
+            }
         })();
 
         (function () {
