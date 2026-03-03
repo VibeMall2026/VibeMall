@@ -103,6 +103,119 @@
 }
 
 @media (min-width: 992px) and (max-width: 1199.98px) {
+  /* Forcefully make navigation full-width */
+  .header-top {
+    width: 100vw;
+    position: relative;
+    left: 50%;
+    right: 50%;
+    margin-left: -50vw;
+    margin-right: -50vw;
+  }
+
+  .header-top .container {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 15px !important;
+  }
+
+  .header-top .header-inner {
+    width: 100%;
+  }
+
+  .header-top .header-inner > .row {
+    width: 100% !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-end !important;
+  }
+
+  /* Hide empty first column completely */
+  .header-top .col-xl-6:first-of-type,
+  .header-top .col-lg-7 {
+    display: none !important;
+    width: 0 !important;
+    max-width: 0 !important;
+    flex: 0 0 0 !important;
+  }
+
+  /* Make navigation column full width */
+  .header-top .col-xl-6:last-of-type,
+  .header-top .col-lg-5 {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+    display: block !important;
+  }
+
+  .header-top .header-inner-end {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    text-align: end !important;
+  }
+
+  .header-top .ovic-menu-wrapper {
+    width: 100% !important;
+  }
+
+  /* Menu list - force single row */
+  .header-top .ovic-menu-wrapper ul {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    margin: 0 !important;
+    padding: 8px 12px !important;
+    gap: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  /* Menu items - aggressive compression */
+  .header-top .ovic-menu-wrapper ul li {
+    display: inline-flex !important;
+    align-items: center !important;
+    margin-right: 6px !important;
+    margin-left: 0 !important;
+    padding: 0 !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    font-size: 9px !important;
+  }
+
+  /* Separator lines - make tiny */
+  .header-top .ovic-menu-wrapper ul li::before {
+    position: absolute !important;
+    width: 1px !important;
+    height: 8px !important;
+    background: rgba(255, 255, 255, 0.2) !important;
+    right: -4px !important;
+    bottom: 50% !important;
+    transform: translateY(50%) !important;
+    content: "" !important;
+  }
+
+  .header-top .ovic-menu-wrapper ul li:last-child::before {
+    display: none !important;
+  }
+
+  /* Links - ultra-tight padding */
+  .header-top .ovic-menu-wrapper ul li a {
+    color: #ffffff !important;
+    font-size: 9px !important;
+    font-weight: 500 !important;
+    padding: 4px 3px !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+    text-decoration: none !important;
+  }
+
+  .header-top .ovic-menu-wrapper ul li a:hover {
+    color: #fcbe00 !important;
+  }
+
+  /* Header-mid section */
   .header-mid .row {
     display: grid;
     grid-template-columns: minmax(180px, 22%) minmax(360px, 44%) minmax(280px, 34%);
@@ -162,74 +275,6 @@
 
   .header-mid .header-action .icon-link .main-label {
     font-size: 11px;
-  }
-
-  .header-top .ovic-menu-wrapper ul {
-    display: flex;
-    justify-content: flex-end;
-    flex-wrap: nowrap;
-    align-items: center;
-    white-space: nowrap;
-    margin: 0;
-    padding: 0;
-    gap: 0;
-    width: 100%;
-  }
-
-  .header-top .ovic-menu-wrapper ul li {
-    display: inline-flex;
-    align-items: center;
-    margin-right: 10px;
-    flex-shrink: 0;
-  }
-
-  .header-top .ovic-menu-wrapper ul li::before {
-    right: -6px;
-    bottom: 2px;
-    height: 10px;
-    width: 1px;
-  }
-
-  .header-top .ovic-menu-wrapper ul li a {
-    font-size: 10px;
-    padding-left: 4px;
-    padding-right: 4px;
-    white-space: nowrap;
-  }
-
-  .header-top .header-inner > .row {
-    justify-content: flex-end;
-  }
-
-  /* Override Bootstrap grid for header-top - hide first col, expand nav col to 100% */
-  .header-top .header-inner > .row {
-    display: flex;
-    flex-wrap: nowrap;
-    width: 100%;
-  }
-
-  .header-top .header-inner > .row > div:first-child {
-    display: none !important;
-    flex: 0 0 auto;
-  }
-
-  .header-top .header-inner > .row > div:last-child {
-    flex: 1 1 auto;
-    max-width: none !important;
-    width: 100%;
-    flex-basis: 100%;
-  }
-
-  /* Ensure header-inner-end fills available space */
-  .header-top .header-inner-end {
-    width: 100%;
-    display: flex;
-    justify-content: flex-end;
-  }
-
-  /* Ensure menu wrapper takes full available width */
-  .header-top .ovic-menu-wrapper {
-    width: 100%;
   }
 }
 
