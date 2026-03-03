@@ -433,6 +433,114 @@ VibeMall System
         return False
 
 
+def send_order_approval_email(order, request=None, approved_by=None):
+    """
+    Send order approval email to customer
+    
+    Args:
+        order: Order instance
+        request: Django request object (optional) for building absolute URLs
+        approved_by: Admin user who approved (optional)
+    
+    Returns:
+        bool: True if email sent successfully, False otherwise
+    """
+    try:
+        if not order.user.email:
+            logger.warning(f"Cannot send approval email: User {order.user.username} has no email")
+            return False
+        
+        # Build site URL
+        if request:
+            site_url = request.build_absolute_uri('/').rstrip('/')
+        else:
+            site_url = getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000')
+        
+        # Get from email
+        from_email = _get_from_email()
+        to_email = order.user.email
+        
+        # Render HTML email
+        html_content = render_to_string('emails/order_approved.html', {
+            'order': order,
+            'approved_by': approved_by.get_full_name() or approved_by.username if approved_by else 'Admin',
+            'site_url': site_url,
+        })
+        
+        # Plain text version
+        text_content = f"""Dear {order.user.get_full_name() or order.user.username},
+
+Good news! Your order {order.order_number} has been approved and is now being processed.
+
+Order Details:
+- Order Number: {order.order_number}
+- Total Amount: ₹{order.total_amount}
+- Status: Processing
+- Approved on: {order.approved_at.strftime("%B %d, %Y") if order.approved_at else "Today"}
+
+You can track your order here: {site_url}/orders/{order.id}/
+
+Thank you for shopping with us!
+
+Best regards,
+VibeMall Team
+        """
+        
+        # Create email
+        subject = f'Order Approved - #{order.order_number} - VibeMall'
+        
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body=text_content,
+            from_email=from_email,
+            to=[to_email]
+        )
+        email.attach_alternative(html_content, "text/html")
+        
+        # Send email
+        email.send(fail_silently=False)
+        
+        # Log successful email
+        EmailLog.objects.create(
+            user=order.user,
+            email_to=to_email,
+            email_type='ORDER_APPROVED',
+            subject=subject,
+            order=order,
+            sent_successfully=True
+        )
+        
+        # Create in-app notification
+        Notification.objects.create(
+            user=order.user,
+            notification_type='ORDER_APPROVED',
+            title=f'Order #{order.order_number} Approved!',
+            message=f'Your order for ₹{order.total_amount} has been approved and is being processed.',
+            link=f'/orders/{order.id}/'
+        )
+        
+        logger.info(f"Order approval email sent successfully to {to_email} for order {order.order_number}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to send order approval email for order {order.order_number}: {str(e)}", exc_info=True)
+        
+        try:
+            EmailLog.objects.create(
+                user=order.user,
+                email_to=order.user.email if order.user.email else 'unknown',
+                email_type='ORDER_APPROVED',
+                subject=f'Order Approved - #{order.order_number}',
+                order=order,
+                sent_successfully=False,
+                error_message=str(e)[:500]
+            )
+        except:
+            pass
+        
+        return False
+
+
 
 def send_welcome_email_with_terms(user, request):
     """

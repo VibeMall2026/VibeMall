@@ -509,13 +509,29 @@ class OrderAdmin(admin.ModelAdmin):
     # Admin Actions
     def approve_orders(self, request, queryset):
         from django.utils import timezone
-        updated = queryset.filter(approval_status='PENDING_APPROVAL').update(
-            approval_status='APPROVED',
-            approved_by=request.user,
-            approved_at=timezone.now(),
-            order_status='PROCESSING'
-        )
-        self.message_user(request, f'{updated} orders approved successfully.')
+        from .email_utils import send_order_approval_email
+        
+        orders_to_approve = queryset.filter(approval_status='PENDING_APPROVAL')
+        updated = 0
+        email_sent_count = 0
+        
+        for order in orders_to_approve:
+            order.approval_status = 'APPROVED'
+            order.approved_by = request.user
+            order.approved_at = timezone.now()
+            order.order_status = 'PROCESSING'
+            order.save()
+            updated += 1
+            
+            # Send approval email
+            if send_order_approval_email(order, approved_by=request.user):
+                email_sent_count += 1
+        
+        message = f'{updated} orders approved successfully.'
+        if email_sent_count < updated:
+            message += f' {email_sent_count}/{updated} approval emails sent. Check logs for failures.'
+        
+        self.message_user(request, message)
     approve_orders.short_description = "✅ Approve selected orders"
     
     def reject_orders(self, request, queryset):

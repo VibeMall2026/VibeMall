@@ -3787,47 +3787,14 @@ def admin_approve_order(request, order_id):
     
     logger.info(f"Order approved! New approval_status: {order.approval_status}, order_status: {order.order_status}")
     
-    # Send approval email to customer
-    try:
-        from django.template.loader import render_to_string
-        from django.core.mail import EmailMultiAlternatives
-        
-        subject = f'Order Approved - {order.order_number}'
-        
-        # Get site URL
-        site_url = request.build_absolute_uri('/').rstrip('/')
-        
-        # Render HTML email
-        html_content = render_to_string('emails/order_approved.html', {
-            'order': order,
-            'approved_by': request.user.get_full_name() or request.user.username,
-            'site_url': site_url,
-        })
-        
-        # Plain text version
-        text_content = f'''
-        Dear {order.user.get_full_name() or order.user.username},
-        
-        Good news! Your order {order.order_number} has been approved and is now being processed.
-        
-        Order Details:
-        - Order Number: {order.order_number}
-        - Total Amount: ₹{order.total_amount}
-        - Status: Processing
-        
-        Thank you for shopping with us!
-        
-        Best regards,
-        FashioHub Team
-        '''
-        
-        # Send email
-        email = EmailMultiAlternatives(subject, text_content, _get_from_email(), [order.user.email])
-        email.attach_alternative(html_content, "text/html")
-        email.send()
-        
-    except Exception as e:
-        print(f'Email sending failed: {e}')
+    # Send approval email to customer using proper email utility
+    from .email_utils import send_order_approval_email
+    email_sent = send_order_approval_email(order, request=request, approved_by=request.user)
+    
+    if email_sent:
+        logger.info(f"Approval email notification queued for order {order.order_number}")
+    else:
+        logger.warning(f"Failed to send approval email for order {order.order_number}. Check EmailLog for details.")
     
     messages.success(request, f'Order {order.order_number} approved successfully!')
     return redirect(request.META.get('HTTP_REFERER', 'admin_orders'))
