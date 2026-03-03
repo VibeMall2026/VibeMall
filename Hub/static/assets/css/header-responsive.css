@@ -103,24 +103,20 @@
 }
 
 @media (min-width: 992px) and (max-width: 1199.98px) {
-  /* Forcefully make navigation full-width */
+  /* Override Bootstrap container max-width constraint on header-top */
   .header-top {
-    width: 100vw;
-    position: relative;
-    left: 50%;
-    right: 50%;
-    margin-left: -50vw;
-    margin-right: -50vw;
+    width: 100% !important;
   }
 
   .header-top .container {
     width: 100% !important;
     max-width: 100% !important;
-    padding: 0 15px !important;
+    padding-left: 15px !important;
+    padding-right: 15px !important;
   }
 
   .header-top .header-inner {
-    width: 100%;
+    width: 100% !important;
   }
 
   .header-top .header-inner > .row {
@@ -128,69 +124,67 @@
     display: flex !important;
     flex-wrap: nowrap !important;
     justify-content: flex-end !important;
+    margin: 0 !important;
+    padding: 6px 0 !important;
   }
 
-  /* Hide empty first column completely */
-  .header-top .col-xl-6:first-of-type,
-  .header-top .col-lg-7 {
+  /* Hide empty first column */
+  .header-top .col-xl-6:first-child {
     display: none !important;
     width: 0 !important;
-    max-width: 0 !important;
     flex: 0 0 0 !important;
   }
 
   /* Make navigation column full width */
-  .header-top .col-xl-6:last-of-type,
-  .header-top .col-lg-5 {
+  .header-top .col-xl-6:last-child {
     width: 100% !important;
     max-width: 100% !important;
     flex: 0 0 100% !important;
-    display: block !important;
+    padding: 0 !important;
   }
 
   .header-top .header-inner-end {
     width: 100% !important;
-    display: flex !important;
-    justify-content: flex-end !important;
     text-align: end !important;
   }
 
   .header-top .ovic-menu-wrapper {
     width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
-  /* Menu list - force single row */
+  /* Force menu list to single row */
   .header-top .ovic-menu-wrapper ul {
     display: flex !important;
     flex-wrap: nowrap !important;
     justify-content: flex-end !important;
     align-items: center !important;
-    margin: 0 !important;
-    padding: 8px 12px !important;
-    gap: 0 !important;
     width: 100% !important;
-    height: 100% !important;
+    margin: 0 !important;
+    padding-right: 15px !important;
+    gap: 0 !important;
   }
 
-  /* Menu items - aggressive compression */
+  /* Compress menu items heavily */
   .header-top .ovic-menu-wrapper ul li {
     display: inline-flex !important;
     align-items: center !important;
-    margin-right: 6px !important;
+    margin-right: 4px !important;
     margin-left: 0 !important;
     padding: 0 !important;
     flex-shrink: 0 !important;
     white-space: nowrap !important;
-    font-size: 9px !important;
+    position: relative !important;
   }
 
-  /* Separator lines - make tiny */
+  /* Tiny separator lines */
   .header-top .ovic-menu-wrapper ul li::before {
     position: absolute !important;
     width: 1px !important;
-    height: 8px !important;
-    background: rgba(255, 255, 255, 0.2) !important;
-    right: -4px !important;
+    height: 6px !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+    right: -3px !important;
     bottom: 50% !important;
     transform: translateY(50%) !important;
     content: "" !important;
@@ -200,22 +194,23 @@
     display: none !important;
   }
 
-  /* Links - ultra-tight padding */
+  /* Ultra-tight link styling */
   .header-top .ovic-menu-wrapper ul li a {
     color: #ffffff !important;
-    font-size: 9px !important;
+    font-size: 8.5px !important;
     font-weight: 500 !important;
-    padding: 4px 3px !important;
+    padding: 3px 2px !important;
     margin: 0 !important;
     white-space: nowrap !important;
     text-decoration: none !important;
+    line-height: 1 !important;
   }
 
   .header-top .ovic-menu-wrapper ul li a:hover {
     color: #fcbe00 !important;
   }
 
-  /* Header-mid section */
+  /* Header-mid styles */
   .header-mid .row {
     display: grid;
     grid-template-columns: minmax(180px, 22%) minmax(360px, 44%) minmax(280px, 34%);
