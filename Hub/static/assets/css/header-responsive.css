@@ -170,12 +170,29 @@
     flex-wrap: nowrap;
     align-items: center;
     white-space: nowrap;
+    margin: 0;
+    padding: 0;
+    gap: 0;
+    width: 100%;
+  }
+
+  .header-top .ovic-menu-wrapper ul li {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 16px;
+  }
+
+  .header-top .ovic-menu-wrapper ul li::before {
+    right: -9px;
+    bottom: 4px;
+    height: 14px;
   }
 
   .header-top .ovic-menu-wrapper ul li a {
     font-size: 12px;
     padding-left: 8px;
     padding-right: 8px;
+    white-space: nowrap;
   }
 
   .header-top .header-inner > .row {
@@ -195,6 +212,20 @@
 @media (min-width: 992px) and (max-width: 1099.98px) {
   .header-mid .header-action .icon-link .sub {
     display: none;
+  }
+
+  .header-top .ovic-menu-wrapper ul li {
+    margin-right: 10px;
+  }
+
+  .header-top .ovic-menu-wrapper ul li::before {
+    right: -6px;
+  }
+
+  .header-top .ovic-menu-wrapper ul li a {
+    font-size: 11px;
+    padding-left: 6px;
+    padding-right: 6px;
   }
 }
 
