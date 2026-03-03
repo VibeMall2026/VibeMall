@@ -40,7 +40,7 @@
     <link rel="stylesheet" href="{% static 'assets/css/default.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/custom-fixes.css' %}">
-    <link rel="stylesheet" href="{% static 'assets/css/header-responsive.css' %}?v=20260303-05">
+    <link rel="stylesheet" href="{% static 'assets/css/header-responsive.css' %}?v=20260303-06">
     <link rel="stylesheet" href="{% static 'assets/css/pages-responsive.css' %}?v=20260222-03">
     <link rel="stylesheet" href="{% static 'assets/css/buttons-rounded.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/base-custom.css' %}?v=20260222-02">
@@ -238,7 +238,7 @@
             if (!nav) return;
 
             const setViewportBottomOffset = () => {
-                const isTabletRange = window.matchMedia('(min-width: 992px) and (max-width: 1199.98px)').matches;
+                const isTabletRange = window.matchMedia('(min-width: 992px) and (max-width: 1200.98px)').matches;
                 if (isTabletRange) {
                     nav.style.setProperty('display', 'grid', 'important');
                     nav.style.setProperty('visibility', 'visible', 'important');
@@ -258,7 +258,7 @@
             };
 
             const apply = () => {
-                const isMobileTablet = window.matchMedia('(max-width: 1199.98px)').matches;
+                const isMobileTablet = window.matchMedia('(max-width: 1200.98px)').matches;
                 if (!isMobileTablet) {
                     nav.style.setProperty('display', 'none', 'important');
                     return;
