@@ -259,6 +259,45 @@
             window.addEventListener('resize', apply, { passive: true });
             window.addEventListener('orientationchange', apply, { passive: true });
         })();
+
+        (function () {
+            const shouldSkipLazy = (img) => {
+                return !!(
+                    img.closest('.header') ||
+                    img.closest('.header-mid') ||
+                    img.closest('.header-top') ||
+                    img.closest('.tp-slider-area') ||
+                    img.closest('.slider-area') ||
+                    img.classList.contains('logo-image')
+                );
+            };
+
+            const applyLazyLoading = () => {
+                const images = document.querySelectorAll('img');
+                images.forEach((img) => {
+                    if (shouldSkipLazy(img)) {
+                        if (!img.hasAttribute('fetchpriority')) {
+                            img.setAttribute('fetchpriority', 'high');
+                        }
+                        return;
+                    }
+
+                    if (!img.hasAttribute('loading')) {
+                        img.setAttribute('loading', 'lazy');
+                    }
+
+                    if (!img.hasAttribute('decoding')) {
+                        img.setAttribute('decoding', 'async');
+                    }
+                });
+            };
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', applyLazyLoading, { once: true });
+            } else {
+                applyLazyLoading();
+            }
+        })();
         </script>
 </body>
 </html>
