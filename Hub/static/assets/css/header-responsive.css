@@ -179,19 +179,21 @@
   .header-top .ovic-menu-wrapper ul li {
     display: inline-flex;
     align-items: center;
-    margin-right: 16px;
+    margin-right: 10px;
+    flex-shrink: 0;
   }
 
   .header-top .ovic-menu-wrapper ul li::before {
-    right: -9px;
-    bottom: 4px;
-    height: 14px;
+    right: -6px;
+    bottom: 2px;
+    height: 10px;
+    width: 1px;
   }
 
   .header-top .ovic-menu-wrapper ul li a {
-    font-size: 12px;
-    padding-left: 8px;
-    padding-right: 8px;
+    font-size: 10px;
+    padding-left: 4px;
+    padding-right: 4px;
     white-space: nowrap;
   }
 
@@ -199,13 +201,35 @@
     justify-content: flex-end;
   }
 
+  /* Override Bootstrap grid for header-top - hide first col, expand nav col to 100% */
+  .header-top .header-inner > .row {
+    display: flex;
+    flex-wrap: nowrap;
+    width: 100%;
+  }
+
   .header-top .header-inner > .row > div:first-child {
-    display: none;
+    display: none !important;
+    flex: 0 0 auto;
   }
 
   .header-top .header-inner > .row > div:last-child {
-    flex: 0 0 100%;
-    max-width: 100%;
+    flex: 1 1 auto;
+    max-width: none !important;
+    width: 100%;
+    flex-basis: 100%;
+  }
+
+  /* Ensure header-inner-end fills available space */
+  .header-top .header-inner-end {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  /* Ensure menu wrapper takes full available width */
+  .header-top .ovic-menu-wrapper {
+    width: 100%;
   }
 }
 
