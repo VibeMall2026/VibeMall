@@ -238,6 +238,12 @@
             if (!nav) return;
 
             const setViewportBottomOffset = () => {
+                const isTabletRange = window.matchMedia('(min-width: 992px) and (max-width: 1199.98px)').matches;
+                if (isTabletRange) {
+                    nav.style.setProperty('bottom', '0px', 'important');
+                    return;
+                }
+
                 const vv = window.visualViewport;
                 let bottomOffset = 0;
 
@@ -265,6 +271,7 @@
                 nav.style.setProperty('z-index', '9999', 'important');
                 nav.style.setProperty('transform', 'translate3d(0,0,0)', 'important');
                 nav.style.setProperty('-webkit-transform', 'translate3d(0,0,0)', 'important');
+                nav.style.setProperty('bottom', '0px', 'important');
 
                 setViewportBottomOffset();
             };
