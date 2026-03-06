@@ -3171,8 +3171,8 @@ def send_order_status_email(order):
             html_message=message,
             fail_silently=True
         )
-    except Exception as e:
-        print(f"Email sending failed: {e}")
+    except Exception:
+        logger.exception("Email sending failed for order status update order_id=%s", order.id)
 
 
 def send_admin_new_order_notification(order):
@@ -3217,8 +3217,8 @@ def send_admin_new_order_notification(order):
             [admin_email],
             fail_silently=True
         )
-    except Exception as e:
-        print(f"Admin email notification failed: {e}")
+    except Exception:
+        logger.exception("Admin email notification failed for order_id=%s", order.id)
 
 
 def export_orders_to_excel(orders):
@@ -3883,8 +3883,8 @@ FashioHub Team
         email.attach_alternative(html_content, "text/html")
         email.send()
         
-    except Exception as e:
-        print(f'Email sending failed: {e}')
+    except Exception:
+        logger.exception("Email sending failed while rejecting order_id=%s", order.id)
     
     messages.warning(request, f'Order {order.order_number} rejected. Reason: {rejection_reason}')
     return redirect(request.META.get('HTTP_REFERER', 'admin_orders'))
@@ -6476,6 +6476,7 @@ def remove_from_cart(request, cart_id):
 
 
 @login_required(login_url='login')
+@require_POST
 def ajax_toggle_cart(request, product_id):
     """AJAX endpoint to toggle product in/out of cart"""
     try:
@@ -6515,10 +6516,11 @@ def ajax_toggle_cart(request, product_id):
             'success': False,
             'message': 'Product not found'
         }, status=404)
-    except Exception as e:
+    except Exception:
+        logger.exception("Failed to toggle cart item for user_id=%s product_id=%s", request.user.id, product_id)
         return JsonResponse({
             'success': False,
-            'message': str(e)
+            'message': 'Unable to update cart right now. Please try again.'
         }, status=500)
 
 
@@ -7728,8 +7730,8 @@ FashioHub Team
         email.attach_alternative(html_content, "text/html")
         email.send()
         
-    except Exception as e:
-        print(f'Email sending failed: {e}')
+    except Exception:
+        logger.exception("Email sending failed while payment cancellation for order_id=%s", order.id)
     
     messages.warning(request, 'Payment was cancelled. You can try again from your orders.')
     return redirect('checkout')
@@ -9679,8 +9681,8 @@ def reel_studio_export(request):
                             text_size=70
                         )
                         image_count += 1
-                except Exception as e:
-                    print(f"Error saving layer {idx}: {e}")
+                except Exception:
+                    logger.exception("Failed saving reel layer index=%s for reel export", idx)
         
         if image_count == 0:
             reel.delete()
@@ -9697,9 +9699,7 @@ def reel_studio_export(request):
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON data'}, status=400)
     except Exception as e:
-        print(f"Export error: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.exception("Reel studio export failed")
         return JsonResponse({'error': str(e)}, status=500)
 
 
@@ -9926,7 +9926,6 @@ def admin_generate_reel(request, reel_id):
     """Generate video from reel images"""
     from Hub.models import Reel
     from Hub.reel_generator_v2 import EnhancedReelGenerator
-    import traceback
     
     reel = get_object_or_404(Reel, id=reel_id)
     
@@ -9941,34 +9940,34 @@ def admin_generate_reel(request, reel_id):
         return redirect('admin_edit_reel', reel_id=reel.id)
     
     try:
-        print(f"\n{'='*60}")
-        print(f"🎬 Starting enhanced reel generation: {reel.title} (ID: {reel.id})")
-        print(f"   Images: {reel.images.count()}")
-        print(f"   Animation: {reel.transition_type}")
-        print(f"   Watermark: {'Yes' if reel.watermark_logo else 'No'}")
-        print(f"   End Screen: {'Yes' if reel.add_end_screen else 'No'}")
-        print(f"{'='*60}\n")
+        logger.info(
+            "Starting enhanced reel generation reel_id=%s title=%s images=%s animation=%s watermark=%s end_screen=%s",
+            reel.id,
+            reel.title,
+            reel.images.count(),
+            reel.transition_type,
+            bool(reel.watermark_logo),
+            bool(reel.add_end_screen),
+        )
         
         # Generate reel with enhanced generator
         generator = EnhancedReelGenerator(reel)
         success = generator.generate_video()
         
         if success:
-            print(f"\n✅ SUCCESS: Professional reel generated!")
-            print(f"   Video file: {reel.video_file.name if reel.video_file else 'None'}")
-            print(f"   Duration: {reel.duration}s\n")
+            logger.info(
+                "Enhanced reel generated successfully reel_id=%s video_file=%s duration=%s",
+                reel.id,
+                reel.video_file.name if reel.video_file else None,
+                reel.duration,
+            )
             messages.success(request, f'✅ Professional reel "{reel.title}" generated successfully!')
         else:
-            print(f"\n❌ FAILED: Video generation returned False")
-            print(f"   Check error messages above\n")
+            logger.warning("Enhanced reel generation returned False reel_id=%s", reel.id)
             messages.error(request, '❌ Failed to generate reel. Check server console for details.')
     
     except Exception as e:
-        print(f"\n❌ EXCEPTION during reel generation:")
-        print(f"   Error: {str(e)}")
-        print(f"\n   Full traceback:")
-        traceback.print_exc()
-        print()
+        logger.exception("Exception during enhanced reel generation reel_id=%s", reel.id)
         
         messages.error(request, f'❌ Error: {str(e)}')
         reel.is_processing = False
@@ -10124,25 +10123,9 @@ def privacy_policy(request):
 # COUPON SYSTEM VIEWS
 # ============================================
 
-from django.http import JsonResponse
-from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_exempt
-from django.utils import timezone
-from datetime import timedelta
-import json
-
 @require_POST
-# NOTE: CSRF exemption valid for webhook endpoints that verify signatures
-# For AJAX endpoints, ensure frontend sends CSRF token in headers:
-# headers: {'X-CSRFToken': csrfToken, 'Content-Type': 'application/json'}
-@csrf_exempt
 def validate_coupon(request):
-    """Validate coupon code and return discount details
-    
-    Security: This endpoint should ideally use CSRF token from frontend.
-    To enable CSRF protection, remove @csrf_exempt and ensure frontend sends
-    X-CSRFToken header with the CSRF token from the form.
-    """
+    """Validate coupon code and return discount details."""
     try:
         data = json.loads(request.body)
         code = data.get('code', '').upper().strip()
@@ -10211,15 +10194,8 @@ def validate_coupon(request):
 
 
 @require_POST
-# NOTE: CSRF exemption for AJAX endpoint - consider using CSRF token from frontend
-# Recommendation: Pass X-CSRFToken header from frontend in AJAX requests
-@csrf_exempt
 def get_available_coupons(request):
-    """Get list of available coupons for the user
-    
-    Security: This endpoint should ideally use CSRF token from frontend.
-    Frontend should send X-CSRFToken header in the AJAX request.
-    """
+    """Get list of available coupons for the user."""
     try:
         if not request.user.is_authenticated:
             return JsonResponse({'coupons': []})

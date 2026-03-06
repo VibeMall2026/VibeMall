@@ -32,6 +32,13 @@ from .resell_services import (
     ResellerPaymentManager,
     ResellOrderProcessor
 )
+from .view_helpers import (
+    _lookup_ifsc_details,
+    _normalize_bank_account_number,
+    _validate_bank_account_number_format,
+    _validate_upi_format,
+    _verify_upi_with_razorpay,
+)
 
 
 # ============================================
@@ -509,21 +516,55 @@ def reseller_profile_page(request):
         profile = ResellerProfile.objects.create(user=request.user)
     
     if request.method == 'POST':
-        # Update profile
-        profile.business_name = request.POST.get('business_name', '')
-        profile.bank_account_name = request.POST.get('bank_account_name', '')
-        profile.bank_account_number = request.POST.get('bank_account_number', '')
-        profile.bank_ifsc_code = request.POST.get('bank_ifsc_code', '')
-        profile.upi_id = request.POST.get('upi_id', '')
-        profile.pan_number = request.POST.get('pan_number', '')
-        
+        profile.business_name = request.POST.get('business_name', '').strip()
+        profile.bank_account_name = request.POST.get('bank_account_name', '').strip()
+        profile.bank_account_number = _normalize_bank_account_number(
+            request.POST.get('bank_account_number', '')
+        )
+        profile.bank_ifsc_code = request.POST.get('bank_ifsc_code', '').strip().upper()
+        profile.upi_id = request.POST.get('upi_id', '').strip().lower()
+        profile.pan_number = request.POST.get('pan_number', '').strip().upper()
+
         try:
+            has_bank_details = any([
+                profile.bank_account_name,
+                profile.bank_account_number,
+                profile.bank_ifsc_code,
+            ])
+            if has_bank_details:
+                if not all([
+                    profile.bank_account_name,
+                    profile.bank_account_number,
+                    profile.bank_ifsc_code,
+                ]):
+                    raise ValidationError(
+                        'Account holder name, account number, and IFSC are all required for bank payouts.'
+                    )
+                if not _validate_bank_account_number_format(profile.bank_account_number):
+                    raise ValidationError('Bank account number must be 6 to 34 digits.')
+
+                valid_ifsc, _bank_name, _branch_name, ifsc_message = _lookup_ifsc_details(
+                    profile.bank_ifsc_code
+                )
+                if not valid_ifsc:
+                    raise ValidationError(ifsc_message or 'Invalid IFSC code.')
+
+            if profile.upi_id:
+                if not _validate_upi_format(profile.upi_id):
+                    raise ValidationError('UPI ID format is invalid.')
+
+                valid_upi, _upi_name, upi_message = _verify_upi_with_razorpay(profile.upi_id)
+                if not valid_upi:
+                    raise ValidationError(upi_message or 'UPI ID could not be verified.')
+
+            if profile.pan_number and len(profile.pan_number) != 10:
+                raise ValidationError('PAN number must be 10 characters.')
+
             profile.save()
             messages.success(request, 'Profile updated successfully.')
+            return redirect('reseller_profile')
         except ValidationError as e:
             messages.error(request, str(e))
-        
-        return redirect('reseller_profile')
     
     context = {
         'profile': profile,

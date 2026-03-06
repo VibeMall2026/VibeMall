@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+import sys
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -49,12 +50,16 @@ def _env_int(name: str, default: int) -> int:
 
 
 _load_env_file()
+RUNNING_TESTS = 'test' in sys.argv
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-i^r#ehtun$tu8)w!uz)g_@7!4&hfxo9=cf7brdr0!ufwnaeeb!'
+SECRET_KEY = os.getenv(
+    'SECRET_KEY',
+    'dev-only-change-this-secret-key-before-production-use-9482f17a3b6c'
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = _env_bool('DEBUG', True)
@@ -65,6 +70,23 @@ ALLOWED_HOSTS = [
         'vibemall.in,www.vibemall.in,vibemall.cloud,www.vibemall.cloud,localhost,127.0.0.1,187.124.98.177'
     ).split(',') if host.strip()
 ]
+
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip() for origin in os.getenv(
+        'CSRF_TRUSTED_ORIGINS',
+        'https://vibemall.in,https://www.vibemall.in,https://vibemall.cloud,https://www.vibemall.cloud'
+    ).split(',') if origin.strip()
+]
+
+IS_PRODUCTION = (not DEBUG) and (not RUNNING_TESTS)
+SECURE_SSL_REDIRECT = _env_bool('SECURE_SSL_REDIRECT', IS_PRODUCTION)
+SESSION_COOKIE_SECURE = _env_bool('SESSION_COOKIE_SECURE', IS_PRODUCTION)
+CSRF_COOKIE_SECURE = _env_bool('CSRF_COOKIE_SECURE', IS_PRODUCTION)
+SECURE_HSTS_SECONDS = _env_int('SECURE_HSTS_SECONDS', 31536000 if IS_PRODUCTION else 0)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = _env_bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', IS_PRODUCTION)
+SECURE_HSTS_PRELOAD = _env_bool('SECURE_HSTS_PRELOAD', IS_PRODUCTION)
+SECURE_REFERRER_POLICY = os.getenv('SECURE_REFERRER_POLICY', 'strict-origin-when-cross-origin')
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
 # Application definition

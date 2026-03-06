@@ -10,17 +10,18 @@
     <meta name="keywords" content="{% block meta_keywords %}online shopping, ecommerce, fashion, electronics, deals{% endblock %}">
     <meta name="author" content="VibeMall">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="canonical" href="{% block canonical_url %}{% if site_url %}{{ site_url }}{{ request.path }}{% else %}{{ request.scheme }}://{{ request.get_host }}{{ request.path }}{% endif %}{% endblock %}">
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="{% block og_type %}website{% endblock %}">
-    <meta property="og:url" content="{% block og_url %}https://vibemall.com/{% endblock %}">
+    <meta property="og:url" content="{% block og_url %}{% if site_url %}{{ site_url }}{{ request.path }}{% else %}{{ request.scheme }}://{{ request.get_host }}{{ request.path }}{% endif %}{% endblock %}">
     <meta property="og:title" content="{% block og_title %}VibeMall - Your Shopping Destination{% endblock %}">
     <meta property="og:description" content="{% block og_description %}VibeMall - Shop the latest products with amazing deals, fast shipping, and secure checkout.{% endblock %}">
     <meta property="og:image" content="{% block og_image %}{% static 'assets/img/logo/vibemall-brand.png' %}{% endblock %}">
     
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="{% block twitter_url %}https://vibemall.com/{% endblock %}">
+    <meta property="twitter:url" content="{% block twitter_url %}{% if site_url %}{{ site_url }}{{ request.path }}{% else %}{{ request.scheme }}://{{ request.get_host }}{{ request.path }}{% endif %}{% endblock %}">
     <meta property="twitter:title" content="{% block twitter_title %}VibeMall - Your Shopping Destination{% endblock %}">
     <meta property="twitter:description" content="{% block twitter_description %}VibeMall - Shop the latest products with amazing deals.{% endblock %}">
     <meta property="twitter:image" content="{% block twitter_image %}{% static 'assets/img/logo/vibemall-brand.png' %}{% endblock %}">
@@ -52,7 +53,7 @@
 <script>
     var userAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
     {% if user.is_authenticated %}
-    var wishlistProductIds = {{ wishlist_product_ids|safe }};
+    var wishlistProductIds = {{ wishlist_product_ids|default:'[]'|safe }};
     {% endif %}
 </script>
 
@@ -240,9 +241,6 @@
             const setViewportBottomOffset = () => {
                 const isTabletRange = window.matchMedia('(min-width: 992px) and (max-width: 1200.98px)').matches;
                 if (isTabletRange) {
-                    nav.style.setProperty('display', 'grid', 'important');
-                    nav.style.setProperty('visibility', 'visible', 'important');
-                    nav.style.setProperty('opacity', '1', 'important');
                     nav.style.setProperty('bottom', '0px', 'important');
                     return;
                 }
@@ -284,11 +282,9 @@
             apply();
             window.addEventListener('resize', apply, { passive: true });
             window.addEventListener('orientationchange', apply, { passive: true });
-            window.addEventListener('scroll', setViewportBottomOffset, { passive: true });
 
             if (window.visualViewport) {
                 window.visualViewport.addEventListener('resize', setViewportBottomOffset, { passive: true });
-                window.visualViewport.addEventListener('scroll', setViewportBottomOffset, { passive: true });
             }
         })();
 

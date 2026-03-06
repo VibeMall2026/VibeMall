@@ -1865,7 +1865,7 @@ class ResellLink(models.Model):
                 raise ValidationError({'margin_amount': 'Margin must be greater than zero.'})
             
             # Margin must not exceed 50% of product price
-            max_margin = self.product.price * 0.5
+            max_margin = self.product.price * Decimal('0.5')
             if self.margin_amount > max_margin:
                 raise ValidationError({
                     'margin_amount': f'Margin cannot exceed 50% of product price (₹{max_margin}).'

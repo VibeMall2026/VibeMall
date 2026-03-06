@@ -146,6 +146,22 @@ def _verify_upi_with_razorpay(upi_id: str, logger: Any = None) -> Tuple[bool, st
     return True, name, ''
 
 
+def _normalize_bank_account_number(account_number: Optional[str]) -> str:
+    """Remove spaces from a bank account number."""
+    return re.sub(r"\s+", "", (account_number or '').strip())
+
+
+def _validate_bank_account_number_format(account_number: Optional[str]) -> bool:
+    """Validate Indian bank account number format at a basic syntax level."""
+    normalized = _normalize_bank_account_number(account_number)
+    return bool(re.fullmatch(r"[0-9]{6,34}", normalized))
+
+
+def _validate_upi_format(upi_id: Optional[str]) -> bool:
+    """Validate UPI ID syntax before making a remote verification call."""
+    return bool(re.fullmatch(r"[a-z0-9._-]{2,256}@[a-z]{2,64}", (upi_id or '').strip().lower()))
+
+
 def _validate_indian_pincode(pincode: Optional[str]) -> bool:
     """Validate an Indian pincode using external postal API."""
     if not re.fullmatch(r"[0-9]{6}", pincode or ''):

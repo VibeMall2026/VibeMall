@@ -18,8 +18,8 @@
   "@context": "https://schema.org",
   "@type": "Organization",
   "name": "VibeMall",
-  "url": "https://vibemall.com",
-  "logo": "https://vibemall.com{% static 'assets/img/logo/vibemall-brand.png' %}",
+  "url": "{% if site_url %}{{ site_url }}{% else %}{{ request.scheme }}://{{ request.get_host }}{% endif %}",
+  "logo": "{% if site_url %}{{ site_url }}{% else %}{{ request.scheme }}://{{ request.get_host }}{% endif %}{% static 'assets/img/logo/vibemall-brand.png' %}",
   "description": "VibeMall - Your trusted online shopping destination",
   "sameAs": [],
   "contactPoint": {
@@ -2778,11 +2778,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             const response = await fetch(`/cart/toggle/${productId}/`, {
-                method: 'GET',
+                method: 'POST',
                 headers: {
-                    'X-CSRFToken': getCsrfToken(),
-                    'Content-Type': 'application/json'
-                }
+                    'X-CSRFToken': getCsrfToken()
+                },
+                credentials: 'same-origin'
             });
 
             const data = await response.json();

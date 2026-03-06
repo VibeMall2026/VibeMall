@@ -7,6 +7,7 @@ from collections import defaultdict
 
 from django.utils import timezone
 from django.core.cache import cache
+from django.conf import settings
 
 from .models import Cart, Wishlist, SiteSettings, LoyaltyPoints, CategoryIcon, Product, SubCategory, Coupon
 from django.db.models import F, Sum
@@ -57,6 +58,7 @@ def site_settings_context(request):
     
     return {
         'site_settings': site_settings,
+        'site_url': getattr(settings, 'SITE_URL', '').rstrip('/'),
     }
 
 

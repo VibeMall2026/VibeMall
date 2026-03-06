@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import views_api
 from . import views_resell
 from . import views_admin_resell
 from . import backup_views
@@ -113,22 +114,22 @@ urlpatterns = [
     # Profile
     path('profile/', views.profile_view, name='profile'),
     path('product/<slug:slug>/', views.product_detail, name='product_detail'),
-    path('api/profile/stats/', views.api_profile_stats, name='api_profile_stats'),
-    path('api/products/search/', views.product_search_api, name='product_search_api'),
-    path('api/upi/validate/', views.validate_upi_id, name='validate_upi_id'),
-    path('api/ifsc/lookup/', views.lookup_ifsc, name='lookup_ifsc'),
-    path('api/cart/summary/', views.cart_summary, name='cart_summary'),
-    path('reels/<int:reel_id>/track-view/', views.reel_track_view, name='reel_track_view'),
-    path('reels/<int:reel_id>/like/', views.reel_set_like, name='reel_set_like'),
+    path('api/profile/stats/', views_api.api_profile_stats, name='api_profile_stats'),
+    path('api/products/search/', views_api.product_search_api, name='product_search_api'),
+    path('api/upi/validate/', views_api.validate_upi_id, name='validate_upi_id'),
+    path('api/ifsc/lookup/', views_api.lookup_ifsc, name='lookup_ifsc'),
+    path('api/cart/summary/', views_api.cart_summary, name='cart_summary'),
+    path('reels/<int:reel_id>/track-view/', views_api.reel_track_view, name='reel_track_view'),
+    path('reels/<int:reel_id>/like/', views_api.reel_set_like, name='reel_set_like'),
 
     # Support Chat
-    path('chat/thread/', views.chat_thread, name='chat_thread'),
-    path('chat/message/', views.chat_message, name='chat_message'),
-    path('newsletter/subscribe/', views.subscribe_newsletter, name='subscribe_newsletter'),
+    path('chat/thread/', views_api.chat_thread, name='chat_thread'),
+    path('chat/message/', views_api.chat_message, name='chat_message'),
+    path('newsletter/subscribe/', views_api.subscribe_newsletter, name='subscribe_newsletter'),
     
     # Cart URLs
     path('add-to-cart/', views.add_to_cart, name='add_to_cart'),
-    path('cart/toggle/<int:product_id>/', views.ajax_toggle_cart, name='ajax_toggle_cart'),
+    path('cart/toggle/<int:product_id>/', views_api.ajax_toggle_cart, name='ajax_toggle_cart'),
     path('remove-from-cart/<int:cart_id>/', views.remove_from_cart, name='remove_from_cart'),
     path('update-cart-quantity/<int:cart_id>/', views.update_cart_quantity, name='update_cart_quantity'),
     
@@ -179,8 +180,8 @@ urlpatterns = [
     path('verify-email/<uidb64>/<token>/', views.verify_email, name='verify_email'),
     
     # Coupon System URLs
-    path('api/validate-coupon/', views.validate_coupon, name='validate_coupon'),
-    path('api/available-coupons/', views.get_available_coupons, name='available_coupons'),
+    path('api/validate-coupon/', views_api.validate_coupon, name='validate_coupon'),
+    path('api/available-coupons/', views_api.get_available_coupons, name='available_coupons'),
     
     # ============================================
     # RESELL FEATURE URLs

@@ -24,6 +24,13 @@ from .models import (
     Product,
     User
 )
+from .view_helpers import (
+    _lookup_ifsc_details,
+    _normalize_bank_account_number,
+    _validate_bank_account_number_format,
+    _validate_upi_format,
+    _verify_upi_with_razorpay,
+)
 
 
 class ResellLinkGenerator:
@@ -376,13 +383,29 @@ class ResellerPaymentManager:
                 f"Please request full available balance only (₹{profile.available_balance})."
             )
 
+        normalized_bank_account = _normalize_bank_account_number(
+            payment_details.get('bank_account_number', '')
+        )
+        normalized_ifsc = (payment_details.get('bank_ifsc_code', '') or '').strip().upper()
+        normalized_upi = (payment_details.get('upi_id', '') or '').strip().lower()
+
         # Validate payment details based on method
         if payout_method == 'BANK_TRANSFER':
-            if not payment_details.get('bank_account_number') or not payment_details.get('bank_ifsc_code'):
+            if not normalized_bank_account or not normalized_ifsc:
                 raise ValidationError("Bank account details required for bank transfer.")
+            if not _validate_bank_account_number_format(normalized_bank_account):
+                raise ValidationError("Bank account number must be 6 to 34 digits.")
+            valid_ifsc, _bank_name, _branch_name, ifsc_message = _lookup_ifsc_details(normalized_ifsc)
+            if not valid_ifsc:
+                raise ValidationError(ifsc_message or "Invalid IFSC code.")
         elif payout_method == 'UPI':
-            if not payment_details.get('upi_id'):
+            if not normalized_upi:
                 raise ValidationError("UPI ID required for UPI payout.")
+            if not _validate_upi_format(normalized_upi):
+                raise ValidationError("UPI ID format is invalid.")
+            valid_upi, _upi_name, upi_message = _verify_upi_with_razorpay(normalized_upi)
+            if not valid_upi:
+                raise ValidationError(upi_message or "UPI ID could not be verified.")
         
         # Create payout transaction
         payout = PayoutTransaction.objects.create(
@@ -390,8 +413,8 @@ class ResellerPaymentManager:
             amount=amount,
             payout_method=payout_method,
             status='INITIATED',
-            bank_account=payment_details.get('bank_account_number', ''),
-            upi_id=payment_details.get('upi_id', ''),
+            bank_account=normalized_bank_account,
+            upi_id=normalized_upi,
             initiated_at=timezone.now()
         )
 

@@ -1,12 +1,15 @@
 from decimal import Decimal
+from unittest.mock import patch
 
+from django.test import Client
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
+from django.urls import reverse
 
-from .models import Cart, Order, Product, ResellLink, ResellerEarning
-from .resell_services import ResellOrderProcessor, cancel_resell_order
+from .models import Cart, Order, Product, ResellLink, ResellerEarning, ResellerProfile
+from .resell_services import ResellOrderProcessor, ResellerPaymentManager, cancel_resell_order
 
 
 def _tiny_image(name="test.gif"):
@@ -131,3 +134,63 @@ class ManualResellCancellationTests(TestCase):
         cancel_resell_order(order)
         earning.refresh_from_db()
         self.assertEqual(earning.status, "CANCELLED")
+
+
+class ResellerPayoutVerificationTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="payout-user", password="pass12345")
+        self.profile = ResellerProfile.objects.create(
+            user=self.user,
+            is_reseller_enabled=True,
+            available_balance=Decimal("500.00"),
+        )
+        self.client.login(username="payout-user", password="pass12345")
+
+    @patch("Hub.views_resell._verify_upi_with_razorpay", return_value=(False, "", "UPI ID not found."))
+    def test_reseller_profile_rejects_unverified_upi(self, _mock_upi_verify):
+        response = self.client.post(
+            reverse("reseller_profile"),
+            {
+                "business_name": "Test Shop",
+                "upi_id": "wrong@upi",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.upi_id, "")
+
+    @patch("Hub.views_resell._lookup_ifsc_details", return_value=(True, "State Bank of India", "Main Branch", ""))
+    @patch("Hub.views_resell._verify_upi_with_razorpay", return_value=(True, "Payout User", ""))
+    def test_reseller_profile_saves_normalized_verified_details(self, _mock_upi_verify, _mock_ifsc_lookup):
+        response = self.client.post(
+            reverse("reseller_profile"),
+            {
+                "business_name": "Test Shop",
+                "bank_account_name": "Payout User",
+                "bank_account_number": "1234 5678 9012",
+                "bank_ifsc_code": "sbin0001234",
+                "upi_id": "Payout.User@YBL",
+                "pan_number": "abcde1234f",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.bank_account_number, "123456789012")
+        self.assertEqual(self.profile.bank_ifsc_code, "SBIN0001234")
+        self.assertEqual(self.profile.upi_id, "payout.user@ybl")
+        self.assertEqual(self.profile.pan_number, "ABCDE1234F")
+
+    def test_process_payout_rejects_invalid_bank_account_number(self):
+        with self.assertRaises(ValidationError):
+            ResellerPaymentManager.process_payout(
+                user_id=self.user.id,
+                amount=Decimal("500.00"),
+                payout_method="BANK_TRANSFER",
+                payment_details={
+                    "bank_account_number": "1234",
+                    "bank_ifsc_code": "SBIN0001234",
+                },
+            )

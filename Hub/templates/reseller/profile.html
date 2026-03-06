@@ -26,7 +26,7 @@
                     {% endfor %}
                     {% endif %}
 
-                    <form method="post">
+                    <form method="post" id="resellerProfileForm">
                         {% csrf_token %}
 
                         <!-- Business Information -->
@@ -52,12 +52,19 @@
                         <div class="form-group">
                             <label for="bank_account_number">Bank Account Number</label>
                             <input type="text" class="form-control" id="bank_account_number" name="bank_account_number" 
-                                   value="{{ profile.bank_account_number }}" placeholder="Enter account number">
+                                   value="{{ profile.bank_account_number }}" placeholder="Enter account number" inputmode="numeric">
+                            <small id="bank_account_hint" class="form-text text-muted">
+                                Enter 6 to 34 digits only.
+                            </small>
                         </div>
                         <div class="form-group">
                             <label for="bank_ifsc_code">IFSC Code</label>
                             <input type="text" class="form-control" id="bank_ifsc_code" name="bank_ifsc_code" 
                                    value="{{ profile.bank_ifsc_code }}" placeholder="e.g., SBIN0001234">
+                            <small id="bank_ifsc_hint" class="form-text text-muted">
+                                We check whether the IFSC exists and fetch its bank and branch.
+                            </small>
+                            <small id="bank_ifsc_name_hint" class="form-text text-muted"></small>
                         </div>
 
                         <hr class="my-4">
@@ -71,6 +78,8 @@
                             <small class="form-text text-muted">
                                 For faster payouts via UPI
                             </small>
+                            <small id="upi_hint" class="form-text text-muted"></small>
+                            <small id="upi_name" class="form-text text-muted"></small>
                         </div>
 
                         <hr class="my-4">
@@ -117,6 +126,7 @@
                             <li>Ensure all payment details are accurate to avoid payout delays</li>
                             <li>You can update these details anytime</li>
                             <li>Bank account and UPI details are encrypted and secure</li>
+                            <li>Bank account number is format checked here. Exact account ownership needs a penny-drop API from your payout provider.</li>
                             <li>PAN is required for tax compliance on large payouts</li>
                         </ul>
                     </div>
@@ -125,4 +135,159 @@
         </div>
     </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('resellerProfileForm');
+    const bankAccountName = document.getElementById('bank_account_name');
+    const bankAccountNumber = document.getElementById('bank_account_number');
+    const bankIfscCode = document.getElementById('bank_ifsc_code');
+    const upiId = document.getElementById('upi_id');
+    const bankAccountHint = document.getElementById('bank_account_hint');
+    const bankIfscHint = document.getElementById('bank_ifsc_hint');
+    const bankIfscNameHint = document.getElementById('bank_ifsc_name_hint');
+    const upiHint = document.getElementById('upi_hint');
+    const upiName = document.getElementById('upi_name');
+
+    function setHint(node, ok, message) {
+        if (!node) {
+            return;
+        }
+        node.textContent = message;
+        node.className = ok ? 'form-text text-success' : 'form-text text-danger';
+    }
+
+    function getCsrfToken() {
+        const tokenInput = document.querySelector('input[name=csrfmiddlewaretoken]');
+        return tokenInput ? tokenInput.value : '';
+    }
+
+    function validateBankAccount() {
+        const value = (bankAccountNumber.value || '').replace(/\s+/g, '');
+        bankAccountNumber.value = value;
+        if (!value) {
+            bankAccountHint.className = 'form-text text-muted';
+            bankAccountHint.textContent = 'Enter 6 to 34 digits only.';
+            return true;
+        }
+        const ok = /^[0-9]{6,34}$/.test(value);
+        setHint(bankAccountHint, ok, ok ? 'Bank account number looks valid.' : 'Use 6 to 34 digits only.');
+        return ok;
+    }
+
+    function validateIfscFormat() {
+        const value = (bankIfscCode.value || '').trim().toUpperCase();
+        bankIfscCode.value = value;
+        if (!value) {
+            bankIfscHint.className = 'form-text text-muted';
+            bankIfscHint.textContent = 'We check whether the IFSC exists and fetch its bank and branch.';
+            bankIfscNameHint.textContent = '';
+            return true;
+        }
+        const ok = /^[A-Z]{4}0[A-Z0-9]{6}$/.test(value);
+        setHint(bankIfscHint, ok, ok ? 'IFSC format looks valid.' : 'Format should be ABCD0XXXXXX.');
+        if (!ok) {
+            bankIfscNameHint.textContent = '';
+        }
+        return ok;
+    }
+
+    function lookupIfsc() {
+        if (!bankIfscCode.value || !validateIfscFormat()) {
+            return;
+        }
+        bankIfscNameHint.className = 'form-text text-muted';
+        bankIfscNameHint.textContent = 'Fetching bank details...';
+        fetch('{% url "lookup_ifsc" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: `ifsc=${encodeURIComponent(bankIfscCode.value)}`
+        })
+            .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+            .then(({ ok, data }) => {
+                if (!ok || !data.valid) {
+                    setHint(bankIfscNameHint, false, data.message || 'IFSC details not found.');
+                    return;
+                }
+                bankIfscNameHint.className = 'form-text text-success';
+                bankIfscNameHint.textContent = `Bank: ${data.bank || '-'} | Branch: ${data.branch || '-'}`;
+            })
+            .catch(() => {
+                setHint(bankIfscNameHint, false, 'Unable to fetch IFSC details.');
+            });
+    }
+
+    function validateUpiFormat() {
+        const value = (upiId.value || '').trim().toLowerCase();
+        upiId.value = value;
+        if (!value) {
+            upiHint.className = 'form-text text-muted';
+            upiHint.textContent = '';
+            upiName.textContent = '';
+            return true;
+        }
+        const ok = /^[a-z0-9._-]{2,256}@[a-z]{2,64}$/.test(value);
+        setHint(upiHint, ok, ok ? 'UPI format looks valid.' : 'Format should be name@bank.');
+        if (!ok) {
+            upiName.textContent = '';
+        }
+        return ok;
+    }
+
+    function verifyUpi() {
+        if (!upiId.value || !validateUpiFormat()) {
+            return;
+        }
+        upiHint.className = 'form-text text-muted';
+        upiHint.textContent = 'Verifying UPI ID...';
+        upiName.textContent = '';
+        fetch('{% url "validate_upi_id" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: `upi_id=${encodeURIComponent(upiId.value)}`
+        })
+            .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+            .then(({ ok, data }) => {
+                if (!ok || !data.valid) {
+                    setHint(upiHint, false, data.message || 'UPI ID not found.');
+                    return;
+                }
+                setHint(upiHint, true, 'UPI ID verified.');
+                upiName.className = 'form-text text-success';
+                upiName.textContent = data.name ? `UPI Name: ${data.name}` : 'UPI verified.';
+            })
+            .catch(() => {
+                setHint(upiHint, false, 'Unable to verify UPI ID.');
+            });
+    }
+
+    bankAccountNumber.addEventListener('input', validateBankAccount);
+    bankIfscCode.addEventListener('input', validateIfscFormat);
+    bankIfscCode.addEventListener('blur', lookupIfsc);
+    upiId.addEventListener('input', validateUpiFormat);
+    upiId.addEventListener('blur', verifyUpi);
+    form.addEventListener('submit', function (event) {
+        const hasBankDetails = !!(
+            (bankAccountName.value || '').trim() ||
+            (bankAccountNumber.value || '').trim() ||
+            (bankIfscCode.value || '').trim()
+        );
+        let ok = true;
+        if (hasBankDetails) {
+            ok = validateBankAccount() && validateIfscFormat() && ok;
+        }
+        if ((upiId.value || '').trim()) {
+            ok = validateUpiFormat() && ok;
+        }
+        if (!ok) {
+            event.preventDefault();
+        }
+    });
+});
+</script>
 {% endblock %}
