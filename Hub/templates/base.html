@@ -41,7 +41,7 @@
     <link rel="stylesheet" href="{% static 'assets/css/default.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/custom-fixes.css' %}">
-    <link rel="stylesheet" href="{% static 'assets/css/header-responsive.css' %}?v=20260306-07">
+    <link rel="stylesheet" href="{% static 'assets/css/header-responsive.css' %}?v=20260306-08">
     <link rel="stylesheet" href="{% static 'assets/css/pages-responsive.css' %}?v=20260222-03">
     <link rel="stylesheet" href="{% static 'assets/css/buttons-rounded.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/base-custom.css' %}?v=20260222-02">
@@ -236,51 +236,6 @@
         <script src="{% static 'assets/js/custom-fixes.js' %}"></script>
         <script src="{% static 'assets/js/base-custom.js' %}?v=20260224-01"></script>
         <script>
-        (function () {
-            const shell = document.getElementById('mobileBottomNavShell');
-            const nav = document.getElementById('mobileBottomNav');
-            if (!shell || !nav) return;
-
-            const apply = () => {
-                const isMobileTablet = window.matchMedia('(max-width: 1200.98px)').matches;
-                if (!isMobileTablet) {
-                    shell.style.setProperty('display', 'none', 'important');
-                    nav.style.setProperty('display', 'none', 'important');
-                    return;
-                }
-
-                shell.style.setProperty('display', 'block', 'important');
-                shell.style.setProperty('position', 'fixed', 'important');
-                shell.style.setProperty('left', '0', 'important');
-                shell.style.setProperty('right', '0', 'important');
-                shell.style.setProperty('top', '0', 'important');
-                shell.style.setProperty('height', '100lvh', 'important');
-                shell.style.setProperty('z-index', '9999', 'important');
-                shell.style.setProperty('pointer-events', 'none', 'important');
-                shell.style.setProperty('overflow', 'visible', 'important');
-
-                nav.style.setProperty('display', 'grid', 'important');
-                nav.style.setProperty('position', 'absolute', 'important');
-                nav.style.setProperty('left', '0', 'important');
-                nav.style.setProperty('right', '0', 'important');
-                nav.style.setProperty('top', 'auto', 'important');
-                nav.style.setProperty('inset', 'auto 0 0 0', 'important');
-                nav.style.setProperty('width', '100vw', 'important');
-                nav.style.setProperty('max-width', '100vw', 'important');
-                nav.style.setProperty('z-index', '9999', 'important');
-                nav.style.setProperty('transform', 'none', 'important');
-                nav.style.setProperty('-webkit-transform', 'none', 'important');
-                nav.style.setProperty('visibility', 'visible', 'important');
-                nav.style.setProperty('opacity', '1', 'important');
-                nav.style.setProperty('pointer-events', 'auto', 'important');
-                nav.style.setProperty('bottom', '0px', 'important');
-            };
-
-            apply();
-            window.addEventListener('resize', apply, { passive: true });
-            window.addEventListener('orientationchange', apply, { passive: true });
-        })();
-
         (function () {
             const shouldSkipLazy = (img) => {
                 return !!(
