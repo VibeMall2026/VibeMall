@@ -9,7 +9,7 @@
     <meta name="description" content="{% block meta_description %}VibeMall - Shop the latest products with amazing deals, fast shipping, and secure checkout. Browse mobiles, food, home, furniture, sports and more.{% endblock %}">
     <meta name="keywords" content="{% block meta_keywords %}online shopping, ecommerce, fashion, electronics, deals{% endblock %}">
     <meta name="author" content="VibeMall">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <link rel="canonical" href="{% block canonical_url %}{% if site_url %}{{ site_url }}{{ request.path }}{% else %}{{ request.scheme }}://{{ request.get_host }}{{ request.path }}{% endif %}{% endblock %}">
     
     <!-- Open Graph / Facebook -->
@@ -41,7 +41,7 @@
     <link rel="stylesheet" href="{% static 'assets/css/default.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/custom-fixes.css' %}">
-    <link rel="stylesheet" href="{% static 'assets/css/header-responsive.css' %}?v=20260303-06">
+    <link rel="stylesheet" href="{% static 'assets/css/header-responsive.css' %}?v=20260306-07">
     <link rel="stylesheet" href="{% static 'assets/css/pages-responsive.css' %}?v=20260222-03">
     <link rel="stylesheet" href="{% static 'assets/css/buttons-rounded.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/base-custom.css' %}?v=20260222-02">
@@ -154,37 +154,39 @@
     </main>
         {% include 'footer.html' %}
 
-        <nav id="mobileBottomNav" class="mobile-bottom-nav d-xl-none" aria-label="Mobile bottom navigation" style="position:fixed;left:0;right:0;bottom:0;z-index:9999;">
-            <a class="mobile-bottom-nav__item" href="{% url 'shop' %}" aria-label="Shop">
-                <i class="far fa-th-large"></i>
-                <span>Shop</span>
-            </a>
-            <a class="mobile-bottom-nav__item" href="{% url 'wishlist' %}" aria-label="Wishlist">
-                <i class="far fa-heart"></i>
-                <span>Wishlist</span>
-                <span class="mobile-bottom-nav__badge wishlist-count">{{ wishlist_count|default:"0" }}</span>
-            </a>
-            <a class="mobile-bottom-nav__item" href="{% url 'index' %}" aria-label="Home">
-                <i class="far fa-home"></i>
-                <span>Home</span>
-            </a>
-            <a class="mobile-bottom-nav__item" href="{% url 'cart' %}" aria-label="Cart">
-                <i class="far fa-shopping-bag"></i>
-                <span>Cart</span>
-                <span class="mobile-bottom-nav__badge cart-count">{{ cart_count|default:"0" }}</span>
-            </a>
-            {% if user.is_authenticated %}
-            <a class="mobile-bottom-nav__item" href="{% url 'profile' %}" aria-label="Account">
-                <i class="far fa-user"></i>
-                <span>Account</span>
-            </a>
-            {% else %}
-            <a class="mobile-bottom-nav__item" href="{% url 'login' %}" aria-label="Account">
-                <i class="far fa-user"></i>
-                <span>Account</span>
-            </a>
-            {% endif %}
-        </nav>
+        <div id="mobileBottomNavShell" class="mobile-bottom-nav-shell d-xl-none">
+            <nav id="mobileBottomNav" class="mobile-bottom-nav" aria-label="Mobile bottom navigation">
+                <a class="mobile-bottom-nav__item" href="{% url 'shop' %}" aria-label="Shop">
+                    <i class="far fa-th-large"></i>
+                    <span>Shop</span>
+                </a>
+                <a class="mobile-bottom-nav__item" href="{% url 'wishlist' %}" aria-label="Wishlist">
+                    <i class="far fa-heart"></i>
+                    <span>Wishlist</span>
+                    <span class="mobile-bottom-nav__badge wishlist-count">{{ wishlist_count|default:"0" }}</span>
+                </a>
+                <a class="mobile-bottom-nav__item" href="{% url 'index' %}" aria-label="Home">
+                    <i class="far fa-home"></i>
+                    <span>Home</span>
+                </a>
+                <a class="mobile-bottom-nav__item" href="{% url 'cart' %}" aria-label="Cart">
+                    <i class="far fa-shopping-bag"></i>
+                    <span>Cart</span>
+                    <span class="mobile-bottom-nav__badge cart-count">{{ cart_count|default:"0" }}</span>
+                </a>
+                {% if user.is_authenticated %}
+                <a class="mobile-bottom-nav__item" href="{% url 'profile' %}" aria-label="Account">
+                    <i class="far fa-user"></i>
+                    <span>Account</span>
+                </a>
+                {% else %}
+                <a class="mobile-bottom-nav__item" href="{% url 'login' %}" aria-label="Account">
+                    <i class="far fa-user"></i>
+                    <span>Account</span>
+                </a>
+                {% endif %}
+            </nav>
+        </div>
 
         <div id="supportChatWidget">
             <button id="supportChatToggle" type="button" aria-label="Open support chat widget" aria-expanded="false" aria-controls="supportChatPanel">Support</button>
@@ -235,18 +237,30 @@
         <script src="{% static 'assets/js/base-custom.js' %}?v=20260224-01"></script>
         <script>
         (function () {
+            const shell = document.getElementById('mobileBottomNavShell');
             const nav = document.getElementById('mobileBottomNav');
-            if (!nav) return;
+            if (!shell || !nav) return;
 
             const apply = () => {
                 const isMobileTablet = window.matchMedia('(max-width: 1200.98px)').matches;
                 if (!isMobileTablet) {
+                    shell.style.setProperty('display', 'none', 'important');
                     nav.style.setProperty('display', 'none', 'important');
                     return;
                 }
 
+                shell.style.setProperty('display', 'block', 'important');
+                shell.style.setProperty('position', 'fixed', 'important');
+                shell.style.setProperty('left', '0', 'important');
+                shell.style.setProperty('right', '0', 'important');
+                shell.style.setProperty('top', '0', 'important');
+                shell.style.setProperty('height', '100lvh', 'important');
+                shell.style.setProperty('z-index', '9999', 'important');
+                shell.style.setProperty('pointer-events', 'none', 'important');
+                shell.style.setProperty('overflow', 'visible', 'important');
+
                 nav.style.setProperty('display', 'grid', 'important');
-                nav.style.setProperty('position', 'fixed', 'important');
+                nav.style.setProperty('position', 'absolute', 'important');
                 nav.style.setProperty('left', '0', 'important');
                 nav.style.setProperty('right', '0', 'important');
                 nav.style.setProperty('top', 'auto', 'important');
@@ -258,6 +272,7 @@
                 nav.style.setProperty('-webkit-transform', 'none', 'important');
                 nav.style.setProperty('visibility', 'visible', 'important');
                 nav.style.setProperty('opacity', '1', 'important');
+                nav.style.setProperty('pointer-events', 'auto', 'important');
                 nav.style.setProperty('bottom', '0px', 'important');
             };
 
