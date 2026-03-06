@@ -414,7 +414,6 @@
     background: #ffffff;
     border-top: 1px solid #e5e7eb;
     box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.08);
-    transform: none !important;
     transform: translate3d(0, 0, 0) !important;
     margin: 0 !important;
   }
@@ -489,6 +488,26 @@
 
   #supportChatMessages {
     max-height: min(38vh, 300px);
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1200.98px) {
+  .mobile-bottom-nav {
+    bottom: 0 !important;
+    inset: auto 0 0 0 !important;
+    height: 70px !important;
+    min-height: 70px !important;
+    padding: 8px 10px 8px !important;
+    transform: none !important;
+    -webkit-transform: none !important;
+  }
+
+  body {
+    padding-bottom: 78px !important;
+  }
+
+  #supportChatWidget {
+    bottom: 86px !important;
   }
 }
 
