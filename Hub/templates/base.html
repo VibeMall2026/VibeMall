@@ -238,23 +238,6 @@
             const nav = document.getElementById('mobileBottomNav');
             if (!nav) return;
 
-            const setViewportBottomOffset = () => {
-                const isTabletRange = window.matchMedia('(min-width: 992px) and (max-width: 1200.98px)').matches;
-                if (isTabletRange) {
-                    nav.style.setProperty('bottom', '0px', 'important');
-                    return;
-                }
-
-                const vv = window.visualViewport;
-                let bottomOffset = 0;
-
-                if (vv) {
-                    bottomOffset = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop));
-                }
-
-                nav.style.setProperty('bottom', `${bottomOffset}px`, 'important');
-            };
-
             const apply = () => {
                 const isMobileTablet = window.matchMedia('(max-width: 1200.98px)').matches;
                 if (!isMobileTablet) {
@@ -266,26 +249,21 @@
                 nav.style.setProperty('position', 'fixed', 'important');
                 nav.style.setProperty('left', '0', 'important');
                 nav.style.setProperty('right', '0', 'important');
+                nav.style.setProperty('top', 'auto', 'important');
                 nav.style.setProperty('inset', 'auto 0 0 0', 'important');
                 nav.style.setProperty('width', '100vw', 'important');
                 nav.style.setProperty('max-width', '100vw', 'important');
                 nav.style.setProperty('z-index', '9999', 'important');
-                nav.style.setProperty('transform', 'translate3d(0,0,0)', 'important');
-                nav.style.setProperty('-webkit-transform', 'translate3d(0,0,0)', 'important');
+                nav.style.setProperty('transform', 'none', 'important');
+                nav.style.setProperty('-webkit-transform', 'none', 'important');
                 nav.style.setProperty('visibility', 'visible', 'important');
                 nav.style.setProperty('opacity', '1', 'important');
                 nav.style.setProperty('bottom', '0px', 'important');
-
-                setViewportBottomOffset();
             };
 
             apply();
             window.addEventListener('resize', apply, { passive: true });
             window.addEventListener('orientationchange', apply, { passive: true });
-
-            if (window.visualViewport) {
-                window.visualViewport.addEventListener('resize', setViewportBottomOffset, { passive: true });
-            }
         })();
 
         (function () {
