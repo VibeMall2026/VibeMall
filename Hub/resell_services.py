@@ -8,25 +8,6 @@ This module contains service classes for managing resell functionality:
 - ResellOrderProcessor: Processes resell orders
 """
 
-kill -TERM 7015 31214
-sleep 3
-ps aux | grep gunicorn
-rm -f /run/vibemall.sock
-
-cd /var/www/vibemall
-source venv/bin/activate
-nohup /var/www/vibemall/venv/bin/gunicorn \
-  --workers 3 \
-  --worker-class sync \
-  --bind unix:/run/vibemall.sock \
-  --error-logfile /var/log/vibemall/error.log \
-  --access-logfile /var/log/vibemall/access.log \
-  --log-level info \
-  VibeMall.wsgi:application >/dev/null 2>&1 &
-
-
-
-
 import random
 import string
 from decimal import Decimal
