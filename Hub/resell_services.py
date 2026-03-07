@@ -1,5 +1,5 @@
 """
-Resell Feature Services
+Resell Feature Services - Fixed
 
 This module contains service classes for managing resell functionality:
 - ResellLinkGenerator: Creates and validates resell links
