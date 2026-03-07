@@ -8,6 +8,7 @@ This module contains service classes for managing resell functionality:
 - ResellOrderProcessor: Processes resell orders
 """
 
+# Fixed: Removed bash commands that were accidentally added
 import random
 import string
 from decimal import Decimal
