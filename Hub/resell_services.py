@@ -3,7 +3,7 @@ Resell Feature Services
 
 This module contains service classes for managing resell functionality:
 - ResellLinkGenerator: Creates and validates resell links
-- MarginCalculator: Calculates pricing and margins
+- MarginCalculator: Calculates pricing and margins  
 - ResellerPaymentManager: Manages earnings and payouts
 - ResellOrderProcessor: Processes resell orders
 """
