@@ -479,6 +479,46 @@ textarea.contact-form-control {
     </section>
 </main>
 
+<!-- cta-area-start -->
+<section class="cta-area d-ldark-bg pt-55 pb-10">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-6 col-md-6">
+                <div class="cta-item cta-item-d mb-30">
+                    <h5 class="cta-title">Follow Us</h5>
+                    <p>Stay connected with VibeMall for product drops, curated edits, announcements, and fresh shopping inspiration.</p>
+                    <div class="cta-social">
+                        <div class="social-icon">
+                            <a href="{{ site_settings.facebook_url|default:'#' }}" class="facebook" {% if site_settings.facebook_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                            <a href="{{ site_settings.twitter_url|default:'#' }}" class="twitter" {% if site_settings.twitter_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                            <a href="{{ site_settings.youtube_url|default:'#' }}" class="youtube" {% if site_settings.youtube_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+                            <a href="{{ site_settings.instagram_url|default:'#' }}" class="linkedin" {% if site_settings.instagram_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                            <a href="mailto:{{ site_settings.contact_email|default:'support@vibemall.com' }}" class="rss" aria-label="Email"><i class="fas fa-envelope"></i></a>
+                            <a href="{% url 'contact' %}" class="dribbble" aria-label="Contact"><i class="fas fa-headset"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-6">
+                <div class="cta-item mb-30">
+                    <h5 class="cta-title">Join The VibeMall Newsletter</h5>
+                    <p>Subscribe for new arrivals, featured categories, exclusive offers, and updates from the VibeMall store.</p>
+                    <div class="subscribe__form">
+                        <form action="{% url 'subscribe_newsletter' %}" method="post" class="js-newsletter-form" novalidate>
+                            {% csrf_token %}
+                            <input type="hidden" name="source_page" value="contact">
+                            <input type="email" name="email" placeholder="Enter your email here..." required>
+                            <button type="submit">subscribe</button>
+                        </form>
+                        <small class="newsletter-feedback d-block mt-2" aria-live="polite"></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- cta-area-end -->
+
 <script>
 function openLiveChat() {
     const now = new Date();
