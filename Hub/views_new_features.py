@@ -3,14 +3,8 @@ New Feature Views - Added without modifying existing code
 Features: Bulk Operations, Activity Logs, Coupons, Low Stock Alerts, Role Management
 """
 
-import csv
-import json
-from datetime import datetime, timedelta
-from decimal import Decimal
-from io import StringIO, BytesIO
-
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required, staff_member_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.http import HttpResponse, JsonResponse
 from django.db.models import Q, Sum, Count, Avg
@@ -23,6 +17,15 @@ from Hub.models_new_features import (
     AdminRole, AdminUserRole, SalesReport, EmailTemplate
 )
 from Hub.models import Product, Order, OrderItem
+
+
+# Helper decorator for staff members
+def staff_member_required(view_func):
+    def wrapped_view(request, *args, **kwargs):
+        if not request.user.is_staff:
+            return redirect('login')
+        return view_func(request, *args, **kwargs)
+    return wrapped_view
 
 
 # ============ ACTIVITY LOGS ============
