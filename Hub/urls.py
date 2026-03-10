@@ -240,3 +240,50 @@ urlpatterns += [
     path('admin-panel/roles/<int:role_id>/toggle-status/', views_new_features.toggle_role_status, name='toggle_role_status'),
     path('admin-panel/roles/<int:role_id>/delete/', views_new_features.delete_role, name='delete_role'),
 ]
+
+# Include comprehensive feature URLs
+from Hub import views_comprehensive_features
+
+urlpatterns += [
+    # Customer Insights & CRM
+    path('admin-panel/customer-segmentation/', views_comprehensive_features.admin_customer_segmentation, name='admin_customer_segmentation'),
+    path('admin-panel/customer-segmentation/add/', views_comprehensive_features.admin_add_customer_segment, name='admin_add_customer_segment'),
+    path('admin-panel/support-tickets/', views_comprehensive_features.admin_customer_support_tickets, name='admin_customer_support_tickets'),
+    
+    # Financial Management
+    path('admin-panel/profit-loss/', views_comprehensive_features.admin_profit_loss_statements, name='admin_profit_loss_statements'),
+    path('admin-panel/profit-loss/generate/', views_comprehensive_features.admin_generate_pl_statement, name='admin_generate_pl_statement'),
+    path('admin-panel/expenses/', views_comprehensive_features.admin_expense_management, name='admin_expense_management'),
+    
+    # Product Enhancements
+    path('admin-panel/product-variants/', views_comprehensive_features.admin_product_variants, name='admin_product_variants'),
+    path('admin-panel/product-bundles/', views_comprehensive_features.admin_product_bundles, name='admin_product_bundles'),
+    path('admin-panel/product-seo/', views_comprehensive_features.admin_product_seo, name='admin_product_seo'),
+    
+    # Security & Access Control
+    path('admin-panel/security-roles/', views_comprehensive_features.admin_security_roles, name='admin_security_roles'),
+    path('admin-panel/security-audit/', views_comprehensive_features.admin_security_audit_log, name='admin_security_audit_log'),
+    path('admin-panel/user-sessions/', views_comprehensive_features.admin_user_sessions, name='admin_user_sessions'),
+    
+    # Content Management
+    path('admin-panel/blog-management/', views_comprehensive_features.admin_blog_management, name='admin_blog_management'),
+    path('admin-panel/faq-management/', views_comprehensive_features.admin_faq_management, name='admin_faq_management'),
+    path('admin-panel/email-templates/', views_comprehensive_features.admin_email_templates, name='admin_email_templates'),
+    
+    # Performance Optimization
+    path('admin-panel/performance/', views_comprehensive_features.admin_performance_dashboard, name='admin_performance_dashboard'),
+    path('admin-panel/image-optimization/', views_comprehensive_features.admin_image_optimization, name='admin_image_optimization'),
+    
+    # AI/ML Features
+    path('admin-panel/recommendation-engines/', views_comprehensive_features.admin_recommendation_engines, name='admin_recommendation_engines'),
+    path('admin-panel/dynamic-pricing/', views_comprehensive_features.admin_dynamic_pricing, name='admin_dynamic_pricing'),
+    path('admin-panel/fraud-detection/', views_comprehensive_features.admin_fraud_detection, name='admin_fraud_detection'),
+    path('admin-panel/chatbot-management/', views_comprehensive_features.admin_chatbot_management, name='admin_chatbot_management'),
+    
+    # AJAX Endpoints
+    path('admin-panel/ajax/update-customer-segment/', views_comprehensive_features.ajax_update_customer_segment, name='ajax_update_customer_segment'),
+    path('admin-panel/ajax/terminate-session/', views_comprehensive_features.ajax_terminate_user_session, name='ajax_terminate_user_session'),
+    
+    # Export Functions
+    path('admin-panel/export/comprehensive-analytics/', views_comprehensive_features.export_comprehensive_analytics, name='export_comprehensive_analytics'),
+]

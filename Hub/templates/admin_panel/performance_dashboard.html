@@ -1,0 +1,395 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Performance Dashboard - Admin Panel{% endblock %}
+
+{% block extra_css %}
+<style>
+    .metric-card {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        border-left: 4px solid #007bff;
+        margin-bottom: 20px;
+    }
+    .metric-card.warning {
+        border-left-color: #ffc107;
+    }
+    .metric-card.danger {
+        border-left-color: #dc3545;
+    }
+    .metric-card.success {
+        border-left-color: #28a745;
+    }
+    .metric-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    .metric-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .metric-change {
+        font-size: 0.8rem;
+        margin-top: 10px;
+    }
+    .metric-change.positive {
+        color: #28a745;
+    }
+    .metric-change.negative {
+        color: #dc3545;
+    }
+    .chart-container {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    .alert-item {
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-left: 4px solid #dc3545;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .alert-item.warning {
+        border-left-color: #ffc107;
+    }
+    .alert-item.info {
+        border-left-color: #17a2b8;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Performance Dashboard</h2>
+                <div>
+                    <button class="btn btn-outline-primary me-2" onclick="refreshMetrics()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                    <button class="btn btn-primary" onclick="exportReport()">
+                        <i class="fas fa-download"></i> Export Report
+                    </button>
+                </div>
+            </div>
+
+            <!-- Key Metrics Row -->
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="metric-card {% if recent_errors > 10 %}danger{% elif recent_errors > 5 %}warning{% else %}success{% endif %}">
+                        <div class="metric-value">{{ recent_errors }}</div>
+                        <div class="metric-label">Errors (24h)</div>
+                        <div class="metric-change">
+                            <i class="fas fa-arrow-down"></i> 12% from yesterday
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card {% if slow_queries > 20 %}danger{% elif slow_queries > 10 %}warning{% else %}success{% endif %}">
+                        <div class="metric-value">{{ slow_queries }}</div>
+                        <div class="metric-label">Slow Queries</div>
+                        <div class="metric-change">
+                            <i class="fas fa-arrow-up"></i> 5% from yesterday
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card {% if avg_page_load > 3000 %}danger{% elif avg_page_load > 2000 %}warning{% else %}success{% endif %}">
+                        <div class="metric-value">{{ avg_page_load|floatformat:0 }}ms</div>
+                        <div class="metric-label">Avg Page Load</div>
+                        <div class="metric-change">
+                            <i class="fas fa-arrow-down"></i> 8% improvement
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card {% if active_alerts > 0 %}danger{% else %}success{% endif %}">
+                        <div class="metric-value">{{ active_alerts }}</div>
+                        <div class="metric-label">Active Alerts</div>
+                        <div class="metric-change">
+                            {% if active_alerts > 0 %}
+                                <i class="fas fa-exclamation-triangle"></i> Needs attention
+                            {% else %}
+                                <i class="fas fa-check"></i> All clear
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="chart-container">
+                        <h5 class="mb-3">Page Load Times (Last 24 Hours)</h5>
+                        <canvas id="pageLoadChart" height="100"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="chart-container">
+                        <h5 class="mb-3">Error Distribution</h5>
+                        <canvas id="errorChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Alerts -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <h5 class="mb-3">Recent Performance Alerts</h5>
+                        <div id="alertsList">
+                            <div class="alert-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong>High Memory Usage</strong>
+                                        <p class="mb-1 text-muted">Server memory usage exceeded 85% threshold</p>
+                                        <small class="text-muted">2 minutes ago</small>
+                                    </div>
+                                    <span class="badge bg-danger">Critical</span>
+                                </div>
+                            </div>
+                            <div class="alert-item warning">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong>Slow Database Query</strong>
+                                        <p class="mb-1 text-muted">Query execution time: 2.5s on products table</p>
+                                        <small class="text-muted">15 minutes ago</small>
+                                    </div>
+                                    <span class="badge bg-warning">Warning</span>
+                                </div>
+                            </div>
+                            <div class="alert-item info">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong>CDN Cache Miss Rate High</strong>
+                                        <p class="mb-1 text-muted">Cache miss rate increased to 25%</p>
+                                        <small class="text-muted">1 hour ago</small>
+                                    </div>
+                                    <span class="badge bg-info">Info</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <h5 class="mb-3">System Resources</h5>
+                        <canvas id="resourceChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="chart-container">
+                        <h5 class="mb-3">Quick Actions</h5>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <button class="btn btn-outline-primary w-100 mb-2" onclick="clearCache()">
+                                    <i class="fas fa-broom"></i> Clear Cache
+                                </button>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-outline-info w-100 mb-2" onclick="optimizeImages()">
+                                    <i class="fas fa-image"></i> Optimize Images
+                                </button>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-outline-warning w-100 mb-2" onclick="analyzeQueries()">
+                                    <i class="fas fa-database"></i> Analyze Queries
+                                </button>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-outline-success w-100 mb-2" onclick="runHealthCheck()">
+                                    <i class="fas fa-heartbeat"></i> Health Check
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+$(document).ready(function() {
+    initializeCharts();
+    
+    // Auto-refresh every 30 seconds
+    setInterval(refreshMetrics, 30000);
+});
+
+function initializeCharts() {
+    // Page Load Times Chart
+    const pageLoadCtx = document.getElementById('pageLoadChart').getContext('2d');
+    new Chart(pageLoadCtx, {
+        type: 'line',
+        data: {
+            labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
+            datasets: [{
+                label: 'Page Load Time (ms)',
+                data: [1200, 1100, 1800, 2200, 1900, 1600, 1400],
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Load Time (ms)'
+                    }
+                }
+            }
+        }
+    });
+
+    // Error Distribution Chart
+    const errorCtx = document.getElementById('errorChart').getContext('2d');
+    new Chart(errorCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['JavaScript', 'Python', 'Database', 'Network'],
+            datasets: [{
+                data: [45, 25, 20, 10],
+                backgroundColor: ['#dc3545', '#ffc107', '#17a2b8', '#6c757d']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    // System Resources Chart
+    const resourceCtx = document.getElementById('resourceChart').getContext('2d');
+    new Chart(resourceCtx, {
+        type: 'bar',
+        data: {
+            labels: ['CPU', 'Memory', 'Disk', 'Network'],
+            datasets: [{
+                label: 'Usage %',
+                data: [65, 78, 45, 32],
+                backgroundColor: ['#28a745', '#ffc107', '#17a2b8', '#6c757d']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Usage %'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function refreshMetrics() {
+    // Show loading state
+    const refreshBtn = $('button[onclick="refreshMetrics()"]');
+    const originalText = refreshBtn.html();
+    refreshBtn.html('<i class="fas fa-spinner fa-spin"></i> Refreshing...');
+    refreshBtn.prop('disabled', true);
+    
+    // Simulate API call
+    setTimeout(() => {
+        location.reload();
+    }, 1000);
+}
+
+function clearCache() {
+    if (confirm('Are you sure you want to clear all cache?')) {
+        $.ajax({
+            url: '/admin-panel/performance/clear-cache/',
+            method: 'POST',
+            data: {
+                'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+            },
+            success: function(response) {
+                showToast('Cache cleared successfully', 'success');
+            },
+            error: function() {
+                showToast('Error clearing cache', 'error');
+            }
+        });
+    }
+}
+
+function optimizeImages() {
+    $.ajax({
+        url: '/admin-panel/performance/optimize-images/',
+        method: 'POST',
+        data: {
+            'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+        },
+        success: function(response) {
+            showToast('Image optimization started', 'success');
+        },
+        error: function() {
+            showToast('Error starting image optimization', 'error');
+        }
+    });
+}
+
+function analyzeQueries() {
+    window.open('/admin-panel/performance/query-analysis/', '_blank');
+}
+
+function runHealthCheck() {
+    $.ajax({
+        url: '/admin-panel/performance/health-check/',
+        method: 'GET',
+        success: function(response) {
+            showToast('Health check completed', 'success');
+        },
+        error: function() {
+            showToast('Health check failed', 'error');
+        }
+    });
+}
+
+function exportReport() {
+    window.location.href = '/admin-panel/performance/export-report/';
+}
+
+function showToast(message, type) {
+    const toast = $(`
+        <div class="alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed" 
+             style="top: 20px; right: 20px; z-index: 9999;">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `);
+    
+    $('body').append(toast);
+    setTimeout(() => toast.alert('close'), 3000);
+}
+</script>
+{% endblock %}
