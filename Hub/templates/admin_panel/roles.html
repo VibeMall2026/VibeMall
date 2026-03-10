@@ -39,8 +39,8 @@
                             </td>
                             <td>
                                 <div class="d-flex flex-wrap gap-1">
-                                    {% for permission in role.permissions %}
-                                    <span class="badge bg-light text-dark">{{ permission|title|replace:"_":" " }}</span>
+                                    {% for permission in role.formatted_permissions %}
+                                    <span class="badge bg-light text-dark">{{ permission }}</span>
                                     {% empty %}
                                     <span class="text-muted">No permissions</span>
                                     {% endfor %}

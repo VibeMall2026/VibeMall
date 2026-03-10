@@ -235,5 +235,8 @@ urlpatterns += [
     # Role Management
     path('admin-panel/roles/', views_new_features.admin_roles, name='admin_roles'),
     path('admin-panel/roles/add/', views_new_features.admin_add_role, name='admin_add_role'),
+    path('admin-panel/roles/edit/<int:role_id>/', views_new_features.admin_edit_role, name='admin_edit_role'),
     path('admin-panel/roles/assign/', views_new_features.assign_user_role, name='admin_assign_role'),
+    path('admin-panel/roles/<int:role_id>/toggle-status/', views_new_features.toggle_role_status, name='toggle_role_status'),
+    path('admin-panel/roles/<int:role_id>/delete/', views_new_features.delete_role, name='delete_role'),
 ]

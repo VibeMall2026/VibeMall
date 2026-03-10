@@ -1,0 +1,155 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="fw-bold py-3 mb-4">
+        <span class="text-muted fw-light">User Management /</span> Edit Role
+    </h4>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Edit Role: {{ role.name }}</h5>
+                    <a href="{% url 'admin_roles' %}" class="btn btn-outline-secondary">
+                        <i class="bx bx-arrow-back me-1"></i> Back to Roles
+                    </a>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label" for="name">Role Name *</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ role.name }}" required>
+                            <div class="form-text">Enter a descriptive name for this role</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label" for="description">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3">{{ role.description }}</textarea>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="is_active" id="is_active" {% if role.is_active %}checked{% endif %}>
+                                <label class="form-check-label" for="is_active">
+                                    Active Role
+                                </label>
+                                <div class="form-text">Only active roles can be assigned to users</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Permissions *</label>
+                            <div class="form-text mb-3">Select the permissions this role should have:</div>
+                            
+                            <div class="mb-3">
+                                <button type="button" class="btn btn-sm btn-outline-primary me-2" onclick="selectAllPermissions()">
+                                    <i class="bx bx-check-square me-1"></i> Select All
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectNoPermissions()">
+                                    <i class="bx bx-square me-1"></i> Select None
+                                </button>
+                            </div>
+                            
+                            <div class="row">
+                                {% for value, label in permission_choices %}
+                                <div class="col-md-6 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="permissions" value="{{ value }}" id="perm_{{ value }}" {% if value in role.permissions %}checked{% endif %}>
+                                        <label class="form-check-label" for="perm_{{ value }}">
+                                            {{ label }}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{% url 'admin_roles' %}" class="btn btn-outline-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bx bx-save me-1"></i> Update Role
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Role Statistics</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Created:</span>
+                        <strong>{{ role.created_at|date:"M d, Y" }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Last Updated:</span>
+                        <strong>{{ role.updated_at|date:"M d, Y" }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Status:</span>
+                        {% if role.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Permissions:</span>
+                        <strong>{{ role.permissions|length }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">Permission Guide</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Dashboard Permissions:</strong>
+                        <ul class="list-unstyled ms-3 mt-1">
+                            <li><small><strong>View Dashboard:</strong> Access to main admin dashboard</small></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Content Management:</strong>
+                        <ul class="list-unstyled ms-3 mt-1">
+                            <li><small><strong>Manage Products:</strong> Add, edit, delete products</small></li>
+                            <li><small><strong>Manage Orders:</strong> View and update order status</small></li>
+                            <li><small><strong>Manage Customers:</strong> View customer information</small></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-0">
+                        <strong>System Administration:</strong>
+                        <ul class="list-unstyled ms-3 mt-1">
+                            <li><small><strong>Manage Users:</strong> Add and manage admin users</small></li>
+                            <li><small><strong>Manage Settings:</strong> System configuration access</small></li>
+                            <li><small><strong>View Activity Logs:</strong> Audit trail access</small></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function selectAllPermissions() {
+    document.querySelectorAll('input[name="permissions"]').forEach(cb => cb.checked = true);
+}
+
+function selectNoPermissions() {
+    document.querySelectorAll('input[name="permissions"]').forEach(cb => cb.checked = false);
+}
+</script>
+{% endblock %}

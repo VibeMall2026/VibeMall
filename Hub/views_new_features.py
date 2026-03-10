@@ -461,6 +461,13 @@ def admin_roles(request):
     """Manage admin roles"""
     roles = AdminRole.objects.all().order_by('name')
     
+    # Format permissions for display
+    for role in roles:
+        if role.permissions:
+            role.formatted_permissions = [perm.replace('_', ' ').title() for perm in role.permissions]
+        else:
+            role.formatted_permissions = []
+    
     # Get admin users for role assignment
     admin_users = User.objects.filter(is_staff=True)
     
@@ -677,3 +684,89 @@ def assign_user_role(request):
 
 
 # Import json for AJAX views
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_edit_role(request, role_id):
+    """Edit admin role"""
+    role = get_object_or_404(AdminRole, id=role_id)
+    
+    if request.method == 'POST':
+        try:
+            old_data = {
+                'name': role.name,
+                'permissions': role.permissions,
+                'is_active': role.is_active,
+            }
+            
+            role.name = request.POST.get('name', role.name)
+            role.description = request.POST.get('description', role.description)
+            role.permissions = request.POST.getlist('permissions')
+            role.is_active = request.POST.get('is_active') == 'on'
+            role.save()
+            
+            new_data = {
+                'name': role.name,
+                'permissions': role.permissions,
+                'is_active': role.is_active,
+            }
+            
+            log_activity(request.user, 'UPDATE', 'AdminRole', role.id, role.name, 
+                        {'old': old_data, 'new': new_data}, request=request)
+            
+            messages.success(request, f'Role {role.name} updated successfully!')
+            return redirect('admin_roles')
+        
+        except Exception as e:
+            messages.error(request, f'Error updating role: {str(e)}')
+    
+    context = {
+        'role': role,
+        'permission_choices': AdminRole.PERMISSION_CHOICES,
+    }
+    
+    return render(request, 'admin_panel/edit_role.html', context)
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+@require_http_methods(["POST"])
+def toggle_role_status(request, role_id):
+    """Toggle role status via AJAX"""
+    try:
+        role = get_object_or_404(AdminRole, id=role_id)
+        data = json.loads(request.body)
+        new_status = data.get('is_active')
+        
+        old_status = role.is_active
+        role.is_active = new_status
+        role.save()
+        
+        log_activity(request.user, 'UPDATE', 'AdminRole', role.id, role.name, 
+                    {'old': {'is_active': old_status}, 'new': {'is_active': new_status}}, request=request)
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+@require_http_methods(["POST"])
+def delete_role(request, role_id):
+    """Delete role via AJAX"""
+    try:
+        role = get_object_or_404(AdminRole, id=role_id)
+        role_name = role.name
+        
+        # Check if role is assigned to any users
+        assigned_users = AdminUserRole.objects.filter(role=role).count()
+        if assigned_users > 0:
+            return JsonResponse({'success': False, 'error': f'Cannot delete role. It is assigned to {assigned_users} user(s).'})
+        
+        log_activity(request.user, 'DELETE', 'AdminRole', role.id, role_name, request=request)
+        role.delete()
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
