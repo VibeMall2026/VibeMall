@@ -20,12 +20,14 @@ from Hub.models import Product, Order, OrderItem
 
 
 # Helper decorator for staff members
-def staff_member_required(view_func):
-    def wrapped_view(request, *args, **kwargs):
-        if not request.user.is_staff:
-            return redirect('login')
-        return view_func(request, *args, **kwargs)
-    return wrapped_view
+def staff_member_required(login_url='login'):
+    def decorator(view_func):
+        def wrapped_view(request, *args, **kwargs):
+            if not request.user.is_staff:
+                return redirect(login_url)
+            return view_func(request, *args, **kwargs)
+        return wrapped_view
+    return decorator
 
 
 # ============ ACTIVITY LOGS ============
@@ -89,7 +91,7 @@ def log_activity(user, action, model_name, object_id=None, object_name='', chang
 # ============ DISCOUNT COUPONS ============
 
 @login_required(login_url='login')
-@staff_member_required(login_url='login')
+@staff_member_required()
 def admin_coupons(request):
     """List all discount coupons"""
     coupons = DiscountCoupon.objects.all()
@@ -117,7 +119,7 @@ def admin_coupons(request):
 
 
 @login_required(login_url='login')
-@staff_member_required(login_url='login')
+@staff_member_required()
 def admin_add_coupon(request):
     """Add new discount coupon"""
     if request.method == 'POST':
@@ -157,7 +159,7 @@ def admin_add_coupon(request):
 
 
 @login_required(login_url='login')
-@staff_member_required(login_url='login')
+@staff_member_required()
 def admin_edit_coupon(request, coupon_id):
     """Edit discount coupon"""
     coupon = get_object_or_404(DiscountCoupon, id=coupon_id)
@@ -203,7 +205,7 @@ def admin_edit_coupon(request, coupon_id):
 # ============ LOW STOCK ALERTS ============
 
 @login_required(login_url='login')
-@staff_member_required(login_url='login')
+@staff_member_required()
 def admin_low_stock_alerts(request):
     """View low stock alerts"""
     alerts = LowStockAlert.objects.all()
@@ -250,7 +252,7 @@ def check_and_create_low_stock_alerts(threshold=10):
 # ============ BULK OPERATIONS ============
 
 @login_required(login_url='login')
-@staff_member_required(login_url='login')
+@staff_member_required()
 def admin_bulk_import_products(request):
     """Bulk import products from CSV"""
     if request.method == 'POST':
@@ -317,7 +319,7 @@ def admin_bulk_import_products(request):
 
 
 @login_required(login_url='login')
-@staff_member_required(login_url='login')
+@staff_member_required()
 def admin_export_products(request):
     """Export products to CSV"""
     products = Product.objects.all()
@@ -348,7 +350,7 @@ def admin_export_products(request):
 # ============ SALES REPORTS ============
 
 @login_required(login_url='login')
-@staff_member_required(login_url='login')
+@staff_member_required()
 def admin_sales_reports(request):
     """View sales reports"""
     reports = SalesReport.objects.all()
@@ -413,7 +415,7 @@ def generate_daily_sales_report(report_date=None):
 # ============ ROLE MANAGEMENT ============
 
 @login_required(login_url='login')
-@staff_member_required(login_url='login')
+@staff_member_required()
 def admin_roles(request):
     """Manage admin roles"""
     roles = AdminRole.objects.all()
@@ -426,7 +428,7 @@ def admin_roles(request):
 
 
 @login_required(login_url='login')
-@staff_member_required(login_url='login')
+@staff_member_required()
 def admin_add_role(request):
     """Add new admin role"""
     if request.method == 'POST':
