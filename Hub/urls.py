@@ -214,9 +214,14 @@ urlpatterns += [
     path('admin-panel/coupons/', views_new_features.admin_coupons, name='admin_coupons'),
     path('admin-panel/coupons/add/', views_new_features.admin_add_coupon, name='admin_add_coupon'),
     path('admin-panel/coupons/edit/<int:coupon_id>/', views_new_features.admin_edit_coupon, name='admin_edit_coupon'),
+    path('admin-panel/coupons/<int:coupon_id>/toggle-status/', views_new_features.toggle_coupon_status, name='toggle_coupon_status'),
+    path('admin-panel/coupons/<int:coupon_id>/delete/', views_new_features.delete_coupon, name='delete_coupon'),
     
     # Low Stock Alerts
     path('admin-panel/low-stock-alerts/', views_new_features.admin_low_stock_alerts, name='admin_low_stock_alerts'),
+    path('admin-panel/low-stock-alerts/check/', views_new_features.check_low_stock, name='check_low_stock'),
+    path('admin-panel/low-stock-alerts/<int:alert_id>/update-status/', views_new_features.update_alert_status, name='update_alert_status'),
+    path('admin-panel/low-stock-alerts/<int:alert_id>/delete/', views_new_features.delete_alert, name='delete_alert'),
     
     # Bulk Operations
     path('admin-panel/bulk-import-products/', views_new_features.admin_bulk_import_products, name='admin_bulk_import_products'),
@@ -224,8 +229,11 @@ urlpatterns += [
     
     # Sales Reports
     path('admin-panel/sales-reports/', views_new_features.admin_sales_reports, name='admin_sales_reports'),
+    path('admin-panel/sales-reports/generate/', views_new_features.generate_sales_report, name='generate_sales_report'),
+    path('admin-panel/sales-reports/<int:report_id>/delete/', views_new_features.delete_sales_report, name='delete_sales_report'),
     
     # Role Management
     path('admin-panel/roles/', views_new_features.admin_roles, name='admin_roles'),
     path('admin-panel/roles/add/', views_new_features.admin_add_role, name='admin_add_role'),
+    path('admin-panel/roles/assign/', views_new_features.assign_user_role, name='admin_assign_role'),
 ]

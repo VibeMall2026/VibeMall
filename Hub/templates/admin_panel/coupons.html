@@ -7,6 +7,36 @@
         <span class="text-muted fw-light">Marketing Tools /</span> Discount Coupons
     </h4>
 
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 col-12 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="card-title d-flex align-items-start justify-content-between">
+                        <div class="avatar flex-shrink-0">
+                            <i class="bx bx-purchase-tag bx-sm text-primary"></i>
+                        </div>
+                    </div>
+                    <span class="fw-semibold d-block mb-1">Total Coupons</span>
+                    <h3 class="card-title mb-2">{{ total_coupons }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 col-12 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="card-title d-flex align-items-start justify-content-between">
+                        <div class="avatar flex-shrink-0">
+                            <i class="bx bx-check-circle bx-sm text-success"></i>
+                        </div>
+                    </div>
+                    <span class="fw-semibold d-block mb-1">Active Coupons</span>
+                    <h3 class="card-title mb-2">{{ page_obj.object_list|length }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Discount Coupons</h5>
@@ -14,13 +44,221 @@
                 <i class="bx bx-plus me-1"></i> Add New Coupon
             </a>
         </div>
+        
+        <!-- Filters -->
+        <div class="card-body border-bottom">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All Status</option>
+                        {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Search</label>
+                    <input type="text" name="search" class="form-control" placeholder="Search by code or description" value="{{ request.GET.search }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-outline-primary">Filter</button>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="d-grid">
+                        <a href="{% url 'admin_coupons' %}" class="btn btn-outline-secondary">Clear</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
         <div class="card-body">
-            <div class="alert alert-success">
-                <i class="bx bx-check-circle me-2"></i>
-                Discount Coupons page is working! Database tables have been created successfully.
+            {% if page_obj %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Type</th>
+                            <th>Value</th>
+                            <th>Status</th>
+                            <th>Valid Until</th>
+                            <th>Uses</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for coupon in page_obj %}
+                        <tr>
+                            <td>
+                                <strong>{{ coupon.code }}</strong>
+                                {% if coupon.description %}
+                                <br><small class="text-muted">{{ coupon.description|truncatechars:50 }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark">{{ coupon.get_discount_type_display }}</span>
+                            </td>
+                            <td>
+                                {% if coupon.discount_type == 'PERCENTAGE' %}
+                                    {{ coupon.discount_value }}%
+                                    {% if coupon.max_discount_amount %}
+                                    <br><small class="text-muted">Max: ₹{{ coupon.max_discount_amount }}</small>
+                                    {% endif %}
+                                {% elif coupon.discount_type == 'FIXED' %}
+                                    ₹{{ coupon.discount_value }}
+                                {% else %}
+                                    Free Shipping
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if coupon.status == 'ACTIVE' %}
+                                    <span class="badge bg-success">{{ coupon.get_status_display }}</span>
+                                {% elif coupon.status == 'INACTIVE' %}
+                                    <span class="badge bg-secondary">{{ coupon.get_status_display }}</span>
+                                {% else %}
+                                    <span class="badge bg-danger">{{ coupon.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ coupon.valid_until|date:"M d, Y H:i" }}
+                                {% if coupon.valid_until < now %}
+                                <br><small class="text-danger">Expired</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ coupon.current_uses }}
+                                {% if coupon.max_uses %}
+                                / {{ coupon.max_uses }}
+                                {% else %}
+                                / ∞
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="dropdown">
+                                    <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                        <i class="bx bx-dots-vertical-rounded"></i>
+                                    </button>
+                                    <div class="dropdown-menu">
+                                        <a class="dropdown-item" href="{% url 'admin_edit_coupon' coupon.id %}">
+                                            <i class="bx bx-edit-alt me-1"></i> Edit
+                                        </a>
+                                        {% if coupon.status == 'ACTIVE' %}
+                                        <a class="dropdown-item text-warning" href="#" onclick="toggleCouponStatus({{ coupon.id }}, 'INACTIVE')">
+                                            <i class="bx bx-pause me-1"></i> Deactivate
+                                        </a>
+                                        {% else %}
+                                        <a class="dropdown-item text-success" href="#" onclick="toggleCouponStatus({{ coupon.id }}, 'ACTIVE')">
+                                            <i class="bx bx-play me-1"></i> Activate
+                                        </a>
+                                        {% endif %}
+                                        <div class="dropdown-divider"></div>
+                                        <a class="dropdown-item text-danger" href="#" onclick="deleteCoupon({{ coupon.id }}, '{{ coupon.code }}')">
+                                            <i class="bx bx-trash me-1"></i> Delete
+                                        </a>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            <p>This page will display discount coupons once data is available.</p>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+            {% else %}
+            <div class="text-center py-4">
+                <i class="bx bx-purchase-tag bx-lg text-muted mb-3"></i>
+                <h5 class="text-muted">No coupons found</h5>
+                <p class="text-muted">Create your first discount coupon to get started.</p>
+                <a href="{% url 'admin_add_coupon' %}" class="btn btn-primary">
+                    <i class="bx bx-plus me-1"></i> Add New Coupon
+                </a>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
+
+<script>
+function toggleCouponStatus(couponId, newStatus) {
+    if (confirm(`Are you sure you want to ${newStatus.toLowerCase()} this coupon?`)) {
+        fetch(`/admin-panel/coupons/${couponId}/toggle-status/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({status: newStatus})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error updating coupon status');
+            }
+        })
+        .catch(error => {
+            alert('Error updating coupon status');
+        });
+    }
+}
+
+function deleteCoupon(couponId, couponCode) {
+    if (confirm(`Are you sure you want to delete coupon "${couponCode}"? This action cannot be undone.`)) {
+        fetch(`/admin-panel/coupons/${couponId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error deleting coupon');
+            }
+        })
+        .catch(error => {
+            alert('Error deleting coupon');
+        });
+    }
+}
+</script>
 {% endblock %}

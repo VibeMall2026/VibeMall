@@ -7,16 +7,157 @@
         <span class="text-muted fw-light">User Management /</span> Add Role
     </h4>
 
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Add New Role</h5>
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Add New Role</h5>
+                    <a href="{% url 'admin_roles' %}" class="btn btn-outline-secondary">
+                        <i class="bx bx-arrow-back me-1"></i> Back to Roles
+                    </a>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label" for="name">Role Name *</label>
+                            <input type="text" class="form-control" id="name" name="name" placeholder="e.g., Product Manager" required>
+                            <div class="form-text">Enter a descriptive name for this role</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label" for="description">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Describe what this role is responsible for..."></textarea>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Permissions *</label>
+                            <div class="form-text mb-3">Select the permissions this role should have:</div>
+                            
+                            <div class="row">
+                                {% for value, label in permission_choices %}
+                                <div class="col-md-6 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="permissions" value="{{ value }}" id="perm_{{ value }}">
+                                        <label class="form-check-label" for="perm_{{ value }}">
+                                            {{ label }}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{% url 'admin_roles' %}" class="btn btn-outline-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bx bx-plus me-1"></i> Create Role
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <div class="alert alert-info">
-                <i class="bx bx-info-circle me-2"></i>
-                Add Role form will be implemented here.
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Permission Guide</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Dashboard Permissions:</strong>
+                        <ul class="list-unstyled ms-3 mt-1">
+                            <li><small><strong>View Dashboard:</strong> Access to main admin dashboard</small></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Content Management:</strong>
+                        <ul class="list-unstyled ms-3 mt-1">
+                            <li><small><strong>Manage Products:</strong> Add, edit, delete products</small></li>
+                            <li><small><strong>Manage Orders:</strong> View and update order status</small></li>
+                            <li><small><strong>Manage Customers:</strong> View customer information</small></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Marketing & Reports:</strong>
+                        <ul class="list-unstyled ms-3 mt-1">
+                            <li><small><strong>Manage Coupons:</strong> Create and manage discount coupons</small></li>
+                            <li><small><strong>View Reports:</strong> Access sales and analytics reports</small></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-0">
+                        <strong>System Administration:</strong>
+                        <ul class="list-unstyled ms-3 mt-1">
+                            <li><small><strong>Manage Users:</strong> Add and manage admin users</small></li>
+                            <li><small><strong>Manage Settings:</strong> System configuration access</small></li>
+                            <li><small><strong>View Activity Logs:</strong> Audit trail access</small></li>
+                            <li><small><strong>Bulk Operations:</strong> Import/export capabilities</small></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">Role Best Practices</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="bx bx-check text-success me-2"></i>
+                            <small>Use descriptive role names</small>
+                        </li>
+                        <li class="mb-2">
+                            <i class="bx bx-check text-success me-2"></i>
+                            <small>Grant minimum required permissions</small>
+                        </li>
+                        <li class="mb-2">
+                            <i class="bx bx-check text-success me-2"></i>
+                            <small>Review permissions regularly</small>
+                        </li>
+                        <li class="mb-0">
+                            <i class="bx bx-check text-success me-2"></i>
+                            <small>Document role responsibilities</small>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+// Select/Deselect all permissions
+document.addEventListener('DOMContentLoaded', function() {
+    // Add select all/none buttons
+    const permissionsContainer = document.querySelector('.row');
+    const selectAllBtn = document.createElement('button');
+    selectAllBtn.type = 'button';
+    selectAllBtn.className = 'btn btn-sm btn-outline-primary me-2';
+    selectAllBtn.innerHTML = '<i class="bx bx-check-square me-1"></i> Select All';
+    selectAllBtn.onclick = function() {
+        document.querySelectorAll('input[name="permissions"]').forEach(cb => cb.checked = true);
+    };
+    
+    const selectNoneBtn = document.createElement('button');
+    selectNoneBtn.type = 'button';
+    selectNoneBtn.className = 'btn btn-sm btn-outline-secondary';
+    selectNoneBtn.innerHTML = '<i class="bx bx-square me-1"></i> Select None';
+    selectNoneBtn.onclick = function() {
+        document.querySelectorAll('input[name="permissions"]').forEach(cb => cb.checked = false);
+    };
+    
+    const buttonsDiv = document.createElement('div');
+    buttonsDiv.className = 'mb-3';
+    buttonsDiv.appendChild(selectAllBtn);
+    buttonsDiv.appendChild(selectNoneBtn);
+    
+    permissionsContainer.parentNode.insertBefore(buttonsDiv, permissionsContainer);
+});
+</script>
 {% endblock %}

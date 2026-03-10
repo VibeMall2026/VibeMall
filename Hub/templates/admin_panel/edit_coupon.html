@@ -7,14 +7,177 @@
         <span class="text-muted fw-light">Marketing Tools /</span> Edit Discount Coupon
     </h4>
 
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Edit Coupon</h5>
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Edit Coupon: {{ coupon.code }}</h5>
+                    <a href="{% url 'admin_coupons' %}" class="btn btn-outline-secondary">
+                        <i class="bx bx-arrow-back me-1"></i> Back to Coupons
+                    </a>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="code">Coupon Code *</label>
+                                <input type="text" class="form-control" id="code" name="code" value="{{ coupon.code }}" required>
+                                <div class="form-text">Use uppercase letters and numbers only</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="status">Status *</label>
+                                <select class="form-select" id="status" name="status" required>
+                                    {% for value, label in status_choices %}
+                                    <option value="{{ value }}" {% if coupon.status == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="discount_type">Discount Type *</label>
+                                <select class="form-select" id="discount_type" name="discount_type" required>
+                                    {% for value, label in discount_types %}
+                                    <option value="{{ value }}" {% if coupon.discount_type == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="discount_value">Discount Value *</label>
+                                <input type="number" class="form-control" id="discount_value" name="discount_value" step="0.01" min="0" value="{{ coupon.discount_value }}" required>
+                                <div class="form-text">Enter percentage (e.g., 10) or fixed amount (e.g., 100.00)</div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="max_discount_amount">Max Discount Amount</label>
+                                <input type="number" class="form-control" id="max_discount_amount" name="max_discount_amount" step="0.01" min="0" value="{{ coupon.max_discount_amount|default:'' }}">
+                                <div class="form-text">For percentage discounts only</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="min_purchase_amount">Minimum Purchase Amount</label>
+                                <input type="number" class="form-control" id="min_purchase_amount" name="min_purchase_amount" step="0.01" min="0" value="{{ coupon.min_purchase_amount }}">
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="max_uses">Maximum Uses</label>
+                                <input type="number" class="form-control" id="max_uses" name="max_uses" min="1" value="{{ coupon.max_uses|default:'' }}">
+                                <div class="form-text">Leave empty for unlimited uses</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="current_uses">Current Uses</label>
+                                <input type="number" class="form-control" id="current_uses" name="current_uses" min="0" value="{{ coupon.current_uses }}" readonly>
+                                <div class="form-text">Read-only field</div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="valid_from">Valid From *</label>
+                                <input type="datetime-local" class="form-control" id="valid_from" name="valid_from" value="{{ coupon.valid_from|date:'Y-m-d\TH:i' }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="valid_until">Valid Until *</label>
+                                <input type="datetime-local" class="form-control" id="valid_until" name="valid_until" value="{{ coupon.valid_until|date:'Y-m-d\TH:i' }}" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="description">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Optional description for internal use">{{ coupon.description }}</textarea>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="applicable_categories">Applicable Categories</label>
+                                <input type="text" class="form-control" id="applicable_categories" name="applicable_categories" placeholder="e.g., MOBILES,FASHION" value="{{ coupon.applicable_categories }}">
+                                <div class="form-text">Comma-separated category names. Leave empty for all categories</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="applicable_products">Applicable Product IDs</label>
+                                <input type="text" class="form-control" id="applicable_products" name="applicable_products" placeholder="e.g., 1,2,3" value="{{ coupon.applicable_products }}">
+                                <div class="form-text">Comma-separated product IDs. Leave empty for all products</div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{% url 'admin_coupons' %}" class="btn btn-outline-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bx bx-save me-1"></i> Update Coupon
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <div class="alert alert-info">
-                <i class="bx bx-info-circle me-2"></i>
-                Edit Coupon form will be implemented here.
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Coupon Statistics</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Total Uses:</span>
+                        <strong>{{ coupon.current_uses }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Max Uses:</span>
+                        <strong>{{ coupon.max_uses|default:"Unlimited" }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Created:</span>
+                        <strong>{{ coupon.created_at|date:"M d, Y" }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Status:</span>
+                        {% if coupon.status == 'ACTIVE' %}
+                            <span class="badge bg-success">{{ coupon.get_status_display }}</span>
+                        {% elif coupon.status == 'INACTIVE' %}
+                            <span class="badge bg-secondary">{{ coupon.get_status_display }}</span>
+                        {% else %}
+                            <span class="badge bg-danger">{{ coupon.get_status_display }}</span>
+                        {% endif %}
+                    </div>
+                    {% if coupon.valid_until < now %}
+                    <div class="alert alert-warning mt-3">
+                        <i class="bx bx-time me-2"></i>
+                        This coupon has expired.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">Coupon Guidelines</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="bx bx-check text-success me-2"></i>
+                            <strong>Code:</strong> Use uppercase letters and numbers
+                        </li>
+                        <li class="mb-2">
+                            <i class="bx bx-check text-success me-2"></i>
+                            <strong>Percentage:</strong> Enter value without % symbol
+                        </li>
+                        <li class="mb-2">
+                            <i class="bx bx-check text-success me-2"></i>
+                            <strong>Fixed Amount:</strong> Enter amount in rupees
+                        </li>
+                        <li class="mb-0">
+                            <i class="bx bx-check text-success me-2"></i>
+                            <strong>Status:</strong> Only active coupons can be used
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>

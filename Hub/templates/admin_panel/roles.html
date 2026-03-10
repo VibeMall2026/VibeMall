@@ -15,12 +15,190 @@
             </a>
         </div>
         <div class="card-body">
-            <div class="alert alert-success">
-                <i class="bx bx-check-circle me-2"></i>
-                Role Management page is working! Database tables have been created successfully.
+            {% if roles %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Role Name</th>
+                            <th>Description</th>
+                            <th>Permissions</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for role in roles %}
+                        <tr>
+                            <td>
+                                <strong>{{ role.name }}</strong>
+                            </td>
+                            <td>
+                                {{ role.description|truncatechars:50|default:"No description" }}
+                            </td>
+                            <td>
+                                <div class="d-flex flex-wrap gap-1">
+                                    {% for permission in role.permissions %}
+                                    <span class="badge bg-light text-dark">{{ permission|title|replace:"_":" " }}</span>
+                                    {% empty %}
+                                    <span class="text-muted">No permissions</span>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td>
+                                {% if role.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>{{ role.created_at|date:"M d, Y" }}</small>
+                            </td>
+                            <td>
+                                <div class="dropdown">
+                                    <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                        <i class="bx bx-dots-vertical-rounded"></i>
+                                    </button>
+                                    <div class="dropdown-menu">
+                                        <a class="dropdown-item" href="{% url 'admin_edit_role' role.id %}">
+                                            <i class="bx bx-edit-alt me-1"></i> Edit
+                                        </a>
+                                        <a class="dropdown-item" href="#" onclick="viewRoleUsers({{ role.id }})">
+                                            <i class="bx bx-user me-1"></i> View Users
+                                        </a>
+                                        {% if role.is_active %}
+                                        <a class="dropdown-item text-warning" href="#" onclick="toggleRoleStatus({{ role.id }}, false)">
+                                            <i class="bx bx-pause me-1"></i> Deactivate
+                                        </a>
+                                        {% else %}
+                                        <a class="dropdown-item text-success" href="#" onclick="toggleRoleStatus({{ role.id }}, true)">
+                                            <i class="bx bx-play me-1"></i> Activate
+                                        </a>
+                                        {% endif %}
+                                        <div class="dropdown-divider"></div>
+                                        <a class="dropdown-item text-danger" href="#" onclick="deleteRole({{ role.id }}, '{{ role.name }}')">
+                                            <i class="bx bx-trash me-1"></i> Delete
+                                        </a>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            <p>This page will display admin roles once data is available.</p>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="bx bx-shield bx-lg text-muted mb-3"></i>
+                <h5 class="text-muted">No roles found</h5>
+                <p class="text-muted">Create your first admin role to get started with role-based access control.</p>
+                <a href="{% url 'admin_add_role' %}" class="btn btn-primary">
+                    <i class="bx bx-plus me-1"></i> Add New Role
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- User Role Assignments -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">User Role Assignments</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <i class="bx bx-info-circle me-2"></i>
+                Assign roles to admin users to control their access permissions.
+            </div>
+            
+            <form method="post" action="{% url 'admin_assign_role' %}" class="row g-3">
+                {% csrf_token %}
+                <div class="col-md-4">
+                    <label class="form-label">Select User</label>
+                    <select name="user_id" class="form-select" required>
+                        <option value="">Choose admin user...</option>
+                        {% for user in admin_users %}
+                        <option value="{{ user.id }}">{{ user.username }} - {{ user.get_full_name|default:"No name" }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Select Role</label>
+                    <select name="role_id" class="form-select" required>
+                        <option value="">Choose role...</option>
+                        {% for role in roles %}
+                        {% if role.is_active %}
+                        <option value="{{ role.id }}">{{ role.name }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bx bx-user-plus me-1"></i> Assign Role
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 </div>
+
+<script>
+function toggleRoleStatus(roleId, isActive) {
+    const action = isActive ? 'activate' : 'deactivate';
+    if (confirm(`Are you sure you want to ${action} this role?`)) {
+        fetch(`/admin-panel/roles/${roleId}/toggle-status/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({is_active: isActive})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error updating role status');
+            }
+        })
+        .catch(error => {
+            alert('Error updating role status');
+        });
+    }
+}
+
+function deleteRole(roleId, roleName) {
+    if (confirm(`Are you sure you want to delete role "${roleName}"? This action cannot be undone and will remove all user assignments.`)) {
+        fetch(`/admin-panel/roles/${roleId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error deleting role: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            alert('Error deleting role');
+        });
+    }
+}
+
+function viewRoleUsers(roleId) {
+    // Open modal or redirect to view users with this role
+    window.open(`/admin-panel/roles/${roleId}/users/`, '_blank');
+}
+</script>
 {% endblock %}

@@ -94,10 +94,10 @@ def log_activity(user, action, model_name, object_id=None, object_name='', chang
 # ============ DISCOUNT COUPONS ============
 
 @login_required(login_url='login')
-@staff_member_required()
+@staff_member_required(login_url='login')
 def admin_coupons(request):
     """List all discount coupons"""
-    coupons = DiscountCoupon.objects.all()
+    coupons = DiscountCoupon.objects.all().order_by('-created_at')
     
     # Filters
     status_filter = request.GET.get('status')
@@ -115,14 +115,15 @@ def admin_coupons(request):
     context = {
         'page_obj': page_obj,
         'status_choices': DiscountCoupon.STATUS_CHOICES,
-        'total_coupons': coupons.count(),
+        'total_coupons': DiscountCoupon.objects.count(),
+        'now': timezone.now(),
     }
     
     return render(request, 'admin_panel/coupons.html', context)
 
 
 @login_required(login_url='login')
-@staff_member_required()
+@staff_member_required(login_url='login')
 def admin_add_coupon(request):
     """Add new discount coupon"""
     if request.method == 'POST':
@@ -134,6 +135,7 @@ def admin_add_coupon(request):
             valid_from = request.POST.get('valid_from')
             valid_until = request.POST.get('valid_until')
             max_uses = request.POST.get('max_uses')
+            max_discount_amount = request.POST.get('max_discount_amount')
             
             coupon = DiscountCoupon.objects.create(
                 code=code,
@@ -143,8 +145,11 @@ def admin_add_coupon(request):
                 valid_from=valid_from,
                 valid_until=valid_until,
                 max_uses=int(max_uses) if max_uses else None,
+                max_discount_amount=Decimal(max_discount_amount) if max_discount_amount else None,
                 created_by=request.user,
                 description=request.POST.get('description', ''),
+                applicable_categories=request.POST.get('applicable_categories', ''),
+                applicable_products=request.POST.get('applicable_products', ''),
             )
             
             log_activity(request.user, 'CREATE', 'DiscountCoupon', coupon.id, coupon.code, request=request)
@@ -162,7 +167,7 @@ def admin_add_coupon(request):
 
 
 @login_required(login_url='login')
-@staff_member_required()
+@staff_member_required(login_url='login')
 def admin_edit_coupon(request, coupon_id):
     """Edit discount coupon"""
     coupon = get_object_or_404(DiscountCoupon, id=coupon_id)
@@ -179,6 +184,22 @@ def admin_edit_coupon(request, coupon_id):
             coupon.status = request.POST.get('status', coupon.status)
             coupon.discount_value = Decimal(request.POST.get('discount_value', coupon.discount_value))
             coupon.description = request.POST.get('description', coupon.description)
+            coupon.discount_type = request.POST.get('discount_type', coupon.discount_type)
+            
+            max_discount_amount = request.POST.get('max_discount_amount')
+            coupon.max_discount_amount = Decimal(max_discount_amount) if max_discount_amount else None
+            
+            min_purchase_amount = request.POST.get('min_purchase_amount')
+            coupon.min_purchase_amount = Decimal(min_purchase_amount) if min_purchase_amount else Decimal('0')
+            
+            max_uses = request.POST.get('max_uses')
+            coupon.max_uses = int(max_uses) if max_uses else None
+            
+            coupon.valid_from = request.POST.get('valid_from', coupon.valid_from)
+            coupon.valid_until = request.POST.get('valid_until', coupon.valid_until)
+            coupon.applicable_categories = request.POST.get('applicable_categories', coupon.applicable_categories)
+            coupon.applicable_products = request.POST.get('applicable_products', coupon.applicable_products)
+            
             coupon.save()
             
             new_data = {
@@ -200,6 +221,7 @@ def admin_edit_coupon(request, coupon_id):
         'coupon': coupon,
         'discount_types': DiscountCoupon.DISCOUNT_TYPE_CHOICES,
         'status_choices': DiscountCoupon.STATUS_CHOICES,
+        'now': timezone.now(),
     }
     
     return render(request, 'admin_panel/edit_coupon.html', context)
@@ -208,18 +230,19 @@ def admin_edit_coupon(request, coupon_id):
 # ============ LOW STOCK ALERTS ============
 
 @login_required(login_url='login')
-@staff_member_required()
-@login_required(login_url='login')
-@staff_member_required()
+@staff_member_required(login_url='login')
 def admin_low_stock_alerts(request):
     """View low stock alerts"""
-    alerts = LowStockAlert.objects.all()
+    alerts = LowStockAlert.objects.all().order_by('-created_at')
     
     # Filters
     status_filter = request.GET.get('status')
+    search = request.GET.get('search')
     
     if status_filter:
         alerts = alerts.filter(status=status_filter)
+    if search:
+        alerts = alerts.filter(product_name__icontains=search)
     
     paginator = Paginator(alerts, 30)
     page_number = request.GET.get('page')
@@ -258,9 +281,7 @@ def check_and_create_low_stock_alerts(threshold=10):
 # ============ BULK OPERATIONS ============
 
 @login_required(login_url='login')
-@staff_member_required()
-@login_required(login_url='login')
-@staff_member_required()
+@staff_member_required(login_url='login')
 def admin_bulk_import_products(request):
     """Bulk import products from CSV"""
     if request.method == 'POST':
@@ -288,6 +309,9 @@ def admin_bulk_import_products(request):
             
             for row_num, row in enumerate(csv_reader, start=2):
                 try:
+                    # Import Product model from Hub.models
+                    from Hub.models import Product
+                    
                     product = Product.objects.create(
                         name=row.get('name', ''),
                         price=Decimal(row.get('price', 0)),
@@ -317,7 +341,7 @@ def admin_bulk_import_products(request):
         except Exception as e:
             messages.error(request, f'Error processing file: {str(e)}')
     
-    imports = BulkProductImport.objects.all()[:10]
+    imports = BulkProductImport.objects.all().order_by('-created_at')[:10]
     
     context = {
         'recent_imports': imports,
@@ -327,9 +351,12 @@ def admin_bulk_import_products(request):
 
 
 @login_required(login_url='login')
-@staff_member_required()
+@staff_member_required(login_url='login')
 def admin_export_products(request):
     """Export products to CSV"""
+    # Import Product model from Hub.models
+    from Hub.models import Product
+    
     products = Product.objects.all()
     
     response = HttpResponse(content_type='text/csv')
@@ -342,12 +369,12 @@ def admin_export_products(request):
         writer.writerow([
             product.id,
             product.name,
-            product.sku,
+            getattr(product, 'sku', ''),  # SKU might not exist in all models
             product.price,
             product.stock,
             product.category,
             'Yes' if product.is_active else 'No',
-            product.rating,
+            getattr(product, 'rating', 0),  # Rating might not exist in all models
         ])
     
     log_activity(request.user, 'EXPORT', 'Product', None, f'Exported {products.count()} products', request=request)
@@ -358,12 +385,10 @@ def admin_export_products(request):
 # ============ SALES REPORTS ============
 
 @login_required(login_url='login')
-@staff_member_required()
-@login_required(login_url='login')
-@staff_member_required()
+@staff_member_required(login_url='login')
 def admin_sales_reports(request):
     """View sales reports"""
-    reports = SalesReport.objects.all()
+    reports = SalesReport.objects.all().order_by('-report_date')
     
     # Filters
     report_type = request.GET.get('report_type')
@@ -394,6 +419,9 @@ def generate_daily_sales_report(report_date=None):
     """Generate daily sales report"""
     if report_date is None:
         report_date = timezone.now().date()
+    
+    # Import Order and OrderItem models from Hub.models
+    from Hub.models import Order, OrderItem
     
     # Get orders for the day
     orders = Order.objects.filter(
@@ -426,24 +454,24 @@ def generate_daily_sales_report(report_date=None):
 # ============ ROLE MANAGEMENT ============
 
 @login_required(login_url='login')
-@staff_member_required()
-@login_required(login_url='login')
-@staff_member_required()
+@staff_member_required(login_url='login')
 def admin_roles(request):
     """Manage admin roles"""
-    roles = AdminRole.objects.all()
+    roles = AdminRole.objects.all().order_by('name')
+    
+    # Get admin users for role assignment
+    admin_users = User.objects.filter(is_staff=True)
     
     context = {
         'roles': roles,
+        'admin_users': admin_users,
     }
     
     return render(request, 'admin_panel/roles.html', context)
 
 
 @login_required(login_url='login')
-@staff_member_required()
-@login_required(login_url='login')
-@staff_member_required()
+@staff_member_required(login_url='login')
 def admin_add_role(request):
     """Add new admin role"""
     if request.method == 'POST':
@@ -469,3 +497,182 @@ def admin_add_role(request):
     }
     
     return render(request, 'admin_panel/add_role.html', context)
+
+
+# ============ AJAX VIEWS FOR DYNAMIC FUNCTIONALITY ============
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+@require_http_methods(["POST"])
+def toggle_coupon_status(request, coupon_id):
+    """Toggle coupon status via AJAX"""
+    try:
+        coupon = get_object_or_404(DiscountCoupon, id=coupon_id)
+        data = json.loads(request.body)
+        new_status = data.get('status')
+        
+        old_status = coupon.status
+        coupon.status = new_status
+        coupon.save()
+        
+        log_activity(request.user, 'UPDATE', 'DiscountCoupon', coupon.id, coupon.code, 
+                    {'old': {'status': old_status}, 'new': {'status': new_status}}, request=request)
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+@require_http_methods(["POST"])
+def delete_coupon(request, coupon_id):
+    """Delete coupon via AJAX"""
+    try:
+        coupon = get_object_or_404(DiscountCoupon, id=coupon_id)
+        coupon_code = coupon.code
+        
+        log_activity(request.user, 'DELETE', 'DiscountCoupon', coupon.id, coupon_code, request=request)
+        coupon.delete()
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+@require_http_methods(["POST"])
+def check_low_stock(request):
+    """Check for low stock products and create alerts"""
+    try:
+        threshold = int(request.POST.get('threshold', 10))
+        check_and_create_low_stock_alerts(threshold)
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+@require_http_methods(["POST"])
+def update_alert_status(request, alert_id):
+    """Update low stock alert status"""
+    try:
+        alert = get_object_or_404(LowStockAlert, id=alert_id)
+        data = json.loads(request.body)
+        new_status = data.get('status')
+        
+        old_status = alert.status
+        alert.status = new_status
+        
+        if new_status == 'SENT':
+            alert.alert_sent_at = timezone.now()
+        elif new_status == 'ACKNOWLEDGED':
+            alert.acknowledged_by = request.user
+            alert.acknowledged_at = timezone.now()
+        
+        alert.save()
+        
+        log_activity(request.user, 'UPDATE', 'LowStockAlert', alert.id, alert.product_name, 
+                    {'old': {'status': old_status}, 'new': {'status': new_status}}, request=request)
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+@require_http_methods(["POST"])
+def delete_alert(request, alert_id):
+    """Delete low stock alert"""
+    try:
+        alert = get_object_or_404(LowStockAlert, id=alert_id)
+        product_name = alert.product_name
+        
+        log_activity(request.user, 'DELETE', 'LowStockAlert', alert.id, product_name, request=request)
+        alert.delete()
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+@require_http_methods(["POST"])
+def generate_sales_report(request):
+    """Generate new sales report"""
+    try:
+        report_type = request.POST.get('report_type')
+        report_date = request.POST.get('report_date')
+        
+        if report_type == 'DAILY':
+            report = generate_daily_sales_report(report_date)
+        else:
+            # For now, just create a basic report
+            report = SalesReport.objects.create(
+                report_type=report_type,
+                report_date=report_date,
+                total_sales=Decimal('0'),
+                total_orders=0,
+            )
+        
+        log_activity(request.user, 'CREATE', 'SalesReport', report.id, f'{report.get_report_type_display()} - {report.report_date}', request=request)
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+@require_http_methods(["POST"])
+def delete_sales_report(request, report_id):
+    """Delete sales report"""
+    try:
+        report = get_object_or_404(SalesReport, id=report_id)
+        report_name = f'{report.get_report_type_display()} - {report.report_date}'
+        
+        log_activity(request.user, 'DELETE', 'SalesReport', report.id, report_name, request=request)
+        report.delete()
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+@require_http_methods(["POST"])
+def assign_user_role(request):
+    """Assign role to user"""
+    try:
+        user_id = request.POST.get('user_id')
+        role_id = request.POST.get('role_id')
+        
+        user = get_object_or_404(User, id=user_id)
+        role = get_object_or_404(AdminRole, id=role_id)
+        
+        # Remove existing role assignment
+        AdminUserRole.objects.filter(admin_user=user).delete()
+        
+        # Create new assignment
+        AdminUserRole.objects.create(
+            admin_user=user,
+            role=role,
+            assigned_by=request.user
+        )
+        
+        log_activity(request.user, 'UPDATE', 'AdminUserRole', user.id, f'{user.username} -> {role.name}', request=request)
+        messages.success(request, f'Role {role.name} assigned to {user.username} successfully!')
+        
+        return redirect('admin_roles')
+    except Exception as e:
+        messages.error(request, f'Error assigning role: {str(e)}')
+        return redirect('admin_roles')
+
+
+# Import json for AJAX views
+import json

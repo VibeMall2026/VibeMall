@@ -7,17 +7,230 @@
         <span class="text-muted fw-light">Operations /</span> Bulk Import Products
     </h4>
 
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Bulk Import Products</h5>
-        </div>
-        <div class="card-body">
-            <div class="alert alert-success">
-                <i class="bx bx-check-circle me-2"></i>
-                Bulk Import page is working! Database tables have been created successfully.
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Import Products from CSV</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" id="bulkImportForm">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label class="form-label" for="csv_file">Select CSV File *</label>
+                            <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
+                            <div class="form-text">Upload a CSV file with product data. Maximum file size: 10MB</div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <h6><i class="bx bx-info-circle me-2"></i>CSV Format Requirements:</h6>
+                            <p class="mb-2">Your CSV file must include the following columns (in any order):</p>
+                            <ul class="mb-0">
+                                <li><strong>name</strong> - Product name (required)</li>
+                                <li><strong>price</strong> - Product price in rupees (required)</li>
+                                <li><strong>stock</strong> - Stock quantity (required)</li>
+                                <li><strong>category</strong> - Product category (required)</li>
+                                <li><strong>description</strong> - Product description (optional)</li>
+                                <li><strong>is_active</strong> - true/false (optional, defaults to true)</li>
+                            </ul>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="#" onclick="downloadSampleCSV()" class="btn btn-outline-info">
+                                <i class="bx bx-download me-1"></i> Download Sample CSV
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bx bx-upload me-1"></i> Import Products
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-            <p>This page will allow bulk product imports via CSV once implemented.</p>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Import Guidelines</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="bx bx-check text-success me-2"></i>
+                            <strong>File Format:</strong> CSV only
+                        </li>
+                        <li class="mb-2">
+                            <i class="bx bx-check text-success me-2"></i>
+                            <strong>Encoding:</strong> UTF-8 recommended
+                        </li>
+                        <li class="mb-2">
+                            <i class="bx bx-check text-success me-2"></i>
+                            <strong>Max Size:</strong> 10MB per file
+                        </li>
+                        <li class="mb-2">
+                            <i class="bx bx-check text-success me-2"></i>
+                            <strong>Headers:</strong> First row must contain column names
+                        </li>
+                        <li class="mb-0">
+                            <i class="bx bx-check text-success me-2"></i>
+                            <strong>Validation:</strong> Errors will be reported after import
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'admin_export_products' %}" class="btn btn-outline-primary">
+                            <i class="bx bx-export me-1"></i> Export All Products
+                        </a>
+                        <a href="/admin-panel/products/" class="btn btn-outline-secondary">
+                            <i class="bx bx-list-ul me-1"></i> View All Products
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
+    <!-- Recent Imports -->
+    {% if recent_imports %}
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">Recent Imports</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>File Name</th>
+                            <th>Status</th>
+                            <th>Total Rows</th>
+                            <th>Successful</th>
+                            <th>Failed</th>
+                            <th>Imported Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for import in recent_imports %}
+                        <tr>
+                            <td>
+                                <strong>{{ import.file_name }}</strong>
+                            </td>
+                            <td>
+                                {% if import.status == 'COMPLETED' %}
+                                    <span class="badge bg-success">{{ import.get_status_display }}</span>
+                                {% elif import.status == 'FAILED' %}
+                                    <span class="badge bg-danger">{{ import.get_status_display }}</span>
+                                {% elif import.status == 'PROCESSING' %}
+                                    <span class="badge bg-warning">{{ import.get_status_display }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ import.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ import.total_rows }}</td>
+                            <td class="text-success">{{ import.successful_imports }}</td>
+                            <td class="text-danger">{{ import.failed_imports }}</td>
+                            <td>
+                                <small>{{ import.created_at|date:"M d, Y H:i" }}</small>
+                            </td>
+                            <td>
+                                {% if import.error_log %}
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#errorsModal{{ import.id }}">
+                                    <i class="bx bx-error"></i> View Errors
+                                </button>
+                                
+                                <!-- Errors Modal -->
+                                <div class="modal fade" id="errorsModal{{ import.id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Import Errors - {{ import.file_name }}</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="alert alert-danger">
+                                                    <strong>{{ import.failed_imports }} errors found:</strong>
+                                                </div>
+                                                <pre class="bg-light p-3 rounded" style="max-height: 400px; overflow-y: auto;">{% for error in import.error_log %}{{ error }}
+{% endfor %}</pre>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <span class="text-muted">No errors</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
+
+<script>
+document.getElementById('bulkImportForm').addEventListener('submit', function(e) {
+    const fileInput = document.getElementById('csv_file');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        e.preventDefault();
+        alert('Please select a CSV file to import.');
+        return;
+    }
+    
+    if (file.size > 10 * 1024 * 1024) { // 10MB
+        e.preventDefault();
+        alert('File size must be less than 10MB.');
+        return;
+    }
+    
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+        e.preventDefault();
+        alert('Please select a CSV file.');
+        return;
+    }
+    
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    submitBtn.innerHTML = '<i class="bx bx-loader-alt bx-spin me-1"></i> Importing...';
+    submitBtn.disabled = true;
+    
+    // Form will submit normally, but we show loading state
+    setTimeout(() => {
+        if (!submitBtn.disabled) return; // Form already submitted
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }, 30000); // Reset after 30 seconds if something goes wrong
+});
+
+function downloadSampleCSV() {
+    const csvContent = `name,price,stock,category,description,is_active
+"Sample Product 1",299.99,50,"ELECTRONICS","High-quality electronic device",true
+"Sample Product 2",199.50,25,"FASHION","Stylish fashion item",true
+"Sample Product 3",99.00,100,"HOME","Useful home accessory",false`;
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sample_products.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+</script>
 {% endblock %}
