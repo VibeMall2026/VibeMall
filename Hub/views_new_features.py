@@ -11,6 +11,9 @@ from django.db.models import Q, Sum, Count, Avg
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator
+from decimal import Decimal
+import csv
+from io import StringIO
 
 from Hub.models_new_features import (
     ActivityLog, DiscountCoupon, LowStockAlert, BulkProductImport,
@@ -206,6 +209,8 @@ def admin_edit_coupon(request, coupon_id):
 
 @login_required(login_url='login')
 @staff_member_required()
+@login_required(login_url='login')
+@staff_member_required()
 def admin_low_stock_alerts(request):
     """View low stock alerts"""
     alerts = LowStockAlert.objects.all()
@@ -222,6 +227,7 @@ def admin_low_stock_alerts(request):
     
     context = {
         'page_obj': page_obj,
+        'alerts': page_obj,
         'status_choices': LowStockAlert.STATUS_CHOICES,
         'pending_count': LowStockAlert.objects.filter(status='PENDING').count(),
     }
@@ -251,6 +257,8 @@ def check_and_create_low_stock_alerts(threshold=10):
 
 # ============ BULK OPERATIONS ============
 
+@login_required(login_url='login')
+@staff_member_required()
 @login_required(login_url='login')
 @staff_member_required()
 def admin_bulk_import_products(request):
@@ -351,6 +359,8 @@ def admin_export_products(request):
 
 @login_required(login_url='login')
 @staff_member_required()
+@login_required(login_url='login')
+@staff_member_required()
 def admin_sales_reports(request):
     """View sales reports"""
     reports = SalesReport.objects.all()
@@ -373,6 +383,7 @@ def admin_sales_reports(request):
     
     context = {
         'page_obj': page_obj,
+        'reports': page_obj,
         'report_types': SalesReport.REPORT_TYPE_CHOICES,
     }
     
@@ -416,6 +427,8 @@ def generate_daily_sales_report(report_date=None):
 
 @login_required(login_url='login')
 @staff_member_required()
+@login_required(login_url='login')
+@staff_member_required()
 def admin_roles(request):
     """Manage admin roles"""
     roles = AdminRole.objects.all()
@@ -427,6 +440,8 @@ def admin_roles(request):
     return render(request, 'admin_panel/roles.html', context)
 
 
+@login_required(login_url='login')
+@staff_member_required()
 @login_required(login_url='login')
 @staff_member_required()
 def admin_add_role(request):
