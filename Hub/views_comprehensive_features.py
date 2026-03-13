@@ -222,10 +222,10 @@ def admin_generate_pl_statement(request):
             # Calculate financial metrics
             orders = Order.objects.filter(
                 created_at__date__range=[start_date, end_date],
-                status__in=['COMPLETED', 'SHIPPED', 'DELIVERED']
+                order_status__in=['PROCESSING', 'SHIPPED', 'DELIVERED']
             )
             
-            gross_sales = orders.aggregate(Sum('total_price'))['total_price__sum'] or Decimal('0')
+            gross_sales = orders.aggregate(total_sales=Sum('total_amount'))['total_sales'] or Decimal('0')
             total_orders = orders.count()
             avg_order_value = gross_sales / total_orders if total_orders > 0 else Decimal('0')
             
@@ -521,8 +521,9 @@ def admin_image_optimization(request):
     summary = ImageOptimization.objects.aggregate(
         total_images=Count('id'),
         optimized_images=Count('id', filter=Q(status='COMPLETED')),
-        total_savings_mb=Sum('bandwidth_saved_bytes') / (1024 * 1024) if Sum('bandwidth_saved_bytes') else 0,
+        total_savings_bytes=Sum('bandwidth_saved_bytes'),
     )
+    summary['total_savings_mb'] = round((summary['total_savings_bytes'] or 0) / (1024 * 1024), 2)
     
     context = {
         'page_obj': page_obj,
@@ -733,12 +734,13 @@ def admin_flash_sales(request):
             try:
                 product = Product.objects.get(id=product_id)
                 original_price = product.price
-                discount_amount = (original_price * float(discount_percent)) / 100
+                discount_rate = Decimal(discount_percent)
+                discount_amount = (original_price * discount_rate) / Decimal('100')
                 flash_price = original_price - discount_amount
                 
                 product.old_price = original_price
                 product.price = flash_price
-                product.discount_percent = float(discount_percent)
+                product.discount_percent = int(discount_rate)
                 product.save()
                 
                 messages.success(request, f'Flash sale created for {product.name}!')
@@ -872,13 +874,13 @@ def admin_sales_comparison(request):
     
     current_orders = Order.objects.filter(
         created_at__date__gte=current_start,
-        order_status__in=['confirmed', 'shipped', 'delivered']
+        order_status__in=['PROCESSING', 'SHIPPED', 'DELIVERED']
     )
     
     previous_orders = Order.objects.filter(
         created_at__date__gte=previous_start,
         created_at__date__lt=current_start,
-        order_status__in=['confirmed', 'shipped', 'delivered']
+        order_status__in=['PROCESSING', 'SHIPPED', 'DELIVERED']
     )
     
     current_metrics = current_orders.aggregate(
