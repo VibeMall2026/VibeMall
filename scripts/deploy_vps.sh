@@ -54,7 +54,7 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 
 echo "Checking for missing committed migrations..."
-if ! python manage.py makemigrations --check --dry-run; then
+if ! python manage.py makemigrations --check --dry-run --noinput; then
   echo "Deployment stopped: model changes exist without committed migrations."
   echo "Create and commit migrations locally, then deploy again."
   exit 1
