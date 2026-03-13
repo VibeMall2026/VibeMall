@@ -8,11 +8,15 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.http import HttpResponse, JsonResponse
+from django.core.exceptions import FieldError
 from django.db.models import Q, Sum, Count, Avg, F
+from django.db.utils import OperationalError, ProgrammingError
+from django.template import TemplateDoesNotExist
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator
 from decimal import Decimal
+from functools import wraps
 import csv
 import json
 from datetime import datetime, timedelta
@@ -62,6 +66,41 @@ from Hub.models_ai_ml_features import (
 
 from Hub.views_new_features import staff_member_required, log_activity
 from Hub.models import Product, Order, OrderItem
+
+
+def _advanced_feature_hint(exc):
+    """Translate common setup failures into an actionable admin message."""
+    if isinstance(exc, TemplateDoesNotExist):
+        return "This page template is missing from the codebase."
+    if isinstance(exc, (OperationalError, ProgrammingError)):
+        return "This feature's database tables are not ready on the current server. Run the latest migrations."
+    if isinstance(exc, FieldError):
+        return "This view still queries model fields that do not exist in the current schema."
+    return "This feature is incomplete on the current deployment."
+
+
+def advanced_feature_guard(feature_name):
+    """Fail softly for incomplete advanced admin features instead of returning a 500."""
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapped(request, *args, **kwargs):
+            try:
+                return view_func(request, *args, **kwargs)
+            except (OperationalError, ProgrammingError, FieldError, TemplateDoesNotExist) as exc:
+                messages.warning(
+                    request,
+                    f'{feature_name} is temporarily unavailable while the advanced feature setup is being completed.'
+                )
+                context = {
+                    'title': feature_name,
+                    'feature_name': feature_name,
+                    'feature_hint': _advanced_feature_hint(exc),
+                    'feature_error_type': exc.__class__.__name__,
+                    'feature_error': str(exc),
+                }
+                return render(request, 'admin_panel/feature_unavailable.html', context)
+        return wrapped
+    return decorator
 
 
 # ============ CUSTOMER INSIGHTS & CRM VIEWS ============
@@ -709,7 +748,7 @@ def admin_flash_sales(request):
             except Exception as e:
                 messages.error(request, f'Error: {str(e)}')
     
-    products = Product.objects.filter(stock__gt=0).order_by('-created_at')[:50]
+    products = Product.objects.filter(stock__gt=0).order_by('-id')[:50]
     current_flash_sales = Product.objects.filter(discount_percent__gt=0, stock__gt=0).order_by('-discount_percent')
     
     total_flash_sales = current_flash_sales.count()
@@ -783,9 +822,10 @@ def admin_whatsapp_campaigns(request):
         if message_template:
             try:
                 customers_with_phone = User.objects.filter(
-                    is_active=True,
-                    userprofile__phone_number__isnull=False
-                ).exclude(userprofile__phone_number='').count()
+                    is_active=True
+                ).filter(
+                    Q(userprofile__mobile_number__gt='') | Q(userprofile__phone__gt='')
+                ).distinct().count()
                 
                 messages.success(request, f'WhatsApp campaign prepared for {customers_with_phone} recipients!')
                 log_activity(request.user, 'CREATE', 'WhatsAppCampaign', None, 'WhatsApp campaign created')
@@ -793,9 +833,10 @@ def admin_whatsapp_campaigns(request):
                 messages.error(request, f'Error: {str(e)}')
     
     total_customers_with_phone = User.objects.filter(
-        is_active=True,
-        userprofile__phone_number__isnull=False
-    ).exclude(userprofile__phone_number='').count()
+        is_active=True
+    ).filter(
+        Q(userprofile__mobile_number__gt='') | Q(userprofile__phone__gt='')
+    ).distinct().count()
     
     context = {
         'title': 'WhatsApp Campaigns',
@@ -867,8 +908,8 @@ def admin_product_performance(request):
     """Product Performance Analytics"""
     products_query = Product.objects.annotate(
         total_sold=Sum('orderitem__quantity'),
-        total_revenue=Sum('orderitem__total_price'),
-        total_orders=Count('orderitem__order', distinct=True)
+        total_revenue=Sum('orderitem__subtotal'),
+        total_orders=Count('orderitem__order_id', distinct=True)
     ).filter(total_sold__isnull=False).order_by('-total_revenue')[:20]
     
     context = {
@@ -883,9 +924,9 @@ def admin_product_performance(request):
 def admin_customer_clv(request):
     """Customer Lifetime Value Analytics"""
     customers_clv = User.objects.annotate(
-        total_orders=Count('order'),
-        total_spent=Sum('order__total_amount'),
-        avg_order_value=Avg('order__total_amount')
+        total_orders=Count('orders'),
+        total_spent=Sum('orders__total_amount'),
+        avg_order_value=Avg('orders__total_amount')
     ).filter(total_orders__gt=0).order_by('-total_spent')[:50]
     
     context = {
@@ -904,7 +945,7 @@ def admin_abandoned_carts(request):
     abandoned_threshold = timezone.now() - timedelta(hours=24)
     abandoned_carts = Cart.objects.filter(
         updated_at__lt=abandoned_threshold
-    ).select_related('customer', 'product').order_by('-updated_at')[:50]
+    ).select_related('user', 'product').order_by('-updated_at')[:50]
     
     total_abandoned_value = sum([cart.product.price * cart.quantity for cart in abandoned_carts])
     
@@ -981,3 +1022,43 @@ def admin_page_builder(request):
         'message': 'Drag-and-drop page builder - Coming soon'
     }
     return render(request, 'admin_panel/page_builder.html', context)
+
+
+_ADVANCED_PAGE_LABELS = {
+    'admin_customer_segmentation': 'Customer Segmentation',
+    'admin_add_customer_segment': 'Add Customer Segment',
+    'admin_customer_support_tickets': 'Customer Support Tickets',
+    'admin_profit_loss_statements': 'Profit & Loss Statements',
+    'admin_generate_pl_statement': 'Generate Profit & Loss Statement',
+    'admin_expense_management': 'Expense Management',
+    'admin_product_variants': 'Product Variants',
+    'admin_product_bundles': 'Product Bundles',
+    'admin_product_seo': 'Product SEO',
+    'admin_security_roles': 'Security Roles',
+    'admin_security_audit_log': 'Security Audit Log',
+    'admin_user_sessions': 'User Sessions',
+    'admin_blog_management': 'Blog Management',
+    'admin_faq_management': 'FAQ Management',
+    'admin_email_templates': 'Email Templates',
+    'admin_performance_dashboard': 'Performance Dashboard',
+    'admin_image_optimization': 'Image Optimization',
+    'admin_recommendation_engines': 'Recommendation Engines',
+    'admin_dynamic_pricing': 'Dynamic Pricing',
+    'admin_fraud_detection': 'Fraud Detection',
+    'admin_chatbot_management': 'Chatbot Management',
+    'admin_flash_sales': 'Flash Sales',
+    'admin_email_campaigns': 'Email Campaigns',
+    'admin_whatsapp_campaigns': 'WhatsApp Campaigns',
+    'admin_sales_comparison': 'Sales Comparison',
+    'admin_product_performance': 'Product Performance',
+    'admin_customer_clv': 'Customer Lifetime Value',
+    'admin_abandoned_carts': 'Abandoned Carts',
+    'admin_gst_reports': 'GST Reports',
+    'admin_payment_reconciliation': 'Payment Reconciliation',
+    'admin_inventory_forecast': 'Inventory Forecast',
+    'admin_related_products': 'Related Products',
+    'admin_page_builder': 'Page Builder',
+}
+
+for _view_name, _label in _ADVANCED_PAGE_LABELS.items():
+    globals()[_view_name] = advanced_feature_guard(_label)(globals()[_view_name])

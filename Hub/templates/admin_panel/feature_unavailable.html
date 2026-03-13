@@ -1,0 +1,31 @@
+{% extends 'admin_panel/base_admin.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-warning">
+                <div class="card-body p-4">
+                    <span class="badge bg-label-warning mb-3">Advanced Feature</span>
+                    <h4 class="mb-3">{{ feature_name }}</h4>
+                    <p class="mb-3">
+                        This page is currently unavailable because the advanced feature implementation is incomplete on this deployment.
+                    </p>
+                    <div class="alert alert-warning mb-3">
+                        <strong>Reason:</strong> {{ feature_hint }}
+                    </div>
+                    <div class="bg-light rounded p-3 mb-3">
+                        <div class="small text-muted mb-1">Technical detail</div>
+                        <code>{{ feature_error_type }}: {{ feature_error }}</code>
+                    </div>
+                    <p class="text-muted mb-0">
+                        Recommended next step: complete the missing template or apply the latest advanced-feature migrations on the server.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
