@@ -1,0 +1,37 @@
+{% extends 'admin_panel/base_admin.html' %}
+
+{% block title %}Generate Profit & Loss Statement{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="fw-bold py-3 mb-4">Generate Profit & Loss Statement</h4>
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Period Type</label>
+                        <select name="period_type" class="form-select" required>
+                            {% for value, label in period_types %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" name="start_date" class="form-control" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">End Date</label>
+                        <input type="date" name="end_date" class="form-control" required>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">Generate Statement</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

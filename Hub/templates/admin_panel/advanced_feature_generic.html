@@ -1,0 +1,110 @@
+{% extends 'admin_panel/base_admin.html' %}
+
+{% block title %}{{ title|default:'Advanced Feature' }}{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="fw-bold py-3 mb-4">{{ title|default:'Advanced Feature' }}</h4>
+
+    {% if message %}
+    <div class="alert alert-info mb-4">
+        {{ message }}
+    </div>
+    {% endif %}
+
+    {% if summary %}
+    <div class="row mb-4">
+        {% for key, value in summary.items %}
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase">{{ key|cut:"_" }}</div>
+                    <h5 class="mb-0 mt-2">{{ value|default:'0' }}</h5>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if page_obj %}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Records</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Status</th>
+                            <th>Details</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in page_obj %}
+                        <tr>
+                            <td>{{ item }}</td>
+                            <td>
+                                {{ item.status|default:item.priority|default:item.role_type|default:item.template_type|default:item.algorithm|default:item.strategy|default:item.risk_level|default:'-' }}
+                            </td>
+                            <td>
+                                {{ item.subject|default:item.description|default:item.question|default:item.name|default:item.title|default:item.ticket_number|default:item.session_key|default:item.expense_id|default:item.statement_id|default:'-' }}
+                            </td>
+                            <td>
+                                {{ item.created_at|default:item.timestamp|default:item.login_time|default:item.expense_date|default:item.start_date|default:item.published_at|default:item.generated_at|default:'-' }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">No records available.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% elif roles or templates or engines or rules or chatbots or segments or variants %}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Overview</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                {% for item in roles %}
+                <div class="col-md-4"><div class="border rounded p-3">{{ item }}</div></div>
+                {% endfor %}
+                {% for item in templates %}
+                <div class="col-md-4"><div class="border rounded p-3">{{ item }}</div></div>
+                {% endfor %}
+                {% for item in engines %}
+                <div class="col-md-4"><div class="border rounded p-3">{{ item }}</div></div>
+                {% endfor %}
+                {% for item in rules %}
+                <div class="col-md-4"><div class="border rounded p-3">{{ item }}</div></div>
+                {% endfor %}
+                {% for item in chatbots %}
+                <div class="col-md-4"><div class="border rounded p-3">{{ item }}</div></div>
+                {% endfor %}
+                {% for item in segments %}
+                <div class="col-md-4"><div class="border rounded p-3">{{ item }}</div></div>
+                {% endfor %}
+                {% for item in variants %}
+                <div class="col-md-4"><div class="border rounded p-3">{{ item }}</div></div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <h5 class="text-muted mb-2">No data available yet</h5>
+            <p class="text-muted mb-0">This advanced feature page is ready, but there is no data to display.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
