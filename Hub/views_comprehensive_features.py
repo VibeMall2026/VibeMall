@@ -481,27 +481,70 @@ def admin_email_templates(request):
 @staff_member_required(login_url='login')
 def admin_performance_dashboard(request):
     """Performance monitoring dashboard"""
+    last_24_hours = timezone.now() - timedelta(hours=24)
+
     # Get recent performance metrics
     recent_errors = ErrorLog.objects.filter(
-        last_seen__gte=timezone.now() - timedelta(hours=24)
+        last_seen__gte=last_24_hours
     ).count()
     
     slow_queries = DatabaseQueryLog.objects.filter(
-        created_at__gte=timezone.now() - timedelta(hours=24),
+        created_at__gte=last_24_hours,
         is_slow_query=True
     ).count()
     
     avg_page_load = PageLoadMetrics.objects.filter(
-        created_at__gte=timezone.now() - timedelta(hours=24)
+        created_at__gte=last_24_hours
     ).aggregate(Avg('page_load_complete'))['page_load_complete__avg'] or 0
     
-    active_alerts = PerformanceAlert.objects.filter(status='ACTIVE').count()
+    active_alert_queryset = PerformanceAlert.objects.filter(status='ACTIVE').order_by('-created_at')
+    active_alerts = active_alert_queryset.count()
+    recent_alerts = list(active_alert_queryset[:5])
+
+    page_load_samples = list(
+        PageLoadMetrics.objects.filter(created_at__gte=last_24_hours)
+        .order_by('-created_at')
+        .values('created_at', 'page_load_complete')[:8]
+    )
+    page_load_samples.reverse()
+
+    page_load_chart = {
+        'labels': [timezone.localtime(sample['created_at']).strftime('%H:%M') for sample in page_load_samples],
+        'values': [float(sample['page_load_complete']) for sample in page_load_samples],
+    }
+
+    error_distribution = list(
+        ErrorLog.objects.filter(last_seen__gte=last_24_hours)
+        .values('error_type')
+        .annotate(total=Count('id'))
+        .order_by('-total')[:5]
+    )
+    error_type_labels = dict(ErrorLog.ERROR_TYPE_CHOICES)
+    error_chart = {
+        'labels': [error_type_labels.get(item['error_type'], item['error_type']) for item in error_distribution],
+        'values': [item['total'] for item in error_distribution],
+    }
+
+    latest_resource = SystemResourceUsage.objects.order_by('-recorded_at').first()
+    resource_chart = {
+        'labels': ['CPU', 'Memory', 'Disk'],
+        'values': [
+            float(latest_resource.cpu_usage_percent) if latest_resource else 0,
+            float(latest_resource.memory_usage_percent) if latest_resource else 0,
+            float(latest_resource.disk_usage_percent) if latest_resource else 0,
+        ],
+    }
     
     context = {
         'recent_errors': recent_errors,
         'slow_queries': slow_queries,
         'avg_page_load': avg_page_load,
         'active_alerts': active_alerts,
+        'recent_alerts': recent_alerts,
+        'latest_resource': latest_resource,
+        'page_load_chart': page_load_chart,
+        'error_chart': error_chart,
+        'resource_chart': resource_chart,
     }
     
     return render(request, 'admin_panel/performance_dashboard.html', context)
