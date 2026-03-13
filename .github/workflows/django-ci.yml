@@ -5,6 +5,7 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 env:
   PYTHON_VERSION: "3.11"
@@ -164,6 +165,9 @@ jobs:
               echo "Create and commit migrations locally, then deploy again."
               exit 1
             fi
+
+            echo "Current Hub migration state:"
+            python manage.py showmigrations Hub || true
 
             echo "Applying migrations..."
             python manage.py migrate --noinput

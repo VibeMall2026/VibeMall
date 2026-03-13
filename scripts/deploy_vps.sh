@@ -60,6 +60,9 @@ if ! python manage.py makemigrations --check --dry-run --noinput; then
   exit 1
 fi
 
+echo "Current Hub migration state:"
+python manage.py showmigrations Hub || true
+
 echo "Applying migrations..."
 python manage.py migrate --noinput
 
