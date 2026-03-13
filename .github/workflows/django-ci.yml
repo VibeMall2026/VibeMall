@@ -97,8 +97,8 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          timeout: 120s
+          port: ${{ secrets.VPS_PORT || 22 }}
+          timeout: 180s
           command_timeout: 15m
           debug: true
           script: |

@@ -1,87 +1,89 @@
 name: Validate Deployment Setup
 
 on:
-  workflow_dispatch:  # Manual trigger
+  workflow_dispatch:
   schedule:
-    - cron: '0 0 * * 0'  # Weekly check
+    - cron: '0 0 * * 0'
 
 jobs:
   validate-secrets:
     name: Validate GitHub Secrets
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: 🔍 Check Required Secrets
+      - name: Check Required Secrets
         run: |
-          echo "🔍 Validating GitHub Secrets configuration..."
-          
-          # Check if secrets are set (without revealing values)
+          echo "Validating GitHub Secrets configuration..."
+
           if [ -z "${{ secrets.VPS_HOST }}" ]; then
-            echo "❌ VPS_HOST secret is not set"
+            echo "VPS_HOST secret is not set"
             exit 1
           else
-            echo "✅ VPS_HOST secret is configured"
+            echo "VPS_HOST secret is configured"
           fi
-          
+
           if [ -z "${{ secrets.VPS_USERNAME }}" ]; then
-            echo "❌ VPS_USERNAME secret is not set"
+            echo "VPS_USERNAME secret is not set"
             exit 1
           else
-            echo "✅ VPS_USERNAME secret is configured"
+            echo "VPS_USERNAME secret is configured"
           fi
-          
+
           if [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
-            echo "❌ VPS_SSH_KEY secret is not set"
+            echo "VPS_SSH_KEY secret is not set"
             exit 1
           else
-            echo "✅ VPS_SSH_KEY secret is configured"
+            echo "VPS_SSH_KEY secret is configured"
           fi
-          
-          echo "🎉 All required secrets are configured!"
+
+          if [ -z "${{ secrets.VPS_PORT }}" ]; then
+            echo "VPS_PORT secret is not set, defaulting to port 22"
+          else
+            echo "VPS_PORT secret is configured"
+          fi
+
+          echo "Secret validation completed."
 
   test-connection:
     name: Test VPS Connection
     runs-on: ubuntu-latest
     needs: validate-secrets
-    
+
     steps:
-      - name: 🌐 Test VPS Connectivity
+      - name: Test VPS Connectivity
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          timeout: 30s
+          port: ${{ secrets.VPS_PORT || 22 }}
+          timeout: 60s
           command_timeout: 60s
           debug: true
           script: |
-            echo "🎯 VPS Connection Test Successful!"
-            echo "📅 Test performed at: $(date)"
-            echo "🖥️  Server: $(hostname)"
-            echo "👤 User: $(whoami)"
-            echo "📂 Current directory: $(pwd)"
-            
-            # Check if project directory exists
+            echo "VPS connection test successful."
+            echo "Test performed at: $(date)"
+            echo "Server: $(hostname)"
+            echo "User: $(whoami)"
+            echo "Current directory: $(pwd)"
+
             if [ -d "/var/www/vibemall" ]; then
-              echo "✅ Project directory exists"
+              echo "Project directory exists"
               cd /var/www/vibemall
-              echo "📋 Git status:"
-              git status --porcelain || echo "⚠️ Not a git repository or git not available"
+              echo "Git status:"
+              git status --porcelain || echo "Git repository not available"
             else
-              echo "❌ Project directory /var/www/vibemall not found"
+              echo "Project directory /var/www/vibemall not found"
             fi
-            
-            # Check virtual environment
+
             if [ -f "/var/www/vibemall/venv/bin/activate" ]; then
-              echo "✅ Virtual environment exists"
+              echo "Virtual environment exists"
             else
-              echo "❌ Virtual environment not found"
+              echo "Virtual environment not found"
             fi
-            
-            # Check services
-            echo "🔍 Checking services..."
-            sudo systemctl is-active vibemall || echo "⚠️ VibeMall service not active"
-            sudo systemctl is-active nginx || echo "⚠️ Nginx service not active"
-            
-            echo "🎉 Connection test completed!"
+
+            echo "Checking services..."
+            sudo systemctl is-active vibemall || echo "VibeMall service not active"
+            sudo systemctl is-active nginx || echo "Nginx service not active"
+
+            echo "Connection test completed."
