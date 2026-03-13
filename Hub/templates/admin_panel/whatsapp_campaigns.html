@@ -1,0 +1,41 @@
+{% extends 'admin_panel/base_admin.html' %}
+
+{% block title %}WhatsApp Campaigns{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="fw-bold py-3 mb-4">💬 WhatsApp Campaigns</h4>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5>Reachable Customers</h5>
+            <h2>{{ total_customers_with_phone }}</h2>
+            <p class="text-muted">Customers with phone numbers</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5>Create WhatsApp Campaign</h5>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label">Message Template</label>
+                    <textarea name="message_template" class="form-control" rows="4" required></textarea>
+                    <small class="text-muted">Use {customer_name}, {order_number} for personalization</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Target Audience</label>
+                    <select name="target_audience" class="form-select">
+                        <option value="customers">All Customers</option>
+                        <option value="recent_orders">Recent Orders (30 days)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-success">Prepare Campaign</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

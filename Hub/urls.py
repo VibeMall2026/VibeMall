@@ -287,3 +287,29 @@ urlpatterns += [
     # Export Functions
     path('admin-panel/export/comprehensive-analytics/', views_comprehensive_features.export_comprehensive_analytics, name='export_comprehensive_analytics'),
 ]
+
+
+# Additional comprehensive feature URLs
+urlpatterns += [
+    # Marketing Automation
+    path('admin-panel/flash-sales/', views_comprehensive_features.admin_flash_sales, name='admin_flash_sales'),
+    path('admin-panel/email-campaigns/', views_comprehensive_features.admin_email_campaigns, name='admin_email_campaigns'),
+    path('admin-panel/whatsapp-campaigns/', views_comprehensive_features.admin_whatsapp_campaigns, name='admin_whatsapp_campaigns'),
+    
+    # Analytics & Reports
+    path('admin-panel/sales-comparison/', views_comprehensive_features.admin_sales_comparison, name='admin_sales_comparison'),
+    path('admin-panel/product-performance/', views_comprehensive_features.admin_product_performance, name='admin_product_performance'),
+    path('admin-panel/customer-clv/', views_comprehensive_features.admin_customer_clv, name='admin_customer_clv'),
+    path('admin-panel/abandoned-carts/', views_comprehensive_features.admin_abandoned_carts, name='admin_abandoned_carts'),
+    
+    # Financial Management
+    path('admin-panel/gst-reports/', views_comprehensive_features.admin_gst_reports, name='admin_gst_reports'),
+    path('admin-panel/payment-reconciliation/', views_comprehensive_features.admin_payment_reconciliation, name='admin_payment_reconciliation'),
+    
+    # Operations
+    path('admin-panel/inventory-forecast/', views_comprehensive_features.admin_inventory_forecast, name='admin_inventory_forecast'),
+    path('admin-panel/related-products/', views_comprehensive_features.admin_related_products, name='admin_related_products'),
+    
+    # Content Management
+    path('admin-panel/page-builder/', views_comprehensive_features.admin_page_builder, name='admin_page_builder'),
+]

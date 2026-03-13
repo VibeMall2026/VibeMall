@@ -1,158 +1,38 @@
-{% extends "admin_panel/base_admin.html" %}
-{% load static %}
+{% extends 'admin_panel/base_admin.html' %}
+
+{% block title %}Sales Comparison{% endblock %}
 
 {% block content %}
 <div class="container-xxl flex-grow-1 container-p-y">
-    <h4 class="fw-bold py-3 mb-4">
-        <span class="text-muted fw-light">Advanced Analytics /</span> Sales Comparison
-    </h4>
+    <h4 class="fw-bold py-3 mb-4">📊 Sales Comparison Analytics</h4>
 
-    <!-- Filter Controls -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <label class="form-label">Comparison Type</label>
-                    <select class="form-select" onchange="window.location.href='?type=' + this.value">
-                        {% for value, label in comparison_types %}
-                        <option value="{{ value }}" {% if comparison_type == value %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">&nbsp;</label>
-                    <div class="d-grid">
-                        <a href="{% url 'export_analytics_excel' %}?type=sales_comparison" class="btn btn-outline-success">
-                            <i class="bx bx-download me-1"></i> Export Excel
-                        </a>
-                    </div>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6>Current Period Sales</h6>
+                    <h3>₹{{ current_metrics.total_sales|default:0|floatformat:0 }}</h3>
+                    <p class="text-muted">{{ current_metrics.total_orders|default:0 }} orders</p>
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- Sales Comparison Chart -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">{{ comparison_type|upper }} Sales Trend</h5>
-        </div>
-        <div class="card-body">
-            <div id="salesComparisonChart"></div>
-        </div>
-    </div>
-
-    <!-- Comparison Table -->
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Detailed Comparison</h5>
-        </div>
-        <div class="card-body">
-            {% if comparisons %}
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Period</th>
-                            <th>Current Sales</th>
-                            <th>Previous Sales</th>
-                            <th>Growth</th>
-                            <th>Current Orders</th>
-                            <th>Previous Orders</th>
-                            <th>Order Growth</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for comparison in comparisons %}
-                        <tr>
-                            <td>
-                                <strong>{{ comparison.current_period_start|date:"M d" }} - {{ comparison.current_period_end|date:"M d, Y" }}</strong>
-                            </td>
-                            <td>
-                                <span class="fw-semibold text-success">₹{{ comparison.current_sales|floatformat:2 }}</span>
-                            </td>
-                            <td>
-                                <span class="text-muted">₹{{ comparison.previous_sales|floatformat:2 }}</span>
-                            </td>
-                            <td>
-                                {% if comparison.growth_percentage >= 0 %}
-                                    <span class="badge bg-success">+{{ comparison.growth_percentage|floatformat:1 }}%</span>
-                                {% else %}
-                                    <span class="badge bg-danger">{{ comparison.growth_percentage|floatformat:1 }}%</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <span class="fw-semibold">{{ comparison.current_orders }}</span>
-                            </td>
-                            <td>
-                                <span class="text-muted">{{ comparison.previous_orders }}</span>
-                            </td>
-                            <td>
-                                {% if comparison.order_growth_percentage >= 0 %}
-                                    <span class="badge bg-light text-success">+{{ comparison.order_growth_percentage|floatformat:1 }}%</span>
-                                {% else %}
-                                    <span class="badge bg-light text-danger">{{ comparison.order_growth_percentage|floatformat:1 }}%</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6>Previous Period Sales</h6>
+                    <h3>₹{{ previous_metrics.total_sales|default:0|floatformat:0 }}</h3>
+                    <p class="text-muted">{{ previous_metrics.total_orders|default:0 }} orders</p>
+                </div>
             </div>
-            {% else %}
-            <div class="text-center py-4">
-                <i class="bx bx-line-chart bx-lg text-muted mb-3"></i>
-                <h5 class="text-muted">No comparison data available</h5>
-                <p class="text-muted">Sales comparison data will appear here once orders are processed.</p>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6>Average Order Value</h6>
+                    <h3>₹{{ current_metrics.avg_order_value|default:0|floatformat:0 }}</h3>
+                </div>
             </div>
-            {% endif %}
         </div>
     </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Sales Comparison Chart
-    const chartData = [
-        {% for comparison in comparisons %}
-        {
-            period: '{{ comparison.current_period_start|date:"M d" }}',
-            current: {{ comparison.current_sales|default:0 }},
-            previous: {{ comparison.previous_sales|default:0 }}
-        },
-        {% endfor %}
-    ].reverse();
-
-    const options = {
-        series: [{
-            name: 'Current Period',
-            data: chartData.map(item => item.current)
-        }, {
-            name: 'Previous Period',
-            data: chartData.map(item => item.previous)
-        }],
-        chart: {
-            type: 'line',
-            height: 350
-        },
-        xaxis: {
-            categories: chartData.map(item => item.period)
-        },
-        yaxis: {
-            labels: {
-                formatter: function (val) {
-                    return '₹' + val.toLocaleString();
-                }
-            }
-        },
-        colors: ['#28a745', '#6c757d'],
-        stroke: {
-            curve: 'smooth'
-        }
-    };
-
-    const chart = new ApexCharts(document.querySelector("#salesComparisonChart"), options);
-    chart.render();
-});
-</script>
 {% endblock %}

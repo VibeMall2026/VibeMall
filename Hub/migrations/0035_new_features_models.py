@@ -152,7 +152,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('assigned_at', models.DateTimeField(auto_now_add=True)),
                 ('admin_user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='admin_role', to=settings.AUTH_USER_MODEL)),
-                ('assigned_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='assigned_roles', to=settings.AUTH_USER_MODEL)),
+                ('assigned_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='admin_roles_assigned', to=settings.AUTH_USER_MODEL)),
                 ('role', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='Hub.adminrole')),
             ],
             options={

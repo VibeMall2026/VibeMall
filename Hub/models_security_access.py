@@ -73,7 +73,7 @@ class UserRoleAssignment(models.Model):
     role = models.ForeignKey(SecurityRole, on_delete=models.CASCADE, related_name='user_assignments')
     
     # Assignment details
-    assigned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='assigned_roles')
+    assigned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='security_roles_assigned')
     assigned_at = models.DateTimeField(auto_now_add=True)
     
     # Time-based access
@@ -246,7 +246,7 @@ class IPWhitelist(models.Model):
     subnet = models.CharField(max_length=20, blank=True, help_text="e.g., 192.168.1.0/24")
     
     # Access control
-    allowed_users = models.ManyToManyField(User, blank=True, help_text="Specific users allowed from this IP")
+    allowed_users = models.ManyToManyField(User, blank=True, related_name='allowed_ip_whitelist', help_text="Specific users allowed from this IP")
     allowed_roles = models.ManyToManyField(SecurityRole, blank=True, help_text="Roles allowed from this IP")
     
     # Time restrictions
@@ -263,7 +263,7 @@ class IPWhitelist(models.Model):
     last_used = models.DateTimeField(null=True, blank=True)
     usage_count = models.PositiveIntegerField(default=0)
     
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_ip_whitelist')
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:

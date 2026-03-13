@@ -6,6 +6,15 @@ from decimal import Decimal
 from typing import Optional, Dict, Any, List
 import uuid
 
+# Import comprehensive feature models
+from .models_customer_insights import *
+from .models_financial_management import *
+from .models_product_enhancements import *
+from .models_security_access import *
+from .models_content_management import *
+from .models_performance_optimization import *
+from .models_ai_ml_features import *
+
 class PasswordResetLog(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     email = models.EmailField()

@@ -208,7 +208,7 @@ class AdminUserRole(models.Model):
     admin_user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='admin_role')
     role = models.ForeignKey(AdminRole, on_delete=models.SET_NULL, null=True)
     assigned_at = models.DateTimeField(auto_now_add=True)
-    assigned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_roles')
+    assigned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='admin_roles_assigned')
     
     class Meta:
         verbose_name = 'Admin User Role'

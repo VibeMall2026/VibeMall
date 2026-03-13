@@ -1,0 +1,56 @@
+{% extends 'admin_panel/base_admin.html' %}
+
+{% block title %}Email Campaigns{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="fw-bold py-3 mb-4">📧 Email Campaigns</h4>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Total Subscribers</h5>
+                    <h2>{{ total_subscribers }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Total Customers</h5>
+                    <h2>{{ total_customers }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5>Create Email Campaign</h5>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label">Subject</label>
+                    <input type="text" name="subject" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Message</label>
+                    <textarea name="message" class="form-control" rows="5" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Target Audience</label>
+                    <select name="target_audience" class="form-select">
+                        <option value="all">All (Subscribers + Customers)</option>
+                        <option value="subscribers">Subscribers Only</option>
+                        <option value="customers">Customers Only</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Send Campaign</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

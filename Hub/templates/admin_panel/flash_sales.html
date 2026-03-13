@@ -1,0 +1,114 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Flash Sales Management{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="fw-bold py-3 mb-4">⚡ Flash Sales Management</h4>
+
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Active Flash Sales</h5>
+                    <h2>{{ flash_sale_stats.active_sales }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Savings</h5>
+                    <h2>₹{{ flash_sale_stats.total_savings|floatformat:0 }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Avg Discount</h5>
+                    <h2>{{ flash_sale_stats.avg_discount|floatformat:1 }}%</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Flash Sales -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Current Flash Sales</h5>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createFlashSaleModal">
+                Create Flash Sale
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Original Price</th>
+                            <th>Flash Price</th>
+                            <th>Discount</th>
+                            <th>Stock</th>
+                            <th>Sold</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in current_flash_sales %}
+                        <tr>
+                            <td>{{ product.name }}</td>
+                            <td>₹{{ product.old_price|floatformat:0 }}</td>
+                            <td>₹{{ product.price|floatformat:0 }}</td>
+                            <td><span class="badge bg-danger">{{ product.discount_percent }}% OFF</span></td>
+                            <td>{{ product.stock }}</td>
+                            <td>{{ product.sold }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center">No active flash sales</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Flash Sale Modal -->
+    <div class="modal fade" id="createFlashSaleModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                        <h5 class="modal-title">Create Flash Sale</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Select Product</label>
+                            <select name="product_id" class="form-select" required>
+                                <option value="">Choose product...</option>
+                                {% for product in products %}
+                                <option value="{{ product.id }}">{{ product.name }} - ₹{{ product.price }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Discount Percentage</label>
+                            <input type="number" name="discount_percent" class="form-control" min="1" max="90" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Flash Sale</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
