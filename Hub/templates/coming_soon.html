@@ -589,9 +589,11 @@ header, footer, .header, .footer, #mobileBottomNavShell, .mobile-bottom-nav-shel
         <div class="notify-section">
             <div class="notify-title">Be the first to know when we launch!</div>
             <form class="notify-form" id="notifyForm">
+                {% csrf_token %}
                 <input type="email" name="email" class="notify-input" placeholder="Enter your email address" required>
                 <button type="submit" class="notify-btn">Notify Me</button>
             </form>
+            <div class="notify-message" aria-live="polite" style="margin-top: 0.75rem; font-size: 0.95rem; color: rgba(255,255,255,0.8);"></div>
         </div>
 
         <!-- Features Grid -->
@@ -669,21 +671,25 @@ function getCookie(name) {
 // Email notification form handling
 const notifyForm = document.getElementById('notifyForm');
 if (notifyForm) {
+    const notifyMessage = notifyForm.closest('.notify-section').querySelector('.notify-message');
+
     notifyForm.addEventListener('submit', async function(e) {
         e.preventDefault();
 
-        const emailInput = this.querySelector('input[type="email"]');
+        const emailInput = this.querySelector('input[name="email"]');
         const email = (emailInput.value || '').trim();
         const button = this.querySelector('button');
 
         if (!email) {
             emailInput.focus();
+            notifyMessage.textContent = 'Please enter a valid email address.';
             return;
         }
 
         // UI feedback
         button.textContent = 'Sending...';
         button.disabled = true;
+        notifyMessage.textContent = '';
 
         const csrfToken = getCookie('csrftoken');
         const payload = new URLSearchParams({
@@ -702,9 +708,16 @@ if (notifyForm) {
                 body: payload.toString(),
             });
 
-            const data = await response.json();
+            let data;
+            try {
+                data = await response.json();
+            } catch (err) {
+                throw new Error('Unexpected response from server');
+            }
+
             if (!response.ok) throw new Error(data.message || 'Subscription failed');
 
+            notifyMessage.textContent = data.message || 'Subscribed successfully!';
             button.textContent = '✓ Subscribed!';
             button.style.background = 'linear-gradient(45deg, #4CAF50, #45a049)';
 
@@ -714,9 +727,11 @@ if (notifyForm) {
                 button.textContent = 'Notify Me';
                 button.disabled = false;
                 button.style.background = 'linear-gradient(45deg, #ff6b6b, #ee5a24)';
+                notifyMessage.textContent = '';
             }, 3000);
         } catch (error) {
-            console.error(error);
+            console.error('Newsletter subscribe error:', error);
+            notifyMessage.textContent = error.message || 'Unable to subscribe, please try again.';
             button.textContent = 'Try again';
             button.style.background = 'linear-gradient(45deg, #e74c3c, #c0392b)';
             setTimeout(() => {
