@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.core.cache import cache
 from django.conf import settings
 
-from .models import Cart, Wishlist, SiteSettings, LoyaltyPoints, CategoryIcon, Product, SubCategory, Coupon
+from .models import Cart, Wishlist, SiteSettings, LoyaltyPoints, CategoryIcon, Product, SubCategory, Coupon, Order
 from django.db.models import F, Sum
 
 
@@ -193,4 +193,42 @@ def header_menu_context(request):
     # Cache the context for performance (1 hour TTL)
     cache.set(cache_key, context, 3600)
     
+    return context
+
+
+def admin_panel_context(request):
+    """Add dynamic admin navbar data for custom admin panel."""
+    context = {
+        'admin_display_name': '',
+        'admin_role_label': 'User',
+        'admin_avatar_url': '',
+        'admin_billing_alert_count': 0,
+    }
+
+    user = getattr(request, 'user', None)
+    if not user or not user.is_authenticated:
+        return context
+
+    context['admin_display_name'] = user.get_full_name() or user.username
+
+    if user.is_superuser:
+        context['admin_role_label'] = 'Super Admin'
+    elif user.is_staff:
+        context['admin_role_label'] = 'Admin'
+
+    try:
+        profile = user.userprofile
+        if profile.profile_image and profile.profile_image.name != 'profile_images/default.png':
+            context['admin_avatar_url'] = profile.profile_image.url
+    except Exception:
+        pass
+
+    if request.path.startswith('/admin-panel/'):
+        try:
+            context['admin_billing_alert_count'] = Order.objects.filter(
+                payment_status__in=['PENDING', 'FAILED']
+            ).count()
+        except Exception:
+            context['admin_billing_alert_count'] = 0
+
     return context

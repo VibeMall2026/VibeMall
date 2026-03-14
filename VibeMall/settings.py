@@ -130,6 +130,7 @@ TEMPLATES = [
                 'Hub.context_processors.cart_wishlist_context',
                 'Hub.context_processors.site_settings_context',
                 'Hub.context_processors.header_menu_context',
+                'Hub.context_processors.admin_panel_context',
             ],
         },
     },

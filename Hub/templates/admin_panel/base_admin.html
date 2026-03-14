@@ -770,8 +770,8 @@
                 <li class="nav-item navbar-dropdown dropdown-user dropdown">
                   <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown">
                     <div class="avatar avatar-online">
-                      {% if user.is_authenticated and user.userprofile.profile_image and user.userprofile.profile_image.name != 'profile_images/default.png' %}
-                      <img src="{{ user.userprofile.profile_image.url }}" alt="{{ user.username }}" class="w-px-40 h-auto rounded-circle" />
+                      {% if admin_avatar_url %}
+                      <img src="{{ admin_avatar_url }}" alt="{{ user.username }}" class="w-px-40 h-auto rounded-circle" />
                       {% else %}
                       <img src="{% static 'admin/assets/img/avatars/1.png' %}" alt="Admin" class="w-px-40 h-auto rounded-circle" />
                       {% endif %}
@@ -779,28 +779,20 @@
                   </a>
                   <ul class="dropdown-menu dropdown-menu-end">
                     <li>
-                      <a class="dropdown-item" href="#">
+                      <a class="dropdown-item" href="{% url 'profile' %}">
                         <div class="d-flex">
                           <div class="flex-shrink-0 me-3">
                             <div class="avatar avatar-online">
-                              {% if user.is_authenticated and user.userprofile.profile_image and user.userprofile.profile_image.name != 'profile_images/default.png' %}
-                              <img src="{{ user.userprofile.profile_image.url }}" alt="{{ user.username }}" class="w-px-40 h-auto rounded-circle" />
+                              {% if admin_avatar_url %}
+                              <img src="{{ admin_avatar_url }}" alt="{{ user.username }}" class="w-px-40 h-auto rounded-circle" />
                               {% else %}
                               <img src="{% static 'admin/assets/img/avatars/1.png' %}" alt="Admin" class="w-px-40 h-auto rounded-circle" />
                               {% endif %}
                             </div>
                           </div>
                           <div class="flex-grow-1">
-                            <span class="fw-semibold d-block">{{ user.get_full_name|default:user.username }}</span>
-                            <small class="text-muted">
-                              {% if user.is_superuser %}
-                                Super Admin
-                              {% elif user.is_staff %}
-                                Admin
-                              {% else %}
-                                User
-                              {% endif %}
-                            </small>
+                            <span class="fw-semibold d-block">{{ admin_display_name }}</span>
+                            <small class="text-muted">{{ admin_role_label }}</small>
                           </div>
                         </div>
                       </a>
@@ -809,23 +801,25 @@
                       <div class="dropdown-divider"></div>
                     </li>
                     <li>
-                      <a class="dropdown-item" href="#">
+                      <a class="dropdown-item" href="{% url 'profile' %}">
                         <i class="bx bx-user me-2"></i>
                         <span class="align-middle">My Profile</span>
                       </a>
                     </li>
                     <li>
-                      <a class="dropdown-item" href="#">
+                      <a class="dropdown-item" href="{% url 'admin_site_settings' %}">
                         <i class="bx bx-cog me-2"></i>
                         <span class="align-middle">Settings</span>
                       </a>
                     </li>
                     <li>
-                      <a class="dropdown-item" href="#">
+                      <a class="dropdown-item" href="{% url 'admin_invoice_inventory' %}">
                         <span class="d-flex align-items-center align-middle">
                           <i class="flex-shrink-0 bx bx-credit-card me-2"></i>
                           <span class="flex-grow-1 align-middle">Billing</span>
-                          <span class="flex-shrink-0 badge badge-center rounded-pill bg-danger w-px-20 h-px-20">4</span>
+                          {% if admin_billing_alert_count > 0 %}
+                          <span class="flex-shrink-0 badge badge-center rounded-pill bg-danger w-px-20 h-px-20">{{ admin_billing_alert_count }}</span>
+                          {% endif %}
                         </span>
                       </a>
                     </li>
@@ -833,7 +827,7 @@
                       <div class="dropdown-divider"></div>
                     </li>
                     <li>
-                      <a class="dropdown-item" href="auth-login-basic.html">
+                      <a class="dropdown-item" href="{% url 'logout' %}">
                         <i class="bx bx-power-off me-2"></i>
                         <span class="align-middle">Log Out</span>
                       </a>
