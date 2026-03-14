@@ -23,7 +23,11 @@ def cart_wishlist_context(request):
         'cart_items': [],
         'loyalty_points': 0,
     }
-    
+
+    # Admin pages do not need storefront cart/wishlist context.
+    if request.path.startswith('/admin-panel/'):
+        return context
+
     if request.user.is_authenticated:
         # Cart items and count
         cart_items = Cart.objects.filter(user=request.user).select_related('product')
@@ -42,8 +46,7 @@ def cart_wishlist_context(request):
             loyalty = LoyaltyPoints.objects.get(user=request.user)
             context['loyalty_points'] = loyalty.points_available
         except LoyaltyPoints.DoesNotExist:
-            # Create loyalty points account if doesn't exist
-            loyalty = LoyaltyPoints.objects.create(user=request.user)
+            # Avoid writes inside request-time context processor.
             context['loyalty_points'] = 0
     
     return context
@@ -68,6 +71,16 @@ def header_menu_context(request):
     Add header menu data to context with caching for performance
     Cache invalidated when categories are updated
     """
+    # Admin pages do not need storefront mega-menu data.
+    if request.path.startswith('/admin-panel/'):
+        return {
+            'header_categories': [],
+            'header_links': [],
+            'header_offer_coupon': None,
+            'header_offer_heading': 'Coupon Offer',
+            'header_offer_message': 'Apply this code at checkout:',
+        }
+
     # Try to get from cache
     cache_key = 'header_menu_context'
     cached_context = cache.get(cache_key)
@@ -241,9 +254,14 @@ def admin_panel_context(request):
 
     if request.path.startswith('/admin-panel/'):
         try:
-            context['admin_billing_alert_count'] = Order.objects.filter(
-                payment_status__in=['PENDING', 'FAILED']
-            ).count()
+            cache_key = 'admin_billing_alert_count'
+            cached_count = cache.get(cache_key)
+            if cached_count is None:
+                cached_count = Order.objects.filter(
+                    payment_status__in=['PENDING', 'FAILED']
+                ).count()
+                cache.set(cache_key, cached_count, 45)
+            context['admin_billing_alert_count'] = cached_count
         except Exception:
             context['admin_billing_alert_count'] = 0
 
