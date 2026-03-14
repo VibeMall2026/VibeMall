@@ -8,6 +8,7 @@ from collections import defaultdict
 from django.utils import timezone
 from django.core.cache import cache
 from django.conf import settings
+from datetime import timedelta
 
 from .models import Cart, Wishlist, SiteSettings, LoyaltyPoints, CategoryIcon, Product, SubCategory, Coupon, Order
 from django.db.models import F, Sum
@@ -203,6 +204,7 @@ def admin_panel_context(request):
         'admin_role_label': 'User',
         'admin_avatar_url': '',
         'admin_billing_alert_count': 0,
+        'admin_presence_class': 'avatar-offline',
     }
 
     user = getattr(request, 'user', None)
@@ -222,6 +224,20 @@ def admin_panel_context(request):
             context['admin_avatar_url'] = profile.profile_image.url
     except Exception:
         pass
+
+    try:
+        from Hub.models_security_access import UserSession
+        active_cutoff = timezone.now() - timedelta(minutes=15)
+        is_online = UserSession.objects.filter(
+            user=user,
+            status='ACTIVE',
+            last_activity__gte=active_cutoff,
+        ).exists()
+    except Exception:
+        last_login = getattr(user, 'last_login', None)
+        is_online = bool(last_login and last_login >= (timezone.now() - timedelta(minutes=30)))
+
+    context['admin_presence_class'] = 'avatar-online' if is_online else 'avatar-offline'
 
     if request.path.startswith('/admin-panel/'):
         try:

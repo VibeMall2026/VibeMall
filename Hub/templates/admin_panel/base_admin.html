@@ -769,7 +769,7 @@
                 <!-- User -->
                 <li class="nav-item navbar-dropdown dropdown-user dropdown">
                   <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown">
-                    <div class="avatar avatar-online">
+                    <div class="avatar {{ admin_presence_class }}">
                       {% if admin_avatar_url %}
                       <img src="{{ admin_avatar_url }}" alt="{{ user.username }}" class="w-px-40 h-auto rounded-circle" />
                       {% else %}
@@ -782,7 +782,7 @@
                       <a class="dropdown-item" href="{% url 'profile' %}">
                         <div class="d-flex">
                           <div class="flex-shrink-0 me-3">
-                            <div class="avatar avatar-online">
+                            <div class="avatar {{ admin_presence_class }}">
                               {% if admin_avatar_url %}
                               <img src="{{ admin_avatar_url }}" alt="{{ user.username }}" class="w-px-40 h-auto rounded-circle" />
                               {% else %}
