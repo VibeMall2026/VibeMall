@@ -33,7 +33,8 @@ class ComingSoonModeMiddleware:
         if any(path.startswith(prefix) for prefix in self.allowed_prefixes):
             return self.get_response(request)
 
-        if request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser):
+        # Check if user is authenticated (only if user attribute exists)
+        if hasattr(request, 'user') and request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser):
             return self.get_response(request)
 
         return redirect('coming_soon')
