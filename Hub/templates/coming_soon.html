@@ -508,6 +508,25 @@ header, footer, .header, .footer, #mobileBottomNavShell, .mobile-bottom-nav-shel
         width: 150px;
     }
 }
+
+@media (max-width: 437px) {
+    .features-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .feature-card {
+        padding: 1.5rem;
+    }
+
+    .notify-form {
+        flex-direction: column;
+    }
+
+    .notify-input {
+        width: 100%;
+    }
+}
 </style>
 {% endblock %}
 
