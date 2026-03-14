@@ -216,12 +216,32 @@
 }
 
 .features-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 2rem;
-    max-width: 1000px;
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 1.5rem;
+    max-width: calc(100% - 4rem);
     margin: 3rem auto;
+    padding-bottom: 1rem;
     animation: featuresFadeIn 1s ease-out 2s both;
+}
+
+.features-grid::-webkit-scrollbar {
+    height: 10px;
+}
+
+.features-grid::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+.features-grid::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+}
+
+.features-grid::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.45);
 }
 
 @keyframes featuresFadeIn {
@@ -230,6 +250,7 @@
 }
 
 .feature-card {
+    min-width: 260px;
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
     border-radius: 20px;
@@ -379,28 +400,13 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    .coming-soon-title {
-        font-size: 2.5rem;
-    }
-
-    .coming-soon-subtitle {
-        font-size: 1.2rem;
-    }
-
-    .launch-date {
-        font-size: 2rem;
-    }
-
-    .notify-form {
-        flex-direction: column;
-    }
-
     .features-grid {
-        grid-template-columns: 1fr;
         gap: 1rem;
+        padding-bottom: 0.75rem;
     }
 
     .feature-card {
+        min-width: 240px;
         padding: 1.5rem;
     }
 }
@@ -445,37 +451,6 @@
 
     <!-- Main Content -->
     <div class="coming-soon-content">
-        <!-- Logo -->
-        <div class="logo-container">
-            <img src="{% static 'assets/img/logo/vibemall-brand.png' %}" alt="VibeMall Logo" class="main-logo">
-        </div>
-
-        <!-- Main Title -->
-        <h1 class="coming-soon-title">Coming Soon</h1>
-
-        <!-- Subtitle -->
-        <p class="coming-soon-subtitle">
-            Get ready for India's most amazing online shopping experience!
-        </p>
-
-        <!-- Launch Info -->
-        <div class="launch-info">
-            <div class="launch-date">March 2026</div>
-            <div class="launch-description">
-                We're working hard to bring you the ultimate shopping destination with exclusive deals,
-                lightning-fast delivery, and premium products from top brands.
-            </div>
-        </div>
-
-        <!-- Email Notification -->
-        <div class="notify-section">
-            <div class="notify-title">Be the first to know when we launch!</div>
-            <form class="notify-form" id="notifyForm">
-                <input type="email" class="notify-input" placeholder="Enter your email address" required>
-                <button type="submit" class="notify-btn">Notify Me</button>
-            </form>
-        </div>
-
         <!-- Features Grid -->
         <div class="features-grid">
             <div class="feature-card">
@@ -508,25 +483,6 @@
                 <div class="feature-description">
                     Bank-grade security for all your transactions
                 </div>
-            </div>
-        </div>
-
-        <!-- Social Links -->
-        <div class="social-links">
-            <div class="social-title">Follow us for updates</div>
-            <div class="social-icons">
-                <a href="#" class="social-link" title="Facebook">
-                    <i class="fab fa-facebook-f"></i>
-                </a>
-                <a href="#" class="social-link" title="Instagram">
-                    <i class="fab fa-instagram"></i>
-                </a>
-                <a href="#" class="social-link" title="Twitter">
-                    <i class="fab fa-twitter"></i>
-                </a>
-                <a href="#" class="social-link" title="LinkedIn">
-                    <i class="fab fa-linkedin-in"></i>
-                </a>
             </div>
         </div>
     </div>
