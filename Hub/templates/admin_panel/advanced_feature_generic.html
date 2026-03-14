@@ -308,9 +308,9 @@
               {% for item in page_obj %}
               <tr>
                 <td>{{ item }}</td>
-                <td>{{ item.status|default:item.priority|default:item.role_type|default:item.template_type|default:item.algorithm|default:item.strategy|default:item.risk_level|default:'-' }}</td>
-                <td>{{ item.subject|default:item.description|default:item.question|default:item.name|default:item.title|default:item.ticket_number|default:item.session_key|default:item.expense_id|default:item.statement_id|default:item.report_id|default:item.reconciliation_id|default:'-' }}</td>
-                <td>{{ item.created_at|default:item.timestamp|default:item.login_time|default:item.expense_date|default:item.start_date|default:item.published_at|default:item.generated_at|default:item.forecast_date|default:'-' }}</td>
+                <td>{% firstof item.status item.priority item.role_type item.template_type item.algorithm item.strategy item.risk_level "-" %}</td>
+                <td>{% firstof item.subject item.description item.question item.name item.title item.ticket_number item.session_key item.expense_id item.statement_id item.report_id item.reconciliation_id "-" %}</td>
+                <td>{% firstof item.created_at item.timestamp item.login_time item.expense_date item.start_date item.published_at item.generated_at item.forecast_date "-" %}</td>
                 <td>
                   {% if title == 'GST Reports' and item.status != 'FILED' %}
                   <form method="post">{% csrf_token %}<input type="hidden" name="action" value="mark_filed"><input type="hidden" name="report_id" value="{{ item.id }}"><button class="btn btn-sm btn-outline-success" type="submit">Filed</button></form>
