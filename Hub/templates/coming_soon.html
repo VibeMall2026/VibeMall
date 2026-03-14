@@ -427,27 +427,44 @@ header, footer, .header, .footer, #mobileBottomNavShell, .mobile-bottom-nav-shel
 
 .particle {
     position: absolute;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    animation: float 20s infinite linear;
+    font-size: 24px;
+    line-height: 1;
+    opacity: 0.7;
+    animation: emojiFloat 15s infinite linear;
+    pointer-events: none;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-.particle:nth-child(1) { width: 4px; height: 4px; left: 10%; animation-delay: 0s; }
-.particle:nth-child(2) { width: 6px; height: 6px; left: 20%; animation-delay: 2s; }
-.particle:nth-child(3) { width: 3px; height: 3px; left: 30%; animation-delay: 4s; }
-.particle:nth-child(4) { width: 5px; height: 5px; left: 40%; animation-delay: 6s; }
-.particle:nth-child(5) { width: 4px; height: 4px; left: 50%; animation-delay: 8s; }
-.particle:nth-child(6) { width: 7px; height: 7px; left: 60%; animation-delay: 10s; }
-.particle:nth-child(7) { width: 3px; height: 3px; left: 70%; animation-delay: 12s; }
-.particle:nth-child(8) { width: 5px; height: 5px; left: 80%; animation-delay: 14s; }
-.particle:nth-child(9) { width: 4px; height: 4px; left: 90%; animation-delay: 16s; }
-.particle:nth-child(10) { width: 6px; height: 6px; left: 95%; animation-delay: 18s; }
+.particle:nth-child(1) { left: 5%; animation-delay: 0s; }
+.particle:nth-child(2) { left: 15%; animation-delay: 1.5s; }
+.particle:nth-child(3) { left: 25%; animation-delay: 3s; }
+.particle:nth-child(4) { left: 35%; animation-delay: 4.5s; }
+.particle:nth-child(5) { left: 45%; animation-delay: 6s; }
+.particle:nth-child(6) { left: 55%; animation-delay: 7.5s; }
+.particle:nth-child(7) { left: 65%; animation-delay: 9s; }
+.particle:nth-child(8) { left: 75%; animation-delay: 10.5s; }
+.particle:nth-child(9) { left: 85%; animation-delay: 12s; }
+.particle:nth-child(10) { left: 95%; animation-delay: 13.5s; }
+.particle:nth-child(11) { left: 10%; animation-delay: 2s; }
+.particle:nth-child(12) { left: 90%; animation-delay: 8s; }
 
-@keyframes float {
-    0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
-    10% { opacity: 1; }
-    90% { opacity: 1; }
-    100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
+@keyframes emojiFloat {
+    0% {
+        transform: translateY(100vh) rotate(0deg) scale(0.8);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.7;
+        transform: translateY(90vh) rotate(36deg) scale(1);
+    }
+    90% {
+        opacity: 0.7;
+        transform: translateY(10vh) rotate(324deg) scale(1);
+    }
+    100% {
+        transform: translateY(-10vh) rotate(360deg) scale(0.8);
+        opacity: 0;
+    }
 }
 
 /* Responsive Design */
@@ -511,16 +528,18 @@ header, footer, .header, .footer, #mobileBottomNavShell, .mobile-bottom-nav-shel
 
     <!-- Floating Particles -->
     <div class="particles">
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
+        <div class="particle">🛒</div>
+        <div class="particle">📦</div>
+        <div class="particle">💳</div>
+        <div class="particle">🛍️</div>
+        <div class="particle">🚚</div>
+        <div class="particle">💰</div>
+        <div class="particle">📱</div>
+        <div class="particle">👕</div>
+        <div class="particle">👟</div>
+        <div class="particle">💎</div>
+        <div class="particle">🎁</div>
+        <div class="particle">⭐</div>
     </div>
 
     <!-- Main Content -->
@@ -649,20 +668,20 @@ document.getElementById('notifyForm').addEventListener('submit', function(e) {
 
 // Add more floating particles dynamically
 function createParticle() {
+    const emojis = ['🛒', '📦', '💳', '🛍️', '🚚', '💰', '📱', '👕', '👟', '💎', '🎁', '⭐'];
     const particle = document.createElement('div');
     particle.className = 'particle';
-    particle.style.width = Math.random() * 7 + 3 + 'px';
-    particle.style.height = particle.style.width;
+    particle.textContent = emojis[Math.floor(Math.random() * emojis.length)];
     particle.style.left = Math.random() * 100 + '%';
-    particle.style.animationDelay = Math.random() * 20 + 's';
-    particle.style.animationDuration = (Math.random() * 10 + 20) + 's';
+    particle.style.animationDelay = Math.random() * 15 + 's';
+    particle.style.animationDuration = (Math.random() * 5 + 10) + 's';
 
     document.querySelector('.particles').appendChild(particle);
 
     // Remove particle after animation
     setTimeout(() => {
         particle.remove();
-    }, 30000);
+    }, 20000);
 }
 
 // Create new particles every few seconds
