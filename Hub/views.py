@@ -4912,6 +4912,22 @@ def subscribe_newsletter(request):
             subscriber.save(update_fields=['is_active', 'unsubscribed_at', 'updated_at'])
         message = 'Welcome back. Your newsletter subscription is active again.'
 
+    # Send a welcome email when the user subscribes or resubscribes
+    if created or status == 'resubscribed':
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@vibemall.com')
+        subject = 'Welcome to VibeMall!'
+        plain_message = 'Thank you for joining VibeMall. We will notify you when we are live.'
+        try:
+            send_mail(
+                subject,
+                plain_message,
+                from_email,
+                [email],
+                fail_silently=True,
+            )
+        except Exception as e:
+            logger.exception('Failed to send newsletter welcome email to %s: %s', email, e)
+
     if is_ajax:
         return JsonResponse({
             'success': True,
