@@ -4,107 +4,378 @@
 
 {% block content %}
 <div class="container-xxl flex-grow-1 container-p-y">
-    <h4 class="fw-bold py-3 mb-4">{{ title|default:'Advanced Feature' }}</h4>
+  <h4 class="fw-bold py-3 mb-3">{{ title|default:'Advanced Feature' }}</h4>
 
-    {% if message %}
-    <div class="alert alert-info mb-4">
-        {{ message }}
-    </div>
-    {% endif %}
+  {% if message %}<div class="alert alert-info mb-3">{{ message }}</div>{% endif %}
 
-    {% if summary %}
-    <div class="row mb-4">
-        {% for key, value in summary.items %}
-        <div class="col-md-3 col-sm-6 mb-3">
-            <div class="card h-100">
-                <div class="card-body">
-                    <div class="text-muted small text-uppercase">{{ key|cut:"_" }}</div>
-                    <h5 class="mb-0 mt-2">{{ value|default:'0' }}</h5>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
+  {% if summary %}
+  <div class="row g-3 mb-3">
+    {% for key, value in summary.items %}
+    <div class="col-6 col-xl-3">
+      <div class="card h-100"><div class="card-body">
+        <div class="text-uppercase text-muted small">{{ key|cut:'_' }}</div>
+        <h5 class="mt-2 mb-0">{{ value|default:'0' }}</h5>
+      </div></div>
     </div>
-    {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
 
-    {% if page_obj %}
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Records</h5>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead>
-                        <tr>
-                            <th>Item</th>
-                            <th>Status</th>
-                            <th>Details</th>
-                            <th>Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in page_obj %}
-                        <tr>
-                            <td>{{ item }}</td>
-                            <td>
-                                {{ item.status|default:item.priority|default:item.role_type|default:item.template_type|default:item.algorithm|default:item.strategy|default:item.risk_level|default:'-' }}
-                            </td>
-                            <td>
-                                {{ item.subject|default:item.description|default:item.question|default:item.name|default:item.title|default:item.ticket_number|default:item.session_key|default:item.expense_id|default:item.statement_id|default:'-' }}
-                            </td>
-                            <td>
-                                {{ item.created_at|default:item.timestamp|default:item.login_time|default:item.expense_date|default:item.start_date|default:item.published_at|default:item.generated_at|default:'-' }}
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="4" class="text-center text-muted py-4">No records available.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+  {% if title == 'GST Reports' %}
+  <div class="card mb-3"><div class="card-body">
+    <form method="post" class="row g-2">{% csrf_token %}
+      <input type="hidden" name="action" value="generate_gst">
+      <div class="col-md-3"><select class="form-select" name="report_type">{% for code, label in report_types %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+      <div class="col-md-2"><input class="form-control" type="number" min="1" max="12" name="month" placeholder="Month"></div>
+      <div class="col-md-3"><input class="form-control" name="financial_year" placeholder="2025-26"></div>
+      <div class="col-md-2"><input class="form-control" name="gstin" placeholder="GSTIN"></div>
+      <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Generate</button></div>
+    </form>
+  </div></div>
+  {% endif %}
+
+  {% if title == 'Customer Support Tickets' %}
+  <div class="card mb-3"><div class="card-body">
+    <form method="get" class="row g-2">
+      <div class="col-md-4">
+        <select name="status" class="form-select">
+          {% for code, label in status_choices %}
+          <option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2"><button class="btn btn-outline-primary w-100" type="submit">Filter</button></div>
+    </form>
+  </div></div>
+  {% endif %}
+
+  {% if title == 'Expense Management' %}
+  <div class="card mb-3"><div class="card-body">
+    <form method="post" class="row g-2 mb-2">{% csrf_token %}
+      <input type="hidden" name="action" value="add_category">
+      <div class="col-md-4"><input class="form-control" name="name" placeholder="Expense category name" required></div>
+      <div class="col-md-6"><input class="form-control" name="description" placeholder="Category description"></div>
+      <div class="col-md-2"><button class="btn btn-outline-primary w-100" type="submit">Save Category</button></div>
+    </form>
+    <form method="post" class="row g-2">{% csrf_token %}
+      <input type="hidden" name="action" value="add_expense">
+      <div class="col-md-3">
+        <select class="form-select" name="category_id" required>
+          <option value="">Category</option>
+          {% for category in categories %}<option value="{{ category.id }}">{{ category.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3"><input class="form-control" name="description" placeholder="Expense description" required></div>
+      <div class="col-md-2"><input class="form-control" type="number" step="0.01" name="amount" placeholder="Amount" required></div>
+      <div class="col-md-2"><input class="form-control" type="date" name="expense_date" required></div>
+      <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Add Expense</button></div>
+      <div class="col-md-3"><input class="form-control" name="vendor_name" placeholder="Vendor (optional)"></div>
+      <div class="col-md-3">
+        <select class="form-select" name="payment_method">
+          <option value="BANK_TRANSFER">Bank Transfer</option>
+          <option value="UPI">UPI</option>
+          <option value="CASH">Cash</option>
+          <option value="CREDIT_CARD">Credit Card</option>
+          <option value="DEBIT_CARD">Debit Card</option>
+        </select>
+      </div>
+      <div class="col-md-3"><input class="form-control" name="reference_number" placeholder="Reference"></div>
+      <div class="col-md-2"><input class="form-control" type="number" step="0.01" name="gst_rate" placeholder="GST %" value="18"></div>
+      <div class="col-md-1 d-flex align-items-center"><label><input type="checkbox" name="is_gst_applicable" checked> GST</label></div>
+    </form>
+  </div></div>
+  {% endif %}
+
+  {% if title == 'Product Variants' %}
+  <div class="card mb-3"><div class="card-body">
+    <form method="post" class="row g-2">{% csrf_token %}
+      <input type="hidden" name="action" value="add_variant">
+      <div class="col-md-2"><input class="form-control" name="product_id" value="{{ product_id|default:'' }}" placeholder="Product ID" required></div>
+      <div class="col-md-2"><select class="form-select" name="variant_type">{% for code, label in variant_types %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+      <div class="col-md-2"><input class="form-control" name="name" placeholder="Name" required></div>
+      <div class="col-md-2"><input class="form-control" name="display_name" placeholder="Display"></div>
+      <div class="col-md-2"><input class="form-control" type="number" name="stock_quantity" placeholder="Stock"></div>
+      <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Add</button></div>
+    </form>
+  </div></div>
+  {% endif %}
+
+  {% if title == 'Product Bundles' %}
+  <div class="card mb-3"><div class="card-body">
+    <form method="post" class="row g-2">{% csrf_token %}
+      <input type="hidden" name="action" value="add_bundle">
+      <div class="col-md-3"><input class="form-control" name="name" placeholder="Bundle name" required></div>
+      <div class="col-md-2"><select class="form-select" name="bundle_type">{% for code, label in bundle_types %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+      <div class="col-md-2"><input class="form-control" type="number" step="0.01" name="individual_total" placeholder="Total"></div>
+      <div class="col-md-2"><input class="form-control" type="number" step="0.01" name="bundle_price" placeholder="Bundle"></div>
+      <div class="col-md-3"><button class="btn btn-primary w-100" type="submit">Create Bundle</button></div>
+    </form>
+  </div></div>
+  {% endif %}
+
+  {% if title == 'Product SEO' %}
+  <div class="card mb-3"><div class="card-body">
+    <form method="post" class="row g-2">{% csrf_token %}
+      <input type="hidden" name="action" value="save_seo">
+      <div class="col-md-2"><input class="form-control" type="number" name="product_id" placeholder="Product ID" required></div>
+      <div class="col-md-3"><input class="form-control" name="meta_title" placeholder="Meta title"></div>
+      <div class="col-md-3"><input class="form-control" name="focus_keyword" placeholder="Focus keyword"></div>
+      <div class="col-md-2"><input class="form-control" type="number" name="seo_score" placeholder="Score"></div>
+      <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Save SEO</button></div>
+      <div class="col-md-12"><textarea class="form-control" name="meta_description" rows="2" placeholder="Meta description"></textarea></div>
+    </form>
+  </div></div>
+  {% endif %}
+
+  {% if title == 'Security Roles' %}
+  <div class="card mb-3"><div class="card-body">
+    <form method="post" class="row g-2">{% csrf_token %}
+      <input type="hidden" name="action" value="add_role">
+      <div class="col-md-3"><input class="form-control" name="name" placeholder="Role name" required></div>
+      <div class="col-md-3"><select class="form-select" name="role_type">{% for code, label in role_types %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+      <div class="col-md-4"><input class="form-control" name="description" placeholder="Description"></div>
+      <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Save Role</button></div>
+    </form>
+  </div></div>
+  {% endif %}
+
+  {% if title == 'Blog Management' %}
+  <div class="card mb-3"><div class="card-body">
+    <form method="post" class="row g-2">{% csrf_token %}
+      <input type="hidden" name="action" value="add_post">
+      <div class="col-md-4"><input class="form-control" name="title" placeholder="Title" required></div>
+      <div class="col-md-3"><select class="form-select" name="category_id"><option value="">Category</option>{% for category in categories %}<option value="{{ category.id }}">{{ category.name }}</option>{% endfor %}</select></div>
+      <div class="col-md-3"><select class="form-select" name="status">{% for code, label in status_choices %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+      <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Create</button></div>
+      <div class="col-md-12"><textarea class="form-control" name="content" rows="3" placeholder="Content" required></textarea></div>
+    </form>
+  </div></div>
+  {% endif %}
+
+  {% if title == 'FAQ Management' %}
+  <div class="card mb-3"><div class="card-body">
+    <form method="post" class="row g-2 mb-2">{% csrf_token %}
+      <input type="hidden" name="action" value="add_faq_category">
+      <div class="col-md-4"><input class="form-control" name="name" placeholder="New FAQ category" required></div>
+      <div class="col-md-6"><input class="form-control" name="description" placeholder="Category description"></div>
+      <div class="col-md-2"><button class="btn btn-outline-primary w-100" type="submit">Add Category</button></div>
+    </form>
+    <form method="post" class="row g-2">{% csrf_token %}
+      <input type="hidden" name="action" value="add_faq">
+      <div class="col-md-3"><select class="form-select" name="category_id" required><option value="">Category</option>{% for category in categories %}<option value="{{ category.id }}">{{ category.name }}</option>{% endfor %}</select></div>
+      <div class="col-md-7"><input class="form-control" name="question" placeholder="Question" required></div>
+      <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Add FAQ</button></div>
+      <div class="col-md-12"><textarea class="form-control" name="answer" rows="2" placeholder="Answer" required></textarea></div>
+    </form>
+  </div></div>
+  {% endif %}
+
+  {% if title == 'Email Templates' %}
+  <div class="card mb-3"><div class="card-body">
+    <form method="post" class="row g-2">{% csrf_token %}
+      <input type="hidden" name="action" value="add_email_template">
+      <div class="col-md-3"><input class="form-control" name="name" placeholder="Template name" required></div>
+      <div class="col-md-3"><select class="form-select" name="template_type">{% for code, label in template_types %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+      <div class="col-md-4"><input class="form-control" name="subject" placeholder="Subject" required></div>
+      <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Create</button></div>
+      <div class="col-md-12"><textarea class="form-control" name="html_content" rows="2" placeholder="HTML content" required></textarea></div>
+    </form>
+  </div></div>
+  {% endif %}
+
+  {% if title == 'Image Optimization' %}
+  <div class="card mb-3"><div class="card-body">
+    <form method="post" class="row g-2">{% csrf_token %}
+      <input type="hidden" name="action" value="log_image">
+      <div class="col-md-3"><input class="form-control" name="original_filename" placeholder="Filename" required></div>
+      <div class="col-md-2"><select class="form-select" name="image_type">{% for code, label in image_types %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+      <div class="col-md-2"><input class="form-control" type="number" name="original_size_kb" placeholder="Original KB" required></div>
+      <div class="col-md-2"><input class="form-control" type="number" name="optimized_size_kb" placeholder="Optimized KB"></div>
+      <div class="col-md-3"><button class="btn btn-primary w-100" type="submit">Log</button></div>
+    </form>
+  </div></div>
+  {% endif %}
+
+  {% if title == 'Recommendation Engines' %}
+  <div class="card mb-3"><div class="card-body">
+    <form method="post" class="row g-2">{% csrf_token %}
+      <input type="hidden" name="action" value="add_engine">
+      <div class="col-md-4"><input class="form-control" name="name" placeholder="Engine name" required></div>
+      <div class="col-md-4"><select class="form-select" name="algorithm">{% for code, label in algorithms %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+      <div class="col-md-2"><input class="form-control" type="number" name="training_data_size" placeholder="Rows"></div>
+      <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Create</button></div>
+    </form>
+  </div></div>
+  {% endif %}
+
+  {% if title == 'Dynamic Pricing' %}
+  <div class="card mb-3"><div class="card-body">
+    <form method="post" class="row g-2">{% csrf_token %}
+      <input type="hidden" name="action" value="add_rule">
+      <div class="col-md-4"><input class="form-control" name="name" placeholder="Rule name" required></div>
+      <div class="col-md-4"><select class="form-select" name="strategy">{% for code, label in strategies %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+      <div class="col-md-2"><input class="form-control" type="number" name="priority" placeholder="Priority" value="1"></div>
+      <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Create</button></div>
+    </form>
+  </div></div>
+  {% endif %}
+
+  {% if title == 'Chatbot Management' %}
+  <div class="card mb-3"><div class="card-body">
+    <form method="post" class="row g-2">{% csrf_token %}
+      <input type="hidden" name="action" value="add_chatbot">
+      <div class="col-md-4"><input class="form-control" name="name" placeholder="Bot name" required></div>
+      <div class="col-md-4"><select class="form-select" name="chatbot_type">{% for code, label in chatbot_types %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+      <div class="col-md-4"><button class="btn btn-primary w-100" type="submit">Create</button></div>
+    </form>
+  </div></div>
+  {% endif %}
+
+  {% if title == 'Payment Reconciliation' %}
+  <div class="card mb-3"><div class="card-body">
+    <form method="post" class="row g-2">{% csrf_token %}
+      <input type="hidden" name="action" value="create_reconciliation">
+      <div class="col-md-3"><select class="form-select" name="gateway">{% for code, label in gateways %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+      <div class="col-md-3"><input class="form-control" type="date" name="start_date" required></div>
+      <div class="col-md-3"><input class="form-control" type="date" name="end_date" required></div>
+      <div class="col-md-3"><button class="btn btn-primary w-100" type="submit">Create Batch</button></div>
+    </form>
+  </div></div>
+  {% endif %}
+
+  {% if title == 'Inventory Forecast' %}
+  <div class="card mb-3"><div class="card-body">
+    <form method="post" class="row g-2">{% csrf_token %}
+      <input type="hidden" name="action" value="create_forecast">
+      <div class="col-md-2"><input class="form-control" type="number" name="product_id" placeholder="Product ID" required></div>
+      <div class="col-md-2"><select class="form-select" name="forecast_type">{% for code, label in forecast_types %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+      <div class="col-md-2"><input class="form-control" type="date" name="forecast_date"></div>
+      <div class="col-md-2"><input class="form-control" type="number" name="predicted_demand" placeholder="Demand" required></div>
+      <div class="col-md-2"><input class="form-control" name="model_name" value="RuleBasedForecast"></div>
+      <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Save</button></div>
+    </form>
+  </div></div>
+  {% endif %}
+
+  {% if title == 'Related Products' %}
+  <div class="card mb-3"><div class="card-body">
+    <form method="post" class="row g-2">{% csrf_token %}
+      <input type="hidden" name="action" value="add_related">
+      <div class="col-md-2"><input class="form-control" type="number" name="primary_product_id" placeholder="Primary ID" required></div>
+      <div class="col-md-2"><input class="form-control" type="number" name="related_product_id" placeholder="Related ID" required></div>
+      <div class="col-md-3"><select class="form-select" name="relation_type">{% for code, label in relation_types %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+      <div class="col-md-2"><input class="form-control" type="number" step="0.01" name="relevance_score" value="50"></div>
+      <div class="col-md-1"><input class="form-control" type="number" name="display_order" value="0"></div>
+      <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Add</button></div>
+    </form>
+  </div></div>
+  {% endif %}
+
+  {% if title == 'Page Builder' %}
+  <div class="card mb-3"><div class="card-body">
+    <form method="post" class="row g-2 mb-2">{% csrf_token %}
+      <input type="hidden" name="action" value="add_template">
+      <div class="col-md-4"><input class="form-control" name="name" placeholder="Template name" required></div>
+      <div class="col-md-4"><select class="form-select" name="template_type">{% for code, label in template_types %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+      <div class="col-md-4"><button class="btn btn-outline-primary w-100" type="submit">Create Template</button></div>
+    </form>
+    <form method="post" class="row g-2">{% csrf_token %}
+      <input type="hidden" name="action" value="add_custom_page">
+      <div class="col-md-4"><input class="form-control" name="title" placeholder="Page title" required></div>
+      <div class="col-md-3"><input class="form-control" name="slug" placeholder="slug-optional"></div>
+      <div class="col-md-3"><select class="form-select" name="status">{% for code, label in status_choices %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+      <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Create Page</button></div>
+    </form>
+  </div></div>
+  {% endif %}
+
+  <div class="card">
+    <div class="card-header"><h5 class="mb-0">Records</h5></div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead><tr><th>Item</th><th>Status</th><th>Details</th><th>Date</th><th>Action</th></tr></thead>
+          <tbody>
+            {% if title == 'Customer Lifetime Value' %}
+              {% for item in customers %}
+              <tr><td>{{ item.username }}</td><td>Orders: {{ item.total_orders }}</td><td>Spent: {{ item.total_spent|default:0 }}</td><td>-</td><td>-</td></tr>
+              {% empty %}<tr><td colspan="5" class="text-center text-muted py-4">No records available.</td></tr>{% endfor %}
+            {% elif title == 'Abandoned Carts' %}
+              {% for item in abandoned_carts %}
+              <tr><td>{{ item.user.username }} / {{ item.product.name }}</td><td>Qty: {{ item.quantity }}</td><td>{{ item.product.price }}</td><td>{{ item.updated_at }}</td><td><form method="post">{% csrf_token %}<input type="hidden" name="action" value="remove_cart_item"><input type="hidden" name="cart_id" value="{{ item.id }}"><button class="btn btn-sm btn-outline-danger" type="submit">Remove</button></form></td></tr>
+              {% empty %}<tr><td colspan="5" class="text-center text-muted py-4">No records available.</td></tr>{% endfor %}
+            {% elif page_obj %}
+              {% for item in page_obj %}
+              <tr>
+                <td>{{ item }}</td>
+                <td>{{ item.status|default:item.priority|default:item.role_type|default:item.template_type|default:item.algorithm|default:item.strategy|default:item.risk_level|default:'-' }}</td>
+                <td>{{ item.subject|default:item.description|default:item.question|default:item.name|default:item.title|default:item.ticket_number|default:item.session_key|default:item.expense_id|default:item.statement_id|default:item.report_id|default:item.reconciliation_id|default:'-' }}</td>
+                <td>{{ item.created_at|default:item.timestamp|default:item.login_time|default:item.expense_date|default:item.start_date|default:item.published_at|default:item.generated_at|default:item.forecast_date|default:'-' }}</td>
+                <td>
+                  {% if title == 'GST Reports' and item.status != 'FILED' %}
+                  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="mark_filed"><input type="hidden" name="report_id" value="{{ item.id }}"><button class="btn btn-sm btn-outline-success" type="submit">Filed</button></form>
+                  {% elif title == 'Payment Reconciliation' %}
+                  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="set_reconciliation_status"><input type="hidden" name="reconciliation_id" value="{{ item.id }}"><input type="hidden" name="new_status" value="RESOLVED"><button class="btn btn-sm btn-outline-success" type="submit">Resolve</button></form>
+                  {% elif title == 'Related Products' %}
+                  <div class="d-flex gap-1">
+                    <form method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle_related"><input type="hidden" name="relation_id" value="{{ item.id }}"><button class="btn btn-sm btn-outline-primary" type="submit">Toggle</button></form>
+                    <form method="post">{% csrf_token %}<input type="hidden" name="action" value="delete_related"><input type="hidden" name="relation_id" value="{{ item.id }}"><button class="btn btn-sm btn-outline-danger" type="submit">Delete</button></form>
+                  </div>
+                  {% elif title == 'Profit & Loss Statements' %}
+                  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle_finalize"><input type="hidden" name="statement_id" value="{{ item.id }}"><button class="btn btn-sm btn-outline-primary" type="submit">Finalize</button></form>
+                  {% elif title == 'Customer Support Tickets' %}
+                  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="update_status"><input type="hidden" name="ticket_id" value="{{ item.id }}"><input type="hidden" name="new_status" value="IN_PROGRESS"><input type="hidden" name="new_priority" value="HIGH"><button class="btn btn-sm btn-outline-primary" type="submit">Update</button></form>
+                  {% elif title == 'Expense Management' and not item.is_approved %}
+                  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="approve_expense"><input type="hidden" name="expense_id" value="{{ item.id }}"><button class="btn btn-sm btn-outline-success" type="submit">Approve</button></form>
+                  {% elif title == 'User Sessions' %}
+                  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="terminate_session"><input type="hidden" name="session_id" value="{{ item.id }}"><button class="btn btn-sm btn-outline-danger" type="submit">Terminate</button></form>
+                  {% elif title == 'Dynamic Pricing' %}
+                  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle_rule"><input type="hidden" name="rule_id" value="{{ item.id }}"><button class="btn btn-sm btn-outline-primary" type="submit">Toggle</button></form>
+                  {% elif title == 'Chatbot Management' %}
+                  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle_chatbot"><input type="hidden" name="chatbot_id" value="{{ item.id }}"><button class="btn btn-sm btn-outline-primary" type="submit">Toggle</button></form>
+                  {% elif title == 'Fraud Detection' %}
+                  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="update_fraud_status"><input type="hidden" name="analysis_id" value="{{ item.id }}"><input type="hidden" name="new_status" value="UNDER_REVIEW"><button class="btn btn-sm btn-outline-warning" type="submit">Review</button></form>
+                  {% elif title == 'Security Audit Log' and not item.is_investigated %}
+                  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="mark_investigated"><input type="hidden" name="log_id" value="{{ item.id }}"><button class="btn btn-sm btn-outline-warning" type="submit">Mark</button></form>
+                  {% elif title == 'Product Bundles' %}
+                  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle_bundle"><input type="hidden" name="bundle_id" value="{{ item.id }}"><button class="btn btn-sm btn-outline-primary" type="submit">Toggle</button></form>
+                  {% else %}-{% endif %}
+                </td>
+              </tr>
+              {% empty %}<tr><td colspan="5" class="text-center text-muted py-4">No records available.</td></tr>{% endfor %}
+            {% elif roles %}
+              {% for item in roles %}
+              <tr>
+                <td>{{ item.name }}</td>
+                <td>{{ item.get_role_type_display }} / {% if item.is_active %}Active{% else %}Inactive{% endif %}</td>
+                <td>{{ item.description|default:'-' }}</td>
+                <td>{{ item.created_at }}</td>
+                <td>
+                  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle_role"><input type="hidden" name="role_id" value="{{ item.id }}"><button class="btn btn-sm btn-outline-primary" type="submit">Toggle</button></form>
+                </td>
+              </tr>
+              {% endfor %}
+            {% elif templates %}
+              {% for item in templates %}<tr><td>{{ item.name }}</td><td>{{ item.template_type|default:item.status }}</td><td>{{ item.description|default:item.subject|default:'-' }}</td><td>{{ item.created_at|default:item.updated_at }}</td><td>-</td></tr>{% endfor %}
+            {% elif engines %}
+              {% for item in engines %}<tr><td>{{ item.name }}</td><td>{{ item.get_algorithm_display }}</td><td>Accuracy: {{ item.accuracy_score }}</td><td>{{ item.created_at }}</td><td>-</td></tr>{% endfor %}
+            {% elif rules %}
+              {% for item in rules %}
+              <tr><td>{{ item.name }}</td><td>{{ item.get_strategy_display }}</td><td>Priority: {{ item.priority }}</td><td>{{ item.created_at }}</td><td><form method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle_rule"><input type="hidden" name="rule_id" value="{{ item.id }}"><button class="btn btn-sm btn-outline-primary" type="submit">Toggle</button></form></td></tr>
+              {% endfor %}
+            {% elif chatbots %}
+              {% for item in chatbots %}
+              <tr><td>{{ item.name }}</td><td>{{ item.get_chatbot_type_display }}</td><td>Conversations: {{ item.total_conversations }}</td><td>{{ item.created_at }}</td><td><form method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle_chatbot"><input type="hidden" name="chatbot_id" value="{{ item.id }}"><button class="btn btn-sm btn-outline-primary" type="submit">Toggle</button></form></td></tr>
+              {% endfor %}
+            {% elif variants %}
+              {% for item in variants %}<tr><td>{{ item.display_name }}</td><td>{{ item.get_variant_type_display }}</td><td>Stock: {{ item.stock_quantity }}</td><td>{{ item.created_at }}</td><td><form method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle_variant"><input type="hidden" name="variant_id" value="{{ item.id }}"><button class="btn btn-sm btn-outline-primary" type="submit">Toggle</button></form></td></tr>{% endfor %}
+            {% else %}
+              <tr><td colspan="5" class="text-center text-muted py-4">No records available.</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
     </div>
-    {% elif roles or templates or engines or rules or chatbots or segments or variants %}
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Overview</h5>
-        </div>
-        <div class="card-body">
-            <div class="row g-3">
-                {% for item in roles %}
-                <div class="col-md-4"><div class="border rounded p-3">{{ item }}</div></div>
-                {% endfor %}
-                {% for item in templates %}
-                <div class="col-md-4"><div class="border rounded p-3">{{ item }}</div></div>
-                {% endfor %}
-                {% for item in engines %}
-                <div class="col-md-4"><div class="border rounded p-3">{{ item }}</div></div>
-                {% endfor %}
-                {% for item in rules %}
-                <div class="col-md-4"><div class="border rounded p-3">{{ item }}</div></div>
-                {% endfor %}
-                {% for item in chatbots %}
-                <div class="col-md-4"><div class="border rounded p-3">{{ item }}</div></div>
-                {% endfor %}
-                {% for item in segments %}
-                <div class="col-md-4"><div class="border rounded p-3">{{ item }}</div></div>
-                {% endfor %}
-                {% for item in variants %}
-                <div class="col-md-4"><div class="border rounded p-3">{{ item }}</div></div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-    {% else %}
-    <div class="card">
-        <div class="card-body text-center py-5">
-            <h5 class="text-muted mb-2">No data available yet</h5>
-            <p class="text-muted mb-0">This advanced feature page is ready, but there is no data to display.</p>
-        </div>
-    </div>
-    {% endif %}
+  </div>
 </div>
 {% endblock %}

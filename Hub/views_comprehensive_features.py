@@ -13,6 +13,7 @@ from django.db.models import Q, Sum, Count, Avg, F
 from django.db.utils import OperationalError, ProgrammingError
 from django.template import TemplateDoesNotExist
 from django.utils import timezone
+from django.utils.text import slugify
 from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator
 from decimal import Decimal
@@ -103,6 +104,20 @@ def advanced_feature_guard(feature_name):
     return decorator
 
 
+def _safe_int(value, default=0):
+    try:
+        return int(str(value).strip())
+    except (TypeError, ValueError, AttributeError):
+        return default
+
+
+def _safe_decimal(value, default='0'):
+    try:
+        return Decimal(str(value).strip())
+    except (TypeError, ValueError, AttributeError):
+        return Decimal(default)
+
+
 # ============ CUSTOMER INSIGHTS & CRM VIEWS ============
 
 @login_required(login_url='login')
@@ -161,6 +176,25 @@ def admin_add_customer_segment(request):
 @staff_member_required(login_url='login')
 def admin_customer_support_tickets(request):
     """Customer support ticket management"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        ticket_id = request.POST.get('ticket_id')
+        ticket = get_object_or_404(CustomerSupportTicket, id=ticket_id)
+
+        if action == 'update_status':
+            new_status = request.POST.get('new_status', ticket.status)
+            new_priority = request.POST.get('new_priority', ticket.priority)
+            ticket.status = new_status
+            ticket.priority = new_priority
+            if new_status == 'RESOLVED' and not ticket.resolved_at:
+                ticket.resolved_at = timezone.now()
+            if new_status == 'CLOSED' and not ticket.closed_at:
+                ticket.closed_at = timezone.now()
+            ticket.save()
+            log_activity(request.user, 'UPDATE', 'CustomerSupportTicket', ticket.id, f'{ticket.ticket_number} -> {new_status}', request=request)
+            messages.success(request, f'Ticket {ticket.ticket_number} updated.')
+            return redirect('admin_customer_support_tickets')
+
     status = request.GET.get('status', 'OPEN')
     
     tickets = CustomerSupportTicket.objects.filter(status=status).order_by('-created_at')
@@ -193,6 +227,17 @@ def admin_customer_support_tickets(request):
 @staff_member_required(login_url='login')
 def admin_profit_loss_statements(request):
     """Profit & Loss statements"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        statement_id = request.POST.get('statement_id')
+        statement = get_object_or_404(ProfitLossStatement, id=statement_id)
+        if action == 'toggle_finalize':
+            statement.is_finalized = not statement.is_finalized
+            statement.save(update_fields=['is_finalized'])
+            log_activity(request.user, 'UPDATE', 'ProfitLossStatement', statement.id, f'Finalized={statement.is_finalized}', request=request)
+            messages.success(request, f'Statement {statement.statement_id} updated.')
+            return redirect('admin_profit_loss_statements')
+
     statements = ProfitLossStatement.objects.all().order_by('-start_date')
     
     paginator = Paginator(statements, 10)
@@ -262,6 +307,61 @@ def admin_generate_pl_statement(request):
 @staff_member_required(login_url='login')
 def admin_expense_management(request):
     """Expense management"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add_category':
+            name = (request.POST.get('name') or '').strip()
+            if name:
+                category, created = ExpenseCategory.objects.get_or_create(
+                    name=name,
+                    defaults={'description': request.POST.get('description', '').strip()}
+                )
+                if not created:
+                    category.description = request.POST.get('description', '').strip()
+                    category.is_active = True
+                    category.save()
+                log_activity(request.user, 'CREATE', 'ExpenseCategory', category.id, category.name, request=request)
+                messages.success(request, f'Expense category "{category.name}" saved.')
+            else:
+                messages.error(request, 'Category name is required.')
+            return redirect('admin_expense_management')
+
+        if action == 'add_expense':
+            category_id = request.POST.get('category_id')
+            description = (request.POST.get('description') or '').strip()
+            amount = _safe_decimal(request.POST.get('amount'), '0')
+            expense_date = request.POST.get('expense_date')
+            if category_id and description and amount > 0 and expense_date:
+                expense = ExpenseRecord.objects.create(
+                    expense_id=f"EXP-{timezone.now().strftime('%Y%m%d%H%M%S')}",
+                    category_id=category_id,
+                    description=description,
+                    amount=amount,
+                    expense_date=expense_date,
+                    vendor_name=(request.POST.get('vendor_name') or '').strip(),
+                    payment_method=request.POST.get('payment_method', 'BANK_TRANSFER'),
+                    reference_number=(request.POST.get('reference_number') or '').strip(),
+                    is_gst_applicable=request.POST.get('is_gst_applicable') == 'on',
+                    gst_rate=_safe_decimal(request.POST.get('gst_rate'), '18'),
+                    created_by=request.user,
+                )
+                log_activity(request.user, 'CREATE', 'ExpenseRecord', expense.id, expense.expense_id, request=request)
+                messages.success(request, f'Expense "{expense.expense_id}" created.')
+            else:
+                messages.error(request, 'Please fill category, description, amount and date.')
+            return redirect('admin_expense_management')
+
+        if action == 'approve_expense':
+            expense_id = request.POST.get('expense_id')
+            expense = get_object_or_404(ExpenseRecord, id=expense_id)
+            expense.is_approved = True
+            expense.approved_by = request.user
+            expense.approved_at = timezone.now()
+            expense.save(update_fields=['is_approved', 'approved_by', 'approved_at'])
+            log_activity(request.user, 'UPDATE', 'ExpenseRecord', expense.id, f'Approved {expense.expense_id}', request=request)
+            messages.success(request, f'Expense {expense.expense_id} approved.')
+            return redirect('admin_expense_management')
+
     expenses = ExpenseRecord.objects.all().order_by('-expense_date')
     
     paginator = Paginator(expenses, 20)
@@ -290,6 +390,38 @@ def admin_expense_management(request):
 @staff_member_required(login_url='login')
 def admin_product_variants(request):
     """Product variants management"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add_variant':
+            product_id_val = _safe_int(request.POST.get('product_id'))
+            name = (request.POST.get('name') or '').strip()
+            display_name = (request.POST.get('display_name') or name).strip()
+            if product_id_val > 0 and name:
+                variant = ProductVariant.objects.create(
+                    product_id=product_id_val,
+                    variant_type=request.POST.get('variant_type', 'CUSTOM'),
+                    name=name,
+                    display_name=display_name,
+                    value=(request.POST.get('value') or name).strip(),
+                    price_adjustment=_safe_decimal(request.POST.get('price_adjustment'), '0'),
+                    stock_quantity=_safe_int(request.POST.get('stock_quantity')),
+                    sort_order=_safe_int(request.POST.get('sort_order')),
+                    is_active=True,
+                )
+                log_activity(request.user, 'CREATE', 'ProductVariant', variant.id, str(variant), request=request)
+                messages.success(request, f'Variant "{variant.display_name}" added.')
+            else:
+                messages.error(request, 'Product ID and variant name are required.')
+            return redirect(f"{request.path}?product_id={product_id_val}" if product_id_val else 'admin_product_variants')
+
+        if action == 'toggle_variant':
+            variant = get_object_or_404(ProductVariant, id=request.POST.get('variant_id'))
+            variant.is_active = not variant.is_active
+            variant.save(update_fields=['is_active'])
+            log_activity(request.user, 'UPDATE', 'ProductVariant', variant.id, f'Active={variant.is_active}', request=request)
+            messages.success(request, f'Variant "{variant.display_name}" updated.')
+            return redirect(f"{request.path}?product_id={variant.product_id}")
+
     product_id = request.GET.get('product_id')
     
     if product_id:
@@ -316,6 +448,42 @@ def admin_product_variants(request):
 @staff_member_required(login_url='login')
 def admin_product_bundles(request):
     """Product bundle management"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add_bundle':
+            name = (request.POST.get('name') or '').strip()
+            if name:
+                products_raw = (request.POST.get('products_json') or '[]').strip()
+                try:
+                    products_json = json.loads(products_raw)
+                    if not isinstance(products_json, list):
+                        products_json = []
+                except json.JSONDecodeError:
+                    products_json = []
+                bundle = ProductBundle.objects.create(
+                    name=name,
+                    description=(request.POST.get('description') or '').strip(),
+                    bundle_type=request.POST.get('bundle_type', 'FIXED'),
+                    products=products_json,
+                    individual_total=_safe_decimal(request.POST.get('individual_total'), '0'),
+                    bundle_price=_safe_decimal(request.POST.get('bundle_price'), '0'),
+                    created_by=request.user,
+                    is_active=request.POST.get('is_active') == 'on',
+                )
+                log_activity(request.user, 'CREATE', 'ProductBundle', bundle.id, bundle.name, request=request)
+                messages.success(request, f'Bundle "{bundle.name}" created.')
+            else:
+                messages.error(request, 'Bundle name is required.')
+            return redirect('admin_product_bundles')
+
+        if action == 'toggle_bundle':
+            bundle = get_object_or_404(ProductBundle, id=request.POST.get('bundle_id'))
+            bundle.is_active = not bundle.is_active
+            bundle.save(update_fields=['is_active'])
+            log_activity(request.user, 'UPDATE', 'ProductBundle', bundle.id, f'Active={bundle.is_active}', request=request)
+            messages.success(request, f'Bundle "{bundle.name}" updated.')
+            return redirect('admin_product_bundles')
+
     bundles = ProductBundle.objects.all().order_by('-created_at')
     
     paginator = Paginator(bundles, 15)
@@ -334,6 +502,25 @@ def admin_product_bundles(request):
 @staff_member_required(login_url='login')
 def admin_product_seo(request):
     """Product SEO optimization"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'save_seo':
+            product_id_val = _safe_int(request.POST.get('product_id'))
+            if product_id_val > 0:
+                seo, _ = ProductSEO.objects.get_or_create(product_id=product_id_val)
+                seo.meta_title = (request.POST.get('meta_title') or '').strip()
+                seo.meta_description = (request.POST.get('meta_description') or '').strip()
+                seo.meta_keywords = (request.POST.get('meta_keywords') or '').strip()
+                seo.focus_keyword = (request.POST.get('focus_keyword') or '').strip()
+                seo.seo_score = max(0, min(100, _safe_int(request.POST.get('seo_score'), 0)))
+                seo.is_indexable = request.POST.get('is_indexable') == 'on'
+                seo.save()
+                log_activity(request.user, 'UPDATE', 'ProductSEO', seo.id, f'Product {seo.product_id}', request=request)
+                messages.success(request, f'SEO saved for product {seo.product_id}.')
+            else:
+                messages.error(request, 'Valid product ID required.')
+            return redirect('admin_product_seo')
+
     seo_data = ProductSEO.objects.all().order_by('-seo_score')
     
     paginator = Paginator(seo_data, 20)
@@ -361,6 +548,44 @@ def admin_product_seo(request):
 @staff_member_required(login_url='login')
 def admin_security_roles(request):
     """Security role management"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add_role':
+            name = (request.POST.get('name') or '').strip()
+            if name:
+                role, _ = SecurityRole.objects.get_or_create(
+                    name=name,
+                    defaults={
+                        'role_type': request.POST.get('role_type', 'CUSTOM'),
+                        'description': (request.POST.get('description') or '').strip(),
+                        'created_by': request.user,
+                    }
+                )
+                role.can_manage_products = request.POST.get('can_manage_products') == 'on'
+                role.can_manage_orders = request.POST.get('can_manage_orders') == 'on'
+                role.can_manage_customers = request.POST.get('can_manage_customers') == 'on'
+                role.can_manage_inventory = request.POST.get('can_manage_inventory') == 'on'
+                role.can_manage_finances = request.POST.get('can_manage_finances') == 'on'
+                role.can_manage_marketing = request.POST.get('can_manage_marketing') == 'on'
+                role.can_manage_users = request.POST.get('can_manage_users') == 'on'
+                role.can_manage_settings = request.POST.get('can_manage_settings') == 'on'
+                role.can_view_reports = request.POST.get('can_view_reports') == 'on'
+                role.can_export_data = request.POST.get('can_export_data') == 'on'
+                role.save()
+                log_activity(request.user, 'CREATE', 'SecurityRole', role.id, role.name, request=request)
+                messages.success(request, f'Role "{role.name}" saved.')
+            else:
+                messages.error(request, 'Role name is required.')
+            return redirect('admin_security_roles')
+
+        if action == 'toggle_role':
+            role = get_object_or_404(SecurityRole, id=request.POST.get('role_id'))
+            role.is_active = not role.is_active
+            role.save(update_fields=['is_active'])
+            log_activity(request.user, 'UPDATE', 'SecurityRole', role.id, f'Active={role.is_active}', request=request)
+            messages.success(request, f'Role "{role.name}" updated.')
+            return redirect('admin_security_roles')
+
     roles = SecurityRole.objects.all().order_by('name')
     
     context = {
@@ -375,6 +600,18 @@ def admin_security_roles(request):
 @staff_member_required(login_url='login')
 def admin_security_audit_log(request):
     """Security audit log"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'mark_investigated':
+            log_id = request.POST.get('log_id')
+            audit_log = get_object_or_404(SecurityAuditLog, id=log_id)
+            audit_log.is_investigated = True
+            audit_log.investigation_notes = (request.POST.get('investigation_notes') or '').strip()
+            audit_log.save(update_fields=['is_investigated', 'investigation_notes'])
+            log_activity(request.user, 'UPDATE', 'SecurityAuditLog', audit_log.id, f'Investigated {audit_log.id}', request=request)
+            messages.success(request, 'Audit log marked as investigated.')
+            return redirect('admin_security_audit_log')
+
     event_type = request.GET.get('event_type', '')
     
     logs = SecurityAuditLog.objects.all()
@@ -400,6 +637,17 @@ def admin_security_audit_log(request):
 @staff_member_required(login_url='login')
 def admin_user_sessions(request):
     """Active user sessions"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'terminate_session':
+            session = get_object_or_404(UserSession, id=request.POST.get('session_id'))
+            session.status = 'TERMINATED'
+            session.logout_time = timezone.now()
+            session.save(update_fields=['status', 'logout_time'])
+            log_activity(request.user, 'UPDATE', 'UserSession', session.id, f'Terminated {session.session_key}', request=request)
+            messages.success(request, 'Session terminated successfully.')
+            return redirect('admin_user_sessions')
+
     sessions = UserSession.objects.filter(status='ACTIVE').order_by('-login_time')
     
     paginator = Paginator(sessions, 20)
@@ -427,6 +675,35 @@ def admin_user_sessions(request):
 @staff_member_required(login_url='login')
 def admin_blog_management(request):
     """Blog post management"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add_post':
+            title = (request.POST.get('title') or '').strip()
+            content = (request.POST.get('content') or '').strip()
+            if title and content:
+                base_slug = slugify(title)[:200] or f'post-{timezone.now().strftime("%Y%m%d%H%M%S")}'
+                slug = base_slug
+                idx = 1
+                while BlogPost.objects.filter(slug=slug).exists():
+                    idx += 1
+                    slug = f"{base_slug[:190]}-{idx}"
+                post = BlogPost.objects.create(
+                    title=title,
+                    slug=slug,
+                    excerpt=(request.POST.get('excerpt') or content[:280]).strip(),
+                    content=content,
+                    category_id=request.POST.get('category_id') or None,
+                    post_type=request.POST.get('post_type', 'ARTICLE'),
+                    status=request.POST.get('status', 'DRAFT'),
+                    author=request.user,
+                    published_at=timezone.now() if request.POST.get('status') == 'PUBLISHED' else None,
+                )
+                log_activity(request.user, 'CREATE', 'BlogPost', post.id, post.title, request=request)
+                messages.success(request, f'Blog post "{post.title}" created.')
+            else:
+                messages.error(request, 'Title and content are required.')
+            return redirect('admin_blog_management')
+
     posts = BlogPost.objects.all().order_by('-created_at')
     
     paginator = Paginator(posts, 15)
@@ -447,6 +724,39 @@ def admin_blog_management(request):
 @staff_member_required(login_url='login')
 def admin_faq_management(request):
     """FAQ management"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add_faq':
+            question = (request.POST.get('question') or '').strip()
+            answer = (request.POST.get('answer') or '').strip()
+            category_id = request.POST.get('category_id')
+            if question and answer and category_id:
+                faq = FAQ.objects.create(
+                    category_id=category_id,
+                    question=question,
+                    answer=answer,
+                    is_active=True,
+                    created_by=request.user,
+                )
+                log_activity(request.user, 'CREATE', 'FAQ', faq.id, faq.question[:120], request=request)
+                messages.success(request, 'FAQ added successfully.')
+            else:
+                messages.error(request, 'Category, question, and answer are required.')
+            return redirect('admin_faq_management')
+
+        if action == 'add_faq_category':
+            name = (request.POST.get('name') or '').strip()
+            if name:
+                category, _ = FAQCategory.objects.get_or_create(name=name)
+                category.description = (request.POST.get('description') or '').strip()
+                category.is_active = True
+                category.save()
+                log_activity(request.user, 'CREATE', 'FAQCategory', category.id, category.name, request=request)
+                messages.success(request, f'FAQ category "{category.name}" saved.')
+            else:
+                messages.error(request, 'Category name is required.')
+            return redirect('admin_faq_management')
+
     faqs = FAQ.objects.all().order_by('category', 'sort_order')
     
     paginator = Paginator(faqs, 20)
@@ -465,6 +775,29 @@ def admin_faq_management(request):
 @staff_member_required(login_url='login')
 def admin_email_templates(request):
     """Email template management"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add_email_template':
+            name = (request.POST.get('name') or '').strip()
+            subject = (request.POST.get('subject') or '').strip()
+            html_content = (request.POST.get('html_content') or '').strip()
+            if name and subject and html_content:
+                template = ContentEmailTemplate.objects.create(
+                    name=name,
+                    template_type=request.POST.get('template_type', 'CUSTOM'),
+                    subject=subject,
+                    html_content=html_content,
+                    text_content=(request.POST.get('text_content') or '').strip(),
+                    description=(request.POST.get('description') or '').strip(),
+                    created_by=request.user,
+                    is_active=True,
+                )
+                log_activity(request.user, 'CREATE', 'ContentEmailTemplate', template.id, template.name, request=request)
+                messages.success(request, f'Email template "{template.name}" created.')
+            else:
+                messages.error(request, 'Name, subject, and HTML content are required.')
+            return redirect('admin_email_templates')
+
     templates = ContentEmailTemplate.objects.all().order_by('template_type', 'name')
     
     context = {
@@ -554,6 +887,35 @@ def admin_performance_dashboard(request):
 @staff_member_required(login_url='login')
 def admin_image_optimization(request):
     """Image optimization management"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'log_image':
+            filename = (request.POST.get('original_filename') or '').strip()
+            if filename:
+                original_size_kb = max(1, _safe_int(request.POST.get('original_size_kb'), 1))
+                optimized_size_kb = max(0, _safe_int(request.POST.get('optimized_size_kb'), 0))
+                optimization = ImageOptimization.objects.create(
+                    original_filename=filename,
+                    image_type=request.POST.get('image_type', 'OTHER'),
+                    original_path=(request.POST.get('original_path') or f'media/{filename}').strip(),
+                    original_size_bytes=original_size_kb * 1024,
+                    optimized_size_bytes=optimized_size_kb * 1024,
+                    original_width=max(1, _safe_int(request.POST.get('original_width'), 1200)),
+                    original_height=max(1, _safe_int(request.POST.get('original_height'), 1200)),
+                    optimized_width=max(1, _safe_int(request.POST.get('optimized_width'), _safe_int(request.POST.get('original_width'), 1200))),
+                    optimized_height=max(1, _safe_int(request.POST.get('optimized_height'), _safe_int(request.POST.get('original_height'), 1200))),
+                    status=request.POST.get('status', 'COMPLETED'),
+                )
+                if optimization.original_size_bytes > 0 and optimization.optimized_size_bytes > 0:
+                    optimization.bandwidth_saved_bytes = max(0, optimization.original_size_bytes - optimization.optimized_size_bytes)
+                    optimization.compression_ratio = round((optimization.optimized_size_bytes / optimization.original_size_bytes) * 100, 2)
+                    optimization.save(update_fields=['bandwidth_saved_bytes', 'compression_ratio'])
+                log_activity(request.user, 'CREATE', 'ImageOptimization', optimization.id, optimization.original_filename, request=request)
+                messages.success(request, 'Image optimization entry saved.')
+            else:
+                messages.error(request, 'Original filename is required.')
+            return redirect('admin_image_optimization')
+
     optimizations = ImageOptimization.objects.all().order_by('-created_at')
     
     paginator = Paginator(optimizations, 20)
@@ -583,6 +945,27 @@ def admin_image_optimization(request):
 @staff_member_required(login_url='login')
 def admin_recommendation_engines(request):
     """Recommendation engine management"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add_engine':
+            name = (request.POST.get('name') or '').strip()
+            algorithm = request.POST.get('algorithm', 'HYBRID')
+            if name:
+                engine = RecommendationEngine.objects.create(
+                    name=name,
+                    algorithm=algorithm,
+                    status='ACTIVE' if request.POST.get('is_active') == 'on' else 'TRAINING',
+                    is_active=request.POST.get('is_active') == 'on',
+                    training_data_size=max(0, _safe_int(request.POST.get('training_data_size'), 0)),
+                    accuracy_score=_safe_decimal(request.POST.get('accuracy_score'), '0'),
+                    created_by=request.user,
+                )
+                log_activity(request.user, 'CREATE', 'RecommendationEngine', engine.id, engine.name, request=request)
+                messages.success(request, f'Recommendation engine "{engine.name}" created.')
+            else:
+                messages.error(request, 'Engine name is required.')
+            return redirect('admin_recommendation_engines')
+
     engines = RecommendationEngine.objects.all().order_by('-created_at')
     
     context = {
@@ -597,6 +980,36 @@ def admin_recommendation_engines(request):
 @staff_member_required(login_url='login')
 def admin_dynamic_pricing(request):
     """Dynamic pricing management"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add_rule':
+            name = (request.POST.get('name') or '').strip()
+            strategy = request.POST.get('strategy', 'DEMAND_BASED')
+            if name:
+                rule = DynamicPricingRule.objects.create(
+                    name=name,
+                    strategy=strategy,
+                    description=(request.POST.get('description') or '').strip(),
+                    min_price_change_percent=_safe_decimal(request.POST.get('min_price_change_percent'), '-20'),
+                    max_price_change_percent=_safe_decimal(request.POST.get('max_price_change_percent'), '20'),
+                    priority=max(1, _safe_int(request.POST.get('priority'), 1)),
+                    is_active=request.POST.get('is_active') == 'on',
+                    created_by=request.user,
+                )
+                log_activity(request.user, 'CREATE', 'DynamicPricingRule', rule.id, rule.name, request=request)
+                messages.success(request, f'Pricing rule "{rule.name}" created.')
+            else:
+                messages.error(request, 'Rule name is required.')
+            return redirect('admin_dynamic_pricing')
+
+        if action == 'toggle_rule':
+            rule = get_object_or_404(DynamicPricingRule, id=request.POST.get('rule_id'))
+            rule.is_active = not rule.is_active
+            rule.save(update_fields=['is_active'])
+            log_activity(request.user, 'UPDATE', 'DynamicPricingRule', rule.id, f'Active={rule.is_active}', request=request)
+            messages.success(request, f'Rule "{rule.name}" updated.')
+            return redirect('admin_dynamic_pricing')
+
     rules = DynamicPricingRule.objects.all().order_by('priority', 'name')
     
     context = {
@@ -611,6 +1024,19 @@ def admin_dynamic_pricing(request):
 @staff_member_required(login_url='login')
 def admin_fraud_detection(request):
     """Fraud detection management"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'update_fraud_status':
+            analysis = get_object_or_404(FraudAnalysis, id=request.POST.get('analysis_id'))
+            analysis.status = request.POST.get('new_status', analysis.status)
+            analysis.review_notes = (request.POST.get('review_notes') or '').strip()
+            analysis.reviewed_by = request.user
+            analysis.reviewed_at = timezone.now()
+            analysis.save(update_fields=['status', 'review_notes', 'reviewed_by', 'reviewed_at'])
+            log_activity(request.user, 'UPDATE', 'FraudAnalysis', analysis.id, f'Order {analysis.order_id} -> {analysis.status}', request=request)
+            messages.success(request, f'Fraud case for order {analysis.order_id} updated.')
+            return redirect('admin_fraud_detection')
+
     analyses = FraudAnalysis.objects.all().order_by('-created_at')
     
     paginator = Paginator(analyses, 20)
@@ -638,6 +1064,34 @@ def admin_fraud_detection(request):
 @staff_member_required(login_url='login')
 def admin_chatbot_management(request):
     """Chatbot management"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add_chatbot':
+            name = (request.POST.get('name') or '').strip()
+            if name:
+                chatbot = ChatbotConfiguration.objects.create(
+                    name=name,
+                    chatbot_type=request.POST.get('chatbot_type', 'RULE_BASED'),
+                    description=(request.POST.get('description') or '').strip(),
+                    welcome_message=(request.POST.get('welcome_message') or 'Hello! How can I help you today?').strip(),
+                    fallback_message=(request.POST.get('fallback_message') or "I'm sorry, I didn't understand that.").strip(),
+                    is_active=request.POST.get('is_active') == 'on',
+                    created_by=request.user,
+                )
+                log_activity(request.user, 'CREATE', 'ChatbotConfiguration', chatbot.id, chatbot.name, request=request)
+                messages.success(request, f'Chatbot "{chatbot.name}" created.')
+            else:
+                messages.error(request, 'Chatbot name is required.')
+            return redirect('admin_chatbot_management')
+
+        if action == 'toggle_chatbot':
+            chatbot = get_object_or_404(ChatbotConfiguration, id=request.POST.get('chatbot_id'))
+            chatbot.is_active = not chatbot.is_active
+            chatbot.save(update_fields=['is_active'])
+            log_activity(request.user, 'UPDATE', 'ChatbotConfiguration', chatbot.id, f'Active={chatbot.is_active}', request=request)
+            messages.success(request, f'Chatbot "{chatbot.name}" updated.')
+            return redirect('admin_chatbot_management')
+
     chatbots = ChatbotConfiguration.objects.all().order_by('name')
     
     context = {
@@ -986,6 +1440,15 @@ def admin_customer_clv(request):
 def admin_abandoned_carts(request):
     """Abandoned Carts Management"""
     from Hub.models import Cart
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'remove_cart_item':
+            cart_item = get_object_or_404(Cart, id=request.POST.get('cart_id'))
+            cart_item.delete()
+            log_activity(request.user, 'DELETE', 'Cart', None, 'Removed abandoned cart item', request=request)
+            messages.success(request, 'Abandoned cart item removed.')
+            return redirect('admin_abandoned_carts')
     
     abandoned_threshold = timezone.now() - timedelta(hours=24)
     abandoned_carts = Cart.objects.filter(
@@ -1010,9 +1473,69 @@ def admin_abandoned_carts(request):
 @staff_member_required(login_url='login')
 def admin_gst_reports(request):
     """GST Reports"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'generate_gst':
+            report_type = request.POST.get('report_type', 'GSTR1')
+            month = max(1, min(12, _safe_int(request.POST.get('month'), timezone.now().month)))
+            financial_year = (request.POST.get('financial_year') or f"{timezone.now().year}-{str(timezone.now().year + 1)[-2:]}").strip()
+            start_date = datetime(timezone.now().year, month, 1).date()
+            if month == 12:
+                end_date = datetime(timezone.now().year + 1, 1, 1).date() - timedelta(days=1)
+            else:
+                end_date = datetime(timezone.now().year, month + 1, 1).date() - timedelta(days=1)
+            orders = Order.objects.filter(created_at__date__range=[start_date, end_date], order_status__in=['PROCESSING', 'SHIPPED', 'DELIVERED'])
+            taxable = orders.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+            cgst = taxable * Decimal('0.09')
+            sgst = taxable * Decimal('0.09')
+            igst = Decimal('0')
+            report_id = f"{report_type}-{financial_year.replace('-', '')}-{month:02d}"
+            report, _ = GSTReport.objects.update_or_create(
+                report_type=report_type,
+                financial_year=financial_year,
+                month=month,
+                defaults={
+                    'gstin': (request.POST.get('gstin') or '22AAAAA0000A1Z5').strip(),
+                    'report_id': report_id,
+                    'taxable_value': taxable,
+                    'cgst_amount': cgst,
+                    'sgst_amount': sgst,
+                    'igst_amount': igst,
+                    'total_tax': cgst + sgst + igst,
+                    'tax_payable': cgst + sgst + igst,
+                    'status': 'GENERATED',
+                    'generated_by': request.user,
+                    'report_data': {'order_count': orders.count()},
+                }
+            )
+            log_activity(request.user, 'CREATE', 'GSTReport', report.id, report.report_id, request=request)
+            messages.success(request, f'GST report {report.report_id} generated.')
+            return redirect('admin_gst_reports')
+
+        if action == 'mark_filed':
+            report = get_object_or_404(GSTReport, id=request.POST.get('report_id'))
+            report.status = 'FILED'
+            report.filing_date = timezone.now().date()
+            report.acknowledgment_number = (request.POST.get('acknowledgment_number') or '').strip()
+            report.save(update_fields=['status', 'filing_date', 'acknowledgment_number'])
+            log_activity(request.user, 'UPDATE', 'GSTReport', report.id, f'Filed {report.report_id}', request=request)
+            messages.success(request, f'GST report {report.report_id} marked as filed.')
+            return redirect('admin_gst_reports')
+
+    reports = GSTReport.objects.all().order_by('-financial_year', '-month')
+    paginator = Paginator(reports, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    summary = GSTReport.objects.aggregate(
+        total_reports=Count('id'),
+        filed_reports=Count('id', filter=Q(status='FILED')),
+        total_tax=Sum('total_tax'),
+    )
     context = {
         'title': 'GST Reports',
-        'message': 'GST Reports feature - Coming soon with full GSTR-1 and GSTR-3B compliance'
+        'page_obj': page_obj,
+        'summary': summary,
+        'report_types': GSTReport.REPORT_TYPE_CHOICES,
+        'current_year': timezone.now().year,
     }
     return render(request, 'admin_panel/gst_reports.html', context)
 
@@ -1021,9 +1544,63 @@ def admin_gst_reports(request):
 @staff_member_required(login_url='login')
 def admin_payment_reconciliation(request):
     """Payment Reconciliation"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'create_reconciliation':
+            gateway = request.POST.get('gateway', 'RAZORPAY')
+            start_date = request.POST.get('start_date')
+            end_date = request.POST.get('end_date')
+            if start_date and end_date:
+                orders = Order.objects.filter(
+                    created_at__date__range=[start_date, end_date],
+                    payment_method__iexact='RAZORPAY' if gateway == 'RAZORPAY' else 'COD'
+                )
+                total_amount = orders.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+                recon = PaymentGatewayReconciliation.objects.create(
+                    reconciliation_id=f"REC-{gateway}-{timezone.now().strftime('%Y%m%d%H%M%S')}",
+                    gateway=gateway,
+                    start_date=start_date,
+                    end_date=end_date,
+                    total_transactions=orders.count(),
+                    matched_transactions=orders.count(),
+                    mismatched_transactions=0,
+                    gateway_total_amount=total_amount,
+                    system_total_amount=total_amount,
+                    difference_amount=Decimal('0'),
+                    gateway_fees=total_amount * Decimal('0.02'),
+                    gst_on_fees=total_amount * Decimal('0.0036'),
+                    net_settlement=total_amount * Decimal('0.9764'),
+                    status='MATCHED',
+                    created_by=request.user,
+                )
+                log_activity(request.user, 'CREATE', 'PaymentGatewayReconciliation', recon.id, recon.reconciliation_id, request=request)
+                messages.success(request, f'Reconciliation {recon.reconciliation_id} created.')
+            else:
+                messages.error(request, 'Start and end date are required.')
+            return redirect('admin_payment_reconciliation')
+
+        if action == 'set_reconciliation_status':
+            recon = get_object_or_404(PaymentGatewayReconciliation, id=request.POST.get('reconciliation_id'))
+            recon.status = request.POST.get('new_status', recon.status)
+            recon.save(update_fields=['status'])
+            log_activity(request.user, 'UPDATE', 'PaymentGatewayReconciliation', recon.id, recon.status, request=request)
+            messages.success(request, f'Reconciliation {recon.reconciliation_id} updated.')
+            return redirect('admin_payment_reconciliation')
+
+    reconciliations = PaymentGatewayReconciliation.objects.all().order_by('-created_at')
+    paginator = Paginator(reconciliations, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    summary = PaymentGatewayReconciliation.objects.aggregate(
+        total_batches=Count('id'),
+        matched_batches=Count('id', filter=Q(status='MATCHED')),
+        total_difference=Sum('difference_amount'),
+    )
     context = {
         'title': 'Payment Reconciliation',
-        'message': 'Payment reconciliation with Razorpay integration - Coming soon'
+        'page_obj': page_obj,
+        'summary': summary,
+        'gateways': PaymentGatewayReconciliation.GATEWAY_CHOICES,
+        'status_choices': PaymentGatewayReconciliation.STATUS_CHOICES,
     }
     return render(request, 'admin_panel/payment_reconciliation.html', context)
 
@@ -1036,9 +1613,44 @@ def admin_payment_reconciliation(request):
 @staff_member_required(login_url='login')
 def admin_inventory_forecast(request):
     """Inventory Forecasting"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'create_forecast':
+            product_id_val = _safe_int(request.POST.get('product_id'))
+            forecast_date = request.POST.get('forecast_date') or timezone.now().date()
+            if product_id_val > 0:
+                forecast, created = DemandForecast.objects.update_or_create(
+                    product_id=product_id_val,
+                    forecast_type=request.POST.get('forecast_type', 'MONTHLY'),
+                    forecast_date=forecast_date,
+                    defaults={
+                        'forecast_period_days': max(1, _safe_int(request.POST.get('forecast_period_days'), 30)),
+                        'predicted_demand': max(0, _safe_int(request.POST.get('predicted_demand'), 0)),
+                        'confidence_interval_lower': max(0, _safe_int(request.POST.get('confidence_lower'), 0)),
+                        'confidence_interval_upper': max(0, _safe_int(request.POST.get('confidence_upper'), 0)),
+                        'confidence_level': _safe_decimal(request.POST.get('confidence_level'), '95'),
+                        'model_name': (request.POST.get('model_name') or 'RuleBasedForecast').strip(),
+                        'model_version': (request.POST.get('model_version') or '1.0').strip(),
+                    }
+                )
+                log_activity(request.user, 'CREATE', 'DemandForecast', forecast.id, f'Product {forecast.product_id}', request=request)
+                messages.success(request, f'Forecast {"updated" if not created else "created"} for product {forecast.product_id}.')
+            else:
+                messages.error(request, 'Valid product ID is required.')
+            return redirect('admin_inventory_forecast')
+
+    forecasts = DemandForecast.objects.all().order_by('-forecast_date')
+    paginator = Paginator(forecasts, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    summary = DemandForecast.objects.aggregate(
+        total_forecasts=Count('id'),
+        avg_predicted=Avg('predicted_demand'),
+    )
     context = {
         'title': 'Inventory Forecast',
-        'message': 'AI-powered inventory forecasting - Coming soon'
+        'page_obj': page_obj,
+        'summary': summary,
+        'forecast_types': DemandForecast.FORECAST_TYPE_CHOICES,
     }
     return render(request, 'admin_panel/inventory_forecast.html', context)
 
@@ -1047,9 +1659,63 @@ def admin_inventory_forecast(request):
 @staff_member_required(login_url='login')
 def admin_related_products(request):
     """Related Products Management"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add_related':
+            primary_product_id = _safe_int(request.POST.get('primary_product_id'))
+            related_product_id = _safe_int(request.POST.get('related_product_id'))
+            relation_type = request.POST.get('relation_type', 'SIMILAR')
+            if primary_product_id > 0 and related_product_id > 0 and primary_product_id != related_product_id:
+                related, created = RelatedProduct.objects.get_or_create(
+                    primary_product_id=primary_product_id,
+                    related_product_id=related_product_id,
+                    relation_type=relation_type,
+                    defaults={
+                        'relevance_score': _safe_decimal(request.POST.get('relevance_score'), '50'),
+                        'display_order': _safe_int(request.POST.get('display_order'), 0),
+                        'created_by': request.user,
+                        'is_active': True,
+                    }
+                )
+                if not created:
+                    related.relevance_score = _safe_decimal(request.POST.get('relevance_score'), str(related.relevance_score))
+                    related.display_order = _safe_int(request.POST.get('display_order'), related.display_order)
+                    related.is_active = True
+                    related.save()
+                log_activity(request.user, 'CREATE', 'RelatedProduct', related.id, str(related), request=request)
+                messages.success(request, 'Related product mapping saved.')
+            else:
+                messages.error(request, 'Primary and related product IDs must be different and valid.')
+            return redirect('admin_related_products')
+
+        if action == 'toggle_related':
+            relation = get_object_or_404(RelatedProduct, id=request.POST.get('relation_id'))
+            relation.is_active = not relation.is_active
+            relation.save(update_fields=['is_active'])
+            log_activity(request.user, 'UPDATE', 'RelatedProduct', relation.id, f'Active={relation.is_active}', request=request)
+            messages.success(request, 'Related product status updated.')
+            return redirect('admin_related_products')
+
+        if action == 'delete_related':
+            relation = get_object_or_404(RelatedProduct, id=request.POST.get('relation_id'))
+            relation.delete()
+            log_activity(request.user, 'DELETE', 'RelatedProduct', None, 'Deleted related mapping', request=request)
+            messages.success(request, 'Related mapping deleted.')
+            return redirect('admin_related_products')
+
+    relations = RelatedProduct.objects.all().order_by('primary_product_id', 'display_order')[:500]
+    paginator = Paginator(relations, 30)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    summary = RelatedProduct.objects.aggregate(
+        total_mappings=Count('id'),
+        active_mappings=Count('id', filter=Q(is_active=True)),
+        avg_relevance=Avg('relevance_score'),
+    )
     context = {
         'title': 'Related Products',
-        'message': 'Related products and cross-selling management - Coming soon'
+        'page_obj': page_obj,
+        'summary': summary,
+        'relation_types': RelatedProduct.RELATION_TYPE_CHOICES,
     }
     return render(request, 'admin_panel/related_products.html', context)
 
@@ -1062,9 +1728,63 @@ def admin_related_products(request):
 @staff_member_required(login_url='login')
 def admin_page_builder(request):
     """Page Builder"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add_template':
+            name = (request.POST.get('name') or '').strip()
+            if name:
+                template = PageTemplate.objects.create(
+                    name=name,
+                    template_type=request.POST.get('template_type', 'CUSTOM'),
+                    description=(request.POST.get('description') or '').strip(),
+                    created_by=request.user,
+                    is_active=True,
+                )
+                log_activity(request.user, 'CREATE', 'PageTemplate', template.id, template.name, request=request)
+                messages.success(request, f'Template "{template.name}" created.')
+            else:
+                messages.error(request, 'Template name is required.')
+            return redirect('admin_page_builder')
+
+        if action == 'add_custom_page':
+            title = (request.POST.get('title') or '').strip()
+            if title:
+                base_slug = slugify(request.POST.get('slug') or title)[:210] or f'custom-page-{timezone.now().strftime("%Y%m%d%H%M%S")}'
+                slug = base_slug
+                i = 1
+                while CustomPage.objects.filter(slug=slug).exists():
+                    i += 1
+                    slug = f"{base_slug[:200]}-{i}"
+                page = CustomPage.objects.create(
+                    title=title,
+                    slug=slug,
+                    description=(request.POST.get('description') or '').strip(),
+                    template_id=request.POST.get('template_id') or None,
+                    status=request.POST.get('status', 'DRAFT'),
+                    content_blocks=[],
+                    created_by=request.user,
+                    published_at=timezone.now() if request.POST.get('status') == 'PUBLISHED' else None,
+                )
+                log_activity(request.user, 'CREATE', 'CustomPage', page.id, page.title, request=request)
+                messages.success(request, f'Custom page "{page.title}" created.')
+            else:
+                messages.error(request, 'Page title is required.')
+            return redirect('admin_page_builder')
+
+    pages = CustomPage.objects.select_related('template').all().order_by('-updated_at')
+    paginator = Paginator(pages, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    summary = CustomPage.objects.aggregate(
+        total_pages=Count('id'),
+        published_pages=Count('id', filter=Q(status='PUBLISHED')),
+    )
     context = {
         'title': 'Page Builder',
-        'message': 'Drag-and-drop page builder - Coming soon'
+        'page_obj': page_obj,
+        'summary': summary,
+        'templates': PageTemplate.objects.filter(is_active=True).order_by('template_type', 'name'),
+        'template_types': PageTemplate.TEMPLATE_TYPE_CHOICES,
+        'status_choices': CustomPage.STATUS_CHOICES,
     }
     return render(request, 'admin_panel/page_builder.html', context)
 
