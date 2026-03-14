@@ -1,0 +1,599 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}Coming Soon - VibeMall{% endblock %}
+
+{% block meta_description %}VibeMall is coming soon! Get ready for India's most amazing online shopping experience with exclusive deals, fast delivery, and premium products.{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Coming Soon Page Styles */
+.coming-soon-container {
+    position: relative;
+    min-height: 100vh;
+    overflow: hidden;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.coming-soon-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg,
+        rgba(102, 126, 234, 0.1) 0%,
+        rgba(118, 75, 162, 0.1) 25%,
+        rgba(255, 107, 107, 0.1) 50%,
+        rgba(255, 193, 7, 0.1) 75%,
+        rgba(76, 175, 80, 0.1) 100%);
+    z-index: 1;
+}
+
+.coming-soon-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg,
+        rgba(102, 126, 234, 0.9) 0%,
+        rgba(118, 75, 162, 0.9) 50%,
+        rgba(255, 107, 107, 0.9) 100%);
+    z-index: 2;
+}
+
+.coming-soon-content {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 2rem;
+    text-align: center;
+}
+
+.logo-container {
+    margin-bottom: 3rem;
+    animation: logoFloat 6s ease-in-out infinite;
+}
+
+@keyframes logoFloat {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+}
+
+.main-logo {
+    width: 200px;
+    height: auto;
+    filter: drop-shadow(0 10px 30px rgba(255, 255, 255, 0.3));
+    animation: logoGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes logoGlow {
+    0% { filter: drop-shadow(0 10px 30px rgba(255, 255, 255, 0.3)); }
+    100% { filter: drop-shadow(0 10px 40px rgba(255, 255, 255, 0.6)); }
+}
+
+.coming-soon-title {
+    font-size: 4rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 1rem;
+    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    animation: titleSlideIn 1.5s ease-out;
+    background: linear-gradient(45deg, #ffffff, #f0f0f0, #ffffff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+@keyframes titleSlideIn {
+    0% {
+        opacity: 0;
+        transform: translateY(50px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.coming-soon-subtitle {
+    font-size: 1.5rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 2rem;
+    max-width: 600px;
+    line-height: 1.6;
+    animation: subtitleFadeIn 2s ease-out 0.5s both;
+}
+
+@keyframes subtitleFadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+.launch-info {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 2rem;
+    margin: 2rem 0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    animation: infoSlideUp 1s ease-out 1s both;
+}
+
+@keyframes infoSlideUp {
+    0% {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.launch-date {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.launch-description {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+}
+
+.notify-section {
+    margin-top: 2rem;
+    animation: notifyFadeIn 1s ease-out 1.5s both;
+}
+
+@keyframes notifyFadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+.notify-title {
+    color: #ffffff;
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.notify-form {
+    display: flex;
+    gap: 1rem;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.notify-input {
+    flex: 1;
+    padding: 1rem 1.5rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    font-size: 1rem;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.notify-input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.notify-input:focus {
+    outline: none;
+    border-color: #ffffff;
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+.notify-btn {
+    padding: 1rem 2rem;
+    background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+    color: #ffffff;
+    border: none;
+    border-radius: 50px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+}
+
+.notify-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    max-width: 1000px;
+    margin: 3rem auto;
+    animation: featuresFadeIn 1s ease-out 2s both;
+}
+
+@keyframes featuresFadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+.feature-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 2rem;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    animation: featureSlideIn 0.8s ease-out both;
+}
+
+.feature-card:nth-child(1) { animation-delay: 2.2s; }
+.feature-card:nth-child(2) { animation-delay: 2.4s; }
+.feature-card:nth-child(3) { animation-delay: 2.6s; }
+.feature-card:nth-child(4) { animation-delay: 2.8s; }
+
+@keyframes featureSlideIn {
+    0% {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.feature-card:hover {
+    transform: translateY(-10px);
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.feature-icon {
+    font-size: 3rem;
+    color: #ffffff;
+    margin-bottom: 1rem;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.feature-title {
+    color: #ffffff;
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.feature-description {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.social-links {
+    margin-top: 3rem;
+    animation: socialFadeIn 1s ease-out 3s both;
+}
+
+@keyframes socialFadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+.social-title {
+    color: #ffffff;
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.social-icons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.social-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    color: #ffffff;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.social-link:hover {
+    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.footer-text {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.9rem;
+    animation: footerFadeIn 1s ease-out 3.5s both;
+}
+
+@keyframes footerFadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+/* Floating particles animation */
+.particles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 3;
+}
+
+.particle {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    animation: float 20s infinite linear;
+}
+
+.particle:nth-child(1) { width: 4px; height: 4px; left: 10%; animation-delay: 0s; }
+.particle:nth-child(2) { width: 6px; height: 6px; left: 20%; animation-delay: 2s; }
+.particle:nth-child(3) { width: 3px; height: 3px; left: 30%; animation-delay: 4s; }
+.particle:nth-child(4) { width: 5px; height: 5px; left: 40%; animation-delay: 6s; }
+.particle:nth-child(5) { width: 4px; height: 4px; left: 50%; animation-delay: 8s; }
+.particle:nth-child(6) { width: 7px; height: 7px; left: 60%; animation-delay: 10s; }
+.particle:nth-child(7) { width: 3px; height: 3px; left: 70%; animation-delay: 12s; }
+.particle:nth-child(8) { width: 5px; height: 5px; left: 80%; animation-delay: 14s; }
+.particle:nth-child(9) { width: 4px; height: 4px; left: 90%; animation-delay: 16s; }
+.particle:nth-child(10) { width: 6px; height: 6px; left: 95%; animation-delay: 18s; }
+
+@keyframes float {
+    0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .coming-soon-title {
+        font-size: 2.5rem;
+    }
+
+    .coming-soon-subtitle {
+        font-size: 1.2rem;
+    }
+
+    .launch-date {
+        font-size: 2rem;
+    }
+
+    .notify-form {
+        flex-direction: column;
+    }
+
+    .features-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .feature-card {
+        padding: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .coming-soon-title {
+        font-size: 2rem;
+    }
+
+    .coming-soon-content {
+        padding: 1rem;
+    }
+
+    .main-logo {
+        width: 150px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="coming-soon-container">
+    <!-- Blurred Background -->
+    <div class="coming-soon-background"></div>
+
+    <!-- Gradient Overlay -->
+    <div class="coming-soon-overlay"></div>
+
+    <!-- Floating Particles -->
+    <div class="particles">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="coming-soon-content">
+        <!-- Logo -->
+        <div class="logo-container">
+            <img src="{% static 'assets/img/logo/vibemall-brand.png' %}" alt="VibeMall Logo" class="main-logo">
+        </div>
+
+        <!-- Main Title -->
+        <h1 class="coming-soon-title">Coming Soon</h1>
+
+        <!-- Subtitle -->
+        <p class="coming-soon-subtitle">
+            Get ready for India's most amazing online shopping experience!
+        </p>
+
+        <!-- Launch Info -->
+        <div class="launch-info">
+            <div class="launch-date">March 2026</div>
+            <div class="launch-description">
+                We're working hard to bring you the ultimate shopping destination with exclusive deals,
+                lightning-fast delivery, and premium products from top brands.
+            </div>
+        </div>
+
+        <!-- Email Notification -->
+        <div class="notify-section">
+            <div class="notify-title">Be the first to know when we launch!</div>
+            <form class="notify-form" id="notifyForm">
+                <input type="email" class="notify-input" placeholder="Enter your email address" required>
+                <button type="submit" class="notify-btn">Notify Me</button>
+            </form>
+        </div>
+
+        <!-- Features Grid -->
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🚚</div>
+                <div class="feature-title">Fast Delivery</div>
+                <div class="feature-description">
+                    Lightning-fast delivery across India with real-time tracking
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">💎</div>
+                <div class="feature-title">Premium Products</div>
+                <div class="feature-description">
+                    Curated collection of premium products from top brands
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">💰</div>
+                <div class="feature-title">Best Deals</div>
+                <div class="feature-description">
+                    Exclusive deals and offers you won't find anywhere else
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <div class="feature-title">Secure Shopping</div>
+                <div class="feature-description">
+                    Bank-grade security for all your transactions
+                </div>
+            </div>
+        </div>
+
+        <!-- Social Links -->
+        <div class="social-links">
+            <div class="social-title">Follow us for updates</div>
+            <div class="social-icons">
+                <a href="#" class="social-link" title="Facebook">
+                    <i class="fab fa-facebook-f"></i>
+                </a>
+                <a href="#" class="social-link" title="Instagram">
+                    <i class="fab fa-instagram"></i>
+                </a>
+                <a href="#" class="social-link" title="Twitter">
+                    <i class="fab fa-twitter"></i>
+                </a>
+                <a href="#" class="social-link" title="LinkedIn">
+                    <i class="fab fa-linkedin-in"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Text -->
+    <div class="footer-text">
+        © 2026 VibeMall. All rights reserved.
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Email notification form handling
+document.getElementById('notifyForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const email = this.querySelector('input[type="email"]').value;
+    const button = this.querySelector('button');
+
+    // Show loading state
+    button.textContent = 'Sending...';
+    button.disabled = true;
+
+    // Simulate API call (replace with actual implementation)
+    setTimeout(() => {
+        // Show success message
+        button.textContent = '✓ Subscribed!';
+        button.style.background = 'linear-gradient(45deg, #4CAF50, #45a049)';
+
+        // Reset form after 3 seconds
+        setTimeout(() => {
+            this.reset();
+            button.textContent = 'Notify Me';
+            button.disabled = false;
+            button.style.background = 'linear-gradient(45deg, #ff6b6b, #ee5a24)';
+        }, 3000);
+    }, 1500);
+});
+
+// Add more floating particles dynamically
+function createParticle() {
+    const particle = document.createElement('div');
+    particle.className = 'particle';
+    particle.style.width = Math.random() * 7 + 3 + 'px';
+    particle.style.height = particle.style.width;
+    particle.style.left = Math.random() * 100 + '%';
+    particle.style.animationDelay = Math.random() * 20 + 's';
+    particle.style.animationDuration = (Math.random() * 10 + 20) + 's';
+
+    document.querySelector('.particles').appendChild(particle);
+
+    // Remove particle after animation
+    setTimeout(() => {
+        particle.remove();
+    }, 30000);
+}
+
+// Create new particles every few seconds
+setInterval(createParticle, 3000);
+
+// Smooth scroll for any anchor links
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        // Handle smooth scrolling if needed
+    });
+});
+</script>
+{% endblock %}
