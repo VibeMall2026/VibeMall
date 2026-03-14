@@ -28,12 +28,10 @@ header, footer, .header, .footer, #mobileBottomNavShell, .mobile-bottom-nav-shel
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg,
-        rgba(102, 126, 234, 0.1) 0%,
-        rgba(118, 75, 162, 0.1) 25%,
-        rgba(255, 107, 107, 0.1) 50%,
-        rgba(255, 193, 7, 0.1) 75%,
-        rgba(76, 175, 80, 0.1) 100%);
+    background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.05), transparent 45%),
+                radial-gradient(circle at 80% 25%, rgba(255, 255, 255, 0.08), transparent 50%),
+                radial-gradient(circle at 50% 120%, rgba(255, 255, 255, 0.02), transparent 65%),
+                linear-gradient(160deg, #050511 0%, #0d0f24 60%, #0b0c1b 100%);
     z-index: 1;
 }
 
@@ -43,12 +41,81 @@ header, footer, .header, .footer, #mobileBottomNavShell, .mobile-bottom-nav-shel
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg,
-        rgba(102, 126, 234, 0.9) 0%,
-        rgba(118, 75, 162, 0.9) 50%,
-        rgba(255, 107, 107, 0.9) 100%);
+    background: radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.15), transparent 50%),
+                radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.08), transparent 50%),
+                rgba(0, 0, 0, 0.45);
     z-index: 2;
+    mix-blend-mode: overlay;
 }
+
+.spotlights {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 3;
+}
+
+.spot {
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0) 55%);
+    filter: blur(60px);
+    opacity: 0.6;
+    animation: spotlightMove 12s ease-in-out infinite;
+}
+
+.spot:nth-child(1) {
+    top: -120px;
+    left: 12%;
+    animation-delay: 0s;
+}
+
+.spot:nth-child(2) {
+    top: -120px;
+    right: 18%;
+    animation-delay: 4s;
+}
+
+.spot:nth-child(3) {
+    bottom: -150px;
+    left: 40%;
+    animation-delay: 8s;
+}
+
+@keyframes spotlightMove {
+    0%, 100% { transform: translateY(0) translateX(0) scale(1); }
+    50% { transform: translateY(40px) translateX(30px) scale(1.1); }
+}
+
+.coming-soon-title {
+    font-size: 4.5rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: #ffffff;
+    margin-bottom: 1rem;
+    text-shadow: 0 8px 40px rgba(0, 0, 0, 0.35);
+    animation: titleSlideIn 1.5s ease-out;
+    background: linear-gradient(90deg, #f5f7ff, #a5b3ff, #d9deff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+@keyframes titleShine {
+    0% { background-position: -150% 0; }
+    100% { background-position: 150% 0; }
+}
+
+.coming-soon-title.shine {
+    background-image: linear-gradient(90deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.9) 45%, rgba(255,255,255,0.4) 100%);
+    background-size: 200% auto;
+    animation: titleShine 3.5s ease-in-out infinite;
+}
+
 
 .coming-soon-content {
     position: relative;
@@ -435,6 +502,13 @@ header, footer, .header, .footer, #mobileBottomNavShell, .mobile-bottom-nav-shel
     <!-- Gradient Overlay -->
     <div class="coming-soon-overlay"></div>
 
+    <!-- Spotlights -->
+    <div class="spotlights">
+        <div class="spot"></div>
+        <div class="spot"></div>
+        <div class="spot"></div>
+    </div>
+
     <!-- Floating Particles -->
     <div class="particles">
         <div class="particle"></div>
@@ -457,7 +531,7 @@ header, footer, .header, .footer, #mobileBottomNavShell, .mobile-bottom-nav-shel
         </div>
 
         <!-- Main Title -->
-        <h1 class="coming-soon-title">Coming Soon</h1>
+        <h1 class="coming-soon-title shine">Coming Soon</h1>
 
         <!-- Subtitle -->
         <p class="coming-soon-subtitle">
