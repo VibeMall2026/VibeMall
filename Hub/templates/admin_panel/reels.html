@@ -361,8 +361,8 @@
                         </button>
                         
                         {% if reel.is_published %}
-                            <button class="btn-action btn-delete" disabled style="opacity: 0.5; cursor: not-allowed;" title="Unpublish first to delete">
-                                <i class="fas fa-lock"></i> Protected
+                            <button class="btn-action btn-delete" onclick="deleteReel({{ reel.id }}, '{{ reel.title|escapejs }}')" title="Will unpublish and delete">
+                                <i class="fas fa-trash"></i> Delete
                             </button>
                         {% else %}
                             <button class="btn-action btn-delete" onclick="deleteReel({{ reel.id }}, '{{ reel.title|escapejs }}')">

@@ -7,6 +7,8 @@ from . import backup_views
 from . import views_new_features
 
 urlpatterns = [
+    path('coming-soon/', views.coming_soon, name='coming_soon'),
+
     # Admin Panel URLs
     path('admin-panel/', views.admin_dashboard, name='admin_dashboard'),
     path('admin-panel/new-dashboard/', views.admin_new_dashboard, name='admin_new_dashboard'),

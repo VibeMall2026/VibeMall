@@ -3,7 +3,40 @@ from django.contrib import messages
 from django.contrib.auth import logout
 from django.urls import reverse
 from django.utils import timezone
+from django.conf import settings
 from datetime import timedelta
+
+
+class ComingSoonModeMiddleware:
+    """
+    When COMING_SOON_MODE is enabled, redirect all public traffic
+    to the coming-soon page while keeping admin and static assets available.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.allowed_prefixes = (
+            '/coming-soon/',
+            '/admin-panel/',
+            '/admin/',
+            '/static/',
+            '/media/',
+            '/favicon.ico',
+        )
+
+    def __call__(self, request):
+        if not getattr(settings, 'COMING_SOON_MODE', False):
+            return self.get_response(request)
+
+        path = request.path or '/'
+
+        if any(path.startswith(prefix) for prefix in self.allowed_prefixes):
+            return self.get_response(request)
+
+        if request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser):
+            return self.get_response(request)
+
+        return redirect('coming_soon')
 
 
 class BlockedUserMiddleware:

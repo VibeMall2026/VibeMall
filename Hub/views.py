@@ -5696,6 +5696,15 @@ info.vibemall@gmail.com
 def faq(request): return render(request, 'faq.html')
 
 
+def coming_soon(request):
+    launch_date = timezone.now() + timedelta(days=21)
+    context = {
+        'launch_date_iso': launch_date.strftime('%Y-%m-%dT%H:%M:%SZ'),
+        'launch_date_display': launch_date.strftime('%d %b %Y'),
+    }
+    return render(request, 'coming_soon.html', context)
+
+
 def login_view(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         username = (request.POST.get("username") or "").strip()
@@ -9908,10 +9917,11 @@ def admin_delete_reel(request, reel_id):
     
     reel = get_object_or_404(Reel, id=reel_id)
     
-    # Prevent deletion of published reels
+    # If published, unpublish first
     if reel.is_published:
-        messages.error(request, f'❌ Cannot delete published reel "{reel.title}". Unpublish it first.')
-        return redirect('admin_reels')
+        reel.is_published = False
+        reel.save(update_fields=['is_published'])
+        messages.info(request, f'ℹ️ Reel "{reel.title}" was unpublished before deletion.')
     
     title = reel.title
     reel.delete()
