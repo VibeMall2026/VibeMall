@@ -141,94 +141,83 @@
 
 <!-- Scripts for Password Toggle, Validation & Security -->
 <script>
-    // Password Toggle Function
-    function togglePassword(id) {
+    function togglePassword(id, buttonEl) {
         const input = document.getElementById(id);
-        const button = input.parentElement.querySelector('.toggle-password-btn i');
-        
-        if (input.type === \"password\") {
-            input.type = \"text\";
-            button.classList.remove('fa-eye');
-            button.classList.add('fa-eye-slash');
-        } else {
-            input.type = \"password\";
-            button.classList.remove('fa-eye-slash');
-            button.classList.add('fa-eye');
+        if (!input) return;
+
+        const icon = buttonEl ? buttonEl.querySelector('i') : null;
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+
+        if (icon) {
+            icon.classList.toggle('fa-eye', !show);
+            icon.classList.toggle('fa-eye-slash', show);
         }
     }
 
-    // Attach event listener to toggle button
     document.addEventListener('DOMContentLoaded', function() {
-        const toggleButton = document.querySelector('.toggle-password-btn');
-        if (toggleButton) {
-            toggleButton.addEventListener('click', function() {
+        const loginForm = document.querySelector('.login-form-wrapper form');
+        const usernameInput = document.getElementById('username');
+        const feedback = document.getElementById('username_feedback');
+        const rememberCheckbox = document.getElementById('remember_me');
+
+        document.querySelectorAll('.toggle-password-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
                 const targetId = this.getAttribute('data-target');
-                togglePassword(targetId);
+                togglePassword(targetId, this);
+            });
+        });
+
+        if (usernameInput && feedback) {
+            usernameInput.addEventListener('blur', function() {
+                const value = this.value.trim();
+                if (value === '') {
+                    feedback.textContent = '';
+                    feedback.className = 'input-feedback';
+                    return;
+                }
+
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (emailRegex.test(value)) {
+                    feedback.textContent = 'Valid email format';
+                    feedback.className = 'input-feedback success';
+                } else if (value.length >= 3) {
+                    feedback.textContent = 'Valid username format';
+                    feedback.className = 'input-feedback success';
+                } else {
+                    feedback.textContent = 'Username must be at least 3 characters';
+                    feedback.className = 'input-feedback error';
+                }
             });
         }
-    });
 
-    // Real-time Username/Email Validation
-    document.getElementById('username').addEventListener('blur', function() {
-        const feedback = document.getElementById('username_feedback');
-        const value = this.value.trim();
-        
-        if (value === '') {
-            feedback.textContent = '';
-            feedback.className = '';
-            return;
+        if (rememberCheckbox && usernameInput) {
+            const savedUsername = localStorage.getItem('vibemall_remember_me');
+            if (savedUsername) {
+                usernameInput.value = savedUsername;
+                rememberCheckbox.checked = true;
+            }
         }
-        
-        // Check if it's an email format
-        const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
-        
-        if (emailRegex.test(value)) {
-            feedback.textContent = '✓ Valid email format';
-            feedback.className = 'input-feedback success';
-        } else if (value.length >= 3) {
-            feedback.textContent = '✓ Valid username format';
-            feedback.className = 'input-feedback success';
-        } else {
-            feedback.textContent = '✗ Username must be at least 3 characters';
-            feedback.className = 'input-feedback error';
-        }
-    });
 
-    // Rate limiting: Disable submit button for 3 seconds after submission
-    const loginForm = document.querySelector('form');
-    if (loginForm) {
-        loginForm.addEventListener('submit', function() {
-            const submitBtn = this.querySelector('button[type=\"submit\"]');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class=\"fas fa-spinner fa-spin\"></i> Logging in...';
-            
-            // Re-enable after 3 seconds (for security against brute force)
-            setTimeout(function() {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class=\"fas fa-sign-in-alt\"></i> Login to Account';
-            }, 3000);
-        });
-    }
-
-    // Remember Me - Store username in localStorage if checked
-    document.addEventListener('DOMContentLoaded', function() {
-        const rememberCheckbox = document.getElementById('remember_me');
-        const usernameInput = document.getElementById('username');
-        
-        // Load saved username if exists
-        const savedUsername = localStorage.getItem('vibemall_remember_me');
-        if (savedUsername) {
-            usernameInput.value = savedUsername;
-            rememberCheckbox.checked = true;
-        }
-        
-        // Save on form submission
         if (loginForm) {
             loginForm.addEventListener('submit', function() {
-                if (rememberCheckbox.checked) {
-                    localStorage.setItem('vibemall_remember_me', usernameInput.value);
-                } else {
-                    localStorage.removeItem('vibemall_remember_me');
+                const submitBtn = this.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+                    setTimeout(function() {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login to Account';
+                    }, 3000);
+                }
+
+                if (rememberCheckbox && usernameInput) {
+                    if (rememberCheckbox.checked) {
+                        localStorage.setItem('vibemall_remember_me', usernameInput.value);
+                    } else {
+                        localStorage.removeItem('vibemall_remember_me');
+                    }
                 }
             });
         }
