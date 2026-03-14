@@ -160,7 +160,7 @@
                                         <div class="input-group">
                                             <span class="input-group-text"><i class="fas fa-lock"></i></span>
                                             <input type="password" name="password" id="password" class="form-control" placeholder="Create a strong password" required>
-                                            <button type="button" class="btn toggle-password-btn" onclick="togglePassword('password')">
+                                            <button type="button" class="btn toggle-password-btn" data-target="password">
                                                 <i class="fas fa-eye"></i>
                                             </button>
                                         </div>
@@ -178,7 +178,7 @@
                                         <div class="input-group">
                                             <span class="input-group-text"><i class="fas fa-lock"></i></span>
                                             <input type="password" name="confirm_password" id="confirm_password" class="form-control" placeholder="Confirm your password" required>
-                                            <button type="button" class="btn toggle-password-btn" onclick="togglePassword('confirm_password')">
+                                            <button type="button" class="btn toggle-password-btn" data-target="confirm_password">
                                                 <i class="fas fa-eye"></i>
                                             </button>
                                         </div>
@@ -242,6 +242,14 @@
             button.classList.add('fa-eye');
         }
     }
+
+    // Attach event listeners to toggle password buttons
+    document.querySelectorAll('.toggle-password-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-target');
+            togglePassword(targetId);
+        });
+    });
 
     const password = document.getElementById('password');
     const confirm_password = document.getElementById('confirm_password');

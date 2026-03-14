@@ -88,7 +88,7 @@
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fas fa-lock"></i></span>
                                         <input type="password" name="password" id="password" class="form-control" placeholder="Enter your password" required>
-                                        <button type="button" class="btn toggle-password-btn" onclick="togglePassword('password')">
+                                        <button type="button" class="btn toggle-password-btn" data-target="password">
                                             <i class="fas fa-eye"></i>
                                         </button>
                                     </div>
@@ -156,6 +156,17 @@
             button.classList.add('fa-eye');
         }
     }
+
+    // Attach event listener to toggle button
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggleButton = document.querySelector('.toggle-password-btn');
+        if (toggleButton) {
+            toggleButton.addEventListener('click', function() {
+                const targetId = this.getAttribute('data-target');
+                togglePassword(targetId);
+            });
+        }
+    });
 
     // Real-time Username/Email Validation
     document.getElementById('username').addEventListener('blur', function() {

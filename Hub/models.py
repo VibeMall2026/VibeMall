@@ -14,6 +14,7 @@ from .models_security_access import *
 from .models_content_management import *
 from .models_performance_optimization import *
 from .models_ai_ml_features import *
+from .models_activation_tracking import *
 
 class PasswordResetLog(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
