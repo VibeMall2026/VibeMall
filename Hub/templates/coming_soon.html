@@ -588,12 +588,13 @@ header, footer, .header, .footer, #mobileBottomNavShell, .mobile-bottom-nav-shel
         <!-- Email Notification -->
         <div class="notify-section">
             <div class="notify-title">Be the first to know when we launch!</div>
-            <form class="notify-form" id="notifyForm">
+            <form class="notify-form" id="notifyForm" method="post" action="{% url 'subscribe_newsletter' %}">
                 {% csrf_token %}
                 <input type="email" name="email" class="notify-input" placeholder="Enter your email address" required>
                 <button type="submit" class="notify-btn">Notify Me</button>
             </form>
             <div class="notify-message" aria-live="polite" style="margin-top: 0.75rem; font-size: 0.95rem; color: rgba(255,255,255,0.8);"></div>
+            <pre id="notifyDebug" style="display:none; margin-top:0.75rem; padding:0.75rem; background:rgba(0,0,0,0.4); color:#fff; font-size:0.8rem; border-radius:12px; white-space:pre-wrap;"></pre>
         </div>
 
         <!-- Features Grid -->
@@ -710,10 +711,20 @@ if (notifyForm) {
             });
 
             let data;
+            let rawText = '';
             try {
-                data = await response.json();
+                rawText = await response.text();
+                data = JSON.parse(rawText);
             } catch (err) {
+                console.warn('Could not parse JSON response, raw output:', rawText);
                 throw new Error('Unexpected response from server');
+            }
+
+            // Debug output (visible if JS is open and debug box is shown)
+            const debugBox = document.getElementById('notifyDebug');
+            if (debugBox) {
+                debugBox.style.display = 'block';
+                debugBox.textContent = `STATUS: ${response.status}\n\n${rawText}`;
             }
 
             if (!response.ok) throw new Error(data.message || 'Subscription failed');
@@ -733,6 +744,11 @@ if (notifyForm) {
         } catch (error) {
             console.error('Newsletter subscribe error:', error);
             notifyMessage.textContent = error.message || 'Unable to subscribe, please try again.';
+            const debugBox = document.getElementById('notifyDebug');
+            if (debugBox) {
+                debugBox.style.display = 'block';
+                debugBox.textContent = `ERROR: ${error.message}`;
+            }
             button.textContent = 'Try again';
             button.style.background = 'linear-gradient(45deg, #e74c3c, #c0392b)';
             setTimeout(() => {
