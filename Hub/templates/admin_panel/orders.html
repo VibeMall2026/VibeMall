@@ -605,6 +605,9 @@
                                         <a href="{% url 'admin_order_details' item.order.id %}" class="btn btn-sm btn-primary" title="View Details">
                                             <i class='bx bx-show'></i>
                                         </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" title="Delete Order" data-bs-toggle="modal" data-bs-target="#deleteModal{{ item.id }}">
+                                            <i class='bx bx-trash'></i>
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -802,6 +805,36 @@
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Order Modal -->
+        <div class="modal fade" id="deleteModal{{ item.id }}" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">🗑️ Delete Order #{{ item.order.order_number }}</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="POST" action="{% url 'admin_delete_order' item.order.id %}">
+                        {% csrf_token %}
+                        <div class="modal-body">
+                            <div class="alert alert-danger">
+                                <i class='bx bx-trash'></i> This will permanently delete the order and all associated records (items, history). This action cannot be undone.
+                            </div>
+                            <p><strong>Customer:</strong> {{ item.order.user.get_full_name|default:item.order.user.username }}</p>
+                            <p><strong>Total:</strong> ₹{{ item.order.total_amount|floatformat:2 }}</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class='bx bx-x'></i> Cancel
+                            </button>
+                            <button type="submit" class="btn btn-danger">
+                                <i class='bx bx-trash'></i> Delete Order
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
