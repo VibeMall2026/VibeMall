@@ -22,6 +22,7 @@ class ComingSoonModeMiddleware:
             '/static/',
             '/media/',
             '/favicon.ico',
+            '/newsletter/subscribe/',
         )
 
     def __call__(self, request):

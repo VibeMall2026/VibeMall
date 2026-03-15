@@ -4860,6 +4860,7 @@ def blog_details(request): return render(request, 'blog-details.html')
 
 
 @require_POST
+@csrf_exempt
 def subscribe_newsletter(request):
     """Capture newsletter subscribers from CTA forms."""
     email = (request.POST.get('email') or '').strip().lower()
@@ -4876,7 +4877,6 @@ def subscribe_newsletter(request):
 
     if not email:
         message = 'Please enter a valid email address.'
-        logger.info('Newsletter subscribe attempt with empty email from %s', request.META.get('REMOTE_ADDR'))
         if is_ajax:
             return JsonResponse({'success': False, 'message': message}, status=400)
         messages.error(request, message)
@@ -4933,7 +4933,6 @@ def subscribe_newsletter(request):
             logger.exception('Failed to send newsletter welcome email to %s: %s', email, e)
 
     if is_ajax:
-        logger.info('Newsletter subscription result for %s: %s', email, status)
         return JsonResponse({
             'success': True,
             'status': status,
