@@ -1917,6 +1917,7 @@ def admin_edit_product(request, product_id):
         'product_reel_views': reel_totals.get('total_views', 0) or 0,
         'product_reel_likes': reel_totals.get('total_likes', 0) or 0,
         'categories': CategoryIcon.objects.filter(is_active=True).order_by('order', 'id'),
+        'gallery_images': product.additional_images.filter(is_active=True).order_by('order'),
         'sub_categories': list(
             SubCategory.objects.filter(is_active=True)
             .order_by('order', 'name')
@@ -1940,6 +1941,17 @@ def admin_delete_product(request, product_id):
     
     messages.success(request, f'Product "{product_name}" deleted successfully!')
     return redirect('admin_product_list')
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_delete_gallery_image(request, image_id):
+    """Delete Gallery Image"""
+    gallery_image = get_object_or_404(ProductImage, id=image_id)
+    product_name = gallery_image.product.name
+    gallery_image.delete()
+    
+    messages.success(request, f'Gallery image deleted from product "{product_name}"!')
+    return redirect('admin_edit_product', product_id=gallery_image.product.id)
 
 @login_required(login_url='login')
 @staff_member_required(login_url='login')

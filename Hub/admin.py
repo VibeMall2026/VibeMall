@@ -180,6 +180,13 @@ class MainPageBannerAdmin(admin.ModelAdmin):
         return 'No image uploaded yet'
     image_preview.short_description = 'Full Preview'
 
+
+class ProductImageInline(admin.TabularInline):
+    model = ProductImage
+    extra = 3
+    fields = ('image', 'order', 'is_active')
+
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'price', 'old_price', 'discount_percent', 'stock', 'rating', 'is_active', 'image_thumbnail')
@@ -188,7 +195,7 @@ class ProductAdmin(admin.ModelAdmin):
     prepopulated_fields = {'slug': ('name',)}
     search_fields = ('name', 'id', 'slug')
     readonly_fields = ('image_preview',)
-    
+    inlines = [ProductImageInline]
     fieldsets = (
         ('BASIC INFORMATION', {
             'fields': ('name', 'slug', 'sku', 'is_active', 'is_top_deal'),

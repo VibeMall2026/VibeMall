@@ -239,8 +239,11 @@
                     
                     <div class="mb-3">
                         <label class="form-label" for="gallery_images">Gallery Images (Multiple)</label>
-                        <input class="form-control" type="file" id="gallery_images" name="gallery_images" accept="image/*" multiple />
+                        <input class="form-control" type="file" id="gallery_images" name="gallery_images" accept="image/*" multiple onchange="previewGalleryImages()" />
                         <small class="text-muted">You can select multiple images</small>
+                        <div id="galleryPreview" class="mt-2" style="display: none;">
+                            <small class="text-primary">Selected images: <span id="selectedCount">0</span></small>
+                        </div>
                     </div>
                     
                     <div class="mb-3">
@@ -400,6 +403,19 @@ function toggleReturnOptions() {
 document.addEventListener('DOMContentLoaded', function() {
     toggleReturnOptions();
 });
+
+function previewGalleryImages() {
+    const input = document.getElementById('gallery_images');
+    const preview = document.getElementById('galleryPreview');
+    const count = document.getElementById('selectedCount');
+    
+    if (input.files && input.files.length > 0) {
+        count.textContent = input.files.length;
+        preview.style.display = 'block';
+    } else {
+        preview.style.display = 'none';
+    }
+}
 </script>
             </div>
         </div>

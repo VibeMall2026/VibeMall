@@ -163,10 +163,41 @@
                         <small class="text-muted">Leave empty to keep current image</small>
                     </div>
                     
+                    <!-- Existing Gallery Images -->
+                    {% if gallery_images %}
                     <div class="mb-3">
-                        <label class="form-label" for="gallery_images">Add Gallery Images (Multiple)</label>
-                        <input class="form-control" type="file" id="gallery_images" name="gallery_images" accept="image/*" multiple />
-                        <small class="text-muted">Add more gallery images (existing ones will be kept)</small>
+                        <label class="form-label">Current Gallery Images ({{ gallery_images|length }})</label>
+                        <div class="row g-3">
+                            {% for gallery_img in gallery_images %}
+                            <div class="col-md-3 col-sm-6">
+                                <div class="card">
+                                    <div class="card-body p-2 text-center">
+                                        <img src="{{ gallery_img.image.url }}" alt="Gallery image" 
+                                             style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px;">
+                                        <div class="mt-2">
+                                            <small class="text-muted d-block">Order: {{ gallery_img.order }}</small>
+                                            <a href="{% url 'admin_delete_gallery_image' gallery_img.id %}" 
+                                               class="btn btn-sm btn-danger"
+                                               onclick="return confirm('Delete this gallery image?')">
+                                                <i class="bx bx-trash"></i> Delete
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <small class="text-muted">These images are displayed on the product details page. You can add more below.</small>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label" for="gallery_images">Add More Gallery Images (Multiple)</label>
+                        <input class="form-control" type="file" id="gallery_images" name="gallery_images" accept="image/*" multiple onchange="previewGalleryImages()" />
+                        <small class="text-muted">Select multiple images to add to the gallery. Existing images will be kept.</small>
+                        <div id="galleryPreview" class="mt-2" style="display: none;">
+                            <small class="text-primary">Selected images: <span id="selectedCount">0</span></small>
+                        </div>
                     </div>
 
                     <div class="card mb-4" style="border: 1px solid #dce3ff;">
@@ -497,6 +528,19 @@
     window.addEventListener('load', () => {
         loadProductReviews({{ product.id }});
     });
+    
+    function previewGalleryImages() {
+        const input = document.getElementById('gallery_images');
+        const preview = document.getElementById('galleryPreview');
+        const count = document.getElementById('selectedCount');
+        
+        if (input && input.files && input.files.length > 0) {
+            if (count) count.textContent = input.files.length;
+            if (preview) preview.style.display = 'block';
+        } else {
+            if (preview) preview.style.display = 'none';
+        }
+    }
     </script>
         <div class="card mb-4">
             <div class="card-header">
