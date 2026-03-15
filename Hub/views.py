@@ -88,6 +88,7 @@ def admin_test(request):
 
 @login_required(login_url='login')
 @staff_member_required(login_url='login')
+@never_cache
 def admin_dashboard(request: HttpRequest) -> HttpResponse:
     """Admin Dashboard with comprehensive e-commerce statistics"""
     from datetime import timedelta
@@ -3285,6 +3286,7 @@ def export_orders_to_excel(orders):
 
 @login_required(login_url='login')
 @staff_member_required(login_url='login')
+@never_cache
 def admin_orders(request):
     """Comprehensive Admin Order Management with 24+ features"""
     from django.core.paginator import Paginator
