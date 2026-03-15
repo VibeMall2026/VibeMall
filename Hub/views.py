@@ -5562,6 +5562,12 @@ def checkout_confirm(request):
                             margin_amount=item_margin
                         )
 
+            # If no actual order items were created, delete the order and abort.
+            if not OrderItem.objects.filter(order=order).exists():
+                order.delete()
+                messages.error(request, 'Checkout failed: cart was empty or items could not be added. Please try again.')
+                return redirect('cart')
+
             if is_resell and not resell_link and total_margin > 0:
                 from .models import ResellerProfile, ResellerEarning
                 reseller_profile, _ = ResellerProfile.objects.get_or_create(
