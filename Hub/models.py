@@ -1701,6 +1701,7 @@ class Reel(models.Model):
     # Status
     is_published = models.BooleanField(default=False, help_text="Publish on website")
     is_processing = models.BooleanField(default=False, help_text="Video generation in progress")
+    order = models.PositiveIntegerField(default=0, help_text="Display order on homepage (lower numbers appear first)")
     
     # Metadata
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reels')
@@ -1708,7 +1709,7 @@ class Reel(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        ordering = ['-created_at']
+        ordering = ['order', '-created_at']
         verbose_name = "Reel"
         verbose_name_plural = "Reels"
     

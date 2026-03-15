@@ -784,15 +784,16 @@ class ReelImageInline(admin.TabularInline):
 @admin.register(Reel)
 class ReelAdmin(admin.ModelAdmin):
     """Reel Management in Admin Panel"""
-    list_display = ('title', 'duration', 'is_published', 'is_processing', 'video_preview', 'thumbnail_preview', 'created_at', 'generate_button')
+    list_display = ('title', 'order', 'duration', 'is_published', 'is_processing', 'video_preview', 'thumbnail_preview', 'created_at', 'generate_button')
     list_filter = ('is_published', 'is_processing', 'created_at')
+    list_editable = ('order', 'is_published')
     search_fields = ('title', 'description')
     readonly_fields = ('duration', 'is_processing', 'created_by', 'created_at', 'updated_at', 'video_preview_large', 'thumbnail_preview_large')
     inlines = [ReelImageInline]
     
     fieldsets = (
         ('📋 BASIC INFO', {
-            'fields': ('title', 'description', 'created_by', 'created_at', 'updated_at')
+            'fields': ('title', 'description', 'order', 'created_by', 'created_at', 'updated_at')
         }),
         ('🎬 VIDEO SETTINGS', {
             'fields': ('duration_per_image', 'transition_type', 'background_music'),

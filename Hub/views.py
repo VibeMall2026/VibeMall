@@ -1318,6 +1318,7 @@ def admin_add_product(request):
             reel_is_published = request.POST.get('reel_is_published') == 'on'
             reel_duration_raw = (request.POST.get('reel_duration') or '0').strip()
             reel_duration = 0
+            reel_order = int(request.POST.get('reel_order', 0))
             if reel_video_file:
                 reel_content_type = (getattr(reel_video_file, 'content_type', '') or '').lower()
                 if reel_content_type and not reel_content_type.startswith('video/'):
@@ -1434,6 +1435,7 @@ def admin_add_product(request):
                     video_file=reel_video_file,
                     thumbnail=reel_thumbnail,
                     duration=reel_duration,
+                    order=reel_order,
                     is_published=reel_is_published,
                     is_processing=False,
                     created_by=request.user,
@@ -1873,6 +1875,7 @@ def admin_edit_product(request, product_id):
                     new_reel_duration = max(int(new_reel_duration_raw), 0)
                 except (TypeError, ValueError):
                     new_reel_duration = 0
+                new_reel_order = int(request.POST.get('new_reel_order', 0))
 
                 Reel.objects.create(
                     title=new_reel_title,
@@ -1881,6 +1884,7 @@ def admin_edit_product(request, product_id):
                     video_file=new_reel_video_file,
                     thumbnail=new_reel_thumbnail,
                     duration=new_reel_duration,
+                    order=new_reel_order,
                     is_published=new_reel_is_published,
                     is_processing=False,
                     created_by=request.user,
@@ -4745,7 +4749,7 @@ def index(request):
         )
         .exclude(video_file='')
         .select_related('product')
-        .order_by('-created_at')[:12]
+        .order_by('order', '-created_at')[:12]
     )
 
     liked_reel_ids = []
@@ -9804,6 +9808,7 @@ def admin_add_reel(request):
         add_end_screen = request.POST.get('add_end_screen') == 'on'
         end_screen_duration = request.POST.get('end_screen_duration', 3)
         product_id = (request.POST.get('product_id') or '').strip()
+        order = int(request.POST.get('order', 0))
         linked_product = None
         
         if not title:
@@ -9839,6 +9844,7 @@ def admin_add_reel(request):
             product=linked_product,
             duration_per_image=duration_per_image,
             transition_type=transition_type,
+            order=order,
             watermark_position=watermark_position,
             watermark_opacity=watermark_opacity,
             add_end_screen=add_end_screen,
@@ -10116,6 +10122,7 @@ def admin_upload_reel_file(request):
         product_id = (request.POST.get('product_id') or '').strip()
         duration_raw = (request.POST.get('duration') or '0').strip()
         is_published = request.POST.get('is_published') == 'on'
+        order = int(request.POST.get('order', 0))
         video_file = request.FILES.get('video_file')
         thumbnail = request.FILES.get('thumbnail')
 
@@ -10154,6 +10161,7 @@ def admin_upload_reel_file(request):
             video_file=video_file,
             thumbnail=thumbnail,
             duration=duration,
+            order=order,
             is_published=is_published,
             is_processing=False,
             created_by=request.user,
