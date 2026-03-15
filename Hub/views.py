@@ -3892,6 +3892,23 @@ FashioHub Team
 
 @login_required(login_url='login')
 @staff_member_required(login_url='login')
+def admin_delete_order(request, order_id):
+    """Delete an order permanently"""
+    order = get_object_or_404(Order, id=order_id)
+    
+    # Store order details for message
+    order_number = order.order_number
+    customer_name = f"{order.user.first_name} {order.user.last_name}".strip() or order.user.username
+    
+    # Delete the order (this will cascade delete related OrderItems and OrderStatusHistory)
+    order.delete()
+    
+    messages.success(request, f'Order {order_number} by {customer_name} has been permanently deleted.')
+    return redirect(request.META.get('HTTP_REFERER', 'admin_orders'))
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
 def admin_invoices(request):
     """Admin Invoices List - Using Orders as Invoices"""
     all_invoices = Order.objects.select_related('user').prefetch_related('items').order_by('-created_at')

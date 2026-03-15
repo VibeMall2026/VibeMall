@@ -469,8 +469,9 @@ class OrderAdmin(admin.ModelAdmin):
         if obj.approval_status == 'PENDING_APPROVAL':
             return format_html(
                 '<a class="button" href="/admin-panel/orders/{}/approve/" style="background-color: #4caf50; color: white; padding: 5px 10px; border-radius: 3px; text-decoration: none; margin-right: 5px;">✅ Approve</a>'
-                '<a class="button" href="/admin-panel/orders/{}/reject/" style="background-color: #f44336; color: white; padding: 5px 10px; border-radius: 3px; text-decoration: none;">❌ Reject</a>',
-                obj.id, obj.id
+                '<a class="button" href="/admin-panel/orders/{}/reject/" style="background-color: #f44336; color: white; padding: 5px 10px; border-radius: 3px; text-decoration: none; margin-right: 5px;">❌ Reject</a>'
+                '<a class="button" href="/admin-panel/orders/{}/delete/" onclick="return confirm(\'Are you sure you want to delete this order? This action cannot be undone.\');" style="background-color: #dc3545; color: white; padding: 5px 10px; border-radius: 3px; text-decoration: none;">🗑️ Delete</a>',
+                obj.id, obj.id, obj.id
             )
         return '-'
     approval_actions.short_description = 'Actions'

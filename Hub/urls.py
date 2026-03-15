@@ -40,6 +40,7 @@ urlpatterns = [
     path('admin-panel/orders/<int:order_id>/', views.admin_order_details, name='admin_order_details'),
     path('admin-panel/orders/<int:order_id>/approve/', views.admin_approve_order, name='admin_approve_order'),
     path('admin-panel/orders/<int:order_id>/reject/', views.admin_reject_order, name='admin_reject_order'),
+    path('admin-panel/orders/<int:order_id>/delete/', views.admin_delete_order, name='admin_delete_order'),
     path('admin-panel/chat/', views.admin_chat_list, name='admin_chat_list'),
     path('admin-panel/chat/<int:thread_id>/', views.admin_chat_detail, name='admin_chat_detail'),
     path('admin-panel/invoices/', views.admin_invoices, name='admin_invoices'),
