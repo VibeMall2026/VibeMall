@@ -1308,7 +1308,21 @@ def admin_add_product(request):
             # Get images
             image = crop_image_height(request.FILES.get('image'))
             descriptionImage = request.FILES.get('descriptionImage')
-            gallery_images = [crop_image_height(img) for img in request.FILES.getlist('gallery_images')]
+            
+            # Process gallery images with error handling
+            gallery_images = []
+            gallery_files = request.FILES.getlist('gallery_images')
+            for idx, gallery_file in enumerate(gallery_files, 1):
+                try:
+                    processed_image = crop_image_height(gallery_file)
+                    if processed_image:
+                        gallery_images.append(processed_image)
+                    else:
+                        messages.warning(request, f'Failed to process gallery image {idx}. Using original file.')
+                        gallery_images.append(gallery_file)
+                except Exception as e:
+                    messages.warning(request, f'Error processing gallery image {idx}: {str(e)}. Skipping this image.')
+                    continue
 
             # Optional direct reel upload
             reel_video_file = request.FILES.get('reel_video_file')
@@ -1845,8 +1859,23 @@ def admin_edit_product(request, product_id):
             
             # Handle gallery images if provided
             if 'gallery_images' in request.FILES:
-                gallery_images = [crop_image_height(img) for img in request.FILES.getlist('gallery_images')]
-                for idx, gallery_image in enumerate(gallery_images, start=ProductImage.objects.filter(product=product).count() + 1):
+                gallery_files = request.FILES.getlist('gallery_images')
+                processed_gallery_images = []
+                
+                for idx, gallery_file in enumerate(gallery_files, 1):
+                    try:
+                        processed_image = crop_image_height(gallery_file)
+                        if processed_image:
+                            processed_gallery_images.append(processed_image)
+                        else:
+                            messages.warning(request, f'Failed to process gallery image {idx}. Using original file.')
+                            processed_gallery_images.append(gallery_file)
+                    except Exception as e:
+                        messages.warning(request, f'Error processing gallery image {idx}: {str(e)}. Skipping this image.')
+                        continue
+                
+                current_gallery_count = ProductImage.objects.filter(product=product).count()
+                for idx, gallery_image in enumerate(processed_gallery_images, start=current_gallery_count + 1):
                     ProductImage.objects.create(
                         product=product,
                         image=gallery_image,

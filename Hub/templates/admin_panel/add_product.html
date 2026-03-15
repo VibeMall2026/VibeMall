@@ -414,12 +414,76 @@ function previewGalleryImages() {
     const preview = document.getElementById('galleryPreview');
     const count = document.getElementById('selectedCount');
     
+    // Clear any previous error messages
+    const existingError = document.getElementById('galleryError');
+    if (existingError) {
+        existingError.remove();
+    }
+    
     if (input.files && input.files.length > 0) {
+        // Validate file count
+        if (input.files.length > 20) {
+            showGalleryError('Maximum 20 images allowed. Please select fewer files.');
+            input.value = '';
+            if (preview) preview.style.display = 'none';
+            return;
+        }
+        
+        // Validate file sizes
+        let totalSize = 0;
+        let oversizedFiles = [];
+        for (let file of input.files) {
+            totalSize += file.size;
+            if (file.size > 10 * 1024 * 1024) { // 10MB per file
+                oversizedFiles.push(file.name);
+            }
+        }
+        
+        if (oversizedFiles.length > 0) {
+            showGalleryError(`The following files are too large (max 10MB each): ${oversizedFiles.join(', ')}`);
+            input.value = '';
+            if (preview) preview.style.display = 'none';
+            return;
+        }
+        
+        if (totalSize > 50 * 1024 * 1024) { // 50MB total
+            showGalleryError('Total file size exceeds 50MB limit. Please select smaller files.');
+            input.value = '';
+            if (preview) preview.style.display = 'none';
+            return;
+        }
+        
         count.textContent = input.files.length;
+        
+        // Show file details
+        let fileDetails = [];
+        for (let file of input.files) {
+            fileDetails.push(`${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+        }
+        
+        // Update preview with file details
+        preview.innerHTML = `
+            <small class="text-primary">Selected images: <span id="selectedCount">${input.files.length}</span></small><br>
+            <small class="text-muted">Total size: ${(totalSize / 1024 / 1024).toFixed(2)} MB</small>
+            <div class="mt-1" style="max-height: 100px; overflow-y: auto;">
+                <small class="text-muted">
+                    ${fileDetails.join('<br>')}
+                </small>
+            </div>
+        `;
         preview.style.display = 'block';
     } else {
         preview.style.display = 'none';
     }
+}
+
+function showGalleryError(message) {
+    const galleryInput = document.getElementById('gallery_images');
+    const errorDiv = document.createElement('div');
+    errorDiv.id = 'galleryError';
+    errorDiv.className = 'alert alert-danger mt-2';
+    errorDiv.innerHTML = `<i class="bx bx-error-circle me-2"></i>${message}`;
+    galleryInput.parentNode.insertBefore(errorDiv, galleryInput.nextSibling);
 }
 </script>
             </div>

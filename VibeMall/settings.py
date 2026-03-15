@@ -211,6 +211,11 @@ MEDIA_ROOT = Path(os.getenv('MEDIA_ROOT', str(BASE_DIR / 'media')))
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# File upload settings for multiple images
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB per file
+DATA_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50MB total POST data
+FILE_UPLOAD_MAX_NUMBER_FILES = 20  # Maximum 20 files per upload
+
 # Razorpay Payment Gateway Settings
 RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID', '').strip()
 RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET', '').strip()
