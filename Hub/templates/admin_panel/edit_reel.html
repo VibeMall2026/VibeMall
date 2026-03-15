@@ -269,6 +269,16 @@
             <div class="row">
                 <div class="col-md-6">
                     <div class="form-group">
+                        <label class="form-label">Display Order</label>
+                        <input type="number" name="order" class="form-control" value="{{ reel.order|default:'0' }}" min="0">
+                        <small class="text-muted">Lower numbers appear first on homepage (0 = highest priority)</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
                         <label class="form-label">View Count</label>
                         <input type="number" name="view_count" min="0" class="form-control" value="{{ reel.view_count|default:'0' }}">
                         <small class="text-muted">Manually set total views for this reel.</small>

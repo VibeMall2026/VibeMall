@@ -9941,6 +9941,11 @@ def admin_edit_reel(request, reel_id):
             reel.like_count = max(int(request.POST.get('like_count', reel.like_count or 0)), 0)
         except (TypeError, ValueError):
             reel.like_count = reel.like_count or 0
+
+        try:
+            reel.order = max(int(request.POST.get('order', reel.order or 0)), 0)
+        except (TypeError, ValueError):
+            reel.order = reel.order or 0
         
         if 'background_music' in request.FILES:
             reel.background_music = request.FILES['background_music']
