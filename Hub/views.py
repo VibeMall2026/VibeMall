@@ -3296,7 +3296,7 @@ def admin_orders(request):
     # Handle Bulk Actions (POST)
     if request.method == 'POST':
         action = request.POST.get('action')
-        order_ids = request.POST.getlist('order_ids')
+        order_ids = request.POST.getlist('selected_orders')
         
         if action and order_ids:
             orders = Order.objects.filter(id__in=order_ids)
