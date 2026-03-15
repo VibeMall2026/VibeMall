@@ -3299,8 +3299,23 @@ def admin_orders(request):
         order_ids = request.POST.getlist('selected_orders')
         
         if action and order_ids:
-            orders = Order.objects.filter(id__in=order_ids)
-            
+            # Normalize order IDs (remove blanks, duplicates, and strip spaces)
+            normalized_ids = []
+            for oid in order_ids:
+                if not oid:
+                    continue
+                try:
+                    normalized_ids.append(int(str(oid).strip()))
+                except (ValueError, TypeError):
+                    continue
+            normalized_ids = list(set(normalized_ids))
+
+            if not normalized_ids:
+                messages.error(request, 'No valid orders were selected for bulk action.')
+                return redirect('admin_orders')
+
+            orders = Order.objects.filter(id__in=normalized_ids)
+
             if action in ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED']:
                 # Bulk status update
                 from django.utils import timezone
@@ -3324,13 +3339,13 @@ def admin_orders(request):
                     email_sent = send_order_status_update_email(order, old_status, action)
                     if not email_sent:
                         messages.warning(request, f"Status updated for {order.order_number}, but email could not be sent.")
-                messages.success(request, f"{len(order_ids)} orders updated to {action}")
-                
+                messages.success(request, f"{orders.count()} orders updated to {action}")
+
             elif action == 'delete':
                 # Bulk delete
-                orders.delete()
-                messages.success(request, f"{len(order_ids)} orders deleted")
-                
+                deleted_count, _ = orders.delete()
+                messages.success(request, f"{deleted_count} records deleted (orders and related items).")
+
             return redirect('admin_orders')
     
     # Get all order items (individual products with their order details)
