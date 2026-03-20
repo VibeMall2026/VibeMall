@@ -50,9 +50,9 @@
                         </div>
                     </div>
                     <div class="col-auto d-lg-none mobile-icons">
-                        <a class="mobile-icon" href="{% url 'profile' %}" aria-label="Profile">
-                            <i class="flaticon-user"></i>
-                        </a>
+                        <button type="button" class="mobile-icon offcanvas-toggle-btn mobile-search-trigger" aria-label="Search products">
+                            <i class="far fa-search"></i>
+                        </button>
                         <a class="mobile-icon" href="{% url 'wishlist' %}" aria-label="Wishlist">
                             <i class="flaticon-heart"></i>
                             <span class="count wishlist-count">{{ wishlist_count|default:"0" }}</span>
@@ -324,11 +324,13 @@ document.addEventListener('DOMContentLoaded', function () {
             const name = escapeHtml(item.name);
             const url = escapeHtml(item.url);
             const priceDisplay = escapeHtml(item.price_display);
+            const details = escapeHtml(item.details || '');
             return `
                 <a class="search-item" href="${url}">
                     <img class="search-thumb" src="${imageUrl}" alt="${name}">
                     <span class="search-meta">
                         <span class="search-name">${name}</span>
+                        ${details ? `<span class="search-details">${details}</span>` : ''}
                         <span class="search-price">&#8377;${priceDisplay}</span>
                     </span>
                 </a>
@@ -517,6 +519,21 @@ document.addEventListener('DOMContentLoaded', function () {
         resultsId: 'mobileSearchResults',
         navSelector: '#mobileSearchNav',
         navEmptyId: 'mobileSearchNavEmpty',
+    });
+
+    const mobileSearchInput = document.getElementById('mobileSearchInput');
+    document.querySelectorAll('.mobile-search-trigger').forEach((trigger) => {
+        trigger.addEventListener('click', function () {
+            window.setTimeout(() => {
+                if (!mobileSearchInput) {
+                    return;
+                }
+                mobileSearchInput.focus({ preventScroll: true });
+                if (mobileSearchInput.value) {
+                    mobileSearchInput.select();
+                }
+            }, 180);
+        });
     });
 });
 </script>

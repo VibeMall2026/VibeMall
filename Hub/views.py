@@ -6216,9 +6216,18 @@ def product_search_api(request):
         ).order_by('name')[:8]
 
         for product in products:
+            detail_parts = []
+            if product.brand:
+                detail_parts.append(product.brand)
+            if product.category:
+                detail_parts.append(product.get_category_display())
+            if product.sku:
+                detail_parts.append(f"SKU: {product.sku}")
+
             results.append({
                 'id': product.id,
                 'name': product.name,
+                'details': ' | '.join(detail_parts[:3]),
                 'price_display': f"{product.price:.2f}",
                 'image_url': product.image.url if product.image else None,
                 'url': reverse('product-details', args=[product.id]),
