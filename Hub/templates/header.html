@@ -50,7 +50,7 @@
                         </div>
                     </div>
                     <div class="col-auto d-lg-none mobile-icons">
-                        <button type="button" class="mobile-icon offcanvas-toggle-btn mobile-search-trigger" aria-label="Search products">
+                        <button type="button" class="mobile-icon mobile-search-trigger" aria-label="Search products">
                             <i class="far fa-search"></i>
                         </button>
                         <a class="mobile-icon" href="{% url 'wishlist' %}" aria-label="Wishlist">
@@ -521,19 +521,57 @@ document.addEventListener('DOMContentLoaded', function () {
         navEmptyId: 'mobileSearchNavEmpty',
     });
 
+    const mobileSearchOverlay = document.getElementById('mobileSearchOverlay');
     const mobileSearchInput = document.getElementById('mobileSearchInput');
+    const mobileSearchCloseBtn = document.getElementById('mobileSearchCloseBtn');
+
+    const openMobileSearch = () => {
+        if (!mobileSearchOverlay) {
+            return;
+        }
+        mobileSearchOverlay.classList.add('is-open');
+        mobileSearchOverlay.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('mobile-search-open');
+        window.setTimeout(() => {
+            if (!mobileSearchInput) {
+                return;
+            }
+            mobileSearchInput.focus({ preventScroll: true });
+            if (mobileSearchInput.value) {
+                mobileSearchInput.select();
+            }
+        }, 120);
+    };
+
+    const closeMobileSearch = () => {
+        if (!mobileSearchOverlay) {
+            return;
+        }
+        mobileSearchOverlay.classList.remove('is-open');
+        mobileSearchOverlay.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('mobile-search-open');
+    };
+
     document.querySelectorAll('.mobile-search-trigger').forEach((trigger) => {
-        trigger.addEventListener('click', function () {
-            window.setTimeout(() => {
-                if (!mobileSearchInput) {
-                    return;
-                }
-                mobileSearchInput.focus({ preventScroll: true });
-                if (mobileSearchInput.value) {
-                    mobileSearchInput.select();
-                }
-            }, 180);
+        trigger.addEventListener('click', openMobileSearch);
+    });
+
+    if (mobileSearchCloseBtn) {
+        mobileSearchCloseBtn.addEventListener('click', closeMobileSearch);
+    }
+
+    if (mobileSearchOverlay) {
+        mobileSearchOverlay.addEventListener('click', function (event) {
+            if (event.target === mobileSearchOverlay || event.target.classList.contains('mobile-search-overlay__backdrop')) {
+                closeMobileSearch();
+            }
         });
+    }
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && mobileSearchOverlay && mobileSearchOverlay.classList.contains('is-open')) {
+            closeMobileSearch();
+        }
     });
 });
 </script>
@@ -551,25 +589,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 <span class="offcanvas-logo-text">VibeMall</span>
                 </a>
             </div>
-            <div class="offcanvas__search mb-25">
-                <form action="{% url 'shop' %}" method="get">
-                    <div class="search-suggest offcanvas-search-suggest">
-                        <input
-                            id="mobileSearchInput"
-                            name="q"
-                            type="text"
-                            class="search-input"
-                            placeholder="Search products, pages, categories..."
-                            autocomplete="off"
-                            data-search-url="{% url 'product_search_api' %}"
-                            data-placeholder-image="{% static 'assets/img/product/tp-1.jpg' %}">
-                        <button type="submit"><i class="far fa-search"></i></button>
-                        <div id="mobileSearchResults" class="search-results offcanvas-search-results"></div>
-                    </div>
-                </form>
-            </div>
             <div class="mobile-menu fix d-none" aria-hidden="true"></div>
-            <nav class="offcanvas-custom-menu" id="mobileSearchNav" aria-label="Mobile menu">
+            <nav class="offcanvas-custom-menu" aria-label="Mobile menu">
                 <ul>
                     <li><a href="{% url 'shop' %}">All Categories</a></li>
                     <li><a href="{% url 'about' %}">About Us</a></li>
@@ -585,11 +606,57 @@ document.addEventListener('DOMContentLoaded', function () {
                     {% endif %}
                 </ul>
             </nav>
-            <p id="mobileSearchNavEmpty" class="offcanvas-search-nav-empty" hidden>No menu items match your search.</p>
             <div class="offcanvas__action">
 
             </div>
         </div>
+        </div>
+    </div>
+    <div id="mobileSearchOverlay" class="mobile-search-overlay" aria-hidden="true">
+        <div class="mobile-search-overlay__backdrop"></div>
+        <div class="mobile-search-overlay__panel" role="dialog" aria-modal="true" aria-label="Search products">
+            <div class="mobile-search-overlay__header">
+                <div>
+                    <p class="mobile-search-overlay__eyebrow">Search</p>
+                    <h3 class="mobile-search-overlay__title">Find products fast</h3>
+                </div>
+                <button type="button" class="mobile-search-overlay__close" id="mobileSearchCloseBtn" aria-label="Close search">
+                    <i class="fal fa-times"></i>
+                </button>
+            </div>
+            <form action="{% url 'shop' %}" method="get" class="mobile-search-overlay__form">
+                <div class="search-suggest offcanvas-search-suggest">
+                    <input
+                        id="mobileSearchInput"
+                        name="q"
+                        type="text"
+                        class="search-input"
+                        placeholder="Search by product name, brand, SKU..."
+                        autocomplete="off"
+                        data-search-url="{% url 'product_search_api' %}"
+                        data-placeholder-image="{% static 'assets/img/product/tp-1.jpg' %}">
+                    <button type="submit"><i class="far fa-search"></i></button>
+                    <div id="mobileSearchResults" class="search-results offcanvas-search-results"></div>
+                </div>
+            </form>
+            <p class="mobile-search-overlay__hint">Live results include product image, name, brand, category, SKU, and price.</p>
+            <nav class="offcanvas-custom-menu mobile-search-links" id="mobileSearchNav" aria-label="Search quick links">
+                <ul>
+                    <li><a href="{% url 'shop' %}">All Categories</a></li>
+                    <li><a href="{% url 'about' %}">About Us</a></li>
+                    <li><a href="{% url 'blog' %}">Blog</a></li>
+                    <li><a href="{% url 'order_list' %}">My Orders</a></li>
+                    <li><a href="{% url 'track_order' %}">Order Tracking</a></li>
+                    <li><a href="{% url 'faq' %}">FAQ</a></li>
+                    {% if user.is_authenticated %}
+                    <li><a href="{% url 'logout' %}">Logout</a></li>
+                    {% endif %}
+                    {% if user.is_staff %}
+                    <li><a href="{% url 'admin_dashboard' %}">Admin</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+            <p id="mobileSearchNavEmpty" class="offcanvas-search-nav-empty" hidden>No quick links match your search.</p>
         </div>
     </div>
     <div class="body-overlay"></div>
