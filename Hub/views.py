@@ -1128,6 +1128,21 @@ def _resize_uploaded_image(file_obj, target_width=None, target_height=None, keep
     }
 
 
+def _cleanup_orphan_orders() -> int:
+    """Delete invalid orders that no longer have any order items."""
+    orphan_order_ids = list(
+        Order.objects.annotate(item_count=Count('items'))
+        .filter(item_count=0)
+        .values_list('id', flat=True)
+    )
+    if not orphan_order_ids:
+        return 0
+
+    Order.objects.filter(id__in=orphan_order_ids).delete()
+    logger.warning("Cleaned up %s orphan orders with no items.", len(orphan_order_ids))
+    return len(orphan_order_ids)
+
+
 def convert_url_to_png(image_url, crop_box=None, crop_ratio=None):
     response = requests.get(image_url, timeout=15)
     response.raise_for_status()
@@ -3339,7 +3354,10 @@ def admin_orders(request):
     from django.db.models import Sum, Count, Q
     import csv
     from datetime import datetime, timedelta
-    
+
+    # Remove invalid leftovers so stats and delete actions stay in sync.
+    _cleanup_orphan_orders()
+
     # Handle Bulk Actions (POST)
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -3391,6 +3409,7 @@ def admin_orders(request):
             elif action == 'delete':
                 # Bulk delete
                 deleted_count, _ = orders.delete()
+                _cleanup_orphan_orders()
                 messages.success(request, f"{deleted_count} records deleted (orders and related items).")
 
             return redirect('admin_orders')
@@ -3964,6 +3983,7 @@ def admin_delete_order(request, order_id):
     
     # Delete the order (this will cascade delete related OrderItems and OrderStatusHistory)
     order.delete()
+    _cleanup_orphan_orders()
     
     messages.success(request, f'Order {order_number} by {customer_name} has been permanently deleted.')
     return redirect(request.META.get('HTTP_REFERER', 'admin_orders'))
