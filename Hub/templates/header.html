@@ -306,64 +306,217 @@
 <link rel="stylesheet" href="{% static 'assets/css/header-custom.css' %}">
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const input = document.getElementById('mainSearchInput');
-    const resultsBox = document.getElementById('mainSearchResults');
-    if (!input || !resultsBox) return;
+    const escapeHtml = (value) => String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 
-    const searchUrl = input.dataset.searchUrl;
-    const placeholderImage = input.dataset.placeholderImage;
-    let debounceTimer;
-
-    const clearResults = () => {
-        resultsBox.innerHTML = '';
-        resultsBox.classList.remove('is-open');
-    };
-
-    const renderResults = (items) => {
+    const createProductMarkup = (items, placeholderImage, withSectionTitle) => {
         if (!items.length) {
-            resultsBox.innerHTML = '<div class="search-empty">No products found.</div>';
-            resultsBox.classList.add('is-open');
-            return;
+            return '';
         }
 
-        resultsBox.innerHTML = items.map((item) => {
-            const imageUrl = item.image_url || placeholderImage;
+        const title = withSectionTitle ? '<div class="search-section-label">Products</div>' : '';
+        const content = items.map((item) => {
+            const imageUrl = escapeHtml(item.image_url || placeholderImage);
+            const name = escapeHtml(item.name);
+            const url = escapeHtml(item.url);
+            const priceDisplay = escapeHtml(item.price_display);
             return `
-                <a class="search-item" href="${item.url}">
-                    <img class="search-thumb" src="${imageUrl}" alt="${item.name}">
+                <a class="search-item" href="${url}">
+                    <img class="search-thumb" src="${imageUrl}" alt="${name}">
                     <span class="search-meta">
-                        <span class="search-name">${item.name}</span>
-                        <span class="search-price">&#8377;${item.price_display}</span>
+                        <span class="search-name">${name}</span>
+                        <span class="search-price">&#8377;${priceDisplay}</span>
                     </span>
                 </a>
             `;
         }).join('');
-        resultsBox.classList.add('is-open');
+
+        return `${title}${content}`;
     };
 
-    input.addEventListener('input', function () {
-        const query = input.value.trim();
-        if (query.length < 2) {
-            clearResults();
+    const createQuickLinkMarkup = (items) => {
+        if (!items.length) {
+            return '';
+        }
+
+        const content = items.map((item) => `
+            <a class="search-item search-item--link" href="${escapeHtml(item.url)}">
+                <span class="search-thumb search-thumb--icon">
+                    <i class="far fa-compass"></i>
+                </span>
+                <span class="search-meta">
+                    <span class="search-name">${escapeHtml(item.label)}</span>
+                    <span class="search-price">Quick Link</span>
+                </span>
+            </a>
+        `).join('');
+
+        return `<div class="search-section-label">Quick Links</div>${content}`;
+    };
+
+    const setupHeaderSearch = (config) => {
+        const input = document.getElementById(config.inputId);
+        const resultsBox = document.getElementById(config.resultsId);
+        if (!input || !resultsBox) {
             return;
         }
 
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-            fetch(`${searchUrl}?q=${encodeURIComponent(query)}`)
-                .then((response) => response.json())
-                .then((data) => renderResults(data.results || []))
-                .catch(() => {
-                    resultsBox.innerHTML = '<div class="search-empty">Unable to search right now.</div>';
+        const form = input.closest('form');
+        const searchUrl = input.dataset.searchUrl;
+        const placeholderImage = input.dataset.placeholderImage;
+        const navRoot = config.navSelector ? document.querySelector(config.navSelector) : null;
+        const navEmpty = config.navEmptyId ? document.getElementById(config.navEmptyId) : null;
+        const navItems = navRoot ? Array.from(navRoot.querySelectorAll('li')).map((element) => {
+            const link = element.querySelector('a');
+            if (!link) {
+                return null;
+            }
+            return {
+                element,
+                label: (link.textContent || '').trim(),
+                url: link.href,
+            };
+        }).filter(Boolean) : [];
+
+        let debounceTimer;
+        let activeRequestId = 0;
+
+        const closeResults = () => {
+            resultsBox.innerHTML = '';
+            resultsBox.classList.remove('is-open');
+        };
+
+        const updateNavFilter = (query) => {
+            if (!navItems.length) {
+                return [];
+            }
+
+            const normalizedQuery = query.toLowerCase();
+            const matches = [];
+
+            navItems.forEach((item) => {
+                const isMatch = !normalizedQuery || item.label.toLowerCase().includes(normalizedQuery);
+                item.element.hidden = !isMatch;
+                if (normalizedQuery && isMatch) {
+                    matches.push(item);
+                }
+            });
+
+            if (navEmpty) {
+                navEmpty.hidden = !normalizedQuery || matches.length > 0;
+            }
+
+            return matches.slice(0, 5);
+        };
+
+        const renderCombinedResults = (query, productItems) => {
+            const quickLinks = updateNavFilter(query);
+            const sections = [];
+
+            if (quickLinks.length) {
+                sections.push(createQuickLinkMarkup(quickLinks));
+            }
+
+            if (productItems.length) {
+                sections.push(createProductMarkup(productItems, placeholderImage, quickLinks.length > 0));
+            }
+
+            if (!sections.length) {
+                resultsBox.innerHTML = '<div class="search-empty">No matches found.</div>';
+                resultsBox.classList.add('is-open');
+                return;
+            }
+
+            resultsBox.innerHTML = sections.join('');
+            resultsBox.classList.add('is-open');
+        };
+
+        const handleSearch = () => {
+            const query = input.value.trim();
+            const quickLinks = updateNavFilter(query);
+
+            if (!query) {
+                closeResults();
+                return;
+            }
+
+            if (query.length < 2) {
+                if (quickLinks.length) {
+                    resultsBox.innerHTML = createQuickLinkMarkup(quickLinks);
                     resultsBox.classList.add('is-open');
-                });
-        }, 250);
+                } else {
+                    closeResults();
+                }
+                return;
+            }
+
+            activeRequestId += 1;
+            const requestId = activeRequestId;
+
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                fetch(`${searchUrl}?q=${encodeURIComponent(query)}`)
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (requestId !== activeRequestId) {
+                            return;
+                        }
+                        renderCombinedResults(query, data.results || []);
+                    })
+                    .catch(() => {
+                        if (requestId !== activeRequestId) {
+                            return;
+                        }
+                        if (quickLinks.length) {
+                            resultsBox.innerHTML = `${createQuickLinkMarkup(quickLinks)}<div class="search-empty">Product search is unavailable right now.</div>`;
+                        } else {
+                            resultsBox.innerHTML = '<div class="search-empty">Unable to search right now.</div>';
+                        }
+                        resultsBox.classList.add('is-open');
+                    });
+            }, 250);
+        };
+
+        input.addEventListener('input', handleSearch);
+        input.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                input.value = '';
+                updateNavFilter('');
+                closeResults();
+                input.blur();
+            }
+        });
+
+        if (form) {
+            form.addEventListener('submit', function (event) {
+                if (!input.value.trim()) {
+                    event.preventDefault();
+                    closeResults();
+                }
+            });
+        }
+
+        document.addEventListener('click', function (event) {
+            if (!resultsBox.contains(event.target) && event.target !== input) {
+                closeResults();
+            }
+        });
+    };
+
+    setupHeaderSearch({
+        inputId: 'mainSearchInput',
+        resultsId: 'mainSearchResults',
     });
 
-    document.addEventListener('click', function (event) {
-        if (!resultsBox.contains(event.target) && event.target !== input) {
-            clearResults();
-        }
+    setupHeaderSearch({
+        inputId: 'mobileSearchInput',
+        resultsId: 'mobileSearchResults',
+        navSelector: '#mobileSearchNav',
+        navEmptyId: 'mobileSearchNavEmpty',
     });
 });
 </script>
@@ -382,13 +535,24 @@ document.addEventListener('DOMContentLoaded', function () {
                 </a>
             </div>
             <div class="offcanvas__search mb-25">
-                <form action="#">
-                    <input type="text" placeholder="What are you searching for?">
-                    <button type="submit" ><i class="far fa-search"></i></button>
+                <form action="{% url 'shop' %}" method="get">
+                    <div class="search-suggest offcanvas-search-suggest">
+                        <input
+                            id="mobileSearchInput"
+                            name="q"
+                            type="text"
+                            class="search-input"
+                            placeholder="Search products, pages, categories..."
+                            autocomplete="off"
+                            data-search-url="{% url 'product_search_api' %}"
+                            data-placeholder-image="{% static 'assets/img/product/tp-1.jpg' %}">
+                        <button type="submit"><i class="far fa-search"></i></button>
+                        <div id="mobileSearchResults" class="search-results offcanvas-search-results"></div>
+                    </div>
                 </form>
             </div>
             <div class="mobile-menu fix d-none" aria-hidden="true"></div>
-            <nav class="offcanvas-custom-menu" aria-label="Mobile menu">
+            <nav class="offcanvas-custom-menu" id="mobileSearchNav" aria-label="Mobile menu">
                 <ul>
                     <li><a href="{% url 'shop' %}">All Categories</a></li>
                     <li><a href="{% url 'about' %}">About Us</a></li>
@@ -404,6 +568,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     {% endif %}
                 </ul>
             </nav>
+            <p id="mobileSearchNavEmpty" class="offcanvas-search-nav-empty" hidden>No menu items match your search.</p>
             <div class="offcanvas__action">
 
             </div>
