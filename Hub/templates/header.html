@@ -50,9 +50,9 @@
                         </div>
                     </div>
                     <div class="col-auto d-lg-none mobile-icons">
-                        <a class="mobile-icon" href="{% url 'profile' %}" aria-label="Profile">
-                            <i class="flaticon-user"></i>
-                        </a>
+                        <button type="button" class="mobile-icon offcanvas-toggle-btn mobile-search-trigger" aria-label="Search products">
+                            <i class="far fa-search"></i>
+                        </button>
                         <a class="mobile-icon" href="{% url 'wishlist' %}" aria-label="Wishlist">
                             <i class="flaticon-heart"></i>
                             <span class="count wishlist-count">{{ wishlist_count|default:"0" }}</span>
@@ -306,64 +306,80 @@
 <link rel="stylesheet" href="{% static 'assets/css/header-custom.css' %}">
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const input = document.getElementById('mainSearchInput');
-    const resultsBox = document.getElementById('mainSearchResults');
-    if (!input || !resultsBox) return;
+    function setupSearch(inputId, resultsId) {
+        const input = document.getElementById(inputId);
+        const resultsBox = document.getElementById(resultsId);
+        if (!input || !resultsBox) return;
 
-    const searchUrl = input.dataset.searchUrl;
-    const placeholderImage = input.dataset.placeholderImage;
-    let debounceTimer;
+        const searchUrl = input.dataset.searchUrl;
+        const placeholderImage = input.dataset.placeholderImage;
+        let debounceTimer;
 
-    const clearResults = () => {
-        resultsBox.innerHTML = '';
-        resultsBox.classList.remove('is-open');
-    };
+        const clearResults = () => {
+            resultsBox.innerHTML = '';
+            resultsBox.classList.remove('is-open');
+        };
 
-    const renderResults = (items) => {
-        if (!items.length) {
-            resultsBox.innerHTML = '<div class="search-empty">No products found.</div>';
+        const renderResults = (items) => {
+            if (!items.length) {
+                resultsBox.innerHTML = '<div class="search-empty">No products found.</div>';
+                resultsBox.classList.add('is-open');
+                return;
+            }
+
+            resultsBox.innerHTML = items.map((item) => {
+                const imageUrl = item.image_url || placeholderImage;
+                return `
+                    <a class="search-item" href="${item.url}">
+                        <img class="search-thumb" src="${imageUrl}" alt="${item.name}">
+                        <span class="search-meta">
+                            <span class="search-name">${item.name}</span>
+                            <span class="search-price">&#8377;${item.price_display}</span>
+                        </span>
+                    </a>
+                `;
+            }).join('');
             resultsBox.classList.add('is-open');
-            return;
-        }
+        };
 
-        resultsBox.innerHTML = items.map((item) => {
-            const imageUrl = item.image_url || placeholderImage;
-            return `
-                <a class="search-item" href="${item.url}">
-                    <img class="search-thumb" src="${imageUrl}" alt="${item.name}">
-                    <span class="search-meta">
-                        <span class="search-name">${item.name}</span>
-                        <span class="search-price">&#8377;${item.price_display}</span>
-                    </span>
-                </a>
-            `;
-        }).join('');
-        resultsBox.classList.add('is-open');
-    };
+        input.addEventListener('input', function () {
+            const query = input.value.trim();
+            if (query.length < 2) {
+                clearResults();
+                return;
+            }
 
-    input.addEventListener('input', function () {
-        const query = input.value.trim();
-        if (query.length < 2) {
-            clearResults();
-            return;
-        }
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                fetch(`${searchUrl}?q=${encodeURIComponent(query)}`)
+                    .then((response) => response.json())
+                    .then((data) => renderResults(data.results || []))
+                    .catch(() => {
+                        resultsBox.innerHTML = '<div class="search-empty">Unable to search right now.</div>';
+                        resultsBox.classList.add('is-open');
+                    });
+            }, 250);
+        });
 
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-            fetch(`${searchUrl}?q=${encodeURIComponent(query)}`)
-                .then((response) => response.json())
-                .then((data) => renderResults(data.results || []))
-                .catch(() => {
-                    resultsBox.innerHTML = '<div class="search-empty">Unable to search right now.</div>';
-                    resultsBox.classList.add('is-open');
-                });
-        }, 250);
-    });
+        document.addEventListener('click', function (event) {
+            if (!resultsBox.contains(event.target) && event.target !== input) {
+                clearResults();
+            }
+        });
+    }
 
-    document.addEventListener('click', function (event) {
-        if (!resultsBox.contains(event.target) && event.target !== input) {
-            clearResults();
-        }
+    setupSearch('mainSearchInput', 'mainSearchResults');
+    setupSearch('mobileSearchInput', 'mobileSearchResults');
+
+    const mobileSearchInput = document.getElementById('mobileSearchInput');
+    document.querySelectorAll('.mobile-search-trigger').forEach((trigger) => {
+        trigger.addEventListener('click', function () {
+            window.setTimeout(() => {
+                if (mobileSearchInput) {
+                    mobileSearchInput.focus();
+                }
+            }, 250);
+        });
     });
 });
 </script>
@@ -382,9 +398,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 </a>
             </div>
             <div class="offcanvas__search mb-25">
-                <form action="#">
-                    <input type="text" placeholder="What are you searching for?">
-                    <button type="submit" ><i class="far fa-search"></i></button>
+                <form action="{% url 'shop' %}" method="get">
+                    <div class="search-suggest">
+                        <input
+                            id="mobileSearchInput"
+                            name="q"
+                            type="text"
+                            placeholder="What are you searching for?"
+                            autocomplete="off"
+                            data-search-url="{% url 'product_search_api' %}"
+                            data-placeholder-image="{% static 'assets/img/product/tp-1.jpg' %}">
+                        <button type="submit"><i class="far fa-search"></i></button>
+                        <div id="mobileSearchResults" class="search-results offcanvas-search-results"></div>
+                    </div>
                 </form>
             </div>
             <div class="mobile-menu fix d-none" aria-hidden="true"></div>
