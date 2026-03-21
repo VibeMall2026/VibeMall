@@ -50,9 +50,9 @@
                         </div>
                     </div>
                     <div class="col-auto d-lg-none mobile-icons">
-                        <button type="button" class="mobile-icon mobile-search-trigger" aria-label="Search products">
-                            <i class="far fa-search"></i>
-                        </button>
+                        <a class="mobile-icon" href="{% url 'profile' %}" aria-label="Profile">
+                            <i class="flaticon-user"></i>
+                        </a>
                         <a class="mobile-icon" href="{% url 'wishlist' %}" aria-label="Wishlist">
                             <i class="flaticon-heart"></i>
                             <span class="count wishlist-count">{{ wishlist_count|default:"0" }}</span>
@@ -306,271 +306,63 @@
 <link rel="stylesheet" href="{% static 'assets/css/header-custom.css' %}">
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const escapeHtml = (value) => String(value || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+    const input = document.getElementById('mainSearchInput');
+    const resultsBox = document.getElementById('mainSearchResults');
+    if (!input || !resultsBox) return;
 
-    const createProductMarkup = (items, placeholderImage, withSectionTitle) => {
+    const searchUrl = input.dataset.searchUrl;
+    const placeholderImage = input.dataset.placeholderImage;
+    let debounceTimer;
+
+    const clearResults = () => {
+        resultsBox.innerHTML = '';
+        resultsBox.classList.remove('is-open');
+    };
+
+    const renderResults = (items) => {
         if (!items.length) {
-            return '';
+            resultsBox.innerHTML = '<div class="search-empty">No products found.</div>';
+            resultsBox.classList.add('is-open');
+            return;
         }
 
-        const title = withSectionTitle ? '<div class="search-section-label">Products</div>' : '';
-        const content = items.map((item) => {
-            const imageUrl = escapeHtml(item.image_url || placeholderImage);
-            const name = escapeHtml(item.name);
-            const url = escapeHtml(item.url);
-            const priceDisplay = escapeHtml(item.price_display);
-            const details = escapeHtml(item.details || '');
+        resultsBox.innerHTML = items.map((item) => {
+            const imageUrl = item.image_url || placeholderImage;
             return `
-                <a class="search-item" href="${url}">
-                    <img class="search-thumb" src="${imageUrl}" alt="${name}">
+                <a class="search-item" href="${item.url}">
+                    <img class="search-thumb" src="${imageUrl}" alt="${item.name}">
                     <span class="search-meta">
-                        <span class="search-name">${name}</span>
-                        ${details ? `<span class="search-details">${details}</span>` : ''}
-                        <span class="search-price">&#8377;${priceDisplay}</span>
+                        <span class="search-name">${item.name}</span>
+                        <span class="search-price">&#8377;${item.price_display}</span>
                     </span>
                 </a>
             `;
         }).join('');
-
-        return `${title}${content}`;
+        resultsBox.classList.add('is-open');
     };
 
-    const createQuickLinkMarkup = (items) => {
-        if (!items.length) {
-            return '';
-        }
-
-        const content = items.map((item) => `
-            <a class="search-item search-item--link" href="${escapeHtml(item.url)}">
-                <span class="search-thumb search-thumb--icon">
-                    <i class="far fa-compass"></i>
-                </span>
-                <span class="search-meta">
-                    <span class="search-name">${escapeHtml(item.label)}</span>
-                    <span class="search-price">Quick Link</span>
-                </span>
-            </a>
-        `).join('');
-
-        return `<div class="search-section-label">Quick Links</div>${content}`;
-    };
-
-    const setupHeaderSearch = (config) => {
-        const input = document.getElementById(config.inputId);
-        const resultsBox = document.getElementById(config.resultsId);
-        if (!input || !resultsBox) {
+    input.addEventListener('input', function () {
+        const query = input.value.trim();
+        if (query.length < 2) {
+            clearResults();
             return;
         }
 
-        const form = input.closest('form');
-        const searchUrl = input.dataset.searchUrl;
-        const placeholderImage = input.dataset.placeholderImage;
-        const navRoot = config.navSelector ? document.querySelector(config.navSelector) : null;
-        const navEmpty = config.navEmptyId ? document.getElementById(config.navEmptyId) : null;
-        const navItems = navRoot ? Array.from(navRoot.querySelectorAll('li')).map((element) => {
-            const link = element.querySelector('a');
-            if (!link) {
-                return null;
-            }
-            return {
-                element,
-                label: (link.textContent || '').trim(),
-                url: link.href,
-            };
-        }).filter(Boolean) : [];
-
-        let debounceTimer;
-        let activeRequestId = 0;
-
-        const closeResults = () => {
-            resultsBox.innerHTML = '';
-            resultsBox.classList.remove('is-open');
-        };
-
-        const updateNavFilter = (query) => {
-            if (!navItems.length) {
-                return [];
-            }
-
-            const normalizedQuery = query.toLowerCase();
-            const matches = [];
-
-            navItems.forEach((item) => {
-                const isMatch = !normalizedQuery || item.label.toLowerCase().includes(normalizedQuery);
-                item.element.hidden = !isMatch;
-                if (normalizedQuery && isMatch) {
-                    matches.push(item);
-                }
-            });
-
-            if (navEmpty) {
-                navEmpty.hidden = !normalizedQuery || matches.length > 0;
-            }
-
-            return matches.slice(0, 5);
-        };
-
-        const renderCombinedResults = (query, productItems) => {
-            const quickLinks = updateNavFilter(query);
-            const sections = [];
-
-            if (quickLinks.length) {
-                sections.push(createQuickLinkMarkup(quickLinks));
-            }
-
-            if (productItems.length) {
-                sections.push(createProductMarkup(productItems, placeholderImage, quickLinks.length > 0));
-            }
-
-            if (!sections.length) {
-                resultsBox.innerHTML = '<div class="search-empty">No matches found.</div>';
-                resultsBox.classList.add('is-open');
-                return;
-            }
-
-            resultsBox.innerHTML = sections.join('');
-            resultsBox.classList.add('is-open');
-        };
-
-        const handleSearch = () => {
-            const query = input.value.trim();
-            const quickLinks = updateNavFilter(query);
-
-            if (!query) {
-                closeResults();
-                return;
-            }
-
-            if (query.length < 2) {
-                if (quickLinks.length) {
-                    resultsBox.innerHTML = createQuickLinkMarkup(quickLinks);
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            fetch(`${searchUrl}?q=${encodeURIComponent(query)}`)
+                .then((response) => response.json())
+                .then((data) => renderResults(data.results || []))
+                .catch(() => {
+                    resultsBox.innerHTML = '<div class="search-empty">Unable to search right now.</div>';
                     resultsBox.classList.add('is-open');
-                } else {
-                    closeResults();
-                }
-                return;
-            }
-
-            activeRequestId += 1;
-            const requestId = activeRequestId;
-
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                fetch(`${searchUrl}?q=${encodeURIComponent(query)}`)
-                    .then((response) => response.json())
-                    .then((data) => {
-                        if (requestId !== activeRequestId) {
-                            return;
-                        }
-                        renderCombinedResults(query, data.results || []);
-                    })
-                    .catch(() => {
-                        if (requestId !== activeRequestId) {
-                            return;
-                        }
-                        if (quickLinks.length) {
-                            resultsBox.innerHTML = `${createQuickLinkMarkup(quickLinks)}<div class="search-empty">Product search is unavailable right now.</div>`;
-                        } else {
-                            resultsBox.innerHTML = '<div class="search-empty">Unable to search right now.</div>';
-                        }
-                        resultsBox.classList.add('is-open');
-                    });
-            }, 250);
-        };
-
-        input.addEventListener('input', handleSearch);
-        input.addEventListener('keydown', function (event) {
-            if (event.key === 'Escape') {
-                input.value = '';
-                updateNavFilter('');
-                closeResults();
-                input.blur();
-            }
-        });
-
-        if (form) {
-            form.addEventListener('submit', function (event) {
-                if (!input.value.trim()) {
-                    event.preventDefault();
-                    closeResults();
-                }
-            });
-        }
-
-        document.addEventListener('click', function (event) {
-            if (!resultsBox.contains(event.target) && event.target !== input) {
-                closeResults();
-            }
-        });
-    };
-
-    setupHeaderSearch({
-        inputId: 'mainSearchInput',
-        resultsId: 'mainSearchResults',
+                });
+        }, 250);
     });
 
-    setupHeaderSearch({
-        inputId: 'mobileSearchInput',
-        resultsId: 'mobileSearchResults',
-        navSelector: '#mobileSearchNav',
-        navEmptyId: 'mobileSearchNavEmpty',
-    });
-
-    const mobileSearchOverlay = document.getElementById('mobileSearchOverlay');
-    const mobileSearchInput = document.getElementById('mobileSearchInput');
-    const mobileSearchCloseBtn = document.getElementById('mobileSearchCloseBtn');
-
-    const openMobileSearch = () => {
-        if (!mobileSearchOverlay) {
-            return;
-        }
-        mobileSearchOverlay.classList.add('is-open');
-        mobileSearchOverlay.setAttribute('aria-hidden', 'false');
-        document.body.classList.add('mobile-search-open');
-        window.setTimeout(() => {
-            if (!mobileSearchInput) {
-                return;
-            }
-            mobileSearchInput.focus({ preventScroll: true });
-            if (mobileSearchInput.value) {
-                mobileSearchInput.select();
-            }
-        }, 120);
-    };
-
-    const closeMobileSearch = () => {
-        if (!mobileSearchOverlay) {
-            return;
-        }
-        mobileSearchOverlay.classList.remove('is-open');
-        mobileSearchOverlay.setAttribute('aria-hidden', 'true');
-        document.body.classList.remove('mobile-search-open');
-    };
-
-    document.querySelectorAll('.mobile-search-trigger').forEach((trigger) => {
-        trigger.addEventListener('click', openMobileSearch);
-    });
-
-    if (mobileSearchCloseBtn) {
-        mobileSearchCloseBtn.addEventListener('click', closeMobileSearch);
-    }
-
-    if (mobileSearchOverlay) {
-        mobileSearchOverlay.addEventListener('click', function (event) {
-            if (event.target === mobileSearchOverlay || event.target.classList.contains('mobile-search-overlay__backdrop')) {
-                closeMobileSearch();
-            }
-        });
-    }
-
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape' && mobileSearchOverlay && mobileSearchOverlay.classList.contains('is-open')) {
-            closeMobileSearch();
+    document.addEventListener('click', function (event) {
+        if (!resultsBox.contains(event.target) && event.target !== input) {
+            clearResults();
         }
     });
 });
@@ -588,6 +380,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 <a href="{% url 'index' %}">
                 <span class="offcanvas-logo-text">VibeMall</span>
                 </a>
+            </div>
+            <div class="offcanvas__search mb-25">
+                <form action="#">
+                    <input type="text" placeholder="What are you searching for?">
+                    <button type="submit" ><i class="far fa-search"></i></button>
+                </form>
             </div>
             <div class="mobile-menu fix d-none" aria-hidden="true"></div>
             <nav class="offcanvas-custom-menu" aria-label="Mobile menu">
@@ -610,53 +408,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
             </div>
         </div>
-        </div>
-    </div>
-    <div id="mobileSearchOverlay" class="mobile-search-overlay" aria-hidden="true">
-        <div class="mobile-search-overlay__backdrop"></div>
-        <div class="mobile-search-overlay__panel" role="dialog" aria-modal="true" aria-label="Search products">
-            <div class="mobile-search-overlay__header">
-                <div>
-                    <p class="mobile-search-overlay__eyebrow">Search</p>
-                    <h3 class="mobile-search-overlay__title">Find products fast</h3>
-                </div>
-                <button type="button" class="mobile-search-overlay__close" id="mobileSearchCloseBtn" aria-label="Close search">
-                    <i class="fal fa-times"></i>
-                </button>
-            </div>
-            <form action="{% url 'shop' %}" method="get" class="mobile-search-overlay__form">
-                <div class="search-suggest offcanvas-search-suggest">
-                    <input
-                        id="mobileSearchInput"
-                        name="q"
-                        type="text"
-                        class="search-input"
-                        placeholder="Search by product name, brand, SKU..."
-                        autocomplete="off"
-                        data-search-url="{% url 'product_search_api' %}"
-                        data-placeholder-image="{% static 'assets/img/product/tp-1.jpg' %}">
-                    <button type="submit"><i class="far fa-search"></i></button>
-                    <div id="mobileSearchResults" class="search-results offcanvas-search-results"></div>
-                </div>
-            </form>
-            <p class="mobile-search-overlay__hint">Live results include product image, name, brand, category, SKU, and price.</p>
-            <nav class="offcanvas-custom-menu mobile-search-links" id="mobileSearchNav" aria-label="Search quick links">
-                <ul>
-                    <li><a href="{% url 'shop' %}">All Categories</a></li>
-                    <li><a href="{% url 'about' %}">About Us</a></li>
-                    <li><a href="{% url 'blog' %}">Blog</a></li>
-                    <li><a href="{% url 'order_list' %}">My Orders</a></li>
-                    <li><a href="{% url 'track_order' %}">Order Tracking</a></li>
-                    <li><a href="{% url 'faq' %}">FAQ</a></li>
-                    {% if user.is_authenticated %}
-                    <li><a href="{% url 'logout' %}">Logout</a></li>
-                    {% endif %}
-                    {% if user.is_staff %}
-                    <li><a href="{% url 'admin_dashboard' %}">Admin</a></li>
-                    {% endif %}
-                </ul>
-            </nav>
-            <p id="mobileSearchNavEmpty" class="offcanvas-search-nav-empty" hidden>No quick links match your search.</p>
         </div>
     </div>
     <div class="body-overlay"></div>
