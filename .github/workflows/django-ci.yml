@@ -138,8 +138,9 @@ jobs:
               git stash push --include-untracked --message "$STASH_NAME" >/dev/null
             fi
 
-            echo "Pulling latest code..."
-            git pull --ff-only origin "$DEPLOY_BRANCH"
+            echo "Synchronizing working tree to origin/${DEPLOY_BRANCH}..."
+            git checkout "$DEPLOY_BRANCH"
+            git reset --hard "origin/${DEPLOY_BRANCH}"
 
             if [ ! -f "$VENV_PATH" ]; then
               echo "Virtual environment not found at $VENV_PATH"
