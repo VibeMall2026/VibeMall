@@ -1,0 +1,37 @@
+name: Quick Frontend Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Hub/templates/**'
+      - 'Hub/static/**'
+  workflow_dispatch:
+
+concurrency:
+  group: quick-deploy-main
+  cancel-in-progress: true
+
+jobs:
+  quick-deploy:
+    name: Quick Deploy to VPS
+    runs-on: self-hosted
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Quick Deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/deploy_vps_quick.sh
+
+      - name: Deployment Summary
+        if: always()
+        shell: bash
+        run: |
+          echo "Quick deployment job finished with status: ${{ job.status }}"

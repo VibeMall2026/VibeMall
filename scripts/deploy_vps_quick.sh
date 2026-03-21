@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROJECT_DIR="${PROJECT_DIR:-/var/www/vibemall}"
+DEPLOY_BRANCH="${DEPLOY_BRANCH:-main}"
+VENV_PATH="${VENV_PATH:-venv/bin/activate}"
+SERVICE_NAME="${SERVICE_NAME:-vibemall}"
+NGINX_SERVICE="${NGINX_SERVICE:-nginx}"
+TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
+STASH_NAME="pre-quick-deploy-${TIMESTAMP}"
+
+echo "Starting quick deployment to VPS..."
+echo "Deployment started at: $(date)"
+echo "Server: $(hostname)"
+echo "User: $(whoami)"
+
+if [ ! -d "$PROJECT_DIR" ]; then
+  echo "Project directory not found: $PROJECT_DIR"
+  exit 1
+fi
+
+cd "$PROJECT_DIR"
+echo "Project directory: $(pwd)"
+
+echo "Current git status:"
+git status --short || true
+git log --oneline -5 || true
+
+echo "Fetching latest changes from origin/${DEPLOY_BRANCH}..."
+git fetch origin "$DEPLOY_BRANCH"
+
+if [ -n "$(git status --porcelain)" ]; then
+  echo "Local repository changes detected on the server."
+  echo "Stashing tracked and untracked changes before deploy as ${STASH_NAME}."
+  git stash push --include-untracked --message "$STASH_NAME" >/dev/null
+fi
+
+echo "Synchronizing working tree to origin/${DEPLOY_BRANCH}..."
+git checkout "$DEPLOY_BRANCH"
+git reset --hard "origin/${DEPLOY_BRANCH}"
+
+if [ ! -f "$VENV_PATH" ]; then
+  echo "Virtual environment not found at $VENV_PATH"
+  exit 1
+fi
+
+echo "Activating virtual environment..."
+# shellcheck disable=SC1090
+source "$VENV_PATH"
+
+export STATIC_ROOT="${STATIC_ROOT:-/var/www/vibemall_shared/staticfiles}"
+export MEDIA_ROOT="${MEDIA_ROOT:-/var/www/vibemall_shared/media}"
+mkdir -p "$STATIC_ROOT" "$MEDIA_ROOT"
+
+echo "Collecting static files..."
+python manage.py collectstatic --noinput
+
+echo "Running Django checks..."
+python manage.py check
+
+echo "Restarting application service..."
+sudo systemctl restart "$SERVICE_NAME"
+sleep 3
+
+echo "Reloading nginx..."
+sudo systemctl reload "$NGINX_SERVICE"
+
+echo "Checking service status..."
+sudo systemctl is-active "$SERVICE_NAME" >/dev/null || {
+  echo "Service failed to start: $SERVICE_NAME"
+  sudo systemctl status "$SERVICE_NAME" --no-pager || true
+  exit 1
+}
+
+sudo systemctl is-active "$NGINX_SERVICE" >/dev/null || {
+  echo "Service is not running: $NGINX_SERVICE"
+  sudo systemctl status "$NGINX_SERVICE" --no-pager || true
+  exit 1
+}
+
+echo "Quick deployment completed successfully at: $(date)"

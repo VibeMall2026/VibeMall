@@ -3,8 +3,16 @@ name: Django CI/CD Pipeline
 on:
   push:
     branches: [main, develop]
+    paths-ignore:
+      - 'Hub/templates/**'
+      - 'Hub/static/**'
+      - '**/*.md'
   pull_request:
     branches: [main]
+    paths-ignore:
+      - 'Hub/templates/**'
+      - 'Hub/static/**'
+      - '**/*.md'
   workflow_dispatch:
 
 env:
