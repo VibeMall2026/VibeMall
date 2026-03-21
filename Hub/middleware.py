@@ -19,6 +19,7 @@ class ComingSoonModeMiddleware:
             '/coming-soon/',
             '/admin-panel/',
             '/admin/',
+            '/api/products/search/',
             '/static/',
             '/media/',
             '/favicon.ico',
