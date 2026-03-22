@@ -4690,16 +4690,44 @@ def index(request):
     # Get products from MainPageProduct model (4 categories)
     from .models import MainPageProduct, Reel, ReadyShipStyle, MainPageSubCategoryBanner, MainPageBanner
     
-    category1_products = MainPageProduct.objects.filter(category='category1').select_related('product').order_by('order')
-    category2_products = MainPageProduct.objects.filter(category='category2').select_related('product').order_by('order')
-    category3_products = MainPageProduct.objects.filter(category='category3').select_related('product').order_by('order')
-    category4_products = MainPageProduct.objects.filter(category='category4').select_related('product').order_by('order')
-    
+    category1_products = list(
+        MainPageProduct.objects
+        .filter(category='category1')
+        .select_related('product')
+        .order_by('order')[:10]
+    )
+    category2_products = list(
+        MainPageProduct.objects
+        .filter(category='category2')
+        .select_related('product')
+        .order_by('order')[:10]
+    )
+    category3_products = list(
+        MainPageProduct.objects
+        .filter(category='category3')
+        .select_related('product')
+        .order_by('order')[:10]
+    )
+    category4_products = list(
+        MainPageProduct.objects
+        .filter(category='category4')
+        .select_related('product')
+        .order_by('order')[:10]
+    )
+
+    latest_products = None
+
+    def get_latest_products():
+        nonlocal latest_products
+        if latest_products is None:
+            latest_products = list(Product.objects.filter(is_active=True).order_by('-id')[:10])
+        return latest_products
+
     # Extract product objects and prepare for template (fallback to latest products if no main page products)
-    top_deals = [item.product for item in category1_products[:10]] if category1_products.exists() else Product.objects.filter(is_active=True).order_by('-id')[:10]
-    top_selling = [item.product for item in category2_products[:10]] if category2_products.exists() else Product.objects.filter(is_active=True).order_by('-id')[:10]
-    top_featured = [item.product for item in category3_products[:10]] if category3_products.exists() else Product.objects.filter(is_active=True).order_by('-id')[:10]
-    recommended = [item.product for item in category4_products[:10]] if category4_products.exists() else Product.objects.filter(is_active=True).order_by('-id')[:10]
+    top_deals = [item.product for item in category1_products] or get_latest_products()
+    top_selling = [item.product for item in category2_products] or get_latest_products()
+    top_featured = [item.product for item in category3_products] or get_latest_products()
+    recommended = [item.product for item in category4_products] or get_latest_products()
 
     ready_ship_records = list(
         ReadyShipStyle.objects
@@ -4787,7 +4815,6 @@ def index(request):
     }
     
     countdown = DealCountdown.objects.filter(is_active=True).first()
-    brand_partners = BrandPartner.objects.filter(is_active=True).order_by('order')
     watch_shop_reels = (
         Reel.objects
         .filter(
@@ -4860,7 +4887,6 @@ def index(request):
             'countdown': countdown,
             'wishlist_product_ids': wishlist_product_ids,
             'cart_product_ids': cart_product_ids,
-            'brand_partners': brand_partners,
             'watch_shop_reels': watch_shop_reels,
             'liked_reel_ids': liked_reel_ids,
             'delivered_orders': delivered_orders,
