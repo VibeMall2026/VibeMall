@@ -4,8 +4,11 @@ on:
   push:
     branches: [main]
     paths:
+      - '.github/workflows/quick-deploy.yml'
       - 'Hub/templates/**'
       - 'Hub/static/**'
+      - 'scripts/deploy_vps.sh'
+      - 'scripts/deploy_vps_quick.sh'
   workflow_dispatch:
 
 concurrency:
