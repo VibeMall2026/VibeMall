@@ -386,6 +386,11 @@
         position: relative;
     }
 
+    .ready-ship-shell {
+        max-width: 1180px;
+        margin: 0 auto;
+    }
+
     .ready-ship-head {
         text-align: center;
         margin-bottom: 10px;
@@ -509,6 +514,10 @@
             font-size: 30px;
         }
 
+        .ready-ship-shell {
+            max-width: 980px;
+        }
+
         .ready-ship-hero {
             min-height: 250px;
             max-height: 400px;
@@ -565,6 +574,10 @@
 
         .ready-ship-head h3 {
             font-size: 22px;
+        }
+
+        .ready-ship-shell {
+            max-width: 100%;
         }
 
         .ready-ship-hero {
@@ -1276,37 +1289,39 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <section class="ready-ship-area pt-10 pb-20">
     <div class="container">
-        <div class="ready-ship-head">
-            <h3>Ready-to-Ship Styles</h3>
-        </div>
-
-        {% if ready_ship_cards %}
-            {% with hero=ready_ship_cards.0 %}
-            <a href="{% url 'product-details' hero.product.id %}" class="ready-ship-hero">
-                {% if hero.image_url %}
-                <img src="{{ hero.image_url }}" alt="{{ hero.title }}">
-                {% else %}
-                <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ hero.title }}">
-                {% endif %}
-                <span class="ready-ship-label">{{ hero.title }}</span>
-            </a>
-            {% endwith %}
-
-            {% if ready_ship_cards|length > 1 %}
-            <div class="ready-ship-grid">
-                {% for item in ready_ship_cards|slice:"1:" %}
-                <a href="{% url 'product-details' item.product.id %}" class="ready-ship-card">
-                    {% if item.image_url %}
-                    <img src="{{ item.image_url }}" alt="{{ item.title }}">
-                    {% else %}
-                    <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.title }}">
-                    {% endif %}
-                    <span class="ready-ship-label">{{ item.title }}</span>
-                </a>
-                {% endfor %}
+        <div class="ready-ship-shell">
+            <div class="ready-ship-head">
+                <h3>Ready-to-Ship Styles</h3>
             </div>
+
+            {% if ready_ship_cards %}
+                {% with hero=ready_ship_cards.0 %}
+                <a href="{% url 'product-details' hero.product.id %}" class="ready-ship-hero">
+                    {% if hero.image_url %}
+                    <img src="{{ hero.image_url }}" alt="{{ hero.title }}">
+                    {% else %}
+                    <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ hero.title }}">
+                    {% endif %}
+                    <span class="ready-ship-label">{{ hero.title }}</span>
+                </a>
+                {% endwith %}
+
+                {% if ready_ship_cards|length > 1 %}
+                <div class="ready-ship-grid">
+                    {% for item in ready_ship_cards|slice:"1:" %}
+                    <a href="{% url 'product-details' item.product.id %}" class="ready-ship-card">
+                        {% if item.image_url %}
+                        <img src="{{ item.image_url }}" alt="{{ item.title }}">
+                        {% else %}
+                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.title }}">
+                        {% endif %}
+                        <span class="ready-ship-label">{{ item.title }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
             {% endif %}
-        {% endif %}
+        </div>
     </div>
 </section>
 
