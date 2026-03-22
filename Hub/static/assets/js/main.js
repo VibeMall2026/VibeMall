@@ -56,6 +56,16 @@
 
 	////////////////////////////////////////////////////
 	// 03. Sidebar Js
+	const mobileSearchInput = document.getElementById("mobileSearchInput");
+	const viewportMeta = document.querySelector('meta[name="viewport"]');
+	const defaultViewportContent = viewportMeta ? viewportMeta.getAttribute("content") : "";
+
+	const restoreViewport = function () {
+		if (viewportMeta && defaultViewportContent) {
+			viewportMeta.setAttribute("content", defaultViewportContent);
+		}
+	};
+
 	const lockOffcanvasBody = function () {
 		const body = document.body;
 		if (body.classList.contains("offcanvas-open")) {
@@ -73,6 +83,10 @@
 		const activeElement = document.activeElement;
 		const savedScrollY = parseInt(body.dataset.offcanvasScrollY || "0", 10) || 0;
 
+		if (mobileSearchInput && typeof mobileSearchInput.blur === "function") {
+			mobileSearchInput.blur();
+		}
+
 		if (activeElement && typeof activeElement.blur === "function" && $(activeElement).closest(".offcanvas__area").length) {
 			activeElement.blur();
 		}
@@ -80,6 +94,7 @@
 		body.classList.remove("offcanvas-open");
 		body.style.top = "";
 		delete body.dataset.offcanvasScrollY;
+		restoreViewport();
 		window.scrollTo(0, savedScrollY);
 	};
 

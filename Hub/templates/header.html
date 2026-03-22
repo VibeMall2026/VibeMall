@@ -372,15 +372,58 @@ document.addEventListener('DOMContentLoaded', function () {
     setupSearch('mobileSearchInput', 'mobileSearchResults');
 
     const mobileSearchInput = document.getElementById('mobileSearchInput');
+    const viewportMeta = document.querySelector('meta[name="viewport"]');
+    const defaultViewportContent = viewportMeta ? viewportMeta.getAttribute('content') : '';
+    const focusedViewportContent = 'width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover';
+
+    const restoreViewport = () => {
+        if (viewportMeta && defaultViewportContent) {
+            viewportMeta.setAttribute('content', defaultViewportContent);
+        }
+    };
+
+    const blurMobileSearch = () => {
+        if (mobileSearchInput) {
+            mobileSearchInput.blur();
+        }
+        window.setTimeout(restoreViewport, 50);
+    };
+
+    if (mobileSearchInput) {
+        mobileSearchInput.addEventListener('focus', function () {
+            if (viewportMeta) {
+                viewportMeta.setAttribute('content', focusedViewportContent);
+            }
+        });
+
+        mobileSearchInput.addEventListener('blur', function () {
+            window.setTimeout(restoreViewport, 50);
+        });
+    }
+
     document.querySelectorAll('.mobile-search-trigger').forEach((trigger) => {
         trigger.addEventListener('click', function () {
             window.setTimeout(() => {
                 if (mobileSearchInput) {
-                    mobileSearchInput.focus();
+                    try {
+                        mobileSearchInput.focus({ preventScroll: true });
+                    } catch (error) {
+                        mobileSearchInput.focus();
+                    }
                 }
             }, 250);
         });
     });
+
+    const offcanvasCloseButton = document.getElementById('offcanvas__close-btn');
+    if (offcanvasCloseButton) {
+        offcanvasCloseButton.addEventListener('click', blurMobileSearch);
+    }
+
+    const bodyOverlay = document.querySelector('.body-overlay');
+    if (bodyOverlay) {
+        bodyOverlay.addEventListener('click', blurMobileSearch);
+    }
 });
 </script>
 
