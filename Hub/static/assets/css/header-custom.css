@@ -82,6 +82,17 @@
 }
 
 @media (max-width: 991.98px) {
+    .offcanvas__search {
+        position: relative;
+        z-index: 5;
+    }
+
+    .offcanvas__search .search-results {
+        max-height: min(320px, calc(100vh - 220px));
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
     .offcanvas__search input,
     .offcanvas__search input::placeholder,
     .header__search-box .search-input,
