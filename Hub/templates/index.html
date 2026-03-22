@@ -2839,68 +2839,6 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 
 
-<!-- BRAND PARTNERS SECTION -->
-{% if brand_partners %}
-<section class="brand-area pt-30 pb-30" style="background: #f8f9fa;">
-    <div class="container">
-        <div class="row">
-            <div class="col-xl-12">
-                <div class="section__head text-center mb-40">
-                    <div class="section__title">
-                        <h5 class="st-titile-d">Our Brand Partners</h5>
-                        <p class="text-muted">Trusted by leading brands worldwide</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="row align-items-center justify-content-center">
-            <div class="col-xl-10">
-                <div class="brand-slider-wrapper">
-                    <div class="swiper brand-slider">
-                        <div class="swiper-wrapper align-items-center">
-                            {% for partner in brand_partners %}
-                            <div class="swiper-slide">
-                                <div class="brand-item text-center" style="padding: 20px;">
-                                    {% if partner.link_url %}
-                                        <a href="{{ partner.link_url }}" target="_blank" rel="noopener noreferrer" style="text-decoration: none;">
-                                            <img src="{{ partner.logo.url }}" alt="{{ partner.name }}" style="max-height: 80px; max-width: 150px; object-fit: contain; filter: grayscale(100%); opacity: 0.6; transition: all 0.3s ease;" onmouseover="this.style.filter='grayscale(0%)'; this.style.opacity='1';" onmouseout="this.style.filter='grayscale(100%)'; this.style.opacity='0.6';">
-                                        </a>
-                                    {% else %}
-                                        <img src="{{ partner.logo.url }}" alt="{{ partner.name }}" style="max-height: 80px; max-width: 150px; object-fit: contain; filter: grayscale(100%); opacity: 0.6; transition: all 0.3s ease;" onmouseover="this.style.filter='grayscale(0%)'; this.style.opacity='1';" onmouseout="this.style.filter='grayscale(100%)'; this.style.opacity='0.6';">
-                                    {% endif %}
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<script>
-// Brand Partners Slider
-if (typeof Swiper !== 'undefined' && document.querySelector('.brand-slider')) {
-    new Swiper('.brand-slider', {
-        slidesPerView: 2,
-        spaceBetween: 16,
-        loop: true,
-        autoplay: {
-            delay: 2500,
-            disableOnInteraction: false,
-        },
-        breakpoints: {
-            576: { slidesPerView: 3, spaceBetween: 18 },
-            768: { slidesPerView: 4, spaceBetween: 24 },
-            1024: { slidesPerView: 5, spaceBetween: 40 },
-        },
-    });
-}
-</script>
-{% endif %}
-
 <!-- Delivered Order Review Modal -->
 {% if delivered_orders %}
 <div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
