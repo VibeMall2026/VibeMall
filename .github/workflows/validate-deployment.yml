@@ -70,8 +70,11 @@ jobs:
             if [ -d "/var/www/vibemall" ]; then
               echo "Project directory exists"
               cd /var/www/vibemall
+              git_safe() {
+                git -c safe.directory=/var/www/vibemall "$@"
+              }
               echo "Git status:"
-              git status --porcelain || echo "Git repository not available"
+              git_safe status --porcelain || echo "Git repository not available"
             else
               echo "Project directory /var/www/vibemall not found"
             fi

@@ -53,24 +53,26 @@ jobs:
             cd "$PROJECT_DIR"
             echo "Project directory: $(pwd)"
 
-            git config --global --add safe.directory "$PROJECT_DIR"
+            git_safe() {
+              git -c safe.directory="$PROJECT_DIR" "$@"
+            }
 
             echo "Current git status:"
-            git status --short || true
-            git log --oneline -5 || true
+            git_safe status --short || true
+            git_safe log --oneline -5 || true
 
             echo "Fetching latest changes from origin/${DEPLOY_BRANCH}..."
-            git fetch origin "$DEPLOY_BRANCH"
+            git_safe fetch origin "$DEPLOY_BRANCH"
 
-            if [ -n "$(git status --porcelain)" ]; then
+            if [ -n "$(git_safe status --porcelain)" ]; then
               echo "Local repository changes detected on the server."
               echo "Stashing tracked and untracked changes before deploy as ${STASH_NAME}."
-              git stash push --include-untracked --message "$STASH_NAME" >/dev/null
+              git_safe stash push --include-untracked --message "$STASH_NAME" >/dev/null
             fi
 
             echo "Synchronizing working tree to origin/${DEPLOY_BRANCH}..."
-            git checkout "$DEPLOY_BRANCH"
-            git reset --hard "origin/${DEPLOY_BRANCH}"
+            git_safe checkout "$DEPLOY_BRANCH"
+            git_safe reset --hard "origin/${DEPLOY_BRANCH}"
 
             if [ ! -f "$VENV_PATH" ]; then
               echo "Virtual environment not found at $VENV_PATH"
