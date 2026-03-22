@@ -22,6 +22,8 @@ fi
 cd "$PROJECT_DIR"
 echo "Project directory: $(pwd)"
 
+git config --global --add safe.directory "$PROJECT_DIR"
+
 echo "Current git status:"
 git status --short || true
 git log --oneline -5 || true
