@@ -56,13 +56,42 @@
 
 	////////////////////////////////////////////////////
 	// 03. Sidebar Js
+	const lockOffcanvasBody = function () {
+		const body = document.body;
+		if (body.classList.contains("offcanvas-open")) {
+			return;
+		}
+
+		const scrollY = window.scrollY || window.pageYOffset || 0;
+		body.dataset.offcanvasScrollY = String(scrollY);
+		body.style.top = `-${scrollY}px`;
+		body.classList.add("offcanvas-open");
+	};
+
+	const unlockOffcanvasBody = function () {
+		const body = document.body;
+		const activeElement = document.activeElement;
+		const savedScrollY = parseInt(body.dataset.offcanvasScrollY || "0", 10) || 0;
+
+		if (activeElement && typeof activeElement.blur === "function" && $(activeElement).closest(".offcanvas__area").length) {
+			activeElement.blur();
+		}
+
+		body.classList.remove("offcanvas-open");
+		body.style.top = "";
+		delete body.dataset.offcanvasScrollY;
+		window.scrollTo(0, savedScrollY);
+	};
+
 	$(".offcanvas-toggle-btn").on("click", function () {
 		$(".offcanvas__area").addClass("opened");
 		$(".body-overlay").addClass("opened");
+		lockOffcanvasBody();
 	});
 	$(".offcanvas__close-btn").on("click", function () {
 		$(".offcanvas__area").removeClass("opened");
 		$(".body-overlay").removeClass("opened");
+		unlockOffcanvasBody();
 	});
 
 	////////////////////////////////////////////////////
@@ -70,6 +99,7 @@
 	$(".body-overlay").on("click", function () {
 		$(".offcanvas__area").removeClass("opened");
 		$(".body-overlay").removeClass("opened");
+		unlockOffcanvasBody();
 	});
 
 	////////////////////////////////////////////////////
