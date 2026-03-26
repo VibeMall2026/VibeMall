@@ -293,3 +293,22 @@
         animation: vmAlertInMobile 0.25s ease-out;
     }
 }
+
+/* Storefront desktop container width */
+:root {
+    --vm-desktop-container-max: 1720px;
+    --vm-desktop-container-padding: clamp(18px, 1.4vw, 28px);
+}
+
+@media (min-width: 1200px) {
+    .container,
+    .container-sm,
+    .container-md,
+    .container-lg,
+    .container-xl,
+    .container-xxl {
+        max-width: min(calc(100vw - 40px), var(--vm-desktop-container-max));
+        padding-left: var(--vm-desktop-container-padding);
+        padding-right: var(--vm-desktop-container-padding);
+    }
+}

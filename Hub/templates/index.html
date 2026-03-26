@@ -387,7 +387,7 @@
     }
 
     .ready-ship-shell {
-        max-width: 1180px;
+        max-width: min(100%, 1460px);
         margin: 0 auto;
     }
 
@@ -479,6 +479,84 @@
     .ready-ship-card .ready-ship-label {
         font-size: 28px;
         bottom: 12px;
+    }
+
+    @media (min-width: 1400px) {
+        .all-categories-grid {
+            grid-template-columns: repeat(8, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .all-category-card {
+            height: 210px;
+        }
+
+        .subcat-banner-grid {
+            gap: 20px;
+        }
+
+        .subcat-banner-item {
+            height: 250px;
+        }
+
+        .ready-ship-shell {
+            max-width: min(100%, 1520px);
+        }
+
+        .ready-ship-head h3,
+        .watch-shop-head h3 {
+            font-size: 38px;
+        }
+
+        .ready-ship-hero {
+            min-height: 360px;
+            max-height: 560px;
+        }
+
+        .ready-ship-grid {
+            gap: 16px;
+        }
+
+        .ready-ship-card {
+            min-height: 220px;
+            max-height: 340px;
+        }
+
+        .top-deals-section .product__thumb,
+        .top-selling-section .product__thumb,
+        .recommended-for-you-section .product__thumb {
+            height: 320px;
+        }
+    }
+
+    @media (min-width: 1600px) {
+        .all-category-card {
+            height: 220px;
+        }
+
+        .subcat-banner-item {
+            height: 270px;
+        }
+
+        .ready-ship-shell {
+            max-width: 100%;
+        }
+
+        .ready-ship-hero {
+            min-height: 400px;
+            max-height: 600px;
+        }
+
+        .ready-ship-card {
+            min-height: 240px;
+            max-height: 360px;
+        }
+
+        .top-deals-section .product__thumb,
+        .top-selling-section .product__thumb,
+        .recommended-for-you-section .product__thumb {
+            height: 340px;
+        }
     }
 
     @media (max-width: 1199.98px) {
@@ -750,6 +828,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 1600: {
                     slidesPerView: 5,
                     spaceBetween: 20
+                },
+                1800: {
+                    slidesPerView: 5.5,
+                    spaceBetween: 22
                 }
             }
         });
