@@ -1,0 +1,195 @@
+{% extends 'admin_panel/base_admin.html' %}
+
+{% block title %}RTO Cases - Admin Panel{% endblock %}
+
+{% block extra_css %}
+<style>
+  .ops-stat-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: #fff;
+    padding: 1.25rem;
+    height: 100%;
+  }
+  .ops-stat-card .value {
+    font-size: 1.9rem;
+    font-weight: 700;
+    color: #111827;
+  }
+  .ops-stat-card .label {
+    color: #6b7280;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .ops-note {
+    color: #6b7280;
+    font-size: 0.83rem;
+  }
+  .ops-chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+  .ops-chip-low { background: #dcfce7; color: #166534; }
+  .ops-chip-medium { background: #fef3c7; color: #92400e; }
+  .ops-chip-high { background: #fee2e2; color: #991b1b; }
+  .ops-table td, .ops-table th {
+    vertical-align: middle;
+  }
+  .ops-muted {
+    color: #6b7280;
+    font-size: 0.85rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h4 class="fw-bold mb-1"><span class="text-muted fw-light">Returns /</span> RTO Management</h4>
+      <p class="text-muted mb-0">Track failed deliveries, reverse logistics, intake, and final RTO disposition.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'admin_returns' %}" class="btn btn-outline-secondary">
+        <i class="bx bx-arrow-back"></i> Returns
+      </a>
+      <a href="{% url 'admin_return_analytics' %}" class="btn btn-outline-primary">
+        <i class="bx bx-line-chart"></i> Return Analytics
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-2">
+      <div class="ops-stat-card">
+        <div class="label">Total Cases</div>
+        <div class="value">{{ total_rto_cases }}</div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="ops-stat-card">
+        <div class="label">Active</div>
+        <div class="value">{{ active_rto_cases }}</div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="ops-stat-card">
+        <div class="label">Received</div>
+        <div class="value">{{ rto_received_cases }}</div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="ops-stat-card">
+        <div class="label">COD Linked</div>
+        <div class="value">{{ cod_rto_cases }}</div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="ops-stat-card">
+        <div class="label">High-Risk Cases</div>
+        <div class="value">{{ high_risk_cases }}</div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="ops-stat-card">
+        <div class="label">High-Risk Users</div>
+        <div class="value">{{ high_risk_customers }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <form class="row g-2" method="get">
+        <div class="col-md-4">
+          <input type="text" class="form-control" name="search" placeholder="Order #, customer, tracking" value="{{ search_query }}">
+        </div>
+        <div class="col-md-3">
+          <select class="form-select" name="status">
+            <option value="">All Status</option>
+            {% for value, label in status_choices %}
+              <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <select class="form-select" name="reason">
+            <option value="">All Reasons</option>
+            {% for value, label in reason_choices %}
+              <option value="{{ value }}" {% if reason_filter == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+          <button class="btn btn-primary w-100" type="submit">Filter</button>
+          <a href="{% url 'admin_rto_cases' %}" class="btn btn-outline-secondary">Reset</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-hover ops-table">
+        <thead class="table-light">
+          <tr>
+            <th>Case</th>
+            <th>Customer</th>
+            <th>Status</th>
+            <th>Reason</th>
+            <th>Risk</th>
+            <th>Open</th>
+            <th>Recommended Action</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for case in rto_cases %}
+          <tr>
+            <td>
+              <div class="fw-semibold">RTO #{{ case.id }}</div>
+              <div class="ops-muted">Order {{ case.order.order_number }}</div>
+              <div class="ops-muted">{{ case.tracking_number|default:"No tracking" }}</div>
+            </td>
+            <td>
+              <div class="fw-semibold">{{ case.order.user.username }}</div>
+              <div class="ops-muted">{{ case.order.user.email }}</div>
+            </td>
+            <td><span class="badge bg-label-warning">{{ case.get_status_display }}</span></td>
+            <td>
+              <div>{{ case.get_reason_display }}</div>
+              <div class="ops-muted">{{ case.courier_name|default:"Courier pending" }}</div>
+            </td>
+            <td>
+              <span class="ops-chip ops-chip-{{ case.customer_ops_profile.level }}">{{ case.customer_ops_profile.label }}</span>
+              <div class="ops-muted mt-1">
+                Returns: {{ case.customer_ops_profile.return_count }} | RTO: {{ case.customer_ops_profile.rto_count }}
+              </div>
+            </td>
+            <td>
+              <div class="fw-semibold">{{ case.open_days }} day{{ case.open_days|pluralize }}</div>
+              <div class="ops-muted">{{ case.created_at|date:"d M Y" }}</div>
+            </td>
+            <td>
+              <div class="ops-muted" style="max-width: 280px;">{{ case.ops_recommendation }}</div>
+            </td>
+            <td class="text-end">
+              <a href="{% url 'admin_rto_detail' case.id %}" class="btn btn-sm btn-outline-dark">Open</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center py-5 text-muted">No RTO cases found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

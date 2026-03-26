@@ -3,11 +3,93 @@
 
 {% block title %}Return Details - Admin Panel{% endblock %}
 
+{% block extra_css %}
+<style>
+  .ops-mini-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #fff;
+    padding: 1rem;
+    height: 100%;
+  }
+  .ops-mini-card .label {
+    color: #6b7280;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .ops-mini-card .value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #111827;
+  }
+  .evidence-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  .evidence-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .evidence-card img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    display: block;
+  }
+  .risk-pill {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  .risk-pill.low { background: #dcfce7; color: #166534; }
+  .risk-pill.medium { background: #fef3c7; color: #92400e; }
+  .risk-pill.high { background: #fee2e2; color: #991b1b; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="fw-bold"><span class="text-muted fw-light">Returns /</span> #{{ return_request.id }}</h4>
         <span class="badge bg-label-warning">{{ return_request.get_status_display }}</span>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="ops-mini-card">
+                <div class="label">Customer Risk</div>
+                <div class="mt-2">
+                    <span class="risk-pill {{ customer_ops_profile.level }}">{{ customer_ops_profile.label }}</span>
+                </div>
+                <div class="text-muted small mt-2">Returns: {{ customer_ops_profile.return_count }} | RTO: {{ customer_ops_profile.rto_count }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="ops-mini-card">
+                <div class="label">Open Age</div>
+                <div class="value">{{ open_days }}</div>
+                <div class="text-muted small">days since request</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="ops-mini-card">
+                <div class="label">Disposition Hint</div>
+                <div class="text-dark fw-semibold mt-2">{{ disposition_recommendation }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="ops-mini-card">
+                <div class="label">Next Ops Step</div>
+                <div class="text-dark fw-semibold mt-2">{{ ops_recommendation }}</div>
+            </div>
+        </div>
     </div>
 
     <div class="row">
@@ -59,6 +141,32 @@
                     </ul>
                 </div>
             </div>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Evidence & Attachments</h5>
+                </div>
+                <div class="card-body">
+                    {% if attachments %}
+                    <div class="evidence-grid">
+                        {% for attachment in attachments %}
+                        <a href="{{ attachment.file.url }}" class="evidence-card text-decoration-none" target="_blank" rel="noopener">
+                            {% if attachment.content_type|default:''|slice:":6" == 'image/' %}
+                            <img src="{{ attachment.file.url }}" alt="{{ attachment.original_name|default:'Return evidence' }}">
+                            {% else %}
+                            <div class="p-4 text-center text-dark">
+                                <i class="bx bx-file fs-1 d-block mb-2"></i>
+                                <div class="small">{{ attachment.original_name|default:'Attachment' }}</div>
+                            </div>
+                            {% endif %}
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-muted">No evidence files uploaded for this return.</div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
 
         <div class="col-lg-4">
@@ -70,6 +178,7 @@
                     <p class="mb-1"><strong>Order #:</strong> {{ return_request.order.order_number }}</p>
                     <p class="mb-1"><strong>User:</strong> {{ return_request.user.username }}</p>
                     <p class="mb-1"><strong>Reason:</strong> {{ return_request.get_reason_display }}</p>
+                    <p class="mb-1"><strong>Description:</strong> {{ return_request.description|default:"-" }}</p>
                     <p class="mb-1"><strong>Refund Method:</strong> {{ return_request.refund_method|default:"-" }}</p>
                     {% if return_request.refund_amount %}
                         <p class="mb-1"><strong>Refund Amount (Gross):</strong> ₹{{ return_request.refund_amount }}</p>
@@ -91,6 +200,19 @@
                     <p class="mb-0"><strong>Notes:</strong> {{ return_request.reason_notes|default:"-" }}</p>
                 </div>
             </div>
+
+            {% if linked_rto_case %}
+            <div class="card mb-4 border-warning">
+                <div class="card-header bg-label-warning">
+                    <h5 class="mb-0">Linked RTO Case</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>Status:</strong> {{ linked_rto_case.get_status_display }}</p>
+                    <p class="mb-1"><strong>Reason:</strong> {{ linked_rto_case.get_reason_display }}</p>
+                    <a href="{% url 'admin_rto_detail' linked_rto_case.id %}" class="btn btn-sm btn-outline-dark">Open RTO Case</a>
+                </div>
+            </div>
+            {% endif %}
 
             <div class="card mb-4">
                 <div class="card-header">

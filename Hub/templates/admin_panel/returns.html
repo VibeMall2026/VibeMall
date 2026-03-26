@@ -3,65 +3,213 @@
 
 {% block title %}Returns - Admin Panel{% endblock %}
 
+{% block extra_css %}
+<style>
+  .ops-stat-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: #fff;
+    padding: 1.25rem;
+    height: 100%;
+  }
+  .ops-stat-card .value {
+    font-size: 1.9rem;
+    font-weight: 700;
+    color: #111827;
+  }
+  .ops-stat-card .label {
+    color: #6b7280;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .ops-note {
+    color: #6b7280;
+    font-size: 0.83rem;
+  }
+  .ops-chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+  .ops-chip-low { background: #dcfce7; color: #166534; }
+  .ops-chip-medium { background: #fef3c7; color: #92400e; }
+  .ops-chip-high { background: #fee2e2; color: #991b1b; }
+  .ops-table td, .ops-table th {
+    vertical-align: middle;
+  }
+  .ops-muted {
+    color: #6b7280;
+    font-size: 0.85rem;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-xxl flex-grow-1 container-p-y">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="fw-bold"><span class="text-muted fw-light">Orders /</span> Returns</h4>
-        <div class="text-muted">Refunded total: &#8377;{{ refund_total }}</div>
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h4 class="fw-bold mb-1"><span class="text-muted fw-light">Orders /</span> Return Management</h4>
+      <p class="text-muted mb-0">Returns workflow, QC queue, refund operations, and customer risk monitoring.</p>
     </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{% url 'admin_return_analytics' %}" class="btn btn-outline-primary">
+        <i class="bx bx-line-chart"></i> Analytics
+      </a>
+      <a href="{% url 'admin_rto_cases' %}" class="btn btn-outline-dark">
+        <i class="bx bx-transfer-alt"></i> RTO Cases
+      </a>
+    </div>
+  </div>
 
-    <form class="row g-2 mb-3" method="get">
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="ops-stat-card">
+        <div class="label">Refunded Total</div>
+        <div class="value">Rs.{{ refund_total|floatformat:2 }}</div>
+        <div class="ops-note">Net closed refund value</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="ops-stat-card">
+        <div class="label">Pending Returns</div>
+        <div class="value">{{ pending_returns }}</div>
+        <div class="ops-note">Cases still requiring action</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="ops-stat-card">
+        <div class="label">QC Queue</div>
+        <div class="value">{{ qc_queue_count }}</div>
+        <div class="ops-note">Received or QC-related returns</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="ops-stat-card">
+        <div class="label">Refund Pending</div>
+        <div class="value">{{ refund_pending_count }}</div>
+        <div class="ops-note">Waiting for payout completion</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-6 col-xl-4">
+      <div class="ops-stat-card">
+        <div class="label">Active RTO Cases</div>
+        <div class="value">{{ active_rto_cases }}</div>
+        <div class="ops-note">Open reverse-logistics issues linked to shipments</div>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-4">
+      <div class="ops-stat-card">
+        <div class="label">High-Risk Customers</div>
+        <div class="value">{{ high_risk_customers }}</div>
+        <div class="ops-note">Users with repeated return/RTO behavior</div>
+      </div>
+    </div>
+    <div class="col-xl-4">
+      <div class="ops-stat-card">
+        <div class="label">Management Focus</div>
+        <div class="ops-note mb-2">Use this screen for:</div>
+        <div class="ops-muted">1. Pickup and QC SLAs</div>
+        <div class="ops-muted">2. Risk-based customer review</div>
+        <div class="ops-muted">3. Refund and replacement closure</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <form class="row g-2" method="get">
         <div class="col-md-4">
-            <input type="text" class="form-control" name="search" placeholder="Order #, username, email" value="{{ search_query }}">
+          <input type="text" class="form-control" name="search" placeholder="Order #, username, email" value="{{ search_query }}">
         </div>
         <div class="col-md-3">
-            <select class="form-select" name="status">
-                <option value="">All Status</option>
-                {% for value,label in status_choices %}
-                    <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-            </select>
+          <select class="form-select" name="status">
+            <option value="">All Status</option>
+            {% for value, label in status_choices %}
+              <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
         </div>
-        <div class="col-md-2">
-            <button class="btn btn-primary w-100" type="submit">Filter</button>
+        <div class="col-md-3">
+          <select class="form-select" name="reason">
+            <option value="">All Reasons</option>
+            {% for value, label in reason_choices %}
+              <option value="{{ value }}" {% if reason_filter == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
         </div>
-    </form>
-
-    <div class="card">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead class="table-light">
-                    <tr>
-                        <th>Return ID</th>
-                        <th>Order</th>
-                        <th>User</th>
-                        <th>Status</th>
-                        <th>Requested</th>
-                        <th>Refund</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for ret in returns %}
-                    <tr>
-                        <td>#{{ ret.id }}</td>
-                        <td>{{ ret.order.order_number }}</td>
-                        <td>{{ ret.user.username }}</td>
-                        <td><span class="badge bg-label-warning">{{ ret.get_status_display }}</span></td>
-                        <td>{{ ret.requested_at|date:"d M Y" }}</td>
-                        <td>{% if ret.refund_amount %}&#8377;{{ ret.refund_amount }}{% else %}-{% endif %}</td>
-                        <td>
-                            <a href="{% url 'admin_return_detail' ret.id %}" class="btn btn-sm btn-outline-primary">View</a>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="7" class="text-center py-4">No return requests found.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div class="col-md-2 d-flex gap-2">
+          <button class="btn btn-primary w-100" type="submit">Filter</button>
+          <a href="{% url 'admin_returns' %}" class="btn btn-outline-secondary">Reset</a>
         </div>
+      </form>
     </div>
+  </div>
+
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-hover ops-table">
+        <thead class="table-light">
+          <tr>
+            <th>Return</th>
+            <th>Customer</th>
+            <th>Status</th>
+            <th>Reason</th>
+            <th>Risk</th>
+            <th>Open</th>
+            <th>Recommended Action</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ret in returns %}
+          <tr>
+            <td>
+              <div class="fw-semibold">#{{ ret.return_number|default:ret.id }}</div>
+              <div class="ops-muted">Order {{ ret.order.order_number }}</div>
+            </td>
+            <td>
+              <div class="fw-semibold">{{ ret.user.username }}</div>
+              <div class="ops-muted">{{ ret.user.email }}</div>
+            </td>
+            <td>
+              <span class="badge bg-label-primary">{{ ret.get_status_display }}</span>
+            </td>
+            <td>
+              <div>{{ ret.get_reason_display }}</div>
+              <div class="ops-muted">{{ ret.items.count }} item{{ ret.items.count|pluralize }}</div>
+            </td>
+            <td>
+              <span class="ops-chip ops-chip-{{ ret.customer_ops_profile.level }}">{{ ret.customer_ops_profile.label }}</span>
+              <div class="ops-muted mt-1">
+                Returns: {{ ret.customer_ops_profile.return_count }} | RTO: {{ ret.customer_ops_profile.rto_count }}
+              </div>
+            </td>
+            <td>
+              <div class="fw-semibold">{{ ret.open_days }} day{{ ret.open_days|pluralize }}</div>
+              <div class="ops-muted">{{ ret.requested_at|date:"d M Y" }}</div>
+            </td>
+            <td>
+              <div class="ops-muted" style="max-width: 270px;">{{ ret.ops_recommendation }}</div>
+            </td>
+            <td class="text-end">
+              <a href="{% url 'admin_return_detail' ret.id %}" class="btn btn-sm btn-outline-primary">Open</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center py-5 text-muted">No return requests found for the selected filters.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 {% endblock %}

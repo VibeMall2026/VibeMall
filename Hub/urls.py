@@ -73,6 +73,8 @@ urlpatterns = [
     path('admin-panel/returns/', views.admin_returns, name='admin_returns'),
     path('admin-panel/returns/<int:return_id>/', views.admin_return_detail, name='admin_return_detail'),
     path('admin-panel/returns-analytics/', views.admin_return_analytics, name='admin_return_analytics'),
+    path('admin-panel/rto/', views.admin_rto_cases, name='admin_rto_cases'),
+    path('admin-panel/rto/<int:rto_id>/', views.admin_rto_detail, name='admin_rto_detail'),
     path('admin-panel/marketing-studio/', views.admin_marketing_studio, name='admin_marketing_studio'),
     path('admin-panel/razorpay/health/', views.admin_razorpay_health, name='admin_razorpay_health'),
 

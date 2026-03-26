@@ -65,7 +65,104 @@ RETURN_STATUS_FLOW = {
     'QC_FAILED': ['REFUND_PENDING', 'WRONG_RETURN', 'REFUNDED', 'REPLACED'],
 }
 
-from .models import CategoryIcon, SubCategory, Slider, Feature, Banner, Product, DealCountdown, UserProfile, Address, Cart, Wishlist, ProductImage, ProductReview, ReviewImage, ReviewVote, ProductQuestion, Order, OrderItem, OrderStatusHistory, OrderCancellationRequest, ReturnRequest, ReturnItem, ReturnHistory, ReturnAttachment, ReturnLabel, AdminEmailSettings, ProductStockNotification, BrandPartner, SiteSettings, LoyaltyPoints, PointsTransaction, MainPageProduct, MainPageSubCategoryBanner, MainPageBanner, ChatThread, ChatMessage, ChatAttachment, NewsletterSubscription
+RTO_STATUS_FLOW = {
+    'DELIVERY_FAILED': ['RTO_INITIATED'],
+    'RTO_INITIATED': ['RTO_IN_TRANSIT', 'RTO_RECEIVED'],
+    'RTO_IN_TRANSIT': ['RTO_RECEIVED'],
+    'RTO_RECEIVED': ['RTO_CLOSED'],
+}
+
+
+def _ops_risk_level(return_count: int, rto_count: int, delivered_count: int) -> Dict[str, Any]:
+    total_events = return_count + rto_count
+    completed_orders = max(delivered_count, 1)
+    issue_rate = total_events / completed_orders
+
+    if rto_count >= 3 or total_events >= 6 or issue_rate >= 0.45:
+        return {'level': 'high', 'label': 'High Risk', 'color': 'danger'}
+    if rto_count >= 1 or total_events >= 3 or issue_rate >= 0.20:
+        return {'level': 'medium', 'label': 'Medium Risk', 'color': 'warning'}
+    return {'level': 'low', 'label': 'Low Risk', 'color': 'success'}
+
+
+def _build_customer_ops_profiles(user_ids: List[int]) -> Dict[int, Dict[str, Any]]:
+    clean_ids = [user_id for user_id in set(user_ids) if user_id]
+    if not clean_ids:
+        return {}
+
+    return_counts = {
+        row['user_id']: row['total']
+        for row in ReturnRequest.objects.filter(user_id__in=clean_ids)
+        .values('user_id')
+        .annotate(total=Count('id'))
+    }
+    rto_counts = {
+        row['order__user_id']: row['total']
+        for row in RTOCase.objects.filter(order__user_id__in=clean_ids)
+        .values('order__user_id')
+        .annotate(total=Count('id'))
+    }
+    delivered_counts = {
+        row['user_id']: row['total']
+        for row in Order.objects.filter(user_id__in=clean_ids, order_status='DELIVERED')
+        .values('user_id')
+        .annotate(total=Count('id'))
+    }
+
+    profiles: Dict[int, Dict[str, Any]] = {}
+    for user_id in clean_ids:
+        return_count = int(return_counts.get(user_id, 0) or 0)
+        rto_count = int(rto_counts.get(user_id, 0) or 0)
+        delivered_count = int(delivered_counts.get(user_id, 0) or 0)
+        risk_meta = _ops_risk_level(return_count, rto_count, delivered_count)
+        profiles[user_id] = {
+            'return_count': return_count,
+            'rto_count': rto_count,
+            'delivered_count': delivered_count,
+            'issue_rate': round(((return_count + rto_count) / max(delivered_count, 1)) * 100, 1),
+            **risk_meta,
+        }
+    return profiles
+
+
+def _return_ops_recommendation(status: str) -> str:
+    mapping = {
+        'REQUESTED': 'Review the request, verify reason, and move quickly to approve or reject.',
+        'APPROVED': 'Schedule reverse pickup and lock courier ownership.',
+        'PICKUP_SCHEDULED': 'Track pickup SLA and monitor first-attempt completion.',
+        'UNABLE_TO_REACH': 'Reconnect with the customer and reschedule pickup.',
+        'RESCHEDULED': 'Watch the new pickup slot and avoid repeated misses.',
+        'RECEIVED': 'Move the item into QC immediately.',
+        'QC_PENDING': 'Complete QC and decide refund, replacement, or wrong-return handling.',
+        'QC_PASSED': 'Route to refund/replacement and confirm inventory disposition.',
+        'QC_FAILED': 'Hold item, document findings, and review wrong-return or partial-refund options.',
+        'REFUND_PENDING': 'Process refund and close the case.',
+        'WRONG_RETURN': 'Document mismatch evidence and confirm adjusted refund handling.',
+    }
+    return mapping.get(status, 'Monitor the case and move it to closure.')
+
+
+def _rto_ops_recommendation(status: str) -> str:
+    mapping = {
+        'DELIVERY_FAILED': 'Confirm the failed-delivery reason and start the RTO workflow.',
+        'RTO_INITIATED': 'Track courier handoff and keep customer risk tagged.',
+        'RTO_IN_TRANSIT': 'Monitor return scans and expected warehouse arrival.',
+        'RTO_RECEIVED': 'Run intake QC and decide restock, hold, reship, or disposal.',
+        'RTO_CLOSED': 'Ensure final disposition and notes are complete.',
+    }
+    return mapping.get(status, 'Review the case and assign the next operational action.')
+
+
+def _log_rto_history(rto_case: 'RTOCase', old_status: str, new_status: str, user: User, notes: str = '') -> None:
+    RTOHistory.objects.create(
+        rto_case=rto_case,
+        old_status=old_status,
+        new_status=new_status,
+        changed_by=user,
+        notes=notes,
+    )
+
+from .models import CategoryIcon, SubCategory, Slider, Feature, Banner, Product, DealCountdown, UserProfile, Address, Cart, Wishlist, ProductImage, ProductReview, ReviewImage, ReviewVote, ProductQuestion, Order, OrderItem, OrderStatusHistory, OrderCancellationRequest, ReturnRequest, ReturnItem, ReturnHistory, ReturnAttachment, ReturnLabel, RTOCase, RTOHistory, AdminEmailSettings, ProductStockNotification, BrandPartner, SiteSettings, LoyaltyPoints, PointsTransaction, MainPageProduct, MainPageSubCategoryBanner, MainPageBanner, ChatThread, ChatMessage, ChatAttachment, NewsletterSubscription
 from .email_utils import send_order_confirmation_email, send_order_status_update_email, send_admin_order_notification
 from .view_helpers import (
     _split_full_name,
@@ -3680,6 +3777,25 @@ def admin_order_details(request, order_id):
             order.admin_notes = request.POST.get('admin_notes')
             order.save()
             messages.success(request, 'Admin notes saved')
+        elif action == 'create_rto_case':
+            existing_rto = getattr(order, 'rto_case', None)
+            if existing_rto:
+                messages.info(request, 'RTO case already exists for this order.')
+                return redirect('admin_rto_detail', rto_id=existing_rto.id)
+
+            reason = (request.POST.get('rto_reason') or 'OTHER').strip()
+            reason_notes = (request.POST.get('rto_reason_notes') or '').strip()
+            rto_case = RTOCase.objects.create(
+                order=order,
+                reason=reason if reason in dict(RTOCase.REASON_CHOICES) else 'OTHER',
+                reason_notes=reason_notes,
+                courier_name=order.courier_name or '',
+                tracking_number=order.tracking_number or '',
+                last_attempted_at=timezone.now(),
+            )
+            _log_rto_history(rto_case, '', rto_case.status, request.user, 'RTO case created from order detail.')
+            messages.success(request, 'RTO case created.')
+            return redirect('admin_rto_detail', rto_id=rto_case.id)
         elif action in ['approve_cancel', 'reject_cancel']:
             cancel_request = getattr(order, 'cancellation_request', None)
             if not cancel_request or cancel_request.status != 'REQUESTED':
@@ -3756,6 +3872,8 @@ def admin_order_details(request, order_id):
         'order': order,
         'status_history': status_history,
         'cancel_request': getattr(order, 'cancellation_request', None),
+        'rto_case': getattr(order, 'rto_case', None),
+        'rto_reason_choices': RTOCase.REASON_CHOICES,
     }
     return render(request, 'admin_panel/order_details.html', context)
 
@@ -8746,32 +8864,58 @@ def return_status(request, return_id):
 @login_required(login_url='login')
 @staff_member_required(login_url='login')
 def admin_returns(request):
-    """Admin return requests list"""
-    returns = ReturnRequest.objects.select_related('order', 'user').prefetch_related('items')
+    """Admin return requests list with operations summary."""
+    returns_qs = ReturnRequest.objects.select_related('order', 'user').prefetch_related('items')
 
     status_filter = request.GET.get('status', '').strip()
+    reason_filter = request.GET.get('reason', '').strip()
     search_query = request.GET.get('search', '').strip()
 
     if status_filter:
-        returns = returns.filter(status=status_filter)
-
+        returns_qs = returns_qs.filter(status=status_filter)
+    if reason_filter:
+        returns_qs = returns_qs.filter(reason=reason_filter)
     if search_query:
-        returns = returns.filter(
+        returns_qs = returns_qs.filter(
             Q(order__order_number__icontains=search_query) |
             Q(user__username__icontains=search_query) |
             Q(user__email__icontains=search_query)
         )
 
+    returns = list(returns_qs.order_by('-requested_at'))
+    ops_profiles = _build_customer_ops_profiles([ret.user_id for ret in returns])
+    for ret in returns:
+        ret.customer_ops_profile = ops_profiles.get(ret.user_id, {'label': 'Low Risk', 'color': 'success', 'return_count': 0, 'rto_count': 0, 'issue_rate': 0})
+        ret.open_days = max((timezone.now() - ret.requested_at).days, 0)
+        ret.ops_recommendation = _return_ops_recommendation(ret.status)
+
     refund_total = ReturnRequest.objects.filter(status='REFUNDED').aggregate(
         total=Sum(Coalesce('refund_amount_net', 'refund_amount'))
-    )['total'] or 0
+    )['total'] or Decimal('0.00')
+
+    pending_returns = ReturnRequest.objects.exclude(status__in=['REFUNDED', 'REPLACED', 'REJECTED', 'CANCELLED']).count()
+    qc_queue_count = ReturnRequest.objects.filter(status__in=['RECEIVED', 'QC_PENDING', 'QC_PASSED', 'QC_FAILED']).count()
+    refund_pending_count = ReturnRequest.objects.filter(status='REFUND_PENDING').count()
+    active_rto_cases = RTOCase.objects.exclude(status='RTO_CLOSED').count()
+
+    risky_user_ids = set(ReturnRequest.objects.values_list('user_id', flat=True))
+    risky_user_ids.update(RTOCase.objects.values_list('order__user_id', flat=True))
+    all_profiles = _build_customer_ops_profiles(list(risky_user_ids))
+    high_risk_customers = sum(1 for profile in all_profiles.values() if profile['level'] == 'high')
 
     return render(request, 'admin_panel/returns.html', {
-        'returns': returns.order_by('-requested_at'),
+        'returns': returns,
         'status_filter': status_filter,
+        'reason_filter': reason_filter,
         'search_query': search_query,
         'refund_total': refund_total,
         'status_choices': ReturnRequest.STATUS_CHOICES,
+        'reason_choices': ReturnRequest.RETURN_REASON_CHOICES,
+        'pending_returns': pending_returns,
+        'qc_queue_count': qc_queue_count,
+        'refund_pending_count': refund_pending_count,
+        'active_rto_cases': active_rto_cases,
+        'high_risk_customers': high_risk_customers,
     })
 
 
@@ -8872,12 +9016,160 @@ def admin_return_detail(request, return_id):
             messages.success(request, f'Return updated to {final_action}.')
         return redirect('admin_return_detail', return_id=return_request_obj.id)
 
+    item_conditions = list(return_request_obj.items.values_list('condition', flat=True))
+    if item_conditions and all(condition == 'NEW' for condition in item_conditions):
+        disposition_recommendation = 'Restock candidate after QC confirmation.'
+    elif 'DAMAGED' in item_conditions:
+        disposition_recommendation = 'Move to damage hold or clearance review after QC.'
+    else:
+        disposition_recommendation = 'Manual QC review before restock or refund closure.'
+
+    customer_ops_profile = _build_customer_ops_profiles([return_request_obj.user_id]).get(
+        return_request_obj.user_id,
+        {'label': 'Low Risk', 'color': 'success', 'return_count': 0, 'rto_count': 0, 'issue_rate': 0},
+    )
+
     return render(request, 'admin_panel/return_detail.html', {
         'return_request': return_request_obj,
         'history': return_request_obj.history.select_related('changed_by'),
         'allowed_next': allowed_next,
         'customer_profile': customer_profile,
         'half_refund_amount': half_refund_amount,
+        'customer_ops_profile': customer_ops_profile,
+        'disposition_recommendation': disposition_recommendation,
+        'ops_recommendation': _return_ops_recommendation(return_request_obj.status),
+        'open_days': max((timezone.now() - return_request_obj.requested_at).days, 0),
+        'attachments': return_request_obj.attachments.all(),
+        'linked_rto_case': getattr(return_request_obj.order, 'rto_case', None),
+    })
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_rto_cases(request):
+    """Admin RTO management list."""
+    rto_qs = RTOCase.objects.select_related('order', 'order__user')
+
+    status_filter = request.GET.get('status', '').strip()
+    reason_filter = request.GET.get('reason', '').strip()
+    search_query = request.GET.get('search', '').strip()
+
+    if status_filter:
+        rto_qs = rto_qs.filter(status=status_filter)
+    if reason_filter:
+        rto_qs = rto_qs.filter(reason=reason_filter)
+    if search_query:
+        rto_qs = rto_qs.filter(
+            Q(order__order_number__icontains=search_query) |
+            Q(order__user__username__icontains=search_query) |
+            Q(order__user__email__icontains=search_query) |
+            Q(tracking_number__icontains=search_query)
+        )
+
+    rto_cases = list(rto_qs.order_by('-created_at'))
+    ops_profiles = _build_customer_ops_profiles([case.order.user_id for case in rto_cases])
+    for case in rto_cases:
+        case.customer_ops_profile = ops_profiles.get(case.order.user_id, {'label': 'Low Risk', 'color': 'success', 'return_count': 0, 'rto_count': 0, 'issue_rate': 0})
+        case.open_days = max((timezone.now() - case.created_at).days, 0)
+        case.ops_recommendation = _rto_ops_recommendation(case.status)
+
+    all_profiles = _build_customer_ops_profiles(list(set(RTOCase.objects.values_list('order__user_id', flat=True))))
+    high_risk_cases = sum(1 for case in rto_cases if case.customer_ops_profile.get('level') == 'high')
+
+    return render(request, 'admin_panel/rto_cases.html', {
+        'rto_cases': rto_cases,
+        'status_filter': status_filter,
+        'reason_filter': reason_filter,
+        'search_query': search_query,
+        'status_choices': RTOCase.STATUS_CHOICES,
+        'reason_choices': RTOCase.REASON_CHOICES,
+        'total_rto_cases': RTOCase.objects.count(),
+        'active_rto_cases': RTOCase.objects.exclude(status='RTO_CLOSED').count(),
+        'rto_received_cases': RTOCase.objects.filter(status='RTO_RECEIVED').count(),
+        'cod_rto_cases': RTOCase.objects.filter(order__payment_method='COD').count(),
+        'high_risk_customers': sum(1 for profile in all_profiles.values() if profile['level'] == 'high'),
+        'high_risk_cases': high_risk_cases,
+    })
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_rto_detail(request, rto_id):
+    """Admin RTO case detail and workflow."""
+    rto_case = get_object_or_404(RTOCase.objects.select_related('order', 'order__user'), id=rto_id)
+    customer_profile = UserProfile.objects.filter(user=rto_case.order.user).first()
+    allowed_next = RTO_STATUS_FLOW.get(rto_case.status, [])
+
+    if request.method == 'POST':
+        next_status = (request.POST.get('status') or '').strip()
+        notes = (request.POST.get('notes') or '').strip()
+        now = timezone.now()
+        old_status = rto_case.status
+        final_status = old_status
+
+        if next_status and next_status != old_status:
+            if next_status not in allowed_next:
+                messages.error(request, 'Invalid RTO status transition.')
+                return redirect('admin_rto_detail', rto_id=rto_case.id)
+            rto_case.status = next_status
+            final_status = next_status
+            if next_status == 'RTO_INITIATED' and not rto_case.initiated_at:
+                rto_case.initiated_at = now
+            if next_status == 'RTO_RECEIVED':
+                rto_case.received_at = now
+            if next_status == 'RTO_CLOSED':
+                rto_case.closed_at = now
+
+        reason = (request.POST.get('reason') or '').strip()
+        if reason in dict(RTOCase.REASON_CHOICES):
+            rto_case.reason = reason
+
+        resolution_action = (request.POST.get('resolution_action') or '').strip()
+        if resolution_action in dict(RTOCase.RESOLUTION_CHOICES):
+            rto_case.resolution_action = resolution_action
+
+        rto_case.reason_notes = (request.POST.get('reason_notes') or '').strip()
+        rto_case.courier_name = (request.POST.get('courier_name') or '').strip()
+        rto_case.tracking_number = (request.POST.get('tracking_number') or '').strip()
+
+        last_attempted_at = (request.POST.get('last_attempted_at') or '').strip()
+        if last_attempted_at:
+            parsed = parse_datetime(last_attempted_at)
+            if not parsed:
+                date_only = parse_date(last_attempted_at)
+                if date_only:
+                    parsed = timezone.make_aware(datetime.combine(date_only, time(hour=10, minute=0)))
+            if parsed:
+                rto_case.last_attempted_at = parsed
+
+        if notes:
+            stamped_notes = f"[{now.strftime('%d %b %Y %H:%M')}] {notes}"
+            rto_case.admin_notes = f"{stamped_notes}\n{rto_case.admin_notes}".strip()
+
+        rto_case.save()
+
+        if final_status != old_status:
+            _log_rto_history(rto_case, old_status, final_status, request.user, notes)
+            messages.success(request, f'RTO case updated to {rto_case.get_status_display()}.')
+        else:
+            messages.success(request, 'RTO case details updated.')
+        return redirect('admin_rto_detail', rto_id=rto_case.id)
+
+    customer_ops_profile = _build_customer_ops_profiles([rto_case.order.user_id]).get(
+        rto_case.order.user_id,
+        {'label': 'Low Risk', 'color': 'success', 'return_count': 0, 'rto_count': 0, 'issue_rate': 0},
+    )
+
+    return render(request, 'admin_panel/rto_detail.html', {
+        'rto_case': rto_case,
+        'history': rto_case.history.select_related('changed_by'),
+        'allowed_next': allowed_next,
+        'customer_profile': customer_profile,
+        'customer_ops_profile': customer_ops_profile,
+        'ops_recommendation': _rto_ops_recommendation(rto_case.status),
+        'open_days': max((timezone.now() - rto_case.created_at).days, 0),
+        'reason_choices': RTOCase.REASON_CHOICES,
+        'resolution_choices': RTOCase.RESOLUTION_CHOICES,
     })
 
 

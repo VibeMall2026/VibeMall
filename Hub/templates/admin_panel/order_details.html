@@ -327,6 +327,45 @@
                 </div>
             </div>
 
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">RTO Management</h5>
+                </div>
+                <div class="card-body">
+                    {% if rto_case %}
+                    <div class="mb-2">
+                        <span class="badge bg-warning text-dark">{{ rto_case.get_status_display }}</span>
+                    </div>
+                    <div class="mb-2"><small class="text-muted">Reason:</small> {{ rto_case.get_reason_display }}</div>
+                    <div class="mb-3"><small class="text-muted">Tracking:</small> {{ rto_case.tracking_number|default:"-" }}</div>
+                    <a href="{% url 'admin_rto_detail' rto_case.id %}" class="btn btn-outline-dark w-100">
+                        <i class="bx bx-transfer-alt"></i> Open RTO Case
+                    </a>
+                    {% else %}
+                    <p class="text-muted small">Create an RTO case when shipment delivery fails and the package starts moving back to origin.</p>
+                    <form method="POST" action="{% url 'admin_order_details' order.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="create_rto_case">
+                        <div class="mb-2">
+                            <label class="form-label">Reason</label>
+                            <select class="form-select" name="rto_reason" required>
+                                {% for value, label in rto_reason_choices %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-control" name="rto_reason_notes" rows="2" placeholder="Failed delivery notes"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-dark w-100">
+                            <i class="bx bx-plus"></i> Create RTO Case
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+
             <!-- Tracking -->
             {% if order.tracking_number %}
             <div class="card mb-4">

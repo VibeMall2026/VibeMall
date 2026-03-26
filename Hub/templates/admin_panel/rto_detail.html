@@ -1,0 +1,217 @@
+{% extends 'admin_panel/base_admin.html' %}
+
+{% block title %}RTO Case Detail - Admin Panel{% endblock %}
+
+{% block extra_css %}
+<style>
+  .ops-mini-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #fff;
+    padding: 1rem;
+    height: 100%;
+  }
+  .ops-mini-card .label {
+    color: #6b7280;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .ops-mini-card .value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #111827;
+  }
+  .risk-pill {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  .risk-pill.low { background: #dcfce7; color: #166534; }
+  .risk-pill.medium { background: #fef3c7; color: #92400e; }
+  .risk-pill.high { background: #fee2e2; color: #991b1b; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h4 class="fw-bold mb-1"><span class="text-muted fw-light">RTO /</span> #{{ rto_case.id }}</h4>
+      <p class="text-muted mb-0">Order {{ rto_case.order.order_number }}</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'admin_rto_cases' %}" class="btn btn-outline-secondary">
+        <i class="bx bx-arrow-back"></i> Back to RTO Cases
+      </a>
+      <span class="badge bg-label-warning align-self-center">{{ rto_case.get_status_display }}</span>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="ops-mini-card">
+        <div class="label">Customer Risk</div>
+        <div class="mt-2">
+          <span class="risk-pill {{ customer_ops_profile.level }}">{{ customer_ops_profile.label }}</span>
+        </div>
+        <div class="text-muted small mt-2">Returns: {{ customer_ops_profile.return_count }} | RTO: {{ customer_ops_profile.rto_count }}</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="ops-mini-card">
+        <div class="label">Open Age</div>
+        <div class="value">{{ open_days }}</div>
+        <div class="text-muted small">days since case creation</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="ops-mini-card">
+        <div class="label">Resolution</div>
+        <div class="text-dark fw-semibold mt-2">{{ rto_case.get_resolution_action_display|default:"Pending assignment" }}</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="ops-mini-card">
+        <div class="label">Next Ops Step</div>
+        <div class="text-dark fw-semibold mt-2">{{ ops_recommendation }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Case Overview</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <small class="text-muted">Order Number</small>
+              <div class="fw-semibold">{{ rto_case.order.order_number }}</div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <small class="text-muted">Payment Method</small>
+              <div class="fw-semibold">{{ rto_case.order.get_payment_method_display }}</div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <small class="text-muted">Reason</small>
+              <div class="fw-semibold">{{ rto_case.get_reason_display }}</div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <small class="text-muted">Courier</small>
+              <div class="fw-semibold">{{ rto_case.courier_name|default:"-" }}</div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <small class="text-muted">Tracking Number</small>
+              <div class="fw-semibold">{{ rto_case.tracking_number|default:"-" }}</div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <small class="text-muted">Last Attempted At</small>
+              <div class="fw-semibold">{{ rto_case.last_attempted_at|date:"d M Y, H:i"|default:"-" }}</div>
+            </div>
+            <div class="col-12">
+              <small class="text-muted">Reason Notes</small>
+              <div>{{ rto_case.reason_notes|default:"-" }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">History</h5>
+        </div>
+        <div class="card-body">
+          <ul class="list-group">
+            {% for entry in history %}
+            <li class="list-group-item d-flex justify-content-between flex-wrap gap-2">
+              <span>{{ entry.new_status|title }}</span>
+              <small class="text-muted">{{ entry.created_at|date:"d M Y, h:i A" }}</small>
+            </li>
+            {% empty %}
+            <li class="list-group-item">No updates yet.</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Customer</h5>
+        </div>
+        <div class="card-body">
+          <p class="mb-1"><strong>Name:</strong> {{ rto_case.order.user.get_full_name|default:rto_case.order.user.username }}</p>
+          <p class="mb-1"><strong>Email:</strong> {{ rto_case.order.user.email|default:"-" }}</p>
+          <p class="mb-1"><strong>Phone:</strong> {{ customer_profile.phone|default:customer_profile.mobile_number|default:"-" }}</p>
+          <p class="mb-0"><strong>Shipping Address:</strong> {{ rto_case.order.shipping_address|default:"-" }}</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Update RTO Case</h5>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label">Next Status</label>
+              <select class="form-select" name="status">
+                <option value="{{ rto_case.status }}">Keep Current Status</option>
+                {% for status in allowed_next %}
+                <option value="{{ status }}">{{ status|title }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Reason</label>
+              <select class="form-select" name="reason">
+                {% for value, label in reason_choices %}
+                <option value="{{ value }}" {% if rto_case.reason == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Resolution Action</label>
+              <select class="form-select" name="resolution_action">
+                <option value="">Select action</option>
+                {% for value, label in resolution_choices %}
+                <option value="{{ value }}" {% if rto_case.resolution_action == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Courier Name</label>
+              <input type="text" class="form-control" name="courier_name" value="{{ rto_case.courier_name }}">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Tracking Number</label>
+              <input type="text" class="form-control" name="tracking_number" value="{{ rto_case.tracking_number }}">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Last Attempted At</label>
+              <input type="date" class="form-control" name="last_attempted_at" value="{{ rto_case.last_attempted_at|date:'Y-m-d' }}">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Reason Notes</label>
+              <textarea class="form-control" name="reason_notes" rows="3">{{ rto_case.reason_notes }}</textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Admin Notes</label>
+              <textarea class="form-control" name="notes" rows="3"></textarea>
+            </div>
+            <button type="submit" class="btn btn-dark w-100">Save RTO Update</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

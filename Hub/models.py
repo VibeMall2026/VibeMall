@@ -1204,6 +1204,76 @@ class ReturnLabel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 
+class RTOCase(models.Model):
+    """Track return-to-origin cases separately from normal order status."""
+
+    STATUS_CHOICES = [
+        ('DELIVERY_FAILED', 'Delivery Failed'),
+        ('RTO_INITIATED', 'RTO Initiated'),
+        ('RTO_IN_TRANSIT', 'RTO In Transit'),
+        ('RTO_RECEIVED', 'RTO Received'),
+        ('RTO_CLOSED', 'RTO Closed'),
+    ]
+
+    REASON_CHOICES = [
+        ('WRONG_ADDRESS', 'Wrong Address'),
+        ('CUSTOMER_UNAVAILABLE', 'Customer Unavailable'),
+        ('CUSTOMER_REFUSED', 'Customer Refused Delivery'),
+        ('FAKE_ORDER', 'Fake / High-Risk Order'),
+        ('COURIER_ISSUE', 'Courier Issue'),
+        ('OTHER', 'Other'),
+    ]
+
+    RESOLUTION_CHOICES = [
+        ('RESTOCK', 'Restock'),
+        ('HOLD', 'Hold for Review'),
+        ('REPACK', 'Repack and Reship'),
+        ('DISPOSE', 'Dispose / Damaged'),
+        ('VENDOR_RETURN', 'Return to Vendor'),
+    ]
+
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='rto_case')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DELIVERY_FAILED')
+    reason = models.CharField(max_length=30, choices=REASON_CHOICES, default='OTHER')
+    reason_notes = models.TextField(blank=True)
+    resolution_action = models.CharField(max_length=20, choices=RESOLUTION_CHOICES, blank=True)
+    courier_name = models.CharField(max_length=100, blank=True)
+    tracking_number = models.CharField(max_length=100, blank=True)
+    admin_notes = models.TextField(blank=True)
+    last_attempted_at = models.DateTimeField(null=True, blank=True)
+    initiated_at = models.DateTimeField(default=timezone.now)
+    received_at = models.DateTimeField(null=True, blank=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'RTO Case'
+        verbose_name_plural = 'RTO Cases'
+
+    def __str__(self):
+        return f"RTO #{self.id} - Order #{self.order.order_number}"
+
+
+class RTOHistory(models.Model):
+    """Track RTO case workflow changes."""
+
+    rto_case = models.ForeignKey(RTOCase, on_delete=models.CASCADE, related_name='history')
+    old_status = models.CharField(max_length=20, blank=True)
+    new_status = models.CharField(max_length=20)
+    changed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name_plural = 'RTO Histories'
+
+    def __str__(self):
+        return f"RTO #{self.rto_case.id} - {self.old_status} -> {self.new_status}"
+
+
 class ChatThread(models.Model):
     """Customer support chat thread"""
     STATUS_CHOICES = [
