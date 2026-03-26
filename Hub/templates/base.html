@@ -45,6 +45,21 @@
     <link rel="stylesheet" href="{% static 'assets/css/pages-responsive.css' %}?v=20260222-03">
     <link rel="stylesheet" href="{% static 'assets/css/buttons-rounded.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/base-custom.css' %}?v=20260326-02">
+    <style>
+    @media (min-width: 1450px) and (max-width: 1599.98px) {
+        .container,
+        .container-sm,
+        .container-md,
+        .container-lg,
+        .container-xl,
+        .container-xxl {
+            width: calc(100vw - 8px) !important;
+            max-width: calc(100vw - 8px) !important;
+            padding-left: 8px !important;
+            padding-right: 8px !important;
+        }
+    }
+    </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>

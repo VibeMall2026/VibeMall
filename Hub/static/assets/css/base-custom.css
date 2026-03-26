@@ -307,9 +307,10 @@
     .container-lg,
     .container-xl,
     .container-xxl {
-        max-width: min(calc(100vw - 40px), var(--vm-desktop-container-max));
-        padding-left: var(--vm-desktop-container-padding);
-        padding-right: var(--vm-desktop-container-padding);
+        width: min(calc(100vw - 40px), var(--vm-desktop-container-max)) !important;
+        max-width: min(calc(100vw - 40px), var(--vm-desktop-container-max)) !important;
+        padding-left: var(--vm-desktop-container-padding) !important;
+        padding-right: var(--vm-desktop-container-padding) !important;
     }
 }
 
@@ -320,8 +321,9 @@
     .container-lg,
     .container-xl,
     .container-xxl {
-        max-width: calc(100vw - 16px);
-        padding-left: 14px;
-        padding-right: 14px;
+        width: calc(100vw - 8px) !important;
+        max-width: calc(100vw - 8px) !important;
+        padding-left: 8px !important;
+        padding-right: 8px !important;
     }
 }
