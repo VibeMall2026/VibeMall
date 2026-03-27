@@ -28,37 +28,47 @@ def cart_wishlist_context(request):
     if request.path.startswith('/admin-panel/'):
         return context
 
-    if request.user.is_authenticated:
+    user = getattr(request, 'user', None)
+    if user and user.is_authenticated:
         # Cart items and count
-        cart_items = Cart.objects.filter(user=request.user).select_related('product')
-        context['cart_count'] = cart_items.count()
+        cart_items_qs = (
+            Cart.objects
+            .filter(user=user)
+            .select_related('product')
+            .only('id', 'quantity', 'product__id', 'product__name', 'product__image', 'product__price')
+        )
+        cart_items = list(cart_items_qs)
+        context['cart_count'] = len(cart_items)
         context['cart_items'] = cart_items
-        
-        # Calculate cart total
-        cart_total = sum(item.get_total_price() for item in cart_items)
+
+        cart_total = sum((item.product.price or 0) * item.quantity for item in cart_items)
         context['cart_total'] = f"{cart_total:.2f}"
-        
+
         # Wishlist count
-        context['wishlist_count'] = Wishlist.objects.filter(user=request.user).count()
-        
+        context['wishlist_count'] = Wishlist.objects.filter(user=user).count()
+
         # Loyalty points
-        try:
-            loyalty = LoyaltyPoints.objects.get(user=request.user)
-            context['loyalty_points'] = loyalty.points_available
-        except LoyaltyPoints.DoesNotExist:
-            # Avoid writes inside request-time context processor.
-            context['loyalty_points'] = 0
+        context['loyalty_points'] = (
+            LoyaltyPoints.objects
+            .filter(user=user)
+            .values_list('points_available', flat=True)
+            .first()
+            or 0
+        )
     
     return context
 
 
 def site_settings_context(request):
     """Add site settings to every template"""
-    try:
-        site_settings = SiteSettings.get_settings()
-    except:
-        # If table doesn't exist yet (during migrations)
-        site_settings = None
+    site_settings = cache.get('site_settings_context_v1')
+    if site_settings is None:
+        try:
+            site_settings = SiteSettings.get_settings()
+            cache.set('site_settings_context_v1', site_settings, 3600)
+        except Exception:
+            # If table doesn't exist yet (during migrations)
+            site_settings = None
     
     return {
         'site_settings': site_settings,

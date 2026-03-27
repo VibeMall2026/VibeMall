@@ -1421,9 +1421,8 @@ document.addEventListener('DOMContentLoaded', function () {
                             <video
                                 muted
                                 loop
-                                autoplay
                                 playsinline
-                                preload="metadata"
+                                preload="none"
                                 {% if reel.thumbnail %}poster="{{ reel.thumbnail.url }}"{% endif %}>
                                 <source src="{{ reel.video_file.url }}" type="video/mp4">
                             </video>

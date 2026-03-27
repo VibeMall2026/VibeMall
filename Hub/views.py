@@ -24,6 +24,7 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
 from django.conf import settings
+from django.core.cache import cache
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.files import File
 from decimal import Decimal, InvalidOperation
@@ -4760,191 +4761,163 @@ def admin_customer_details(request, customer_id):
 # ===== PUBLIC VIEWS =====
 
 def index(request):
-    sliders = Slider.objects.filter(is_active=True)
-    features = Feature.objects.filter(is_active=True)
-    banners = Banner.objects.filter(is_active=True)
-    categories = CategoryIcon.objects.filter(is_active=True)
-    if not categories.exists():
-        excluded_categories = {'TOP_DEALS', 'TOP_SELLING', 'TOP_FEATURED', 'RECOMMENDED'}
-        categories = [
+    homepage_cache_key = 'homepage_public_context_v2'
+    public_context = cache.get(homepage_cache_key)
+
+    if public_context is None:
+        sliders = list(Slider.objects.filter(is_active=True).order_by('order', 'id'))
+        features = list(Feature.objects.filter(is_active=True).order_by('order', 'id'))
+        banners = list(Banner.objects.filter(is_active=True).order_by('order', 'id'))
+
+        categories = list(CategoryIcon.objects.filter(is_active=True).order_by('order', 'id'))
+        if not categories:
+            excluded_categories = {'TOP_DEALS', 'TOP_SELLING', 'TOP_FEATURED', 'RECOMMENDED'}
+            categories = [
+                {
+                    'name': label,
+                    'category_key': key,
+                    'background_gradient': 'linear-gradient(135deg, #e0f7ff 0%, #b3e5fc 100%)',
+                    'card_image': None,
+                    'icon_image': None,
+                    'icon_class': None,
+                    'icon_color': '#0288d1',
+                    'icon_size': 48,
+                }
+                for key, label in Product.CATEGORY_CHOICES
+                if key not in excluded_categories
+            ]
+
+        category_fallback_images = {}
+        category_keys = []
+        for category in categories:
+            if hasattr(category, 'category_key'):
+                key = (category.category_key or '').strip()
+            else:
+                key = (category.get('category_key') or '').strip()
+            if key and key not in category_keys:
+                category_keys.append(key)
+
+        if category_keys:
+            fallback_products = (
+                Product.objects
+                .filter(is_active=True, category__in=category_keys)
+                .exclude(image='')
+                .only('category', 'image')
+                .order_by('category', '-id')
+            )
+            for product in fallback_products:
+                key = (product.category or '').strip()
+                if key and key not in category_fallback_images and product.image:
+                    category_fallback_images[key] = product.image.url
+
+        from .models import MainPageProduct, Reel, MainPageSubCategoryBanner, MainPageBanner
+
+        category_buckets = {
+            'category1': [],
+            'category2': [],
+            'category3': [],
+            'category4': [],
+        }
+        main_page_products = list(
+            MainPageProduct.objects
+            .filter(category__in=tuple(category_buckets.keys()))
+            .select_related('product')
+            .order_by('category', 'order', 'id')
+        )
+        for item in main_page_products:
+            bucket = category_buckets.get(item.category)
+            if bucket is not None and len(bucket) < 10:
+                bucket.append(item.product)
+
+        latest_products = list(Product.objects.filter(is_active=True).order_by('-id')[:10])
+        top_deals = category_buckets['category1'] or latest_products
+        top_selling = category_buckets['category2'] or latest_products
+        top_featured = category_buckets['category3'] or latest_products
+        recommended = category_buckets['category4'] or latest_products
+
+        subcategory_banner_records = list(
+            MainPageSubCategoryBanner.objects
+            .filter(is_active=True, sub_category__is_active=True)
+            .select_related('sub_category')
+            .order_by('order', 'id')
+        )
+        subcategory_banners = [
             {
-                'name': label,
-                'category_key': key,
-                'background_gradient': 'linear-gradient(135deg, #e0f7ff 0%, #b3e5fc 100%)',
-                'card_image': None,
-                'icon_image': None,
-                'icon_class': None,
-                'icon_color': '#0288d1',
-                'icon_size': 48,
+                'title': item.display_title,
+                'image_url': item.image.url if item.image else '',
+                'category_key': item.sub_category.category_key,
+                'sub_category': item.sub_category.name,
             }
-            for key, label in Product.CATEGORY_CHOICES
-            if key not in excluded_categories
+            for item in subcategory_banner_records
         ]
 
-    # Fallback photo for category cards when custom card image is not uploaded.
-    category_fallback_images = {}
-    category_keys = []
-    for category in categories:
-        if hasattr(category, 'category_key'):
-            key = (category.category_key or '').strip()
-        else:
-            key = (category.get('category_key') or '').strip()
-        if key and key not in category_keys:
-            category_keys.append(key)
-
-    if category_keys:
-        fallback_products = (
-            Product.objects
-            .filter(is_active=True, category__in=category_keys)
-            .exclude(image='')
-            .only('category', 'image')
-            .order_by('category', '-id')
+        banner_records = list(
+            MainPageBanner.objects
+            .filter(banner_area__in=['first', 'second'], is_active=True)
+            .order_by('banner_area', 'order', 'id')
         )
-        for product in fallback_products:
-            key = (product.category or '').strip()
-            if key and key not in category_fallback_images and product.image:
-                category_fallback_images[key] = product.image.url
-    
-    # Get products from MainPageProduct model (4 categories)
-    from .models import MainPageProduct, Reel, ReadyShipStyle, MainPageSubCategoryBanner, MainPageBanner
-    
-    category1_products = list(
-        MainPageProduct.objects
-        .filter(category='category1')
-        .select_related('product')
-        .order_by('order')[:10]
-    )
-    category2_products = list(
-        MainPageProduct.objects
-        .filter(category='category2')
-        .select_related('product')
-        .order_by('order')[:10]
-    )
-    category3_products = list(
-        MainPageProduct.objects
-        .filter(category='category3')
-        .select_related('product')
-        .order_by('order')[:10]
-    )
-    category4_products = list(
-        MainPageProduct.objects
-        .filter(category='category4')
-        .select_related('product')
-        .order_by('order')[:10]
-    )
+        first_banners = []
+        second_banners = []
+        for item in banner_records:
+            banner_data = {
+                'badge_text': item.badge_text,
+                'title': item.title,
+                'description': item.description,
+                'image_url': item.image.url if item.image else '',
+                'link_url': item.link_url,
+            }
+            if item.banner_area == 'first' and len(first_banners) < 3:
+                first_banners.append(banner_data)
+            elif item.banner_area == 'second' and len(second_banners) < 2:
+                second_banners.append(banner_data)
 
-    latest_products = None
-
-    def get_latest_products():
-        nonlocal latest_products
-        if latest_products is None:
-            latest_products = list(Product.objects.filter(is_active=True).order_by('-id')[:10])
-        return latest_products
-
-    # Extract product objects and prepare for template (fallback to latest products if no main page products)
-    top_deals = [item.product for item in category1_products] or get_latest_products()
-    top_selling = [item.product for item in category2_products] or get_latest_products()
-    top_featured = [item.product for item in category3_products] or get_latest_products()
-    recommended = [item.product for item in category4_products] or get_latest_products()
-
-    ready_ship_records = list(
-        ReadyShipStyle.objects
-        .filter(is_active=True, product__is_active=True)
-        .select_related('product')
-        .order_by('order', 'id')[:5]
-    )
-    ready_ship_cards = []
-    for item in ready_ship_records:
-        product = item.product
-        image_url = item.image.url if item.image else (product.image.url if product.image else '')
-        ready_ship_cards.append({
-            'product': product,
-            'title': item.display_title,
-            'image_url': image_url,
-        })
-
-    if not ready_ship_cards:
-        fallback_products = Product.objects.filter(is_active=True).order_by('-sold', '-id')[:5]
-        for product in fallback_products:
-            ready_ship_cards.append({
-                'product': product,
-                'title': product.name,
-                'image_url': product.image.url if product.image else '',
-            })
-
-    subcategory_banner_records = (
-        MainPageSubCategoryBanner.objects
-        .filter(is_active=True, sub_category__is_active=True)
-        .select_related('sub_category')
-        .order_by('order', 'id')
-    )
-    subcategory_banners = [
-        {
-            'title': item.display_title,
-            'image_url': item.image.url if item.image else '',
-            'category_key': item.sub_category.category_key,
-            'sub_category': item.sub_category.name,
-        }
-        for item in subcategory_banner_records
-    ]
-
-    first_banner_records = MainPageBanner.objects.filter(
-        banner_area='first',
-        is_active=True
-    ).order_by('order', 'id')[:3]
-    second_banner_records = MainPageBanner.objects.filter(
-        banner_area='second',
-        is_active=True
-    ).order_by('order', 'id')[:2]
-
-    first_banners = [
-        {
-            'badge_text': item.badge_text,
-            'title': item.title,
-            'description': item.description,
-            'image_url': item.image.url if item.image else '',
-            'link_url': item.link_url,
-        }
-        for item in first_banner_records
-    ]
-    second_banners = [
-        {
-            'badge_text': item.badge_text,
-            'title': item.title,
-            'description': item.description,
-            'image_url': item.image.url if item.image else '',
-            'link_url': item.link_url,
-        }
-        for item in second_banner_records
-    ]
-
-    # Build product rating stats for cards
-    product_ids = {p.id for p in list(top_deals) + list(top_selling) + list(top_featured) + list(recommended)}
-    stats_qs = ProductReview.objects.filter(product_id__in=product_ids, is_approved=True).values('product_id').annotate(
-        avg_rating=Avg('rating'),
-        review_count=Count('id')
-    )
-    product_stats = {
-        item['product_id']: {
-            'avg_rating': round(item['avg_rating'] or 0, 1),
-            'review_count': item['review_count']
-        }
-        for item in stats_qs
-    }
-    
-    countdown = DealCountdown.objects.filter(is_active=True).first()
-    watch_shop_reels = (
-        Reel.objects
-        .filter(
-            is_published=True,
-            product__isnull=False,
-            product__is_active=True,
-            video_file__isnull=False,
+        product_ids = {p.id for p in top_deals + top_selling + top_featured + recommended}
+        stats_qs = (
+            ProductReview.objects
+            .filter(product_id__in=product_ids, is_approved=True)
+            .values('product_id')
+            .annotate(avg_rating=Avg('rating'), review_count=Count('id'))
         )
-        .exclude(video_file='')
-        .select_related('product')
-        .order_by('order', '-created_at')[:12]
-    )
+        product_stats = {
+            item['product_id']: {
+                'avg_rating': round(item['avg_rating'] or 0, 1),
+                'review_count': item['review_count'],
+            }
+            for item in stats_qs
+        }
+
+        countdown = DealCountdown.objects.filter(is_active=True).first()
+        watch_shop_reels = list(
+            Reel.objects
+            .filter(
+                is_published=True,
+                product__isnull=False,
+                product__is_active=True,
+                video_file__isnull=False,
+            )
+            .exclude(video_file='')
+            .select_related('product')
+            .order_by('order', '-created_at')[:6]
+        )
+
+        public_context = {
+            'sliders': sliders,
+            'features': features,
+            'banners': banners,
+            'categories': categories,
+            'category_fallback_images': category_fallback_images,
+            'top_deals': top_deals,
+            'top_selling': top_selling,
+            'top_featured': top_featured,
+            'recommended': recommended,
+            'subcategory_banners': subcategory_banners,
+            'first_banners': first_banners,
+            'second_banners': second_banners,
+            'countdown': countdown,
+            'watch_shop_reels': watch_shop_reels,
+            'product_stats': product_stats,
+        }
+        cache.set(homepage_cache_key, public_context, 300)
 
     liked_reel_ids = []
     for raw_id in request.session.get('reel_liked_ids', []):
@@ -4958,9 +4931,10 @@ def index(request):
     cart_product_ids = []
     delivered_orders = []
     
-    if request.user.is_authenticated:
-        wishlist_product_ids = list(Wishlist.objects.filter(user=request.user).values_list('product_id', flat=True))
-        cart_product_ids = list(Cart.objects.filter(user=request.user).values_list('product_id', flat=True))
+    current_user = getattr(request, 'user', None)
+    if current_user and current_user.is_authenticated:
+        wishlist_product_ids = list(Wishlist.objects.filter(user=current_user).values_list('product_id', flat=True))
+        cart_product_ids = list(Cart.objects.filter(user=current_user).values_list('product_id', flat=True))
         
         # Check for recently delivered orders (delivered in last 7 days without reviews)
         from datetime import timedelta
@@ -4970,13 +4944,13 @@ def index(request):
         # Get delivered orders that don't have review notification shown
         shown_review_notifications = request.session.get('shown_review_notifications', [])
         
-        delivered_orders = Order.objects.filter(
-            user=request.user,
+        delivered_orders = list(Order.objects.filter(
+            user=current_user,
             order_status='DELIVERED',
             delivery_date__gte=seven_days_ago
         ).exclude(
             order_number__in=shown_review_notifications
-        ).prefetch_related('items__product')[:3]  # Show up to 3 recent delivered orders
+        ).prefetch_related('items__product')[:3])  # Show up to 3 recent delivered orders
         
         # Mark these orders as shown
         if delivered_orders:
@@ -4985,32 +4959,15 @@ def index(request):
             request.session['shown_review_notifications'] = shown_review_notifications
             request.session.modified = True
 
-    return render(
-        request,
-        'index.html',
-        {
-            'sliders': sliders,
-            'features': features,
-            'banners': banners,
-            'categories': categories,
-            'category_fallback_images': category_fallback_images,
-            'top_deals': top_deals,
-            'top_selling': top_selling,
-            'top_featured': top_featured,
-            'recommended': recommended,
-            'ready_ship_cards': ready_ship_cards,
-            'subcategory_banners': subcategory_banners,
-                        'first_banners': first_banners,
-                        'second_banners': second_banners,
-            'countdown': countdown,
-            'wishlist_product_ids': wishlist_product_ids,
-            'cart_product_ids': cart_product_ids,
-            'watch_shop_reels': watch_shop_reels,
-            'liked_reel_ids': liked_reel_ids,
-            'delivered_orders': delivered_orders,
-            'product_stats': product_stats,
-        }
-    )
+    context = dict(public_context)
+    context.update({
+        'wishlist_product_ids': wishlist_product_ids,
+        'cart_product_ids': cart_product_ids,
+        'liked_reel_ids': liked_reel_ids,
+        'delivered_orders': delivered_orders,
+    })
+
+    return render(request, 'index.html', context)
 
 
 @require_POST
