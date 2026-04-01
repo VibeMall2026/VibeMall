@@ -1,5 +1,7 @@
-from django import template
 from datetime import timedelta
+import re
+
+from django import template
 
 register = template.Library()
 
@@ -29,3 +31,17 @@ def calculate_margin_percentage(margin, base_amount):
         return 0
     except (ValueError, TypeError, ZeroDivisionError):
         return 0
+
+
+@register.filter
+def clean_brand_name(value):
+    """Normalize brand labels for storefront display."""
+    if value is None:
+        return ''
+
+    text = str(value).strip()
+    if not text:
+        return ''
+
+    text = re.sub(r'\s+online\s+service\s*$', '', text, flags=re.IGNORECASE)
+    return re.sub(r'\s+', ' ', text).strip()

@@ -3,8 +3,7 @@ from django.dispatch import receiver
 from django.contrib.auth.models import User
 from django.utils import timezone
 from .models import UserProfile, Order, Cart, Wishlist, ProductReview, Product
-from django.core.management import call_command
-import threading
+
 
 
 @receiver(post_save, sender=User)
@@ -60,44 +59,6 @@ def update_activity_on_review(sender, instance, created, **kwargs):
             profile.save(update_fields=['last_activity'])
         except:
             pass
-
-
-def run_category_update_async():
-    """Run category update in background thread"""
-    try:
-        call_command('update_product_categories')
-    except:
-        pass
-
-
-@receiver(post_save, sender=Order)
-def auto_update_categories_on_order(sender, instance, created, **kwargs):
-    """Auto-update product categories when order is completed"""
-    if instance.order_status == 'DELIVERED':
-        # Run in background to avoid blocking
-        thread = threading.Thread(target=run_category_update_async)
-        thread.daemon = True
-        thread.start()
-
-
-@receiver(post_save, sender=Wishlist)
-def auto_update_categories_on_wishlist(sender, instance, created, **kwargs):
-    """Auto-update RECOMMENDED when products added to wishlist"""
-    if created:
-        # Run in background
-        thread = threading.Thread(target=run_category_update_async)
-        thread.daemon = True
-        thread.start()
-
-
-@receiver(post_save, sender=Product)
-def auto_update_categories_on_product(sender, instance, created, **kwargs):
-    """Auto-update categories when product discount changes"""
-    if not created and instance.discount_percent > 0:
-        # Run in background
-        thread = threading.Thread(target=run_category_update_async)
-        thread.daemon = True
-        thread.start()
 
 
 # ============================================
