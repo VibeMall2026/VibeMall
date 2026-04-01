@@ -195,13 +195,19 @@
 }
 
 /* Floating notifications (success/error) */
-.vm-floating-alert {
+body .vm-floating-alert {
     position: fixed !important;
+    inset: auto !important;
     top: 16px;
     right: 16px;
+    left: auto !important;
+    bottom: auto !important;
     z-index: 9999;
     width: min(420px, calc(100vw - 24px));
     max-width: calc(100vw - 24px);
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
     margin: 0;
     border-radius: 12px;
     box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
@@ -223,6 +229,78 @@
 
 .vm-floating-alert .btn-close:hover {
     opacity: 1;
+}
+
+.vm-confirm-modal .modal-backdrop,
+.vm-confirm-modal + .modal-backdrop {
+    backdrop-filter: blur(1px);
+}
+
+.vm-confirm-modal__dialog {
+    max-width: min(420px, calc(100vw - 28px));
+    margin: 0 auto;
+}
+
+.vm-confirm-modal__content {
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    border-radius: 16px;
+    box-shadow: 0 20px 46px rgba(15, 23, 42, 0.22);
+    overflow: hidden;
+}
+
+.vm-confirm-modal__body {
+    padding: 18px 18px 10px;
+}
+
+.vm-confirm-modal__title {
+    margin: 0 0 8px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.vm-confirm-modal__message {
+    margin: 0;
+    color: #374151;
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.vm-confirm-modal__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 12px 18px 18px;
+}
+
+.vm-confirm-modal__btn {
+    min-width: 88px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 8px 16px;
+}
+
+.vm-confirm-modal__btn--cancel {
+    background: #f3f4f6;
+    color: #111827;
+    border: 1px solid #e5e7eb;
+}
+
+.vm-confirm-modal__btn--cancel:hover {
+    background: #e5e7eb;
+}
+
+.vm-confirm-modal__btn--ok {
+    background: #111827;
+    color: #fff;
+    border: 1px solid #111827;
+}
+
+.vm-confirm-modal__btn--ok:hover {
+    background: #1f2937;
+    border-color: #1f2937;
+    color: #fff;
 }
 
 .vm-floating-note {
@@ -265,12 +343,16 @@
 }
 
 @media (max-width: 1199.98px) {
-    .vm-floating-alert {
+    body .vm-floating-alert {
+        inset: auto !important;
         top: calc(env(safe-area-inset-top, 0px) + 10px);
         left: 12px;
         right: 12px;
+        bottom: auto !important;
         width: auto;
         max-width: none;
+        height: auto !important;
+        min-height: 0 !important;
         padding: 11px 40px 11px 12px;
         font-size: 14px;
         line-height: 1.3;
@@ -325,5 +407,85 @@
         max-width: calc(100vw - 8px) !important;
         padding-left: 8px !important;
         padding-right: 8px !important;
+    }
+}
+
+/* Hard override for global mobile bottom nav design */
+@media (max-width: 1200.98px) {
+    #mobileBottomNav.mobile-bottom-nav {
+        height: 80px !important;
+        padding: 7px 10px calc(9px + env(safe-area-inset-bottom)) !important;
+        background: rgba(251, 249, 244, 0.92) !important;
+        border-top: 1px solid rgba(23, 24, 24, 0.1) !important;
+        backdrop-filter: blur(10px) !important;
+        box-shadow: 0 -8px 22px rgba(15, 23, 42, 0.08) !important;
+        display: grid !important;
+        grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    }
+
+    #mobileBottomNav .mobile-bottom-nav__item {
+        min-height: 60px !important;
+        border-radius: 0 !important;
+        gap: 3px !important;
+        color: rgba(23, 24, 24, 0.35) !important;
+        padding: 4px 2px !important;
+    }
+
+    #mobileBottomNav .mobile-bottom-nav__icon {
+        width: 44px !important;
+        height: 44px !important;
+        border-radius: 14px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: all 0.2s ease !important;
+    }
+
+    #mobileBottomNav .mobile-bottom-nav__item i {
+        font-size: 22px !important;
+    }
+
+    #mobileBottomNav .mobile-bottom-nav__item span {
+        font-size: 9px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.17em !important;
+        text-transform: uppercase !important;
+    }
+
+    #mobileBottomNav .mobile-bottom-nav__item.is-active {
+        color: #171717 !important;
+    }
+
+    #mobileBottomNav .mobile-bottom-nav__item.is-active .mobile-bottom-nav__icon {
+        background: #e4e2dd !important;
+    }
+
+    #mobileBottomNav .mobile-bottom-nav__badge {
+        background: #111827 !important;
+        color: #ffffff !important;
+        top: 7px !important;
+        left: calc(50% + 13px) !important;
+    }
+}
+
+@media (max-width: 575.98px) {
+    #mobileBottomNav.mobile-bottom-nav {
+        height: 78px !important;
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+    }
+
+    #mobileBottomNav .mobile-bottom-nav__icon {
+        width: 42px !important;
+        height: 42px !important;
+    }
+
+    #mobileBottomNav .mobile-bottom-nav__item i {
+        font-size: 21px !important;
+    }
+
+    #mobileBottomNav .mobile-bottom-nav__badge {
+        left: calc(50% + 12px) !important;
+        top: 6px !important;
     }
 }

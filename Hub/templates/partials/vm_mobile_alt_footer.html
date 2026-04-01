@@ -1,0 +1,43 @@
+<section class="vm-mobile-alt-newsletter vm-home-mobile-newsletter">
+    <i class="far fa-envelope-open-text"></i>
+    <h3>Stay Curated</h3>
+    <p>Join the inner circle for early access to collections and private atelier events.</p>
+    <form class="js-newsletter-form" action="{% url 'subscribe_newsletter' %}" method="post" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="source_page" value="{{ newsletter_source|default:request.resolver_match.url_name|default:'mobile-alt' }}">
+        <input type="email" name="email" placeholder="YOUR EMAIL ADDRESS" required>
+        <button type="submit">Subscribe</button>
+    </form>
+    <small class="newsletter-feedback vm-mobile-alt-newsletter-feedback" aria-live="polite"></small>
+</section>
+
+<footer class="vm-mobile-alt-footer vm-home-mobile-footer vm-mobile-page-footer" aria-label="VibeMall mobile footer">
+    <details>
+        <summary>Collections</summary>
+        <a href="{% url 'shop' %}">Shop All</a>
+        <a href="{% url 'shop' %}?sort=latest">New Arrivals</a>
+    </details>
+    <details>
+        <summary>Experience</summary>
+        <a href="{% url 'blog' %}">Editorial</a>
+        <a href="{% url 'about' %}">About VibeMall</a>
+    </details>
+    <details>
+        <summary>Concierge</summary>
+        <a href="{% url 'cart' %}">Cart</a>
+        <a href="{% url 'wishlist' %}">Wishlist</a>
+    </details>
+    <details>
+        <summary>Legal</summary>
+        <a href="{% url 'faq' %}">FAQ</a>
+        {% if request.user.is_authenticated %}
+        <a href="{% url 'profile' %}">My Account</a>
+        {% else %}
+        <a href="{% url 'login' %}">My Account</a>
+        {% endif %}
+    </details>
+    <div class="vm-home-mobile-footer__brand">
+        <h2>VIBEMALL</h2>
+        <p>&copy; {% now "Y" %} VIBEMALL ATELIER. ALL RIGHTS RESERVED.</p>
+    </div>
+</footer>

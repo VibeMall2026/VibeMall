@@ -1,0 +1,114 @@
+<div class="vm-mobile-side-menu-overlay" data-vm-mobile-menu-overlay></div>
+<aside class="vm-mobile-side-menu" data-vm-mobile-menu aria-label="Mobile navigation menu">
+    <div class="vm-mobile-side-menu__header">
+        <h2 class="vm-mobile-side-menu__brand">VIBEMALL</h2>
+        <button type="button" class="vm-mobile-side-menu__close" data-vm-mobile-menu-close aria-label="Close menu"><i class="fas fa-times"></i></button>
+    </div>
+    <nav class="vm-mobile-side-menu__nav">
+        <ul class="vm-mobile-side-menu__list">
+            <li class="vm-mobile-side-menu__item">
+                <a href="{% url 'index' %}" class="vm-mobile-side-menu__link">
+                    <i class="fas fa-home"></i>
+                    <span>Home</span>
+                </a>
+            </li>
+            <li class="vm-mobile-side-menu__item vm-mobile-side-menu__item--submenu">
+                <button type="button" class="vm-mobile-side-menu__link vm-mobile-side-menu__link--toggle" data-vm-mobile-submenu-toggle aria-expanded="false">
+                    <i class="fas fa-store"></i>
+                    <span>Shop</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <ul class="vm-mobile-side-menu__submenu" data-vm-mobile-submenu>
+                    <li><a href="{% url 'shop' %}" class="vm-mobile-side-menu__sublink">All Categories</a></li>
+                    {% for category in categories|slice:":8" %}
+                    <li><a href="{% url 'shop' %}?category={{ category.category_key|urlencode }}" class="vm-mobile-side-menu__sublink">{{ category.name }}</a></li>
+                    {% endfor %}
+                </ul>
+            </li>
+            <li class="vm-mobile-side-menu__item">
+                <a href="{% url 'about' %}" class="vm-mobile-side-menu__link">
+                    <i class="fas fa-info-circle"></i>
+                    <span>About Us</span>
+                </a>
+            </li>
+            <li class="vm-mobile-side-menu__item">
+                <a href="{% url 'faq' %}" class="vm-mobile-side-menu__link">
+                    <i class="fas fa-question-circle"></i>
+                    <span>FAQs</span>
+                </a>
+            </li>
+            <li class="vm-mobile-side-menu__item vm-mobile-side-menu__item--submenu">
+                <button type="button" class="vm-mobile-side-menu__link vm-mobile-side-menu__link--toggle" data-vm-mobile-submenu-toggle aria-expanded="false">
+                    <i class="fas fa-newspaper"></i>
+                    <span>Blog</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <ul class="vm-mobile-side-menu__submenu" data-vm-mobile-submenu>
+                    <li><a href="{% url 'blog' %}" class="vm-mobile-side-menu__sublink">Blog</a></li>
+                    <li><a href="{% url 'blog-details' %}" class="vm-mobile-side-menu__sublink">Blog Details</a></li>
+                </ul>
+            </li>
+            <li class="vm-mobile-side-menu__item">
+                <a href="{% url 'order_list' %}" class="vm-mobile-side-menu__link">
+                    <i class="fas fa-receipt"></i>
+                    <span>My Orders</span>
+                </a>
+            </li>
+            <li class="vm-mobile-side-menu__item">
+                <a href="{% url 'checkout' %}" class="vm-mobile-side-menu__link">
+                    <i class="fas fa-credit-card"></i>
+                    <span>Checkout</span>
+                </a>
+            </li>
+            <li class="vm-mobile-side-menu__item">
+                <a href="{% url 'wishlist' %}" class="vm-mobile-side-menu__link">
+                    <i class="fas fa-heart"></i>
+                    <span>Wishlist</span>
+                    {% if wishlist_count %}
+                    <span class="vm-mobile-side-menu__badge">{{ wishlist_count }}</span>
+                    {% endif %}
+                </a>
+            </li>
+            <li class="vm-mobile-side-menu__divider"></li>
+            {% if user.is_authenticated %}
+            <li class="vm-mobile-side-menu__item">
+                <a href="{% url 'profile' %}" class="vm-mobile-side-menu__link">
+                    <i class="fas fa-user"></i>
+                    <span>My Account</span>
+                </a>
+            </li>
+            <li class="vm-mobile-side-menu__item">
+                <a href="{% url 'logout' %}" class="vm-mobile-side-menu__link vm-mobile-side-menu__link--logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </li>
+            {% else %}
+            <li class="vm-mobile-side-menu__item">
+                <a href="{% url 'login' %}" class="vm-mobile-side-menu__link vm-mobile-side-menu__link--primary">
+                    <i class="fas fa-user"></i>
+                    <span>Login</span>
+                </a>
+            </li>
+            {% endif %}
+            {% if user.is_staff %}
+            <li class="vm-mobile-side-menu__item vm-mobile-side-menu__item--submenu">
+                <button type="button" class="vm-mobile-side-menu__link vm-mobile-side-menu__link--toggle" data-vm-mobile-submenu-toggle aria-expanded="false">
+                    <i class="fas fa-cog"></i>
+                    <span>Admin</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <ul class="vm-mobile-side-menu__submenu" data-vm-mobile-submenu>
+                    <li><a href="{% url 'admin_dashboard' %}" class="vm-mobile-side-menu__sublink"><i class="fal fa-tachometer-alt"></i> Dashboard</a></li>
+                    <li><a href="{% url 'admin_add_product' %}" class="vm-mobile-side-menu__sublink"><i class="fal fa-plus-circle"></i> Add Product</a></li>
+                    <li><a href="{% url 'admin_product_list' %}" class="vm-mobile-side-menu__sublink"><i class="fal fa-list"></i> Product List</a></li>
+                    <li><a href="{% url 'admin_reviews' %}" class="vm-mobile-side-menu__sublink"><i class="fal fa-star"></i> Manage Reviews</a></li>
+                </ul>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    <div class="vm-mobile-side-menu__footer">
+        <p class="vm-mobile-side-menu__info">VibeMall ATELIER<br><small>Luxury Fashion &amp; Lifestyle</small></p>
+    </div>
+</aside>

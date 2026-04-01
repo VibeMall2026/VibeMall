@@ -430,11 +430,11 @@
     grid-template-columns: repeat(5, minmax(0, 1fr));
     align-items: center;
     gap: 0;
-    height: 70px;
-    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    height: 78px;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
     background: #ffffff;
-    border-top: 1px solid #e5e7eb;
-    box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.08);
+    border-top: 1px solid #e7e5e4;
+    box-shadow: 0 -6px 18px rgba(15, 23, 42, 0.07);
     transform: none !important;
     margin: 0 !important;
     pointer-events: auto;
@@ -446,37 +446,46 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
-    color: #111827;
+    gap: 4px;
+    color: #9b9b9b;
     text-decoration: none;
     font-size: 11px;
     line-height: 1;
-    min-height: 52px;
+    min-height: 58px;
+    border-radius: 18px;
+    padding: 6px 4px;
+    transition: all 0.2s ease;
   }
 
   .mobile-bottom-nav__item i {
-    font-size: 21px;
+    font-size: 24px;
     line-height: 1;
   }
 
   .mobile-bottom-nav__item span {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.01em;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .mobile-bottom-nav__item.is-active {
+    background: #e8e5e1;
+    color: #171717;
   }
 
   .mobile-bottom-nav__badge {
     position: absolute;
-    top: 7px;
-    left: calc(50% + 10px);
+    top: 8px;
+    left: calc(50% + 12px);
     right: auto;
     transform: translateX(-50%);
     min-width: 16px;
     height: 16px;
     padding: 0 4px;
     border-radius: 999px;
-    background: #ffc107;
-    color: #111827;
+    background: #111827;
+    color: #ffffff;
     font-size: 9px;
     font-weight: 700;
     line-height: 16px;
@@ -556,18 +565,18 @@
   }
 
   .mobile-bottom-nav {
-    height: 68px;
+    height: 76px;
     padding-left: 8px;
     padding-right: 8px;
   }
 
   .mobile-bottom-nav__item i {
-    font-size: 20px;
+    font-size: 22px;
   }
 
   .mobile-bottom-nav__badge {
     top: 6px;
-    left: calc(50% + 9px);
+    left: calc(50% + 11px);
   }
 
   #supportChatWidget {

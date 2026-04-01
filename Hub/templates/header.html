@@ -1,12 +1,11 @@
 {% load static %}
 <header class="header d-blue-bg">
-    
     <div class="header-top">
         <div class="container">
             <div class="header-inner">
                 <div class="row align-items-center">
                     <div class="col-xl-2 col-lg-1 d-none d-lg-block">
-                       
+                        <span class="header-live-line">ATELIER ORDERS OVER $500 - SEASONAL CURATIONS NOW LIVE - LIMITED EDITION SILK DROPS</span>
                     </div>
                     <div class="col-xl-10 col-lg-11 d-none d-lg-block">
                         <div class="header-inner-end text-md-end">
@@ -17,10 +16,8 @@
                                     {% endfor %}
                                     {% if user.is_authenticated %}
                                         <li><a href="{% url 'logout' %}">Logout</a></li>
-                                        {% endif %}
-
+                                    {% endif %}
                                 </ul>
-
                             </div>
                         </div>
                     </div>
@@ -149,56 +146,7 @@
     <div class="header__bottom">
         <div class="container">
             <div class="row g-0 align-items-center">
-                <div class="col-lg-3">                       
-                    <div class="cat__menu-wrapper side-border d-none d-lg-block">
-                        <div class="cat-toggle">
-                            <button type="button" class="cat-toggle-btn cat-toggle-btn-1"><i class="fal fa-bars"></i> Shop by department</button>
-                            <div class="cat__menu">
-                                <nav id="mobile-menu" style="display: block;">
-                                    <ul>
-                                        <li>
-                                            <a href="{% url 'shop' %}">All Categories</a>
-                                        </li>
-                                        {% if header_categories %}
-                                            {% for category in header_categories %}
-                                            <li>
-                                                <a href="{% url 'shop' %}?category={{ category.key|urlencode }}">
-                                                    {{ category.label }}
-                                                    {% if category.badge_text %}
-                                                        <span class="cat-label{% if category.badge_class %} {{ category.badge_class }}{% endif %}">{{ category.badge_text|lower }}</span>
-                                                    {% endif %}
-                                                    {% if category.has_children %}
-                                                        <i class="far fa-angle-down"></i>
-                                                    {% endif %}
-                                                </a>
-                                                {% if category.sub_categories %}
-                                                <ul class="submenu">
-                                                    {% for sub in category.sub_categories %}
-                                                    <li>
-                                                        <a href="{% url 'shop' %}?category={{ category.key|urlencode }}&sub_category={{ sub.name|urlencode }}">
-                                                            {{ sub.name }}
-                                                        </a>
-                                                    </li>
-                                                    {% endfor %}
-                                                </ul>
-                                                {% endif %}
-                                            </li>
-                                            {% endfor %}
-                                        {% else %}
-                                            <li><a href="{% url 'shop' %}">Women Wear</a></li>
-                                            <li><a href="{% url 'shop' %}">Watch</a></li>
-                                            <li><a href="{% url 'shop' %}">Home &amp; Kitchen</a></li>
-                                            <li><a href="{% url 'shop' %}">Jewellery</a></li>
-                                            <li><a href="{% url 'shop' %}">Mens Wear</a></li>
-                                            <li><a href="{% url 'shop' %}">Beauty &amp; Shoes</a></li>
-                                            <li><a href="{% url 'shop' %}">GenZ Trends</a></li>
-                                        {% endif %}
-                                    </ul>
-                                </nav>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+
                 <div class="col-lg-9 col-md-6 col-3">
                     <div class="header__bottom-left d-flex d-xl-block align-items-center">
                         <div class="side-menu d-lg-none mr-20">
@@ -210,7 +158,6 @@
                                     <li>
                                         <a href="{% url 'index' %}" class="active">Home </a>
                                     </li>
-                                    <li><a href="{% url 'about' %}">About Us</a></li>
                                     <li class="has-mega"><a href="{% url 'shop' %}">Shop <i class="far fa-angle-down"></i></a>
                                         <div class="mega-menu">
                                             <div class="container container-mega">
@@ -269,6 +216,7 @@
                                             </div>
                                         </div>
                                     </li>
+                                    <li><a href="{% url 'about' %}">About Us</a></li>
                                     <li><a href="{% url 'blog' %}">Blog <i class="far fa-angle-down"></i></a>
                                         <ul class="submenu">
                                             <li><a href="{% url 'blog' %}">Blog</a></li>

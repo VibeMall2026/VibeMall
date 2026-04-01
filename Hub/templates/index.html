@@ -1,1287 +1,543 @@
-﻿{% extends "base.html" %}
+{% extends 'base.html' %}
+{% load static custom_filters %}
 
-{% load static %}
-{% load hub_filters %}
-{% load custom_filters %}
-
-{% block title %}Home - VibeMall{% endblock %}
-{% block meta_description %}Welcome to VibeMall - India's leading online shopping platform. Discover amazing deals on electronics, fashion, home & kitchen, and much more with secure payment options.{% endblock %}
+{% block title %}VibeMall Atelier{% endblock %}
+{% block meta_description %}VibeMall Atelier luxury editorial homepage.{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-mobile-home{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'assets/css/index-responsive.css' %}?v=20260326-01">
-<link rel="stylesheet" href="{% static 'assets/css/promotional-banners.css' %}?v=20260225-01">
+<link rel="stylesheet" href="{% static 'assets/css/vm-home-editorial.css' %}?v=20260328-03">
+<link rel="stylesheet" href="{% static 'assets/css/home-mobile-alt.css' %}?v=20260329-01">
+<link rel="stylesheet" href="{% static 'assets/css/home-tablet-alt.css' %}?v=20260329-01">
 {% endblock %}
 
-<!-- JSON-LD Schema for Organization -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  "name": "VibeMall",
-  "url": "{% if site_url %}{{ site_url }}{% else %}{{ request.scheme }}://{{ request.get_host }}{% endif %}",
-  "logo": "{% if site_url %}{{ site_url }}{% else %}{{ request.scheme }}://{{ request.get_host }}{% endif %}{% static 'assets/img/logo/vibemall-brand.png' %}",
-  "description": "VibeMall - Your trusted online shopping destination",
-  "sameAs": [],
-  "contactPoint": {
-    "@type": "ContactPoint",
-    "contactType": "Customer Service",
-    "availableLanguageID": "en-US"
-  }
-}
-</script>
-
 {% block content %}
-
-<style>
-    /* Ensure action buttons are perfectly round */
-    .action-btn {
-        width: 36px !important;
-        height: 36px !important;
-        min-width: 36px !important;
-        min-height: 36px !important;
-        border-radius: 50% !important;
-        padding: 0 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-    }
-    
-    .action-btn i {
-        font-size: 14px !important;
-        line-height: 1 !important;
-        margin: 0 !important;
-    }
-
-    /* Hide legacy discount badge to prevent duplicate tags */
-    .product__offer {
-        display: none !important;
-    }
-
-    .price-old {
-        text-decoration: line-through;
-        color: #9ca3af;
-        font-weight: 500;
-    }
-
-    .modal-header .btn-close {
-        cursor: pointer;
-    }
-
-    /* Home product card alignment */
-    .product__item {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-    }
-
-    .product__thumb {
-        height: 280px;
-        overflow: hidden !important;
-    }
-
-    .product__thumb .product-image,
-    .product__thumb .product-image a {
-        display: block;
-        width: 100%;
-        height: 100%;
-    }
-
-    .product__thumb img {
-        width: 100% !important;
-        height: 100% !important;
-        object-fit: cover;
-        display: block;
-    }
-
-    .product__content {
-        display: flex;
-        flex-direction: column;
-        flex: 1 1 auto;
-    }
-
-    .product__content h6 {
-        min-height: 44px;
-    }
-
-    .product__content .rating {
-        min-height: 20px;
-    }
-
-    .product__content .price {
-        min-height: 22px;
-    }
-
-    .product__add-cart {
-        margin-top: auto;
-    }
-
-    /* Large featured card: keep original natural image size */
-    .product__item-d .product__thumb {
-        height: auto;
-        overflow: visible !important;
-        display: block;
-    }
-
-    .product__item-d .product__thumb .product-image,
-    .product__item-d .product__thumb .product-image a {
-        height: auto;
-    }
-
-    .product__item-d .product__thumb img {
-        height: auto !important;
-        object-fit: unset !important;
-    }
-
-    .mobile-hero {
-        display: none;
-    }
-
-    .mobile-hero .swiper {
-        overflow: hidden;
-    }
-
-    @media (max-width: 480px) {
-        .slider-area {
-            display: none;
-        }
-
-        .mobile-hero {
-            display: block;
-            margin-bottom: 12px;
-        }
-
-        .mobile-hero__slide {
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            width: 100%;
-            aspect-ratio: 2 / 1;
-            min-height: 220px;
-            display: flex;
-            align-items: center;
-        }
-
-        .mobile-hero__content {
-            padding: 0 8px;
-        }
-
-        .mobile-hero .slider-top-btn a,
-        .mobile-hero .st-btn,
-        .mobile-hero .st-btn-b {
-            font-size: 11px;
-            padding: 6px 12px;
-            line-height: 1.2;
-        }
-
-        .mobile-hero .slider-title {
-            font-size: 16px;
-            line-height: 1.15;
-        }
-
-        .mobile-hero .slider_text {
-            display: none;
-        }
-
-        .mobile-hero .slider-top-btn {
-            margin-bottom: 8px;
-        }
-
-        .mobile-hero .slider-bottom-btn {
-            margin-top: 12px;
-        }
-
-        .slider-area,
-        .slider-area .swiper-container,
-        .slider-area .slider-wrapper,
-        .slider-area .swiper-slide {
-            height: 240px !important;
-        }
-
-        .slider-area .swiper-container {
-            overflow: hidden;
-        }
-
-        .slider-area .slider-wrapper {
-            transform: none !important;
-        }
-
-        .slider-area .swiper-slide {
-            display: none !important;
-            position: relative !important;
-        }
-
-        .slider-area .swiper-slide.swiper-slide-active {
-            display: flex !important;
-        }
-
-        .slider-area .slider-height {
-            min-height: 240px;
-            height: 240px;
-            padding: 16px 0;
-        }
-
-        .slider-area .single-slider {
-            background-size: contain !important;
-            background-position: center center !important;
-        }
-
-        .slider-area .slider-content {
-            padding: 0 8px;
-        }
-
-        .slider-area .slider-top-btn a,
-        .slider-area .st-btn,
-        .slider-area .st-btn-b {
-            font-size: 11px;
-            padding: 6px 12px;
-            line-height: 1.2;
-        }
-
-        .slider-area .slider-title {
-            font-size: 16px;
-            line-height: 1.15;
-        }
-
-        .slider-area .slider_text {
-            display: none;
-        }
-
-        .category__area .all-categories-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 8px;
-        }
-
-        .category__area .all-category-card {
-            border-radius: 8px;
-        }
-
-        .category__area .all-category-thumb {
-            height: 120px;
-        }
-
-        .category__area .all-category-label {
-            font-size: 12px;
-            bottom: 7px;
-            width: calc(100% - 12px);
-        }
-
-        .slider-area .slider-top-btn {
-            margin-bottom: 8px;
-        }
-
-        .slider-area .slider-bottom-btn {
-            margin-top: 16px;
-        }
-
-        .slider-area .slider-content h2,
-        .slider-area .slider-content p {
-            margin-bottom: 6px;
-        }
-    }
-
-    .all-categories-grid {
-        display: grid;
-        grid-template-columns: repeat(7, minmax(0, 1fr));
-        gap: 12px;
-    }
-
-    .all-category-card {
-        position: relative;
-        border-radius: 10px;
-        overflow: hidden;
-        display: block;
-        height: 190px;
-        text-decoration: none;
-        background: #f0f2f5;
-    }
-
-    .all-category-thumb {
-        position: absolute;
-        inset: 0;
-    }
-
-    .all-category-thumb img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-    }
-
-    .all-category-card::after {
-        content: "";
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        height: 48%;
-        background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.66) 100%);
-    }
-
-    .all-category-label {
-        position: absolute;
-        left: 50%;
-        bottom: 10px;
-        transform: translateX(-50%);
-        z-index: 2;
-        width: calc(100% - 18px);
-        color: #fff;
-        text-align: center;
-        font-size: 20px;
-        font-weight: 600;
-        line-height: 1.25;
-        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
-    }
-
-    .subcat-banner-area {
-        position: relative;
-    }
-
-    .subcat-banner-grid {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 16px;
-        align-items: start;
-    }
-
-    .subcat-banner-wrapper {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .subcat-banner-item {
-        position: relative;
-        border-radius: 10px;
-        overflow: hidden;
-        display: block;
-        height: 220px;
-        text-decoration: none;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    .subcat-banner-item:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-    }
-
-    .subcat-banner-item img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        object-position: center;
-        display: block;
-    }
-
-    .subcat-banner-label {
-        color: #333;
-        text-align: center;
-        font-size: 16px;
-        font-weight: 600;
-        line-height: 1.3;
-        margin: 0;
-        padding: 0 8px;
-    }
-
-    .ready-ship-area {
-        position: relative;
-    }
-
-    .ready-ship-shell {
-        max-width: min(100%, 1460px);
-        margin: 0 auto;
-    }
-
-    .ready-ship-head {
-        text-align: center;
-        margin-bottom: 10px;
-    }
-
-    .ready-ship-head h3 {
-        margin: 0;
-        color: #333;
-        font-size: 36px;
-        font-weight: 700;
-        line-height: 1.2;
-    }
-
-    .ready-ship-hero {
-        position: relative;
-        display: block;
-        border-radius: 12px;
-        overflow: hidden;
-        margin-bottom: 12px;
-        aspect-ratio: 21 / 9;
-        height: auto;
-        min-height: 300px;
-        max-height: 500px;
-    }
-
-    .ready-ship-hero img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        object-position: center;
-        display: block;
-    }
-
-    .ready-ship-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
-    }
-
-    .ready-ship-card {
-        position: relative;
-        display: block;
-        border-radius: 10px;
-        overflow: hidden;
-        aspect-ratio: 16 / 9;
-        height: auto;
-        min-height: 200px;
-        max-height: 300px;
-    }
-
-    .ready-ship-card img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        object-position: center;
-        display: block;
-    }
-
-    .ready-ship-hero::after,
-    .ready-ship-card::after {
-        content: "";
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        height: 40%;
-        background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.58) 100%);
-    }
-
-    .ready-ship-label {
-        position: absolute;
-        left: 50%;
-        bottom: 16px;
-        transform: translateX(-50%);
-        z-index: 2;
-        color: #fff;
-        font-size: 32px;
-        font-weight: 600;
-        line-height: 1.2;
-        text-align: center;
-        text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
-        padding: 0 10px;
-        width: calc(100% - 20px);
-    }
-
-    .ready-ship-card .ready-ship-label {
-        font-size: 28px;
-        bottom: 12px;
-    }
-
-    @media (min-width: 1400px) {
-        .all-categories-grid {
-            grid-template-columns: repeat(8, minmax(0, 1fr));
-            gap: 16px;
-        }
-
-        .all-category-card {
-            height: 210px;
-        }
-
-        .subcat-banner-grid {
-            gap: 20px;
-        }
-
-        .subcat-banner-item {
-            height: 250px;
-        }
-
-        .ready-ship-shell {
-            max-width: min(100%, 1520px);
-        }
-
-        .ready-ship-head h3,
-        .watch-shop-head h3 {
-            font-size: 38px;
-        }
-
-        .ready-ship-hero {
-            min-height: 360px;
-            max-height: 560px;
-        }
-
-        .ready-ship-grid {
-            gap: 16px;
-        }
-
-        .ready-ship-card {
-            min-height: 220px;
-            max-height: 340px;
-        }
-
-        .top-deals-section .product__thumb,
-        .top-selling-section .product__thumb,
-        .recommended-for-you-section .product__thumb {
-            height: 320px;
-        }
-    }
-
-    @media (min-width: 1450px) and (max-width: 1599.98px) {
-        .all-categories-grid {
-            gap: 14px;
-        }
-
-        .subcat-banner-grid {
-            gap: 16px;
-        }
-
-        .ready-ship-shell {
-            max-width: 100%;
-        }
-    }
-
-    @media (min-width: 1600px) {
-        .all-category-card {
-            height: 220px;
-        }
-
-        .subcat-banner-item {
-            height: 270px;
-        }
-
-        .ready-ship-shell {
-            max-width: 100%;
-        }
-
-        .ready-ship-hero {
-            min-height: 400px;
-            max-height: 600px;
-        }
-
-        .ready-ship-card {
-            min-height: 240px;
-            max-height: 360px;
-        }
-
-        .top-deals-section .product__thumb,
-        .top-selling-section .product__thumb,
-        .recommended-for-you-section .product__thumb {
-            height: 340px;
-        }
-    }
-
-    @media (max-width: 1199.98px) {
-        .all-categories-grid {
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-        }
-
-        .all-category-card {
-            height: 165px;
-        }
-
-        .all-category-label {
-            font-size: 16px;
-        }
-
-        .subcat-banner-grid {
-            gap: 12px;
-        }
-
-        .subcat-banner-wrapper {
-            gap: 8px;
-        }
-
-        .subcat-banner-item {
-            height: 180px;
-        }
-
-        .subcat-banner-label {
-            font-size: 14px;
-        }
-
-        .ready-ship-head h3 {
-            font-size: 30px;
-        }
-
-        .ready-ship-shell {
-            max-width: 980px;
-        }
-
-        .ready-ship-hero {
-            min-height: 250px;
-            max-height: 400px;
-        }
-
-        .ready-ship-card {
-            min-height: 180px;
-            max-height: 250px;
-        }
-
-        .ready-ship-label {
-            font-size: 26px;
-        }
-
-        .ready-ship-card .ready-ship-label {
-            font-size: 20px;
-        }
-    }
-
-    @media (max-width: 767.98px) {
-        .all-categories-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 8px;
-        }
-
-        .all-category-card {
-            height: 145px;
-            border-radius: 8px;
-        }
-
-        .all-category-label {
-            font-size: 12px;
-            bottom: 7px;
-            width: calc(100% - 12px);
-        }
-
-        .subcat-banner-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 10px;
-        }
-
-        .subcat-banner-wrapper {
-            gap: 6px;
-        }
-
-        .subcat-banner-item {
-            height: 160px;
-            border-radius: 8px;
-        }
-
-        .subcat-banner-label {
-            font-size: 13px;
-        }
-
-        .ready-ship-head h3 {
-            font-size: 22px;
-        }
-
-        .ready-ship-shell {
-            max-width: 100%;
-        }
-
-        .ready-ship-hero {
-            min-height: 200px;
-            max-height: 280px;
-            border-radius: 10px;
-            margin-bottom: 8px;
-        }
-
-        .ready-ship-grid {
-            gap: 8px;
-        }
-
-        .ready-ship-card {
-            min-height: 150px;
-            max-height: 200px;
-            border-radius: 8px;
-        }
-
-        .ready-ship-label {
-            font-size: 16px;
-            bottom: 10px;
-        }
-
-        .ready-ship-card .ready-ship-label {
-            font-size: 14px;
-            bottom: 8px;
-        }
-    }
-</style>
-
-<div class="mobile-hero">
-    <div class="swiper mobile-hero-swiper">
-        <div class="swiper-wrapper">
-            {% for slider in sliders %}
-            <div class="swiper-slide mobile-hero__slide" style="background-image: url('{% if slider.image %}{{ slider.image.url }}{% else %}{% static 'assets/img/banner/sl-banner.jpg' %}{% endif %}');">
-                <div class="container">
-                    <div class="row">
-                        <div class="col-12">
-                            <div class="slider-content mobile-hero__content">
-                                <div class="slider-top-btn">
-                                    <a href="{{ slider.top_button_url|default:'#' }}" class="st-btn b-radius">
-                                        {{ slider.top_button_text|default:'HOT DEALS' }}
-                                    </a>
-                                </div>
-
-                                <h2 class="pt-15 slider-title pb-5">
-                                    {{ slider.title|default:'' }} <br>
-                                    {{ slider.subtitle|default:'' }}
-                                </h2>
-
-                                <p class="pr-20 slider_text">
-                                    {{ slider.description|default:'' }}
-                                </p>
-
-                                <div class="slider-bottom-btn">
-                                    <a href="/shop/" class="st-btn-b b-radius">Discover now</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+<section class="vm-home-mobile-only">
+    {% include 'partials/vm_mobile_alt_header.html' %}
+
+    <main class="vm-home-mobile-main vm-mobile-content-offset">
+        <section class="vm-home-mobile-hero" data-vm-mobile-slider>
+            <div class="vm-home-mobile-hero__slides">
+                <img class="vm-home-mobile-hero__image is-active" data-vm-mobile-slide src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpKJXEfegHPUl0kHtz3GkHGNVLgqK7dLvGrQMPZworaiom9Q4i7AkcRLq62UIXiMLG6B_jeYKlsy9YIxPVuOK55mcOXYxh3vHcN2BaeuCjmyht_tENl3v0jUSJ9pudR2ax2anwdLh6HB4Tnq2HZ-hH-AkDmrKxZSH6NwGtAR3znbFWW1JqgSUNNoIUz1aVYtIA1_aaRTcsMYJEGc-SmSWGxEMNKdKQnEPIBRXt7xNo0o2EqPo1z0cS0kt6X07AEu6mBSHMajYNis0" alt="The Poetry of Modern Drape" referrerpolicy="no-referrer">
+                <img class="vm-home-mobile-hero__image" data-vm-mobile-slide src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPgZcF0ecnNzrhiTIOBosODib_rgNafg4VuUXINy8jtP45Sjc0gdrriXJ-29JiDsZtHNCULAUffv_RomzJ2Bhov88cdC2xGfHSn-Qo_bVdOYiHajrWN5xBmTpCHb7I8GTacrClH2fVTShiQYEvkdvJ9s6RBnpG-__GOi8MI0jK8Ay3dW-2sAGBSVXKe2HcaCzULPC-Xt8yhduSML_Q6ZtxFb170C4ZxegrEp22j-ZbfyV74nucTwSJqWdPWZr3u8QEsKLkeVgK4VX3" alt="Autumn Winter collection" referrerpolicy="no-referrer">
+                <img class="vm-home-mobile-hero__image" data-vm-mobile-slide src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSKjRWc8A_jccmkjuT5rARs5Dkb8FRST48xFMtX545bJsK_AdpRLCzFJfof42wreLgDVfEkckEk21YWQfhkZNSL3vwlcvrEK7c0Y_o1cP7NXJe9anYtcRgdUKbJqxuZyrIASZzHVeu22m6YifhNyUEGIziBY3xP87vYaPZofatsGq6PYMypIpcITUMi-zcpcGc66L-lozFx5xKV07IZeBRYAQ4N-iZxn6wzQLROCuVwI7NgUWlLv1TXzseb45Ga62mFM3ykDvyUhRg" alt="Curated signature style" referrerpolicy="no-referrer">
+            </div>
+            <div class="vm-home-mobile-hero__overlay"></div>
+            <div class="vm-home-mobile-hero__content">
+                <h2>The Poetry of Modern Drape</h2>
+                <a href="{% url 'shop' %}">Explore Collection</a>
+                <div class="vm-home-mobile-hero__dots" aria-hidden="true">
+                    <button type="button" class="is-active" data-vm-mobile-dot aria-label="Show slide 1"></button>
+                    <button type="button" data-vm-mobile-dot aria-label="Show slide 2"></button>
+                    <button type="button" data-vm-mobile-dot aria-label="Show slide 3"></button>
                 </div>
             </div>
-            {% empty %}
-            <div class="swiper-slide mobile-hero__slide" style="background-image: url('{% static 'assets/img/banner/sl-banner.jpg' %}');">
-                <div class="container">
-                    <div class="row">
-                        <div class="col-12">
-                            <div class="slider-content mobile-hero__content">
-                                <div class="slider-top-btn">
-                                    <a href="/shop/" class="st-btn b-radius">HOT DEALS</a>
-                                </div>
-                                <h2 class="pt-15 slider-title pb-5">Discover now</h2>
-                                <div class="slider-bottom-btn">
-                                    <a href="/shop/" class="st-btn-b b-radius">Shop now</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        </section>
+
+        <section class="vm-home-mobile-section">
+            <div class="vm-home-mobile-section__head">
+                <div>
+                    <span>Discover</span>
+                    <h3>The Departments</h3>
                 </div>
             </div>
-            {% endfor %}
-        </div>
-    </div>
-</div>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    if (typeof Swiper === 'undefined') return;
-    if (!document.querySelector('.mobile-hero-swiper')) return;
-
-    new Swiper('.mobile-hero-swiper', {
-        slidesPerView: 1,
-        loop: true,
-        effect: 'fade',
-        speed: 600,
-        autoplay: {
-            delay: 5000,
-            disableOnInteraction: false,
-        },
-    });
-});
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    if (typeof Swiper === 'undefined') return;
-    document.querySelectorAll('.mobile-products-swiper').forEach(function (swiperElement) {
-        if (swiperElement.swiper) return;
-        new Swiper(swiperElement, {
-            slidesPerView: 2.1,
-            spaceBetween: 10,
-            speed: 500,
-            autoHeight: true,
-            observer: true,
-            observeParents: true,
-            breakpoints: {
-                576: {
-                    slidesPerView: 2.4,
-                    spaceBetween: 12
-                },
-                768: {
-                    slidesPerView: 3,
-                    spaceBetween: 14
-                }
-            }
-        });
-    });
-});
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    if (typeof Swiper === 'undefined') return;
-    document.querySelectorAll('.watch-shop-swiper').forEach(function (swiperElement) {
-        if (swiperElement.swiper) return;
-        const section = swiperElement.closest('.watch-shop-area');
-        if (!section) return;
-
-        new Swiper(swiperElement, {
-            slidesPerView: 2,
-            spaceBetween: 10,
-            speed: 550,
-            navigation: {
-                nextEl: section.querySelector('.watch-shop-next'),
-                prevEl: section.querySelector('.watch-shop-prev')
-            },
-            breakpoints: {
-                480: {
-                    slidesPerView: 2,
-                    spaceBetween: 10
-                },
-                576: {
-                    slidesPerView: 2,
-                    spaceBetween: 12
-                },
-                768: {
-                    slidesPerView: 2,
-                    spaceBetween: 14
-                },
-                992: {
-                    slidesPerView: 2,
-                    spaceBetween: 18
-                },
-                1200: {
-                    slidesPerView: 3.75,
-                    spaceBetween: 18
-                },
-                1400: {
-                    slidesPerView: 4.5,
-                    spaceBetween: 18
-                },
-                1600: {
-                    slidesPerView: 5,
-                    spaceBetween: 20
-                },
-                1800: {
-                    slidesPerView: 5.5,
-                    spaceBetween: 22
-                }
-            }
-        });
-    });
-});
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const overlay = document.getElementById('reelViewerOverlay');
-    const viewerVideo = document.getElementById('reelViewerVideo');
-    const closeBtn = document.getElementById('reelViewerClose');
-    const muteBtn = document.getElementById('reelMuteToggle');
-    const likeBtn = document.getElementById('reelLikeBtn');
-    const shareBtn = document.getElementById('reelShareBtn');
-    const viewsCount = document.getElementById('reelViewsCount');
-    const likesCount = document.getElementById('reelLikesCount');
-    const shareCount = document.getElementById('reelShareCount');
-    const productName = document.getElementById('reelProductName');
-    const productLink = document.getElementById('reelProductLink');
-    const sharePopup = document.getElementById('reelSharePopup');
-    const sharePopupClose = document.getElementById('reelShareClose');
-    const shareOptions = document.querySelectorAll('.reel-share-option');
-    const openTriggers = document.querySelectorAll('.js-reel-open');
-
-    if (!overlay || !viewerVideo || !openTriggers.length) return;
-    const currentShareData = {
-        reelId: '',
-        title: '',
-        detail: '',
-        price: '',
-        link: ''
-    };
-    let currentReelId = null;
-
-    const getCookie = (name) => {
-        const cookieValue = document.cookie
-            .split(';')
-            .map((item) => item.trim())
-            .find((item) => item.startsWith(`${name}=`));
-        return cookieValue ? decodeURIComponent(cookieValue.split('=').slice(1).join('=')) : '';
-    };
-
-    const csrfToken = getCookie('csrftoken');
-
-    const postForm = async (url, formData = null) => {
-        const options = {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            credentials: 'same-origin'
-        };
-
-        if (csrfToken) {
-            options.headers['X-CSRFToken'] = csrfToken;
-        }
-
-        if (formData) {
-            options.headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
-            options.body = formData.toString();
-        }
-
-        const response = await fetch(url, options);
-        return response.json();
-    };
-
-    const formatViews = (value) => {
-        const v = Number(value) || 0;
-        if (v >= 1000000) return (v / 1000000).toFixed(1) + 'M';
-        if (v >= 1000) return (v / 1000).toFixed(1) + 'K';
-        return String(v);
-    };
-
-    const setMuteIcon = () => {
-        if (!muteBtn) return;
-        const icon = muteBtn.querySelector('i');
-        if (!icon) return;
-        if (viewerVideo.muted) {
-            icon.className = 'fas fa-volume-mute';
-        } else {
-            icon.className = 'fas fa-volume-up';
-        }
-    };
-
-    const closeViewer = () => {
-        overlay.classList.remove('is-open');
-        overlay.setAttribute('aria-hidden', 'true');
-        document.body.classList.remove('reel-viewer-open');
-        if (sharePopup) {
-            sharePopup.classList.remove('is-open');
-            sharePopup.setAttribute('aria-hidden', 'true');
-        }
-        viewerVideo.pause();
-        viewerVideo.removeAttribute('src');
-        viewerVideo.load();
-        viewerVideo.muted = true;
-        setMuteIcon();
-        if (likeBtn) {
-            likeBtn.classList.remove('is-liked');
-            likeBtn.dataset.liked = '0';
-        }
-        currentReelId = null;
-    };
-
-    const buildShareText = () => {
-        const lines = [
-            `Watch this reel: ${currentShareData.title}`,
-            currentShareData.detail ? `Details: ${currentShareData.detail}` : '',
-            currentShareData.price ? `Price: ${currentShareData.price}` : '',
-            currentShareData.link ? `Product Link: ${currentShareData.link}` : ''
-        ].filter(Boolean);
-        return lines.join('\n');
-    };
-
-    const openSharePopup = () => {
-        if (!sharePopup) return;
-        sharePopup.classList.add('is-open');
-        sharePopup.setAttribute('aria-hidden', 'false');
-    };
-
-    const closeSharePopup = () => {
-        if (!sharePopup) return;
-        sharePopup.classList.remove('is-open');
-        sharePopup.setAttribute('aria-hidden', 'true');
-    };
-
-    const bumpShareCount = () => {
-        if (!shareBtn || !shareCount) return;
-        const base = parseInt(shareBtn.dataset.baseShares || '0', 10) || 0;
-        const next = base + 1;
-        shareBtn.dataset.baseShares = String(next);
-        shareCount.textContent = String(next);
-    };
-
-    const popupOpenWindow = (url) => {
-        window.open(url, '_blank', 'noopener,noreferrer,width=620,height=680');
-    };
-
-    const copyToClipboard = async (text) => {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(text);
-            return;
-        }
-        const temp = document.createElement('textarea');
-        temp.value = text;
-        temp.setAttribute('readonly', '');
-        temp.style.position = 'fixed';
-        temp.style.top = '-9999px';
-        document.body.appendChild(temp);
-        temp.select();
-        document.execCommand('copy');
-        document.body.removeChild(temp);
-    };
-
-    openTriggers.forEach((trigger) => {
-        trigger.addEventListener('click', function (event) {
-            event.preventDefault();
-            const videoUrl = this.dataset.videoUrl || '';
-            const posterUrl = this.dataset.posterUrl || '';
-            const productUrl = this.dataset.productUrl || this.getAttribute('href') || '#';
-            const productTitle = this.dataset.productName || 'Product';
-            const productPrice = this.dataset.productPrice || '';
-            const productDetail = this.dataset.productDetail || '';
-            const reelId = parseInt(this.dataset.reelId || '1', 10) || 1;
-            const initialViews = parseInt(this.dataset.viewCount || '0', 10) || 0;
-            const initialLikes = parseInt(this.dataset.likeCount || '0', 10) || 0;
-            const isInitiallyLiked = this.dataset.isLiked === '1';
-            const generatedShares = ((reelId * 7) % 190) + 24;
-            const absoluteProductUrl = productUrl.startsWith('http')
-                ? productUrl
-                : `${window.location.origin}${productUrl}`;
-
-            if (videoUrl) {
-                viewerVideo.src = videoUrl;
-            }
-            if (posterUrl) {
-                viewerVideo.setAttribute('poster', posterUrl);
-            } else {
-                viewerVideo.removeAttribute('poster');
-            }
-
-            productName.textContent = productTitle;
-            productLink.href = productUrl;
-            viewsCount.textContent = formatViews(initialViews);
-            likesCount.textContent = String(initialLikes);
-            shareCount.textContent = String(generatedShares);
-            if (shareBtn) {
-                shareBtn.dataset.baseShares = String(generatedShares);
-            }
-
-            likeBtn.dataset.baseLikes = String(initialLikes);
-            likeBtn.dataset.liked = isInitiallyLiked ? '1' : '0';
-            likeBtn.classList.toggle('is-liked', isInitiallyLiked);
-            currentReelId = reelId;
-
-            currentShareData.reelId = String(reelId);
-            currentShareData.title = productTitle;
-            currentShareData.detail = productDetail;
-            currentShareData.price = productPrice;
-            currentShareData.link = absoluteProductUrl;
-            closeSharePopup();
-
-            overlay.classList.add('is-open');
-            overlay.setAttribute('aria-hidden', 'false');
-            document.body.classList.add('reel-viewer-open');
-
-            viewerVideo.muted = true;
-            setMuteIcon();
-            viewerVideo.currentTime = 0;
-            const playPromise = viewerVideo.play();
-            if (playPromise && typeof playPromise.catch === 'function') {
-                playPromise.catch(function () {});
-            }
-
-            postForm(`/reels/${reelId}/track-view/`)
-                .then((data) => {
-                    if (!data || data.success !== true) return;
-                    const latestViews = parseInt(data.view_count || '0', 10) || 0;
-                    viewsCount.textContent = formatViews(latestViews);
-                    document.querySelectorAll(`.js-reel-open[data-reel-id="${reelId}"]`).forEach((node) => {
-                        node.dataset.viewCount = String(latestViews);
-                    });
-                })
-                .catch(function () {});
-        });
-    });
-
-    if (closeBtn) {
-        closeBtn.addEventListener('click', closeViewer);
-    }
-
-    if (muteBtn) {
-        muteBtn.addEventListener('click', function () {
-            viewerVideo.muted = !viewerVideo.muted;
-            setMuteIcon();
-        });
-    }
-
-    if (likeBtn) {
-        likeBtn.addEventListener('click', function () {
-            if (!currentReelId) return;
-            const isLiked = this.dataset.liked === '1';
-            const nextLiked = !isLiked;
-
-            const payload = new URLSearchParams();
-            payload.set('liked', nextLiked ? '1' : '0');
-
-            postForm(`/reels/${currentReelId}/like/`, payload)
-                .then((data) => {
-                    if (!data || data.success !== true) return;
-                    const serverLiked = data.liked === true;
-                    const serverLikeCount = parseInt(data.like_count || '0', 10) || 0;
-                    this.dataset.liked = serverLiked ? '1' : '0';
-                    this.dataset.baseLikes = String(serverLikeCount);
-                    this.classList.toggle('is-liked', serverLiked);
-                    likesCount.textContent = String(serverLikeCount);
-
-                    document.querySelectorAll(`.js-reel-open[data-reel-id="${currentReelId}"]`).forEach((node) => {
-                        node.dataset.likeCount = String(serverLikeCount);
-                        node.dataset.isLiked = serverLiked ? '1' : '0';
-                    });
-                })
-                .catch(function () {});
-        });
-    }
-
-    if (shareBtn) {
-        shareBtn.addEventListener('click', function (event) {
-            event.stopPropagation();
-            if (!sharePopup) return;
-            const isOpen = sharePopup.classList.contains('is-open');
-            if (isOpen) {
-                closeSharePopup();
-            } else {
-                openSharePopup();
-            }
-        });
-    }
-
-    if (sharePopupClose) {
-        sharePopupClose.addEventListener('click', function () {
-            closeSharePopup();
-        });
-    }
-
-    shareOptions.forEach((btn) => {
-        btn.addEventListener('click', async function () {
-            const target = (this.dataset.shareTarget || '').trim();
-            const text = buildShareText();
-            const url = encodeURIComponent(currentShareData.link || window.location.href);
-            const encodedText = encodeURIComponent(text);
-
-            try {
-                if (target === 'copy') {
-                    await copyToClipboard(text);
-                    bumpShareCount();
-                    closeSharePopup();
-                    return;
-                }
-
-                if (target === 'whatsapp') {
-                    popupOpenWindow(`https://wa.me/?text=${encodedText}`);
-                    bumpShareCount();
-                    closeSharePopup();
-                    return;
-                }
-
-                if (target === 'facebook') {
-                    popupOpenWindow(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${encodedText}`);
-                    bumpShareCount();
-                    closeSharePopup();
-                    return;
-                }
-
-                if (target === 'x') {
-                    popupOpenWindow(`https://twitter.com/intent/tweet?text=${encodedText}&url=${url}`);
-                    bumpShareCount();
-                    closeSharePopup();
-                    return;
-                }
-
-                if (target === 'instagram') {
-                    await copyToClipboard(text);
-                    popupOpenWindow('https://www.instagram.com/');
-                    bumpShareCount();
-                    closeSharePopup();
-                }
-            } catch (e) {
-                // Keep UI stable even if clipboard/share popup is blocked
-            }
-        });
-    });
-
-    overlay.addEventListener('click', function (event) {
-        if (event.target === overlay) {
-            closeViewer();
-            return;
-        }
-        if (sharePopup && sharePopup.classList.contains('is-open')) {
-            const isShareButton = shareBtn && (event.target === shareBtn || shareBtn.contains(event.target));
-            const isInsidePopup = sharePopup.contains(event.target);
-            if (!isInsidePopup && !isShareButton) {
-                closeSharePopup();
-            }
-        }
-    });
-
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape' && overlay.classList.contains('is-open')) {
-            closeViewer();
-        }
-    });
-});
-</script>
-
-<div class="slider-area">
-    <div class="swiper-container slider__active">
-        <div class="slider-wrapper swiper-wrapper">
-
-            {% for slider in sliders %}
-    <div class="single-slider swiper-slide slider-height d-flex align-items-center"
-    style="
-        {% if slider.image %}background-image: url('{{ slider.image.url }}');{% else %}background-color: #f0f0f0;{% endif %}
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        width: 100%;
-    ">
-
-
-
-                <div class="container">
-                    <div class="row">
-                        <div class="col-xl-5">
-                            <div class="slider-content">
-
-                                <div class="slider-top-btn"
-                                     data-animation="fadeInLeft"
-                                     data-delay="1.5s">
-                                    <a href="{{ slider.top_button_url }}" class="st-btn b-radius">
-                                        {{ slider.top_button_text }}
-                                    </a>
-                                </div>
-
-                                <h2 data-animation="fadeInLeft"
-                                    data-delay="1.7s"
-                                    class="pt-15 slider-title pb-5">
-                                    {{ slider.title }} <br>
-                                    {{ slider.subtitle }}
-                                </h2>
-
-                                <p class="pr-20 slider_text"
-                                data-animation="fadeInLeft"
-                                data-delay="1.9s">
-                                    {{ slider.description }}
-                                </p>
-
-                            <div class="slider-bottom-btn mt-75">
-                                <a data-animation="fadeInUp"
-                                    data-delay="1.15s"
-                                    href="/shop/"
-                                    class="st-btn-b b-radius">
-                                    Discover now
-                                </a>
-                            </div>
-
-
-                            </div>
-                        </div>
+            <div class="vm-home-mobile-categories">
+                {% for category in categories|slice:":6" %}
+                <a href="{% url 'shop' %}?category={{ category.category_key|urlencode }}" class="vm-home-mobile-category">
+                    <div class="vm-home-mobile-category__image">
+                        {% if category.icon_image %}
+                        <img src="{{ category.icon_image.url }}" alt="{{ category.name }}">
+                        {% elif category.card_image %}
+                        <img src="{{ category.card_image.url }}" alt="{{ category.name }}">
+                        {% elif category_fallback_images|get_item:category.category_key %}
+                        <img src="{{ category_fallback_images|get_item:category.category_key }}" alt="{{ category.name }}">
+                        {% else %}
+                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ category.name }}">
+                        {% endif %}
                     </div>
-                </div>
-
+                    <span>{{ category.name }}</span>
+                </a>
+                {% endfor %}
             </div>
-            {% endfor %}
+        </section>
 
-            <div class="main-slider-paginations"></div>
-        </div>
-    </div>
-</div>
+        <section class="vm-home-mobile-featurebar">
+            <article><i class="far fa-truck"></i><span>Free Delivery</span></article>
+            <article><i class="far fa-shield-check"></i><span>Secure Payment</span></article>
+            <article><i class="far fa-sync-alt"></i><span>Easy Returns</span></article>
+            <article><i class="far fa-headphones-alt"></i><span>24/7 Support</span></article>
+        </section>
 
-<!-- SHOP BY CATEGORY SECTION -->
-<section class="category__area pt-30 pb-10">
-    <div class="container">
-        <div class="row">
-            <div class="col-xl-12">
-                <div class="section__head d-flex justify-content-between mb-30">
-                    <div class="section__title">
-                        <h5 class="st-titile-d">All Categories</h5>
-                    </div>
+        <section class="vm-home-mobile-section">
+            <div class="vm-home-mobile-section__head vm-home-mobile-section__head--split">
+                <div>
+                    <span>Curated</span>
+                    <h3>Top Selling</h3>
                 </div>
+                <a href="{% url 'shop' %}">View All</a>
+            </div>
+            <div class="vm-home-mobile-products">
+                {% for product in recommended|slice:":4" %}
+                <article class="vm-home-mobile-product-card">
+                    <a href="{% url 'product_detail' product.slug %}" class="vm-home-mobile-product-card__media">
+                        {% if product.image %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                        {% else %}
+                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}">
+                        {% endif %}
+                    </a>
+                    <p>{{ product.brand|clean_brand_name|default:"VibeMall" }}</p>
+                    <h4><a href="{% url 'product_detail' product.slug %}">{{ product.name }}</a></h4>
+                    <strong>₹{% if product.discount_price and product.discount_price > 0 %}{{ product.discount_price|floatformat:2 }}{% else %}{{ product.price|floatformat:2 }}{% endif %}</strong>
+                    <div class="vm-home-mobile-product-card__actions">
+                        <button
+                            type="button"
+                            class="wishlist-btn {% if product.id in wishlist_product_ids %}wishlisted{% endif %}"
+                            data-product-id="{{ product.id }}"
+                            data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
+                            data-in-wishlist="{% if product.id in wishlist_product_ids %}1{% else %}0{% endif %}"
+                            aria-pressed="{% if product.id in wishlist_product_ids %}true{% else %}false{% endif %}"
+                            aria-label="{% if product.id in wishlist_product_ids %}Remove from wishlist{% else %}Add to wishlist{% endif %}"
+                            title="{% if product.id in wishlist_product_ids %}Remove from wishlist{% else %}Add to wishlist{% endif %}"
+                            onclick="handleWishlistClick(this)">
+                            <i class="{% if product.id in wishlist_product_ids %}fas{% else %}far{% endif %} fa-heart"></i>
+                            <span>Wishlist</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="cart-btn {% if product.id in cart_product_ids %}in-cart{% endif %}"
+                            data-product-id="{{ product.id }}"
+                            data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
+                            aria-pressed="{% if product.id in cart_product_ids %}true{% else %}false{% endif %}"
+                            aria-label="{% if product.id in cart_product_ids %}Remove from cart{% else %}Add to cart{% endif %}"
+                            title="{% if product.id in cart_product_ids %}Remove from cart{% else %}Add to cart{% endif %}"
+                            onclick="handleCartClick(this)">
+                            <i class="{% if product.id in cart_product_ids %}fas{% else %}far{% endif %} fa-shopping-bag"></i>
+                            <span>Add to Cart</span>
+                        </button>
+                    </div>
+                </article>
+                {% empty %}
+                <article class="vm-home-mobile-product-card">
+                    <a href="{% url 'shop' %}" class="vm-home-mobile-product-card__media">
+                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Products coming soon">
+                    </a>
+                    <p>VibeMall</p>
+                    <h4><a href="{% url 'shop' %}">Products coming soon</a></h4>
+                    <strong>₹0.00</strong>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="vm-home-mobile-series">
+            <div class="vm-home-mobile-section__head">
+                <div>
+                    <span>Watch and Shop</span>
+                    <h3>Watch and Shop</h3>
+                </div>
+            </div>
+            <div class="vm-home-mobile-series__track">
+                {% for reel in watch_shop_reels|slice:":3" %}
+                <article class="vm-home-mobile-series__card">
+                    {% if reel.product and reel.product.slug %}<a href="{% url 'product_detail' reel.product.slug %}">{% endif %}
+                    {% if reel.video_file %}
+                    <video autoplay muted loop playsinline preload="metadata"{% if reel.thumbnail %} poster="{{ reel.thumbnail.url }}"{% endif %}>
+                        <source src="{{ reel.video_file.url }}" type="video/mp4">
+                    </video>
+                    {% elif reel.thumbnail %}
+                    <img src="{{ reel.thumbnail.url }}" alt="{{ reel.title }}">
+                    {% elif reel.product and reel.product.image %}
+                    <img src="{{ reel.product.image.url }}" alt="{{ reel.title }}">
+                    {% else %}
+                    <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ reel.title }}">
+                    {% endif %}
+                    {% if reel.product and reel.product.slug %}</a>{% endif %}
+                    <div class="vm-home-mobile-series__overlay">
+                        <span>Watch and Shop {{ forloop.counter|stringformat:"02d" }}</span>
+                        <p>{{ reel.title }}</p>
+                    </div>
+                </article>
+                {% empty %}
+                <article class="vm-home-mobile-series__card">
+                    <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Videos coming soon">
+                    <div class="vm-home-mobile-series__overlay">
+                        <span>Watch and Shop 01</span>
+                        <p>Videos coming soon</p>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="vm-home-mobile-newsletter">
+            <i class="far fa-envelope-open-text"></i>
+            <h3>Stay Curated</h3>
+            <p>Join the inner circle for early access to collections and private atelier events.</p>
+            <form id="vmCopyNewsletterFormMobile" data-vm-newsletter-form action="{% url 'subscribe_newsletter' %}" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="source_page" value="HomePageMobile">
+                <input type="email" name="email" placeholder="YOUR EMAIL ADDRESS" required>
+                <button type="submit">Subscribe</button>
+            </form>
+            <p id="vmCopyNewsletterStatusMobile" data-vm-newsletter-status class="vm-copy-newsletter-status" aria-live="polite"></p>
+        </section>
+
+        <footer class="vm-home-mobile-footer vm-mobile-page-footer">
+            <details>
+                <summary>Collections</summary>
+                <a href="{% url 'shop' %}">Shop All</a>
+                <a href="{% url 'shop' %}?sort=latest">New Arrivals</a>
+            </details>
+            <details>
+                <summary>Experience</summary>
+                <a href="{% url 'blog' %}">Editorial</a>
+                <a href="{% url 'about' %}">About VibeMall</a>
+            </details>
+            <details>
+                <summary>Concierge</summary>
+                <a href="{% url 'cart' %}">Cart</a>
+                <a href="{% url 'wishlist' %}">Wishlist</a>
+            </details>
+            <details>
+                <summary>Legal</summary>
+                <a href="{% url 'faq' %}">FAQ</a>
+                <a href="{% url 'profile' %}">My Account</a>
+            </details>
+            <div class="vm-home-mobile-footer__brand">
+                <h2>VIBEMALL</h2>
+                <p>© 2024 VibeMall Atelier. All Rights Reserved.</p>
+            </div>
+        </footer>
+    </main>
+
+    <nav class="vm-home-mobile-nav vm-mobile-bottom-nav" aria-label="Mobile primary navigation">
+        <a href="/" class="is-active" aria-label="Home"><i class="fas fa-home"></i></a>
+        <a href="{% url 'shop' %}" aria-label="Shop"><i class="far fa-store"></i></a>
+        <a href="{% url 'cart' %}" aria-label="Cart"><i class="far fa-shopping-cart"></i></a>
+        {% if request.user.is_authenticated %}
+        <a href="{% url 'profile' %}" aria-label="Account"><i class="far fa-user"></i></a>
+        {% else %}
+        <a href="{% url 'login' %}" aria-label="Account"><i class="far fa-user"></i></a>
+        {% endif %}
+        <a href="{% url 'wishlist' %}" aria-label="Wishlist"><i class="far fa-heart"></i></a>
+    </nav>
+</section>
+
+<section class="vm-home-tablet-only">
+    <header class="vm-home-tablet-header">
+        <div class="vm-home-tablet-header__inner">
+            <div class="vm-home-tablet-header__brand">
+                <button type="button" class="offcanvas-toggle-btn" aria-label="Open menu"><i class="fas fa-bars"></i></button>
+                <h1>VibeMall</h1>
+            </div>
+            <form class="vm-home-tablet-search" action="{% url 'shop' %}" method="get">
+                <i class="far fa-search" aria-hidden="true"></i>
+                <input type="search" name="q" placeholder="Search curated collections...">
+            </form>
+            <div class="vm-home-tablet-header__actions">
+                <a href="{% url 'wishlist' %}" aria-label="Wishlist"><i class="far fa-heart"></i></a>
+                <a href="{% url 'cart' %}" aria-label="Open cart" class="has-badge">
+                    <i class="far fa-shopping-bag"></i>
+                    <span>{{ cart_count|default:"0" }}</span>
+                </a>
+                {% if request.user.is_authenticated %}
+                <a href="{% url 'profile' %}" aria-label="Account"><i class="far fa-user"></i></a>
+                {% else %}
+                <a href="{% url 'login' %}" aria-label="Account"><i class="far fa-user"></i></a>
+                {% endif %}
             </div>
         </div>
-        <div class="all-categories-grid">
-            {% for category in categories %}
-            <a href="{% url 'shop' %}?category={{ category.category_key }}" class="all-category-card">
-                <div class="all-category-thumb">
+    </header>
+
+    <main class="vm-home-tablet-main">
+        <div class="vm-home-tablet-shell">
+            <section class="vm-home-tablet-hero">
+                <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZjga-Cjm8E3Bviv_XCTIjt5pFkPwRVhYXZO6oa7vHQt4242ymP-hJrdYxsU5K7w-dkGUcEwGXMMQGJYOQa-T9CgFVG2IX4J-RMo9lTuLhZtHu3fTPjkTVVJQlyYCivB0yIQoNhXves_PIG9_LFiK92PSPxT4VpxzKRARxx-7z8NyAl7eAyepynOvz69XjI2Y8IW-N13Wf3n3LRR1fqXCyiKVyUKJZBEW30TnbHg0G7I3r3ht9oiRKB3Au15JNWpMyEy0bgVDgEOk" alt="Editorial fashion" referrerpolicy="no-referrer">
+                <div class="vm-home-tablet-hero__content">
+                    <span class="vm-home-tablet-kicker">Edition 01 // Atelier</span>
+                    <h2>The Poetry of Modern Drape</h2>
+                    <p>A tablet-first editorial landing page inspired by the imported concept, but kept structurally close to the desktop VibeMall experience.</p>
+                    <div class="vm-home-tablet-hero__actions">
+                        <a href="{% url 'shop' %}" class="vm-home-tablet-btn">Explore Collection</a>
+                        <a href="{% url 'blog' %}" class="vm-home-tablet-btn--ghost">Read Editorial</a>
+                    </div>
+                </div>
+                <div class="vm-home-tablet-hero__dots" aria-hidden="true">
+                    <span></span><span></span><span></span>
+                </div>
+            </section>
+
+            <section class="vm-home-tablet-categories">
+                <div class="vm-home-tablet-categories__track">
+                    {% for category in categories|slice:":5" %}
+                    <a href="{% url 'shop' %}?category={{ category.category_key|urlencode }}" class="vm-home-tablet-category">
+                        <div class="vm-home-tablet-category__image">
+                            {% if category.icon_image %}
+                            <img src="{{ category.icon_image.url }}" alt="{{ category.name }}">
+                            {% elif category.card_image %}
+                            <img src="{{ category.card_image.url }}" alt="{{ category.name }}">
+                            {% elif category_fallback_images|get_item:category.category_key %}
+                            <img src="{{ category_fallback_images|get_item:category.category_key }}" alt="{{ category.name }}">
+                            {% else %}
+                            <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ category.name }}">
+                            {% endif %}
+                        </div>
+                        <span>{{ category.name }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+
+        <section class="vm-home-tablet-ticker" aria-label="Promotions">
+            <div class="vm-home-tablet-ticker__track">
+                <span><i class="far fa-clock"></i> Archive Sale Ends in 04:22:18</span>
+                <span class="vm-home-tablet-ticker__sep">•</span>
+                <span>Complimentary Global Atelier Shipping</span>
+                <span class="vm-home-tablet-ticker__sep">•</span>
+                <span>20% Privilege Reward on First Purchase</span>
+                <span class="vm-home-tablet-ticker__sep">•</span>
+                <span><i class="far fa-clock"></i> Archive Sale Ends in 04:22:18</span>
+                <span class="vm-home-tablet-ticker__sep">•</span>
+                <span>Complimentary Global Atelier Shipping</span>
+                <span class="vm-home-tablet-ticker__sep">•</span>
+                <span>20% Privilege Reward on First Purchase</span>
+            </div>
+        </section>
+
+        <div class="vm-home-tablet-shell">
+            <section class="vm-home-tablet-section">
+                <div class="vm-home-tablet-section__head">
+                    <div>
+                        <span class="vm-home-tablet-section__eyebrow">The Icons</span>
+                        <h3 class="vm-home-tablet-section__title">Most Coveted Pieces</h3>
+                        <p class="vm-home-tablet-section__desc">Tablet layout keeps the desktop hierarchy, but borrows the imported source's quieter editorial spacing and tighter card compositions.</p>
+                    </div>
+                    <a href="{% url 'shop' %}" class="vm-home-tablet-link">View All</a>
+                </div>
+                <div class="vm-home-tablet-icons">
+                    {% for product in recommended|slice:":2" %}
+                    <article>
+                        <a href="{% url 'product_detail' product.slug %}" class="vm-home-tablet-product">
+                            <div class="vm-home-tablet-product__media">
+                                {% if product.image %}
+                                <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                                {% else %}
+                                <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}">
+                                {% endif %}
+                            </div>
+                            <small>{{ product.brand|clean_brand_name|default:"VibeMall" }}</small>
+                            <h4>{{ product.name }}</h4>
+                            <strong>₹{% if product.discount_price and product.discount_price > 0 %}{{ product.discount_price|floatformat:2 }}{% else %}{{ product.price|floatformat:2 }}{% endif %}</strong>
+                        </a>
+                        <div class="vm-home-tablet-product__actions">
+                            <button
+                                type="button"
+                                class="wishlist-btn {% if product.id in wishlist_product_ids %}wishlisted{% endif %}"
+                                data-product-id="{{ product.id }}"
+                                data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
+                                data-in-wishlist="{% if product.id in wishlist_product_ids %}1{% else %}0{% endif %}"
+                                aria-pressed="{% if product.id in wishlist_product_ids %}true{% else %}false{% endif %}"
+                                aria-label="{% if product.id in wishlist_product_ids %}Remove from wishlist{% else %}Add to wishlist{% endif %}"
+                                title="{% if product.id in wishlist_product_ids %}Remove from wishlist{% else %}Add to wishlist{% endif %}"
+                                onclick="handleWishlistClick(this)">
+                                <i class="{% if product.id in wishlist_product_ids %}fas{% else %}far{% endif %} fa-heart"></i>
+                                <span>Wishlist</span>
+                            </button>
+                            <button
+                                type="button"
+                                class="cart-btn {% if product.id in cart_product_ids %}in-cart{% endif %}"
+                                data-product-id="{{ product.id }}"
+                                data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
+                                aria-pressed="{% if product.id in cart_product_ids %}true{% else %}false{% endif %}"
+                                aria-label="{% if product.id in cart_product_ids %}Remove from cart{% else %}Add to cart{% endif %}"
+                                title="{% if product.id in cart_product_ids %}Remove from cart{% else %}Add to cart{% endif %}"
+                                onclick="handleCartClick(this)">
+                                <i class="{% if product.id in cart_product_ids %}fas{% else %}far{% endif %} fa-shopping-bag"></i>
+                                <span>Add to Cart</span>
+                            </button>
+                        </div>
+                    </article>
+                    {% empty %}
+                    <article>
+                        <a href="{% url 'shop' %}" class="vm-home-tablet-product">
+                            <div class="vm-home-tablet-product__media">
+                                <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Products coming soon">
+                                <span class="vm-home-tablet-product__wish"><i class="far fa-heart"></i></span>
+                            </div>
+                            <small>VibeMall</small>
+                            <h4>Products coming soon</h4>
+                            <strong>₹0.00</strong>
+                        </a>
+                    </article>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="vm-home-tablet-section">
+                <div class="vm-home-tablet-curated">
+                    <article class="vm-home-tablet-curated__feature">
+                        {% with feature_product=recommended|first %}
+                        <div>
+                            {% if feature_product and feature_product.image %}
+                            <img src="{{ feature_product.image.url }}" alt="{{ feature_product.name }}">
+                            {% else %}
+                            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqs9I_GSZ-nUeamQhu3q5JDuOu4LPBDiebNfO-Yv35d5NOCyom0hUBY6VRNR2o0nrl3nA4cYEL8pYulLX6uS5MbDLPcmgMovYWIat-kmF4M19dIYCVQ6rt3KOI7XQDQyCR26EMyraYvmG3enpBTUeEhBqdUOK3xMM12HwZH338ffE8LPx55s68THX4TRbmZMmvmujD9NTBScdBfw4eFfkauPj76vN7nJWG9hayvNA1jVGD7cp95SNT36GspfCY1VriNkJpcJfdfK8" alt="Curated selection" referrerpolicy="no-referrer">
+                            {% endif %}
+                        </div>
+                        <div class="vm-home-tablet-curated__copy">
+                            <span class="vm-home-tablet-section__eyebrow">Seasonal Edit</span>
+                            <h4>Architectural Footwear &amp; Hand-stitched Accents</h4>
+                            <p>Explore a broader editorial composition tuned for tablet widths, with desktop-like section rhythm and cleaner lateral balance.</p>
+                            <a href="{% url 'shop' %}" class="vm-home-tablet-link">Discover</a>
+                        </div>
+                        {% endwith %}
+                    </article>
+                    <aside class="vm-home-tablet-concierge">
+                        <i class="far fa-sparkles"></i>
+                        <h4>The Personal Concierge</h4>
+                        <p>Schedule a private styling session with our atelier team for your next event or seasonal refresh.</p>
+                        <a href="{% url 'about' %}">Book Appointment</a>
+                    </aside>
+                </div>
+            </section>
+
+            <section class="vm-home-tablet-section">
+                <div class="vm-home-tablet-section__head">
+                    <div>
+                        <span class="vm-home-tablet-section__eyebrow">Watch and Shop</span>
+                        <h3 class="vm-home-tablet-section__title">Live Curated Showcases</h3>
+                    </div>
+                    <a href="{% url 'blog' %}" class="vm-home-tablet-link">Explore Stories</a>
+                </div>
+                <div class="vm-home-tablet-watch">
+                    {% with hero_reel=watch_shop_reels|first %}
+                    <article class="vm-home-tablet-watch__hero">
+                        {% if hero_reel and hero_reel.video_file %}
+                        <video autoplay muted loop playsinline preload="metadata"{% if hero_reel.thumbnail %} poster="{{ hero_reel.thumbnail.url }}"{% endif %}>
+                            <source src="{{ hero_reel.video_file.url }}" type="video/mp4">
+                        </video>
+                        {% elif hero_reel and hero_reel.thumbnail %}
+                        <img src="{{ hero_reel.thumbnail.url }}" alt="{{ hero_reel.title }}">
+                        {% elif hero_reel and hero_reel.product and hero_reel.product.image %}
+                        <img src="{{ hero_reel.product.image.url }}" alt="{{ hero_reel.title }}">
+                        {% else %}
+                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Watch and Shop">
+                        {% endif %}
+                        <div class="vm-home-tablet-watch__meta">
+                            <small>{% if hero_reel and hero_reel.product and hero_reel.product.brand %}{{ hero_reel.product.brand|clean_brand_name }}{% else %}Watch and Shop{% endif %}</small>
+                            <h4>{% if hero_reel %}{{ hero_reel.title }}{% else %}Videos coming soon{% endif %}</h4>
+                        </div>
+                    </article>
+                    {% endwith %}
+                    <div class="vm-home-tablet-watch__stack">
+                        {% for reel in watch_shop_reels|slice:"1:3" %}
+                        <article>
+                            {% if reel.video_file %}
+                            <video autoplay muted loop playsinline preload="metadata"{% if reel.thumbnail %} poster="{{ reel.thumbnail.url }}"{% endif %}>
+                                <source src="{{ reel.video_file.url }}" type="video/mp4">
+                            </video>
+                            {% elif reel.thumbnail %}
+                            <img src="{{ reel.thumbnail.url }}" alt="{{ reel.title }}">
+                            {% elif reel.product and reel.product.image %}
+                            <img src="{{ reel.product.image.url }}" alt="{{ reel.title }}">
+                            {% else %}
+                            <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ reel.title }}">
+                            {% endif %}
+                            <div class="vm-home-tablet-watch__meta">
+                                <small>Watch and Shop {{ forloop.counter|add:"1" }}</small>
+                                <h4>{{ reel.title }}</h4>
+                            </div>
+                        </article>
+                        {% empty %}
+                        <article>
+                            <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Watch and Shop">
+                            <div class="vm-home-tablet-watch__meta">
+                                <small>Watch and Shop</small>
+                                <h4>More videos coming soon</h4>
+                            </div>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+
+            <section class="vm-home-tablet-section">
+                <div class="vm-home-tablet-services">
+                    <article class="vm-home-tablet-service"><i class="far fa-truck"></i><h5>Global Shipping</h5><p>Complimentary concierge delivery on curated selections.</p></article>
+                    <article class="vm-home-tablet-service"><i class="far fa-shield-check"></i><h5>Authenticity</h5><p>Every product is verified before dispatch and handoff.</p></article>
+                    <article class="vm-home-tablet-service"><i class="far fa-lock-alt"></i><h5>Secure Payment</h5><p>Protected checkout flow tuned for fast repeat purchases.</p></article>
+                    <article class="vm-home-tablet-service"><i class="far fa-headphones-alt"></i><h5>Personal Styling</h5><p>Direct support for gifting, event edits, and wardrobe picks.</p></article>
+                </div>
+            </section>
+
+            <section class="vm-home-tablet-newsletter">
+                <span class="vm-home-tablet-section__eyebrow">Join the Circle</span>
+                <h2>Access the Unseen</h2>
+                <p>Subscribe for early collection access, private sale invitations, and editor-curated shopping updates optimized for your device.</p>
+                <form id="vmCopyNewsletterFormTablet" data-vm-newsletter-form action="{% url 'subscribe_newsletter' %}" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="source_page" value="HomePageTablet">
+                    <input type="email" name="email" placeholder="YOUR EMAIL ADDRESS" required>
+                    <button type="submit">Subscribe</button>
+                </form>
+                <p id="vmCopyNewsletterStatusTablet" data-vm-newsletter-status class="vm-copy-newsletter-status" aria-live="polite"></p>
+            </section>
+
+            <footer class="vm-home-tablet-footer">
+                <div class="vm-home-tablet-footer__brand">
+                    <h2>VibeMall Atelier</h2>
+                    <p>Redefining digital shopping with curated fashion narratives, trusted brands, and tablet-optimized discovery.</p>
+                </div>
+                <div>
+                    <span class="vm-home-tablet-footer__label">Navigation</span>
+                    <div class="vm-home-tablet-footer__links">
+                        <a href="{% url 'shop' %}">Collections</a>
+                        <a href="{% url 'about' %}">About Us</a>
+                        <a href="{% url 'blog' %}">Editorial</a>
+                    </div>
+                </div>
+                <div>
+                    <span class="vm-home-tablet-footer__label">Concierge</span>
+                    <div class="vm-home-tablet-footer__links">
+                        <a href="{% url 'track_order' %}">Order Tracking</a>
+                        <a href="{% url 'faq' %}">FAQs</a>
+                        <a href="{% url 'profile' %}">My Account</a>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </main>
+</section>
+
+<section class="vm-copy-page vm-copy-home-desktop">
+
+    <section class="vm-copy-hero">
+        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPgZcF0ecnNzrhiTIOBosODib_rgNafg4VuUXINy8jtP45Sjc0gdrriXJ-29JiDsZtHNCULAUffv_RomzJ2Bhov88cdC2xGfHSn-Qo_bVdOYiHajrWN5xBmTpCHb7I8GTacrClH2fVTShiQYEvkdvJ9s6RBnpG-__GOi8MI0jK8Ay3dW-2sAGBSVXKe2HcaCzULPC-Xt8yhduSML_Q6ZtxFb170C4ZxegrEp22j-ZbfyV74nucTwSJqWdPWZr3u8QEsKLkeVgK4VX3" alt="Hero" referrerpolicy="no-referrer">
+        <div class="vm-copy-hero-overlay"></div>
+        <div class="vm-copy-hero-content">
+            <span>AUTUMN / WINTER '24</span>
+            <h1>The Poetry of <em>Modern Drape</em></h1>
+            <div class="vm-copy-hero-actions">
+                <a href="{% url 'shop' %}">Explore Collection</a>
+                <a href="{% url 'blog' %}">Read Editorial</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="vm-copy-section vm-copy-departments">
+        <div class="vm-copy-container">
+            <div class="vm-copy-section-head">
+                <div>
+                    <h2>The Departments</h2>
+                    <p>Curated selections from our global atelier</p>
+                </div>
+                <a href="{% url 'shop' %}">View All</a>
+            </div>
+            <div class="vm-copy-dept-grid">
+                {% for category in categories|slice:":6" %}
+                <article>
                     {% if category.card_image %}
                         <img src="{{ category.card_image.url }}" alt="{{ category.name }}">
                     {% elif category.icon_image %}
@@ -1291,1781 +547,174 @@ document.addEventListener('DOMContentLoaded', function () {
                     {% else %}
                         <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ category.name }}">
                     {% endif %}
-                </div>
-                <span class="all-category-label">{{ category.name }}</span>
-            </a>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-
-
-{% if subcategory_banners %}
-<section class="subcat-banner-area pt-10 pb-20">
-    <div class="container">
-        <div class="section__head d-flex justify-content-between mb-20">
-            <div class="section__title">
-                <h5 class="st-titile-d">Shop by Sub-category</h5>
-            </div>
-        </div>
-        <div class="subcat-banner-grid">
-            {% for item in subcategory_banners %}
-            <div class="subcat-banner-wrapper">
-                <a href="{% url 'shop' %}?category={{ item.category_key|urlencode }}&sub_category={{ item.sub_category|urlencode }}" class="subcat-banner-item">
-                    {% if item.image_url %}
-                    <img src="{{ item.image_url }}" alt="{{ item.title }}">
-                    {% else %}
-                    <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.title }}">
-                    {% endif %}
-                </a>
-                <h6 class="subcat-banner-label">{{ item.title }}</h6>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-{% endif %}
-
-
-
-        <section class="features__area pt-20">
-    <div class="container">
-        <div class="row features-row row-cols-xxl-4 row-cols-xl-4 row-cols-lg-4
-                row-cols-md-2 row-cols-sm-2 row-cols-1 gx-0">
-
-            {% for feature in features %}
-            <div class="col">
-                <div class="features__item d-flex white-bg {% if forloop.last %}features__item-last{% endif %}">
-                    <div class="features__icon mr-20">
-                        <i class="{{ feature.icon_class }}"></i>
-                    </div>
-                    <div class="features__content">
-                        <h6>{{ feature.title }}</h6>
-                        <p>{{ feature.description }}</p>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-
-        </div>
-    </div>
-</section>
-
-
-
-
-        
-
-<!-- PROMOTION AREA - 3 CARD BANNERS (IMAGE + LINK ONLY) -->
-{% if first_banners %}
-<section class="banner__area pt-20 pb-10">
-    <div class="container">
-        <div class="row">
-            {% for banner in first_banners %}
-            <div class="col-xl-4 col-lg-4 col-md-6">
-                <div class="banner__item p-relative w-img mb-30">
-                    <div class="banner__img">
-                        <a href="{{ banner.link_url }}">
-                            {% if banner.image_url %}
-                                <img src="{{ banner.image_url }}" alt="Banner" style="width: 100%; height: auto; display: block; border-radius: 8px;">
-                            {% else %}
-                                <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Banner" style="background-color: #f0f0f0; border-radius: 8px;">
-                            {% endif %}
-                        </a>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-{% endif %}
-
-
-
-{% if watch_shop_reels %}
-<section class="watch-shop-area pt-10 pb-20">
-    <div class="container">
-        <div class="section__head watch-shop-head d-flex justify-content-between mb-20">
-            <div class="section__title">
-                <h5 class="st-titile-d">Watch and Shop</h5>
-            </div>
-            <div class="watch-shop-nav">
-                <button type="button" class="watch-shop-prev" aria-label="Previous">
-                    <i class="fal fa-angle-left"></i>
-                </button>
-                <button type="button" class="watch-shop-next" aria-label="Next">
-                    <i class="fal fa-angle-right"></i>
-                </button>
-            </div>
-        </div>
-
-        <div class="swiper watch-shop-swiper">
-            <div class="swiper-wrapper">
-                {% for reel in watch_shop_reels %}
-                <div class="swiper-slide">
-                    <article class="watch-shop-card">
-                        <a
-                            class="watch-shop-media js-reel-open"
-                            href="{% url 'product-details' reel.product.id %}"
-                            data-reel-id="{{ reel.id }}"
-                            data-video-url="{{ reel.video_file.url }}"
-                            data-product-url="{% url 'product-details' reel.product.id %}"
-                            data-product-name="{{ reel.product.name|escape }}"
-                            data-view-count="{{ reel.view_count|default:0 }}"
-                            data-like-count="{{ reel.like_count|default:0 }}"
-                            data-is-liked="{% if reel.id in liked_reel_ids %}1{% else %}0{% endif %}"
-                            data-product-price="₹{{ reel.product.price }}"
-                            data-product-detail="{{ reel.product.sub_category|default:reel.product.category|default:'Ethnic Wear'|escape }}"
-                            {% if reel.thumbnail %}data-poster-url="{{ reel.thumbnail.url }}"{% endif %}>
-                            <video
-                                muted
-                                loop
-                                playsinline
-                                preload="none"
-                                {% if reel.thumbnail %}poster="{{ reel.thumbnail.url }}"{% endif %}>
-                                <source src="{{ reel.video_file.url }}" type="video/mp4">
-                            </video>
-                        </a>
-                        <div class="watch-shop-content">
-                            <h6>
-                                <a href="{% url 'product-details' reel.product.id %}">{{ reel.product.name|truncatechars:56 }}</a>
-                            </h6>
-                            <a class="watch-shop-btn" href="{% url 'product-details' reel.product.id %}">See Product</a>
-                        </div>
-                    </article>
-                </div>
+                    <span>{{ category.name }}</span>
+                </article>
                 {% endfor %}
             </div>
         </div>
-    </div>
-</section>
-{% endif %}
+    </section>
 
-<div class="reel-viewer-overlay" id="reelViewerOverlay" aria-hidden="true">
-    <div class="reel-viewer-shell">
-        <video id="reelViewerVideo" playsinline loop autoplay muted></video>
-
-        <div class="reel-viewer-top-controls">
-            <button type="button" class="reel-viewer-icon-btn" id="reelMuteToggle" aria-label="Toggle sound">
-                <i class="fas fa-volume-mute"></i>
-            </button>
-            <button type="button" class="reel-viewer-icon-btn" id="reelViewerClose" aria-label="Close">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-
-        <div class="reel-viewer-side-stats">
-            <div class="reel-viewer-stat">
-                <span class="reel-viewer-stat-value" id="reelViewsCount">0</span>
-                <span class="reel-viewer-stat-label">Views</span>
+    <section class="vm-copy-section vm-copy-featured">
+        <div class="vm-copy-container vm-copy-feature-grid">
+            <div class="vm-copy-feature-image-wrap">
+                <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSKjRWc8A_jccmkjuT5rARs5Dkb8FRST48xFMtX545bJsK_AdpRLCzFJfof42wreLgDVfEkckEk21YWQfhkZNSL3vwlcvrEK7c0Y_o1cP7NXJe9anYtcRgdUKbJqxuZyrIASZzHVeu22m6YifhNyUEGIziBY3xP87vYaPZofatsGq6PYMypIpcITUMi-zcpcGc66L-lozFx5xKV07IZeBRYAQ4N-iZxn6wzQLROCuVwI7NgUWlLv1TXzseb45Ga62mFM3ykDvyUhRg" alt="Featured" referrerpolicy="no-referrer">
+                <div class="vm-copy-feature-card">
+                    <small>VibeMall Signature</small>
+                    <h3>Curated Style Drop</h3>
+                    <p>From trend-ready fashion to everyday essentials, every pick is curated for quality, value, and modern style.</p>
+                    <a href="{% url 'shop' %}">Discover on VibeMall</a>
+                </div>
             </div>
-            <button type="button" class="reel-viewer-icon-btn reel-like-btn" id="reelLikeBtn" aria-label="Like">
-                <i class="fas fa-heart"></i>
-                <span id="reelLikesCount">0</span>
-            </button>
-            <button type="button" class="reel-viewer-icon-btn reel-share-static" id="reelShareBtn" aria-label="Share">
-                <i class="fas fa-paper-plane"></i>
-                <span id="reelShareCount">0</span>
-            </button>
-        </div>
-
-        <div class="reel-share-popup" id="reelSharePopup" aria-hidden="true">
-            <div class="reel-share-popup-head">
-                <span>Share Reel</span>
-                <button type="button" id="reelShareClose" aria-label="Close share">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="reel-share-popup-grid">
-                <button type="button" class="reel-share-option" data-share-target="copy">
-                    <i class="fas fa-link"></i>
-                    <span>Copy Link</span>
-                </button>
-                <button type="button" class="reel-share-option" data-share-target="whatsapp">
-                    <i class="fab fa-whatsapp"></i>
-                    <span>WhatsApp</span>
-                </button>
-                <button type="button" class="reel-share-option" data-share-target="facebook">
-                    <i class="fab fa-facebook-f"></i>
-                    <span>Facebook</span>
-                </button>
-                <button type="button" class="reel-share-option" data-share-target="instagram">
-                    <i class="fab fa-instagram"></i>
-                    <span>Instagram</span>
-                </button>
-                <button type="button" class="reel-share-option" data-share-target="x">
-                    <i class="fab fa-x-twitter"></i>
-                    <span>X</span>
-                </button>
-            </div>
-        </div>
-
-        <div class="reel-viewer-bottom-card">
-            <p id="reelProductName">Product</p>
-            <a id="reelProductLink" href="#" class="reel-viewer-product-btn">See Product</a>
-        </div>
-    </div>
-</div>
-
-<section class="topsell__area-1 pt-15 top-deals-section">
-    <div class="container">
-
-        <!-- Header -->
-        <div class="row">
-            <div class="col-xl-12">
-                <div class="section__head d-flex justify-content-between align-items-center mb-10">
-                    <div></div>
-                    <div class="offer-time">
-                        <span class="offer-title d-none d-sm-block">
-                            Hurry Up! Offer ends in:
-                        </span>
-                    {% if countdown %}
-                        <div class="countdown">
-                            <div class="countdown-inner b-radius"
-                                data-countdown
-                                data-date="{{ countdown.end_time|date:'Y-m-d H:i:s' }}">
-                                <ul class="text-center">
-                                    <li><span data-days>0</span> Days</li>
-                                    <li><span data-hours>0</span> Hours</li>
-                                    <li><span data-minutes>0</span> Mins</li>
-                                    <li><span data-seconds>0</span> Secs</li>
-                                </ul>
-                            </div>
-                        </div>
-                        {% endif %}
-                    </div>
+            <div class="vm-copy-feature-copy">
+                <h2>A New Era of Smart Shopping</h2>
+                <p>VibeMall brings trusted brands, fresh collections, and daily value in one seamless shopping destination built for modern India.</p>
+                <div class="vm-copy-feature-points">
+                    <div><h4>Authentic Products</h4><p>Carefully listed items with clear details, transparent pricing, and dependable quality.</p></div>
+                    <div><h4>Fast Delivery</h4><p>Reliable dispatch and smooth order tracking from checkout to doorstep.</p></div>
                 </div>
             </div>
         </div>
+    </section>
 
-        <!-- Products -->
-        <div class="row">
-            <div class="col-xl-12">
-                <div class="section__head d-flex justify-content-between mb-30">
-                    <div class="section__title">
-                        <h5 class="st-titile-d">Top Deals Of The Day</h5>
-                    </div>
-                    <div class="button-wrap">
-                        <a href="{% url 'shop' %}">See All Products <i class="fal fa-chevron-right"></i></a>
-                    </div>
-                </div>
+    <section class="vm-copy-section vm-copy-products">
+        <div class="vm-copy-container">
+            <div class="vm-copy-section-head vm-copy-products-head">
+                <h2>Recommended for You</h2>
             </div>
-        </div>
-
-        <!-- Products Grid -->
-        <div class="row">
-            {% for product in top_deals|slice:":4" %}
-            <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
-    <div class="product__item mb-20">
-                    <!-- PRODUCT THUMB -->
-                    <div class="product__thumb fix" style="position: relative; overflow: visible !important;">
-
-                                <!-- IMAGE -->
-                                <div class="product-image w-img" style="overflow: hidden;">
-                                    <a href="{% url 'product-details' product.id %}">
-                                        {% if product.image %}
-                                            <img src="{{ product.image.url }}" alt="{{ product.name }}">
-                                        {% else %}
-                                            <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}" style="background-color: #f0f0f0; width: 100%; height: auto;">
-                                        {% endif %}
-                                    </a>
-                                </div>
-
-                                <!-- DISCOUNT -->
-                                {% if product.stock == 0 %}
-                                <div style="position: absolute; left: 10px; bottom: 10px; background: #dc3545; color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;">
-                                    Sold out
-                                </div>
-                                {% elif product.discount_percent_display %}
-                                <div style="position: absolute; left: 10px; bottom: 10px; background: #16a34a; color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;">
-                                    {{ product.discount_percent_display }}% off
-                                </div>
-                                {% endif %}
-
-                                <!-- TOP ACTION BUTTONS -->
-                                <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 8px; z-index: 10;">
-                                    <button type="button" class="action-btn" title="Quick view" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e5e7eb; background: #fff; color: #0f172a; display: grid; place-items: center; cursor: pointer; transition: all 120ms ease;"
-                                        data-bs-toggle="modal" data-bs-target="#productQuickView"
-                                        data-product-name="{{ product.name }}"
-                                        data-product-price="{{ product.price }}"
-                                        data-product-old-price="{{ product.old_price|default_if_none:'' }}"
-                                        data-product-image="{% if product.image %}{{ product.image.url }}{% else %}{% static 'assets/img/product/tp-1.jpg' %}{% endif %}"
-                                        data-product-rating="{% with stats=product_stats|get_item:product.id %}{% if stats %}{{ stats.avg_rating }}{% else %}{{ product.rating }}{% endif %}{% endwith %}"
-                                        data-product-reviews="{% with stats=product_stats|get_item:product.id %}{% if stats %}{{ stats.review_count }}{% else %}{{ product.review_count }}{% endif %}{% endwith %}"
-                                        data-product-link="{% url 'product-details' product.id %}"
-                                        data-product-stock="{{ product.stock }}"
-                                        onclick="openQuickView(this)">
-                                        <i class="fal fa-eye"></i>
-                                    </button>
-                                    <button type="button" class="action-btn wishlist-btn {% if product.id in wishlist_product_ids %}wishlisted{% endif %}" title="Add to wishlist" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e5e7eb; background: #fff; color: #0f172a; display: grid; place-items: center; cursor: pointer; transition: all 120ms ease;" 
-                                        data-product-id="{{ product.id }}"
-                                        data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
-                                        onclick="handleWishlistClick(this)">
-                                        <i class="{% if product.id in wishlist_product_ids %}fas{% else %}fal{% endif %} fa-heart"></i>
-                                    </button>
-                                    <button type="button" class="action-btn cart-btn {% if product.id in cart_product_ids %}in-cart{% endif %}" title="{% if product.id in cart_product_ids %}Remove from cart{% else %}Add to cart{% endif %}" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e5e7eb; background: #fff; color: #0f172a; display: grid; place-items: center; cursor: pointer; transition: all 120ms ease;" 
-                                        data-product-id="{{ product.id }}"
-                                        data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
-                                        onclick="handleCartClick(this)"
-                                        {% if product.stock == 0 %}disabled{% endif %}>
-                                        <i class="{% if product.id in cart_product_ids %}fas{% else %}fal{% endif %} fa-shopping-cart"></i>
-                                    </button>
-                                </div>
-
-                    </div>
-
-                    <!-- PRODUCT CONTENT -->
-                    <div class="product__content">
-
-                        <h6>
-                            <a href="{% url 'product-details' product.id %}">
-                                {{ product.name }}
-                            </a>
-                        </h6>
-
-                        <!-- ⭐ DYNAMIC RATING & REVIEWS -->
-                        <div class="rating mb-5">
-                            {% with stats=product_stats|get_item:product.id %}
-                            <ul>
-                                {% for i in "12345" %}
-                                    {% if stats %}
-                                        {% if forloop.counter <= stats.avg_rating|add:0 %}
-                                            <li><i class="fas fa-star star-active"></i></li>
-                                        {% else %}
-                                            <li><i class="far fa-star star-inactive"></i></li>
-                                        {% endif %}
-                                    {% else %}
-                                        {% if forloop.counter <= product.rating|add:0 %}
-                                            <li><i class="fas fa-star star-active"></i></li>
-                                        {% else %}
-                                            <li><i class="far fa-star star-inactive"></i></li>
-                                        {% endif %}
-                                    {% endif %}
-                                {% endfor %}
-                            </ul>
-                            {% if stats %}
-                                {% if stats.review_count > 0 %}
-                                    <span style="white-space: nowrap;">({{ stats.review_count }} review{{ stats.review_count|pluralize }})</span>
-                                {% else %}
-                                    <span style="white-space: nowrap;">(No reviews yet)</span>
-                                {% endif %}
-                            {% else %}
-                                {% if product.review_count > 0 %}
-                                    <span style="white-space: nowrap;">({{ product.review_count }} review{{ product.review_count|pluralize }})</span>
-                                {% else %}
-                                    <span style="white-space: nowrap;">(No reviews yet)</span>
-                                {% endif %}
-                            {% endif %}
-                            {% endwith %}
-                        </div>
-
-
-
-                        <!-- PRICE -->
-                        <div class="price mb-0">
-                            {% if product.old_price %}
-                                <span><del>₹{{ product.old_price }}</del> ₹{{ product.price }}</span>
-                            {% else %}
-                                <span>₹{{ product.price }}</span>
-                            {% endif %}
-                        </div>
-
-                        <div class="progress-rate">
-                            <span>{{ product.sold|default:0 }} sold</span>
-                        </div>
-                    </div>
-
-            <div class="product__add-cart text-center">
-                        {% if product.stock == 0 %}
-                            {% if user.is_authenticated and user.email %}
-                                <form method="POST" action="{% url 'request_stock_notification' product.id %}">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="email" value="{{ user.email }}">
-                                    <button type="submit" class="buy-now-btn-card" style="width: 100%; padding: 10px 8px; font-size: 13px;">Notify me</button>
-                                </form>
-                            {% else %}
-                                <a href="{% url 'product-details' product.id %}" class="buy-now-btn-card" style="width: 100%; padding: 10px 8px; font-size: 13px; display: inline-block; text-align: center;">Notify me</a>
-                            {% endif %}
+            <div class="vm-copy-product-grid">
+                {% for product in recommended|slice:":4" %}
+                <article>
+                    <a href="{% url 'product_detail' product.slug %}">
+                        {% if product.image %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}">
                         {% else %}
-                            <button type="button" class="buy-now-btn-card" style="width: 100%; padding: 10px 8px; font-size: 13px;" onclick="buyNowCard({{ product.id }})">
-                                <i class="fas fa-bolt"></i> Buy Now
-                            </button>
+                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}">
                         {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-
-    </div>
-</section>
-
-<!-- TOP DEALS MOBILE/TABLET SWIPER -->
-<section class="topsell__area-1 pt-15 mobile-products-section top-deals-mobile-section">
-    <div class="container">
-        <div class="row">
-            <div class="col-xl-12">
-                <div class="section__head mb-20">
-                    <div class="section__title text-center">
-                        <h5 class="st-titile-d">Top Deals Of The Day</h5>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="swiper mobile-products-swiper top-deals-mobile-swiper">
-            <div class="swiper-wrapper">
-                {% for product in top_deals|slice:":10" %}
-                    {% include 'partials/mobile_product_swiper_card.html' with product=product %}
+                    </a>
+                    <small>{{ product.brand|clean_brand_name|default:"VibeMall" }}</small>
+                    <h4>
+                        <a href="{% url 'product_detail' product.slug %}">{{ product.name }}</a>
+                    </h4>
+                    <p>
+                        ₹{% if product.discount_price and product.discount_price > 0 %}{{ product.discount_price|floatformat:2 }}{% else %}{{ product.price|floatformat:2 }}{% endif %}
+                    </p>
+                </article>
+                {% empty %}
+                <article>
+                    <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Product">
+                    <small>VibeMall</small>
+                    <h4>Products coming soon</h4>
+                    <p>₹0.00</p>
+                </article>
                 {% endfor %}
             </div>
         </div>
-    </div>
-</section>
+    </section>
 
-<!-- TOP SELLING PRODUCTS SECTION -->
-<section class="topsell__area-1 pt-15 top-selling-section">
-    <div class="container">
-        <div class="row">
-            <div class="col-xl-12">
-                <div class="section__head d-flex justify-content-between mb-30">
-                    <div class="section__title">
-                        <h5 class="st-titile-d">Top Selling Products</h5>
-                    </div>
-                    <div class="button-wrap">
-                        <a href="{% url 'shop' %}">See All Products <i class="fal fa-chevron-right"></i></a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Products Grid -->
-        <div class="row">
-            {% for product in top_selling|slice:":4" %}
-            <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
-                <div class="product__item mb-20">
-                    <div class="product__thumb fix" style="position: relative; overflow: visible !important;">
-                                <div class="product-image w-img" style="overflow: hidden;">
-                                    <a href="{% url 'product-details' product.id %}">
-                                        {% if product.image %}
-                                            <img src="{{ product.image.url }}" alt="{{ product.name }}">
-                                        {% else %}
-                                            <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}" style="background-color: #f0f0f0; width: 100%; height: auto;">
-                                        {% endif %}
-                                    </a>
-                                </div>
-
-                                {% if product.stock == 0 %}
-                                <div style="position: absolute; left: 10px; bottom: 10px; background: #dc3545; color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;">
-                                    Sold out
-                                </div>
-                                {% elif product.discount_percent_display %}
-                                <div style="position: absolute; left: 10px; bottom: 10px; background: #16a34a; color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;">
-                                    {{ product.discount_percent_display }}% off
-                                </div>
-                                {% endif %}
-                                
-                                <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 8px; z-index: 10;">
-                                    <button type="button" class="action-btn" title="Quick view" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e5e7eb; background: #fff; color: #0f172a; display: grid; place-items: center; cursor: pointer; transition: all 120ms ease;"
-                                        data-bs-toggle="modal" data-bs-target="#productQuickView"
-                                        data-product-name="{{ product.name }}"
-                                        data-product-price="{{ product.price }}"
-                                        data-product-old-price="{{ product.old_price|default_if_none:'' }}"
-                                        data-product-image="{% if product.image %}{{ product.image.url }}{% else %}{% static 'assets/img/product/tp-1.jpg' %}{% endif %}"
-                                        data-product-rating="{% with stats=product_stats|get_item:product.id %}{% if stats %}{{ stats.avg_rating }}{% else %}{{ product.rating }}{% endif %}{% endwith %}"
-                                        data-product-reviews="{% with stats=product_stats|get_item:product.id %}{% if stats %}{{ stats.review_count }}{% else %}{{ product.review_count }}{% endif %}{% endwith %}"
-                                        data-product-link="{% url 'product-details' product.id %}"
-                                        data-product-stock="{{ product.stock }}"
-                                        onclick="openQuickView(this)">
-                                        <i class="fal fa-eye"></i>
-                                    </button>
-                                    <button type="button" class="action-btn wishlist-btn {% if product.id in wishlist_product_ids %}wishlisted{% endif %}" title="Add to wishlist" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e5e7eb; background: #fff; color: #0f172a; display: grid; place-items: center; cursor: pointer; transition: all 120ms ease;" 
-                                        data-product-id="{{ product.id }}"
-                                        data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
-                                        onclick="handleWishlistClick(this)">
-                                        <i class="{% if product.id in wishlist_product_ids %}fas{% else %}fal{% endif %} fa-heart"></i>
-                                    </button>
-                                    <button type="button" class="action-btn cart-btn {% if product.id in cart_product_ids %}in-cart{% endif %}" title="{% if product.id in cart_product_ids %}Remove from cart{% else %}Add to cart{% endif %}" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e5e7eb; background: #fff; color: #0f172a; display: grid; place-items: center; cursor: pointer; transition: all 120ms ease;" 
-                                        data-product-id="{{ product.id }}"
-                                        data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
-                                        onclick="handleCartClick(this)"
-                                        {% if product.stock == 0 %}disabled{% endif %}>
-                                        <i class="{% if product.id in cart_product_ids %}fas{% else %}fal{% endif %} fa-shopping-cart"></i>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="product__content">
-<h6><a href="{% url 'product-details' product.id %}">{{ product.name }}</a></h6>
-
-                                <div class="rating mb-5">
-                                    {% with stats=product_stats|get_item:product.id %}
-                                    <ul>
-                                        {% for i in "12345" %}
-                                            {% if stats %}
-                                                {% if forloop.counter <= stats.avg_rating|add:0 %}
-                                                    <li><i class="fas fa-star star-active"></i></li>
-                                                {% else %}
-                                                    <li><i class="far fa-star star-inactive"></i></li>
-                                                {% endif %}
-                                            {% else %}
-                                                {% if forloop.counter <= product.rating|add:0 %}
-                                                    <li><i class="fas fa-star star-active"></i></li>
-                                                {% else %}
-                                                    <li><i class="far fa-star star-inactive"></i></li>
-                                                {% endif %}
-                                            {% endif %}
-                                        {% endfor %}
-                                    </ul>
-                                    <span style="white-space: nowrap;">({% if stats %}{{ stats.review_count }}{% else %}{{ product.review_count }}{% endif %} review{% if stats %}{% if stats.review_count != 1 %}s{% endif %}{% else %}{{ product.review_count|pluralize }}{% endif %})</span>
-                                    {% endwith %}
-                                </div>
-
-                                <div class="price mb-0">
-                                    {% if product.old_price %}
-                                        <span><del>₹{{ product.old_price }}</del> ₹{{ product.price }}</span>
-                                    {% else %}
-                                        <span>₹{{ product.price }}</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <div class="product__add-cart text-center">
-                                {% if product.stock == 0 %}
-                                    {% if user.is_authenticated and user.email %}
-                                        <form method="POST" action="{% url 'request_stock_notification' product.id %}">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="email" value="{{ user.email }}">
-                                            <button type="submit" class="buy-now-btn-card" style="width: 100%; padding: 10px 8px; font-size: 13px;">Notify me</button>
-                                        </form>
-                                    {% else %}
-                                        <a href="{% url 'product-details' product.id %}" class="buy-now-btn-card" style="width: 100%; padding: 10px 8px; font-size: 13px; display: inline-block; text-align: center;">Notify me</a>
-                                    {% endif %}
-                                {% else %}
-                                    <button type="button" class="buy-now-btn-card" style="width: 100%; padding: 10px 8px; font-size: 13px;" onclick="buyNowCard({{ product.id }})">
-                                        <i class="fas fa-bolt"></i> Buy Now
-                                    </button>
-                                {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-
-<!-- BEST SELLER MOBILE/TABLET SWIPER -->
-<section class="topsell__area-1 pt-15 mobile-products-section best-seller-mobile-section">
-    <div class="container">
-        <div class="row">
-            <div class="col-xl-12">
-                <div class="section__head mb-20">
-                    <div class="section__title text-center">
-                        <h5 class="st-titile-d">Best Seller</h5>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="swiper mobile-products-swiper best-seller-mobile-swiper">
-            <div class="swiper-wrapper">
-                {% for product in top_selling|slice:":10" %}
-                    {% include 'partials/mobile_product_swiper_card.html' with product=product %}
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-</section>
-
- 
-
-
-
-        <section class="moveing-text-area">
-            <div class="container">
-                <div class="ovic-running">
-                    <div class="wrap">
-                        <div class="inner">
-                            <p class="item">Free India Delivery - Return Over ₹1000 ( Excluding Homeware )   |   Free India Collect From Store</p>
-                            <p class="item">Design Week / 15% Off the website / Code: AYOSALE-2020</p>
-                            <p class="item">Always iconic. Now organic. Introducing the ₹200 Organic Tee.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-<!-- TOP FEATURED PRODUCTS SECTION -->
-<section class="topsell__area-1 pt-15 recommended-section">
-    <div class="container">
-        <div class="row">
-            <div class="col-xl-12">
-                <div class="section__head d-flex justify-content-between mb-30">
-                    <div class="section__title">
-                        <h5 class="st-titile-d">Top Featured Products</h5>
-                    </div>
-                    <div class="button-wrap">
-                        <a href="{% url 'shop' %}">See All Products <i class="fal fa-chevron-right"></i></a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Products Grid -->
-        <div class="row">
-            {% for product in top_featured|slice:":5" %}
-                {% if forloop.first %}
-                <!-- LARGE FEATURED PRODUCT (LEFT SIDE) -->
-                <div class="col-xl-6 col-lg-6 col-md-12">
-                    <div class="product__item product__item-d mb-30">
-                        <div class="product__thumb fix" style="position: relative; overflow: visible !important;">
-                            <div class="product-image w-img" style="overflow: hidden;">
-                                <a href="{% url 'product-details' product.id %}">
-                                    {% if product.image %}
-                                        <img src="{{ product.image.url }}" alt="{{ product.name }}">
-                                    {% else %}
-                                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}" style="background-color: #f0f0f0;">
-                                    {% endif %}
-                                </a>
-                            </div>
-                            {% if product.stock == 0 %}
-                            <div style="position: absolute; left: 10px; right: auto; bottom: 10px; background: #dc3545; color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;">
-                                Sold out
-                            </div>
-                            {% endif %}
-                            <!-- TOP ACTION BUTTONS -->
-                            <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 8px; z-index: 10;">
-                                <button type="button" class="action-btn" title="Quick view" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e5e7eb; background: #fff; color: #0f172a; display: grid; place-items: center; cursor: pointer; transition: all 120ms ease;"
-                                    data-bs-toggle="modal" data-bs-target="#productQuickView"
-                                    data-product-name="{{ product.name }}"
-                                    data-product-price="{{ product.price }}"
-                                    data-product-old-price="{{ product.old_price|default_if_none:'' }}"
-                                    data-product-image="{% if product.image %}{{ product.image.url }}{% else %}{% static 'assets/img/product/tp-1.jpg' %}{% endif %}"
-                                    data-product-rating="{% with stats=product_stats|get_item:product.id %}{% if stats %}{{ stats.avg_rating }}{% else %}{{ product.rating }}{% endif %}{% endwith %}"
-                                    data-product-reviews="{% with stats=product_stats|get_item:product.id %}{% if stats %}{{ stats.review_count }}{% else %}{{ product.review_count }}{% endif %}{% endwith %}"
-                                    data-product-link="{% url 'product-details' product.id %}"
-                                    data-product-stock="{{ product.stock }}"
-                                    onclick="openQuickView(this)">
-                                    <i class="fal fa-eye"></i>
-                                </button>
-                                <button type="button" class="action-btn wishlist-btn {% if product.id in wishlist_product_ids %}wishlisted{% endif %}" title="Add to wishlist" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e5e7eb; background: #fff; color: #0f172a; display: grid; place-items: center; cursor: pointer; transition: all 120ms ease;" 
-                                    data-product-id="{{ product.id }}"
-                                    data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
-                                    onclick="handleWishlistClick(this)">
-                                    <i class="{% if product.id in wishlist_product_ids %}fas{% else %}fal{% endif %} fa-heart"></i>
-                                </button>
-                                <button type="button" class="action-btn cart-btn {% if product.id in cart_product_ids %}in-cart{% endif %}" title="{% if product.id in cart_product_ids %}Remove from cart{% else %}Add to cart{% endif %}" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e5e7eb; background: #fff; color: #0f172a; display: grid; place-items: center; cursor: pointer; transition: all 120ms ease;" 
-                                    data-product-id="{{ product.id }}"
-                                    data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
-                                    onclick="handleCartClick(this)"
-                                    {% if product.stock == 0 %}disabled{% endif %}>
-                                    <i class="{% if product.id in cart_product_ids %}fas{% else %}fal{% endif %} fa-shopping-cart"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="product__content product__content-d">
-                            <h6><a href="{% url 'product-details' product.id %}">{{ product.name }}</a></h6>
-                            
-                            <div class="rating">
-                                {% with stats=product_stats|get_item:product.id %}
-                                <ul>
-                                    {% for i in "12345" %}
-                                        {% if stats %}
-                                            {% if forloop.counter <= stats.avg_rating|add:0 %}
-                                                <li><i class="fas fa-star"></i></li>
-                                            {% else %}
-                                                <li><i class="far fa-star"></i></li>
-                                            {% endif %}
-                                        {% else %}
-                                            {% if forloop.counter <= product.rating|add:0 %}
-                                                <li><i class="fas fa-star"></i></li>
-                                            {% else %}
-                                                <li><i class="far fa-star"></i></li>
-                                            {% endif %}
-                                        {% endif %}
-                                    {% endfor %}
-                                </ul>
-                                <span style="white-space: nowrap;">({% if stats %}{{ stats.review_count }}{% else %}{{ product.review_count|default:0 }}{% endif %} review{% if stats %}{% if stats.review_count != 1 %}s{% endif %}{% else %}{{ product.review_count|pluralize }}{% endif %})</span>
-                                {% endwith %}
-                            </div>
-
-                            <div class="price">
-                                {% if product.old_price %}
-                                    <span><del>₹{{ product.old_price }}</del> ₹{{ product.price }}</span>
-                                {% else %}
-                                    <span>₹{{ product.price }}</span>
-                                {% endif %}
-                            </div>
-
-                            <div class="product__details">
-                                <ul>
-                                    <li>Bass and Stereo Sound.</li>
-                                    <li>Display with 3088 x 1440 pixels resolution.</li>
-                                    <li>Memory, Storage & SIM: 12GB RAM, 256GB.</li>
-                                    <li>Androi v10.0 Operating system.</li>
-                                </ul>
-                            </div>
-
-                            <div class="product__add-btn">
-                                {% if product.stock == 0 %}
-                                    {% if user.is_authenticated and user.email %}
-                                        <form method="POST" action="{% url 'request_stock_notification' product.id %}" style="width: 100%;">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="email" value="{{ user.email }}">
-                                            <button type="submit" class="buy-now-btn-card flex-fill" style="width: 100%;">Notify me</button>
-                                        </form>
-                                    {% else %}
-                                        <a href="{% url 'product-details' product.id %}" class="buy-now-btn-card flex-fill" style="width: 100%; display: inline-block; text-align: center;">Notify me</a>
-                                    {% endif %}
-                                {% else %}
-                                    <form method="POST" action="{% url 'add_to_cart' %}" style="width: 100%;">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="product_id" value="{{ product.id }}">
-                                        <input type="hidden" name="quantity" value="1">
-                                        <div class="d-flex gap-2" style="width: 100%;">
-                                            <button type="button" class="buy-now-btn-card flex-fill" onclick="buyNowCard({{ product.id }})">
-                                                <i class="fas fa-bolt"></i> BUY NOW
-                                            </button>
-                                        </div>
-                                    </form>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- SMALLER PRODUCTS GRID (RIGHT SIDE) -->
-                <div class="col-xl-6 col-lg-6 col-md-12">
-                    <div class="row">
-                {% else %}
-                    <!-- SMALL PRODUCT CARD -->
-                    <div class="col-xl-6 col-lg-6 col-md-6 col-sm-6">
-                        <div class="product__item mb-20">
-                            <div class="product__thumb fix" style="position: relative; overflow: visible !important;">
-                                <div class="product-image w-img" style="overflow: hidden;">
-                                    <a href="{% url 'product-details' product.id %}">
-                                        {% if product.image %}
-                                            <img src="{{ product.image.url }}" alt="{{ product.name }}">
-                                        {% else %}
-                                            <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}" style="background-color: #f0f0f0;">
-                                        {% endif %}
-                                    </a>
-                                </div>
-                                {% if product.stock == 0 %}
-                                <div style="position: absolute; left: 10px; bottom: 10px; background: #dc3545; color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;">
-                                    Sold out
-                                </div>
-                                {% elif product.discount_percent_display %}
-                                <div style="position: absolute; left: 10px; bottom: 10px; background: #16a34a; color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;">
-                                    {{ product.discount_percent_display }}% off
-                                </div>
-                                {% endif %}
-                                <!-- TOP ACTION BUTTONS -->
-                                <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 8px; z-index: 10;">
-                                    <button type="button" class="action-btn" title="Quick view" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e5e7eb; background: #fff; color: #0f172a; display: grid; place-items: center; cursor: pointer; transition: all 120ms ease;"
-                                        data-bs-toggle="modal" data-bs-target="#productQuickView"
-                                        data-product-name="{{ product.name }}"
-                                        data-product-price="{{ product.price }}"
-                                        data-product-old-price="{{ product.old_price|default_if_none:'' }}"
-                                        data-product-image="{% if product.image %}{{ product.image.url }}{% else %}{% static 'assets/img/product/tp-1.jpg' %}{% endif %}"
-                                        data-product-rating="{% with stats=product_stats|get_item:product.id %}{% if stats %}{{ stats.avg_rating }}{% else %}{{ product.rating }}{% endif %}{% endwith %}"
-                                        data-product-reviews="{% with stats=product_stats|get_item:product.id %}{% if stats %}{{ stats.review_count }}{% else %}{{ product.review_count }}{% endif %}{% endwith %}"
-                                        data-product-link="{% url 'product-details' product.id %}"
-                                        data-product-stock="{{ product.stock }}"
-                                        onclick="openQuickView(this)">
-                                        <i class="fal fa-eye"></i>
-                                    </button>
-                                    <button type="button" class="action-btn wishlist-btn {% if product.id in wishlist_product_ids %}wishlisted{% endif %}" title="Add to wishlist" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e5e7eb; background: #fff; color: #0f172a; display: grid; place-items: center; cursor: pointer; transition: all 120ms ease;" 
-                                        data-product-id="{{ product.id }}"
-                                        data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
-                                        onclick="handleWishlistClick(this)">
-                                        <i class="{% if product.id in wishlist_product_ids %}fas{% else %}fal{% endif %} fa-heart"></i>
-                                    </button>
-                                    <button type="button" class="action-btn cart-btn {% if product.id in cart_product_ids %}in-cart{% endif %}" title="{% if product.id in cart_product_ids %}Remove from cart{% else %}Add to cart{% endif %}" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e5e7eb; background: #fff; color: #0f172a; display: grid; place-items: center; cursor: pointer; transition: all 120ms ease;" 
-                                        data-product-id="{{ product.id }}"
-                                        data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
-                                        onclick="handleCartClick(this)"
-                                        {% if product.stock == 0 %}disabled{% endif %}>
-                                        <i class="{% if product.id in cart_product_ids %}fas{% else %}fal{% endif %} fa-shopping-cart"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="product__content">
-<h6><a href="{% url 'product-details' product.id %}">{{ product.name|truncatewords:4 }}</a></h6>
-                                
-                                <div class="rating mb-5">
-                                    {% with stats=product_stats|get_item:product.id %}
-                                    <ul>
-                                        {% for i in "12345" %}
-                                            {% if stats %}
-                                                {% if forloop.counter <= stats.avg_rating|add:0 %}
-                                                    <li><i class="fas fa-star star-active"></i></li>
-                                                {% else %}
-                                                    <li><i class="far fa-star star-inactive"></i></li>
-                                                {% endif %}
-                                            {% else %}
-                                                {% if forloop.counter <= product.rating|add:0 %}
-                                                    <li><i class="fas fa-star star-active"></i></li>
-                                                {% else %}
-                                                    <li><i class="far fa-star star-inactive"></i></li>
-                                                {% endif %}
-                                            {% endif %}
-                                        {% endfor %}
-                                    </ul>
-                                    <span style="white-space: nowrap;">({% if stats %}{{ stats.review_count }}{% else %}{{ product.review_count|default:0 }}{% endif %} review{% if stats %}{% if stats.review_count != 1 %}s{% endif %}{% else %}{{ product.review_count|pluralize }}{% endif %})</span>
-                                    {% endwith %}
-                                </div>
-
-                                <div class="price mb-0">
-                                    {% if product.old_price %}
-                                        <span><del>₹{{ product.old_price }}</del> ₹{{ product.price }}</span>
-                                    {% else %}
-                                        <span>₹{{ product.price }}</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <div class="product__add-cart text-center">
-                                {% if product.stock == 0 %}
-                                    {% if user.is_authenticated and user.email %}
-                                        <form method="POST" action="{% url 'request_stock_notification' product.id %}">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="email" value="{{ user.email }}">
-                                            <button type="submit" class="buy-now-btn-card" style="width: 100%; padding: 10px 8px; font-size: 13px;">Notify me</button>
-                                        </form>
-                                    {% else %}
-                                        <a href="{% url 'product-details' product.id %}" class="buy-now-btn-card" style="width: 100%; padding: 10px 8px; font-size: 13px; display: inline-block; text-align: center;">Notify me</a>
-                                    {% endif %}
-                                {% else %}
-                                    <button type="button" class="buy-now-btn-card" style="width: 100%; padding: 10px 8px; font-size: 13px;" onclick="buyNowCard({{ product.id }})">
-                                        <i class="fas fa-bolt"></i> Buy Now
-                                    </button>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    {% if forloop.last %}
-                    </div> <!-- Close row for small products -->
-                </div> <!-- Close col-xl-6 -->
+    <section class="vm-copy-section vm-copy-watch">
+        <div class="vm-copy-container">
+            <div class="vm-copy-section-head"><div><h2>Watch &amp; Shop</h2><p>Live curated showcases from our stylists</p></div></div>
+            <div class="vm-copy-watch-grid">
+                {% for reel in watch_shop_reels|slice:":3" %}
+                <article{% if forloop.first %} class="large"{% endif %}>
+                    {% if reel.product and reel.product.slug %}<a href="{% url 'product_detail' reel.product.slug %}">{% endif %}
+                    {% if reel.video_file %}
+                    <video autoplay muted loop playsinline preload="metadata"{% if reel.thumbnail %} poster="{{ reel.thumbnail.url }}"{% endif %}>
+                        <source src="{{ reel.video_file.url }}" type="video/mp4">
+                    </video>
+                    {% elif reel.thumbnail %}
+                    <img src="{{ reel.thumbnail.url }}" alt="{{ reel.title }}">
+                    {% elif reel.product and reel.product.image %}
+                    <img src="{{ reel.product.image.url }}" alt="{{ reel.title }}">
+                    {% else %}
+                    <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ reel.title }}">
                     {% endif %}
-                {% endif %}
-            {% endfor %}
-        </div>
-    </div>
-</section>
-
-<!-- DYNAMIC MAIN PAGE BANNERS -->
-<section class="banner__area banner__area-d pb-10">
-    <div class="container">
-        {% if second_banners %}
-        <div class="row">
-            {% for banner in second_banners %}
-            <div class="col-xl-6 col-lg-6 col-md-12">
-                <div class="banner__item p-relative w-img mb-30">
-                    <div class="banner__img">
-                        <a href="{{ banner.link_url }}">
-                            {% if banner.image_url %}
-                                <img src="{{ banner.image_url }}" alt="{{ banner.title }}" style="width: 100%; height: auto; display: block;">
-                            {% else %}
-                                <img src="{% static 'assets/img/banner/banner-4.jpg' %}" alt="{{ banner.title }}" style="background-color: #f0f0f0;">
-                            {% endif %}
-                        </a>
+                    {% if reel.product and reel.product.slug %}</a>{% endif %}
+                    <div>
+                        <small>{% if reel.product and reel.product.brand %}{{ reel.product.brand|clean_brand_name }}{% else %}Watch &amp; Shop{% endif %}</small>
+                        <h4>{{ reel.title }}</h4>
                     </div>
-                    <div class="banner__content">
-                        {% if banner.badge_text %}<span>{{ banner.badge_text }}</span>{% endif %}
-                        <h6><a href="{{ banner.link_url }}">{{ banner.title }}</a></h6>
-                        {% if banner.description %}<p>{{ banner.description }}</p>{% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-            {% if second_banners|length == 1 %}
-            <!-- Fallback empty space if only one banner -->
-            <div class="col-xl-6 col-lg-6 col-md-12"></div>
-            {% endif %}
-        </div>
-        {% endif %}
-    </div>
-</section>
-<!-- TOP FEATURED MOBILE/TABLET SWIPER -->
-<section class="topsell__area-1 pt-15 mobile-products-section top-featured-mobile-section">
-    <div class="container">
-        <div class="row">
-            <div class="col-xl-12">
-                <div class="section__head mb-20">
-                    <div class="section__title text-center">
-                        <h5 class="st-titile-d">Top Featured Products</h5>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="swiper mobile-products-swiper top-featured-mobile-swiper">
-            <div class="swiper-wrapper">
-                {% for product in top_featured|slice:":10" %}
-                    {% include 'partials/mobile_product_swiper_card.html' with product=product %}
+                </article>
+                {% empty %}
+                <article class="large"><img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Watch &amp; Shop"><div><small>Watch &amp; Shop</small><h4>Videos coming soon</h4></div></article>
                 {% endfor %}
             </div>
         </div>
-    </div>
+    </section>
+
+    <section class="vm-copy-services">
+        <div class="vm-copy-container">
+            <article><i class="fal fa-truck"></i><h6>Global Concierge Shipping</h6><p>Complimentary white-glove delivery on curated collections.</p></article>
+            <article><i class="fal fa-shield-check"></i><h6>Authenticity Guaranteed</h6><p>Every piece verified by our expert team of appraisers.</p></article>
+            <article><i class="fal fa-lock-alt"></i><h6>Secure Transactions</h6><p>Encrypted boutique payment processing for your peace of mind.</p></article>
+            <article><i class="fal fa-headphones-alt"></i><h6>Personal Stylist</h6><p>On-demand styling advice from our fashion atelier.</p></article>
+        </div>
+    </section>
+
+    <section class="vm-copy-newsletter">
+        <div class="vm-copy-container">
+            <span>Join the Circle</span>
+            <h2>Access the Unseen</h2>
+            <p>Subscribe to receive early access to new collections, exclusive editorial content, and private sale invitations.</p>
+            <form id="vmCopyNewsletterForm" data-vm-newsletter-form action="{% url 'subscribe_newsletter' %}" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="source_page" value="HomePage">
+                <input type="email" name="email" placeholder="YOUR EMAIL ADDRESS" required>
+                <button type="submit">Subscribe</button>
+            </form>
+            <p id="vmCopyNewsletterStatus" data-vm-newsletter-status class="vm-copy-newsletter-status" aria-live="polite"></p>
+        </div>
+    </section>
+
 </section>
-
-
-        
-
-<!-- RECOMMENDED FOR YOU SECTION -->
-<section class="topsell__area-1 pt-15 recommended-for-you-section">
-    <div class="container">
-        <div class="row">
-            <div class="col-xl-12">
-                <div class="section__head d-flex justify-content-between mb-30">
-                    <div class="section__title">
-                        <h5 class="st-titile-d">Recommended For You</h5>
-                    </div>
-                    <div class="button-wrap">
-                        <a href="{% url 'shop' %}">See All Products <i class="fal fa-chevron-right"></i></a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Products Grid -->
-        <div class="row">
-            {% for product in recommended|slice:":4" %}
-            <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
-                <div class="product__item mb-20">
-                    <div class="product__thumb fix" style="position: relative; overflow: visible !important;">
-                        <div class="product-image w-img" style="overflow: hidden;">
-                            <a href="{% url 'product-details' product.id %}">
-                                        {% if product.image %}
-                                            <img src="{{ product.image.url }}" alt="{{ product.name }}">
-                                        {% else %}
-                                            <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}" style="background-color: #f0f0f0; width: 100%; height: auto;">
-                                        {% endif %}
-                                    </a>
-                                </div>
-
-                                {% if product.stock == 0 %}
-                                <div style="position: absolute; left: 10px; bottom: 10px; background: #dc3545; color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;">
-                                    Sold out
-                                </div>
-                                {% elif product.discount_percent_display %}
-                                <div style="position: absolute; left: 10px; bottom: 10px; background: #16a34a; color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;">
-                                    {{ product.discount_percent_display }}% off
-                                </div>
-                                {% endif %}
-                                
-                                <!-- TOP ACTION BUTTONS -->
-                                <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 8px; z-index: 10;">
-                                    <button type="button" class="action-btn" title="Quick view" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e5e7eb; background: #fff; color: #0f172a; display: grid; place-items: center; cursor: pointer; transition: all 120ms ease;"
-                                        data-bs-toggle="modal" data-bs-target="#productQuickView"
-                                        data-product-name="{{ product.name }}"
-                                        data-product-price="{{ product.price }}"
-                                        data-product-old-price="{{ product.old_price|default_if_none:'' }}"
-                                        data-product-image="{% if product.image %}{{ product.image.url }}{% else %}{% static 'assets/img/product/tp-1.jpg' %}{% endif %}"
-                                        data-product-rating="{% with stats=product_stats|get_item:product.id %}{% if stats %}{{ stats.avg_rating }}{% else %}{{ product.rating }}{% endif %}{% endwith %}"
-                                        data-product-reviews="{% with stats=product_stats|get_item:product.id %}{% if stats %}{{ stats.review_count }}{% else %}{{ product.review_count }}{% endif %}{% endwith %}"
-                                        data-product-link="{% url 'product-details' product.id %}"
-                                        data-product-stock="{{ product.stock }}"
-                                        onclick="openQuickView(this)">
-                                        <i class="fal fa-eye"></i>
-                                    </button>
-                                    <button type="button" class="action-btn wishlist-btn {% if product.id in wishlist_product_ids %}wishlisted{% endif %}" title="Add to wishlist" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e5e7eb; background: #fff; color: #0f172a; display: grid; place-items: center; cursor: pointer; transition: all 120ms ease;" 
-                                        data-product-id="{{ product.id }}"
-                                        data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
-                                        onclick="handleWishlistClick(this)">
-                                        <i class="{% if product.id in wishlist_product_ids %}fas{% else %}fal{% endif %} fa-heart"></i>
-                                    </button>
-                                    <button type="button" class="action-btn cart-btn {% if product.id in cart_product_ids %}in-cart{% endif %}" title="{% if product.id in cart_product_ids %}Remove from cart{% else %}Add to cart{% endif %}" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e5e7eb; background: #fff; color: #0f172a; display: grid; place-items: center; cursor: pointer; transition: all 120ms ease;" 
-                                        data-product-id="{{ product.id }}"
-                                        data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
-                                        onclick="handleCartClick(this)"
-                                        {% if product.stock == 0 %}disabled{% endif %}>
-                                        <i class="{% if product.id in cart_product_ids %}fas{% else %}fal{% endif %} fa-shopping-cart"></i>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="product__content">
-<h6><a href="{% url 'product-details' product.id %}">{{ product.name }}</a></h6>
-
-                                <div class="rating mb-5">
-                                    {% with stats=product_stats|get_item:product.id %}
-                                    <ul>
-                                        {% for i in "12345" %}
-                                            {% if stats %}
-                                                {% if forloop.counter <= stats.avg_rating|add:0 %}
-                                                    <li><i class="fas fa-star star-active"></i></li>
-                                                {% else %}
-                                                    <li><i class="far fa-star star-inactive"></i></li>
-                                                {% endif %}
-                                            {% else %}
-                                                {% if forloop.counter <= product.rating|add:0 %}
-                                                    <li><i class="fas fa-star star-active"></i></li>
-                                                {% else %}
-                                                    <li><i class="far fa-star star-inactive"></i></li>
-                                                {% endif %}
-                                            {% endif %}
-                                        {% endfor %}
-                                    </ul>
-                                    <span style="white-space: nowrap;">({% if stats %}{{ stats.review_count }}{% else %}{{ product.review_count }}{% endif %} review{% if stats %}{% if stats.review_count != 1 %}s{% endif %}{% else %}{{ product.review_count|pluralize }}{% endif %})</span>
-                                    {% endwith %}
-                                </div>
-
-                                <div class="price mb-0">
-                                    {% if product.old_price %}
-                                        <span><del>₹{{ product.old_price }}</del> ₹{{ product.price }}</span>
-                                    {% else %}
-                                        <span>₹{{ product.price }}</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <div class="product__add-cart text-center">
-                                {% if product.stock == 0 %}
-                                    {% if user.is_authenticated and user.email %}
-                                        <form method="POST" action="{% url 'request_stock_notification' product.id %}">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="email" value="{{ user.email }}">
-                                            <button type="submit" class="buy-now-btn-card" style="width: 100%; padding: 10px 8px; font-size: 13px;">Notify me</button>
-                                        </form>
-                                    {% else %}
-                                        <a href="{% url 'product-details' product.id %}" class="buy-now-btn-card" style="width: 100%; padding: 10px 8px; font-size: 13px; display: inline-block; text-align: center;">Notify me</a>
-                                    {% endif %}
-                                {% else %}
-                                    <button type="button" class="buy-now-btn-card" style="width: 100%; padding: 10px 8px; font-size: 13px;" onclick="buyNowCard({{ product.id }})">
-                                        <i class="fas fa-bolt"></i> Buy Now
-                                    </button>
-                                {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-
-
-<!-- RECOMMENDED MOBILE/TABLET SWIPER -->
-<section class="topsell__area-1 pt-15 mobile-products-section recommended-mobile-section">
-    <div class="container">
-        <div class="row">
-            <div class="col-xl-12">
-                <div class="section__head mb-20">
-                    <div class="section__title text-center">
-                        <h5 class="st-titile-d">Recommended For You</h5>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="swiper mobile-products-swiper recommended-mobile-swiper">
-            <div class="swiper-wrapper">
-                {% for product in recommended|slice:":10" %}
-                    {% include 'partials/mobile_product_swiper_card.html' with product=product %}
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-</section>
-
-
-       
-       
-        
-       
-      
-        <div class="modal fade" id="productModalId" tabindex="-1" role="dialog" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered product__modal" role="document">
-                <div class="modal-content">
-                    <div class="product__modal-wrapper p-relative">
-                        <div class="product__modal-close p-absolute">
-                            <button data-bs-dismiss="modal"><i class="fal fa-times"></i></button>
-                        </div>
-                        <div class="product__modal-inner">
-                            <div class="row">
-                            <div class="col-xl-6 col-lg-6 col-md-6 col-sm-12 col-12">
-                                <div class="product__modal-box">
-                                    <div class="tab-content" id="modalTabContent">
-                                        <div class="tab-pane fade show active" id="nav1" role="tabpanel" aria-labelledby="nav1-tab">
-                                            <div class="product__modal-img w-img">
-                                                <img src="{% static 'assets/img/quick-view/quick-view-1.jpg' %}" alt="">
-                                            </div>
-                                        </div>
-                                        <div class="tab-pane fade" id="nav2" role="tabpanel" aria-labelledby="nav2-tab">
-                                            <div class="product__modal-img w-img">
-                                                <img src="{% static 'assets/img/quick-view/quick-view-2.jpg' %}" alt="">
-                                            </div>
-                                        </div>
-                                        <div class="tab-pane fade" id="nav3" role="tabpanel" aria-labelledby="nav3-tab">
-                                            <div class="product__modal-img w-img">
-                                                <img src="{% static 'assets/img/quick-view/quick-view-3.jpg' %}" alt="">
-                                            </div>
-                                        </div>
-                                        <div class="tab-pane fade" id="nav4" role="tabpanel" aria-labelledby="nav4-tab">
-                                            <div class="product__modal-img w-img">
-                                                <img src="{% static 'assets/img/quick-view/quick-view-4.jpg' %}" alt="">
-                                            </div>
-                                        </div>
-                                        </div>
-                                    <ul class="nav nav-tabs" id="modalTab" role="tablist">
-                                        <li class="nav-item" role="presentation">
-                                            <button class="nav-link active" id="nav1-tab" data-bs-toggle="tab" data-bs-target="#nav1" type="button" role="tab" aria-controls="nav1" aria-selected="true">
-                                                <img src="{% static 'assets/img/quick-view/quick-nav-1.jpg' %}" alt="">
-                                            </button>
-                                        </li>
-                                        <li class="nav-item" role="presentation">
-                                            <button class="nav-link" id="nav2-tab" data-bs-toggle="tab" data-bs-target="#nav2" type="button" role="tab" aria-controls="nav2" aria-selected="false">
-                                            <img src="{% static 'assets/img/quick-view/quick-nav-2.jpg' %}" alt="">
-                                            </button>
-                                        </li>
-                                        <li class="nav-item" role="presentation">
-                                            <button class="nav-link" id="nav3-tab" data-bs-toggle="tab" data-bs-target="#nav3" type="button" role="tab" aria-controls="nav3" aria-selected="false">
-                                            <img src="{% static 'assets/img/quick-view/quick-nav-3.jpg' %}" alt="">
-                                            </button>
-                                        </li>
-                                        <li class="nav-item" role="presentation">
-                                            <button class="nav-link" id="nav4-tab" data-bs-toggle="tab" data-bs-target="#nav4" type="button" role="tab" aria-controls="nav4" aria-selected="false">
-                                            <img src="{% static 'assets/img/quick-view/quick-nav-4.jpg' %}" alt="">
-                                            </button>
-                                        </li>
-                                        </ul>
-                                </div>
-                            </div>
-                            <div class="col-xl-6 col-lg-6 col-md-6 col-sm-12 col-12">
-                                <div class="product__modal-content">
-                                    <h4><a href="{% url 'product-details' %}">Samsung C49J89: £875, Debenhams Plus</a></h4>
-                                    <div class="product__review d-sm-flex">
-                                        <div class="rating rating__shop mb-10 mr-30">
-                                        <ul>
-                                            <li><a href="#"><i class="fal fa-star"></i></a></li>
-                                            <li><a href="#"><i class="fal fa-star"></i></a></li>
-                                            <li><a href="#"><i class="fal fa-star"></i></a></li>
-                                            <li><a href="#"><i class="fal fa-star"></i></a></li>
-                                            <li><a href="#"><i class="fal fa-star"></i></a></li>
-                                        </ul>
-                                        </div>
-                                        <div class="product__add-review mb-15">
-                                        <span>01 review</span>
-                                        </div>
-                                    </div>
-                                    <div class="product__price">
-                                        <span>₹1090 – ₹3070</span>
-                                    </div>
-                                    <div class="product__modal-des mt-20 mb-15">
-                                        <ul>
-                                            <li><a href="#"><i class="fas fa-circle"></i> Bass and Stereo Sound.</a></li>
-                                            <li><a href="#"><i class="fas fa-circle"></i> Display with 3088 x 1440 pixels resolution.</a></li>
-                                            <li><a href="#"><i class="fas fa-circle"></i> Memory, Storage & SIM: 12GB RAM, 256GB.</a></li>
-                                            <li><a href="#"><i class="fas fa-circle"></i> Androi v10.0 Operating system.</a></li>
-                                        </ul>
-                                    </div>
-                                    <div class="product__stock mb-20">
-                                        <span class="mr-10">Availability :</span>
-                                        <span>1795 in stock</span>
-                                    </div>
-                                    <div class="product__modal-form">
-                                        <form action="#">
-                                        <div class="pro-quan-area d-lg-flex align-items-center">
-                                            <div class="product-quantity mr-20 mb-25">
-                                                <div class="cart-plus-minus p-relative"><input type="text" value="1" /></div>
-                                            </div>
-                                            <div class="pro-cart-btn mb-25">
-                                                <button class="cart-btn" type="submit">Add to cart</button>
-                                            </div>
-                                        </div>
-                                        </form>
-                                    </div>
-                                    <div class="product__stock mb-30">
-                                        <ul>
-                                            <li><a href="#">
-                                                <span class="sku mr-10">SKU:</span>
-                                                <span>Samsung C49J89: £875, Debenhams Plus</span></a>
-                                            </li>
-                                            <li><a href="#">
-                                                <span class="cat mr-10">Categories:</span>
-                                                <span>iPhone, Tablets</span></a>
-                                            </li>
-                                            <li><a href="#">
-                                                <span class="tag mr-10">Tags:</span>
-                                                <span>Smartphone, Tablets</span></a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-<!-- QUICK VIEW MODAL -->
-<div class="modal fade" id="productQuickView" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title" id="qvName">Quick View</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body pt-2">
-                <div class="row g-4 align-items-center">
-                    <div class="col-md-6">
-                        <div class="rounded-3 overflow-hidden bg-light">
-                            <img id="qvImage" src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Product preview" class="w-100" style="height:320px; object-fit:cover;">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <h5 id="qvProductName" class="mb-2" style="font-weight: 600; color: #111827;">Product Name</h5>
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                            <div id="qvRating" class="rating-inline"></div>
-                            <span id="qvReviews" class="text-muted small"></span>
-                        </div>
-                        <div class="price-line d-flex align-items-center gap-2 mb-2">
-                            <span id="qvPriceCurrent" style="font-size: 20px; font-weight: 700; color: #111827;">₹0.00</span>
-                            <span id="qvPriceOld" class="price-old" style="display:none;"></span>
-                        </div>
-                        <p class="text-muted small mb-3" id="qvStock">In stock</p>
-                        <a id="qvLink" href="#" class="btn btn-dark btn-sm">View Full Details</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- DYNAMIC SCRIPTS -->
 <script>
-    function getCsrfToken() {
-        const cookie = document.cookie.split('; ').find(row => row.startsWith('csrftoken='));
-        return cookie ? decodeURIComponent(cookie.split('=')[1]) : '';
-    }
-
-    // Quick View Function - Opens modal with product data
-    function openQuickView(trigger) {
-        const modalEl = document.getElementById('productQuickView');
-        if (!modalEl) return;
-
-        const name = trigger.dataset.productName || '';
-        const price = trigger.dataset.productPrice || '';
-        const oldPrice = trigger.dataset.productOldPrice || '';
-        const image = trigger.dataset.productImage || '';
-        const rating = parseFloat(trigger.dataset.productRating || '0');
-        const reviews = trigger.dataset.productReviews || '0';
-        const link = trigger.dataset.productLink || '#';
-        const stock = Number(trigger.dataset.productStock || 0);
-
-        document.getElementById('qvName').textContent = 'Quick View';
-        document.getElementById('qvProductName').textContent = name;
-        document.getElementById('qvPriceCurrent').textContent = '₹' + price;
-
-        const oldPriceEl = document.getElementById('qvPriceOld');
-        if (oldPrice) {
-            oldPriceEl.textContent = '₹' + oldPrice;
-            oldPriceEl.style.display = 'inline-block';
-        } else {
-            oldPriceEl.style.display = 'none';
-        }
-
-        const imgEl = document.getElementById('qvImage');
-        if (imgEl && image) {
-            imgEl.src = image;
-        }
-
-        const ratingEl = document.getElementById('qvRating');
-        if (ratingEl) {
-            ratingEl.innerHTML = '';
-            for (let i = 1; i <= 5; i++) {
-                const icon = document.createElement('i');
-                icon.className = i <= rating ? 'fas fa-star' : 'fal fa-star';
-                icon.style.color = i <= rating ? '#ffc107' : '#e5e7eb';
-                ratingEl.appendChild(icon);
-            }
-        }
-
-        const reviewsEl = document.getElementById('qvReviews');
-        if (reviewsEl) {
-            reviewsEl.textContent = reviews + ' reviews';
-        }
-
-        const stockEl = document.getElementById('qvStock');
-        if (stockEl) {
-            stockEl.textContent = stock > 0 ? 'In stock' : 'Sold out';
-            stockEl.className = stock > 0 ? 'text-success small' : 'text-danger small';
-        }
-
-        const linkEl = document.getElementById('qvLink');
-        if (linkEl) {
-            linkEl.href = link;
-        }
-
-        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-            modal.show();
-        }
-    }
-
-    // Wishlist Toggle Function - Dynamic add/remove with visual feedback
-    async function handleWishlistClick(button) {
-        if (!button) return;
-        const loggedIn = button.dataset.loggedIn === '1';
-        const productId = button.dataset.productId;
-        const isWishlisted = button.classList.contains('wishlisted');
-
-        if (!loggedIn) {
-            window.location.href = "{% url 'login' %}?next=" + window.location.pathname;
+document.addEventListener('DOMContentLoaded', function () {
+    const forms = document.querySelectorAll('[data-vm-newsletter-form]');
+    forms.forEach(function (form) {
+        const statusEl = form.parentElement ? form.parentElement.querySelector('[data-vm-newsletter-status]') : null;
+        if (!statusEl) {
             return;
         }
 
-        if (!productId) return;
+        form.addEventListener('submit', async function (event) {
+            event.preventDefault();
+            const button = form.querySelector('button[type="submit"]');
+            const originalText = button ? button.textContent : 'Subscribe';
+            if (button) {
+                button.disabled = true;
+                button.textContent = 'Submitting...';
+            }
 
-        // Always use the toggle endpoint - it handles both add and remove
-        const url = `/wishlist/add/${productId}/`;
-        const csrftoken = getCsrfToken();
+            statusEl.textContent = '';
+            statusEl.classList.remove('is-success', 'is-error');
 
-        button.disabled = true;
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrftoken,
-                    'X-Requested-With': 'XMLHttpRequest'
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                const data = await response.json();
+                statusEl.textContent = data.message || (response.ok ? 'Subscribed successfully.' : 'Subscription failed.');
+                statusEl.classList.add(response.ok ? 'is-success' : 'is-error');
+
+                if (response.ok) {
+                    form.reset();
                 }
-            });
-
-            let data = { success: false, message: '', action: '', in_wishlist: false };
-            try { data = await response.json(); } catch (_) {}
-
-            if (response.ok && data.success) {
-                // Toggle wishlist state based on response
-                const icon = button.querySelector('i');
-                
-                if (data.in_wishlist) {
-                    // Add to wishlist
-                    button.classList.add('wishlisted');
-                    button.setAttribute('aria-pressed', 'true');
-                    if (icon) {
-                        icon.classList.remove('fal');
-                        icon.classList.add('fas');
-                    }
-                    button.style.backgroundColor = '#ffc107';
-                    button.style.color = '#000';
-                    // Update wishlist counter
-                    updateWishlistCounter(1);
-                } else {
-                    // Remove from wishlist
-                    button.classList.remove('wishlisted');
-                    button.setAttribute('aria-pressed', 'false');
-                    if (icon) {
-                        icon.classList.remove('fas');
-                        icon.classList.add('fal');
-                    }
-                    button.style.backgroundColor = '#fff';
-                    button.style.color = '#0f172a';
-                    // Update wishlist counter
-                    updateWishlistCounter(-1);
+            } catch (error) {
+                statusEl.textContent = 'Something went wrong. Please try again.';
+                statusEl.classList.add('is-error');
+            } finally {
+                if (button) {
+                    button.disabled = false;
+                    button.textContent = originalText;
                 }
             }
-        } catch (error) {
-            console.error('Wishlist error', error);
-        } finally {
-            button.disabled = false;
-        }
-    }
-
-    // Update wishlist counter in header
-    function updateWishlistCounter(increment) {
-        const wishlistCountElement = document.querySelector('.wishlist-count');
-        if (wishlistCountElement) {
-            let currentCount = parseInt(wishlistCountElement.textContent) || 0;
-            let newCount = Math.max(0, currentCount + increment);
-            wishlistCountElement.textContent = newCount;
-        }
-    }
-
-    // Add to Cart Success Message
-    document.addEventListener('DOMContentLoaded', function() {
-        const cartForms = document.querySelectorAll('form[action*="add_to_cart"]');
-        cartForms.forEach(form => {
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const formData = new FormData(this);
-                const csrftoken = getCsrfToken();
-                
-                fetch(this.action, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': csrftoken,
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Show success toast/alert
-                        showSuccessNotification('✓ Product added to cart successfully!');
-                        
-                        // Update cart count if available
-                        if (data.cart_count !== undefined) {
-                            const cartCount = document.querySelector('.cart-count');
-                            if (cartCount) {
-                                cartCount.textContent = data.cart_count;
-                            }
-                        }
-                        if (typeof window.refreshMiniCart === 'function') {
-                            window.refreshMiniCart();
-                        }
-                    } else {
-                        showErrorNotification(data.message || 'Error adding to cart');
-                    }
-                })
-                .catch(error => {
-                    console.error('Cart error:', error);
-                    showErrorNotification('Error adding to cart');
-                });
-            });
         });
     });
-
-    // Success Notification Function
-    function showSuccessNotification(message) {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-success alert-dismissible fade show vm-floating-alert';
-        alertDiv.setAttribute('role', 'alert');
-        alertDiv.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-        document.body.appendChild(alertDiv);
-        
-        // Auto-dismiss after 3 seconds
-        setTimeout(() => {
-            const alert = new bootstrap.Alert(alertDiv);
-            alert.close();
-        }, 3000);
-    }
-
-    // Error Notification Function
-    function showErrorNotification(message) {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-danger alert-dismissible fade show vm-floating-alert';
-        alertDiv.setAttribute('role', 'alert');
-        alertDiv.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-        document.body.appendChild(alertDiv);
-        
-        // Auto-dismiss after 3 seconds
-        setTimeout(() => {
-            const alert = new bootstrap.Alert(alertDiv);
-            alert.close();
-        }, 3000);
-    }
-
-    // Add animation CSS
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes slideIn {
-            from {
-                transform: translateX(400px);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-        .action-btn i {
-            font-size: 18px;
-            width: 18px;
-            height: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .wishlist-btn.wishlisted {
-            background-color: #ffc107 !important;
-            color: #000 !important;
-            border-color: #ffc107 !important;
-        }
-        .wishlist-btn.wishlisted:hover {
-            background-color: #ffb300 !important;
-            border-color: #ffb300 !important;
-        }
-        .cart-btn.in-cart {
-            background-color: #dc3545 !important;
-            color: #fff !important;
-            border-color: #dc3545 !important;
-        }
-        .cart-btn.in-cart:hover {
-            background-color: #bb2d3b !important;
-            border-color: #bb2d3b !important;
-        }
-    `;
-    document.head.appendChild(style);
-
-    // Cart toggle function
-    async function handleCartClick(button) {
-        const productId = button.getAttribute('data-product-id');
-        const isLoggedIn = button.getAttribute('data-logged-in') === '1';
-
-        if (!isLoggedIn) {
-            showErrorNotification('Please login to manage cart');
-            window.location.href = '/login/';
-            return;
-        }
-
-        try {
-            const response = await fetch(`/cart/toggle/${productId}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': getCsrfToken()
-                },
-                credentials: 'same-origin'
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                const icon = button.querySelector('i');
-                
-                if (data.in_cart) {
-                    // Added to cart
-                    button.classList.add('in-cart');
-                    icon.classList.remove('fal');
-                    icon.classList.add('fas');
-                    button.title = 'Remove from cart';
-                    showSuccessNotification(data.message);
-                    updateCartCounter(1);
-                } else {
-                    // Removed from cart
-                    button.classList.remove('in-cart');
-                    icon.classList.remove('fas');
-                    icon.classList.add('fal');
-                    button.title = 'Add to cart';
-                    updateCartCounter(-1);
-                }
-
-                // Update cart count if badge exists (header)
-                const cartBadge = document.querySelector('.cart-count');
-                if (cartBadge && data.cart_count !== undefined) {
-                    cartBadge.textContent = data.cart_count;
-                }
-                if (typeof window.refreshMiniCart === 'function') {
-                    window.refreshMiniCart();
-                }
-            } else {
-                showErrorNotification(data.message || 'Error updating cart');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            showErrorNotification('An error occurred. Please try again.');
-        }
-    }
-
-    // Update cart counter in header
-    function updateCartCounter(increment) {
-        const cartCountElement = document.querySelector('.cart-count');
-        if (cartCountElement) {
-            let currentCount = parseInt(cartCountElement.textContent) || 0;
-            let newCount = Math.max(0, currentCount + increment);
-            cartCountElement.textContent = newCount;
-        }
-        if (typeof window.refreshMiniCart === 'function') {
-            window.refreshMiniCart();
-        }
-    }
-</script>
-
-
-<!-- Delivered Order Review Modal -->
-{% if delivered_orders %}
-<div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content" style="border-radius: 15px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.15);">
-            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 15px 15px 0 0; padding: 25px;">
-                <h5 class="modal-title" id="reviewModalLabel" style="font-size: 22px; font-weight: 700;">
-                    <i class="fas fa-star" style="color: #ffd700; margin-right: 10px;"></i>
-                    Your Order Has Been Delivered! 🎉
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" style="padding: 30px;">
-                <p style="font-size: 16px; color: #333; margin-bottom: 25px; text-align: center;">
-                    We hope you love your purchase! Please take a moment to share your experience.
-                </p>
-                
-                {% for order in delivered_orders %}
-                <div class="delivered-order-card" style="background: #f8f9fa; border-radius: 12px; padding: 20px; margin-bottom: 20px; border-left: 4px solid #28a745;">
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
-                        <div>
-                            <h6 style="margin: 0; color: #333; font-weight: 600;">Order #{{ order.order_number }}</h6>
-                            <small style="color: #6c757d;">Delivered on {{ order.delivery_date|date:"F d, Y" }}</small>
-                        </div>
-                        <span class="badge bg-success" style="font-size: 12px; padding: 6px 12px;">
-                            <i class="fas fa-check-circle"></i> Delivered
-                        </span>
-                    </div>
-                    
-                    <div class="products-list" style="margin-top: 15px;">
-                        {% for item in order.items.all %}
-                        <div class="product-item" style="padding: 12px; background: white; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e0e0e0;">
-                            <div style="display: flex; align-items: center; margin-bottom: 15px;">
-                                <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; margin-right: 15px;">
-                                <div style="flex: 1;">
-                                    <h6 style="margin: 0; font-size: 14px; font-weight: 600; color: #333;">{{ item.product.name }}</h6>
-                                    <small style="color: #6c757d;">Quantity: {{ item.quantity }}</small>
-                                </div>
-                            </div>
-                            
-                            <!-- Review Form -->
-                            {% if item.product and item.product.id %}
-                            <form method="POST" action="{% url 'submit_review' item.product.id %}" enctype="multipart/form-data" class="review-form-{{ item.id }}">
-                                {% csrf_token %}
-                                <input type="hidden" name="order_id" value="{{ order.id }}">
-                                
-                                <!-- Star Rating -->
-                                <div style="margin-bottom: 15px;">
-                                    <label style="font-size: 13px; font-weight: 600; color: #333; margin-bottom: 8px; display: block;">
-                                        <i class="fas fa-star" style="color: #ffd700;"></i> Your Rating
-                                    </label>
-                                    <div class="star-rating" data-product="{{ item.id }}">
-                                        <input type="radio" name="rating" value="5" id="star5-{{ item.id }}" required>
-                                        <label for="star5-{{ item.id }}">★</label>
-                                        <input type="radio" name="rating" value="4" id="star4-{{ item.id }}">
-                                        <label for="star4-{{ item.id }}">★</label>
-                                        <input type="radio" name="rating" value="3" id="star3-{{ item.id }}">
-                                        <label for="star3-{{ item.id }}">★</label>
-                                        <input type="radio" name="rating" value="2" id="star2-{{ item.id }}">
-                                        <label for="star2-{{ item.id }}">★</label>
-                                        <input type="radio" name="rating" value="1" id="star1-{{ item.id }}">
-                                        <label for="star1-{{ item.id }}">★</label>
-                                    </div>
-                                </div>
-                                
-                                <!-- Review Text -->
-                                <div style="margin-bottom: 15px;">
-                                    <label style="font-size: 13px; font-weight: 600; color: #333; margin-bottom: 8px; display: block;">
-                                        <i class="fas fa-comment"></i> Your Review
-                                    </label>
-                                    <textarea name="comment" rows="3" class="form-control" placeholder="Share your experience with this product..." style="font-size: 13px; border-radius: 8px; border: 1px solid #ddd;"></textarea>
-                                </div>
-                                
-                                <!-- Photo Upload -->
-                                <div style="margin-bottom: 15px;">
-                                    <label style="font-size: 13px; font-weight: 600; color: #333; margin-bottom: 8px; display: block;">
-                                        <i class="fas fa-camera"></i> Upload Photos (Optional)
-                                    </label>
-                                    <input type="file" name="review_images" accept="image/*" multiple class="form-control" style="font-size: 13px; border-radius: 8px; border: 1px solid #ddd; padding: 8px;">
-                                    <small style="color: #6c757d; font-size: 11px;">You can upload multiple photos</small>
-                                </div>
-                                
-                                <!-- Submit Button -->
-                                <button type="submit" class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 20px; padding: 8px 20px; font-size: 13px; width: 100%;">
-                                    <i class="fas fa-paper-plane"></i> Submit Review
-                                </button>
-                            </form>
-                            {% else %}
-                            <div class="text-muted small">Product details unavailable for review.</div>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            <div class="modal-footer" style="border-top: 1px solid #dee2e6; padding: 20px; border-radius: 0 0 15px 15px;">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 20px; padding: 10px 25px;">
-                    Maybe Later
-                </button>
-                <a href="{% url 'profile' %}" class="btn btn-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 20px; padding: 10px 25px;">
-                    <i class="fas fa-list"></i> View All Orders
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Success Notification Banner -->
-<div id="deliveryNotification" style="
-    position: fixed;
-    top: 80px;
-    left: 50%;
-    transform: translateX(-50%) translateY(-100px);
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 20px 40px;
-    border-radius: 50px;
-    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    font-weight: 600;
-    font-size: 16px;
-    opacity: 0;
-    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-">
-    <i class="fas fa-check-circle" style="font-size: 24px; color: #ffd700;"></i>
-    <span>🎉 Your order has been delivered successfully!</span>
-</div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    {% if delivered_orders %}
-    // Show notification banner
-    const notification = document.getElementById('deliveryNotification');
-    setTimeout(function() {
-        notification.style.transform = 'translateX(-50%) translateY(0)';
-        notification.style.opacity = '1';
-    }, 500);
-    
-    // Hide notification after 4 seconds and show modal
-    setTimeout(function() {
-        notification.style.transform = 'translateX(-50%) translateY(-100px)';
-        notification.style.opacity = '0';
-        
-        // Show review modal after notification disappears
-        setTimeout(function() {
-            const reviewModal = new bootstrap.Modal(document.getElementById('reviewModal'));
-            reviewModal.show();
-        }, 600);
-    }, 4000);
-    {% endif %}
 });
 </script>
-
-<style>
-/* Star Rating CSS */
-.star-rating {
-    direction: rtl;
-    display: inline-flex;
-    gap: 5px;
-}
-
-.star-rating input[type="radio"] {
-    display: none;
-}
-
-.star-rating label {
-    font-size: 30px;
-    color: #ddd;
-    cursor: pointer;
-    transition: color 0.2s ease;
-    margin: 0;
-}
-
-.star-rating input[type="radio"]:checked ~ label,
-.star-rating label:hover,
-.star-rating label:hover ~ label {
-    color: #ffd700;
-}
-</style>
-{% endif %}
-
 {% endblock content %}

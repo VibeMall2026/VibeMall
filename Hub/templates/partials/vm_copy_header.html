@@ -1,0 +1,244 @@
+{% load static custom_filters %}
+<header class="vm-copy-header">
+    <div class="vm-copy-topbar">
+        <div class="vm-copy-container">
+            <div class="vm-copy-topline" aria-label="Shipping announcement">
+                <span>COMPLIMENTARY SHIPPING ON ATELIER ORDERS OVER $500 • SEASONAL CURATIONS NOW LIVE • LIMITED EDITION SILK DROPS</span>
+            </div>
+            <div class="vm-copy-top-links">
+                <a href="{% url 'track_order' %}">Order Tracking</a>
+                <a href="{% url 'about' %}">Contact</a>
+                <a href="{% url 'about' %}">FAQs</a>
+            </div>
+        </div>
+    </div>
+    <div class="vm-copy-mainbar">
+        <div class="vm-copy-container">
+            <a class="vm-copy-logo" href="{% url 'index' %}">VibeMall</a>
+            <nav class="vm-copy-nav">
+                <div class="vm-copy-nav-item vm-copy-nav-item--shop">
+                    <a class="active" href="{% url 'shop' %}">Shop <i class="far fa-angle-down"></i></a>
+                    <div class="vm-copy-shop-menu" aria-label="Shop categories">
+                        <div class="vm-copy-shop-col">
+                            <h6>Categories</h6>
+                            <a href="{% url 'shop' %}">All Categories</a>
+                            {% if header_categories %}
+                                {% for category in header_categories|slice:":8" %}
+                                <a href="{% url 'shop' %}?category={{ category.key|urlencode }}">{{ category.label }}</a>
+                                {% endfor %}
+                            {% elif categories %}
+                                {% for category in categories|slice:":8" %}
+                                <a href="{% url 'shop' %}?category={{ category.category_key|urlencode }}">{{ category.name }}</a>
+                                {% endfor %}
+                            {% else %}
+                                <a href="{% url 'shop' %}">View Products</a>
+                            {% endif %}
+                        </div>
+                        {% if header_categories %}
+                            {% for cat in header_categories|slice:":3" %}
+                            <div class="vm-copy-shop-col">
+                                <h6>{{ cat.label }}</h6>
+                                {% if cat.sub_categories %}
+                                    {% for sub in cat.sub_categories|slice:":5" %}
+                                    <a href="{% url 'shop' %}?category={{ cat.key|urlencode }}&sub_category={{ sub.name|urlencode }}">{{ sub.name }}</a>
+                                    {% endfor %}
+                                {% else %}
+                                <a href="{% url 'shop' %}?category={{ cat.key|urlencode }}">View Products</a>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <a href="{% url 'about' %}">About Us</a>
+                <a href="{% url 'blog' %}">Blog</a>
+                <a href="{% url 'order_list' %}">My Orders</a>
+                <a href="{% url 'checkout' %}">Checkout</a>
+                {% if user.is_staff %}
+                <a href="{% url 'admin_dashboard' %}">Admin</a>
+                {% else %}
+                <a href="{% url 'login' %}">Admin</a>
+                {% endif %}
+            </nav>
+
+            <div class="vm-copy-icons">
+                <form class="vm-copy-search search-suggest" action="{% url 'shop' %}" method="get" role="search" aria-label="Search products">
+                    <i class="far fa-search" aria-hidden="true"></i>
+                    <input
+                        id="vmCopySearchInput"
+                        type="text"
+                        name="q"
+                        placeholder="SEARCH THE CURATION"
+                        aria-label="Search the curation"
+                        autocomplete="off"
+                        data-search-url="{% url 'product_search_api' %}"
+                        data-placeholder-image="{% static 'assets/img/product/tp-1.jpg' %}">
+                    <div id="vmCopySearchResults" class="search-results"></div>
+                </form>
+                <a href="{% url 'shop' %}" aria-label="Search"><i class="far fa-search"></i></a>
+                <a href="{% url 'wishlist' %}" aria-label="Wishlist"><i class="far fa-heart"></i></a>
+                <button type="button" class="vm-mini-cart-trigger" aria-label="Cart" aria-controls="vmMiniCartDrawer" aria-expanded="false">
+                    <i class="far fa-shopping-bag"></i>
+                    <span class="vm-mini-cart-badge cart-count">{{ cart_count|default:"0" }}</span>
+                </button>
+                <a href="{% url 'profile' %}" aria-label="Profile"><i class="far fa-user"></i></a>
+            </div>
+        </div>
+    </div>
+
+</header>
+
+<div id="vmMiniCartOverlay" class="vm-mini-cart-overlay" aria-hidden="true"></div>
+<aside id="vmMiniCartDrawer" class="cart__mini vm-mini-cart-drawer" aria-label="Mini cart" aria-hidden="true">
+    <button type="button" class="vm-mini-cart-close" aria-label="Close mini cart">
+        <i class="far fa-times"></i>
+    </button>
+    <div id="vmMiniCartContent" class="vm-mini-cart-content">
+        {% include 'partials/mini_cart.html' %}
+    </div>
+</aside>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const input = document.getElementById('vmCopySearchInput');
+    const resultsBox = document.getElementById('vmCopySearchResults');
+    if (!input || !resultsBox) {
+        return;
+    }
+
+    const searchUrl = input.dataset.searchUrl;
+    const placeholderImage = input.dataset.placeholderImage;
+    let debounceTimer;
+
+    const clearResults = () => {
+        resultsBox.innerHTML = '';
+        resultsBox.classList.remove('is-open');
+    };
+
+    const renderResults = (items) => {
+        if (!items.length) {
+            resultsBox.innerHTML = '<div class="search-empty">No products found.</div>';
+            resultsBox.classList.add('is-open');
+            return;
+        }
+
+        resultsBox.innerHTML = items.map((item) => {
+            const imageUrl = item.image_url || placeholderImage;
+            return `
+                <a class="search-item" href="${item.url}">
+                    <img class="search-thumb" src="${imageUrl}" alt="${item.name}">
+                    <span class="search-meta">
+                        <span class="search-name">${item.name}</span>
+                        <span class="search-price">&#8377;${item.price_display}</span>
+                    </span>
+                </a>
+            `;
+        }).join('');
+        resultsBox.classList.add('is-open');
+    };
+
+    input.addEventListener('input', function () {
+        const query = input.value.trim();
+        if (query.length < 2) {
+            clearResults();
+            return;
+        }
+
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            fetch(`${searchUrl}?q=${encodeURIComponent(query)}`)
+                .then((response) => response.json())
+                .then((data) => renderResults(data.results || []))
+                .catch(() => {
+                    resultsBox.innerHTML = '<div class="search-empty">Unable to search right now.</div>';
+                    resultsBox.classList.add('is-open');
+                });
+        }, 250);
+    });
+
+    document.addEventListener('click', function (event) {
+        if (!resultsBox.contains(event.target) && event.target !== input) {
+            clearResults();
+        }
+    });
+
+    const cartTriggers = document.querySelectorAll('.vm-mini-cart-trigger');
+    const cartDrawer = document.getElementById('vmMiniCartDrawer');
+    const cartOverlay = document.getElementById('vmMiniCartOverlay');
+    const cartClose = document.querySelector('.vm-mini-cart-close');
+    const vmMiniCartContent = document.getElementById('vmMiniCartContent');
+
+    const setCartExpanded = (isExpanded) => {
+        cartTriggers.forEach((trigger) => {
+            trigger.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+        });
+    };
+
+    const refreshVmMiniCart = () => {
+        if (!vmMiniCartContent) {
+            return;
+        }
+
+        fetch('/cart/summary/', { credentials: 'same-origin' })
+            .then((res) => res.json())
+            .then((data) => {
+                if (data && data.mini_cart_html) {
+                    vmMiniCartContent.innerHTML = data.mini_cart_html;
+                }
+                if (data && data.cart_count !== undefined) {
+                    document.querySelectorAll('.vm-mini-cart-badge').forEach((node) => {
+                        node.textContent = data.cart_count;
+                    });
+                }
+            })
+            .catch(() => {});
+    };
+
+    const openMiniCart = () => {
+        if (!cartDrawer || !cartOverlay || !cartTriggers.length) {
+            return;
+        }
+        cartDrawer.classList.add('is-open');
+        cartOverlay.classList.add('is-open');
+        cartDrawer.setAttribute('aria-hidden', 'false');
+        cartOverlay.setAttribute('aria-hidden', 'false');
+        setCartExpanded(true);
+        document.body.classList.add('vm-mini-cart-open');
+        refreshVmMiniCart();
+    };
+
+    const closeMiniCart = () => {
+        if (!cartDrawer || !cartOverlay || !cartTriggers.length) {
+            return;
+        }
+        cartDrawer.classList.remove('is-open');
+        cartOverlay.classList.remove('is-open');
+        cartDrawer.setAttribute('aria-hidden', 'true');
+        cartOverlay.setAttribute('aria-hidden', 'true');
+        setCartExpanded(false);
+        document.body.classList.remove('vm-mini-cart-open');
+    };
+
+    if (cartTriggers.length) {
+        cartTriggers.forEach((cartTrigger) => {
+            cartTrigger.addEventListener('click', function (event) {
+            event.preventDefault();
+            openMiniCart();
+        });
+        });
+    }
+    if (cartClose) {
+        cartClose.addEventListener('click', closeMiniCart);
+    }
+    if (cartOverlay) {
+        cartOverlay.addEventListener('click', closeMiniCart);
+    }
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            closeMiniCart();
+        }
+    });
+});
+</script>

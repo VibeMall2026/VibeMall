@@ -1,0 +1,24 @@
+<header class="vm-mobile-alt-header vm-home-mobile-header vm-mobile-topbar">
+    <div class="vm-home-mobile-header__left vm-mobile-topbar__left">
+        <button type="button" class="offcanvas-toggle-btn" aria-label="Open menu"><i class="fas fa-bars"></i></button>
+        <h1>VIBEMALL</h1>
+    </div>
+    <div class="vm-home-mobile-header__right vm-mobile-topbar__right">
+        <div class="vm-mobile-search" data-vm-mobile-search-root>
+            <button type="button" class="vm-mobile-search__toggle" data-vm-mobile-search-toggle aria-label="Toggle search" aria-expanded="false"><i class="far fa-search"></i></button>
+            <form class="vm-mobile-search__form" data-vm-mobile-search-form action="{% url 'shop' %}" method="get">
+                <input class="vm-mobile-search__field" type="search" name="q" placeholder="Search products">
+            </form>
+        </div>
+        <button
+            type="button"
+            class="has-badge vm-mini-cart-trigger"
+            aria-label="Open cart"
+            aria-controls="vmMiniCartDrawer"
+            aria-expanded="false">
+            <i class="far fa-shopping-bag"></i>
+            <span class="vm-mini-cart-badge cart-count">{{ cart_count|default:"0" }}</span>
+        </button>
+    </div>
+</header>
+{% include 'partials/vm_mobile_alt_side_menu.html' %}

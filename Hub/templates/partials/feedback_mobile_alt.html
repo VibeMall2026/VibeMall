@@ -1,0 +1,112 @@
+{% load static %}
+<section class="vm-fb-mobile-only" aria-label="Feedback mobile view">
+    <form class="vm-fb-wrap" method="post" action="{% url 'submit_review' product.id %}" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="vm-fb-title">
+            <h3>Your feedback matters.</h3>
+            <p>Review your recent curation</p>
+        </div>
+
+        <article class="vm-fb-product-card">
+            <div class="vm-fb-product-image">
+                {% if product.image and product.image.name %}
+                <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                {% else %}
+                <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}">
+                {% endif %}
+            </div>
+            <div class="vm-fb-product-copy">
+                <span>Archive Edition</span>
+                <h4>{{ product.name }}</h4>
+                <small>Order feedback</small>
+            </div>
+        </article>
+
+        <div class="vm-fb-rating">
+            <label>Rate your experience</label>
+            <div class="vm-fb-stars" role="radiogroup" aria-label="Rate this product">
+                {% for i in "12345" %}
+                <button type="button" class="vm-fb-star {% if forloop.counter <= 4 %}is-active{% endif %}" data-rating="{{ forloop.counter }}" aria-label="{{ forloop.counter }} star">
+                    <i class="fas fa-star"></i>
+                </button>
+                {% endfor %}
+            </div>
+            <input type="hidden" name="rating" id="vmFbRatingValue" value="4">
+        </div>
+
+        <div class="vm-fb-field">
+            <label for="vmFbHeadline">Review Headline</label>
+            <input id="vmFbHeadline" type="text" name="headline" placeholder="Summarize your thoughts">
+        </div>
+
+        <div class="vm-fb-field">
+            <label for="vmFbComment">Detailed Feedback</label>
+            <textarea id="vmFbComment" name="comment" rows="5" placeholder="Tell us about the texture, fit, and craftsmanship..."></textarea>
+        </div>
+
+        <div class="vm-fb-field">
+            <label>Visual Documentation (Optional)</label>
+            <div class="vm-fb-upload-row">
+                <label class="vm-fb-upload-btn" for="vmFbPhotosInput">
+                    <i class="far fa-camera"></i>
+                    <span>Add Photo</span>
+                </label>
+                <input id="vmFbPhotosInput" type="file" name="review_images" accept="image/*" multiple>
+            </div>
+            <div class="vm-fb-preview-grid" id="vmFbPreviewGrid"></div>
+        </div>
+
+        <button type="submit" class="vm-fb-submit">Submit Review</button>
+        <p class="vm-fb-note">By submitting, you agree to our Editorial Guidelines and Privacy Policy.</p>
+    </form>
+</section>
+
+<script>
+(function () {
+    const root = document.querySelector('.vm-fb-mobile-only');
+    if (!root) return;
+
+    const stars = root.querySelectorAll('.vm-fb-star');
+    const ratingInput = root.querySelector('#vmFbRatingValue');
+    const photosInput = root.querySelector('#vmFbPhotosInput');
+    const previewGrid = root.querySelector('#vmFbPreviewGrid');
+
+    const setRating = (value) => {
+        if (!ratingInput) return;
+        ratingInput.value = String(value);
+        stars.forEach((star, index) => {
+            star.classList.toggle('is-active', index < value);
+        });
+    };
+
+    stars.forEach((star) => {
+        star.addEventListener('click', () => {
+            const value = parseInt(star.getAttribute('data-rating') || '4', 10);
+            setRating(value);
+        });
+    });
+
+    if (photosInput && previewGrid) {
+        photosInput.addEventListener('change', () => {
+            previewGrid.innerHTML = '';
+            const files = Array.from(photosInput.files || []).slice(0, 5);
+            files.forEach((file) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const wrap = document.createElement('div');
+                    wrap.className = 'vm-fb-preview-item';
+                    const img = document.createElement('img');
+                    img.src = e.target && typeof e.target.result === 'string' ? e.target.result : '';
+                    img.alt = 'Review upload';
+                    wrap.appendChild(img);
+                    previewGrid.appendChild(wrap);
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+    }
+
+    setRating(parseInt((ratingInput && ratingInput.value) || '4', 10));
+})();
+</script>
