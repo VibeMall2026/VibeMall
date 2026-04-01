@@ -54,4 +54,15 @@
     -webkit-transition: all 200ms linear;
     transition: all 200ms linear;
   }
+
+    @media (max-width: 767.98px) {
+      .progress-wrap {
+        right: 16px;
+        bottom: calc(96px + env(safe-area-inset-bottom));
+      }
+
+      body.vm-page-mobile-wishlist .progress-wrap {
+        display: none !important;
+      }
+    }
   
