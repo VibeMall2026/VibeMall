@@ -12,6 +12,12 @@
 <link rel="stylesheet" href="{% static 'assets/css/aboutus-responsive.css' %}?v=20260307-02">
 <link rel="stylesheet" href="{% static 'assets/css/aboutus-mobile-alt.css' %}?v=20260329-03">
 <link rel="stylesheet" href="{% static 'assets/css/aboutus-desktop-alt.css' %}?v=20260329-01">
+<style>
+body.vm-page-mobile-about .vm-copy-header,
+body.vm-page-mobile-about #mobileBottomNavShell {
+    display: none !important;
+}
+</style>
 {% endblock %}
 
 {% block content %}
