@@ -25,12 +25,23 @@ class ComingSoonModeMiddleware:
             '/favicon.ico',
             '/newsletter/subscribe/',
         )
+        self.local_hosts = {
+            'localhost',
+            '127.0.0.1',
+            '0.0.0.0',
+            'testserver',
+        }
 
     def __call__(self, request):
         if not getattr(settings, 'COMING_SOON_MODE', False):
             return self.get_response(request)
 
         path = request.path or '/'
+        host = request.get_host().split(':', 1)[0].lower()
+
+        # Keep coming-soon mode enabled for live domains, but never block local development.
+        if host in self.local_hosts:
+            return self.get_response(request)
 
         if any(path.startswith(prefix) for prefix in self.allowed_prefixes):
             return self.get_response(request)
