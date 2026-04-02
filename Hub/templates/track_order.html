@@ -5,6 +5,259 @@
 {% block body_class %}vm-page-mobile-alt vm-page-mobile-ordertrack{% endblock %}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'assets/css/ordertracking-mobile-view.css' %}?v=20260401-01">
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Serif:wght@400;700&display=swap');
+
+    .otm-desktop-only {
+        background: #fbf9f4;
+        color: #171818;
+        font-family: "Manrope", sans-serif;
+        padding: 120px 32px 56px;
+    }
+
+    .otd-shell {
+        width: min(1240px, 100%);
+        margin: 0 auto;
+    }
+
+    .otd-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 20px;
+        padding-bottom: 24px;
+        border-bottom: 1px solid rgba(23, 24, 24, 0.08);
+    }
+
+    .otd-toolbar h1 {
+        margin: 0;
+        font: 700 64px/0.9 "Noto Serif", serif;
+        letter-spacing: -0.05em;
+        color: #171818;
+    }
+
+    .otd-toolbar p {
+        margin: 12px 0 0;
+        color: rgba(23, 24, 24, 0.62);
+    }
+
+    .otd-search {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .otd-search input,
+    .otd-search button {
+        min-height: 52px;
+        border-radius: 999px;
+        font: inherit;
+    }
+
+    .otd-search input {
+        width: 340px;
+        border: 1px solid rgba(23, 24, 24, 0.1);
+        padding: 0 18px;
+        background: #fff;
+        color: #171818;
+    }
+
+    .otd-search button {
+        border: 0;
+        background: #171818;
+        color: #fff;
+        padding: 0 24px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+    }
+
+    .otd-status {
+        min-height: 18px;
+        margin: 12px 0 0;
+        font-size: 13px;
+        color: #8e6730;
+    }
+
+    .otd-status.otd-status--error {
+        color: #b42318;
+    }
+
+    .otd-grid {
+        display: grid;
+        grid-template-columns: 1.5fr 0.9fr;
+        gap: 36px;
+        margin-top: 28px;
+    }
+
+    .otd-timeline {
+        position: relative;
+        padding-left: 34px;
+    }
+
+    .otd-timeline::before {
+        content: "";
+        position: absolute;
+        left: 9px;
+        top: 8px;
+        bottom: 8px;
+        width: 2px;
+        background: rgba(23, 24, 24, 0.12);
+    }
+
+    .otd-event {
+        position: relative;
+        padding: 0 0 26px 24px;
+    }
+
+    .otd-event::before {
+        content: "";
+        position: absolute;
+        left: -34px;
+        top: 4px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #fff;
+        border: 2px solid #171818;
+    }
+
+    .otd-event--active::before {
+        background: #b88b4a;
+        border-color: #b88b4a;
+    }
+
+    .otd-event--done::before {
+        background: #171818;
+        border-color: #171818;
+    }
+
+    .otd-event h3 {
+        margin: 0;
+        font-size: 18px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #171818;
+    }
+
+    .otd-event-date {
+        margin: 8px 0 0;
+        font-size: 12px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: #8b6e3e;
+    }
+
+    .otd-event p {
+        margin: 10px 0 0;
+        line-height: 1.8;
+        color: rgba(23, 24, 24, 0.66);
+    }
+
+    .otd-aside {
+        display: grid;
+        gap: 18px;
+    }
+
+    .otd-card {
+        padding: 22px;
+        border-radius: 24px;
+        background: #fff;
+        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.08);
+    }
+
+    .otd-card h3 {
+        margin: 0 0 18px;
+        font-size: 16px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #171818;
+    }
+
+    .otd-facts {
+        display: grid;
+        gap: 14px;
+    }
+
+    .otd-facts div {
+        padding-bottom: 14px;
+        border-bottom: 1px solid rgba(23, 24, 24, 0.08);
+    }
+
+    .otd-facts div:last-child {
+        padding-bottom: 0;
+        border-bottom: 0;
+    }
+
+    .otd-facts strong {
+        display: block;
+        font-size: 10px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: rgba(23, 24, 24, 0.48);
+        margin-bottom: 6px;
+    }
+
+    .otd-note {
+        margin: 0;
+        line-height: 1.8;
+        color: rgba(23, 24, 24, 0.66);
+    }
+
+    .otd-help {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 18px;
+        color: #171818;
+        text-decoration: none;
+        font-weight: 700;
+    }
+
+    .otd-alerts {
+        margin-top: 14px;
+    }
+
+    .otd-alert {
+        margin: 0 0 10px;
+        padding: 12px 16px;
+        border-radius: 14px;
+        font-size: 14px;
+    }
+
+    .otd-alert--danger {
+        background: #fef3f2;
+        color: #b42318;
+        border: 1px solid #fecdca;
+    }
+
+    .otd-alert--info {
+        background: #f5f7fa;
+        color: #475467;
+        border: 1px solid #d0d5dd;
+    }
+
+    @media (max-width: 980px) {
+        .otd-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .otd-toolbar {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .otd-search {
+            width: 100%;
+        }
+
+        .otd-search input {
+            flex: 1;
+            width: auto;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -98,75 +351,92 @@
 </section>
 
 <div class="otm-desktop-only">
-    <div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
-        <div class="container">
-            <div class="row">
-                <div class="col-xl-12">
-                    <div class="page-banner-content text-center">
-                        <h4 class="breadcrumb-title">Track Order</h4>
-                        <div class="breadcrumb-two">
-                            <nav>
-                                <nav class="breadcrumb-trail breadcrumbs">
-                                    <ul class="breadcrumb-menu">
-                                        <li class="breadcrumb-trail">
-                                            <a href="{% url 'index' %}"><span>Home</span></a>
-                                        </li>
-                                        <li class="trail-item">
-                                            <span>Track Order</span>
-                                        </li>
-                                    </ul>
-                                </nav>
-                            </nav>
+    <section class="otd-shell">
+        <header class="otd-toolbar">
+            <div>
+                <h1>Order Tracking</h1>
+                <p>Fetch your live tracking timeline directly from the backend.</p>
+                <p class="otd-status{% if messages %} otd-status--error{% endif %}">
+                    {% if messages %}
+                        {% for message in messages %}
+                            {{ message }}{% if not forloop.last %} {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        Enter your order number to load the latest backend timeline.
+                    {% endif %}
+                </p>
+            </div>
+
+            <form class="otd-search" method="POST" action="{% url 'track_order' %}">
+                {% csrf_token %}
+                <input type="text" id="order_number" name="order_number" placeholder="Enter order number e.g. VM12345" required>
+                <button type="submit">Load Order</button>
+            </form>
+        </header>
+
+        <section class="otd-grid">
+            <section class="otd-timeline">
+                <article class="otd-event">
+                    <h3>Delivered</h3>
+                    <div class="otd-event-date">Final Step</div>
+                    <p>Your order will appear here as delivered once the courier completes the handoff.</p>
+                </article>
+
+                <article class="otd-event otd-event--active">
+                    <h3>Out for Delivery</h3>
+                    <div class="otd-event-date">Live Backend Status</div>
+                    <p>After you submit an order number, the order details page will show the latest movement, courier checkpoints, and delivery estimate.</p>
+                </article>
+
+                <article class="otd-event otd-event--done">
+                    <h3>In Transit</h3>
+                    <div class="otd-event-date">Courier Updates</div>
+                    <p>Track parcel movement across hubs and see when your shipment reaches the destination city.</p>
+                </article>
+
+                <article class="otd-event otd-event--done">
+                    <h3>Order Confirmed</h3>
+                    <div class="otd-event-date">Order Received</div>
+                    <p>Use the exact order number from your order confirmation email or order history to continue.</p>
+                </article>
+            </section>
+
+            <aside class="otd-aside">
+                <section class="otd-card">
+                    <div class="otd-facts">
+                        <div>
+                            <strong>Tracking Source</strong>
+                            <span>VibeMall backend order timeline</span>
+                        </div>
+                        <div>
+                            <strong>Accepted Input</strong>
+                            <span>Exact order number</span>
+                        </div>
+                        <div>
+                            <strong>Best Match</strong>
+                            <span>Confirmation email or My Orders page</span>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
+                </section>
 
-    <section class="track-order-section pt-120 pb-120">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-lg-6 col-md-8">
-                    <div class="track-order-card">
-                        <div class="text-center mb-4">
-                            <i class="fas fa-shipping-fast track-order-icon"></i>
-                            <h2 class="mt-3 mb-2">Track Your Order</h2>
-                            <p class="text-muted">Enter your order number to track your shipment</p>
-                        </div>
-
-                        <form method="POST" action="{% url 'track_order' %}">
-                            {% csrf_token %}
-                            {% if messages %}
-                                <div class="mb-3">
-                                    {% for message in messages %}
-                                        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}info{% endif %} mb-2" role="alert">
-                                            {{ message }}
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                            <div class="form-group mb-3">
-                                <label for="order_number" class="form-label">Order Number</label>
-                                <input type="text" class="form-control form-control-lg track-order-input" id="order_number" name="order_number" placeholder="e.g., ORD-20260202-1234567" required>
-                                <small class="text-muted">You can find your order number in the order confirmation email</small>
-                            </div>
-
-                            <button type="submit" class="btn btn-primary w-100 btn-lg mt-3 track-order-btn">
-                                <i class="fas fa-search me-2"></i>Track Order
-                            </button>
-                        </form>
-
-                        <div class="mt-4 text-center">
-                            <p class="mb-2">Need help?</p>
-                            <a href="{% url 'contact' %}" class="text-decoration-none track-order-help-link">
-                                <i class="fas fa-headset me-1"></i>Contact Support
-                            </a>
-                        </div>
+                <section class="otd-card">
+                    <h3>Before You Search</h3>
+                    {% if messages %}
+                    <div class="otd-alerts">
+                        {% for message in messages %}
+                        <div class="otd-alert {% if message.tags == 'error' %}otd-alert--danger{% else %}otd-alert--info{% endif %}">{{ message }}</div>
+                        {% endfor %}
                     </div>
-                </div>
-            </div>
-        </div>
+                    {% else %}
+                    <p class="otd-note">This page opens the tracking details for a specific order. If the number is valid, you will be redirected to the dedicated tracking view for that order.</p>
+                    {% endif %}
+                    <a href="{% url 'contact' %}" class="otd-help">
+                        <i class="fas fa-headset"></i>
+                        <span>Contact Support</span>
+                    </a>
+                </section>
+            </aside>
+        </section>
     </section>
 </div>
 {% endblock %}

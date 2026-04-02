@@ -3,155 +3,356 @@
 
 {% block title %}Coming Soon - VibeMall{% endblock %}
 {% block meta_description %}VibeMall launch updates and early access subscription.{% endblock %}
-{% block body_class %}vm-page-coming-soon{% endblock %}
+{% block body_class %}coming-soon-page{% endblock %}
 
 {% block extra_css %}
 <style>
-  body.vm-page-coming-soon .vm-copy-header,
-  body.vm-page-coming-soon #mobileBottomNavShell {
+  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Serif:wght@400;700&display=swap');
+
+  :root {
+    --bg: #f6f1e8;
+    --surface: rgba(255, 251, 245, 0.86);
+    --text: #171818;
+    --muted: rgba(23, 24, 24, 0.68);
+    --line: rgba(23, 24, 24, 0.08);
+    --accent: #b88b4a;
+    --accent-dark: #8e6730;
+    --shadow: 0 28px 70px rgba(13, 15, 22, 0.18);
+  }
+
+  body.coming-soon-page {
+    min-height: 100vh;
+    background: var(--bg);
+  }
+
+  body.coming-soon-page .progress-wrap,
+  body.coming-soon-page .mobile-bottom-nav-shell,
+  body.coming-soon-page #supportChatWidget,
+  body.coming-soon-page header,
+  body.coming-soon-page footer,
+  body.coming-soon-page .tp-header-area,
+  body.coming-soon-page .header-area,
+  body.coming-soon-page .vm-copy-header,
+  body.coming-soon-page .vm-copy-footer {
     display: none !important;
   }
-  .vm-cs-wrap {
-    min-height: calc(100vh - 120px);
-    background: radial-gradient(circle at 20% 20%, #232f4d 0%, #141a2b 45%, #0c1020 100%);
-    color: #fff;
-    padding: 44px 16px;
+
+  body.coming-soon-page main {
+    min-height: 100vh;
   }
-  .vm-cs-shell {
-    max-width: 980px;
-    margin: 0 auto;
+
+  .cs-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    color: var(--text);
+    font-family: "Manrope", sans-serif;
+  }
+
+  .cs-main {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    padding: 64px 40px;
+    overflow: hidden;
+    background:
+      linear-gradient(135deg, rgba(17, 20, 29, 0.78), rgba(17, 20, 29, 0.38)),
+      url("https://images.unsplash.com/photo-1528459105426-b954836706fc?auto=format&fit=crop&w=1600&q=80") center/cover no-repeat;
+  }
+
+  .cs-main::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top left, rgba(184, 139, 74, 0.36), transparent 32%);
+    pointer-events: none;
+  }
+
+  .cs-shell {
+    position: relative;
+    z-index: 1;
+    width: min(1180px, 100%);
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 32px;
+    align-items: center;
+  }
+
+  .cs-copy {
+    color: #fffdf8;
     text-align: center;
   }
-  .vm-cs-logo {
-    width: 110px;
-    margin: 0 auto 22px;
-    opacity: 0.95;
-  }
-  .vm-cs-kicker {
-    margin: 0;
-    text-transform: uppercase;
-    letter-spacing: 0.18em;
-    font-size: 11px;
-    color: #d2c2a0;
-  }
-  .vm-cs-title {
-    margin: 10px 0 14px;
-    font-size: 56px;
-    line-height: 1.05;
-    letter-spacing: -0.02em;
-  }
-  .vm-cs-sub {
-    margin: 0 auto;
-    max-width: 720px;
-    color: #d8dcef;
-    font-size: 17px;
-  }
-  .vm-cs-card {
-    margin: 30px auto 0;
-    max-width: 760px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    backdrop-filter: blur(8px);
-    border-radius: 16px;
-    padding: 24px 18px;
-  }
-  .vm-cs-date {
-    font-size: 36px;
-    line-height: 1.1;
-    margin: 0 0 10px;
-  }
-  .vm-cs-form {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-    margin-top: 14px;
-  }
-  .vm-cs-input {
-    width: 360px;
-    max-width: 64vw;
-    height: 46px;
-    border: 1px solid rgba(255,255,255,0.35);
-    background: rgba(255,255,255,0.12);
-    color: #fff;
-    padding: 0 14px;
-    border-radius: 10px;
-  }
-  .vm-cs-input::placeholder { color: #d4d8e6; }
-  .vm-cs-btn {
-    height: 46px;
-    border: 0;
-    background: #c18d3b;
-    color: #fff;
-    padding: 0 16px;
-    border-radius: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.11em;
-    font-size: 12px;
+
+  .cs-brand {
+    display: inline-block;
+    margin-bottom: 24px;
+    font-family: "Noto Serif", serif;
+    font-size: 32px;
     font-weight: 700;
+    letter-spacing: -0.04em;
+    color: #f5ede1;
   }
-  .vm-cs-msg {
-    margin: 10px 0 0;
-    min-height: 18px;
-    font-size: 13px;
-    color: #efe2c9;
+
+  .cs-kicker,
+  .cs-panel-label {
+    margin: 0 0 14px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: #dbc294;
   }
-  .vm-cs-grid {
-    margin: 26px auto 0;
+
+  .cs-title {
+    margin: 0;
+    font-family: "Noto Serif", serif;
+    font-size: clamp(56px, 8vw, 92px);
+    line-height: 0.96;
+    letter-spacing: -0.04em;
+  }
+
+  .cs-subtitle {
+    margin: 24px auto 0;
+    max-width: 640px;
+    font-size: 17px;
+    line-height: 1.75;
+    color: rgba(255, 251, 244, 0.82);
+  }
+
+  .cs-highlights {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    max-width: 900px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 32px;
   }
-  .vm-cs-grid > div {
-    border: 1px solid rgba(255,255,255,0.16);
-    background: rgba(255,255,255,0.05);
-    border-radius: 12px;
-    padding: 14px 10px;
+
+  .cs-highlight {
+    padding: 18px;
+    border: 1px solid rgba(255, 251, 244, 0.16);
+    background: rgba(255, 251, 244, 0.06);
+    backdrop-filter: blur(6px);
+    border-radius: 22px;
+  }
+
+  .cs-highlight strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .cs-highlight span {
     font-size: 13px;
-    color: #d8dcef;
+    line-height: 1.7;
+    color: rgba(255, 251, 244, 0.78);
   }
-  @media (max-width: 920px) {
-    .vm-cs-title { font-size: 42px; }
-    .vm-cs-grid { grid-template-columns: repeat(2, 1fr); }
+
+  .cs-panel {
+    background: var(--surface);
+    border: 1px solid rgba(255, 251, 245, 0.42);
+    border-radius: 32px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(16px);
+    padding: 34px;
   }
-  @media (max-width: 620px) {
-    .vm-cs-title { font-size: 34px; }
-    .vm-cs-form { flex-direction: column; align-items: center; }
-    .vm-cs-input { width: 92%; max-width: none; }
-    .vm-cs-btn { width: 92%; }
-    .vm-cs-grid { grid-template-columns: 1fr; }
+
+  .cs-date {
+    margin: 0;
+    font-family: "Noto Serif", serif;
+    font-size: 44px;
+    line-height: 1;
   }
-  .vm-admin-nav-link {
-    display: none !important;
+
+  .cs-launch-line {
+    margin: 12px 0 0;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  .cs-countdown {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 24px;
+  }
+
+  .cs-countdown-card {
+    padding: 16px 12px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.66);
+    border: 1px solid rgba(23, 24, 24, 0.06);
+    text-align: center;
+  }
+
+  .cs-countdown-card strong {
+    display: block;
+    font-size: 26px;
+    font-weight: 800;
+  }
+
+  .cs-countdown-card span {
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(23, 24, 24, 0.62);
+  }
+
+  .cs-form {
+    margin-top: 28px;
+  }
+
+  .cs-input-row {
+    display: flex;
+    gap: 12px;
+  }
+
+  .cs-form input {
+    flex: 1;
+    min-height: 54px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.85);
+    padding: 0 22px;
+    font: inherit;
+  }
+
+  .cs-form button {
+    min-width: 168px;
+    min-height: 54px;
+    padding: 0 24px;
+    border: 0;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    color: #fff;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .cs-status {
+    min-height: 22px;
+    margin: 12px 0 0;
+    font-size: 13px;
+    color: var(--accent-dark);
+  }
+
+  .cs-status.is-error {
+    color: #b42318;
+  }
+
+  .cs-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 20px;
+    margin-top: 20px;
+    border-top: 1px solid var(--line);
+    color: rgba(23, 24, 24, 0.7);
+    font-size: 12px;
+    line-height: 1.7;
+  }
+
+  @media (max-width: 1080px) {
+    .cs-shell {
+      grid-template-columns: 1fr;
+    }
+
+    .cs-highlights {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 720px) {
+    .cs-main {
+      padding: 32px 16px;
+    }
+
+    .cs-panel {
+      padding: 24px 18px;
+    }
+
+    .cs-highlights,
+    .cs-countdown {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .cs-input-row,
+    .cs-meta {
+      flex-direction: column;
+    }
+
+    .cs-form button {
+      width: 100%;
+    }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<section class="vm-cs-wrap">
-  <div class="vm-cs-shell">
-    <img class="vm-cs-logo" src="{% static 'assets/img/logo/vibemall-brand.png' %}" alt="VibeMall">
-    <p class="vm-cs-kicker">Private Preview</p>
-    <h1 class="vm-cs-title">Coming Soon</h1>
-    <p class="vm-cs-sub">A curated shopping experience is launching with live inventory, fast delivery, and premium catalog updates tailored for your everyday fashion and lifestyle needs.</p>
-
-    <div class="vm-cs-card">
-      <p class="vm-cs-date" id="vmLaunchDate">{{ launch_date_display|default:'2026' }}</p>
-      <p style="margin:0; color:#d8dcef;">Subscribe for early access and launch alerts.</p>
-
-      <form class="vm-cs-form" id="vmNotifyForm" method="post" action="{% url 'subscribe_newsletter' %}">
-        {% csrf_token %}
-        <input class="vm-cs-input" id="vmNotifyEmail" type="email" name="email" placeholder="Enter your email address" required>
-        <button class="vm-cs-btn" id="vmNotifyBtn" type="submit">Notify Me</button>
-      </form>
-      <p class="vm-cs-msg" id="vmNotifyMsg" aria-live="polite"></p>
-    </div>
-
-    <div class="vm-cs-grid">
-      <div>Fast Dispatch<br>and live status tracking</div>
-      <div>Freshly curated catalog<br>and real-time stock</div>
-      <div>Secure checkout<br>with order timeline</div>
-      <div>Early launch offers<br>for subscribers</div>
+<section class="cs-page" aria-labelledby="comingSoonTitle">
+  <div class="cs-main">
+    <div class="cs-shell">
+      <section class="cs-copy">
+        <div class="cs-brand">VIBEMALL</div>
+        <p class="cs-kicker">Private Preview</p>
+        <h1 class="cs-title" id="comingSoonTitle">A New Era of Artistry is Arriving</h1>
+        <p class="cs-subtitle">We are curating a collection that redefines the boundaries of modern craft. Be the first to witness the unveiling.</p>
+        <div class="cs-highlights">
+          <article class="cs-highlight">
+            <strong>Private Access</strong>
+            <span>Join the first wave of visitors who see the new storefront before the public launch.</span>
+          </article>
+          <article class="cs-highlight">
+            <strong>Refined Drops</strong>
+            <span>Expect sharper curation, premium fashion edits, and elevated lifestyle releases.</span>
+          </article>
+          <article class="cs-highlight">
+            <strong>Smoother Journey</strong>
+            <span>From discovery to delivery, the next VibeMall experience is being rebuilt with more clarity.</span>
+          </article>
+        </div>
+      </section>
+      <aside class="cs-panel">
+        <p class="cs-panel-label">Join the Private Viewing</p>
+        <h2 class="cs-date" id="vmLaunchDate" data-launch-date="{{ launch_date_iso|default:'' }}">{{ launch_date_display|default:'Launching Soon' }}</h2>
+        <p class="cs-launch-line">Leave your email and we will let you know the moment the new VibeMall chapter is live.</p>
+        <div class="cs-countdown" id="vmCountdown" aria-label="Launch countdown">
+          <div class="cs-countdown-card">
+            <strong id="vmDays">00</strong>
+            <span>Days</span>
+          </div>
+          <div class="cs-countdown-card">
+            <strong id="vmHours">00</strong>
+            <span>Hours</span>
+          </div>
+          <div class="cs-countdown-card">
+            <strong id="vmMinutes">00</strong>
+            <span>Minutes</span>
+          </div>
+          <div class="cs-countdown-card">
+            <strong id="vmSeconds">00</strong>
+            <span>Seconds</span>
+          </div>
+        </div>
+        <form class="cs-form" id="vmNotifyForm" method="post" action="{% url 'subscribe_newsletter' %}">
+          {% csrf_token %}
+          <div class="cs-input-row">
+            <input id="vmNotifyEmail" type="email" name="email" placeholder="Enter your email address" autocomplete="email" required>
+            <button id="vmNotifyBtn" type="submit">Notify Me</button>
+          </div>
+          <p class="cs-status" id="vmNotifyMsg" aria-live="polite"></p>
+        </form>
+        <div class="cs-meta">
+          <span>No spam. Just launch access and meaningful updates.</span>
+          <span>VibeMall Atelier</span>
+        </div>
+      </aside>
     </div>
   </div>
 </section>
@@ -167,7 +368,53 @@
     const form = document.getElementById('vmNotifyForm');
     const btn = document.getElementById('vmNotifyBtn');
     const msg = document.getElementById('vmNotifyMsg');
+    const targetDate = '{{ launch_date_iso|default:"" }}';
+    const dayEl = document.getElementById('vmDays');
+    const hourEl = document.getElementById('vmHours');
+    const minuteEl = document.getElementById('vmMinutes');
+    const secondEl = document.getElementById('vmSeconds');
 
+    function setCountdownValues(days, hours, minutes, seconds) {
+      if (dayEl) dayEl.textContent = String(days).padStart(2, '0');
+      if (hourEl) hourEl.textContent = String(hours).padStart(2, '0');
+      if (minuteEl) minuteEl.textContent = String(minutes).padStart(2, '0');
+      if (secondEl) secondEl.textContent = String(seconds).padStart(2, '0');
+    }
+
+    function startCountdown() {
+      if (!targetDate) {
+        setCountdownValues(0, 0, 0, 0);
+        return;
+      }
+
+      const launchAt = new Date(targetDate);
+      if (Number.isNaN(launchAt.getTime())) {
+        setCountdownValues(0, 0, 0, 0);
+        return;
+      }
+
+      const tick = function () {
+        const diff = launchAt.getTime() - Date.now();
+
+        if (diff <= 0) {
+          setCountdownValues(0, 0, 0, 0);
+          return;
+        }
+
+        const totalSeconds = Math.floor(diff / 1000);
+        const days = Math.floor(totalSeconds / 86400);
+        const hours = Math.floor((totalSeconds % 86400) / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+
+        setCountdownValues(days, hours, minutes, seconds);
+      };
+
+      tick();
+      window.setInterval(tick, 1000);
+    }
+
+    startCountdown();
     if (!form) return;
 
     form.addEventListener('submit', async function (e) {
