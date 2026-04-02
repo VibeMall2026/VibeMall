@@ -547,7 +547,7 @@ body.vm-shop-copy-root .offcanvas__area {
             <div class="vm-shop-d-filter-block">
                 <h3>Price Range</h3>
                 <div class="vm-shop-d-range-wrap">
-                    <input type="range" min="0" max="2000" value="1000" aria-label="Price range selector" disabled>
+                    <input type="range" class="vm-shop-d-range-input" min="0" max="2000" value="1000" aria-label="Price range selector" disabled>
                     <div class="vm-shop-d-range-values"><span>$0</span><span>$2,000+</span></div>
                 </div>
             </div>
@@ -657,6 +657,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const gridBtn = document.getElementById('vmShopViewGrid');
     const listBtn = document.getElementById('vmShopViewList');
     const desktopSearch = document.getElementById('vmShopDesktopSearch');
+    const desktopRangeInputs = document.querySelectorAll('.vm-shop-d-range-input');
+
+    const syncRangeProgress = (input) => {
+        const min = Number(input.min || 0);
+        const max = Number(input.max || 100);
+        const value = Number(input.value || min);
+        const progress = max > min ? ((value - min) / (max - min)) * 100 : 0;
+        input.style.setProperty('--range-progress', `${Math.max(0, Math.min(100, progress))}%`);
+    };
 
     if (desktopShell && desktopGrid && desktopFilterBtn) {
         desktopFilterBtn.addEventListener('click', function () {
@@ -712,6 +721,13 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+
+    desktopRangeInputs.forEach(function (input) {
+        syncRangeProgress(input);
+        input.addEventListener('input', function () {
+            syncRangeProgress(input);
+        });
+    });
 });
 </script>
 

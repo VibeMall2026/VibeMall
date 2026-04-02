@@ -325,9 +325,61 @@
     }
 
     .vm-shop-d-range-wrap input[type="range"] {
+        --range-progress: 50%;
         width: 100%;
-        accent-color: #7b43c8;
-        opacity: .9;
+        height: 6px;
+        border-radius: 999px;
+        appearance: none;
+        -webkit-appearance: none;
+        background: linear-gradient(90deg, #9c98a6 0 var(--range-progress), #d7d2c8 var(--range-progress) 100%);
+        outline: none;
+        opacity: 1;
+        cursor: default;
+    }
+
+    .vm-shop-d-range-wrap input[type="range"]::-webkit-slider-runnable-track {
+        height: 6px;
+        border-radius: 999px;
+        background: transparent;
+    }
+
+    .vm-shop-d-range-wrap input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 28px;
+        height: 28px;
+        margin-top: -11px;
+        border: 2px solid #f4f1eb;
+        border-radius: 50%;
+        background: #9c98a6;
+        box-shadow: 0 6px 18px rgba(27, 28, 25, 0.18);
+    }
+
+    .vm-shop-d-range-wrap input[type="range"]::-moz-range-track {
+        height: 6px;
+        border: none;
+        border-radius: 999px;
+        background: #d7d2c8;
+    }
+
+    .vm-shop-d-range-wrap input[type="range"]::-moz-range-progress {
+        height: 6px;
+        border-radius: 999px;
+        background: #9c98a6;
+    }
+
+    .vm-shop-d-range-wrap input[type="range"]::-moz-range-thumb {
+        width: 28px;
+        height: 28px;
+        border: 2px solid #f4f1eb;
+        border-radius: 50%;
+        background: #9c98a6;
+        box-shadow: 0 6px 18px rgba(27, 28, 25, 0.18);
+    }
+
+    .vm-shop-d-range-wrap input[type="range"]:disabled {
+        pointer-events: none;
+        filter: none;
     }
 
     .vm-shop-d-range-values {
