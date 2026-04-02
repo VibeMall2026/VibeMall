@@ -1,13 +1,78 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VibeMall Coming Soon Desktop</title>
+  <style>
+    body { margin:0; font-family: Arial, sans-serif; background:#fbf9f4; color:#1b1c19; }
+    .nav, .footer { display:flex; justify-content:space-between; padding:16px 28px; background:#f0eee9; }
+    .hero { max-width:900px; margin:40px auto; text-align:center; padding:20px; }
+    h1 { font-size:52px; margin:10px 0; }
+    .launch { font-size:14px; text-transform:uppercase; color:#6f5c37; }
+    form { display:flex; gap:10px; justify-content:center; margin-top:20px; }
+    input { width:360px; max-width:70vw; padding:12px; border:1px solid #ccc; }
+    button { border:0; background:#171818; color:#fff; padding:12px 16px; cursor:pointer; }
+    #msg { min-height:18px; font-size:13px; margin-top:10px; color:#6f5c37; }
+  </style>
+</head>
+<body>
+  <header class="nav"><strong>VIBEMALL</strong><span>Desktop View</span></header>
+  <section class="hero">
+    <h1>Coming Soon</h1>
+    <p>We are building a dynamic experience controlled from admin panel updates.</p>
+    <p class="launch">Launch Window: <span id="launchDate">2026</span></p>
+    <form id="notifyForm">
+      <input id="email" type="email" required placeholder="Enter your email">
+      <button id="notifyBtn" type="submit">Notify Me</button>
+    </form>
+    <p id="msg"></p>
+  </section>
+  <footer class="footer"><span>Copyright 2026 VibeMall</span><span>Privacy | Terms</span></footer>
+  <script>
+    function getCookie(name) {
+      const value = '; ' + document.cookie;
+      const parts = value.split('; ' + name + '=');
+      return parts.length === 2 ? parts.pop().split(';').shift() : '';
+    }
+    async function loadLaunchDate() {
+      try {
+        const res = await fetch('/coming-soon/', { credentials: 'include' });
+        if (!res.ok) return;
+        const html = await res.text();
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const el = doc.querySelector('.launch-date');
+        if (el && el.textContent.trim()) document.getElementById('launchDate').textContent = el.textContent.trim();
+      } catch (e) {}
+    }
+    loadLaunchDate();
+    document.getElementById('notifyForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const btn = document.getElementById('notifyBtn');
+      const msg = document.getElementById('msg');
+      const csrf = getCookie('csrftoken');
+      btn.disabled = true; btn.textContent = 'Sending...'; msg.textContent = '';
+      try {
+        const payload = new URLSearchParams();
+        payload.set('email', document.getElementById('email').value.trim());
+        payload.set('source_page', 'ComingSoonDesktop');
+        if (csrf) payload.set('csrfmiddlewaretoken', csrf);
+        const res = await fetch('/newsletter/subscribe/', {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type':'application/x-www-form-urlencoded', 'X-Requested-With':'XMLHttpRequest', 'X-CSRFToken': csrf },
+          body: payload.toString()
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Subscription failed.');
+        msg.textContent = data.message || 'Subscribed successfully.';
+        document.getElementById('email').value = '';
+      } catch (err) {
+        msg.textContent = err.message || 'Unable to subscribe.';
+      } finally {
+        btn.disabled = false; btn.textContent = 'Notify Me';
+      }
+    });
+  </script>
+</body>
 </html>
 

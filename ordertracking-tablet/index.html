@@ -1,13 +1,81 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VibeMall Order Tracking Tablet</title>
+  <style>
+    body { margin:0; font-family: Arial, sans-serif; background:#f5f1e9; color:#1a1a1a; }
+    .nav, .footer { display:flex; justify-content:space-between; padding:14px 18px; background:#fff; border-bottom:1px solid #ddd; }
+    .footer { border-top:1px solid #ddd; border-bottom:0; margin-top:20px; }
+    .box { max-width:780px; margin:24px auto; padding:16px; background:#fff; border:1px solid #ddd; }
+    input { width:calc(100% - 120px); padding:10px; border:1px solid #ccc; }
+    button { padding:10px 12px; border:0; background:#171818; color:#fff; cursor:pointer; }
+    #error { color:#b00020; font-size:13px; min-height:18px; }
+    .items img { width:56px; height:56px; object-fit:cover; border:1px solid #ddd; }
+    .item { display:flex; gap:10px; margin:8px 0; align-items:center; }
+    #timeline p { margin:6px 0; font-size:14px; }
+  </style>
+</head>
+<body>
+  <header class="nav"><strong>VIBEMALL</strong><span>Tablet Tracking</span></header>
+  <section class="box">
+    <h2>Track Order</h2>
+    <form id="trackForm">
+      <input id="orderNumber" required placeholder="Enter order number">
+      <button id="trackBtn" type="submit">Track</button>
+    </form>
+    <p id="error"></p>
+    <h3 id="title">Order Tracking</h3>
+    <p>Status: <strong id="status">-</strong></p>
+    <div id="timeline"></div>
+    <h4>Items</h4>
+    <div id="items" class="items"></div>
+  </section>
+  <footer class="footer"><span>Copyright 2026 VibeMall</span><span>Privacy | Terms</span></footer>
+  <script>
+    function cleanText(v) { return (v || '').replace(/\s+/g, ' ').trim(); }
+    function parseHtml(html) {
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const number = cleanText(doc.querySelector('.order-number') && doc.querySelector('.order-number').textContent).replace(/^Order\s*#?/i, '');
+      const status = cleanText(doc.querySelector('.status-badge') && doc.querySelector('.status-badge').textContent) || 'Ordered';
+      const timeline = Array.from(doc.querySelectorAll('.timeline .timeline-title')).map(function (n) { return cleanText(n.textContent); }).filter(Boolean);
+      const items = Array.from(doc.querySelectorAll('.products-section .product-card')).map(function (card, i) {
+        const name = cleanText(card.querySelector('.product-name') && card.querySelector('.product-name').textContent) || ('Item ' + (i + 1));
+        const meta = cleanText(card.querySelector('.product-meta') && card.querySelector('.product-meta').textContent);
+        const img = card.querySelector('img');
+        return { name: name, meta: meta, image: img ? img.src : '' };
+      });
+      return { number: number, status: status, timeline: timeline, items: items };
+    }
+
+    document.getElementById('trackForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const btn = document.getElementById('trackBtn');
+      const err = document.getElementById('error');
+      const orderNumber = document.getElementById('orderNumber').value.trim();
+      btn.disabled = true; btn.textContent = 'Loading...'; err.textContent = '';
+      try {
+        const res = await fetch('/order/track/' + encodeURIComponent(orderNumber) + '/', { credentials: 'include', redirect: 'follow' });
+        if (res.url.indexOf('/login') !== -1) throw new Error('Please login first.');
+        if (!res.ok) throw new Error('Unable to load tracking details.');
+        const html = await res.text();
+        const data = parseHtml(html);
+        document.getElementById('title').textContent = data.number ? ('Order #' + data.number) : 'Order Tracking';
+        document.getElementById('status').textContent = data.status;
+        const t = document.getElementById('timeline');
+        t.innerHTML = data.timeline.map(function (x) { return '<p>- ' + x + '</p>'; }).join('') || '<p>No timeline updates.</p>';
+        const items = document.getElementById('items');
+        items.innerHTML = data.items.map(function (it) {
+          return '<div class="item"><img src="' + (it.image || '') + '" alt="item"><div><div><strong>' + it.name + '</strong></div><div>' + (it.meta || '') + '</div></div></div>';
+        }).join('') || '<p>No items found.</p>';
+      } catch (ex) {
+        err.textContent = ex.message || 'Tracking failed.';
+      } finally {
+        btn.disabled = false; btn.textContent = 'Track';
+      }
+    });
+  </script>
+</body>
 </html>
 
