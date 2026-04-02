@@ -1,317 +1,228 @@
-﻿{% extends "base.html" %}
-
+{% extends "base.html" %}
 {% load static %}
 
 {% block title %}Login - VibeMall{% endblock %}
-{% block meta_description %}Login to your VibeMall account. Access your orders, wishlist, profile settings, and exclusive member benefits.{% endblock %}
-{% block body_class %}vm-page-mobile-alt vm-page-mobile-login{% endblock %}
+{% block meta_description %}Login to your VibeMall account and access orders, wishlist, and profile.{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'assets/css/login-custom.css' %}">
-<link rel="stylesheet" href="{% static 'assets/css/login-responsive.css' %}?v=20260222-01">
-<link rel="stylesheet" href="{% static 'assets/css/login-mobile-alt.css' %}?v=20260329-02">
+<style>
+  .vm-auth-wrap {
+    min-height: calc(100vh - 220px);
+    background: #f7f5f0;
+    padding: 48px 16px;
+  }
+  .vm-auth-shell {
+    max-width: 1080px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: #ffffff;
+    border: 1px solid #e8e3d9;
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.06);
+  }
+  .vm-auth-left {
+    background: #efe9da;
+    padding: 56px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 16px;
+  }
+  .vm-auth-left h2 {
+    margin: 0;
+    font-size: 40px;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+  .vm-auth-left p {
+    margin: 0;
+    color: #5a564f;
+  }
+  .vm-auth-right {
+    padding: 48px 40px;
+  }
+  .vm-auth-kicker {
+    margin: 0 0 10px;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: #8b7755;
+  }
+  .vm-auth-title {
+    margin: 0 0 24px;
+    font-size: 32px;
+    line-height: 1.15;
+  }
+  .vm-auth-field {
+    margin-bottom: 16px;
+  }
+  .vm-auth-field label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #6e6657;
+  }
+  .vm-auth-field input {
+    width: 100%;
+    border: 1px solid #d9d2c3;
+    height: 46px;
+    padding: 0 14px;
+    font-size: 14px;
+    background: #fff;
+  }
+  .vm-auth-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin: 12px 0 20px;
+  }
+  .vm-auth-row a {
+    color: #8b7755;
+    font-size: 13px;
+  }
+  .vm-auth-toggle {
+    border: 1px solid #d9d2c3;
+    background: #fff;
+    height: 34px;
+    padding: 0 10px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .vm-auth-submit {
+    width: 100%;
+    border: 0;
+    background: #171818;
+    color: #fff;
+    height: 46px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-weight: 700;
+  }
+  .vm-auth-error {
+    margin: 0 0 12px;
+    color: #b42318;
+    font-size: 13px;
+    min-height: 18px;
+  }
+  .vm-auth-register {
+    margin: 18px 0 0;
+    text-align: center;
+    font-size: 13px;
+  }
+  .vm-auth-register a {
+    color: #8b7755;
+    font-weight: 700;
+  }
+  .vm-alert-list {
+    margin-bottom: 14px;
+  }
+  .vm-alert-item {
+    border: 1px solid #f3d2d2;
+    background: #fff3f3;
+    color: #8b1f1f;
+    padding: 10px 12px;
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  @media (max-width: 920px) {
+    .vm-auth-shell { grid-template-columns: 1fr; }
+    .vm-auth-left { padding: 28px 24px; }
+    .vm-auth-right { padding: 26px 20px; }
+    .vm-auth-left h2 { font-size: 30px; }
+    .vm-auth-title { font-size: 26px; }
+  }
+</style>
 {% endblock %}
 
 {% block content %}
+<section class="vm-auth-wrap">
+  <div class="vm-auth-shell">
+    <aside class="vm-auth-left">
+      <h2>Welcome To<br>VibeMall</h2>
+      <p>Sign in to access orders, tracking updates, wishlist, and account settings.</p>
+      <p>All updates are synced in real time with your account data.</p>
+    </aside>
 
-<section class="vm-login-mobile-only" aria-label="Login mobile layout">
-    {% include 'partials/vm_mobile_alt_header.html' %}
+    <main class="vm-auth-right">
+      <p class="vm-auth-kicker">Account Access</p>
+      <h1 class="vm-auth-title">Login</h1>
 
-    <main class="vm-login-m-main vm-mobile-content-offset">
-        <section class="vm-login-m-hero">
-            <img src="{% static 'assets/img/banner/page-banner-4.jpg' %}" alt="VibeMall login hero">
-            <div class="vm-login-m-hero-overlay"></div>
-            <div class="vm-login-m-hero-content">
-                <h2>The Private<br>Viewing</h2>
-                <p>Authentication Protocol</p>
-            </div>
-        </section>
+      {% if messages %}
+      <div class="vm-alert-list" aria-live="polite">
+        {% for message in messages %}
+        <div class="vm-alert-item">{{ message }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
 
-        <section class="vm-login-m-card-wrap">
-            <div class="vm-login-m-card">
-                <div class="vm-login-m-head">
-                    <h3>Welcome Back</h3>
-                    <p>Access your curated collection.</p>
-                </div>
+      <form method="POST" id="vmLoginForm">
+        {% csrf_token %}
+        {% if next %}
+        <input type="hidden" name="next" value="{{ next }}">
+        {% endif %}
 
-                {% if messages %}
-                <div class="vm-login-m-messages" aria-live="polite">
-                    {% for message in messages %}
-                    <div class="vm-login-m-alert {{ message.tags|default:'danger' }}">{{ message }}</div>
-                    {% endfor %}
-                </div>
-                {% endif %}
+        <div class="vm-auth-field">
+          <label for="vm_username">Email or Username</label>
+          <input id="vm_username" name="username" type="text" required autocomplete="username">
+        </div>
 
-                <form method="POST" class="vm-login-m-form">
-                    {% csrf_token %}
-                    {% if next %}
-                        <input type="hidden" name="next" value="{{ next }}">
-                    {% endif %}
+        <div class="vm-auth-field">
+          <label for="vm_password">Password</label>
+          <input id="vm_password" name="password" type="password" required autocomplete="current-password">
+        </div>
 
-                    <div class="vm-login-m-field">
-                        <label for="vm_login_username">Email Address</label>
-                        <input id="vm_login_username" type="text" name="username" placeholder="name@atelier.com" required>
-                    </div>
+        <div class="vm-auth-row">
+          <label for="vm_remember" style="font-size:13px; margin:0; display:flex; align-items:center; gap:7px; color:#5f5a4f; text-transform:none; letter-spacing:0;">
+            <input id="vm_remember" name="remember_me" type="checkbox" value="on" style="width:auto; height:auto; margin:0;">
+            Remember me for 30 days
+          </label>
+          <button class="vm-auth-toggle" id="vmTogglePassword" type="button">Show</button>
+        </div>
 
-                    <div class="vm-login-m-field">
-                        <div class="vm-login-m-field-top">
-                            <label for="vm_login_password">Password</label>
-                            <a href="{% url 'password_reset' %}">Forgot?</a>
-                        </div>
-                        <div class="vm-login-m-pass-wrap">
-                            <input id="vm_login_password" type="password" name="password" placeholder="••••••••" required>
-                            <button type="button" class="vm-login-m-toggle-pass" data-target="vm_login_password" aria-label="Toggle password visibility"><i class="far fa-eye"></i></button>
-                        </div>
-                    </div>
+        <p class="vm-auth-error" id="vmAuthError"></p>
 
-                    <label class="vm-login-m-remember" for="vm_login_remember">
-                        <input id="vm_login_remember" type="checkbox" name="remember_me" value="on">
-                        <span>Stay signed in for 30 days</span>
-                    </label>
+        <button class="vm-auth-submit" id="vmSubmitBtn" type="submit">Login To Account</button>
 
-                    <button type="submit" class="vm-login-m-submit">Enter Atelier</button>
-
-                    <p class="vm-login-m-register">New to the collection? <a href="{% url 'register' %}">Create an Account</a></p>
-                </form>
-            </div>
-        </section>
-        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='login-mobile' %}
+        <p class="vm-auth-register">
+          <a href="{% url 'password_reset' %}">Forgot password?</a>
+          &nbsp;|&nbsp;
+          <a href="{% url 'register' %}">Create account</a>
+        </p>
+      </form>
     </main>
-
-    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
+  </div>
 </section>
 
-<div class="vm-login-legacy-content">
-
-<!-- Page Banner Start -->
-<div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
-    <div class="container">
-        <div class="row">
-            <div class="col-xl-12">
-                <div class="page-banner-content text-center">
-                    <h4 class="breadcrumb-title">Login</h4>
-                    <div class="breadcrumb-two">
-                        <nav>
-                            <nav class="breadcrumb-trail breadcrumbs">
-                                <ul class="breadcrumb-menu">
-                                    <li class="breadcrumb-trail">
-                                        <a href="{% url 'index' %}"><span>Home</span></a>
-                                    </li>
-                                    <li class="trail-item">
-                                        <span>Login</span>
-                                    </li>
-                                </ul>
-                            </nav>
-                        </nav>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- Page Banner End -->
-
-<!-- Login Area Start -->
-<section class="login-area pt-100 pb-100">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-lg-6">
-                <!-- Messages -->
-                {% if messages %}
-                    <div class="mb-30">
-                        {% for message in messages %}
-                            <div class="alert alert-{{ message.tags|default:'danger' }} alert-dismissible fade show" role="alert">
-                                <i class="fas fa-{% if message.tags == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i> 
-                                <strong>{% if message.tags == 'success' %}Success!{% else %}Error!{% endif %}</strong> {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-
-                <div class="login-form-wrapper">
-                    <div class="login-form-header text-center mb-40">
-                        <h3 class="mb-10">
-                            <i class="fas fa-sign-in-alt"></i> Welcome Back
-                        </h3>
-                        <p class="text-muted">Sign in to your VibeMall account</p>
-                    </div>
-
-                    <form method="POST">
-                        {% csrf_token %}
-                        {% if next %}
-                            <input type="hidden" name="next" value="{{ next }}">
-                        {% endif %}
-
-                        <!-- Login Form Section -->
-                        <div class="form-section mb-35">
-                            <h6 class="mb-20 pb-2 border-bottom">
-                                <i class="fas fa-user"></i> Account Credentials
-                            </h6>
-
-                            <div class="mb-20">
-                                <label class="form-label">Username or Email <span class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                                    <input type="text" name="username" id="username" class="form-control" placeholder="Enter your username or email" required>
-                                </div>
-                                <span id="username_feedback" class="input-feedback"></span>
-                            </div>
-
-                            <div class="mb-20">
-                                <label class="form-label">Password <span class="text-danger">*</span></label>
-                                <div class="password-input-group">
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                                        <input type="password" name="password" id="password" class="form-control" placeholder="Enter your password" required>
-                                        <button type="button" class="btn toggle-password-btn" data-target="password">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Remember Me Checkbox -->
-                        <div class="mb-20">
-                            <div class="form-check">
-                                <input type="checkbox" name="remember_me" id="remember_me" class="form-check-input" value="on">
-                                <label class="form-check-label" for="remember_me">
-                                    Remember me for 30 days
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Login Button -->
-                        <div class="login-form-actions mb-20">
-                            <button type="submit" class="tp-btn-h1 w-100">
-                                <i class="fas fa-sign-in-alt"></i> Login to Account
-                            </button>
-                        </div>
-
-                            <!-- Forgot Password Link -->
-                            <div class="forgot-password-section text-center mb-20">
-                                <a href="{% url 'password_reset' %}" class="forgot-password-link">
-                                    <i class="fas fa-key"></i> Forgot Password?
-                                </a>
-                            </div>
-
-                        <!-- Signup Section -->
-                        <div class="signup-section text-center">
-                            <p class="mb-0">Don't have an account? 
-                                <a href="{% url 'register' %}" class="signup-highlight">
-                                    <i class="fas fa-arrow-right"></i> Sign up now
-                                </a>
-                            </p>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-<!-- Login Area End -->
-
-<!-- Scripts for Password Toggle, Validation & Security -->
 <script>
-    function togglePassword(id, buttonEl) {
-        const input = document.getElementById(id);
-        if (!input) return;
+  (function () {
+    const pwd = document.getElementById('vm_password');
+    const toggle = document.getElementById('vmTogglePassword');
+    const form = document.getElementById('vmLoginForm');
+    const submitBtn = document.getElementById('vmSubmitBtn');
+    const err = document.getElementById('vmAuthError');
 
-        const icon = buttonEl ? buttonEl.querySelector('i') : null;
-        const show = input.type === 'password';
-        input.type = show ? 'text' : 'password';
-
-        if (icon) {
-            icon.classList.toggle('fa-eye', !show);
-            icon.classList.toggle('fa-eye-slash', show);
-        }
+    if (toggle && pwd) {
+      toggle.addEventListener('click', function () {
+        const show = pwd.type === 'password';
+        pwd.type = show ? 'text' : 'password';
+        toggle.textContent = show ? 'Hide' : 'Show';
+      });
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
-        const loginForm = document.querySelector('.login-form-wrapper form');
-        const usernameInput = document.getElementById('username');
-        const feedback = document.getElementById('username_feedback');
-        const rememberCheckbox = document.getElementById('remember_me');
-
-        document.querySelectorAll('.toggle-password-btn').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                const targetId = this.getAttribute('data-target');
-                togglePassword(targetId, this);
-            });
-        });
-
-        if (usernameInput && feedback) {
-            usernameInput.addEventListener('blur', function() {
-                const value = this.value.trim();
-                if (value === '') {
-                    feedback.textContent = '';
-                    feedback.className = 'input-feedback';
-                    return;
-                }
-
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (emailRegex.test(value)) {
-                    feedback.textContent = 'Valid email format';
-                    feedback.className = 'input-feedback success';
-                } else if (value.length >= 3) {
-                    feedback.textContent = 'Valid username format';
-                    feedback.className = 'input-feedback success';
-                } else {
-                    feedback.textContent = 'Username must be at least 3 characters';
-                    feedback.className = 'input-feedback error';
-                }
-            });
+    if (form) {
+      form.addEventListener('submit', function () {
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Signing In...';
         }
-
-        if (rememberCheckbox && usernameInput) {
-            const savedUsername = localStorage.getItem('vibemall_remember_me');
-            if (savedUsername) {
-                usernameInput.value = savedUsername;
-                rememberCheckbox.checked = true;
-            }
-        }
-
-        if (loginForm) {
-            loginForm.addEventListener('submit', function() {
-                const submitBtn = this.querySelector('button[type="submit"]');
-                if (submitBtn) {
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
-                    setTimeout(function() {
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login to Account';
-                    }, 3000);
-                }
-
-                if (rememberCheckbox && usernameInput) {
-                    if (rememberCheckbox.checked) {
-                        localStorage.setItem('vibemall_remember_me', usernameInput.value);
-                    } else {
-                        localStorage.removeItem('vibemall_remember_me');
-                    }
-                }
-            });
-        }
-
-        document.querySelectorAll('.vm-login-m-toggle-pass').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                const targetId = this.getAttribute('data-target');
-                const input = document.getElementById(targetId);
-                if (!input) return;
-                const icon = this.querySelector('i');
-                const show = input.type === 'password';
-                input.type = show ? 'text' : 'password';
-                if (icon) {
-                    icon.classList.toggle('fa-eye', !show);
-                    icon.classList.toggle('fa-eye-slash', show);
-                }
-            });
-        });
-    });
+        if (err) err.textContent = '';
+      });
+    }
+  })();
 </script>
-
-</div>
-
-{% endblock content %}
+{% endblock %}

@@ -7,7 +7,7 @@ from django.http import JsonResponse, HttpResponse, HttpRequest
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
-from django.db.models import Count, Q, Avg, Sum, F, DecimalField, ExpressionWrapper, Case, When, Value, IntegerField, QuerySet
+from django.db.models import Count, Q, Avg, Sum, F, DecimalField, ExpressionWrapper, Case, When, Value, IntegerField, QuerySet, Min, Max
 from django.db.models.functions import Coalesce, Lower, Trim
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger, Page
 from django.contrib.admin.views.decorators import staff_member_required
@@ -6112,24 +6112,25 @@ def shop(request):
     min_price = request.GET.get('min_price')
     max_price = request.GET.get('max_price')
     min_rating = request.GET.get('min_rating')
+    selected_sort = request.GET.get('sort', 'curated').strip().lower() or 'curated'
     selected_category = request.GET.get('category', '').strip()
     selected_sub_category = request.GET.get('sub_category', '').strip()
+    selected_brands = []
+    seen_brands = set()
+    for raw_brand in request.GET.getlist('brand'):
+        brand_name = (raw_brand or '').strip()
+        brand_key = brand_name.casefold()
+        if brand_name and brand_key not in seen_brands:
+            selected_brands.append(brand_name)
+            seen_brands.add(brand_key)
 
-    if min_price:
+    def parse_decimal_filter(raw_value):
+        if raw_value in (None, ''):
+            return None
         try:
-            products = products.filter(price__gte=float(min_price))
-        except ValueError:
-            pass
-    if max_price:
-        try:
-            products = products.filter(price__lte=float(max_price))
-        except ValueError:
-            pass
-    if min_rating:
-        try:
-            products = products.filter(rating__gte=float(min_rating))
-        except ValueError:
-            pass
+            return Decimal(str(raw_value).strip())
+        except (InvalidOperation, TypeError, ValueError):
+            return None
 
     if search_query:
         products = products.filter(
@@ -6186,6 +6187,59 @@ def shop(request):
     else:
         selected_sub_category = ''
 
+    sidebar_scope = products
+
+    designer_brands = list(
+        sidebar_scope.annotate(
+            brand_label=Trim(Coalesce('brand', Value('')))
+        )
+        .exclude(brand_label='')
+        .values('brand_label')
+        .annotate(product_count=Count('id'))
+        .order_by('-product_count', 'brand_label')[:5]
+    )
+
+    if selected_brands:
+        brand_query = Q()
+        for brand_name in selected_brands:
+            brand_query |= Q(brand__iexact=brand_name)
+        products = products.filter(brand_query)
+
+    rating_scope = products
+    rating_options = []
+    for threshold in (4, 3, 2):
+        match_count = rating_scope.filter(rating__gte=threshold).count()
+        if match_count:
+            rating_options.append({
+                'value': str(threshold),
+                'label': f'{threshold} Stars & Up',
+                'count': match_count,
+            })
+
+    selected_rating = ''
+    if min_rating:
+        try:
+            parsed_rating = str(int(float(min_rating)))
+            if parsed_rating in {'2', '3', '4', '5'}:
+                selected_rating = parsed_rating
+                products = products.filter(rating__gte=int(parsed_rating))
+        except (TypeError, ValueError):
+            selected_rating = ''
+
+    price_scope = products
+    price_bounds = price_scope.aggregate(min_price=Min('price'), max_price=Max('price'))
+    filter_min_price = int(price_bounds['min_price'] or 0)
+    filter_max_price = int(price_bounds['max_price'] or filter_min_price or 0)
+    range_input_max = filter_max_price if filter_max_price > filter_min_price else filter_min_price + 1
+
+    parsed_min_price = parse_decimal_filter(min_price)
+    parsed_max_price = parse_decimal_filter(max_price)
+
+    if parsed_min_price is not None:
+        products = products.filter(price__gte=parsed_min_price)
+    if parsed_max_price is not None:
+        products = products.filter(price__lte=parsed_max_price)
+
     category_counts_qs = Product.objects.filter(is_active=True).values('category').annotate(total=Count('id'))
     category_counts = {row['category']: row['total'] for row in category_counts_qs}
     category_counts_norm = {
@@ -6227,6 +6281,18 @@ def shop(request):
             Cart.objects.filter(user=request.user).values_list('product_id', flat=True)
         )
 
+    if selected_sort == 'name_asc':
+        products = products.order_by('name', '-id')
+    elif selected_sort == 'name_desc':
+        products = products.order_by('-name', '-id')
+    elif selected_sort == 'price_asc':
+        products = products.order_by('price', '-id')
+    elif selected_sort == 'price_desc':
+        products = products.order_by('-price', '-id')
+    else:
+        selected_sort = 'curated'
+        products = products.order_by('-id')
+
     # Pagination - 9 products per page (3 columns x 3 rows)
     paginator = Paginator(products, 9)
     page = request.GET.get('page', 1)
@@ -6265,14 +6331,29 @@ def shop(request):
         query_params['min_price'] = min_price
     if max_price:
         query_params['max_price'] = max_price
-    if min_rating:
-        query_params['min_rating'] = min_rating
+    if selected_rating:
+        query_params['min_rating'] = selected_rating
     if selected_sub_category:
         query_params['sub_category'] = selected_sub_category
     if search_query:
         query_params['q'] = search_query
+    if selected_brands:
+        query_params['brand'] = selected_brands
+    if selected_sort != 'curated':
+        query_params['sort'] = selected_sort
 
-    page_query = f"&{urlencode(query_params)}" if query_params else ''
+    page_query = f"&{urlencode(query_params, doseq=True)}" if query_params else ''
+    sort_query_params = {key: value for key, value in query_params.items() if key != 'sort'}
+    sort_base_query = urlencode(sort_query_params, doseq=True) if sort_query_params else ''
+
+    selected_max_price_value = filter_max_price
+    if parsed_max_price is not None:
+        selected_max_price_value = int(
+            max(
+                Decimal(str(filter_min_price)),
+                min(parsed_max_price, Decimal(str(range_input_max)))
+            )
+        )
 
     product_ids = [p.id for p in products_page.object_list]
     stats_qs = ProductReview.objects.filter(product_id__in=product_ids, is_approved=True).values('product_id').annotate(
@@ -6297,7 +6378,15 @@ def shop(request):
         'selected_sub_category': selected_sub_category,
         'min_price': min_price or '',
         'max_price': max_price or '',
-        'selected_rating': min_rating or '',
+        'selected_rating': selected_rating,
+        'selected_sort': selected_sort,
+        'selected_brands': selected_brands,
+        'designer_brands': designer_brands,
+        'rating_options': rating_options,
+        'filter_min_price': filter_min_price,
+        'filter_max_price': filter_max_price,
+        'range_input_max': range_input_max,
+        'selected_max_price_value': selected_max_price_value,
         'sub_category_data': sub_category_data,
         'search_query': search_query,
         'wishlist_product_ids': wishlist_product_ids,
@@ -6305,6 +6394,7 @@ def shop(request):
         'product_stats': product_stats,
         'page_links': page_links,
         'page_query': page_query,
+        'sort_base_query': sort_base_query,
     })
 
 

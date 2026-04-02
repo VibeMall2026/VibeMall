@@ -302,13 +302,27 @@ body.vm-shop-copy-root .offcanvas__area {
                     </label>
                 </div>
 
+                {% if designer_brands %}
+                <div class="vm-shop-m-filter-group">
+                    <span class="vm-shop-m-filter-group__title">Designer Brands</span>
+                    <div class="vm-shop-m-filter-checks">
+                        {% for brand in designer_brands %}
+                        <label class="vm-shop-m-filter-check">
+                            <input type="checkbox" name="brand" value="{{ brand.brand_label }}" {% if brand.brand_label in selected_brands %}checked{% endif %}>
+                            <span>{{ brand.brand_label }} ({{ brand.product_count }})</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
                 <label>
                     <span>Minimum Rating</span>
                     <select name="min_rating">
                         <option value="">Any Rating</option>
-                        <option value="4" {% if selected_rating == '4' %}selected{% endif %}>4 Stars & Up</option>
-                        <option value="3" {% if selected_rating == '3' %}selected{% endif %}>3 Stars & Up</option>
-                        <option value="2" {% if selected_rating == '2' %}selected{% endif %}>2 Stars & Up</option>
+                        {% for option in rating_options %}
+                        <option value="{{ option.value }}" {% if selected_rating == option.value %}selected{% endif %}>{{ option.label }} ({{ option.count }})</option>
+                        {% endfor %}
                     </select>
                 </label>
 
@@ -496,11 +510,11 @@ body.vm-shop-copy-root .offcanvas__area {
                 <label for="vmShopDesktopSort">Sort by</label>
                 <div class="vm-shop-d-sort-wrap">
                     <select id="vmShopDesktopSort" aria-label="Sort products">
-                        <option value="curated">Curated</option>
-                        <option value="name_asc">Name A-Z</option>
-                        <option value="name_desc">Name Z-A</option>
-                        <option value="price_asc">Price low to high</option>
-                        <option value="price_desc">Price high to low</option>
+                        <option value="curated" {% if selected_sort == 'curated' %}selected{% endif %}>Curated</option>
+                        <option value="name_asc" {% if selected_sort == 'name_asc' %}selected{% endif %}>Name A-Z</option>
+                        <option value="name_desc" {% if selected_sort == 'name_desc' %}selected{% endif %}>Name Z-A</option>
+                        <option value="price_asc" {% if selected_sort == 'price_asc' %}selected{% endif %}>Price low to high</option>
+                        <option value="price_desc" {% if selected_sort == 'price_desc' %}selected{% endif %}>Price high to low</option>
                     </select>
                 </div>
                 <span class="vm-shop-d-divider" aria-hidden="true"></span>
@@ -514,10 +528,15 @@ body.vm-shop-copy-root .offcanvas__area {
 
     <section class="vm-shop-d-shell">
         <aside class="vm-shop-d-sidebar">
+            <form method="get" action="{% url 'shop' %}" class="vm-shop-d-sidebar-form">
+                {% if selected_category %}<input type="hidden" name="category" value="{{ selected_category }}">{% endif %}
+                {% if selected_sub_category %}<input type="hidden" name="sub_category" value="{{ selected_sub_category }}">{% endif %}
+                {% if min_price %}<input type="hidden" name="min_price" value="{{ min_price }}">{% endif %}
+                {% if selected_sort and selected_sort != 'curated' %}<input type="hidden" name="sort" value="{{ selected_sort }}">{% endif %}
             <div class="vm-shop-d-filter-block">
                 <h3>Search Products</h3>
                 <div class="vm-shop-d-search-box">
-                    <input type="text" id="vmShopDesktopSearch" placeholder="By name or tag..." aria-label="Search products by name or tag">
+                    <input type="text" id="vmShopDesktopSearch" name="q" value="{{ search_query }}" placeholder="By name or tag..." aria-label="Search products by name or tag">
                 </div>
             </div>
 
@@ -546,30 +565,51 @@ body.vm-shop-copy-root .offcanvas__area {
 
             <div class="vm-shop-d-filter-block">
                 <h3>Price Range</h3>
+                <p class="vm-shop-d-range-caption">Up to <strong id="vmShopDesktopRangeOutput">&#8377;{{ selected_max_price_value }}</strong></p>
                 <div class="vm-shop-d-range-wrap">
-                    <input type="range" class="vm-shop-d-range-input" min="0" max="2000" value="1000" aria-label="Price range selector" disabled>
-                    <div class="vm-shop-d-range-values"><span>$0</span><span>$2,000+</span></div>
+                    <input type="range" class="vm-shop-d-range-input" name="max_price" min="{{ filter_min_price }}" max="{{ range_input_max }}" value="{{ selected_max_price_value }}" data-output="vmShopDesktopRangeOutput" data-currency="₹" aria-label="Maximum price selector">
+                    <div class="vm-shop-d-range-values"><span>&#8377;{{ filter_min_price }}</span><span>&#8377;{{ filter_max_price }}+</span></div>
                 </div>
             </div>
 
             <div class="vm-shop-d-filter-block">
                 <h3>Designer Brands</h3>
-                <label class="vm-shop-d-check"><input type="checkbox" disabled><span>VibeMall Atelier</span></label>
-                <label class="vm-shop-d-check"><input type="checkbox" disabled><span>Kashmiri Looms</span></label>
-                <label class="vm-shop-d-check"><input type="checkbox" disabled><span>Noir &amp; Stone</span></label>
+                {% for brand in designer_brands %}
+                <label class="vm-shop-d-check"><input type="checkbox" name="brand" value="{{ brand.brand_label }}" {% if brand.brand_label in selected_brands %}checked{% endif %}><span>{{ brand.brand_label }} ({{ brand.product_count }})</span></label>
+                {% empty %}
+                <p class="vm-shop-d-filter-empty">No brand data available.</p>
+                {% endfor %}
             </div>
 
             <div class="vm-shop-d-filter-block">
                 <h3>Review Rating</h3>
-                <p class="vm-shop-d-stars">
-                    <i class="fas fa-star"></i>
-                    <i class="fas fa-star"></i>
-                    <i class="fas fa-star"></i>
-                    <i class="fas fa-star"></i>
-                    <i class="far fa-star"></i>
-                    <span>&amp; UP</span>
-                </p>
+                {% for option in rating_options %}
+                <label class="vm-shop-d-check vm-shop-d-rating-option">
+                    <input type="radio" name="min_rating" value="{{ option.value }}" {% if selected_rating == option.value %}checked{% endif %}>
+                    <span class="vm-shop-d-stars">
+                        {% if option.value == '4' %}
+                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star"></i>
+                        {% elif option.value == '3' %}
+                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i>
+                        {% else %}
+                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i>
+                        {% endif %}
+                        <span>&amp; UP ({{ option.count }})</span>
+                    </span>
+                </label>
+                {% empty %}
+                <p class="vm-shop-d-filter-empty">No review data available.</p>
+                {% endfor %}
+                <label class="vm-shop-d-check vm-shop-d-rating-option">
+                    <input type="radio" name="min_rating" value="" {% if not selected_rating %}checked{% endif %}>
+                    <span>All Ratings</span>
+                </label>
             </div>
+            <div class="vm-shop-d-filter-actions">
+                <a href="{% url 'shop' %}" class="vm-shop-d-filter-clear">Clear</a>
+                <button type="submit" class="vm-shop-d-filter-apply">Apply</button>
+            </div>
+            </form>
         </aside>
 
         <div class="vm-shop-d-grid-wrap">
@@ -665,6 +705,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const value = Number(input.value || min);
         const progress = max > min ? ((value - min) / (max - min)) * 100 : 0;
         input.style.setProperty('--range-progress', `${Math.max(0, Math.min(100, progress))}%`);
+        const outputId = input.dataset.output;
+        const output = outputId ? document.getElementById(outputId) : null;
+        if (output) {
+            const currency = input.dataset.currency || '';
+            output.textContent = `${currency}${Math.round(value)}`;
+        }
     };
 
     if (desktopShell && desktopGrid && desktopFilterBtn) {
@@ -687,6 +733,25 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (desktopSort && desktopGrid) {
+        if (desktopSort.value && desktopSort.value !== 'curated') {
+            const initialMode = desktopSort.value;
+            const cards = Array.from(desktopGrid.querySelectorAll('.vm-shop-d-card'));
+            cards.sort(function (a, b) {
+                const nameA = (a.dataset.name || '').toString();
+                const nameB = (b.dataset.name || '').toString();
+                const priceA = parseFloat(a.dataset.price || '0');
+                const priceB = parseFloat(b.dataset.price || '0');
+                const orderA = parseInt(a.dataset.order || '0', 10);
+                const orderB = parseInt(b.dataset.order || '0', 10);
+
+                if (initialMode === 'name_asc') return nameA.localeCompare(nameB);
+                if (initialMode === 'name_desc') return nameB.localeCompare(nameA);
+                if (initialMode === 'price_asc') return priceA - priceB;
+                if (initialMode === 'price_desc') return priceB - priceA;
+                return orderA - orderB;
+            });
+            cards.forEach(function (card) { desktopGrid.appendChild(card); });
+        }
         desktopSort.addEventListener('change', function () {
             const mode = desktopSort.value;
             const cards = Array.from(desktopGrid.querySelectorAll('.vm-shop-d-card'));
