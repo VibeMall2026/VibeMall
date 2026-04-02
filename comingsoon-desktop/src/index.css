@@ -1,0 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Noto Serif", serif;
+  --font-sans: "Inter", sans-serif;
+  
+  --color-surface: #fbf9f4;
+  --color-on-surface: #1b1c19;
+  --color-primary: #171818;
+  --color-secondary: #6f5c37;
+}
+
+@layer base {
+  body {
+    @apply bg-surface text-on-surface font-sans antialiased;
+  }
+}
+
+.editorial-gradient {
+  background: linear-gradient(180deg, rgba(251, 249, 244, 0) 0%, rgba(251, 249, 244, 0.8) 70%, rgba(251, 249, 244, 1) 100%);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+}
+
+.letter-spacing-vogue {
+  letter-spacing: -0.02em;
+}
+
+.letter-spacing-label {
+  letter-spacing: 0.1rem;
+}

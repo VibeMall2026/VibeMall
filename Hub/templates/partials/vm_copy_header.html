@@ -56,9 +56,9 @@
                 <a href="{% url 'order_list' %}">My Orders</a>
                 <a href="{% url 'checkout' %}">Checkout</a>
                 {% if user.is_staff %}
-                <a href="{% url 'admin_dashboard' %}">Admin</a>
+                <a class="vm-admin-nav-link" href="{% url 'admin_dashboard' %}">Admin</a>
                 {% else %}
-                <a href="{% url 'login' %}">Admin</a>
+                <a class="vm-admin-nav-link" href="{% url 'login' %}">Admin</a>
                 {% endif %}
             </nav>
 

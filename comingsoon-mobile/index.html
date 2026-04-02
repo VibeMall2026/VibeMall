@@ -1,78 +1,13 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VibeMall Coming Soon Mobile</title>
-  <style>
-    body { margin:0; font-family: Arial, sans-serif; background:#fbf9f4; color:#171818; padding-bottom:68px; }
-    .top { position: sticky; top:0; padding:12px 14px; text-align:center; background:#f0eee9; border-bottom:1px solid #ddd; }
-    .main { padding:20px 14px; text-align:center; }
-    h1 { font-size:34px; margin:8px 0; }
-    .launch { color:#6f5c37; text-transform:uppercase; font-size:11px; }
-    input { width:100%; box-sizing:border-box; padding:10px; border:1px solid #ccc; margin:10px 0; }
-    button { width:100%; border:0; background:#171818; color:#fff; padding:11px; }
-    #msg { min-height:18px; font-size:13px; margin-top:8px; color:#6f5c37; }
-    .bottom { position:fixed; bottom:0; left:0; right:0; display:flex; justify-content:space-around; background:#f0eee9; border-top:1px solid #ddd; padding:10px 6px; font-size:12px; }
-  </style>
-</head>
-<body>
-  <header class="top"><strong>VIBEMALL</strong></header>
-  <main class="main">
-    <h1>Coming Soon</h1>
-    <p>Mobile launch updates synced from backend and admin controls.</p>
-    <p class="launch">Launch Window: <span id="launchDate">2026</span></p>
-    <form id="notifyForm">
-      <input id="email" type="email" required placeholder="Enter your email">
-      <button id="notifyBtn" type="submit">Notify Me</button>
-    </form>
-    <p id="msg"></p>
-  </main>
-  <nav class="bottom"><span>Home</span><span>Shop</span><strong>Launch</strong><span>Profile</span></nav>
-  <script>
-    function getCookie(name) {
-      const value = '; ' + document.cookie;
-      const parts = value.split('; ' + name + '=');
-      return parts.length === 2 ? parts.pop().split(';').shift() : '';
-    }
-    async function loadLaunchDate() {
-      try {
-        const res = await fetch('/coming-soon/', { credentials: 'include' });
-        if (!res.ok) return;
-        const html = await res.text();
-        const doc = new DOMParser().parseFromString(html, 'text/html');
-        const el = doc.querySelector('.launch-date');
-        if (el && el.textContent.trim()) document.getElementById('launchDate').textContent = el.textContent.trim();
-      } catch (e) {}
-    }
-    loadLaunchDate();
-    document.getElementById('notifyForm').addEventListener('submit', async function (e) {
-      e.preventDefault();
-      const btn = document.getElementById('notifyBtn');
-      const msg = document.getElementById('msg');
-      const csrf = getCookie('csrftoken');
-      btn.disabled = true; btn.textContent = 'Sending...'; msg.textContent = '';
-      try {
-        const payload = new URLSearchParams();
-        payload.set('email', document.getElementById('email').value.trim());
-        payload.set('source_page', 'ComingSoonMobile');
-        if (csrf) payload.set('csrfmiddlewaretoken', csrf);
-        const res = await fetch('/newsletter/subscribe/', {
-          method: 'POST', credentials: 'include',
-          headers: { 'Content-Type':'application/x-www-form-urlencoded', 'X-Requested-With':'XMLHttpRequest', 'X-CSRFToken': csrf },
-          body: payload.toString()
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Subscription failed.');
-        msg.textContent = data.message || 'Subscribed successfully.';
-        document.getElementById('email').value = '';
-      } catch (err) {
-        msg.textContent = err.message || 'Unable to subscribe.';
-      } finally {
-        btn.disabled = false; btn.textContent = 'Notify Me';
-      }
-    });
-  </script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Google AI Studio App</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
 

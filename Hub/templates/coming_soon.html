@@ -116,6 +116,9 @@
     .vm-cs-btn { width: 92%; }
     .vm-cs-grid { grid-template-columns: 1fr; }
   }
+  .vm-admin-nav-link {
+    display: none !important;
+  }
 </style>
 {% endblock %}
 
@@ -125,7 +128,7 @@
     <img class="vm-cs-logo" src="{% static 'assets/img/logo/vibemall-brand.png' %}" alt="VibeMall">
     <p class="vm-cs-kicker">Private Preview</p>
     <h1 class="vm-cs-title">Coming Soon</h1>
-    <p class="vm-cs-sub">A curated shopping experience is launching with live inventory, fast delivery, and premium catalog updates managed from the VibeMall admin panel.</p>
+    <p class="vm-cs-sub">A curated shopping experience is launching with live inventory, fast delivery, and premium catalog updates tailored for your everyday fashion and lifestyle needs.</p>
 
     <div class="vm-cs-card">
       <p class="vm-cs-date" id="vmLaunchDate">{{ launch_date_display|default:'2026' }}</p>
@@ -141,7 +144,7 @@
 
     <div class="vm-cs-grid">
       <div>Fast Dispatch<br>and live status tracking</div>
-      <div>Admin-managed catalog<br>and real-time stock</div>
+      <div>Freshly curated catalog<br>and real-time stock</div>
       <div>Secure checkout<br>with order timeline</div>
       <div>Early launch offers<br>for subscribers</div>
     </div>
