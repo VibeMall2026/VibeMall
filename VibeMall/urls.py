@@ -9,7 +9,7 @@ urlpatterns = [
     path('admin/new-dashboard/', RedirectView.as_view(url='/admin-panel/new-dashboard/', permanent=False)),
     path('admin/', admin.site.urls),
     path('', include('Hub.urls')),
-    path('', views.index, name='index'),
+    path('', views.spa_home, name='index'),
     path('about/', views.about, name='about'),
     path('blog/', views.blog, name='blog'),
     path('blog-details/', views.blog_details, name='blog-details'),

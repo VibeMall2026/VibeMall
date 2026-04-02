@@ -4760,6 +4760,11 @@ def admin_customer_details(request, customer_id):
 
 # ===== PUBLIC VIEWS =====
 
+def spa_home(request):
+    """Render the new React/Vite-style home page (integrated from vibemall---home/dist)."""
+    return render(request, 'vibemall_spa_home.html')
+
+
 def index(request):
     homepage_cache_key = 'homepage_public_context_v2'
     public_context = cache.get(homepage_cache_key)
