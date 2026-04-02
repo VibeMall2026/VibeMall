@@ -3,11 +3,16 @@
 
 {% block title %}Coming Soon - VibeMall{% endblock %}
 {% block meta_description %}VibeMall launch updates and early access subscription.{% endblock %}
+{% block body_class %}vm-page-coming-soon{% endblock %}
 
 {% block extra_css %}
 <style>
+  body.vm-page-coming-soon .vm-copy-header,
+  body.vm-page-coming-soon #mobileBottomNavShell {
+    display: none !important;
+  }
   .vm-cs-wrap {
-    min-height: calc(100vh - 210px);
+    min-height: calc(100vh - 120px);
     background: radial-gradient(circle at 20% 20%, #232f4d 0%, #141a2b 45%, #0c1020 100%);
     color: #fff;
     padding: 44px 16px;
