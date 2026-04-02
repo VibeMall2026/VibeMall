@@ -7,6 +7,8 @@
 {% block body_class %}vm-page-mobile-alt vm-page-mobile-login{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'assets/css/login-custom.css' %}">
+<link rel="stylesheet" href="{% static 'assets/css/login-responsive.css' %}?v=20260222-01">
 <link rel="stylesheet" href="{% static 'assets/css/login-mobile-alt.css' %}?v=20260329-02">
 {% endblock %}
 
@@ -209,9 +211,6 @@
     </div>
 </section>
 <!-- Login Area End -->
-
-<link rel="stylesheet" href="{% static 'assets/css/login-custom.css' %}">
-<link rel="stylesheet" href="{% static 'assets/css/login-responsive.css' %}?v=20260222-01">
 
 <!-- Scripts for Password Toggle, Validation & Security -->
 <script>

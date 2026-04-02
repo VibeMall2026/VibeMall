@@ -1,6 +1,14 @@
 ﻿{% extends "base.html" %} {% load static %}
 {% block title %}My Profile - VibeMall{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'assets/css/profile-custom.css' %}">
+<link rel="stylesheet" href="{% static 'assets/css/profile-responsive.css' %}?v=20260222-01">
+<link rel="stylesheet" href="{% static 'assets/css/profile-mobile-alt.css' %}?v=20260331-01">
+<link rel="stylesheet" href="{% static 'assets/css/profile-mobile-view.css' %}?v=20260401-01">
+<link rel="stylesheet" href="{% static 'assets/css/profile-desktop-view.css' %}?v=20260401-01">
+{% endblock %}
+
 {% block content %}
 
 <section class="vm-profile-mobile-only" aria-label="Profile mobile view">
@@ -317,12 +325,6 @@
         </div>
     </div>
 </div>
-
-<link rel="stylesheet" href="{% static 'assets/css/profile-custom.css' %}">
-<link rel="stylesheet" href="{% static 'assets/css/profile-responsive.css' %}?v=20260222-01">
-<link rel="stylesheet" href="{% static 'assets/css/profile-mobile-alt.css' %}?v=20260331-01">
-<link rel="stylesheet" href="{% static 'assets/css/profile-mobile-view.css' %}?v=20260401-01">
-<link rel="stylesheet" href="{% static 'assets/css/profile-desktop-view.css' %}?v=20260401-01">
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {

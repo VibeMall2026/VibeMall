@@ -8,6 +8,8 @@
 {% block body_class %}vm-page-mobile-alt vm-page-mobile-cart{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'assets/css/cart-custom.css' %}">
+<link rel="stylesheet" href="{% static 'assets/css/cart-responsive.css' %}?v=20260223-01">
 <link rel="stylesheet" href="{% static 'assets/css/cart-mobile-alt.css' %}?v=20260329-02">
 {% endblock %}
 
@@ -106,8 +108,6 @@
         <!-- page-banner-area-end -->
 
         <!-- cart-area-start -->
-        <link rel="stylesheet" href="{% static 'assets/css/cart-custom.css' %}">
-        <link rel="stylesheet" href="{% static 'assets/css/cart-responsive.css' %}?v=20260223-01">
         <section class="cart-area pt-120 pb-120">
             <div class="container">
                 <!-- Messages -->

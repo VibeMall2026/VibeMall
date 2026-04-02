@@ -6,6 +6,12 @@
 {% block meta_description %}Create your VibeMall account today. Sign up for exclusive deals, faster checkout, and rewards program membership.{% endblock %}
 {% block body_class %}vm-page-mobile-alt vm-page-mobile-register{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'assets/css/register-custom.css' %}">
+<link rel="stylesheet" href="{% static 'assets/css/register-responsive.css' %}?v=20260222-01">
+<link rel="stylesheet" href="{% static 'assets/css/register-mobile-alt.css' %}?v=20260329-03">
+{% endblock %}
+
 {% block content %}
 
 <!-- Mobile Register Section Start -->
@@ -410,10 +416,6 @@
 
 </div>
 <!-- Legacy Desktop Section End -->
-
-<link rel="stylesheet" href="{% static 'assets/css/register-custom.css' %}">
-<link rel="stylesheet" href="{% static 'assets/css/register-responsive.css' %}?v=20260222-01">
-<link rel="stylesheet" href="{% static 'assets/css/register-mobile-alt.css' %}?v=20260329-03">
 
 <!-- Mobile Register JavaScript -->
 <script>

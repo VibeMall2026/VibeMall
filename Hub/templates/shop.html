@@ -6,6 +6,14 @@
 {% block meta_description %}Shop all categories on VibeMall - Browse exclusive deals on mobiles, food & health, furniture, sports, and more with free shipping.{% endblock %}
 {% block body_class %}vm-page-mobile-alt vm-page-mobile-shop{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'assets/css/shop-responsive.css' %}?v=20260222-09">
+<link rel="stylesheet" href="{% static 'assets/css/shop-mobile-alt.css' %}?v=20260329-06">
+<link rel="stylesheet" href="{% static 'assets/css/quickview-mobile-alt.css' %}?v=20260329-01">
+<link rel="stylesheet" href="{% static 'assets/css/shop-tablet-alt.css' %}?v=20260329-01">
+<link rel="stylesheet" href="{% static 'assets/css/shop-desktop-alt.css' %}?v=20260329-02">
+{% endblock %}
+
 {% block content %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -212,12 +220,6 @@ body.vm-shop-copy-root .offcanvas__area {
         font-size: clamp(11px, 1.2vw, 12px);
     }
 </style>
-<link rel="stylesheet" href="{% static 'assets/css/shop-responsive.css' %}?v=20260222-09">
-<link rel="stylesheet" href="{% static 'assets/css/shop-mobile-alt.css' %}?v=20260329-06">
-<link rel="stylesheet" href="{% static 'assets/css/quickview-mobile-alt.css' %}?v=20260329-01">
-<link rel="stylesheet" href="{% static 'assets/css/shop-tablet-alt.css' %}?v=20260329-01">
-<link rel="stylesheet" href="{% static 'assets/css/shop-desktop-alt.css' %}?v=20260329-02">
-<link rel="stylesheet" href="{% static 'assets/css/vm-home-editorial.css' %}?v=20260329-02">
 
 <section class="vm-shop-mobile-only" aria-label="VibeMall mobile shop layout">
     {% include 'partials/vm_mobile_alt_header.html' %}
