@@ -1,0 +1,236 @@
+/* Mobile-only FAQ layout adaptation from vibemall-faqs-m */
+.vm-faq-mobile-only {
+    display: none;
+}
+
+@media (max-width: 767.98px) {
+    .vm-faq-mobile-only {
+        display: block;
+        min-height: 100vh;
+        background: #fbf9f4;
+        color: #171818;
+        font-family: "Manrope", sans-serif;
+        padding-bottom: 24px;
+    }
+
+    .vm-faq-m-header,
+    .vm-faq-m-footer {
+        display: none !important;
+    }
+
+    .vm-faq-desktop-content {
+        display: none;
+    }
+
+    .vm-faq-m-main {
+        padding: 16px;
+    }
+
+    .vm-faq-m-hero h2 {
+        margin: 0 0 8px;
+        font-family: "Playfair Display", Georgia, serif;
+        font-size: 43px;
+        line-height: 1;
+        font-style: italic;
+        letter-spacing: -0.03em;
+    }
+
+    .vm-faq-m-hero p {
+        margin: 0;
+        color: rgba(23, 24, 24, 0.68);
+        font-size: 14px;
+        line-height: 1.65;
+    }
+
+    .vm-faq-m-search-wrap {
+        margin: 0 0 28px;
+    }
+
+    .vm-faq-m-search {
+        position: relative;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        border-radius: 4px;
+        background: #ffffff;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+        border: 1px solid rgba(23, 24, 24, 0.08);
+        padding: 0 14px 0 38px;
+    }
+
+    .vm-faq-m-search i {
+        position: absolute;
+        left: 14px;
+        color: rgba(111, 92, 55, 0.8);
+    }
+
+    .vm-faq-m-search input {
+        width: 100%;
+        border: none;
+        outline: none;
+        background: transparent;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 11px;
+        font-weight: 600;
+        color: #171818;
+    }
+
+    .vm-faq-m-section {
+        margin-bottom: 34px;
+    }
+
+    .vm-faq-m-section h3 {
+        margin: 0 0 8px;
+        padding-bottom: 8px;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        color: #6f5c37;
+        border-bottom: 1px solid rgba(23, 24, 24, 0.08);
+    }
+
+    .vm-faq-m-section details {
+        background: #f5f3ee;
+        border-radius: 4px;
+        margin-bottom: 8px;
+        border: 1px solid rgba(23, 24, 24, 0.05);
+    }
+
+    .vm-faq-m-section summary {
+        cursor: pointer;
+        list-style: none;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 18px 14px;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .vm-faq-m-section summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .vm-faq-m-section summary i {
+        color: #6f5c37;
+        transition: transform 0.2s ease;
+    }
+
+    .vm-faq-m-section details[open] summary i {
+        transform: rotate(180deg);
+    }
+
+    .vm-faq-m-section details p {
+        margin: 0;
+        padding: 0 14px 14px;
+        color: rgba(23, 24, 24, 0.72);
+        font-size: 13px;
+        line-height: 1.6;
+    }
+
+    .vm-faq-m-contact {
+        background: #171818;
+        color: #fff;
+        border-radius: 4px;
+        text-align: center;
+        padding: 28px 14px;
+        margin-top: 8px;
+    }
+
+    .vm-faq-m-contact h4 {
+        margin: 0 0 8px;
+        font-family: "Playfair Display", Georgia, serif;
+        font-size: 34px;
+        font-style: italic;
+        line-height: 1;
+    }
+
+    .vm-faq-m-contact p {
+        margin: 0 0 14px;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        color: rgba(255, 255, 255, 0.74);
+    }
+
+    .vm-faq-m-contact a {
+        display: inline-block;
+        width: 100%;
+        text-decoration: none;
+        background: #f7dcae;
+        color: #171818;
+        border-radius: 0;
+        padding: 14px 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        font-size: 10px;
+        font-weight: 700;
+    }
+
+    .vm-faq-m-visuals {
+        margin-top: 16px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .vm-faq-m-visuals img {
+        width: 100%;
+        aspect-ratio: 4 / 5;
+        object-fit: cover;
+        border-radius: 2px;
+    }
+
+    .vm-faq-m-visuals img:first-child {
+        margin-top: 22px;
+    }
+
+    .vm-faq-m-footer {
+        margin-top: 16px;
+        background: #efece6;
+        border-radius: 12px;
+        padding: 18px 14px;
+        text-align: center;
+    }
+
+    .vm-faq-m-footer h5 {
+        margin: 0 0 6px;
+        font-family: "Playfair Display", Georgia, serif;
+        font-size: 24px;
+        font-style: italic;
+        color: #171818;
+    }
+
+    .vm-faq-m-footer p {
+        margin: 0 0 12px;
+        color: rgba(23, 24, 24, 0.66);
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .vm-faq-m-footer-links {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .vm-faq-m-footer-links a {
+        text-decoration: none;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: #171818;
+        border: 1px solid rgba(23, 24, 24, 0.12);
+        border-radius: 8px;
+        padding: 8px 10px;
+        background: #fbfaf7;
+    }
+
+    .vm-faq-m-footer small {
+        color: rgba(23, 24, 24, 0.54);
+        font-size: 11px;
+    }
+
+}

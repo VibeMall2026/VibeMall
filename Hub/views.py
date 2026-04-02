@@ -10543,6 +10543,87 @@ def privacy_policy(request):
     return render(request, 'privacy_policy.html', context)
 
 
+@login_required(login_url='accounts_login')
+def address_book_view(request):
+    """Address Book: list and manage saved addresses."""
+    if request.method == 'POST':
+        action = request.POST.get('action', 'add')
+
+        if action == 'delete':
+            address_id = request.POST.get('address_id', '')
+            if address_id.isdigit():
+                Address.objects.filter(id=int(address_id), user=request.user).delete()
+                messages.success(request, 'Address removed.')
+            return redirect('address_book')
+
+        if action == 'set_default':
+            address_id = request.POST.get('address_id', '')
+            if address_id.isdigit():
+                Address.objects.filter(user=request.user, is_default=True).update(is_default=False)
+                Address.objects.filter(id=int(address_id), user=request.user).update(is_default=True)
+                messages.success(request, 'Default address updated.')
+            return redirect('address_book')
+
+        full_name = request.POST.get('full_name', '').strip()
+        mobile_number = request.POST.get('mobile_number', '').strip()
+        address_line1 = request.POST.get('address_line1', '').strip()
+        address_line2 = request.POST.get('address_line2', '').strip()
+        city = request.POST.get('city', '').strip()
+        state = request.POST.get('state', '').strip()
+        pincode = request.POST.get('pincode', '').strip()
+        country = request.POST.get('country', 'India').strip() or 'India'
+        address_type = request.POST.get('address_type', 'HOME')
+        is_default = request.POST.get('is_default') == 'on'
+
+        if full_name and address_line1 and city and state and pincode:
+            if is_default:
+                Address.objects.filter(user=request.user, is_default=True).update(is_default=False)
+            Address.objects.create(
+                user=request.user,
+                full_name=full_name,
+                mobile_number=mobile_number,
+                address_line1=address_line1,
+                address_line2=address_line2,
+                city=city,
+                state=state,
+                pincode=pincode,
+                country=country,
+                address_type=address_type,
+                is_default=is_default,
+            )
+            messages.success(request, 'Address added successfully.')
+        else:
+            messages.error(request, 'Please fill in all required fields.')
+        return redirect('address_book')
+
+    addresses = Address.objects.filter(user=request.user)
+    return render(request, 'address_book.html', {'addresses': addresses})
+
+
+@login_required(login_url='accounts_login')
+def payment_methods_view(request):
+    """Payment Methods: show a summary of past payment methods used."""
+    payment_methods_used = list(
+        Order.objects.filter(user=request.user)
+        .exclude(payment_method__isnull=True)
+        .exclude(payment_method__exact='')
+        .values_list('payment_method', flat=True)
+        .distinct()
+    )
+    payment_meta = {
+        'COD': {'label': 'Cash on Delivery', 'icon': 'fas fa-money-bill-wave', 'color': '#28a745'},
+        'RAZORPAY': {'label': 'Razorpay (Cards / UPI / Net Banking)', 'icon': 'fas fa-credit-card', 'color': '#2196f3'},
+        'UPI': {'label': 'UPI', 'icon': 'fas fa-qrcode', 'color': '#9c27b0'},
+        'ONLINE': {'label': 'Online Payment', 'icon': 'fas fa-globe', 'color': '#ff9800'},
+        'CARD': {'label': 'Credit / Debit Card', 'icon': 'fas fa-credit-card', 'color': '#e91e63'},
+    }
+    methods = [
+        {**payment_meta.get(method, {'label': method, 'icon': 'fas fa-circle', 'color': '#6c757d'}), 'key': method}
+        for method in payment_methods_used
+    ]
+    return render(request, 'payment_methods.html', {'methods': methods})
+
+
 # ============================================
 # COUPON SYSTEM VIEWS
 # ============================================

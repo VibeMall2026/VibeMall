@@ -3,9 +3,11 @@
 {% load static %}
 
 {% block title %}Contact Us - VibeMall{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-mobile-contact{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'assets/css/contact-responsive.css' %}">
+<link rel="stylesheet" href="{% static 'assets/css/contact-mobile-alt.css' %}?v=20260329-01">
 <style>
 .contact-page {
     --vm-yellow: #FDB913;
@@ -315,6 +317,142 @@ textarea.contact-form-control {
 {% endblock %}
 
 {% block content %}
+<section class="vm-contact-mobile-only" aria-label="Contact mobile view">
+    {% include 'partials/vm_mobile_alt_header.html' %}
+
+    <main class="vm-contact-m-main vm-mobile-content-offset">
+        <section class="vm-contact-m-hero">
+            <span>Enquiries</span>
+            <h1>Connect with the Atelier</h1>
+            <p>Our concierge team is available to assist with private styling, order support, shipping questions, and curated collection enquiries.</p>
+        </section>
+
+        {% if messages %}
+        <section class="vm-contact-m-messages" aria-live="polite">
+            {% for message in messages %}
+            <div class="vm-contact-m-alert vm-contact-m-alert--{{ message.tags|default:'info' }}">{{ message }}</div>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        <section class="vm-contact-m-grid">
+            <article class="vm-contact-m-card vm-contact-m-card--hours">
+                <i class="far fa-clock"></i>
+                <h3>Service Hours</h3>
+                <p>Monday to Saturday</p>
+                <strong>09:00 AM - 08:00 PM IST</strong>
+                <small>Email support remains available every day.</small>
+            </article>
+
+            <div class="vm-contact-m-grid__split">
+                <article class="vm-contact-m-card">
+                    <i class="fas fa-phone-alt"></i>
+                    <h3>Call</h3>
+                    <a href="tel:+911234567890">+91 123 456 7890</a>
+                </article>
+
+                <article class="vm-contact-m-card vm-contact-m-card--soft">
+                    <i class="fas fa-envelope"></i>
+                    <h3>Email</h3>
+                    <a href="mailto:info.vibemall@gmail.com">info.vibemall@gmail.com</a>
+                </article>
+            </div>
+
+            <article class="vm-contact-m-card vm-contact-m-card--accent">
+                <i class="fas fa-map-marker-alt"></i>
+                <h3>The Flagship</h3>
+                <p>Plot 42, Hitech City Main Rd, Hyderabad, Telangana 500081</p>
+                <a href="https://maps.google.com/?q=Plot+42+Hitech+City+Main+Road+Hyderabad+500081" target="_blank" rel="noopener noreferrer">View on Map</a>
+            </article>
+        </section>
+
+        <section class="vm-contact-m-form-wrap">
+            <div class="vm-contact-m-section-head">
+                <span>Direct Enquiry</span>
+                <h2>Send Us A Message</h2>
+                <p>Fill out the form below and our team will get back to you within 24 hours.</p>
+            </div>
+
+            <form method="POST" action="{% url 'contact' %}" class="vm-contact-m-form">
+                {% csrf_token %}
+                <label>
+                    <span>Your Name</span>
+                    <input type="text" name="name" placeholder="Ananya Sharma" required>
+                </label>
+
+                <label>
+                    <span>Email Address</span>
+                    <input type="email" name="email" placeholder="ananya@studio.com" required>
+                </label>
+
+                <label>
+                    <span>Phone</span>
+                    <input type="tel" name="phone" placeholder="+91 98XXX XXXXX">
+                </label>
+
+                <label>
+                    <span>Subject</span>
+                    <select name="subject" required>
+                        <option value="Collection Inquiry">Collection Inquiry</option>
+                        <option value="Bespoke Consultation">Bespoke Consultation</option>
+                        <option value="Order Assistance">Order Assistance</option>
+                        <option value="Returns & Refunds">Returns & Refunds</option>
+                    </select>
+                </label>
+
+                <label>
+                    <span>Message</span>
+                    <textarea name="message" rows="5" placeholder="How can we assist you today?" required></textarea>
+                </label>
+
+                <button type="submit">
+                    <span>Send Message</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </form>
+        </section>
+
+        <section class="vm-contact-m-help">
+            <div class="vm-contact-m-section-head">
+                <span>Quick Help</span>
+                <h2>Need Something Faster?</h2>
+            </div>
+
+            <div class="vm-contact-m-help-grid">
+                <a href="{% url 'track_order' %}" class="vm-contact-m-help-card">
+                    <h3>Track Your Order</h3>
+                    <p>Check shipping progress and delivery updates.</p>
+                </a>
+                <a href="{% url 'faq' %}" class="vm-contact-m-help-card">
+                    <h3>Returns & FAQ</h3>
+                    <p>Read policies, refund details, and common answers.</p>
+                </a>
+                {% if user.is_authenticated %}
+                <a href="{% url 'order_list' %}" class="vm-contact-m-help-card">
+                    <h3>My Orders</h3>
+                    <p>Review purchases and open your recent order history.</p>
+                </a>
+                {% else %}
+                <a href="{% url 'login' %}" class="vm-contact-m-help-card">
+                    <h3>My Account</h3>
+                    <p>Sign in to manage your orders, account, and wishlist.</p>
+                </a>
+                {% endif %}
+            </div>
+
+            <button type="button" class="vm-contact-m-chat" onclick="openLiveChat()">
+                <i class="fas fa-comment-dots"></i>
+                <span>Start Live Chat</span>
+            </button>
+        </section>
+
+        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='contact-mobile' %}
+    </main>
+
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' %}
+</section>
+
+<div class="vm-contact-legacy-content">
 <main class="contact-page">
     <div class="page-banner-area page-banner-height-2 contact-banner" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
         <div class="container">
@@ -519,6 +657,7 @@ textarea.contact-form-control {
     </div>
 </section>
 <!-- cta-area-end -->
+</div>
 
 <script>
 function openLiveChat() {

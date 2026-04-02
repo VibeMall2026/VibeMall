@@ -4,8 +4,72 @@
 
 {% block title %}Shop - VibeMall{% endblock %}
 {% block meta_description %}Shop all categories on VibeMall - Browse exclusive deals on mobiles, food & health, furniture, sports, and more with free shipping.{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-mobile-shop{% endblock %}
 
 {% block content %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.body.classList.add('vm-shop-copy-root');
+
+    // Hard guard: ensure only the correct shop layout exists per viewport.
+    const isDesktop = window.matchMedia('(min-width: 992px)').matches;
+    const isTablet = window.matchMedia('(min-width: 768px) and (max-width: 991.98px)').matches;
+
+    if (isDesktop) {
+        document.querySelectorAll('.vm-shop-mobile-only, .vm-shop-tablet-only').forEach((node) => node.remove());
+    } else if (isTablet) {
+        document.querySelectorAll('.vm-shop-mobile-only, .vm-shop-d-only').forEach((node) => node.remove());
+    } else {
+        document.querySelectorAll('.vm-shop-tablet-only, .vm-shop-d-only').forEach((node) => node.remove());
+    }
+});
+</script>
+
+<style>
+body.vm-shop-copy-root .header,
+body.vm-shop-copy-root .footer,
+body.vm-shop-copy-root .footer-area,
+body.vm-shop-copy-root > footer,
+body.vm-shop-copy-root .offcanvas__area {
+    display: none !important;
+}
+
+/* Enforce single shop layout per breakpoint to avoid overlap */
+.vm-shop-mobile-only,
+.vm-shop-tablet-only,
+.vm-shop-d-only {
+    display: none;
+}
+
+@media (max-width: 767.98px) {
+    .vm-shop-mobile-only {
+        display: block !important;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .vm-shop-tablet-only {
+        display: block !important;
+    }
+}
+
+@media (min-width: 992px) {
+    .vm-shop-mobile-only,
+    .vm-shop-tablet-only {
+        display: none !important;
+    }
+
+    .vm-shop-d-only {
+        display: block !important;
+    }
+
+    .vm-copy-header {
+        display: block !important;
+    }
+}
+</style>
+
+<div class="vm-copy-shop-page">
 <style>
     .shop-shell { background: #f7f8fb; }
     .filter-card, .special-card { border: 1px solid #e5e7eb; border-radius: 14px; padding: 18px; background: #fff; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08); }
@@ -149,490 +213,670 @@
     }
 </style>
 <link rel="stylesheet" href="{% static 'assets/css/shop-responsive.css' %}?v=20260222-09">
+<link rel="stylesheet" href="{% static 'assets/css/shop-mobile-alt.css' %}?v=20260329-06">
+<link rel="stylesheet" href="{% static 'assets/css/quickview-mobile-alt.css' %}?v=20260329-01">
+<link rel="stylesheet" href="{% static 'assets/css/shop-tablet-alt.css' %}?v=20260329-01">
+<link rel="stylesheet" href="{% static 'assets/css/shop-desktop-alt.css' %}?v=20260329-02">
+<link rel="stylesheet" href="{% static 'assets/css/vm-home-editorial.css' %}?v=20260329-02">
 
-<div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
-    <div class="container">
-        <div class="row">
-            <div class="col-xl-12">
-                <div class="page-banner-content text-center">
-                    <h4 class="breadcrumb-title">Shop</h4>
-                    <div class="breadcrumb-two">
-                        <nav>
-                            <nav class="breadcrumb-trail breadcrumbs">
-                                <ul class="breadcrumb-menu">
-                                    <li class="breadcrumb-trail">
-                                        <a href="{% url 'index' %}"><span>Home</span></a>
-                                    </li>
-                                    <li class="trail-item">
-                                        <span>Shop</span>
-                                    </li>
-                                </ul>
-                            </nav>
-                        </nav>
+<section class="vm-shop-mobile-only" aria-label="VibeMall mobile shop layout">
+    {% include 'partials/vm_mobile_alt_header.html' %}
+
+    <main class="vm-shop-m-main vm-mobile-content-offset">
+        <section class="vm-shop-m-banner">
+            <nav aria-label="Breadcrumb">
+                <span><a href="{% url 'index' %}">HOME</a> / SHOP</span>
+            </nav>
+            <h2>SHOP ALL</h2>
+        </section>
+
+        <section class="vm-shop-m-cats">
+            <a class="{% if not selected_category %}active{% endif %}" href="{% url 'shop' %}">ALL</a>
+            {% for value,label,count in category_data|slice:":4" %}
+            <a class="{% if selected_category == value %}active{% endif %}" href="{% url 'shop' %}?category={{ value|urlencode }}">{{ label|upper }}</a>
+            {% endfor %}
+        </section>
+
+        <section class="vm-shop-m-toolbar">
+            <p>Showing {{ products.start_index }}-{{ products.end_index }} of {{ products.paginator.count }} products</p>
+            <div class="vm-shop-m-toolbar__actions">
+                <button type="button" id="shopFilterFabMobile"><i class="far fa-sliders-h"></i> FILTER</button>
+                <div class="vm-shop-m-sort" data-shop-mobile-sort>
+                    <button type="button" id="shopSortFabMobile" aria-haspopup="true" aria-expanded="false"><i class="far fa-angle-down"></i> SORT</button>
+                    <div class="vm-shop-m-sort__menu" data-shop-mobile-sort-menu hidden>
+                        <a href="?sort=curated{% if sort_base_query %}&{{ sort_base_query }}{% endif %}" class="{% if selected_sort == 'curated' or selected_sort == 'latest' %}is-active{% endif %}">Curated</a>
+                        <a href="?sort=name_asc{% if sort_base_query %}&{{ sort_base_query }}{% endif %}" class="{% if selected_sort == 'name_asc' %}is-active{% endif %}">Name A-Z</a>
+                        <a href="?sort=name_desc{% if sort_base_query %}&{{ sort_base_query }}{% endif %}" class="{% if selected_sort == 'name_desc' %}is-active{% endif %}">Name Z-A</a>
+                        <a href="?sort=price_asc{% if sort_base_query %}&{{ sort_base_query }}{% endif %}" class="{% if selected_sort == 'price_asc' %}is-active{% endif %}">Price Low To High</a>
+                        <a href="?sort=price_desc{% if sort_base_query %}&{{ sort_base_query }}{% endif %}" class="{% if selected_sort == 'price_desc' %}is-active{% endif %}">Price High To Low</a>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
+        </section>
 
-<section class="shop-shell pb-10 pt-20">
-    <div class="container">
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{% if message.tags %}{{ message.tags }}{% else %}success{% endif %} alert-dismissible fade show mb-3 auto-dismiss-alert" role="alert">
-                    <i class="fas fa-info-circle"></i> {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div class="vm-shop-m-filter-backdrop" id="vmShopMobileFilterBackdrop" hidden></div>
+        <aside class="vm-shop-m-filter-drawer" id="vmShopMobileFilterDrawer" aria-hidden="true">
+            <div class="vm-shop-m-filter-drawer__head">
+                <h3>Filter Products</h3>
+                <button type="button" id="vmShopMobileFilterClose" aria-label="Close filters">
+                    <span>Close</span>
+                    <i class="far fa-times"></i>
+                </button>
+            </div>
+            <form method="get" action="{% url 'shop' %}" class="vm-shop-m-filter-form">
+                {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
+                {% if selected_sort and selected_sort != 'curated' %}<input type="hidden" name="sort" value="{{ selected_sort }}">{% endif %}
+
+                <label>
+                    <span>Category</span>
+                    <select name="category">
+                        <option value="">All Categories</option>
+                        {% for value,label,count in category_data %}
+                        <option value="{{ value }}" {% if selected_category == value %}selected{% endif %}>{{ label }} ({{ count }})</option>
+                        {% endfor %}
+                    </select>
+                </label>
+
+                {% if sub_category_data %}
+                <label>
+                    <span>Sub Category</span>
+                    <select name="sub_category">
+                        <option value="">All Sub Categories</option>
+                        {% for value,label,count in sub_category_data %}
+                        <option value="{{ value }}" {% if selected_sub_category == value %}selected{% endif %}>{{ label }} ({{ count }})</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                {% endif %}
+
+                <div class="vm-shop-m-filter-form__grid">
+                    <label>
+                        <span>Min Price</span>
+                        <input type="number" name="min_price" value="{{ min_price }}" placeholder="0">
+                    </label>
+                    <label>
+                        <span>Max Price</span>
+                        <input type="number" name="max_price" value="{{ max_price }}" placeholder="99999">
+                    </label>
                 </div>
+
+                <label>
+                    <span>Minimum Rating</span>
+                    <select name="min_rating">
+                        <option value="">Any Rating</option>
+                        <option value="4" {% if selected_rating == '4' %}selected{% endif %}>4 Stars & Up</option>
+                        <option value="3" {% if selected_rating == '3' %}selected{% endif %}>3 Stars & Up</option>
+                        <option value="2" {% if selected_rating == '2' %}selected{% endif %}>2 Stars & Up</option>
+                    </select>
+                </label>
+
+                <div class="vm-shop-m-filter-form__actions">
+                    <button type="button" class="vm-shop-m-filter-reset" id="vmShopMobileFilterDismiss">Close</button>
+                    <button type="submit" class="vm-shop-m-filter-apply">Apply Filters</button>
+                </div>
+            </form>
+        </aside>
+
+        <section class="vm-shop-m-grid">
+            {% for product in products %}
+            <article class="vm-shop-m-card">
+                <div class="vm-shop-m-thumb-wrap">
+                    <a class="vm-shop-m-thumb" href="{% url 'product-details' product.id %}">
+                        {% if product.image %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                        {% else %}
+                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}">
+                        {% endif %}
+                    </a>
+                    <div class="vm-shop-m-thumb-actions">
+                        <button type="button"
+                            class="vm-shop-m-thumb-action"
+                            title="Quick view"
+                            data-bs-toggle="modal"
+                            data-bs-target="#productQuickView"
+                            data-product-name="{{ product.name }}"
+                            data-product-price="{{ product.price }}"
+                            data-product-old-price="{{ product.old_price|default_if_none:'' }}"
+                            data-product-image="{% if product.image %}{{ product.image.url }}{% else %}{% static 'assets/img/product/tp-1.jpg' %}{% endif %}"
+                            data-product-rating="{% with stats=product_stats|get_item:product.id %}{% if stats %}{{ stats.avg_rating }}{% else %}{{ product.rating }}{% endif %}{% endwith %}"
+                            data-product-reviews="{% with stats=product_stats|get_item:product.id %}{% if stats %}{{ stats.review_count }}{% else %}{{ product.review_count }}{% endif %}{% endwith %}"
+                            data-product-link="{% url 'product-details' product.id %}"
+                            data-product-id="{{ product.id }}"
+                            data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
+                            data-in-wishlist="{% if product.id in wishlist_product_ids %}1{% else %}0{% endif %}"
+                            data-product-stock="{{ product.stock }}"
+                            onclick="openQuickView(this)">
+                            <i class="fal fa-eye"></i>
+                            <span>Quick View</span>
+                        </button>
+                        <button type="button"
+                            class="vm-shop-m-thumb-action vm-shop-m-thumb-action--icon wishlist-btn {% if product.id in wishlist_product_ids %}wishlisted{% endif %}"
+                            title="{% if product.id in wishlist_product_ids %}Remove from wishlist{% else %}Add to wishlist{% endif %}"
+                            data-product-id="{{ product.id }}"
+                            data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
+                            onclick="handleWishlistClick(this)">
+                            <i class="{% if product.id in wishlist_product_ids %}fas{% else %}fal{% endif %} fa-heart"></i>
+                        </button>
+                    </div>
+                </div>
+                <small>{{ product.brand|default:product.category|default:'VIBEMALL' }}</small>
+                <h3><a href="{% url 'product-details' product.id %}">{{ product.name }}</a></h3>
+                <p>&#8377;{{ product.price }}</p>
+            </article>
+            {% empty %}
+            <p class="vm-shop-m-empty">No products available.</p>
             {% endfor %}
+        </section>
+
+        {% if products.has_other_pages %}
+        <section class="vm-shop-m-pagination">
+            {% if products.has_previous %}
+            <a href="?page={{ products.previous_page_number }}{{ page_query }}">Prev</a>
+            {% endif %}
+            <span>{{ products.number }} / {{ products.paginator.num_pages }}</span>
+            {% if products.has_next %}
+            <a href="?page={{ products.next_page_number }}{{ page_query }}">Next</a>
+            {% endif %}
+        </section>
         {% endif %}
-    </div>
+        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='shop-mobile' %}
+    </main>
+
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='shop' %}
 </section>
 
-<div class="shop-area shop-shell py-30">
-    <div class="container">
-        <button type="button" id="shopFilterFab" class="shop-filter-fab" aria-controls="shopFilterSidebar" aria-expanded="false">
-            <i class="fal fa-filter"></i> Filters
-        </button>
-        <div id="shopFilterBackdrop" class="shop-filter-backdrop" aria-hidden="true"></div>
-        <div class="row g-4">
-            <div class="col-xl-3 col-lg-4 shop-filter-sidebar" id="shopFilterSidebar">
-                <div class="shop-filter-mobile-header">
-                    <span>Filters</span>
-                    <button type="button" id="shopFilterClose" class="shop-filter-close" aria-label="Close filters">&times;</button>
-                </div>
-                <div class="filter-card">
-                    <h5 class="filter-title">Filters</h5>
-                    <form method="get" id="shopFiltersForm" class="filter-form" aria-label="Product filters">
-                        <div class="filter-block mb-20">
-                            <p class="filter-label mb-1" id="categoryLabel">Product categories</p>
-                            <div class="widget-category-list" role="group" aria-labelledby="categoryLabel">
-                                {% for value,label,count in category_data %}
-                                    <div class="single-widget-category">
-                                        <input type="radio" id="cat-{{ forloop.counter }}" name="category" value="{{ value }}" {% if selected_category == value %}checked{% endif %} aria-label="{{ label }} category ({{ count }} products)">
-                                        <label for="cat-{{ forloop.counter }}">{{ label }} <span class="text-muted">({{ count }})</span></label>
-                                    </div>
-                                {% empty %}
-                                    <p class="text-muted mb-0">No categories found.</p>
-                                {% endfor %}
-                            </div>
-                        </div>
-
-                        <div class="filter-block mb-20">
-                            <p class="filter-label mb-1" id="subcategoryLabel">Sub-category</p>
-                            <div class="widget-category-list" role="group" aria-labelledby="subcategoryLabel">
-                                {% if selected_category %}
-                                    {% for value,label,count in sub_category_data %}
-                                        <div class="single-widget-category">
-                                            <input type="radio" id="subcat-{{ forloop.counter }}" name="sub_category" value="{{ value }}" {% if selected_sub_category == value %}checked{% endif %} aria-label="{{ label }} sub-category ({{ count }} products)">
-                                            <label for="subcat-{{ forloop.counter }}">{{ label }} <span class="text-muted">({{ count }})</span></label>
-                                        </div>
-                                    {% empty %}
-                                        <p class="text-muted mb-0">No sub-categories found.</p>
-                                    {% endfor %}
-                                {% else %}
-                                    <p class="text-muted mb-0">Select a category first.</p>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div class="filter-block mb-20">
-                            <p class="filter-label mb-2" id="priceLabel">Price range</p>
-                            <div class="d-flex align-items-center" style="gap:10px;" role="group" aria-labelledby="priceLabel">
-                                <input type="number" name="min_price" value="{{ min_price }}" placeholder="Min" class="form-control" style="max-width:120px;" aria-label="Minimum price">
-                                <span class="text-muted" aria-hidden="true">-</span>
-                                <input type="number" name="max_price" value="{{ max_price }}" placeholder="Max" class="form-control" style="max-width:120px;" aria-label="Maximum price">
-                            </div>
-                        </div>
-
-                        <div class="filter-block mb-20">
-                            <p class="filter-label mb-2" id="ratingLabel">Minimum rating</p>
-                            <div class="widget-category-list star-list" role="group" aria-labelledby="ratingLabel">
-                                {% for star in "54321" %}
-                                    <div class="single-widget-category">
-                                        <input type="radio" id="star-{{ star }}" name="min_rating" value="{{ star }}" {% if selected_rating == star %}checked{% endif %} aria-label="{{ star }} star rating and above">
-                                        <label for="star-{{ star }}">
-                                            {% for i in "12345" %}
-                                                {% if forloop.counter <= star|add:'0' %}
-                                                    <i class="fas fa-star" aria-hidden="true"></i>
-                                                {% else %}
-                                                    <i class="fal fa-star" aria-hidden="true"></i>
-                                                {% endif %}
-                                            {% endfor %}
-                                        </label>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-dark btn-sm" aria-label="Apply selected product filters">Apply filters</button>
-                            <a href="{% url 'shop' %}" class="btn btn-outline-secondary btn-sm" role="button" aria-label="Reset all product filters\">Reset</a>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="special-card mt-3">
-                    <h5 class="filter-title">Special offers</h5>
-                    <ul class="list-unstyled mb-0">
-                        {% for offer in special_offers %}
-                            <li class="special-offer-item">
-                                <div class="special-offer-thumb">
-                                    <a href="{% url 'product-details' offer.id %}">
-                                        {% if offer.image %}
-                                            <img src="{{ offer.image.url }}" alt="{{ offer.name }}">
-                                        {% else %}
-                                            <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ offer.name }}">
-                                        {% endif %}
-                                    </a>
-                                </div>
-                                <div>
-                                    <h6 class="mb-1" style="font-size:14px;">
-                                        <a href="{% url 'product-details' offer.id %}" class="text-dark text-decoration-none">{{ offer.name }}</a>
-                                    </h6>
-                                    <p class="mb-0 price-line">&#8377;{{ offer.price }}</p>
-                                </div>
-                            </li>
-                        {% empty %}
-                            <li class="text-muted">No offers available.</li>
-                        {% endfor %}
-                    </ul>
-                </div>
+<!-- Tablet Shop View -->
+<section class="vm-shop-tablet-only" aria-label="VibeMall tablet shop layout">
+    <header class="vm-shop-t-header vm-mobile-topbar">
+        <div class="vm-mobile-topbar__left">
+            <button type="button" class="offcanvas-toggle-btn" aria-label="Open menu"><i class="far fa-bars"></i></button>
+            <h1>VIBEMALL</h1>
+        </div>
+        <div class="vm-mobile-topbar__right">
+            <div class="vm-mobile-search" data-vm-mobile-search-root>
+                <button type="button" class="vm-mobile-search__toggle" data-vm-mobile-search-toggle aria-label="Toggle search" aria-expanded="false"><i class="far fa-search"></i></button>
+                <form class="vm-mobile-search__form" data-vm-mobile-search-form action="{% url 'shop' %}" method="get">
+                    <input class="vm-mobile-search__field" type="search" name="q" placeholder="Search products">
+                </form>
             </div>
+            <a href="{% url 'cart' %}" aria-label="Open cart"><i class="far fa-shopping-bag"></i></a>
+        </div>
+    </header>
 
-            <div class="col-xl-9 col-lg-8">
-                {% if category_icons %}
-                <section class="category-strip mb-3">
-                    <div class="category-strip-row">
-                        {% for category in category_icons %}
-                        <div class="category-strip-col">
-                            <a href="{% url 'shop' %}?category={{ category.category_key }}" class="category-strip-link text-center">
-                                <div class="category__icon" style="background: {{ category.background_gradient }}; padding: clamp(10px, 1.5vw, calc({{ category.icon_size|default:48 }}px * 0.45)); border-radius: clamp(8px, 1.2vw, calc({{ category.icon_size|default:48 }}px * 0.3)); margin-bottom: 8px;">
-                                    {% if category.icon_image %}
-                                        <img src="{{ category.icon_image.url }}" alt="{{ category.name }}" style="width: clamp(28px, 4vw, {{ category.icon_size|default:48 }}px); height: clamp(28px, 4vw, {{ category.icon_size|default:48 }}px); object-fit: contain;">
-                                    {% elif category.icon_class %}
-                                        <i class="{{ category.icon_class }}" style="font-size: clamp(28px, 4vw, {{ category.icon_size|default:48 }}px); color: {{ category.icon_color }};"></i>
-                                    {% endif %}
-                                </div>
-                                <h6 class="category-strip-name">{{ category.name }}</h6>
-                            </a>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </section>
-                {% endif %}
-                <!-- Dynamic Shop Banners -->
-                {% if banners %}
-                    {% for banner in banners %}
-                    <div class="shop-banner modern-banner mb-30">
-                        <a href="{{ banner.link_url }}" style="text-decoration: none; display: block;">
-                            <div class="banner-image position-relative overflow-hidden rounded-4" style="{% if banner.background_color %}background-color: {{ banner.background_color }};{% endif %}">
-                                <img class="w-100" src="{{ banner.image.url }}" alt="{{ banner.title }}" style="height: 300px; object-fit: cover;">
-                                <div class="banner-content text-center position-absolute top-50 start-50 translate-middle" style="max-width:400px;">
-                                    {% if banner.badge_text %}
-                                    <span class="badge bg-warning text-dark mb-2">{{ banner.badge_text }}</span>
-                                    {% endif %}
-                                    <p class="banner-text mb-2 fw-bold text-white" style="font-size: 28px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">{{ banner.title }}</p>
-                                    {% if banner.subtitle %}
-                                    <p class="text-white mb-3" style="font-size: 14px;">{{ banner.subtitle }}</p>
-                                    {% endif %}
-                                    {% if banner.button_text and banner.button_style != 'none' %}
-                                    <button class="btn btn-light btn-sm px-4">{{ banner.button_text }}</button>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <!-- Default Banner if no dynamic banners exist -->
-                    <div class="shop-banner modern-banner mb-30">
-                        <div class="banner-image position-relative overflow-hidden rounded-4">
-                            <img class="w-100" src="{% static 'assets/img/banner/sl-banner.jpg' %}" alt="Free shipping banner">
-                            <div class="banner-content text-center position-absolute top-50 start-50 translate-middle" style="max-width:320px;">
-                                <p class="banner-text mb-3 fw-bold text-white" style="font-size:20px;">Hurry Up! Free Shipping on orders over &#8377;999</p>
-                                <a href="{% url 'shop' %}" class="btn btn-light btn-sm px-4">Discover now</a>
-                            </div>
-                        </div>
-                    </div>
-                {% endif %}
+    <main class="vm-shop-t-main">
+        <section class="vm-shop-t-banner">
+            <nav aria-label="Breadcrumb">
+                <span><a href="{% url 'index' %}">HOME</a> / SHOP</span>
+            </nav>
+            <h2>SHOP ALL</h2>
+        </section>
 
-                <div class="product-toolbar mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="badge bg-dark text-white">Grid</span>
-                        <span class="text-muted small">
-                            Showing {{ products.start_index }}-{{ products.end_index }} of {{ products.paginator.count }} product{% if products.paginator.count != 1 %}s{% endif %}
-                        </span>
-                    </div>
-                    <div class="text-muted small">Use the filters on the left to narrow results.</div>
-                </div>
+        <section class="vm-shop-t-cats">
+            <a class="active" href="{% url 'shop' %}">ALL</a>
+            {% for value,label,count in category_data|slice:":6" %}
+            <a href="{% url 'shop' %}?category={{ value|urlencode }}">{{ label|upper }}</a>
+            {% endfor %}
+        </section>
 
-                <div class="row g-3">
-                    {% for product in products %}
-                        <div class="col-xl-4 col-lg-4 col-md-6 col-sm-6">
-                            <div class="product__item mb-20">
-                                <div class="product__thumb fix" style="position: relative; overflow: visible !important;">
-                                    <div class="product-image w-img" style="overflow: hidden;">
-                                        <a href="{% url 'product-details' product.id %}">
-                                            {% if product.image %}
-                                                <img src="{{ product.image.url }}" alt="{{ product.name }}">
-                                            {% else %}
-                                                <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}" style="background-color: #f0f0f0; width: 100%; height: auto;">
-                                            {% endif %}
-                                        </a>
-                                    </div>
+        <section class="vm-shop-t-toolbar">
+            <p>Showing {{ products.start_index }}-{{ products.end_index }} of {{ products.paginator.count }} products</p>
+            <div>
+                <button type="button" id="shopFilterFabTablet"><i class="far fa-sliders-h"></i> FILTER</button>
+                <button type="button"><i class="far fa-angle-down"></i> SORT</button>
+            </div>
+        </section>
 
-                                    {% if product.stock == 0 %}
-                                    <div style="position: absolute; left: 10px; right: auto; bottom: 10px; background: #dc3545; color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;">
-                                        Sold out
-                                    </div>
-                                    {% elif product.discount_percent_display %}
-                                    <div style="position: absolute; left: 10px; right: auto; bottom: 10px; background: #16a34a; color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;">
-                                        {{ product.discount_percent_display }}% off
-                                    </div>
-                                    {% endif %}
-
-                                    <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 8px; z-index: 10;">
-                                        <button type="button" class="action-btn" title="Quick view" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e5e7eb; background: #fff; color: #0f172a; display: grid; place-items: center; cursor: pointer; transition: all 120ms ease;"
-                                            data-bs-toggle="modal" data-bs-target="#productQuickView"
-                                            data-product-name="{{ product.name }}"
-                                            data-product-price="{{ product.price }}"
-                                            data-product-old-price="{{ product.old_price|default_if_none:'' }}"
-                                            data-product-image="{% if product.image %}{{ product.image.url }}{% else %}{% static 'assets/img/product/tp-1.jpg' %}{% endif %}"
-                                            data-product-rating="{% with stats=product_stats|get_item:product.id %}{% if stats %}{{ stats.avg_rating }}{% else %}{{ product.rating }}{% endif %}{% endwith %}"
-                                            data-product-reviews="{% with stats=product_stats|get_item:product.id %}{% if stats %}{{ stats.review_count }}{% else %}{{ product.review_count }}{% endif %}{% endwith %}"
-                                            data-product-link="{% url 'product-details' product.id %}"
-                                            data-product-stock="{{ product.stock }}"
-                                            onclick="openQuickView(this)">
-                                            <i class="fal fa-eye"></i>
-                                        </button>
-                                        <button type="button" class="action-btn wishlist-btn {% if product.id in wishlist_product_ids %}wishlisted{% endif %}" title="{% if product.id in wishlist_product_ids %}Remove from wishlist{% else %}Add to wishlist{% endif %}" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e5e7eb; background: #fff; color: #0f172a; display: grid; place-items: center; cursor: pointer; transition: all 120ms ease;" 
-                                            data-product-id="{{ product.id }}"
-                                            data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
-                                            onclick="handleWishlistClick(this)">
-                                            <i class="{% if product.id in wishlist_product_ids %}fas{% else %}fal{% endif %} fa-heart"></i>
-                                        </button>
-                                        <button type="button" class="action-btn cart-btn {% if product.id in cart_product_ids %}in-cart{% endif %}" title="{% if product.id in cart_product_ids %}Remove from cart{% else %}Add to cart{% endif %}" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e5e7eb; background: #fff; color: #0f172a; display: grid; place-items: center; cursor: pointer; transition: all 120ms ease;" 
-                                            data-product-id="{{ product.id }}"
-                                            data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
-                                            onclick="handleCartClick(this)"
-                                            {% if product.stock == 0 %}disabled{% endif %}>
-                                            <i class="{% if product.id in cart_product_ids %}fas{% else %}fal{% endif %} fa-shopping-cart"></i>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div class="product__content">
-                                    <h6>
-                                        <a href="{% url 'product-details' product.id %}">
-                                            {{ product.name }}
-                                        </a>
-                                    </h6>
-
-                                    <div class="rating mb-5">
-                                        {% with stats=product_stats|get_item:product.id %}
-                                        <ul>
-                                            {% for i in "12345" %}
-                                                {% if stats %}
-                                                    {% if forloop.counter <= stats.avg_rating|add:0 %}
-                                                        <li><i class="fas fa-star star-active"></i></li>
-                                                    {% else %}
-                                                        <li><i class="far fa-star star-inactive"></i></li>
-                                                    {% endif %}
-                                                {% else %}
-                                                    {% if forloop.counter <= product.rating|add:0 %}
-                                                        <li><i class="fas fa-star star-active"></i></li>
-                                                    {% else %}
-                                                        <li><i class="far fa-star star-inactive"></i></li>
-                                                    {% endif %}
-                                                {% endif %}
-                                            {% endfor %}
-                                        </ul>
-                                        {% if stats %}
-                                            {% if stats.review_count > 0 %}
-                                                <span style="white-space: nowrap;">({{ stats.review_count }} review{{ stats.review_count|pluralize }})</span>
-                                            {% else %}
-                                                <span style="white-space: nowrap;">(No reviews yet)</span>
-                                            {% endif %}
-                                        {% else %}
-                                            {% if product.review_count > 0 %}
-                                                <span style="white-space: nowrap;">({{ product.review_count }} review{{ product.review_count|pluralize }})</span>
-                                            {% else %}
-                                                <span style="white-space: nowrap;">(No reviews yet)</span>
-                                            {% endif %}
-                                        {% endif %}
-                                        {% endwith %}
-                                    </div>
-
-                                    <div class="price mb-0">
-                                        {% if product.old_price %}
-                                            <span><del>&#8377;{{ product.old_price }}</del> &#8377;{{ product.price }}</span>
-                                        {% else %}
-                                            <span>&#8377;{{ product.price }}</span>
-                                        {% endif %}
-                                    </div>
-
-                                    <div class="progress-rate">
-                                        <span>{{ product.sold|default:0 }} sold</span>
-                                    </div>
-                                </div>
-
-                                <div class="product__add-cart text-center">
-                                    {% if product.stock == 0 %}
-                                        {% if user.is_authenticated and user.email %}
-                                            <form method="POST" action="{% url 'request_stock_notification' product.id %}">
-                                                {% csrf_token %}
-                                                <input type="hidden" name="email" value="{{ user.email }}">
-                                                <button type="submit" class="buy-now-btn-card" style="width: 100%; padding: 10px 8px; font-size: 13px;">Notify me</button>
-                                            </form>
-                                        {% else %}
-                                            <a href="{% url 'product-details' product.id %}" class="buy-now-btn-card" style="width: 100%; padding: 10px 8px; font-size: 13px; display: inline-block; text-align: center;">Notify me</a>
-                                        {% endif %}
-                                    {% else %}
-                                        <button type="button" class="buy-now-btn-card" style="width: 100%; padding: 10px 8px; font-size: 13px;" onclick="buyNowCard({{ product.id }})">
-                                            <i class="fas fa-bolt"></i> Buy Now
-                                        </button>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    {% empty %}
-                        <div class="col-12"><p class="text-center py-5 mb-0">No products available.</p></div>
-                    {% endfor %}
-                </div>
-
-                {% if products.has_other_pages %}
-                <div class="pagination-wrapper mt-4 d-flex justify-content-center align-items-center gap-3">
-                    <style>
-                        .pagination-wrapper .page-link {
-                            border: 1px solid #e5e7eb;
-                            border-radius: 10px;
-                            padding: 8px 14px;
-                            color: #111827;
-                            font-weight: 600;
-                            transition: all 120ms ease;
-                            background: #fff;
-                            margin: 0 4px;
-                        }
-                        .pagination-wrapper .page-link:hover {
-                            background: #111827;
-                            color: #fff;
-                            border-color: #111827;
-                        }
-                        .pagination-wrapper .page-link.active {
-                            background: #111827;
-                            color: #fff;
-                            border-color: #111827;
-                        }
-                        .pagination-wrapper .page-info {
-                            color: #6b7280;
-                            font-size: 14px;
-                        }
-                    </style>
-                    
-                    {% if products.has_previous %}
-                        <a href="?page={{ products.previous_page_number }}{{ page_query }}" class="page-link">Prev</a>
+        <section class="vm-shop-t-grid">
+            {% for product in products %}
+            <article class="vm-shop-t-card">
+                <a class="vm-shop-t-thumb" href="{% url 'product-details' product.id %}">
+                    {% if product.image %}
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                    {% else %}
+                    <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}">
                     {% endif %}
+                </a>
+                <small>{{ product.brand|default:product.category|default:'VIBEMALL' }}</small>
+                <h3><a href="{% url 'product-details' product.id %}">{{ product.name }}</a></h3>
+                <p>&#8377;{{ product.price }}</p>
+            </article>
+            {% empty %}
+            <p class="vm-shop-t-empty">No products available.</p>
+            {% endfor %}
+        </section>
 
-                    {% for page_num in page_links %}
-                        {% if page_num %}
-                            <a href="?page={{ page_num }}{{ page_query }}" class="page-link{% if page_num == products.number %} active{% endif %}">{{ page_num }}</a>
-                        {% else %}
-                            <span class="page-info">...</span>
-                        {% endif %}
-                    {% endfor %}
+        {% if products.has_other_pages %}
+        <section class="vm-shop-t-pagination">
+            {% if products.has_previous %}
+            <a href="?page={{ products.previous_page_number }}{{ page_query }}">Prev</a>
+            {% endif %}
+            <span>{{ products.number }} / {{ products.paginator.num_pages }}</span>
+            {% if products.has_next %}
+            <a href="?page={{ products.next_page_number }}{{ page_query }}">Next</a>
+            {% endif %}
+        </section>
+        {% endif %}
+    </main>
 
-                    {% if products.has_next %}
-                        <a href="?page={{ products.next_page_number }}{{ page_query }}" class="page-link">Next</a>
-                    {% endif %}
+    <nav class="vm-mobile-bottom-nav" aria-label="Mobile primary navigation">
+        <a href="{% url 'index' %}" aria-label="Home"><i class="fas fa-home"></i></a>
+        <a href="{% url 'shop' %}" class="is-active" aria-label="Shop"><i class="far fa-store"></i></a>
+        <a href="{% url 'cart' %}" aria-label="Cart"><i class="far fa-shopping-cart"></i></a>
+        {% if request.user.is_authenticated %}
+        <a href="{% url 'profile' %}" aria-label="Account"><i class="far fa-user"></i></a>
+        {% else %}
+        <a href="{% url 'login' %}" aria-label="Account"><i class="far fa-user"></i></a>
+        {% endif %}
+        <a href="{% url 'wishlist' %}" aria-label="Wishlist"><i class="far fa-heart"></i></a>
+    </nav>
+</section>
+
+<section class="vm-shop-d-only" aria-label="VibeMall desktop shop layout">
+    <section class="vm-shop-d-banner">
+        <div class="vm-shop-d-banner-media">
+            <img src="{% static 'assets/img/banner/page-banner-4.jpg' %}" alt="Atelier collection banner">
+        </div>
+        <div class="vm-shop-d-banner-overlay"></div>
+        <div class="vm-shop-d-banner-content">
+            <nav aria-label="Breadcrumb">
+                <span><a href="{% url 'index' %}">HOME</a> / <strong>SHOP ALL</strong></span>
+            </nav>
+            <h1>THE ATELIER COLLECTION</h1>
+            <p>Curated luxury garments and lifestyle artifacts for the modern aesthetician.</p>
+        </div>
+    </section>
+
+    <section class="vm-shop-d-toolbar">
+        <div class="vm-shop-d-toolbar-inner">
+            <p>Showing {{ products.start_index }}-{{ products.end_index }} of {{ products.paginator.count }} products</p>
+            <div class="vm-shop-d-toolbar-right">
+                <button type="button" id="vmShopDesktopFilterTrigger"><i class="far fa-sliders-h"></i> Filters</button>
+                <label for="vmShopDesktopSort">Sort by</label>
+                <div class="vm-shop-d-sort-wrap">
+                    <select id="vmShopDesktopSort" aria-label="Sort products">
+                        <option value="curated">Curated</option>
+                        <option value="name_asc">Name A-Z</option>
+                        <option value="name_desc">Name Z-A</option>
+                        <option value="price_asc">Price low to high</option>
+                        <option value="price_desc">Price high to low</option>
+                    </select>
                 </div>
-                {% endif %}
+                <span class="vm-shop-d-divider" aria-hidden="true"></span>
+                <div class="vm-shop-d-view-toggle" role="group" aria-label="Product view mode">
+                    <button type="button" id="vmShopViewGrid" class="is-active" aria-label="Grid view"><i class="far fa-th-large"></i></button>
+                    <button type="button" id="vmShopViewList" aria-label="List view"><i class="far fa-list"></i></button>
+                </div>
             </div>
         </div>
-    </div>
+    </section>
+
+    <section class="vm-shop-d-shell">
+        <aside class="vm-shop-d-sidebar">
+            <div class="vm-shop-d-filter-block">
+                <h3>Search Products</h3>
+                <div class="vm-shop-d-search-box">
+                    <input type="text" id="vmShopDesktopSearch" placeholder="By name or tag..." aria-label="Search products by name or tag">
+                </div>
+            </div>
+
+            <div class="vm-shop-d-filter-block">
+                <h3>Categories</h3>
+                <details class="vm-shop-d-accordion" open>
+                    <summary>Handcrafted Apparel <i class="far fa-angle-down"></i></summary>
+                    <ul>
+                        <li><a href="{% url 'shop' %}">All Categories</a></li>
+                        {% for value,label,count in category_data|slice:":5" %}
+                        <li><a href="{% url 'shop' %}?category={{ value|urlencode }}">{{ label }} ({{ count }})</a></li>
+                        {% endfor %}
+                    </ul>
+                </details>
+                <details class="vm-shop-d-accordion">
+                    <summary>Living &amp; Decor <i class="far fa-angle-down"></i></summary>
+                    <ul>
+                        {% for value,label,count in category_data|slice:"5:10" %}
+                        <li><a href="{% url 'shop' %}?category={{ value|urlencode }}">{{ label }} ({{ count }})</a></li>
+                        {% empty %}
+                        <li><a href="{% url 'shop' %}">View all categories</a></li>
+                        {% endfor %}
+                    </ul>
+                </details>
+            </div>
+
+            <div class="vm-shop-d-filter-block">
+                <h3>Price Range</h3>
+                <div class="vm-shop-d-range-wrap">
+                    <input type="range" min="0" max="2000" value="1000" aria-label="Price range selector" disabled>
+                    <div class="vm-shop-d-range-values"><span>$0</span><span>$2,000+</span></div>
+                </div>
+            </div>
+
+            <div class="vm-shop-d-filter-block">
+                <h3>Designer Brands</h3>
+                <label class="vm-shop-d-check"><input type="checkbox" disabled><span>VibeMall Atelier</span></label>
+                <label class="vm-shop-d-check"><input type="checkbox" disabled><span>Kashmiri Looms</span></label>
+                <label class="vm-shop-d-check"><input type="checkbox" disabled><span>Noir &amp; Stone</span></label>
+            </div>
+
+            <div class="vm-shop-d-filter-block">
+                <h3>Review Rating</h3>
+                <p class="vm-shop-d-stars">
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="far fa-star"></i>
+                    <span>&amp; UP</span>
+                </p>
+            </div>
+        </aside>
+
+        <div class="vm-shop-d-grid-wrap">
+            <div class="vm-shop-d-grid">
+                {% for product in products %}
+                <article class="vm-shop-d-card" data-name="{{ product.name|lower }}" data-price="{{ product.price }}" data-order="{{ forloop.counter }}">
+                    <a class="vm-shop-d-thumb" href="{% url 'product-details' product.id %}">
+                        {% if product.image %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                        {% else %}
+                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}">
+                        {% endif %}
+                        <div class="vm-shop-d-hover-actions">
+                            <button type="button"
+                                class="vm-shop-d-action"
+                                title="Quick view"
+                                data-bs-toggle="modal"
+                                data-bs-target="#productQuickView"
+                                data-product-name="{{ product.name }}"
+                                data-product-price="{{ product.price }}"
+                                data-product-old-price="{{ product.old_price|default_if_none:'' }}"
+                                data-product-image="{% if product.image %}{{ product.image.url }}{% else %}{% static 'assets/img/product/tp-1.jpg' %}{% endif %}"
+                                data-product-rating="{% with stats=product_stats|get_item:product.id %}{% if stats %}{{ stats.avg_rating }}{% else %}{{ product.rating }}{% endif %}{% endwith %}"
+                                data-product-reviews="{% with stats=product_stats|get_item:product.id %}{% if stats %}{{ stats.review_count }}{% else %}{{ product.review_count }}{% endif %}{% endwith %}"
+                                data-product-link="{% url 'product-details' product.id %}"
+                                data-product-id="{{ product.id }}"
+                                data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
+                                data-in-wishlist="{% if product.id in wishlist_product_ids %}1{% else %}0{% endif %}"
+                                data-product-stock="{{ product.stock }}"
+                                onclick="openQuickView(this)">
+                                <i class="fal fa-eye"></i>
+                            </button>
+                            <button type="button"
+                                class="vm-shop-d-action wishlist-btn {% if product.id in wishlist_product_ids %}wishlisted{% endif %}"
+                                title="{% if product.id in wishlist_product_ids %}Remove from wishlist{% else %}Add to wishlist{% endif %}"
+                                data-product-id="{{ product.id }}"
+                                data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
+                                onclick="handleWishlistClick(this)">
+                                <i class="{% if product.id in wishlist_product_ids %}fas{% else %}fal{% endif %} fa-heart"></i>
+                            </button>
+                        </div>
+                    </a>
+                    <small>{{ product.brand|default:product.category|default:'VIBEMALL ATELIER' }}</small>
+                    <h4><a href="{% url 'product-details' product.id %}">{{ product.name }}</a></h4>
+                    <p>&#8377;{{ product.price }}</p>
+                </article>
+                {% empty %}
+                <p class="vm-shop-d-empty">No products available.</p>
+                {% endfor %}
+            </div>
+
+            {% if products.has_other_pages %}
+            <div class="vm-shop-d-pagination">
+                {% if products.has_previous %}
+                <a href="?page={{ products.previous_page_number }}{{ page_query }}">Prev</a>
+                {% endif %}
+                <span>{{ products.number }} / {{ products.paginator.num_pages }}</span>
+                {% if products.has_next %}
+                <a href="?page={{ products.next_page_number }}{{ page_query }}">Next</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </section>
+</section>
+
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('shopFiltersForm');
-    if (!form) return;
-    const categoryRadios = form.querySelectorAll('input[name="category"]');
-    categoryRadios.forEach((radio) => {
-        radio.addEventListener('change', () => {
-            form.submit();
+    if (form) {
+        const categoryRadios = form.querySelectorAll('input[name="category"]');
+        categoryRadios.forEach((radio) => {
+            radio.addEventListener('change', () => {
+                form.submit();
+            });
         });
-    });
+    }
+
+    const desktopShell = document.querySelector('.vm-shop-d-shell');
+    const desktopGrid = document.querySelector('.vm-shop-d-grid');
+    const desktopFilterBtn = document.getElementById('vmShopDesktopFilterTrigger');
+    const desktopSort = document.getElementById('vmShopDesktopSort');
+    const gridBtn = document.getElementById('vmShopViewGrid');
+    const listBtn = document.getElementById('vmShopViewList');
+    const desktopSearch = document.getElementById('vmShopDesktopSearch');
+
+    if (desktopShell && desktopGrid && desktopFilterBtn) {
+        desktopFilterBtn.addEventListener('click', function () {
+            desktopShell.classList.toggle('sidebar-collapsed');
+        });
+    }
+
+    const setDesktopViewMode = (mode) => {
+        if (!desktopGrid || !gridBtn || !listBtn) return;
+        const listMode = mode === 'list';
+        desktopGrid.classList.toggle('list-view', listMode);
+        gridBtn.classList.toggle('is-active', !listMode);
+        listBtn.classList.toggle('is-active', listMode);
+    };
+
+    if (gridBtn && listBtn) {
+        gridBtn.addEventListener('click', function () { setDesktopViewMode('grid'); });
+        listBtn.addEventListener('click', function () { setDesktopViewMode('list'); });
+    }
+
+    if (desktopSort && desktopGrid) {
+        desktopSort.addEventListener('change', function () {
+            const mode = desktopSort.value;
+            const cards = Array.from(desktopGrid.querySelectorAll('.vm-shop-d-card'));
+            cards.sort(function (a, b) {
+                const nameA = (a.dataset.name || '').toString();
+                const nameB = (b.dataset.name || '').toString();
+                const priceA = parseFloat(a.dataset.price || '0');
+                const priceB = parseFloat(b.dataset.price || '0');
+                const orderA = parseInt(a.dataset.order || '0', 10);
+                const orderB = parseInt(b.dataset.order || '0', 10);
+
+                if (mode === 'name_asc') return nameA.localeCompare(nameB);
+                if (mode === 'name_desc') return nameB.localeCompare(nameA);
+                if (mode === 'price_asc') return priceA - priceB;
+                if (mode === 'price_desc') return priceB - priceA;
+                return orderA - orderB;
+            });
+            cards.forEach(function (card) { desktopGrid.appendChild(card); });
+        });
+    }
+
+    if (desktopSearch && desktopGrid) {
+        desktopSearch.addEventListener('input', function () {
+            const term = desktopSearch.value.toLowerCase().trim();
+            const cards = Array.from(desktopGrid.querySelectorAll('.vm-shop-d-card'));
+            cards.forEach(function (card) {
+                const name = (card.dataset.name || '').toLowerCase();
+                const brandNode = card.querySelector('small');
+                const brand = brandNode ? brandNode.textContent.toLowerCase() : '';
+                const isMatch = !term || name.includes(term) || brand.includes(term);
+                card.style.display = isMatch ? '' : 'none';
+            });
+        });
+    }
 });
 </script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const sidebar = document.getElementById('shopFilterSidebar');
-    const openBtn = document.getElementById('shopFilterFab');
-    const closeBtn = document.getElementById('shopFilterClose');
-    const backdrop = document.getElementById('shopFilterBackdrop');
+    const sidebar = document.getElementById('vmShopMobileFilterDrawer');
+    const openBtn = document.getElementById('shopFilterFabMobile');
+    const closeBtn = document.getElementById('vmShopMobileFilterClose');
+    const dismissBtn = document.getElementById('vmShopMobileFilterDismiss');
+    const backdrop = document.getElementById('vmShopMobileFilterBackdrop');
+    const sortRoot = document.querySelector('[data-shop-mobile-sort]');
+    const sortTrigger = document.getElementById('shopSortFabMobile');
+    const sortMenu = document.querySelector('[data-shop-mobile-sort-menu]');
 
-    if (!sidebar || !openBtn || !backdrop) return;
-
-    const isMobile = () => window.matchMedia('(max-width: 575.98px)').matches;
     const setOpenState = (open) => {
+        if (!sidebar || !backdrop || !openBtn) return;
         sidebar.classList.toggle('is-open', open);
         backdrop.classList.toggle('is-open', open);
         document.body.classList.toggle('shop-filter-open', open);
+        sidebar.setAttribute('aria-hidden', open ? 'false' : 'true');
         openBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        backdrop.hidden = !open;
     };
 
-    const openSidebar = () => {
-        if (!isMobile()) return;
-        setOpenState(true);
-    };
-
+    const openSidebar = () => setOpenState(true);
     const closeSidebar = () => setOpenState(false);
+    const positionSortMenu = () => {
+        if (!sortMenu || sortMenu.hidden) return;
 
-    openBtn.addEventListener('click', openSidebar);
+        sortMenu.style.transform = 'translateX(0)';
+
+        const viewportPadding = 16;
+        let rect = sortMenu.getBoundingClientRect();
+        let shift = 0;
+
+        if (rect.right > window.innerWidth - viewportPadding) {
+            shift -= rect.right - (window.innerWidth - viewportPadding);
+        }
+
+        if (rect.left + shift < viewportPadding) {
+            shift += viewportPadding - (rect.left + shift);
+        }
+
+        sortMenu.style.transform = shift ? `translateX(${Math.round(shift)}px)` : 'translateX(0)';
+    };
+
+    if (openBtn && sidebar && backdrop) {
+        openBtn.addEventListener('click', openSidebar);
+    }
     if (closeBtn) {
         closeBtn.addEventListener('click', closeSidebar);
     }
-    backdrop.addEventListener('click', closeSidebar);
+    if (dismissBtn) {
+        dismissBtn.addEventListener('click', closeSidebar);
+    }
+    if (backdrop) {
+        backdrop.addEventListener('click', closeSidebar);
+    }
+
+    const setSortOpen = (open) => {
+        if (!sortTrigger || !sortMenu) return;
+        sortTrigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+        sortRoot?.classList.toggle('is-open', open);
+        sortMenu.hidden = !open;
+        if (open) {
+            positionSortMenu();
+        } else {
+            sortMenu.style.transform = 'translateX(0)';
+        }
+    };
+
+    if (sortTrigger && sortMenu) {
+        setSortOpen(false);
+        sortTrigger.addEventListener('click', function () {
+            const next = sortMenu.hidden;
+            setSortOpen(next);
+        });
+        document.addEventListener('click', function (event) {
+            if (sortRoot && !sortRoot.contains(event.target)) {
+                setSortOpen(false);
+            }
+        });
+        window.addEventListener('resize', function () {
+            if (!sortMenu.hidden) {
+                positionSortMenu();
+            }
+        });
+    }
 
     document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape') closeSidebar();
+        if (event.key === 'Escape') {
+            closeSidebar();
+            setSortOpen(false);
+        }
     });
 
     window.addEventListener('resize', function () {
-        if (!isMobile()) closeSidebar();
+        if (window.innerWidth > 767.98) {
+            closeSidebar();
+            setSortOpen(false);
+        }
     }, { passive: true });
 });
 </script>
 
 <div class="modal fade" id="productQuickView" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title" id="qvName">Quick View</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div class="modal-dialog modal-lg modal-dialog-centered qv-dialog">
+        <div class="modal-content qv-content">
+            <div class="qv-handle-wrap" aria-hidden="true">
+                <div class="qv-handle"></div>
             </div>
-            <div class="modal-body pt-2">
-                <div class="row g-4 align-items-center">
-                    <div class="col-md-6">
-                        <div class="rounded-3 overflow-hidden bg-light">
-                            <img id="qvImage" src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Product preview" class="w-100" style="height:320px; object-fit:cover;">
+            <div class="modal-header border-0 qv-header">
+                <span id="qvName" class="qv-kicker">Quick Preview</span>
+                <button type="button" class="qv-close" data-bs-dismiss="modal" aria-label="Close">
+                    <i class="far fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body qv-body">
+                <div class="qv-image-wrap">
+                    <img id="qvImage" src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Product preview" class="qv-image">
+                </div>
+
+                <div class="qv-meta">
+                    <div class="qv-meta-top">
+                        <div>
+                            <h5 id="qvProductName" class="qv-title">Product Name</h5>
+                            <div class="qv-rating-row">
+                                <div id="qvRating" class="rating-inline"></div>
+                                <span id="qvReviews"></span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <h5 id="qvProductName" class="mb-2" style="font-weight: 600; color: #111827;">Product Name</h5>
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                            <div id="qvRating" class="rating-inline"></div>
-                            <span id="qvReviews" class="text-muted small"></span>
-                        </div>
-                        <div class="price-line d-flex align-items-center gap-2 mb-2">
+                        <div class="qv-price-wrap">
                             <span id="qvPriceCurrent">&#8377;0.00</span>
                             <span id="qvPriceOld" class="price-old" style="display:none;"></span>
                         </div>
-                        <p class="text-muted small mb-3" id="qvStock">In stock</p>
-                        <a id="qvLink" href="#" class="btn btn-dark btn-sm">View product</a>
+                    </div>
+
+                    <p class="qv-desc">An architectural essential crafted for a refined silhouette that bridges structure and comfort.</p>
+                    <p id="qvStock" class="qv-stock">In stock</p>
+
+                    <div class="qv-selectors">
+                        <div>
+                            <div class="qv-label-row">
+                                <span>Select Size</span>
+                                <span>Size Guide</span>
+                            </div>
+                            <div class="qv-size-grid">
+                                <button type="button" class="is-active">XS</button>
+                                <button type="button">S</button>
+                                <button type="button">M</button>
+                                <button type="button">L</button>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="qv-label">Finish</span>
+                            <div class="qv-color-row">
+                                <button type="button" class="is-active" style="--qv-color:#171818" aria-label="Black"></button>
+                                <button type="button" style="--qv-color:#f0eee9" aria-label="Cream"></button>
+                                <button type="button" style="--qv-color:#32080c" aria-label="Burgundy"></button>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div>
+            <div class="qv-footer">
+                <button type="button" class="qv-wishlist" data-label-active="In wishlist" data-label-inactive="Save to wishlist" aria-label="Save to wishlist" onclick="handleWishlistClick(this)"><i class="far fa-heart"></i></button>
+                <a id="qvLink" href="#" class="qv-cta"><i class="far fa-shopping-bag"></i> View Product</a>
             </div>
         </div>
     </div>
@@ -645,59 +889,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     async function handleWishlistClick(button) {
-        if (!button) return;
-        const loggedIn = button.dataset.loggedIn === '1';
-        const productId = button.dataset.productId;
-
-        if (!loggedIn) {
-            window.location.href = "{% url 'login' %}?next={% url 'shop' %}";
-            return;
-        }
-
-        if (!productId) return;
-
-        const url = `/wishlist/add/${productId}/`;
-        const csrftoken = getCsrfToken();
-
-        button.disabled = true;
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrftoken,
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
-
-            let data = { success: false, message: '', in_wishlist: false };
-            try { data = await response.json(); } catch (_) {}
-
-            if (response.ok && data.success) {
-                const icon = button.querySelector('i');
-                if (data.in_wishlist) {
-                    // Add to wishlist
-                    button.classList.add('wishlisted');
-                    button.setAttribute('aria-pressed', 'true');
-                    if (icon) {
-                        icon.classList.remove('fal');
-                        icon.classList.add('fas');
-                    }
-                    updateWishlistCounter(1);
-                } else {
-                    // Remove from wishlist
-                    button.classList.remove('wishlisted');
-                    button.setAttribute('aria-pressed', 'false');
-                    if (icon) {
-                        icon.classList.remove('fas');
-                        icon.classList.add('fal');
-                    }
-                    updateWishlistCounter(-1);
-                }
-            }
-        } catch (error) {
-            console.error('Wishlist error', error);
-        } finally {
-            button.disabled = false;
+        if (window.vmStorefrontActions && typeof window.vmStorefrontActions.toggleWishlist === 'function') {
+            return window.vmStorefrontActions.toggleWishlist(button);
         }
     }
 
@@ -712,6 +905,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const rating = parseFloat(trigger.dataset.productRating || '0');
         const reviews = trigger.dataset.productReviews || '0';
         const link = trigger.dataset.productLink || '#';
+        const productId = trigger.dataset.productId || '';
+        const loggedIn = trigger.dataset.loggedIn || '{% if user.is_authenticated %}1{% else %}0{% endif %}';
+        const inWishlist = trigger.dataset.inWishlist === '1';
         const stock = Number(trigger.dataset.productStock || 0);
 
         document.getElementById('qvName').textContent = 'Quick View';
@@ -756,6 +952,22 @@ document.addEventListener('DOMContentLoaded', function () {
         const linkEl = document.getElementById('qvLink');
         if (linkEl) {
             linkEl.href = link;
+        }
+
+        const wishlistEl = modalEl.querySelector('.qv-wishlist');
+        if (wishlistEl) {
+            wishlistEl.dataset.productId = productId;
+            wishlistEl.dataset.loggedIn = loggedIn;
+            wishlistEl.dataset.inWishlist = inWishlist ? '1' : '0';
+            wishlistEl.classList.toggle('wishlisted', inWishlist);
+            wishlistEl.setAttribute('aria-pressed', inWishlist ? 'true' : 'false');
+            wishlistEl.title = inWishlist ? 'Remove from wishlist' : 'Add to wishlist';
+
+            const wishlistIcon = wishlistEl.querySelector('i');
+            if (wishlistIcon) {
+                wishlistIcon.classList.remove('fas', 'far', 'fal');
+                wishlistIcon.classList.add(inWishlist ? 'fas' : 'far', 'fa-heart');
+            }
         }
 
         if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
@@ -832,51 +1044,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Cart toggle function
     async function handleCartClick(button) {
-        const productId = button.getAttribute('data-product-id');
-        const isLoggedIn = button.getAttribute('data-logged-in') === '1';
-
-        if (!isLoggedIn) {
-            showErrorNotification('Please login to manage cart');
-            window.location.href = '/login/?next=' + window.location.pathname;
-            return;
-        }
-
-        try {
-            const response = await fetch(`/cart/toggle/${productId}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': getCsrfToken()
-                },
-                credentials: 'same-origin'
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                const icon = button.querySelector('i');
-                
-                if (data.in_cart) {
-                    // Added to cart
-                    button.classList.add('in-cart');
-                    icon.classList.remove('fal');
-                    icon.classList.add('fas');
-                    button.title = 'Remove from cart';
-                    showSuccessNotification(data.message);
-                    updateCartCounter(1);
-                } else {
-                    // Removed from cart
-                    button.classList.remove('in-cart');
-                    icon.classList.remove('fas');
-                    icon.classList.add('fal');
-                    button.title = 'Add to cart';
-                    updateCartCounter(-1);
-                }
-            } else {
-                showErrorNotification(data.message || 'Error updating cart');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            showErrorNotification('An error occurred. Please try again.');
+        if (window.vmStorefrontActions && typeof window.vmStorefrontActions.toggleCart === 'function') {
+            return window.vmStorefrontActions.toggleCart(button);
         }
     }
 

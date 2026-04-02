@@ -120,6 +120,8 @@ urlpatterns = [
 
     # Profile
     path('profile/', views.profile_view, name='profile'),
+    path('profile/address-book/', views.address_book_view, name='address_book'),
+    path('profile/payment-methods/', views.payment_methods_view, name='payment_methods'),
     path('product/<slug:slug>/', views.product_detail, name='product_detail'),
     path('api/profile/stats/', views_api.api_profile_stats, name='api_profile_stats'),
     path('api/products/search/', views_api.product_search_api, name='product_search_api'),

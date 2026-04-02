@@ -3,9 +3,11 @@
 {% load static %}
 
 {% block title %}Order Confirmation - VibeMall{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-mobile-order-confirmation{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'assets/css/orderconfirmation-responsive.css' %}">
+<link rel="stylesheet" href="{% static 'assets/css/orderconfirmation-mobile-alt.css' %}?v=20260401-01">
 {% endblock %}
 
 {% block content %}
@@ -16,6 +18,145 @@
     <div id="fireworks-container" style="position: absolute; width: 100%; height: 100%;"></div>
 </div>
 
+<section class="vm-orderconfirm-mobile-only" aria-label="Order confirmation mobile view">
+    {% include 'partials/vm_mobile_alt_header.html' %}
+
+    <main class="vm-ocm-main vm-mobile-content-offset">
+        <section class="vm-ocm-hero">
+            <div class="vm-ocm-hero__badge" aria-hidden="true">
+                <i class="fas fa-check"></i>
+            </div>
+            <span class="vm-ocm-hero__eyebrow">Order Placed Successfully</span>
+            <h2>MERCI</h2>
+            <p>Thank you for shopping with VibeMall. Your order is confirmed and we are preparing it now.</p>
+            <div class="vm-ocm-hero__pills">
+                <span class="vm-ocm-pill">Status: {{ order.get_order_status_display }}</span>
+                {% if order.is_resell %}
+                <span class="vm-ocm-pill vm-ocm-pill--accent">Resell Order</span>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="vm-ocm-card">
+            <div class="vm-ocm-card__section">
+                <p class="vm-ocm-label">Order Reference</p>
+                <h3>#{{ order.order_number }}</h3>
+            </div>
+
+            <div class="vm-ocm-divider"></div>
+
+            <div class="vm-ocm-info-list">
+                <div class="vm-ocm-info-item">
+                    <div class="vm-ocm-info-item__icon">
+                        <i class="far fa-calendar-alt"></i>
+                    </div>
+                    <div>
+                        <p class="vm-ocm-label">Order Date</p>
+                        <p class="vm-ocm-value">{{ order.created_at|date:"l, d M Y" }}</p>
+                    </div>
+                </div>
+
+                <div class="vm-ocm-info-item">
+                    <div class="vm-ocm-info-item__icon">
+                        <i class="fas fa-truck"></i>
+                    </div>
+                    <div>
+                        <p class="vm-ocm-label">Delivery Estimate</p>
+                        <p class="vm-ocm-value">
+                            {% if order.delivery_date %}
+                            {{ order.delivery_date|date:"l, d M Y" }}
+                            {% elif order.order_status == 'DELIVERED' %}
+                            Delivered
+                            {% elif order.order_status == 'SHIPPED' %}
+                            On the way
+                            {% else %}
+                            We will share your delivery window shortly
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="vm-ocm-info-item">
+                    <div class="vm-ocm-info-item__icon">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </div>
+                    <div>
+                        <p class="vm-ocm-label">Shipping To</p>
+                        <p class="vm-ocm-value vm-ocm-value--address">{{ order.shipping_address|linebreaksbr }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="vm-ocm-divider"></div>
+
+            <div class="vm-ocm-summary-grid">
+                <div>
+                    <p class="vm-ocm-label">Payment</p>
+                    <p class="vm-ocm-value">{{ order.get_payment_method_display|default:order.payment_method }}</p>
+                </div>
+                <div>
+                    <p class="vm-ocm-label">Payment Status</p>
+                    <p class="vm-ocm-value">{{ order.get_payment_status_display }}</p>
+                </div>
+                <div>
+                    <p class="vm-ocm-label">Items</p>
+                    <p class="vm-ocm-value">{{ order_items|length }}</p>
+                </div>
+                <div>
+                    <p class="vm-ocm-label">Total</p>
+                    <p class="vm-ocm-value">&#8377;{{ order.total_amount|floatformat:2 }}</p>
+                </div>
+            </div>
+
+            <div class="vm-ocm-points">
+                <span class="vm-ocm-points__icon"><i class="fas fa-coins"></i></span>
+                <div>
+                    <p class="vm-ocm-label">Loyalty Points Earned</p>
+                    <p class="vm-ocm-value">+{{ loyalty_points_earned }} points</p>
+                </div>
+            </div>
+        </section>
+
+        <div class="vm-ocm-actions">
+            <a href="{% url 'order_details' order.order_number %}" class="vm-ocm-btn vm-ocm-btn--primary">Track Order</a>
+            <a href="{% url 'shop' %}" class="vm-ocm-btn vm-ocm-btn--secondary">Continue Shopping</a>
+        </div>
+
+        <div class="vm-ocm-link-row">
+            <a href="{% url 'download_invoice' order.order_number %}">Download Invoice</a>
+            <a href="{% url 'order_details' order.order_number %}">View Order Details</a>
+        </div>
+
+        {% if order_items %}
+        <section class="vm-ocm-gallery" aria-label="Ordered items">
+            {% for item in order_items|slice:":2" %}
+            <article class="vm-ocm-gallery-card">
+                <div class="vm-ocm-gallery-card__image">
+                    {% if item.display_image_url %}
+                    <img src="{{ item.display_image_url }}" alt="{{ item.product_name }}">
+                    {% else %}
+                    <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.product_name }}">
+                    {% endif %}
+                </div>
+                <div class="vm-ocm-gallery-card__content">
+                    <p>Ordered</p>
+                    <h3>{{ item.product_name }}</h3>
+                    <span>Qty {{ item.quantity }}</span>
+                </div>
+            </article>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        <div class="vm-ocm-note">
+            A confirmation email has been sent{% if order.user.email %} to {{ order.user.email }}{% else %} to your inbox{% endif %}. Thank you for supporting VibeMall.
+        </div>
+    </main>
+
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' %}
+</section>
+
+<div class="vm-orderconfirm-legacy-content">
 <!-- page-banner-area-start -->
 <div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
     <div class="container">
@@ -143,6 +284,7 @@
         </div>
     </div>
 </section>
+</div>
 
 <!-- Animation Styles -->
 <style>

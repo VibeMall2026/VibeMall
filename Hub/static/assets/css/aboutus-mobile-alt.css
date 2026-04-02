@@ -1,0 +1,353 @@
+/* Mobile-only About Us layout sourced from about-us-m adaptation */
+.vm-about-mobile-only {
+    display: none;
+}
+
+@media (max-width: 767.98px) {
+    .vm-about-mobile-only {
+        display: block;
+        min-height: 100vh;
+        background: #fbf9f4;
+        color: #1b1c19;
+        font-family: "Manrope", sans-serif;
+        padding-bottom: 24px;
+    }
+
+    .vm-about-m-header,
+    .vm-about-m-footer {
+        display: none !important;
+    }
+
+    .vm-about-desktop-content {
+        display: none;
+    }
+
+    .vm-about-m-main {
+        padding: 16px;
+    }
+
+    .vm-about-m-hero img {
+        width: 100%;
+        aspect-ratio: 4 / 5;
+        object-fit: cover;
+        border-radius: 16px;
+        margin-bottom: 18px;
+    }
+
+    .vm-about-m-hero span {
+        display: block;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.22em;
+        color: #6f5c37;
+        font-weight: 700;
+    }
+
+    .vm-about-m-hero h2 {
+        margin: 8px 0 10px;
+        font-family: "Playfair Display", Georgia, serif;
+        font-style: italic;
+        font-size: 40px;
+        line-height: 1.02;
+        letter-spacing: -0.03em;
+        color: #171818;
+    }
+
+    .vm-about-m-line {
+        width: 52px;
+        height: 1px;
+        background: rgba(111, 92, 55, 0.42);
+        margin-bottom: 14px;
+    }
+
+    .vm-about-m-hero p {
+        margin: 0 0 10px;
+        font-size: 14px;
+        line-height: 1.72;
+        color: rgba(27, 28, 25, 0.72);
+    }
+
+    .vm-about-m-stats {
+        margin: 22px -16px 0;
+        padding: 18px 16px;
+        background: #f3f1ec;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        overflow-x: auto;
+    }
+
+    .vm-about-m-stats article {
+        text-align: center;
+        min-width: 96px;
+    }
+
+    .vm-about-m-stats i {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 12px;
+        background: rgba(111, 92, 55, 0.14);
+        color: #6f5c37;
+        font-size: 16px;
+        margin-bottom: 8px;
+    }
+
+    .vm-about-m-stats h4 {
+        margin: 0;
+        font-family: "Playfair Display", Georgia, serif;
+        font-size: 28px;
+        color: #171818;
+    }
+
+    .vm-about-m-stats p {
+        margin: 3px 0 0;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: rgba(27, 28, 25, 0.52);
+    }
+
+    .vm-about-m-concierge {
+        padding: 22px 0;
+    }
+
+    .vm-about-m-concierge h3 {
+        margin: 0 0 14px;
+        font-family: "Playfair Display", Georgia, serif;
+        font-size: 30px;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        color: #171818;
+    }
+
+    .vm-about-m-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .vm-about-m-card {
+        background: #f0eee9;
+        border-radius: 14px;
+        padding: 14px;
+    }
+
+    .vm-about-m-card--wide {
+        grid-column: 1 / -1;
+    }
+
+    .vm-about-m-card i {
+        color: #171818;
+        font-size: 20px;
+        margin-bottom: 10px;
+    }
+
+    .vm-about-m-card h5 {
+        margin: 0 0 8px;
+        font-family: "Playfair Display", Georgia, serif;
+        font-size: 24px;
+        font-style: italic;
+        color: #171818;
+    }
+
+    .vm-about-m-card h6 {
+        margin: 0 0 8px;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: #171818;
+    }
+
+    .vm-about-m-card p {
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.5;
+        color: rgba(27, 28, 25, 0.7);
+    }
+
+    .vm-about-m-why {
+        margin: 6px -16px 0;
+        padding: 22px 16px;
+        background: #171818;
+        color: #fff;
+    }
+
+    .vm-about-m-why h3 {
+        margin: 0 0 16px;
+        font-family: "Playfair Display", Georgia, serif;
+        font-style: italic;
+        font-size: 34px;
+        letter-spacing: -0.02em;
+    }
+
+    .vm-about-m-why article {
+        display: flex;
+        gap: 14px;
+        margin-bottom: 16px;
+    }
+
+    .vm-about-m-why article:last-child {
+        margin-bottom: 0;
+    }
+
+    .vm-about-m-why span {
+        color: rgba(111, 92, 55, 0.7);
+        font-family: "Playfair Display", Georgia, serif;
+        font-size: 32px;
+        line-height: 1;
+        min-width: 42px;
+    }
+
+    .vm-about-m-why h6 {
+        margin: 0 0 6px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: #b99b5f;
+    }
+
+    .vm-about-m-why p {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.55;
+        color: rgba(255, 255, 255, 0.73);
+    }
+
+    .vm-about-m-newsletter {
+        margin-top: 18px;
+        background: #f3f1ec;
+        border-radius: 16px;
+        padding: 20px 14px;
+        text-align: center;
+    }
+
+    .vm-about-m-newsletter h4 {
+        margin: 0 0 8px;
+        font-family: "Playfair Display", Georgia, serif;
+        font-style: italic;
+        font-size: 30px;
+        color: #171818;
+    }
+
+    .vm-about-m-newsletter p {
+        margin: 0 0 14px;
+        font-size: 12px;
+        line-height: 1.55;
+        color: rgba(27, 28, 25, 0.62);
+    }
+
+    .vm-about-m-newsletter form {
+        display: grid;
+        gap: 8px;
+        max-width: 320px;
+        margin: 0 auto;
+    }
+
+    .vm-about-m-newsletter input {
+        width: 100%;
+        height: 44px;
+        border: 1px solid rgba(23, 24, 24, 0.12);
+        background: #fff;
+        border-radius: 10px;
+        padding: 0 14px;
+        font-size: 12px;
+        outline: none;
+    }
+
+    .vm-about-m-newsletter button {
+        width: 100%;
+        height: 44px;
+        border: 1px solid #171818;
+        background: #171818;
+        color: #fff;
+        border-radius: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 10px;
+        font-weight: 700;
+    }
+
+    .vm-about-m-newsletter .newsletter-feedback {
+        display: block;
+        margin-top: 8px;
+        font-size: 12px;
+        color: rgba(27, 28, 25, 0.58);
+    }
+
+    .vm-about-m-footer {
+        margin-top: 16px;
+        background: #ece9e2;
+        border-radius: 14px;
+        padding: 18px 14px;
+        text-align: center;
+    }
+
+    .vm-about-m-footer h5 {
+        margin: 0 0 6px;
+        font-family: "Playfair Display", Georgia, serif;
+        font-size: 24px;
+        color: #171818;
+    }
+
+    .vm-about-m-footer p {
+        margin: 0 0 12px;
+        font-size: 12px;
+        line-height: 1.55;
+        color: rgba(23, 24, 24, 0.68);
+    }
+
+    .vm-about-m-footer-links {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .vm-about-m-footer-links a {
+        text-decoration: none;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: #1f1f1f;
+        border: 1px solid rgba(23, 24, 24, 0.12);
+        border-radius: 8px;
+        padding: 8px 10px;
+        background: #f8f6f2;
+    }
+
+    .vm-about-m-footer small {
+        color: rgba(23, 24, 24, 0.52);
+        font-size: 11px;
+    }
+
+    .vm-about-m-bottom-nav {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 60;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        align-items: center;
+        background: rgba(251, 249, 244, 0.94);
+        backdrop-filter: blur(8px);
+        border-top: 1px solid rgba(23, 24, 24, 0.1);
+        height: 62px;
+    }
+
+    .vm-about-m-bottom-nav a {
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        text-decoration: none;
+        color: rgba(23, 24, 24, 0.45);
+        font-size: 22px;
+    }
+
+    .vm-about-m-bottom-nav a:first-child {
+        color: #171818;
+    }
+}

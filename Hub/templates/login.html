@@ -4,8 +4,82 @@
 
 {% block title %}Login - VibeMall{% endblock %}
 {% block meta_description %}Login to your VibeMall account. Access your orders, wishlist, profile settings, and exclusive member benefits.{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-mobile-login{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'assets/css/login-mobile-alt.css' %}?v=20260329-02">
+{% endblock %}
 
 {% block content %}
+
+<section class="vm-login-mobile-only" aria-label="Login mobile layout">
+    {% include 'partials/vm_mobile_alt_header.html' %}
+
+    <main class="vm-login-m-main vm-mobile-content-offset">
+        <section class="vm-login-m-hero">
+            <img src="{% static 'assets/img/banner/page-banner-4.jpg' %}" alt="VibeMall login hero">
+            <div class="vm-login-m-hero-overlay"></div>
+            <div class="vm-login-m-hero-content">
+                <h2>The Private<br>Viewing</h2>
+                <p>Authentication Protocol</p>
+            </div>
+        </section>
+
+        <section class="vm-login-m-card-wrap">
+            <div class="vm-login-m-card">
+                <div class="vm-login-m-head">
+                    <h3>Welcome Back</h3>
+                    <p>Access your curated collection.</p>
+                </div>
+
+                {% if messages %}
+                <div class="vm-login-m-messages" aria-live="polite">
+                    {% for message in messages %}
+                    <div class="vm-login-m-alert {{ message.tags|default:'danger' }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <form method="POST" class="vm-login-m-form">
+                    {% csrf_token %}
+                    {% if next %}
+                        <input type="hidden" name="next" value="{{ next }}">
+                    {% endif %}
+
+                    <div class="vm-login-m-field">
+                        <label for="vm_login_username">Email Address</label>
+                        <input id="vm_login_username" type="text" name="username" placeholder="name@atelier.com" required>
+                    </div>
+
+                    <div class="vm-login-m-field">
+                        <div class="vm-login-m-field-top">
+                            <label for="vm_login_password">Password</label>
+                            <a href="{% url 'password_reset' %}">Forgot?</a>
+                        </div>
+                        <div class="vm-login-m-pass-wrap">
+                            <input id="vm_login_password" type="password" name="password" placeholder="••••••••" required>
+                            <button type="button" class="vm-login-m-toggle-pass" data-target="vm_login_password" aria-label="Toggle password visibility"><i class="far fa-eye"></i></button>
+                        </div>
+                    </div>
+
+                    <label class="vm-login-m-remember" for="vm_login_remember">
+                        <input id="vm_login_remember" type="checkbox" name="remember_me" value="on">
+                        <span>Stay signed in for 30 days</span>
+                    </label>
+
+                    <button type="submit" class="vm-login-m-submit">Enter Atelier</button>
+
+                    <p class="vm-login-m-register">New to the collection? <a href="{% url 'register' %}">Create an Account</a></p>
+                </form>
+            </div>
+        </section>
+        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='login-mobile' %}
+    </main>
+
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
+</section>
+
+<div class="vm-login-legacy-content">
 
 <!-- Page Banner Start -->
 <div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
@@ -221,7 +295,24 @@
                 }
             });
         }
+
+        document.querySelectorAll('.vm-login-m-toggle-pass').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const targetId = this.getAttribute('data-target');
+                const input = document.getElementById(targetId);
+                if (!input) return;
+                const icon = this.querySelector('i');
+                const show = input.type === 'password';
+                input.type = show ? 'text' : 'password';
+                if (icon) {
+                    icon.classList.toggle('fa-eye', !show);
+                    icon.classList.toggle('fa-eye-slash', show);
+                }
+            });
+        });
     });
 </script>
+
+</div>
 
 {% endblock content %}

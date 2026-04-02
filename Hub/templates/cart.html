@@ -5,12 +5,78 @@
 
 {% block title %}Cart - VibeMall{% endblock %}
 {% block meta_description %}View your shopping cart on VibeMall. Review items, apply coupons, and proceed to secure checkout with multiple payment options.{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-mobile-cart{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'assets/css/cart-mobile-alt.css' %}?v=20260329-02">
+{% endblock %}
 
 {% block content %}
 
+<section class="vm-cart-mobile-only" aria-label="VibeMall cart mobile layout">
+    {% include 'partials/vm_mobile_alt_header.html' %}
+
+    <main class="vm-cart-m-main vm-mobile-content-offset">
+        <section class="vm-cart-m-banner">
+            <span>Checkout Selection</span>
+            <h2>YOUR BAG</h2>
+            <p>Curated essentials for the modern atelier. Review your selections before checkout.</p>
+        </section>
+
+        {% if cart_items %}
+        <section class="vm-cart-m-list">
+            {% for item in cart_items %}
+            <article class="vm-cart-m-item">
+                <a href="{% url 'product-details' item.product.id %}" class="vm-cart-m-thumb">
+                    {% if item.product.image %}
+                    <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+                    {% else %}
+                    <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.product.name }}">
+                    {% endif %}
+                </a>
+                <div class="vm-cart-m-copy">
+                    <div class="vm-cart-m-head">
+                        <h3>{{ item.product.name }}</h3>
+                        <a href="{% url 'remove_from_cart' item.id %}" class="vm-cart-m-remove js-confirm-remove" data-confirm-message="Remove this item?" aria-label="Remove {{ item.product.name }}">
+                            <i class="far fa-times"></i>
+                        </a>
+                    </div>
+                    <p>₹{{ item.product.price }}</p>
+                    <form method="POST" action="{% url 'update_cart_quantity' item.id %}" class="vm-cart-m-qty-form" aria-label="Update quantity for {{ item.product.name }}">
+                        {% csrf_token %}
+                        <label for="vm-cart-m-qty-{{ item.id }}">Qty</label>
+                        <div class="vm-cart-m-qty-row">
+                            <input id="vm-cart-m-qty-{{ item.id }}" type="number" name="quantity" value="{{ item.quantity }}" min="1" max="999" aria-label="Quantity for {{ item.product.name }}">
+                            <button type="submit">Update</button>
+                        </div>
+                    </form>
+                </div>
+            </article>
+            {% endfor %}
+        </section>
+
+        <section class="vm-cart-m-total">
+            <div class="vm-cart-m-total-line"><span>Subtotal</span><strong>₹{{ total_price }}</strong></div>
+            <div class="vm-cart-m-total-line"><span>Shipping</span><strong>₹0</strong></div>
+            <div class="vm-cart-m-total-line vm-cart-m-total-grand"><span>Grand Total</span><strong>₹{{ total_price }}</strong></div>
+            <a class="vm-cart-m-checkout" href="{% url 'checkout' %}">Proceed to Checkout</a>
+            <a class="vm-cart-m-continue" href="{% url 'shop' %}">Continue Shopping</a>
+        </section>
+        {% else %}
+        <section class="vm-cart-m-empty">
+            <h3>Your bag is currently empty.</h3>
+            <a href="{% url 'shop' %}">Explore Collection</a>
+        </section>
+        {% endif %}
+        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='cart-mobile' %}
+    </main>
+
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='cart' %}
+</section>
 
 
- <main>
+
+ <main class="vm-cart-legacy-content">
         <!-- page-banner-area-start -->
         <div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg'%}">
             <div class="container">
@@ -448,15 +514,6 @@
                         sessionStorage.removeItem('appliedCoupon');
                     }
                 }
-
-                document.querySelectorAll('.js-confirm-remove').forEach(function (element) {
-                    element.addEventListener('click', function (event) {
-                        const message = this.getAttribute('data-confirm-message') || 'Are you sure?';
-                        if (!window.confirm(message)) {
-                            event.preventDefault();
-                        }
-                    });
-                });
             });
         </script>
 

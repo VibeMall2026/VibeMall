@@ -1,0 +1,609 @@
+/* ============================================
+   Register Mobile Stylesheet
+   Mobile-first design for register page
+   ============================================ */
+
+/* Color Palette */
+:root {
+  --vm-register-m-bg: #fbf9f4;
+  --vm-register-m-ink: #171818;
+  --vm-register-m-accent: #6f5c37;
+  --vm-register-m-surface: #f0eee9;
+  --vm-register-m-muted: #747878;
+  --vm-register-m-error: #e74c3c;
+  --vm-register-m-success: #27ae60;
+}
+
+.vm-register-mobile-only {
+  color-scheme: light;
+}
+
+/* Desktop detection and hiding */
+@media (min-width: 768px) {
+  .vm-register-mobile-only {
+    display: none !important;
+  }
+}
+
+/* Mobile layout (max-width: 767.98px) */
+@media (max-width: 767.98px) {
+  .vm-register-legacy-content {
+    display: none !important;
+  }
+
+  .vm-register-m-header,
+  .vm-register-m-footer {
+    display: none !important;
+  }
+}
+
+/* ============================================
+   Mobile Header
+   ============================================ */
+.vm-register-m-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: rgba(251, 249, 244, 0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--vm-register-m-surface);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  min-height: 64px;
+}
+
+.vm-register-m-header__left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.vm-register-m-header__left h1 {
+  font-family: 'Noto Serif', serif;
+  font-size: 1.25rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: var(--vm-register-m-ink);
+  margin: 0;
+}
+
+.vm-register-m-header__right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.vm-register-m-header button {
+  background: none;
+  border: none;
+  color: var(--vm-register-m-ink);
+  cursor: pointer;
+  font-size: 1.25rem;
+  padding: 0.5rem;
+  transition: opacity 0.2s ease;
+}
+
+.vm-register-m-header button:hover {
+  opacity: 0.7;
+}
+
+.offcanvas-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================================
+   Main Content
+   ============================================ */
+.vm-register-m-main {
+  margin-top: 0;
+  padding-bottom: 6rem;
+  min-height: calc(100vh - 64px);
+  background: var(--vm-register-m-bg);
+}
+
+/* ============================================
+   Hero Section
+   ============================================ */
+.vm-register-m-hero {
+  position: relative;
+  height: 288px;
+  overflow: hidden;
+  margin-bottom: 3rem;
+}
+
+.vm-register-m-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.vm-register-m-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(23, 24, 24, 0.88) 88%);
+  z-index: 1;
+}
+
+.vm-register-m-hero-content {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 2rem;
+}
+
+.vm-register-m-hero-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.688rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  font-weight: 700;
+  color: var(--vm-register-m-muted);
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.vm-register-m-hero-content h2 {
+  font-family: 'Noto Serif', serif;
+  font-size: 3rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--vm-register-m-bg);
+  margin: 0;
+}
+
+/* ============================================
+   Profile Section
+   ============================================ */
+.vm-register-m-profile-section {
+  padding: 0 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.vm-register-m-profile-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.vm-register-m-avatar {
+  position: relative;
+  width: 128px;
+  height: 128px;
+}
+
+.vm-register-m-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  background: var(--vm-register-m-surface);
+  border: 4px solid var(--vm-register-m-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.vm-register-m-avatar-placeholder i {
+  font-size: 3rem;
+  color: var(--vm-register-m-muted);
+  opacity: 0.3;
+}
+
+.vm-register-m-avatar-btn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  background: var(--vm-register-m-ink);
+  color: var(--vm-register-m-bg);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease;
+}
+
+.vm-register-m-avatar-btn:hover {
+  transform: scale(1.1);
+}
+
+.vm-register-m-avatar-btn:active {
+  transform: scale(0.95);
+}
+
+.vm-register-m-profile-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-weight: 600;
+  color: var(--vm-register-m-muted);
+  margin: 0;
+  text-align: center;
+}
+
+/* ============================================
+   Form
+   ============================================ */
+.vm-register-m-form {
+  padding: 0 1.5rem;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.vm-register-m-form-section {
+  margin-bottom: 4rem;
+}
+
+/* Section Divider */
+.vm-register-m-section-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.vm-register-m-divider-line {
+  height: 1px;
+  flex-grow: 1;
+  background: rgba(116, 120, 120, 0.15);
+}
+
+.vm-register-m-section-divider h3 {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.688rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  color: var(--vm-register-m-accent);
+  white-space: nowrap;
+  margin: 0;
+}
+
+/* Fields Container */
+.vm-register-m-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Field Group */
+.vm-register-m-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* Label */
+.vm-register-m-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-weight: 600;
+  color: var(--vm-register-m-muted);
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+/* Input */
+.vm-register-m-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(116, 120, 120, 0.3);
+  padding: 1rem 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--vm-register-m-ink);
+  transition: all 0.3s ease;
+}
+
+.vm-register-m-input::placeholder {
+  color: rgba(116, 120, 120, 0.4);
+}
+
+.vm-register-m-input:focus {
+  outline: none;
+  border-bottom-color: var(--vm-register-m-ink);
+}
+
+.vm-register-m-select {
+  appearance: none;
+  cursor: pointer;
+  padding-right: 1.5rem;
+}
+
+/* Input Wrapper (for decorative icon) */
+.vm-register-m-input-wrapper {
+  position: relative;
+}
+
+.vm-register-m-input-wrapper i {
+  position: absolute;
+  right: 0;
+  top: 1rem;
+  font-size: 0.875rem;
+  color: var(--vm-register-m-muted);
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* ============================================
+   Password Field
+   ============================================ */
+.vm-register-m-toggle-pass {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--vm-register-m-muted);
+  font-size: 1.125rem;
+  padding: 0.5rem;
+  transition: color 0.2s ease;
+}
+
+.vm-register-m-toggle-pass:hover {
+  color: var(--vm-register-m-ink);
+}
+
+/* Password Strength */
+.vm-register-m-strength-container {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.vm-register-m-strength-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.563rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-weight: 600;
+  color: var(--vm-register-m-accent);
+}
+
+.vm-register-m-strength-bars {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.vm-register-m-strength-bar {
+  height: 4px;
+  flex: 1;
+  background: rgba(116, 120, 120, 0.2);
+  border-radius: 9999px;
+  transition: background-color 0.3s ease;
+}
+
+.vm-register-m-strength-bar--weak {
+  background: var(--vm-register-m-error);
+}
+
+.vm-register-m-strength-bar--fair {
+  background: #f39c12;
+}
+
+.vm-register-m-strength-bar--good {
+  background: #3498db;
+}
+
+.vm-register-m-strength-bar--strong {
+  background: var(--vm-register-m-accent);
+}
+
+/* ============================================
+   Error Message
+   ============================================ */
+.vm-register-m-error {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  color: var(--vm-register-m-error);
+  margin-top: 0.75rem;
+  display: block;
+}
+
+/* ============================================
+   Terms & Conditions
+   ============================================ */
+.vm-register-m-terms-section {
+  margin-bottom: 3rem;
+  width: 100%;
+}
+
+.vm-register-m-terms-checkbox {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1.25rem;
+  background: var(--vm-register-m-surface);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.vm-register-m-terms-checkbox input[type="checkbox"] {
+  margin-top: 0.25rem;
+  cursor: pointer;
+  accent-color: var(--vm-register-m-accent);
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+}
+
+.vm-register-m-terms-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.688rem;
+  line-height: 1.5;
+  color: var(--vm-register-m-muted);
+  cursor: pointer;
+}
+
+.vm-register-m-text-bold {
+  font-weight: 700;
+  color: var(--vm-register-m-ink);
+  text-decoration: underline;
+  text-decoration-color: rgba(111, 92, 55, 0.3);
+  text-underline-offset: 2px;
+}
+
+/* ============================================
+   Submit Button
+   ============================================ */
+.vm-register-m-submit-btn {
+  width: 100%;
+  background: var(--vm-register-m-ink);
+  color: var(--vm-register-m-bg);
+  border: none;
+  padding: 1.25rem;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 24px rgba(23, 24, 24, 0.1);
+  margin-bottom: 2rem;
+}
+
+.vm-register-m-submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(23, 24, 24, 0.15);
+}
+
+.vm-register-m-submit-btn:active {
+  transform: translateY(0);
+}
+
+.vm-register-m-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   Login Link
+   ============================================ */
+.vm-register-m-login-link {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--vm-register-m-muted);
+  text-align: center;
+  margin: 0 0 3rem 0;
+}
+
+.vm-register-m-login-link a {
+  color: var(--vm-register-m-accent);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: rgba(111, 92, 55, 0.3);
+  text-underline-offset: 4px;
+  transition: color 0.2s ease;
+}
+
+.vm-register-m-login-link a:hover {
+  color: var(--vm-register-m-ink);
+}
+
+/* ============================================
+   Footer
+   ============================================ */
+.vm-register-m-footer {
+  border-top: 1px solid var(--vm-register-m-surface);
+  padding: 4rem 1.5rem;
+  text-align: center;
+}
+
+.vm-register-m-footer h4 {
+  font-family: 'Noto Serif', serif;
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  color: var(--vm-register-m-ink);
+  margin: 0 0 1.5rem 0;
+}
+
+.vm-register-m-footer p {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.563rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  font-weight: 600;
+  color: var(--vm-register-m-muted);
+  margin: 0.25rem 0;
+}
+
+/* ============================================
+   Tablet Breakpoint
+   ============================================ */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .vm-register-legacy-content {
+    display: none !important;
+  }
+
+  .vm-register-m-hero-content h2 {
+    font-size: 2.5rem;
+  }
+
+  .vm-register-m-avatar {
+    width: 96px;
+    height: 96px;
+  }
+}
+
+/* ============================================
+   Accessibility
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  .vm-register-m-toggle-pass,
+  .vm-register-m-avatar-btn,
+  .vm-register-m-submit-btn,
+  .vm-register-m-input,
+  .vm-register-m-strength-bar {
+    transition: none !important;
+  }
+}
+
+/* Focus styles for accessibility */
+.vm-register-m-input:focus,
+.vm-register-m-select:focus {
+  outline: 2px solid var(--vm-register-m-accent);
+  outline-offset: -1px;
+}
+
+.vm-register-m-submit-btn:focus-visible {
+  outline: 2px solid var(--vm-register-m-accent);
+  outline-offset: 2px;
+}
+
+.vm-register-m-toggle-pass:focus-visible,
+.vm-register-m-avatar-btn:focus-visible {
+  outline: 2px solid var(--vm-register-m-accent);
+  outline-offset: 2px;
+}

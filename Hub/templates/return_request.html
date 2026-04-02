@@ -2,8 +2,183 @@
 {% load static %}
 
 {% block title %}Request Return - VibeMall{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-mobile-returnrequest{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'assets/css/returnrequest-mobile-alt.css' %}?v=20260329-01">
+{% endblock %}
 
 {% block content %}
+<section class="vm-rp-mobile-only" aria-label="Return portal mobile view">
+    {% include 'partials/vm_mobile_alt_header.html' %}
+
+    <main class="vm-rp-m-main vm-mobile-content-offset">
+        <section class="vm-rp-m-title">
+            <p>Service Center</p>
+            <h2>Return Request</h2>
+            <div class="vm-rp-m-line"></div>
+        </section>
+
+        {% if not is_eligible %}
+            <section class="vm-rp-m-alert">
+                <i class="fas fa-info-circle"></i>
+                <p>{{ ineligible_reason }}</p>
+            </section>
+        {% else %}
+            <form method="post" enctype="multipart/form-data" class="vm-rp-m-form" id="vmRpMobileForm">
+                {% csrf_token %}
+
+                <section class="vm-rp-m-block">
+                    <label>Order Number</label>
+                    <input type="text" value="{{ order.order_number }}" readonly>
+                </section>
+
+                <section class="vm-rp-m-block">
+                    <label>Select Items to Return</label>
+                    <div class="vm-rp-m-items">
+                        {% for item in eligible_items %}
+                        <article class="vm-rp-m-item" data-rp-item>
+                            <div class="vm-rp-m-item-head">
+                                <label class="vm-rp-m-check">
+                                    <input type="checkbox" name="item_{{ item.id }}_selected" data-rp-select>
+                                    <span></span>
+                                </label>
+                                <div class="vm-rp-m-item-copy">
+                                    <h4>{{ item.product_name }}</h4>
+                                    <p>Ordered: {{ item.quantity }}</p>
+                                </div>
+                            </div>
+                            <div class="vm-rp-m-item-body">
+                                {% if item.product_image %}
+                                <img src="{{ item.product_image }}" alt="{{ item.product_name }}">
+                                {% endif %}
+                                <div class="vm-rp-m-fields">
+                                    <input type="number" name="item_{{ item.id }}_qty" min="1" max="{{ item.quantity }}" value="{{ item.quantity }}" data-rp-qty data-item-price="{{ item.product_price }}">
+                                    <select name="item_{{ item.id }}_condition">
+                                        {% for value,label in condition_choices %}
+                                        <option value="{{ value }}">{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <input type="text" name="item_{{ item.id }}_notes" placeholder="Optional notes">
+                                </div>
+                            </div>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <section class="vm-rp-m-summary" id="vmRpSummary" style="display:none;">
+                    <h5>Return Summary</h5>
+                    <div class="vm-rp-m-summary-line"><span>Subtotal</span><strong>&#8377;<span id="vmRpSubtotal">0.00</span></strong></div>
+                    <div class="vm-rp-m-summary-line"><span>Return fee</span><strong>- &#8377;20.00</strong></div>
+                    <div class="vm-rp-m-summary-line vm-rp-m-summary-total"><span>Net refund</span><strong>&#8377;<span id="vmRpNet">0.00</span></strong></div>
+                </section>
+
+                <section class="vm-rp-m-block">
+                    <label>Reason for Return</label>
+                    <select name="reason" required>
+                        {% for value,label in reason_choices %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </section>
+
+                <section class="vm-rp-m-block">
+                    <label>Additional Details</label>
+                    <textarea rows="4" name="reason_notes" placeholder="Tell us more about the issue..."></textarea>
+                </section>
+
+                <section class="vm-rp-m-block">
+                    <label>Refund Method</label>
+                    <select name="refund_method" id="vmRpRefundMethod" required>
+                        <option value="" disabled selected>Select refund method</option>
+                        {% for value,label in refund_options %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </section>
+
+                <section class="vm-rp-m-block" id="vmRpBankBlock" style="display:none;">
+                    <label>Bank Transfer Details</label>
+                    <input type="text" name="bank_account_name" placeholder="Account holder name">
+                    <input type="text" name="bank_name" placeholder="Bank name">
+                    <input type="text" name="bank_account_number" placeholder="Account number" inputmode="numeric">
+                    <input type="text" name="bank_ifsc" placeholder="IFSC code" style="text-transform: uppercase;">
+                </section>
+
+                <section class="vm-rp-m-block" id="vmRpUpiBlock" style="display:none;">
+                    <label>UPI ID (RazorPay)</label>
+                    <input type="text" name="upi_id" placeholder="yourname@bank">
+                </section>
+
+                <section class="vm-rp-m-block">
+                    <label>Upload Documentation (Optional)</label>
+                    <input type="file" name="attachments" multiple accept="image/*">
+                </section>
+
+                <button type="submit" class="vm-rp-m-submit">Submit Return Request</button>
+            </form>
+
+            <script>
+            (function () {
+                const refundMethod = document.getElementById('vmRpRefundMethod');
+                const bankBlock = document.getElementById('vmRpBankBlock');
+                const upiBlock = document.getElementById('vmRpUpiBlock');
+                const summary = document.getElementById('vmRpSummary');
+                const subtotalNode = document.getElementById('vmRpSubtotal');
+                const netNode = document.getElementById('vmRpNet');
+
+                const toggleRefundBlocks = () => {
+                    if (!refundMethod) return;
+                    const v = refundMethod.value;
+                    if (bankBlock) bankBlock.style.display = v === 'BANK' ? 'block' : 'none';
+                    if (upiBlock) upiBlock.style.display = v === 'RAZORPAY' ? 'block' : 'none';
+                };
+
+                const refreshSummary = () => {
+                    let subtotal = 0;
+                    document.querySelectorAll('[data-rp-item]').forEach((card) => {
+                        const selected = card.querySelector('[data-rp-select]');
+                        if (!selected || !selected.checked) return;
+                        const qtyInput = card.querySelector('[data-rp-qty]');
+                        const qty = qtyInput ? parseInt(qtyInput.value || '0', 10) : 0;
+                        const price = qtyInput ? parseFloat(qtyInput.getAttribute('data-item-price') || '0') : 0;
+                        subtotal += Math.max(0, qty) * Math.max(0, price);
+                    });
+
+                    if (!summary || !subtotalNode || !netNode) return;
+                    if (subtotal <= 0) {
+                        summary.style.display = 'none';
+                        subtotalNode.textContent = '0.00';
+                        netNode.textContent = '0.00';
+                        return;
+                    }
+                    const fee = 20;
+                    const net = Math.max(0, subtotal - fee);
+                    summary.style.display = 'block';
+                    subtotalNode.textContent = subtotal.toFixed(2);
+                    netNode.textContent = net.toFixed(2);
+                };
+
+                if (refundMethod) refundMethod.addEventListener('change', toggleRefundBlocks);
+                document.querySelectorAll('[data-rp-select],[data-rp-qty]').forEach((el) => {
+                    el.addEventListener('change', refreshSummary);
+                    el.addEventListener('input', refreshSummary);
+                });
+
+                toggleRefundBlocks();
+                refreshSummary();
+            })();
+            </script>
+        {% endif %}
+
+        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='return-request-mobile' %}
+    </main>
+
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' %}
+</section>
+
+<div class="vm-rp-legacy-content">
 <div class="container my-5">
     <div class="row">
         <div class="col-12">
@@ -502,5 +677,6 @@
             </div>
         </div>
     </div>
+</div>
 </div>
 {% endblock %}

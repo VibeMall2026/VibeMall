@@ -3,8 +3,109 @@
 
 {% block content %}
 
+<section class="vm-profile-mobile-only" aria-label="Profile mobile view">
+    <header class="pmv-topbar">
+        <div class="pmv-topbar__left">
+            <a href="{% url 'index' %}" aria-label="Home"><i class="far fa-bars"></i></a>
+            <h1>VIBEMALL</h1>
+        </div>
+        <div class="pmv-topbar__right">
+            <a href="{% url 'shop' %}" aria-label="Search"><i class="far fa-search"></i></a>
+            <a href="{% url 'cart' %}" aria-label="Cart" class="pmv-bag-link">
+                <i class="far fa-shopping-bag"></i>
+                <span class="pmv-badge">{{ cart_count|default:'0' }}</span>
+            </a>
+        </div>
+    </header>
+
+    <main class="pmv-main">
+        <section class="pmv-hero-banner">
+            <div class="pmv-hero-overlay"></div>
+        </section>
+
+        <section class="pmv-identity">
+            <div class="pmv-avatar-wrap">
+                {% if profile.profile_image and profile.profile_image.name != 'profile_images/default.png' %}
+                    <img src="{{ profile.profile_image.url }}" alt="{{ user.username }}" class="pmv-avatar">
+                {% else %}
+                    <div class="pmv-avatar pmv-avatar--placeholder">
+                        <i class="far fa-user"></i>
+                    </div>
+                {% endif %}
+                <span class="pmv-verified"><i class="fas fa-check-circle"></i></span>
+            </div>
+            <h2>{{ user.first_name|default:user.username }} {{ user.last_name|default:'' }}</h2>
+            <span class="pmv-member"><i class="fas fa-star"></i> Gold Member</span>
+        </section>
+
+        <section class="pmv-stats">
+            <div class="pmv-stat-card">
+                <i class="far fa-box"></i>
+                <p class="pmv-stat-value">12</p>
+                <p class="pmv-stat-label">Orders Placed</p>
+            </div>
+            <div class="pmv-stat-stack">
+                <div class="pmv-stat-mini">
+                    <div>
+                        <p class="pmv-stat-value">{{ wishlist_count|default:'0' }}</p>
+                        <p class="pmv-stat-label">Wishlist</p>
+                    </div>
+                    <i class="far fa-heart"></i>
+                </div>
+                <div class="pmv-stat-mini pmv-stat-mini--alt">
+                    <div>
+                        <p class="pmv-stat-value">2</p>
+                        <p class="pmv-stat-label">In Transit</p>
+                    </div>
+                    <i class="far fa-truck"></i>
+                </div>
+            </div>
+        </section>
+
+        <section class="pmv-loyalty">
+            <div class="pmv-loyalty__top">
+                <div>
+                    <p>Loyalty Points</p>
+                    <h3>{{ loyalty_account.points_available|default:0 }}</h3>
+                </div>
+                <span><i class="far fa-wallet"></i></span>
+            </div>
+            <div class="pmv-loyalty__bar"><div></div></div>
+            <div class="pmv-loyalty__meta">
+                <small>150 points to Diamond tier</small>
+                <small>VIEW PERKS</small>
+            </div>
+        </section>
+
+        <section class="pmv-menu-list">
+            <a href="#" data-bs-toggle="modal" data-bs-target="#profileModal">
+                <span><i class="far fa-user"></i> Account Details</span>
+                <i class="far fa-angle-down"></i>
+            </a>
+            <a href="{% url 'order_list' %}">
+                <span><i class="far fa-history"></i> Transaction History</span>
+                <i class="far fa-angle-down"></i>
+            </a>
+            <a href="{% url 'address_book' %}">
+                <span><i class="far fa-map-marker-alt"></i> Addresses</span>
+                <i class="far fa-angle-down"></i>
+            </a>
+            <a href="{% url 'payment_methods' %}">
+                <span><i class="far fa-lock"></i> Payment Methods</span>
+                <i class="far fa-angle-down"></i>
+            </a>
+        </section>
+
+        <section class="pmv-logout-wrap">
+            <a href="{% url 'logout' %}" class="pmv-logout-btn"><i class="far fa-sign-out-alt"></i> Logout Account</a>
+        </section>
+    </main>
+
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
+</section>
+
 <!-- Page Banner Start -->
-<div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
+<div class="page-banner-area page-banner-height-2 vm-profile-desktop-only" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
     <div class="container">
         <div class="row">
             <div class="col-xl-12">
@@ -32,9 +133,8 @@
 <!-- Page Banner End -->
 
 <!-- Profile Area Start -->
-<section class="account-area pt-100 pb-100">
+<section class="account-area pt-100 pb-100 vm-profile-desktop-only">
     <div class="container">
-        <!-- Messages -->
         {% if messages %}
             <div class="row mb-30">
                 <div class="col-lg-12">
@@ -48,252 +148,84 @@
             </div>
         {% endif %}
 
-        <div class="row">
-            <!-- Left Side - Profile Display -->
-            <div class="col-lg-4 mb-30">
-                <div class="profile-card border-1">
-                    <div class="profile-card-inner">
-                        <!-- Profile Image -->
-                        <div class="profile-img-wrapper text-center mb-30">
-                            {% if profile.profile_image and profile.profile_image.name != 'profile_images/default.png' %}
-                                <img src="{{ profile.profile_image.url }}" alt="{{ user.username }}" class="profile-image rounded-circle" style="width: 200px; height: 200px; object-fit: cover;">
-                            {% else %}
-                                <div class="profile-image-placeholder rounded-circle" style="width: 200px; height: 200px; background: linear-gradient(135deg, #f4a800 0%, #f7c047 100%); color: white; margin: 0 auto; box-shadow: 0 4px 12px rgba(244, 168, 0, 0.3); display: flex; align-items: center; justify-content: center;">
-                                    <i class="fas fa-user" style="font-size: 80px; line-height: 1;"></i>
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Profile Info Card -->
-                        <div class="profile-info-box">
-                            <div class="info-item mb-20">
-                                <label class="info-label">
-                                    <i class="fas fa-user"></i> Full Name
-                                </label>
-                                <p class="info-value">{{ user.first_name }} {{ user.last_name|default:'' }}</p>
-                            </div>
-
-                            <div class="info-item mb-20">
-                                <label class="info-label">
-                                    <i class="fas fa-envelope"></i> Email
-                                </label>
-                                <p class="info-value">{{ user.email }}</p>
-                            </div>
-
-                            <div class="info-item mb-20">
-                                <label class="info-label">
-                                    <i class="fas fa-phone"></i> Mobile
-                                </label>
-                                <p class="info-value">
-                                    {% if profile.mobile_number %}
-                                        {{ profile.country_code }} {{ profile.mobile_number }}
-                                    {% else %}
-                                        <span class="text-muted">Not added</span>
-                                    {% endif %}
-                                </p>
-                            </div>
-
-                            <div class="info-item mb-30">
-                                <label class="info-label">
-                                    <i class="fas fa-calendar"></i> Member Since
-                                </label>
-                                <p class="info-value">{{ user.date_joined|date:"M d, Y" }}</p>
-                            </div>
-
-                            <!-- Edit Profile Button -->
-                            <button class="tp-btn-h1 w-100" data-bs-toggle="modal" data-bs-target="#profileModal">
-                                <i class="fas fa-edit"></i> Edit Profile
-                            </button>
-                        </div>
-                    </div>
+        <div class="pdv-shell">
+            <section class="pdv-hero">
+                <div>
+                    <h2 class="pdv-name">{{ user.first_name|default:user.username }} {{ user.last_name|default:'' }}</h2>
+                    <p class="pdv-email">{{ user.email }}</p>
                 </div>
-            </div>
-
-            <!-- Right Side - Empty Space or Additional Info -->
-            <div class="col-lg-8">
-                <!-- Order Stats Section (Dynamic) -->
-                <div class="profile-details-box border-1 p-40 mb-30" id="profileStatsBox">
-                    <h5 class="mb-30">
-                        <i class="fas fa-chart-line"></i> Order Statistics
-                    </h5>
-
-                    <div class="row mb-30" id="profileStatsCards">
-                        <div class="col-md-3 col-sm-6 mb-20">
-                            <div class="stats-card text-center p-20 bg-light" style="border-radius: 12px;">
-                                <h3 class="mb-5" id="statsTotalOrders">0</h3>
-                                <p class="mb-0" style="font-size: 13px;">Total</p>
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-sm-6 mb-20">
-                            <div class="stats-card text-center p-20 bg-success text-white" style="border-radius: 12px;">
-                                <h3 class="mb-5 text-white" id="statsDeliveredOrders">0</h3>
-                                <p class="mb-0" style="font-size: 13px;">Delivered</p>
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-sm-6 mb-20">
-                            <div class="stats-card text-center p-20 bg-warning text-white" style="border-radius: 12px;">
-                                <h3 class="mb-5 text-white" id="statsPendingOrders">0</h3>
-                                <p class="mb-0" style="font-size: 13px;">In Progress</p>
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-sm-6 mb-20">
-                            <div class="stats-card text-center p-20 bg-danger text-white" style="border-radius: 12px;">
-                                <h3 class="mb-5 text-white" id="statsCancelledOrders">0</h3>
-                                <p class="mb-0" style="font-size: 13px;">Cancelled</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <h6 class="mb-20">
-                        <i class="fas fa-receipt"></i> Recent Orders
-                    </h6>
-
-                    <div class="row recent-orders-grid" id="recentOrdersGrid">
-                        <div class="col-12">
-                            <div class="recent-orders-empty">
-                                Loading recent orders...
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Loyalty Points Section -->
-                <div class="profile-details-box border-1 p-40 mb-30">
-                    <h5 class="mb-30">
-                        <i class="fas fa-star" style="color: #ffc107;"></i> Loyalty Points
-                    </h5>
-
-                    <div class="row mb-30 loyalty-points-grid">
-                        <div class="col-md-4 mb-20">
-                            <div class="points-stat-card text-center p-20" style="background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%); border-radius: 12px; box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);">
-                                <i class="fas fa-coins" style="font-size: 32px; color: white; margin-bottom: 10px;"></i>
-                                <h3 class="text-white mb-1">{{ loyalty_account.total_points|default:0 }}</h3>
-                                <p class="text-white mb-0" style="font-size: 13px;">Total Earned</p>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-20">
-                            <div class="points-stat-card text-center p-20" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border-radius: 12px; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);">
-                                <i class="fas fa-wallet" style="font-size: 32px; color: white; margin-bottom: 10px;"></i>
-                                <h3 class="text-white mb-1">{{ loyalty_account.points_available|default:0 }}</h3>
-                                <p class="text-white mb-0" style="font-size: 13px;">Available Points</p>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-20">
-                            <div class="points-stat-card text-center p-20" style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%); border-radius: 12px; box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);">
-                                <i class="fas fa-gift" style="font-size: 32px; color: white; margin-bottom: 10px;"></i>
-                                <h3 class="text-white mb-1">{{ loyalty_account.points_used|default:0 }}</h3>
-                                <p class="text-white mb-0" style="font-size: 13px;">Points Used</p>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-20">
-                            <div class="points-stat-card text-center p-20" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border-radius: 12px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);">
-                                <i class="fas fa-wallet" style="font-size: 32px; color: white; margin-bottom: 10px;"></i>
-                                <h3 class="text-white mb-1">₹{{ profile.wallet_balance|default:"0.00" }}</h3>
-                                <p class="text-white mb-0" style="font-size: 13px;">VibeMall Wallet</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <h6 class="mb-20">
-                        <i class="fas fa-history"></i> Transaction History
-                    </h6>
-
-                    {% if points_transactions %}
-                        <div class="row transaction-history-grid">
-                            {% for transaction in points_transactions %}
-                            <div class="col-sm-6 mb-20">
-                                <div class="transaction-history-card {% if transaction.transaction_type == 'EARNED' %}transaction-history-card--earned{% elif transaction.transaction_type == 'REDEEMED' %}transaction-history-card--redeemed{% elif transaction.transaction_type == 'EXPIRED' %}transaction-history-card--expired{% else %}transaction-history-card--adjusted{% endif %}">
-                                    <div class="transaction-history-card__top">
-                                        <div class="transaction-history-card__date">
-                                            <small>{{ transaction.created_at|date:"M d, Y" }}</small>
-                                            <small>{{ transaction.created_at|time:"h:i A" }}</small>
-                                        </div>
-                                        <div class="transaction-history-card__points">
-                                            <small class="transaction-history-card__points-label">Points</small>
-                                            {% if transaction.transaction_type == 'EARNED' %}
-                                                <span class="transaction-points-positive">+{{ transaction.points }}</span>
-                                            {% else %}
-                                                <span class="transaction-points-negative">-{{ transaction.points }}</span>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-
-                                    <div class="transaction-history-card__type mb-2">
-                                        {% if transaction.transaction_type == 'EARNED' %}
-                                            <span class="badge bg-success"><i class="fas fa-plus-circle"></i> Earned</span>
-                                        {% elif transaction.transaction_type == 'REDEEMED' %}
-                                            <span class="badge bg-danger"><i class="fas fa-minus-circle"></i> Redeemed</span>
-                                        {% elif transaction.transaction_type == 'EXPIRED' %}
-                                            <span class="badge bg-warning"><i class="fas fa-clock"></i> Expired</span>
-                                        {% else %}
-                                            <span class="badge bg-info"><i class="fas fa-sync"></i> Adjusted</span>
-                                        {% endif %}
-                                    </div>
-
-                                    <div class="transaction-history-card__meta">
-                                        <span class="transaction-history-card__meta-label">
-                                            <i class="fas fa-receipt"></i> Order Details
-                                        </span>
-                                        <p class="transaction-history-card__desc mb-0">{{ transaction.description }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
+                <div class="pdv-avatar-wrap">
+                    {% if profile.profile_image and profile.profile_image.name != 'profile_images/default.png' %}
+                        <img src="{{ profile.profile_image.url }}" alt="{{ user.username }}" class="pdv-avatar">
                     {% else %}
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i> No transactions yet. Start earning points by placing orders!
+                        <div class="pdv-avatar pdv-avatar--placeholder">
+                            <i class="far fa-user"></i>
                         </div>
                     {% endif %}
                 </div>
+            </section>
 
-                <!-- Account Information -->
-                <div class="profile-details-box border-1 p-40">
-                    <h5 class="mb-30">
-                        <i class="fas fa-info-circle"></i> Account Information
-                    </h5>
+            <nav class="pdv-tabs" aria-label="Profile Desktop Tabs">
+                <button type="button" class="pdv-tab is-active" data-pdv-tab="overview">Overview</button>
+                <button type="button" class="pdv-tab" data-pdv-tab="orders">Orders</button>
+                <button type="button" class="pdv-tab" data-pdv-tab="settings">Settings</button>
+            </nav>
 
-                    <div class="info-section mb-40">
-                        <h6 class="mb-20">Username</h6>
-                        <p>{{ user.username }}</p>
+            <div class="pdv-panels">
+                <section class="pdv-panel is-active" data-pdv-panel="overview">
+                    <article class="pdv-card">
+                        <h3>Account Overview</h3>
+                        <p>Member since {{ user.date_joined|date:"Y" }}. Gold Tier.</p>
+                    </article>
+
+                    <div class="pdv-grid-two">
+                        <article class="pdv-card">
+                            <h4>Profile</h4>
+                            <p><strong>Username:</strong> {{ user.username }}</p>
+                            <p><strong>Mobile:</strong>
+                                {% if profile.mobile_number %}
+                                    {{ profile.country_code }} {{ profile.mobile_number }}
+                                {% else %}
+                                    Not added
+                                {% endif %}
+                            </p>
+                            <button class="pdv-btn" data-bs-toggle="modal" data-bs-target="#profileModal">Edit</button>
+                        </article>
+
+                        <article class="pdv-card">
+                            <h4>Primary Address</h4>
+                            <p>Manage your saved address details from Address Book.</p>
+                            <a href="{% url 'address_book' %}" class="pdv-btn">Open Address Book</a>
+                        </article>
                     </div>
 
-                    <div class="info-section mb-40">
-                        <h6 class="mb-20">Account Status</h6>
-                        <p>
-                            {% if user.is_active %}
-                                <span class="badge bg-success"><i class="fas fa-check-circle"></i> Active</span>
-                            {% else %}
-                                <span class="badge bg-danger"><i class="fas fa-times-circle"></i> Inactive</span>
-                            {% endif %}
-                        </p>
-                    </div>
-
-                    <div class="info-section mb-40">
-                        <h6 class="mb-20">Email Verification</h6>
-                        <p>
-                            <span class="badge bg-info"><i class="fas fa-shield-alt"></i> Verified</span>
-                        </p>
-                    </div>
-
-                    <hr>
-
-                    <div class="mt-40">
-                        <h6 class="mb-20">Quick Actions</h6>
-                        <div class="row">
-                            <div class="col-md-6 mb-15">
-                                <a href="{% url 'wishlist' %}" class="tp-btn-h2 w-100 text-center">
-                                    <i class="fas fa-heart"></i> My Wishlist
-                                </a>
-                            </div>
-                            <div class="col-md-6 mb-15">
-                                <a href="{% url 'cart' %}" class="tp-btn-h2 w-100 text-center">
-                                    <i class="fas fa-shopping-bag"></i> My Cart
-                                </a>
-                            </div>
+                    <article class="pdv-card pdv-discount">
+                        <div>
+                            <h4>Active Discounts</h4>
+                            <p>SUMMER20 - 20% Off</p>
                         </div>
-                    </div>
-                </div>
+                        <button type="button" class="pdv-btn" data-pdv-copy="SUMMER20">Copy Code</button>
+                    </article>
+                </section>
+
+                <section class="pdv-panel" data-pdv-panel="orders">
+                    <article class="pdv-card">
+                        <h3>Orders</h3>
+                        <p>Your order history and tracking details are available here.</p>
+                        <a href="{% url 'order_list' %}" class="pdv-btn">View Orders</a>
+                    </article>
+                </section>
+
+                <section class="pdv-panel" data-pdv-panel="settings">
+                    <article class="pdv-card">
+                        <h3>Settings</h3>
+                        <p>Update your profile information and payment preferences.</p>
+                        <div class="pdv-actions">
+                            <button type="button" class="pdv-btn" data-bs-toggle="modal" data-bs-target="#profileModal">Edit Profile</button>
+                            <a href="{% url 'payment_methods' %}" class="pdv-btn pdv-btn--light">Payment Methods</a>
+                        </div>
+                    </article>
+                </section>
             </div>
         </div>
     </div>
@@ -388,88 +320,44 @@
 
 <link rel="stylesheet" href="{% static 'assets/css/profile-custom.css' %}">
 <link rel="stylesheet" href="{% static 'assets/css/profile-responsive.css' %}?v=20260222-01">
+<link rel="stylesheet" href="{% static 'assets/css/profile-mobile-alt.css' %}?v=20260331-01">
+<link rel="stylesheet" href="{% static 'assets/css/profile-mobile-view.css' %}?v=20260401-01">
+<link rel="stylesheet" href="{% static 'assets/css/profile-desktop-view.css' %}?v=20260401-01">
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const statsTotal = document.getElementById('statsTotalOrders');
-        const statsDelivered = document.getElementById('statsDeliveredOrders');
-        const statsPending = document.getElementById('statsPendingOrders');
-        const statsCancelled = document.getElementById('statsCancelledOrders');
-        const recentGrid = document.getElementById('recentOrdersGrid');
-        const fallbackProductImage = "{% static 'assets/img/product/tp-1.jpg' %}";
+        const tabs = document.querySelectorAll('[data-pdv-tab]');
+        const panels = document.querySelectorAll('[data-pdv-panel]');
 
-        function escapeHtml(value) {
-            return String(value ?? '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
-        }
+        tabs.forEach((tab) => {
+            tab.addEventListener('click', () => {
+                const target = tab.getAttribute('data-pdv-tab');
 
-        fetch('/api/profile/stats/')
-            .then(response => response.json())
-            .then(data => {
-                if (statsTotal) statsTotal.textContent = data.total_orders ?? 0;
-                if (statsDelivered) statsDelivered.textContent = data.delivered_orders ?? 0;
-                if (statsPending) statsPending.textContent = data.pending_orders ?? 0;
-                if (statsCancelled) statsCancelled.textContent = data.cancelled_orders ?? 0;
+                tabs.forEach((btn) => btn.classList.remove('is-active'));
+                panels.forEach((panel) => panel.classList.remove('is-active'));
 
-                if (recentGrid) {
-                    const orders = data.recent_orders || [];
-                    if (!orders.length) {
-                        recentGrid.innerHTML = '<div class="col-12"><div class="recent-orders-empty">No recent orders found.</div></div>';
-                        return;
-                    }
-
-                    recentGrid.innerHTML = orders.map(order => {
-                        const statusClassMap = {
-                            DELIVERED: 'bg-success',
-                            CANCELLED: 'bg-danger',
-                            SHIPPED: 'bg-primary',
-                            PROCESSING: 'bg-info',
-                            PENDING: 'bg-warning'
-                        };
-                        const statusClass = statusClassMap[order.status] || 'bg-secondary';
-
-                        const orderAmount = Number(order.total_amount || 0).toFixed(2);
-                        const orderDate = escapeHtml(order.created_at_full || order.created_at || '');
-                        const productName = escapeHtml(order.product_name || 'Product');
-                        const itemSummary = escapeHtml(order.item_summary || '');
-                        const statusText = escapeHtml(order.status_display || order.status || '');
-                        const orderNumber = escapeHtml(order.order_number || '');
-                        const productImage = escapeHtml(order.product_image || fallbackProductImage);
-                        const detailUrl = escapeHtml(order.detail_url || '#');
-
-                        return `
-                            <div class="col-6 mb-20">
-                                <a class="recent-order-card" href="${detailUrl}">
-                                    <div class="recent-order-card__media">
-                                        <img src="${productImage}" alt="${productName}" loading="lazy" onerror="this.onerror=null;this.src='${fallbackProductImage}';">
-                                    </div>
-                                    <div class="recent-order-card__content">
-                                        <div class="recent-order-card__top">
-                                            <span class="recent-order-card__number">#${orderNumber}</span>
-                                            <span class="badge ${statusClass}">${statusText}</span>
-                                        </div>
-                                        <h6 class="recent-order-card__title">${productName}</h6>
-                                        <p class="recent-order-card__summary">${itemSummary}</p>
-                                        <div class="recent-order-card__bottom">
-                                            <strong class="recent-order-card__price">₹${orderAmount}</strong>
-                                            <span class="recent-order-card__date">${orderDate}</span>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
-                        `;
-                    }).join('');
-                }
-            })
-            .catch(() => {
-                if (recentGrid) {
-                    recentGrid.innerHTML = '<div class="col-12"><div class="recent-orders-empty">Unable to load stats right now.</div></div>';
+                tab.classList.add('is-active');
+                const activePanel = document.querySelector('[data-pdv-panel="' + target + '"]');
+                if (activePanel) {
+                    activePanel.classList.add('is-active');
                 }
             });
+        });
+
+        document.querySelectorAll('[data-pdv-copy]').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+                const code = btn.getAttribute('data-pdv-copy') || '';
+                if (!code || !navigator.clipboard) return;
+                try {
+                    await navigator.clipboard.writeText(code);
+                    btn.textContent = 'Copied';
+                    setTimeout(() => {
+                        btn.textContent = 'Copy Code';
+                    }, 1200);
+                } catch (_) {
+                }
+            });
+        });
     });
 </script>
 

@@ -2,8 +2,106 @@
 {% load static %}
 
 {% block title %}Privacy Policy - VibeMall{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-mobile-privacy{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'assets/css/privacy-policy-mobile-alt.css' %}?v=20260329-01">
+{% endblock %}
 
 {% block content %}
+
+<section class="vm-privacy-mobile-only" aria-label="Privacy policy mobile view">
+    {% include 'partials/vm_mobile_alt_header.html' %}
+
+    <main class="vm-privacy-m-main vm-mobile-content-offset">
+        <section class="vm-privacy-m-hero">
+            <p>Legal Framework</p>
+            <h1>Privacy &amp; Data Ethics</h1>
+            <div class="vm-privacy-m-updated">
+                <p>Last Updated: {{ current_date }}</p>
+            </div>
+        </section>
+
+        <section class="vm-privacy-m-intro">
+            <h2>Introduction</h2>
+            <div class="vm-privacy-m-panel">
+                <p>At VIBEMALL, we consider the protection of your personal information to be a fundamental aspect of the luxury experience. This Privacy Policy describes how your personal information is collected, used, and shared when you visit or make a purchase from our digital atelier.</p>
+            </div>
+        </section>
+
+        <section class="vm-privacy-m-section">
+            <h2>Information We Collect</h2>
+            <p>When you visit the Site, we automatically collect certain information about your device, including your web browser, IP address, time zone, and cookies installed on your device.</p>
+
+            <article class="vm-privacy-m-card">
+                <div class="vm-privacy-m-icon"><i class="far fa-fingerprint"></i></div>
+                <div>
+                    <h3>Identity Data</h3>
+                    <p>First name, last name, username or similar identifier, and title.</p>
+                </div>
+            </article>
+
+            <article class="vm-privacy-m-card">
+                <div class="vm-privacy-m-icon"><i class="far fa-envelope"></i></div>
+                <div>
+                    <h3>Contact Data</h3>
+                    <p>Billing address, delivery address, email address, and telephone numbers.</p>
+                </div>
+            </article>
+
+            <article class="vm-privacy-m-card">
+                <div class="vm-privacy-m-icon"><i class="far fa-credit-card"></i></div>
+                <div>
+                    <h3>Financial Data</h3>
+                    <p>Encrypted payment card details and transaction history.</p>
+                </div>
+            </article>
+        </section>
+
+        <section class="vm-privacy-m-section">
+            <h2>How We Use Your Data</h2>
+            <p>We use Order Information to fulfill orders, process payments, arrange shipping, and provide invoices or confirmations.</p>
+            <ul>
+                <li>Communicate with you regarding artisanal updates</li>
+                <li>Screen orders for potential risk or fraud</li>
+                <li>Provide information and relevant product communication</li>
+                <li>Optimize the digital viewing experience</li>
+            </ul>
+        </section>
+
+        <section class="vm-privacy-m-section">
+            <h2>Sharing Your Personal Information</h2>
+            <div class="vm-privacy-m-quote">
+                <p>We never sell your personal data to third parties for marketing purposes.</p>
+            </div>
+            <p>We share your Personal Information with selected service providers to process orders, deliveries, and support services, as described above.</p>
+        </section>
+
+        <section class="vm-privacy-m-section">
+            <h2>Data Retention</h2>
+            <p>When you place an order through the Site, we maintain your Order Information for records unless and until you ask us to delete it.</p>
+        </section>
+
+        <section class="vm-privacy-m-section">
+            <h2>Your Rights</h2>
+            <div class="vm-privacy-m-panel">
+                <p>If you are a European resident, you have the right to access personal information we hold about you and request correction, updates, or deletion.</p>
+                <a href="{% url 'contact' %}" class="vm-privacy-m-btn">Request Data Access</a>
+            </div>
+        </section>
+
+        <section class="vm-privacy-m-section vm-privacy-m-contact">
+            <h2>Contact Us</h2>
+            <p>For questions about privacy practices or complaints, contact us at <a href="mailto:concierge@vibemall.com">concierge@vibemall.com</a>.</p>
+        </section>
+
+        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='privacy-policy-mobile' %}
+    </main>
+
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' %}
+</section>
+
+<div class="vm-privacy-legacy-content">
 
 <!-- Page Banner Start -->
 <div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
@@ -186,5 +284,7 @@
     </div>
 </section>
 <!-- Privacy Content End -->
+
+</div>
 
 {% endblock %}

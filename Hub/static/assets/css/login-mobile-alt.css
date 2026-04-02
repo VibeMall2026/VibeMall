@@ -1,0 +1,285 @@
+/* Login mobile-only replacement from login--mobile */
+.vm-login-mobile-only {
+    display: none;
+}
+
+@media (max-width: 767.98px) {
+    .vm-login-legacy-content {
+        display: none !important;
+    }
+
+    .vm-login-m-header,
+    .vm-login-m-footer {
+        display: none !important;
+    }
+
+    .vm-login-mobile-only {
+        display: block;
+        min-height: 100vh;
+        background: #fbf9f4;
+        color: #171818;
+        font-family: "Inter", sans-serif;
+    }
+
+    .vm-login-m-header {
+        position: sticky;
+        top: 0;
+        z-index: 90;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        background: rgba(251, 249, 244, 0.92);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(23, 24, 24, 0.08);
+    }
+
+    .vm-login-m-header__left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .vm-login-m-header__left h1 {
+        margin: 0;
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: 21px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+    }
+
+    .vm-login-m-header__left button,
+    .vm-login-m-header__right a {
+        border: none;
+        background: transparent;
+        color: #171818;
+        font-size: 20px;
+        text-decoration: none;
+    }
+
+    .vm-login-m-header__right {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .vm-login-m-main {
+        padding-bottom: 34px;
+    }
+
+    .vm-login-m-hero {
+        position: relative;
+        height: 300px;
+        overflow: hidden;
+    }
+
+    .vm-login-m-hero img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center top;
+    }
+
+    .vm-login-m-hero-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(251,249,244,0) 20%, rgba(251,249,244,0.88) 88%);
+    }
+
+    .vm-login-m-hero-content {
+        position: absolute;
+        left: 16px;
+        right: 16px;
+        bottom: 18px;
+    }
+
+    .vm-login-m-hero-content h2 {
+        margin: 0;
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: 46px;
+        line-height: 0.92;
+        letter-spacing: -0.02em;
+        text-transform: uppercase;
+    }
+
+    .vm-login-m-hero-content p {
+        margin: 8px 0 0;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.28em;
+        color: rgba(23,24,24,0.55);
+        font-weight: 700;
+    }
+
+    .vm-login-m-card-wrap {
+        margin-top: -34px;
+        position: relative;
+        z-index: 5;
+        padding: 0 16px;
+    }
+
+    .vm-login-m-card {
+        background: #fff;
+        border-radius: 14px;
+        border: 1px solid rgba(23,24,24,0.06);
+        box-shadow: 0 22px 55px rgba(0,0,0,0.08);
+        padding: 22px 18px;
+    }
+
+    .vm-login-m-head {
+        margin-bottom: 16px;
+    }
+
+    .vm-login-m-head h3 {
+        margin: 0;
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: 28px;
+    }
+
+    .vm-login-m-head p {
+        margin: 4px 0 0;
+        color: rgba(23,24,24,0.58);
+        font-size: 13px;
+    }
+
+    .vm-login-m-messages {
+        margin-bottom: 12px;
+        display: grid;
+        gap: 8px;
+    }
+
+    .vm-login-m-alert {
+        padding: 10px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        line-height: 1.45;
+    }
+
+    .vm-login-m-alert.success {
+        background: #ecfdf3;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+    }
+
+    .vm-login-m-alert.error,
+    .vm-login-m-alert.danger {
+        background: #fef2f2;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+    }
+
+    .vm-login-m-form {
+        display: grid;
+        gap: 14px;
+    }
+
+    .vm-login-m-field label {
+        display: block;
+        margin-bottom: 7px;
+        font-size: 10px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: rgba(23,24,24,0.5);
+        font-weight: 700;
+    }
+
+    .vm-login-m-field input {
+        width: 100%;
+        border: none;
+        outline: none;
+        border-radius: 10px;
+        min-height: 44px;
+        padding: 0 13px;
+        background: #f5f3ee;
+        color: #171818;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .vm-login-m-field-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .vm-login-m-field-top a {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-weight: 700;
+        color: #6f5c37;
+        text-decoration: none;
+    }
+
+    .vm-login-m-pass-wrap {
+        position: relative;
+    }
+
+    .vm-login-m-pass-wrap input {
+        padding-right: 42px;
+    }
+
+    .vm-login-m-toggle-pass {
+        position: absolute;
+        top: 50%;
+        right: 12px;
+        transform: translateY(-50%);
+        border: none;
+        background: transparent;
+        color: rgba(23,24,24,0.4);
+    }
+
+    .vm-login-m-remember {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: rgba(23,24,24,0.65);
+    }
+
+    .vm-login-m-submit {
+        width: 100%;
+        min-height: 46px;
+        border: none;
+        border-radius: 10px;
+        background: #171818;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+    }
+
+    .vm-login-m-register {
+        margin: 4px 0 0;
+        text-align: center;
+        font-size: 13px;
+        color: rgba(23,24,24,0.45);
+    }
+
+    .vm-login-m-register a {
+        color: #171818;
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        font-weight: 800;
+        text-decoration: none;
+        border-bottom: 2px solid rgba(111,92,55,0.35);
+        padding-bottom: 1px;
+        margin-left: 5px;
+    }
+
+    .vm-login-m-footer {
+        text-align: center;
+        padding: 16px;
+    }
+
+    .vm-login-m-footer p {
+        margin: 0;
+        font-size: 10px;
+        letter-spacing: 0.36em;
+        text-transform: uppercase;
+        color: rgba(23,24,24,0.28);
+        font-weight: 700;
+    }
+}

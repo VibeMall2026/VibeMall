@@ -1,0 +1,388 @@
+/* Mobile-only payout page replacement adapted from payouts prototype */
+.vm-payout-mobile-only {
+    display: none;
+}
+
+@media (max-width: 767.98px) {
+    .vm-payout-mobile-only {
+        display: block;
+        min-height: 100vh;
+        background: #fbf9f4;
+        color: #171818;
+        font-family: "Manrope", sans-serif;
+    }
+
+    .vm-payout-legacy-content {
+        display: none !important;
+    }
+
+    .vm-payout-m-main {
+        padding: 0 24px 28px;
+    }
+
+    .vm-payout-m-hero,
+    .vm-payout-m-history,
+    .vm-payout-m-help {
+        margin-bottom: 28px;
+    }
+
+    .vm-payout-m-hero span,
+    .vm-payout-m-section-head span,
+    .vm-payout-m-form label span,
+    .vm-payout-m-methods > span,
+    .vm-payout-m-balance span {
+        display: block;
+        margin-bottom: 10px;
+        color: #6f5c37;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+    }
+
+    .vm-payout-m-hero h1,
+    .vm-payout-m-section-head h2,
+    .vm-payout-m-history-card h3,
+    .vm-payout-m-empty h3 {
+        margin: 0;
+        font-family: "Noto Serif", Georgia, serif;
+        color: #171818;
+        letter-spacing: -0.03em;
+    }
+
+    .vm-payout-m-hero h1 {
+        margin-bottom: 12px;
+        font-size: 42px;
+        line-height: 0.95;
+    }
+
+    .vm-payout-m-hero p,
+    .vm-payout-m-section-head p,
+    .vm-payout-m-balance p,
+    .vm-payout-m-history-card p,
+    .vm-payout-m-history-card small,
+    .vm-payout-m-empty p,
+    .vm-payout-m-policy p {
+        margin: 0;
+        color: #5f6263;
+        font-size: 14px;
+        line-height: 1.7;
+    }
+
+    .vm-payout-m-messages {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+    .vm-payout-m-alert {
+        border-radius: 12px;
+        padding: 12px 14px;
+        font-size: 12px;
+        line-height: 1.6;
+    }
+
+    .vm-payout-m-alert--success {
+        background: #ecfdf3;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+    }
+
+    .vm-payout-m-alert--error,
+    .vm-payout-m-alert--danger {
+        background: #fef2f2;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+    }
+
+    .vm-payout-m-alert--info,
+    .vm-payout-m-alert--warning {
+        background: #f5f3ee;
+        color: #5b4a29;
+        border: 1px solid #e4d9c3;
+    }
+
+    .vm-payout-m-balance,
+    .vm-payout-m-form-wrap,
+    .vm-payout-m-history-card,
+    .vm-payout-m-empty {
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.82);
+        box-shadow: 0 18px 36px rgba(23, 24, 24, 0.05);
+    }
+
+    .vm-payout-m-balance {
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 28px;
+        padding: 24px;
+        background: #f0eee9;
+    }
+
+    .vm-payout-m-balance::after {
+        content: "";
+        position: absolute;
+        right: -44px;
+        top: -44px;
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        background: rgba(111, 92, 55, 0.1);
+        filter: blur(28px);
+    }
+
+    .vm-payout-m-balance strong {
+        position: relative;
+        z-index: 1;
+        display: block;
+        margin-bottom: 10px;
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: 36px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+    }
+
+    .vm-payout-m-form-wrap {
+        margin-bottom: 22px;
+        padding: 24px;
+    }
+
+    .vm-payout-m-section-head {
+        margin-bottom: 18px;
+    }
+
+    .vm-payout-m-section-head h2 {
+        margin-bottom: 10px;
+        font-size: 32px;
+        line-height: 1;
+    }
+
+    .vm-payout-m-form {
+        display: grid;
+        gap: 16px;
+    }
+
+    .vm-payout-m-form label {
+        display: grid;
+        gap: 8px;
+    }
+
+    .vm-payout-m-form input,
+    .vm-payout-m-form textarea {
+        width: 100%;
+        border: none;
+        border-radius: 14px;
+        background: #f5f3ee;
+        padding: 15px 16px;
+        color: #171818;
+        font-size: 14px;
+        box-shadow: inset 0 0 0 1px rgba(23, 24, 24, 0.08);
+    }
+
+    .vm-payout-m-form input:focus,
+    .vm-payout-m-form textarea:focus {
+        outline: none;
+        box-shadow: inset 0 0 0 1px #6f5c37;
+    }
+
+    .vm-payout-m-form small {
+        color: #6d6f70;
+        font-size: 11px;
+        line-height: 1.6;
+    }
+
+    .vm-payout-m-currency-field {
+        position: relative;
+    }
+
+    .vm-payout-m-currency-field i {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #171818;
+        font-style: normal;
+        font-weight: 700;
+    }
+
+    .vm-payout-m-currency-field input {
+        padding-left: 34px;
+    }
+
+    .vm-payout-m-method-grid,
+    .vm-payout-m-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .vm-payout-m-method {
+        display: flex;
+        min-height: 96px;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: 2px solid transparent;
+        border-radius: 16px;
+        background: rgba(240, 238, 233, 0.55);
+        color: #5f6263;
+        transition: all 0.18s ease;
+    }
+
+    .vm-payout-m-method i {
+        font-size: 22px;
+    }
+
+    .vm-payout-m-method strong {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+    }
+
+    .vm-payout-m-method.is-active {
+        border-color: #6f5c37;
+        background: #fff;
+        color: #171818;
+        box-shadow: 0 12px 26px rgba(23, 24, 24, 0.05);
+    }
+
+    .vm-payout-m-detail-group {
+        display: grid;
+        gap: 12px;
+    }
+
+    .vm-payout-m-policy {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 28px;
+        border-radius: 16px;
+        background: rgba(186, 26, 26, 0.08);
+        border-left: 4px solid #ba1a1a;
+        padding: 18px;
+    }
+
+    .vm-payout-m-policy i,
+    .vm-payout-m-policy strong {
+        color: #ba1a1a;
+    }
+
+    .vm-payout-m-policy strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+    }
+
+    .vm-payout-m-history-list {
+        display: grid;
+        gap: 12px;
+    }
+
+    .vm-payout-m-history-card {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 18px;
+    }
+
+    .vm-payout-m-history-card__left {
+        display: flex;
+        gap: 12px;
+        min-width: 0;
+    }
+
+    .vm-payout-m-history-card__icon {
+        display: grid;
+        width: 40px;
+        min-width: 40px;
+        height: 40px;
+        place-items: center;
+        border-radius: 999px;
+        background: #f0eee9;
+        color: #6f5c37;
+        font-size: 16px;
+    }
+
+    .vm-payout-m-history-card h3 {
+        margin-bottom: 4px;
+        font-size: 22px;
+        line-height: 1;
+    }
+
+    .vm-payout-m-history-card small {
+        display: block;
+        margin-top: 4px;
+    }
+
+    .vm-payout-m-status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 32px;
+        padding: 0 12px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .vm-payout-m-status--initiated,
+    .vm-payout-m-status--processing {
+        background: rgba(111, 92, 55, 0.12);
+        color: #6f5c37;
+    }
+
+    .vm-payout-m-status--completed {
+        background: #ecfdf3;
+        color: #166534;
+    }
+
+    .vm-payout-m-status--failed {
+        background: #fef2f2;
+        color: #b91c1c;
+    }
+
+    .vm-payout-m-empty {
+        padding: 24px;
+        text-align: center;
+    }
+
+    .vm-payout-m-empty h3 {
+        margin-bottom: 10px;
+        font-size: 28px;
+        line-height: 1.05;
+    }
+
+    .vm-payout-m-submit {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 54px;
+        border: none;
+        border-radius: 8px;
+        background: #171818;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        transition: transform 0.18s ease, opacity 0.18s ease;
+    }
+
+    .vm-payout-m-submit:active {
+        transform: scale(0.98);
+    }
+
+    .vm-payout-mobile-only .vm-mobile-bottom-nav a.is-active {
+        background: #171818;
+        color: #fff;
+    }
+}

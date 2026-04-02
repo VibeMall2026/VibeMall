@@ -1,0 +1,274 @@
+/* My Orders mobile-only replacement */
+.vm-myorders-mobile-only {
+    display: none;
+}
+
+@media (max-width: 767.98px) {
+    body.vm-page-mobile-orders .vm-copy-header,
+    body.vm-page-mobile-orders .vm-copy-footer,
+    body.vm-page-mobile-orders .footer,
+    body.vm-page-mobile-orders .footer-area,
+    body.vm-page-mobile-orders > footer,
+    body.vm-page-mobile-orders #mobileBottomNavShell {
+        display: none !important;
+    }
+
+    body.vm-page-mobile-orders .vm-home-mobile-header,
+    body.vm-page-mobile-orders .vm-home-mobile-nav {
+        z-index: 110;
+    }
+
+    .vm-myorders-legacy-content {
+        display: none !important;
+    }
+
+    .vm-myorders-mobile-only {
+        display: block;
+        min-height: 100vh;
+        background: #fbf9f4;
+        color: #171818;
+        font-family: "Manrope", sans-serif;
+        padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .vm-myorders-m-main {
+        padding: 16px 16px 0;
+    }
+
+    .vm-myorders-m-main .vm-home-mobile-footer {
+        padding: 38px 0 0;
+    }
+
+    .vm-myorders-m-hero {
+        margin-bottom: 14px;
+    }
+
+    .vm-myorders-m-hero p {
+        margin: 0 0 6px;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: #6f5c37;
+        font-weight: 700;
+    }
+
+    .vm-myorders-m-hero h2 {
+        margin: 0;
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: 38px;
+        line-height: 0.96;
+    }
+
+    .vm-myorders-m-hero span {
+        display: inline-block;
+        margin-top: 8px;
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(23, 24, 24, 0.55);
+        font-weight: 700;
+    }
+
+    .vm-myorders-m-search-wrap {
+        margin-bottom: 14px;
+    }
+
+    .vm-myorders-m-search {
+        position: relative;
+        background: #fff;
+        border: 1px solid #e7e2d8;
+        border-radius: 10px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        padding: 0 12px 0 36px;
+    }
+
+    .vm-myorders-m-search i {
+        position: absolute;
+        left: 12px;
+        color: rgba(23, 24, 24, 0.45);
+        font-size: 14px;
+    }
+
+    .vm-myorders-m-search input {
+        width: 100%;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        font-size: 14px;
+        color: #171818;
+    }
+
+    .vm-myorders-m-list {
+        display: grid;
+        gap: 12px;
+    }
+
+    .vm-myorders-m-card {
+        background: #fff;
+        border-radius: 12px;
+        border: 1px solid #ebe6de;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+    }
+
+    .vm-myorders-m-card-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-decoration: none;
+        color: #171818;
+        padding: 10px 12px;
+        background: linear-gradient(135deg, #f2eee6 0%, #ece5d8 100%);
+        border-bottom: 1px solid #e9e2d5;
+    }
+
+    .vm-myorders-m-card-head strong {
+        font-size: 13px;
+        letter-spacing: 0.02em;
+    }
+
+    .vm-myorders-m-card-head span {
+        font-size: 11px;
+        color: rgba(23, 24, 24, 0.7);
+    }
+
+    .vm-myorders-m-products {
+        padding: 12px;
+        border-bottom: 1px solid #f0ece6;
+    }
+
+    .vm-myorders-m-product {
+        display: grid;
+        grid-template-columns: 56px 1fr;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .vm-myorders-m-product img,
+    .vm-myorders-m-placeholder {
+        width: 56px;
+        height: 56px;
+        border-radius: 9px;
+        object-fit: cover;
+        background: #efebe3;
+        display: grid;
+        place-items: center;
+    }
+
+    .vm-myorders-m-placeholder i {
+        color: rgba(23, 24, 24, 0.45);
+    }
+
+    .vm-myorders-m-product h4 {
+        margin: 0 0 3px;
+        font-size: 13px;
+        line-height: 1.3;
+    }
+
+    .vm-myorders-m-product p {
+        margin: 0;
+        font-size: 12px;
+        color: rgba(23, 24, 24, 0.65);
+    }
+
+    .vm-myorders-m-more {
+        display: inline-block;
+        margin-top: 8px;
+        background: #171818;
+        color: #fff;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        border-radius: 999px;
+        padding: 4px 9px;
+    }
+
+    .vm-myorders-m-meta {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        padding: 12px;
+    }
+
+    .vm-myorders-m-meta label {
+        display: block;
+        margin: 0 0 4px;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: rgba(23, 24, 24, 0.48);
+        font-weight: 700;
+    }
+
+    .vm-myorders-m-meta strong {
+        font-size: 13px;
+    }
+
+    .vm-myorders-m-meta .badge {
+        font-size: 10px;
+        padding: 4px 8px;
+    }
+
+    .vm-myorders-m-actions {
+        padding: 0 12px 12px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .vm-myorders-m-actions a {
+        min-height: 38px;
+        border-radius: 8px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #171818;
+        border: 1px solid #ddd5c8;
+        background: #f8f4ec;
+    }
+
+    .vm-myorders-m-empty {
+        background: #fff;
+        border: 1px solid #ebe6de;
+        border-radius: 12px;
+        text-align: center;
+        padding: 24px 16px;
+    }
+
+    .vm-myorders-m-empty h3 {
+        margin: 0 0 6px;
+        font-family: "Noto Serif", Georgia, serif;
+    }
+
+    .vm-myorders-m-empty p {
+        margin: 0 0 14px;
+        color: rgba(23, 24, 24, 0.62);
+    }
+
+    .vm-myorders-m-empty a {
+        display: inline-block;
+        text-decoration: none;
+        padding: 10px 16px;
+        background: #171818;
+        color: #fff;
+        border-radius: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 11px;
+        font-weight: 700;
+    }
+}
+
+@media (min-width: 768px) {
+    .vm-myorders-mobile-only {
+        display: none !important;
+    }
+}

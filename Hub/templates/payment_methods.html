@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Payment Methods - VibeMall{% endblock %}
+
+{% block content %}
+
+<!-- page-banner-area-start -->
+<div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
+    <div class="container">
+        <div class="row">
+            <div class="col-xl-12">
+                <div class="page-banner-content text-center">
+                    <h4 class="breadcrumb-title">Payment Methods</h4>
+                    <div class="breadcrumb-two">
+                        <nav>
+                            <nav class="breadcrumb-trail breadcrumbs">
+                                <ul class="breadcrumb-menu">
+                                    <li class="breadcrumb-trail">
+                                        <a href="{% url 'index' %}"><span>Home</span></a>
+                                    </li>
+                                    <li class="breadcrumb-trail">
+                                        <a href="{% url 'profile' %}"><span>My Profile</span></a>
+                                    </li>
+                                    <li class="trail-item">
+                                        <span>Payment Methods</span>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- page-banner-area-end -->
+
+<!-- payment-methods-area-start -->
+<section class="account-area pt-100 pb-100">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+
+                <!-- Your Payment Methods -->
+                <div class="profile-details-box border-1 p-40 mb-30">
+                    <h5 class="mb-10" style="font-weight:700;">Your Payment Methods</h5>
+                    <p style="font-size:13px;color:#6f7172;margin-bottom:28px;">Payment methods you have used on VibeMall orders.</p>
+
+                    {% if methods %}
+                    <div class="vm-pm-list">
+                        {% for method in methods %}
+                        <div class="vm-pm-row">
+                            <div class="vm-pm-row__icon">
+                                <i class="{{ method.icon }}"></i>
+                            </div>
+                            <div class="vm-pm-row__info">
+                                <strong>{{ method.label }}</strong>
+                                <span>Used in past orders</span>
+                            </div>
+                            <div class="vm-pm-row__badge">
+                                <i class="fas fa-check-circle"></i> Active
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="vm-pm-empty">
+                        <i class="fas fa-credit-card"></i>
+                        <h6>No payment methods used yet</h6>
+                        <p>Once you complete an order, your payment methods will appear here.</p>
+                        <a href="{% url 'shop' %}" class="tp-btn-h1" style="display:inline-block;margin-top:20px;">Start Shopping</a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Accepted at VibeMall -->
+                <div class="profile-details-box border-1 p-40 mb-30">
+                    <h5 class="mb-10" style="font-weight:700;">Accepted at VibeMall</h5>
+                    <p style="font-size:13px;color:#6f7172;margin-bottom:28px;">We support multiple payment options for a fast and secure checkout.</p>
+
+                    <div class="row">
+                        <div class="col-sm-6 mb-20">
+                            <div class="vm-pm-info-row">
+                                <i class="fas fa-money-bill-wave" style="color:#28a745;"></i>
+                                <div>
+                                    <strong>Cash on Delivery</strong>
+                                    <p>Pay when your order arrives at your doorstep.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-20">
+                            <div class="vm-pm-info-row">
+                                <i class="fas fa-credit-card" style="color:#2196f3;"></i>
+                                <div>
+                                    <strong>Credit / Debit Cards</strong>
+                                    <p>Visa, Mastercard and RuPay — all accepted.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-20">
+                            <div class="vm-pm-info-row">
+                                <i class="fas fa-qrcode" style="color:#9c27b0;"></i>
+                                <div>
+                                    <strong>UPI Payments</strong>
+                                    <p>GPay, PhonePe, Paytm and more.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-20">
+                            <div class="vm-pm-info-row">
+                                <i class="fas fa-university" style="color:#ff9800;"></i>
+                                <div>
+                                    <strong>Net Banking</strong>
+                                    <p>All major Indian banks via Razorpay.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Secure Payments Note -->
+                <div class="profile-details-box border-1 p-40 mb-30">
+                    <div class="d-flex align-items-start" style="gap:20px;">
+                        <div style="min-width:44px;height:44px;background:#fcbe00;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;flex-shrink:0;">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <div>
+                            <h6 style="font-weight:700;margin-bottom:8px;">100% Secure Payments</h6>
+                            <p style="font-size:13px;color:#6f7172;margin:0;">
+                                All transactions on VibeMall are secured with SSL encryption.
+                                We do not store your card details — payments are processed via Razorpay.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <a href="{% url 'profile' %}" class="tp-btn-h2">
+                        <i class="fas fa-arrow-left"></i> Back to Profile
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</section>
+<!-- payment-methods-area-end -->
+
+<style>
+/* ========== Payment Methods ========== */
+.vm-pm-list { display:flex; flex-direction:column; gap:0; border:1px solid #e5e5e5; }
+
+.vm-pm-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 18px;
+    border-bottom: 1px solid #e5e5e5;
+    background: #fff;
+    transition: background .15s;
+}
+.vm-pm-row:last-child { border-bottom: none; }
+.vm-pm-row:hover { background: #fffdf5; }
+
+.vm-pm-row__icon {
+    width: 42px;
+    height: 42px;
+    background: #f7f7f7;
+    border: 1px solid #e4e4e4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #fcbe00;
+    flex-shrink: 0;
+}
+
+.vm-pm-row__info { flex: 1; }
+.vm-pm-row__info strong { display:block; font-size:14px; font-weight:700; color:#222; margin-bottom:2px; }
+.vm-pm-row__info span { font-size:12px; color:#6f7172; }
+
+.vm-pm-row__badge {
+    font-size: 12px;
+    font-weight: 700;
+    color: #28a745;
+    white-space: nowrap;
+}
+.vm-pm-row__badge i { margin-right: 4px; }
+
+.vm-pm-empty { text-align:center; padding:40px 20px; color:#6f7172; }
+.vm-pm-empty i { font-size:40px; color:#e4e4e4; margin-bottom:16px; display:block; }
+.vm-pm-empty h6 { font-size:15px; font-weight:700; color:#333; margin-bottom:8px; }
+.vm-pm-empty p { font-size:13px; }
+
+.vm-pm-info-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid #e5e5e5;
+    background: #fff;
+    height: 100%;
+    transition: box-shadow .2s;
+}
+.vm-pm-info-row:hover { box-shadow: 0 2px 8px rgba(0,0,0,.07); }
+.vm-pm-info-row i { font-size:22px; margin-top:2px; flex-shrink:0; }
+.vm-pm-info-row strong { display:block; font-size:13px; font-weight:700; color:#222; margin-bottom:4px; }
+.vm-pm-info-row p { font-size:12px; color:#6f7172; margin:0; }
+
+@media (max-width: 767.98px) {
+    .account-area.pt-100 { padding-top: 50px !important; }
+    .account-area.pb-100 { padding-bottom: 50px !important; }
+    .p-40 { padding: 24px 18px !important; }
+    .vm-pm-info-row { margin-bottom: 0; }
+}
+</style>
+
+{% endblock %}

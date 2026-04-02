@@ -203,7 +203,8 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = Path(os.getenv('STATIC_ROOT', str(BASE_DIR / 'staticfiles')))
-STATICFILES_DIRS = [BASE_DIR / 'Hub' / 'static']
+PROJECT_STATIC_DIR = BASE_DIR / 'static'
+STATICFILES_DIRS = [PROJECT_STATIC_DIR] if PROJECT_STATIC_DIR.exists() else []
 
 STORAGES = {
     'default': {

@@ -1,11 +1,264 @@
 ﻿{% extends 'base.html' %}
 {% load static %}
 
+{% block title %}Order #{{ order.order_number }} - VibeMall{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-mobile-orderdetails{% endblock %}
+
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'assets/css/orderdetails-responsive.css' %}">
+<link rel="stylesheet" href="{% static 'assets/css/orderdetails-responsive.css' %}?v=20260329-01">
+<link rel="stylesheet" href="{% static 'assets/css/orderdetails-mobile-alt.css' %}?v=20260329-01">
 {% endblock %}
 
 {% block content %}
+<section class="vm-orderdetails-mobile-only" aria-label="Order details mobile view">
+    {% include 'partials/vm_mobile_alt_header.html' %}
+
+    <main class="vm-orderdetails-m-main vm-mobile-content-offset">
+        <a href="{% url 'order_list' %}" class="vm-orderdetails-m-back">
+            <i class="fas fa-arrow-left"></i>
+            <span>Back to Orders</span>
+        </a>
+
+        <section class="vm-orderdetails-m-banner">
+            <img src="{% static 'assets/img/banner/page-banner-4.jpg' %}" alt="Order details banner">
+            <div class="vm-orderdetails-m-banner__overlay"></div>
+            <div class="vm-orderdetails-m-banner__content">
+                <span>Order Details</span>
+                <h2>#{{ order.order_number }}</h2>
+                <p>Placed on {{ order.created_at|date:"d M Y, h:i A" }}</p>
+            </div>
+        </section>
+
+        <section class="vm-orderdetails-m-summary">
+            <div class="vm-orderdetails-m-summary__top">
+                <div>
+                    <span class="vm-orderdetails-m-label">Status</span>
+                    <span class="vm-orderdetails-m-status vm-orderdetails-m-status--{{ order.order_status|lower }}">
+                        {{ order.get_order_status_display }}
+                    </span>
+                </div>
+                <div class="vm-orderdetails-m-summary__right">
+                    <span class="vm-orderdetails-m-label">Payment Status</span>
+                    <span class="vm-orderdetails-m-status vm-orderdetails-m-status--payment-{{ order.payment_status|lower }}">
+                        {% if order.payment_method == 'COD' and order.order_status == 'DELIVERED' %}
+                            Paid (COD)
+                        {% else %}
+                            {{ order.get_payment_status_display }}
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <div class="vm-orderdetails-m-summary__grid">
+                <div class="vm-orderdetails-m-summary__cell">
+                    <span class="vm-orderdetails-m-label">Payment</span>
+                    <strong>{{ order.get_payment_method_display }}</strong>
+                </div>
+                <div class="vm-orderdetails-m-summary__cell">
+                    <span class="vm-orderdetails-m-label">Total</span>
+                    <strong>&#8377;{{ order.total_amount }}</strong>
+                </div>
+                <div class="vm-orderdetails-m-summary__cell">
+                    <span class="vm-orderdetails-m-label">Updated</span>
+                    <strong>{{ order.updated_at|date:"d M Y" }}</strong>
+                </div>
+                <div class="vm-orderdetails-m-summary__cell">
+                    <span class="vm-orderdetails-m-label">Items</span>
+                    <strong>{{ order_items|length }} Item{{ order_items|length|pluralize }}</strong>
+                </div>
+            </div>
+
+            {% if order.is_resell %}
+            <div class="vm-orderdetails-m-chip">
+                <i class="fas fa-recycle"></i>
+                <span>Resell Order</span>
+            </div>
+            {% endif %}
+        </section>
+
+        {% if not active_return and not is_return_eligible and return_reason %}
+        <section class="vm-orderdetails-m-note">
+            <i class="fas fa-info-circle"></i>
+            <p>{{ return_reason }}</p>
+        </section>
+        {% elif is_return_eligible and return_deadline %}
+        <section class="vm-orderdetails-m-note vm-orderdetails-m-note--success">
+            <i class="fas fa-check-circle"></i>
+            <p>Return eligible until {{ return_deadline|date:"d M Y" }}</p>
+        </section>
+        {% endif %}
+
+        {% if not cancel_eligible and cancel_reason %}
+        <section class="vm-orderdetails-m-note">
+            <i class="fas fa-info-circle"></i>
+            <p>{{ cancel_reason }}</p>
+        </section>
+        {% elif cancel_eligible and cancel_deadline %}
+        <section class="vm-orderdetails-m-note vm-orderdetails-m-note--success">
+            <i class="fas fa-check-circle"></i>
+            <p>Cancellation available until {{ cancel_deadline|date:"d M Y, h:i A" }}</p>
+        </section>
+        {% endif %}
+
+        <section class="vm-orderdetails-m-card">
+            <div class="vm-orderdetails-m-card__head">
+                <i class="fas fa-truck"></i>
+                <h3>Shipping Destination</h3>
+            </div>
+            <p class="vm-orderdetails-m-address">{{ order.shipping_address|linebreaksbr }}</p>
+        </section>
+
+        {% if order.is_resell and order.resell_from_name %}
+        <section class="vm-orderdetails-m-card vm-orderdetails-m-card--accent">
+            <div class="vm-orderdetails-m-card__head">
+                <i class="fas fa-user"></i>
+                <h3>Original Sender</h3>
+            </div>
+            <div class="vm-orderdetails-m-detail-list">
+                <div>
+                    <span class="vm-orderdetails-m-label">Name</span>
+                    <strong>{{ order.resell_from_name }}</strong>
+                </div>
+                {% if order.resell_from_phone %}
+                <div>
+                    <span class="vm-orderdetails-m-label">Phone</span>
+                    <strong>{{ order.resell_from_phone }}</strong>
+                </div>
+                {% endif %}
+            </div>
+        </section>
+        {% endif %}
+
+        <section class="vm-orderdetails-m-items">
+            <div class="vm-orderdetails-m-section-head">
+                <h3>Your Selection</h3>
+                <span>{{ order_items|length }} item{{ order_items|length|pluralize }}</span>
+            </div>
+
+            <div class="vm-orderdetails-m-item-list">
+                {% for item in order_items %}
+                <article class="vm-orderdetails-m-item">
+                    <div class="vm-orderdetails-m-item__media">
+                        {% if item.product_image %}
+                        <img src="{{ item.product_image }}" alt="{{ item.product_name }}">
+                        {% elif item.product and item.product.image %}
+                        <img src="{{ item.product.image.url }}" alt="{{ item.product_name }}">
+                        {% else %}
+                        <div class="vm-orderdetails-m-item__placeholder">
+                            <i class="fas fa-box"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="vm-orderdetails-m-item__body">
+                        <span class="vm-orderdetails-m-item__eyebrow">Order Item</span>
+                        <h4>{{ item.product_name }}</h4>
+                        <p>{{ item.color|default:"Color N/A" }} / {{ item.size|default:"Size N/A" }}</p>
+
+                        <div class="vm-orderdetails-m-item__meta">
+                            <span>Qty: {{ item.quantity }}</span>
+                            <span>Price: &#8377;{{ item.product_price }}</span>
+                        </div>
+
+                        <div class="vm-orderdetails-m-item__footer">
+                            <strong>&#8377;{{ item.subtotal }}</strong>
+                            {% if item.product %}
+                            <a href="{% url 'product-details' item.product.id %}">View Product</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </article>
+                {% empty %}
+                <div class="vm-orderdetails-m-empty">
+                    <h4>No items found</h4>
+                    <p>This order does not have any visible items yet.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="vm-orderdetails-m-totals">
+            <div class="vm-orderdetails-m-totals__row">
+                <span>Subtotal</span>
+                <span>&#8377;{{ order.subtotal }}</span>
+            </div>
+            {% if order.shipping_cost %}
+            <div class="vm-orderdetails-m-totals__row">
+                <span>Shipping</span>
+                <span>&#8377;{{ order.shipping_cost }}</span>
+            </div>
+            {% else %}
+            <div class="vm-orderdetails-m-totals__row">
+                <span>Shipping</span>
+                <span>Complimentary</span>
+            </div>
+            {% endif %}
+            {% if order.tax %}
+            <div class="vm-orderdetails-m-totals__row">
+                <span>Tax</span>
+                <span>&#8377;{{ order.tax }}</span>
+            </div>
+            {% endif %}
+            {% if order.coupon_discount %}
+            <div class="vm-orderdetails-m-totals__row">
+                <span>Discount</span>
+                <span>-&#8377;{{ order.coupon_discount }}</span>
+            </div>
+            {% endif %}
+            <div class="vm-orderdetails-m-totals__row vm-orderdetails-m-totals__row--grand">
+                <span>Total Amount</span>
+                <strong>&#8377;{{ order.total_amount }}</strong>
+            </div>
+        </section>
+
+        <section class="vm-orderdetails-m-actions">
+            <a href="{% url 'order_tracking' order.order_number %}" class="vm-orderdetails-m-btn vm-orderdetails-m-btn--primary">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>Track Order</span>
+            </a>
+
+            <a href="{% url 'download_invoice' order.order_number %}" class="vm-orderdetails-m-btn vm-orderdetails-m-btn--secondary">
+                <i class="fas fa-download"></i>
+                <span>Download Invoice</span>
+            </a>
+
+            {% if active_return %}
+            <a href="{% url 'return_status' active_return.id %}" class="vm-orderdetails-m-btn vm-orderdetails-m-btn--secondary">
+                <i class="fas fa-undo"></i>
+                <span>Return: {{ active_return.status|title }}</span>
+            </a>
+            {% elif is_return_eligible %}
+            <a href="{% url 'return_request' order.id %}" class="vm-orderdetails-m-btn vm-orderdetails-m-btn--secondary">
+                <i class="fas fa-undo"></i>
+                <span>Request Return</span>
+            </a>
+            {% endif %}
+
+            {% if cancel_request %}
+            <div class="vm-orderdetails-m-status-card">
+                <span class="vm-orderdetails-m-label">Cancellation</span>
+                <strong>{{ cancel_request.get_status_display }}</strong>
+            </div>
+            {% elif cancel_eligible %}
+            <button type="button" class="vm-orderdetails-m-btn vm-orderdetails-m-btn--ghost" data-bs-toggle="modal" data-bs-target="#cancelOrderModal">
+                <i class="fas fa-ban"></i>
+                <span>Request Cancel</span>
+            </button>
+            {% endif %}
+        </section>
+
+        <section class="vm-orderdetails-m-help">
+            <p>Having issues with your order?</p>
+            <a href="{% url 'contact' %}">Contact Concierge</a>
+        </section>
+
+        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='order-details-mobile' %}
+    </main>
+
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
+</section>
+
+<div class="vm-orderdetails-legacy-content">
 <div class="container my-5">
     <div class="row">
         <div class="col-12">
@@ -229,8 +482,9 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
+</div>
+</div>
+</div>
 </div>
 
 <!-- Cancel Order Modal -->
@@ -327,7 +581,7 @@
     function createMobileCards() {
         if (window.innerWidth > 767) return;
         
-        const tableResponsive = document.querySelector('.table-responsive');
+        const tableResponsive = document.querySelector('.vm-orderdetails-legacy-content .table-responsive');
         if (!tableResponsive) return;
         
         const table = tableResponsive.querySelector('table');
@@ -423,11 +677,11 @@
     // Run on load and resize
     createMobileCards();
     window.addEventListener('resize', function() {
-        const mobileContainer = document.querySelector('.mobile-cards-container');
+        const mobileContainer = document.querySelector('.vm-orderdetails-legacy-content .mobile-cards-container');
         if (mobileContainer) {
             mobileContainer.remove();
         }
-        const table = document.querySelector('.table-responsive table');
+        const table = document.querySelector('.vm-orderdetails-legacy-content .table-responsive table');
         if (table) {
             table.style.display = '';
         }

@@ -25,6 +25,9 @@
                     data-product-rating="{% with stats=product_stats|get_item:product.id %}{% if stats %}{{ stats.avg_rating }}{% else %}{{ product.rating }}{% endif %}{% endwith %}"
                     data-product-reviews="{% with stats=product_stats|get_item:product.id %}{% if stats %}{{ stats.review_count }}{% else %}{{ product.review_count }}{% endif %}{% endwith %}"
                     data-product-link="{% url 'product-details' product.id %}"
+                    data-product-id="{{ product.id }}"
+                    data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
+                    data-in-wishlist="{% if product.id in wishlist_product_ids %}1{% else %}0{% endif %}"
                     data-product-stock="{{ product.stock }}"
                     onclick="openQuickView(this)">
                     <i class="fal fa-eye"></i>
@@ -35,6 +38,7 @@
                     title="Add to wishlist"
                     data-product-id="{{ product.id }}"
                     data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
+                    aria-pressed="{% if product.id in wishlist_product_ids %}true{% else %}false{% endif %}"
                     onclick="handleWishlistClick(this)">
                     <i class="{% if product.id in wishlist_product_ids %}fas{% else %}fal{% endif %} fa-heart"></i>
                 </button>
@@ -44,6 +48,7 @@
                     title="{% if product.id in cart_product_ids %}Remove from cart{% else %}Add to cart{% endif %}"
                     data-product-id="{{ product.id }}"
                     data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
+                    aria-pressed="{% if product.id in cart_product_ids %}true{% else %}false{% endif %}"
                     onclick="handleCartClick(this)"
                     {% if product.stock == 0 %}disabled{% endif %}>
                     <i class="{% if product.id in cart_product_ids %}fas{% else %}fal{% endif %} fa-shopping-cart"></i>

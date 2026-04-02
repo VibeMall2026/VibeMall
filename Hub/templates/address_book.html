@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Address Book - VibeMall{% endblock %}
+
+{% block content %}
+
+<!-- page-banner-area-start -->
+<div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
+    <div class="container">
+        <div class="row">
+            <div class="col-xl-12">
+                <div class="page-banner-content text-center">
+                    <h4 class="breadcrumb-title">Address Book</h4>
+                    <div class="breadcrumb-two">
+                        <nav>
+                            <nav class="breadcrumb-trail breadcrumbs">
+                                <ul class="breadcrumb-menu">
+                                    <li class="breadcrumb-trail">
+                                        <a href="{% url 'index' %}"><span>Home</span></a>
+                                    </li>
+                                    <li class="breadcrumb-trail">
+                                        <a href="{% url 'profile' %}"><span>My Profile</span></a>
+                                    </li>
+                                    <li class="trail-item">
+                                        <span>Address Book</span>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- page-banner-area-end -->
+
+<!-- address-book-area-start -->
+<section class="account-area pt-100 pb-100">
+    <div class="container">
+
+        {% if messages %}
+        <div class="row mb-30">
+            <div class="col-lg-12">
+                {% for message in messages %}
+                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="row">
+
+            <!-- LEFT: Add New Address -->
+            <div class="col-lg-5 mb-30">
+                <div class="profile-details-box border-1 p-40">
+                    <div class="checkout-area">
+                        <div class="checkbox-form">
+                            <h3>Add New Address</h3>
+                            <form method="POST" action="{% url 'address_book' %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="add">
+                                <div class="row">
+
+                                    <div class="col-md-12">
+                                        <div class="checkout-form-list mb-3">
+                                            <label>Full Name <span class="required">*</span></label>
+                                            <input type="text" name="full_name" placeholder="Enter full name" required maxlength="100">
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12">
+                                        <div class="checkout-form-list mb-3">
+                                            <label>Mobile Number</label>
+                                            <input type="tel" name="mobile_number" placeholder="e.g. 9876543210" maxlength="15">
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12">
+                                        <div class="checkout-form-list mb-3">
+                                            <label>Address Line 1 <span class="required">*</span></label>
+                                            <input type="text" name="address_line1" placeholder="House No., Street, Area" required maxlength="255">
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12">
+                                        <div class="checkout-form-list mb-3">
+                                            <label>Address Line 2 <span style="color:#aaa;font-size:12px;">(optional)</span></label>
+                                            <input type="text" name="address_line2" placeholder="Landmark, Nearby area" maxlength="255">
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="checkout-form-list mb-3">
+                                            <label>City <span class="required">*</span></label>
+                                            <input type="text" name="city" placeholder="City" required maxlength="100">
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="checkout-form-list mb-3">
+                                            <label>State <span class="required">*</span></label>
+                                            <input type="text" name="state" placeholder="State" required maxlength="100">
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="checkout-form-list mb-3">
+                                            <label>Pincode <span class="required">*</span></label>
+                                            <input type="text" name="pincode" placeholder="Pincode" required maxlength="10" pattern="[0-9]{4,10}">
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="country-select mb-3">
+                                            <label>Country</label>
+                                            <select name="country">
+                                                <option value="India" selected>India</option>
+                                                <option value="USA">USA</option>
+                                                <option value="UK">UK</option>
+                                                <option value="Canada">Canada</option>
+                                                <option value="Australia">Australia</option>
+                                                <option value="Other">Other</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12">
+                                        <div class="country-select mb-20">
+                                            <label>Address Type</label>
+                                            <select name="address_type">
+                                                <option value="HOME">Home</option>
+                                                <option value="OFFICE">Office</option>
+                                                <option value="OTHER">Other</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12 mb-25">
+                                        <div class="coupon-info">
+                                            <p class="form-row">
+                                                <label class="d-flex align-items-center gap-2 mb-0" style="cursor:pointer;">
+                                                    <input type="checkbox" name="is_default" id="isDefaultAddr" style="width:16px;height:16px;">
+                                                    <span style="font-size:14px;color:#6f7172;">Set as default address</span>
+                                                </label>
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12">
+                                        <button type="submit" class="tp-btn-h1 w-100" style="width:100%;">
+                                            Save Address
+                                        </button>
+                                    </div>
+
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Saved Addresses -->
+            <div class="col-lg-7 mb-30">
+                <div class="profile-details-box border-1 p-40">
+                    <h5 class="mb-30" style="font-weight:700;font-size:20px;">
+                        Saved Addresses
+                        <span style="display:inline-block;background:#fcbe00;color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:3px;margin-left:8px;vertical-align:middle;">{{ addresses|length }}</span>
+                    </h5>
+
+                    {% if addresses %}
+                    <div class="vm-addrbook-list">
+                        {% for addr in addresses %}
+                        <div class="vm-addrbook-card {% if addr.is_default %}vm-addrbook-card--default{% endif %}">
+
+                            <div class="vm-addrbook-card__header">
+                                <div class="vm-addrbook-card__tags">
+                                    <span class="vm-addrbook-tag vm-addrbook-tag--type">
+                                        {{ addr.get_address_type_display }}
+                                    </span>
+                                    {% if addr.is_default %}
+                                    <span class="vm-addrbook-tag vm-addrbook-tag--default">
+                                        <i class="fas fa-star"></i> Default
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <div class="vm-addrbook-card__btns">
+                                    {% if not addr.is_default %}
+                                    <form method="POST" action="{% url 'address_book' %}" style="display:inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="set_default">
+                                        <input type="hidden" name="address_id" value="{{ addr.id }}">
+                                        <button type="submit" class="vm-addrbook-btn vm-addrbook-btn--star" title="Set as default">
+                                            <i class="far fa-star"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                    <form method="POST" action="{% url 'address_book' %}" style="display:inline;" onsubmit="return confirm('Remove this address?')">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="address_id" value="{{ addr.id }}">
+                                        <button type="submit" class="vm-addrbook-btn vm-addrbook-btn--del" title="Remove">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <div class="vm-addrbook-card__body">
+                                <p class="vm-addrbook-name">{{ addr.full_name }}</p>
+                                {% if addr.mobile_number %}
+                                <p class="vm-addrbook-meta"><i class="fas fa-phone-alt"></i> {{ addr.mobile_number }}</p>
+                                {% endif %}
+                                <p class="vm-addrbook-meta">{{ addr.address_line1 }}{% if addr.address_line2 %}, {{ addr.address_line2 }}{% endif %}</p>
+                                <p class="vm-addrbook-meta">{{ addr.city }}, {{ addr.state }} – {{ addr.pincode }}</p>
+                                <p class="vm-addrbook-meta">{{ addr.country }}</p>
+                            </div>
+
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="vm-addrbook-empty">
+                        <i class="fas fa-map-marked-alt"></i>
+                        <h6>No saved addresses</h6>
+                        <p>Add your first address using the form.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+
+        <div class="row mt-10">
+            <div class="col-12 text-center">
+                <a href="{% url 'profile' %}" class="tp-btn-h2">
+                    <i class="fas fa-arrow-left"></i> Back to Profile
+                </a>
+            </div>
+        </div>
+
+    </div>
+</section>
+<!-- address-book-area-end -->
+
+<style>
+/* ========== Address Book ========== */
+.vm-addrbook-list { display:flex; flex-direction:column; gap:16px; }
+
+.vm-addrbook-card {
+    border: 1px solid #e5e5e5;
+    padding: 20px 22px;
+    background: #fff;
+    transition: box-shadow .2s;
+}
+.vm-addrbook-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+.vm-addrbook-card--default { border-color: #fcbe00; }
+
+.vm-addrbook-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.vm-addrbook-card__tags { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+
+.vm-addrbook-tag {
+    display: inline-block;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    border: 1px solid #e4e4e4;
+    color: #6f7172;
+}
+.vm-addrbook-tag--type { background: #f7f7f7; }
+.vm-addrbook-tag--default { background: #fcbe00; color: #fff; border-color: #fcbe00; }
+.vm-addrbook-tag--default i { font-size: 10px; }
+
+.vm-addrbook-card__btns { display:flex; gap:8px; align-items:center; }
+
+.vm-addrbook-btn {
+    width: 34px;
+    height: 34px;
+    border: 1px solid #e4e4e4;
+    background: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .2s;
+}
+.vm-addrbook-btn--star { color: #fcbe00; border-color: #fcbe00; }
+.vm-addrbook-btn--star:hover { background: #fcbe00; color: #fff; }
+.vm-addrbook-btn--del { color: #e74c3c; border-color: #e74c3c; }
+.vm-addrbook-btn--del:hover { background: #e74c3c; color: #fff; }
+
+.vm-addrbook-name { font-weight: 700; font-size: 15px; color: #222; margin-bottom: 6px; }
+.vm-addrbook-meta { font-size: 13px; color: #6f7172; margin-bottom: 3px; }
+.vm-addrbook-meta i { color: #fcbe00; margin-right: 5px; }
+
+.vm-addrbook-empty { text-align:center; padding:50px 20px; color:#6f7172; }
+.vm-addrbook-empty i { font-size:40px; color:#e4e4e4; margin-bottom:16px; display:block; }
+.vm-addrbook-empty h6 { font-size:15px; font-weight:700; color:#333; margin-bottom:6px; }
+.vm-addrbook-empty p { font-size:13px; }
+
+/* Ensure country-select select matches checkout style */
+.vm-addrbook-card .country-select select,
+.checkout-area .country-select select {
+    background: #fff;
+    border: 1px solid #e4e4e4;
+    height: 45px;
+    padding: 0 10px;
+    width: 100%;
+    outline: none;
+    color: #6f7172;
+}
+.checkout-area .country-select select:focus { border-color: #fcbe00; }
+
+@media (max-width: 767.98px) {
+    .account-area.pt-100 { padding-top: 50px !important; }
+    .account-area.pb-100 { padding-bottom: 50px !important; }
+    .p-40 { padding: 24px 18px !important; }
+}
+</style>
+
+{% endblock %}

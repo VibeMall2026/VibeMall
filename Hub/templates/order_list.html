@@ -2,12 +2,167 @@
 {% load static %}
 
 {% block title %}My Orders - VibeMall{% endblock %}
+{% block body_class %}vm-page-mobile-orders{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'assets/css/myorder-responsive.css' %}">
+<link rel="stylesheet" href="{% static 'assets/css/myorders-mobile-alt.css' %}?v=20260329-03">
+<link rel="stylesheet" href="{% static 'assets/css/home-mobile-alt.css' %}?v=20260329-02">
 {% endblock %}
 
 {% block content %}
+<section class="vm-myorders-mobile-only" aria-label="My orders mobile view">
+    {% include 'partials/vm_mobile_alt_header.html' %}
+
+    <main class="vm-myorders-m-main vm-mobile-content-offset">
+        <section class="vm-myorders-m-hero">
+            <p>Account Center</p>
+            <h2>My Orders</h2>
+            <span>{{ orders|length }} order{{ orders|length|pluralize }}</span>
+        </section>
+
+        {% if orders %}
+        <section class="vm-myorders-m-search-wrap">
+            <div class="vm-myorders-m-search">
+                <i class="fas fa-search" aria-hidden="true"></i>
+                <input id="vmMyOrdersSearch" type="search" placeholder="Search order number or product" aria-label="Search my orders">
+            </div>
+        </section>
+
+        <section class="vm-myorders-m-list" id="vmMyOrdersList">
+            {% for order in orders %}
+            <article class="vm-myorders-m-card" data-order-card>
+                <a href="{% url 'order_details' order.order_number %}" class="vm-myorders-m-card-head">
+                    <strong>#{{ order.order_number }}</strong>
+                    <span>{{ order.created_at|date:"d M Y" }}</span>
+                </a>
+
+                <div class="vm-myorders-m-products">
+                    {% for item in order.items.all|slice:":1" %}
+                    <div class="vm-myorders-m-product">
+                        {% if item.product_image %}
+                        <img src="{{ item.product_image }}" alt="{{ item.product_name }}">
+                        {% elif item.product and item.product.image %}
+                        <img src="{{ item.product.image.url }}" alt="{{ item.product_name }}">
+                        {% else %}
+                        <div class="vm-myorders-m-placeholder"><i class="fas fa-box"></i></div>
+                        {% endif %}
+                        <div>
+                            <h4>{{ item.product_name|truncatewords:4 }}</h4>
+                            <p>₹{{ item.product_price }} × {{ item.quantity }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    {% if order.items.count > 1 %}
+                    <span class="vm-myorders-m-more">+{{ order.items.count|add:"-1" }} more item{{ order.items.count|add:"-1"|pluralize }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="vm-myorders-m-meta">
+                    <div>
+                        <label>Total</label>
+                        <strong>₹{{ order.total_amount }}</strong>
+                    </div>
+                    <div>
+                        <label>Payment</label>
+                        {% if order.payment_method == 'COD' and order.order_status == 'DELIVERED' %}
+                            <span class="badge bg-success">Paid (COD)</span>
+                        {% elif order.payment_status == 'PAID' %}
+                            <span class="badge bg-success">Paid</span>
+                        {% elif order.payment_status == 'PENDING' %}
+                            <span class="badge bg-warning">Pending</span>
+                        {% elif order.payment_status == 'REFUNDED' %}
+                            <span class="badge bg-info">Refunded</span>
+                        {% else %}
+                            <span class="badge bg-danger">Failed</span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label>Status</label>
+                        {% if order.order_status == 'PENDING' %}
+                            <span class="badge bg-warning">Pending</span>
+                        {% elif order.order_status == 'PROCESSING' %}
+                            <span class="badge bg-info">Processing</span>
+                        {% elif order.order_status == 'SHIPPED' %}
+                            <span class="badge bg-primary">Shipped</span>
+                        {% elif order.order_status == 'DELIVERED' %}
+                            <span class="badge bg-success">Delivered</span>
+                        {% elif order.order_status == 'CANCELLED' %}
+                            <span class="badge bg-danger">Cancelled</span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label>Type</label>
+                        {% if order.is_resell %}
+                            <span class="badge" style="background-color:#6f42c1;">Resell</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Normal</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="vm-myorders-m-actions">
+                    <a href="{% url 'order_tracking' order.order_number %}"><i class="fas fa-map-marker-alt"></i> Track</a>
+                    <a href="{% url 'order_details' order.order_number %}"><i class="fas fa-eye"></i> Details</a>
+                    <a href="{% url 'download_invoice' order.order_number %}"><i class="fas fa-download"></i> Invoice</a>
+                    {% if order.order_status == 'DELIVERED' %}
+                    <a href="{% url 'return_request' order.id %}"><i class="fas fa-undo"></i> Return</a>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </section>
+        {% else %}
+        <section class="vm-myorders-m-empty">
+            <h3>No orders yet</h3>
+            <p>You haven't placed any orders yet.</p>
+            <a href="{% url 'shop' %}">Start Shopping</a>
+        </section>
+        {% endif %}
+
+        <footer class="vm-home-mobile-footer vm-mobile-page-footer" aria-label="My orders mobile footer">
+            <details>
+                <summary>Collections</summary>
+                <a href="{% url 'shop' %}">Shop All</a>
+                <a href="{% url 'shop' %}?sort=latest">New Arrivals</a>
+            </details>
+            <details>
+                <summary>Experience</summary>
+                <a href="{% url 'blog' %}">Editorial</a>
+                <a href="{% url 'about' %}">About VibeMall</a>
+            </details>
+            <details>
+                <summary>Concierge</summary>
+                <a href="{% url 'cart' %}">Cart</a>
+                <a href="{% url 'wishlist' %}">Wishlist</a>
+            </details>
+            <details>
+                <summary>Legal</summary>
+                <a href="{% url 'faq' %}">FAQ</a>
+                <a href="{% url 'profile' %}">My Account</a>
+            </details>
+            <div class="vm-home-mobile-footer__brand">
+                <h2>VIBEMALL</h2>
+                <p>© {% now "Y" %} VibeMall Atelier. All Rights Reserved.</p>
+            </div>
+        </footer>
+    </main>
+
+    <nav class="vm-home-mobile-nav vm-mobile-bottom-nav" aria-label="Mobile primary navigation">
+        <a href="{% url 'index' %}" aria-label="Home"><i class="fas fa-home"></i></a>
+        <a href="{% url 'shop' %}" aria-label="Shop"><i class="far fa-store"></i></a>
+        <a href="{% url 'cart' %}" aria-label="Cart"><i class="far fa-shopping-cart"></i></a>
+        {% if request.user.is_authenticated %}
+        <a href="{% url 'profile' %}" class="is-active" aria-label="Account"><i class="far fa-user"></i></a>
+        {% else %}
+        <a href="{% url 'login' %}" class="is-active" aria-label="Account"><i class="far fa-user"></i></a>
+        {% endif %}
+        <a href="{% url 'wishlist' %}" aria-label="Wishlist"><i class="far fa-heart"></i></a>
+    </nav>
+</section>
+
+<div class="vm-myorders-legacy-content">
 <!-- Page Banner Start -->
 <div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
     <div class="container">
@@ -187,8 +342,24 @@
     </div>
 </section>
 <!-- Orders Area End -->
+</div>
 
 <script>
+// Mobile cards search
+function initMobileMyOrdersSearch() {
+    const input = document.getElementById('vmMyOrdersSearch');
+    const cards = document.querySelectorAll('#vmMyOrdersList [data-order-card]');
+    if (!input || !cards.length) return;
+
+    input.addEventListener('input', function () {
+        const term = this.value.toLowerCase().trim();
+        cards.forEach((card) => {
+            const text = card.textContent.toLowerCase();
+            card.style.display = text.includes(term) ? '' : 'none';
+        });
+    });
+}
+
 // Order Search Functionality
 function initOrderSearch() {
     const searchInput = document.getElementById('orderSearchInput');
@@ -431,12 +602,18 @@ function createMobileOrderCards() {
 // Run on load
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        createMobileOrderCards();
-        initOrderSearch();
+        initMobileMyOrdersSearch();
+        if (!window.matchMedia('(max-width: 767.98px)').matches) {
+            createMobileOrderCards();
+            initOrderSearch();
+        }
     });
 } else {
-    createMobileOrderCards();
-    initOrderSearch();
+    initMobileMyOrdersSearch();
+    if (!window.matchMedia('(max-width: 767.98px)').matches) {
+        createMobileOrderCards();
+        initOrderSearch();
+    }
 }
 
 // Run on resize with debounce
@@ -444,6 +621,9 @@ let resizeTimer;
 window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
+        if (window.matchMedia('(max-width: 767.98px)').matches) {
+            return;
+        }
         const existing = document.querySelector('.mobile-orders-container');
         if (existing) existing.remove();
         createMobileOrderCards();

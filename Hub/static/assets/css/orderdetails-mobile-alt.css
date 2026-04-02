@@ -1,0 +1,491 @@
+/* Mobile-only order details replacement adapted from orderdetalis prototype */
+.vm-orderdetails-mobile-only {
+    display: none;
+}
+
+@media (max-width: 767.98px) {
+    .vm-orderdetails-mobile-only {
+        display: block;
+        min-height: 100vh;
+        background: #fbf9f4;
+        color: #171818;
+        font-family: "Manrope", sans-serif;
+    }
+
+    .vm-orderdetails-legacy-content {
+        display: none !important;
+    }
+
+    .vm-orderdetails-m-main {
+        padding: 0 24px 28px;
+    }
+
+    .vm-orderdetails-m-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 18px;
+        color: #171818;
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+    }
+
+    .vm-orderdetails-m-banner {
+        position: relative;
+        min-height: 188px;
+        margin-bottom: 22px;
+        border-radius: 20px;
+        overflow: hidden;
+        background: #d9d3c5;
+    }
+
+    .vm-orderdetails-m-banner img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0.48;
+        filter: grayscale(0.15);
+    }
+
+    .vm-orderdetails-m-banner__overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(23, 24, 24, 0.08) 0%, rgba(23, 24, 24, 0.72) 100%);
+    }
+
+    .vm-orderdetails-m-banner__content {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        min-height: 188px;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 22px;
+        color: #fff;
+    }
+
+    .vm-orderdetails-m-banner__content span,
+    .vm-orderdetails-m-item__eyebrow {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+    }
+
+    .vm-orderdetails-m-banner__content h2 {
+        margin: 0 0 6px;
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: 34px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+    }
+
+    .vm-orderdetails-m-banner__content p {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.5;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .vm-orderdetails-m-summary,
+    .vm-orderdetails-m-card,
+    .vm-orderdetails-m-totals,
+    .vm-orderdetails-m-status-card {
+        margin-bottom: 18px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.82);
+        padding: 20px;
+        box-shadow: 0 18px 38px rgba(23, 24, 24, 0.06);
+    }
+
+    .vm-orderdetails-m-summary__top {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+
+    .vm-orderdetails-m-summary__right {
+        text-align: right;
+    }
+
+    .vm-orderdetails-m-label {
+        display: block;
+        margin-bottom: 8px;
+        color: #6d6f70;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+    }
+
+    .vm-orderdetails-m-status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 34px;
+        padding: 0 14px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+
+    .vm-orderdetails-m-status--pending,
+    .vm-orderdetails-m-status--payment-pending {
+        background: #fff3cd;
+        color: #8b6200;
+    }
+
+    .vm-orderdetails-m-status--processing {
+        background: #d8f1ff;
+        color: #045d89;
+    }
+
+    .vm-orderdetails-m-status--shipped,
+    .vm-orderdetails-m-status--payment-refunded {
+        background: #dfe7ff;
+        color: #2647a5;
+    }
+
+    .vm-orderdetails-m-status--delivered,
+    .vm-orderdetails-m-status--payment-paid {
+        background: #dff7e7;
+        color: #0d6b3d;
+    }
+
+    .vm-orderdetails-m-status--cancelled,
+    .vm-orderdetails-m-status--payment-failed {
+        background: #ffe2e2;
+        color: #b42318;
+    }
+
+    .vm-orderdetails-m-summary__grid,
+    .vm-orderdetails-m-detail-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .vm-orderdetails-m-summary__cell,
+    .vm-orderdetails-m-detail-list > div {
+        padding: 14px;
+        border-radius: 14px;
+        background: #f5f1e8;
+    }
+
+    .vm-orderdetails-m-summary__cell strong,
+    .vm-orderdetails-m-detail-list strong,
+    .vm-orderdetails-m-status-card strong {
+        display: block;
+        font-size: 14px;
+        line-height: 1.45;
+        color: #171818;
+    }
+
+    .vm-orderdetails-m-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 16px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(111, 66, 193, 0.12);
+        color: #5b31a6;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+    }
+
+    .vm-orderdetails-m-note {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 18px;
+        border-radius: 14px;
+        background: #f2efe8;
+        padding: 14px 16px;
+        color: #5b4a29;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+
+    .vm-orderdetails-m-note p {
+        margin: 0;
+    }
+
+    .vm-orderdetails-m-note--success {
+        background: #ecfdf3;
+        color: #166534;
+    }
+
+    .vm-orderdetails-m-card__head,
+    .vm-orderdetails-m-section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .vm-orderdetails-m-card__head {
+        margin-bottom: 14px;
+    }
+
+    .vm-orderdetails-m-card__head i,
+    .vm-orderdetails-m-card__head h3,
+    .vm-orderdetails-m-section-head h3,
+    .vm-orderdetails-m-section-head span {
+        margin: 0;
+    }
+
+    .vm-orderdetails-m-card__head i {
+        color: #6f5c37;
+        font-size: 16px;
+    }
+
+    .vm-orderdetails-m-card__head h3,
+    .vm-orderdetails-m-section-head h3,
+    .vm-orderdetails-m-empty h4 {
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+    }
+
+    .vm-orderdetails-m-card--accent {
+        background: #f4eefc;
+    }
+
+    .vm-orderdetails-m-address {
+        margin: 0;
+        color: #3c3e40;
+        font-size: 14px;
+        line-height: 1.8;
+    }
+
+    .vm-orderdetails-m-items {
+        margin-bottom: 22px;
+    }
+
+    .vm-orderdetails-m-section-head {
+        margin-bottom: 16px;
+    }
+
+    .vm-orderdetails-m-section-head span {
+        color: #6d6f70;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+    }
+
+    .vm-orderdetails-m-item-list {
+        display: grid;
+        gap: 16px;
+    }
+
+    .vm-orderdetails-m-item {
+        display: flex;
+        gap: 14px;
+        padding: 16px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.82);
+        box-shadow: 0 18px 36px rgba(23, 24, 24, 0.05);
+    }
+
+    .vm-orderdetails-m-item__media {
+        width: 96px;
+        min-width: 96px;
+    }
+
+    .vm-orderdetails-m-item__media img,
+    .vm-orderdetails-m-item__placeholder {
+        width: 96px;
+        height: 120px;
+        border-radius: 14px;
+        object-fit: cover;
+        background: #ece7db;
+    }
+
+    .vm-orderdetails-m-item__placeholder {
+        display: grid;
+        place-items: center;
+        color: #6f5c37;
+        font-size: 24px;
+    }
+
+    .vm-orderdetails-m-item__body {
+        display: flex;
+        min-width: 0;
+        flex: 1 1 auto;
+        flex-direction: column;
+    }
+
+    .vm-orderdetails-m-item__eyebrow {
+        margin-bottom: 6px;
+        color: #6f5c37;
+    }
+
+    .vm-orderdetails-m-item__body h4 {
+        margin: 0 0 6px;
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: 20px;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+    }
+
+    .vm-orderdetails-m-item__body p {
+        margin: 0 0 12px;
+        color: #6d6f70;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+
+    .vm-orderdetails-m-item__meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+        margin-bottom: 12px;
+        color: #3c3e40;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .vm-orderdetails-m-item__footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: auto;
+    }
+
+    .vm-orderdetails-m-item__footer strong {
+        font-size: 16px;
+        font-weight: 800;
+    }
+
+    .vm-orderdetails-m-item__footer a,
+    .vm-orderdetails-m-help a {
+        color: #171818;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-decoration: none;
+        text-transform: uppercase;
+    }
+
+    .vm-orderdetails-m-empty {
+        padding: 20px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.82);
+        text-align: center;
+    }
+
+    .vm-orderdetails-m-empty p,
+    .vm-orderdetails-m-help p {
+        margin: 0;
+        color: #6d6f70;
+        font-size: 13px;
+        line-height: 1.7;
+    }
+
+    .vm-orderdetails-m-totals__row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 10px 0;
+        color: #3c3e40;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .vm-orderdetails-m-totals__row + .vm-orderdetails-m-totals__row {
+        border-top: 1px solid rgba(23, 24, 24, 0.08);
+    }
+
+    .vm-orderdetails-m-totals__row--grand {
+        margin-top: 6px;
+        padding-top: 16px;
+    }
+
+    .vm-orderdetails-m-totals__row--grand span {
+        color: #171818;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+    }
+
+    .vm-orderdetails-m-totals__row--grand strong {
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+    }
+
+    .vm-orderdetails-m-actions {
+        display: grid;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+
+    .vm-orderdetails-m-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        min-height: 54px;
+        border-radius: 8px;
+        border: 1px solid transparent;
+        text-decoration: none;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        transition: transform 0.18s ease, opacity 0.18s ease;
+    }
+
+    .vm-orderdetails-m-btn:active {
+        transform: scale(0.98);
+    }
+
+    .vm-orderdetails-m-btn--primary {
+        background: #171818;
+        color: #fff;
+    }
+
+    .vm-orderdetails-m-btn--secondary,
+    .vm-orderdetails-m-btn--ghost {
+        background: rgba(255, 255, 255, 0.82);
+        border-color: rgba(23, 24, 24, 0.12);
+        color: #171818;
+    }
+
+    .vm-orderdetails-m-btn--ghost {
+        width: 100%;
+    }
+
+    .vm-orderdetails-m-status-card strong {
+        margin-top: 4px;
+    }
+
+    .vm-orderdetails-m-help {
+        margin-bottom: 36px;
+        text-align: center;
+    }
+
+    .vm-orderdetails-mobile-only .vm-mobile-bottom-nav a.is-active {
+        background: #171818;
+        color: #fff;
+    }
+}

@@ -2,107 +2,171 @@
 {% load static %}
 
 {% block title %}Track Order - VibeMall{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-mobile-ordertrack{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'assets/css/ordertracking-mobile-view.css' %}?v=20260401-01">
+{% endblock %}
 
 {% block content %}
-<div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
-    <div class="container">
-        <div class="row">
-            <div class="col-xl-12">
-                <div class="page-banner-content text-center">
-                    <h4 class="breadcrumb-title">Track Order</h4>
-                    <div class="breadcrumb-two">
-                        <nav>
-                            <nav class="breadcrumb-trail breadcrumbs">
-                                <ul class="breadcrumb-menu">
-                                    <li class="breadcrumb-trail">
-                                        <a href="{% url 'index' %}"><span>Home</span></a>
-                                    </li>
-                                    <li class="trail-item">
-                                        <span>Track Order</span>
-                                    </li>
-                                </ul>
-                            </nav>
-                        </nav>
-                    </div>
-                </div>
-            </div>
+<section class="otm-mobile-only" aria-label="Order tracking mobile view">
+    <header class="otm-header">
+        <div class="otm-header__left">
+            <a href="{% url 'index' %}" aria-label="Menu"><i class="far fa-bars"></i></a>
+            <span>VibeMall</span>
         </div>
-    </div>
-</div>
+        <div class="otm-header__right">
+            <a href="{% url 'shop' %}" aria-label="Search"><i class="far fa-search"></i></a>
+            <a href="{% url 'cart' %}" aria-label="Cart" class="otm-cart-link">
+                <i class="far fa-shopping-bag"></i>
+                <small>{{ cart_count|default:'0' }}</small>
+            </a>
+        </div>
+    </header>
 
-<section class="track-order-section pt-120 pb-120">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-lg-6 col-md-8">
-                <div class="track-order-card">
-                    <div class="text-center mb-4">
-                        <i class="fas fa-shipping-fast" style="font-size: 60px; color: #3B4CB8;"></i>
-                        <h2 class="mt-3 mb-2">Track Your Order</h2>
-                        <p class="text-muted">Enter your order number to track your shipment</p>
-                    </div>
+    <main class="otm-main">
+        <section class="otm-intro">
+            <p>ORDER #VM-729410</p>
+            <h2>Journey to Your Doorstep</h2>
+            <div class="otm-intro__line"></div>
+        </section>
 
-                    <form method="POST" action="{% url 'track_order' %}">
-                        {% csrf_token %}
-                        <div class="form-group mb-3">
-                            <label for="order_number" class="form-label">Order Number</label>
-                            <input type="text" 
-                                   class="form-control form-control-lg" 
-                                   id="order_number" 
-                                   name="order_number" 
-                                   placeholder="e.g., ORD-20260202-1234567" 
-                                   required
-                                   style="border: 2px solid #ddd; border-radius: 8px; padding: 15px;">
-                            <small class="text-muted">You can find your order number in the order confirmation email</small>
+        <section class="otm-timeline">
+            <article class="otm-step">
+                <span class="otm-dot"></span>
+                <div>
+                    <h3>Delivered</h3>
+                    <p>Expected Arrival Oct 24</p>
+                </div>
+            </article>
+
+            <article class="otm-step otm-step--active">
+                <span class="otm-dot"></span>
+                <div class="otm-step-card">
+                    <h3>Out for Delivery</h3>
+                    <p class="otm-step-sub">Arriving Today by 6:00 PM</p>
+                    <p>Your courier is currently 2 stops away from your location in Mumbai. Please ensure someone is available to receive the package.</p>
+                </div>
+            </article>
+
+            <article class="otm-step otm-step--done">
+                <span class="otm-dot"></span>
+                <div>
+                    <h3>Arrived at Transit Hub</h3>
+                    <p>Mumbai Distribution Center</p>
+                </div>
+                <small>08:42 AM</small>
+            </article>
+
+            <article class="otm-step otm-step--done">
+                <span class="otm-dot"></span>
+                <div>
+                    <h3>Shipped</h3>
+                    <p>Handcrafted in Jaipur Atelier</p>
+                </div>
+                <small>OCT 22</small>
+            </article>
+
+            <article class="otm-step otm-step--done otm-step--last">
+                <span class="otm-dot"></span>
+                <div>
+                    <h3>Order Confirmed</h3>
+                    <p>Payment Received</p>
+                </div>
+                <small>OCT 21</small>
+            </article>
+        </section>
+
+        <section class="otm-track-box">
+            <h4>Track Another Order</h4>
+            {% if messages %}
+                <div class="mb-3">
+                    {% for message in messages %}
+                        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}info{% endif %} mb-2" role="alert">
+                            {{ message }}
                         </div>
-
-                        <button type="submit" 
-                                class="btn btn-primary w-100 btn-lg mt-3" 
-                                style="background: #3B4CB8; border: none; border-radius: 8px; padding: 15px; font-weight: 600;">
-                            <i class="fas fa-search me-2"></i>Track Order
-                        </button>
-                    </form>
-
-                    <div class="mt-4 text-center">
-                        <p class="mb-2">Need help?</p>
-                        <a href="{% url 'contact' %}" class="text-decoration-none" style="color: #3B4CB8; font-weight: 500;">
-                            <i class="fas fa-headset me-1"></i>Contact Support
-                        </a>
-                    </div>
+                    {% endfor %}
                 </div>
-            </div>
-        </div>
-    </div>
+            {% endif %}
+            <form method="POST" action="{% url 'track_order' %}">
+                {% csrf_token %}
+                <input type="text" name="order_number" placeholder="e.g., ORD-20260202-1234567" required>
+                <button type="submit">Track Order</button>
+            </form>
+            <a href="{% url 'contact' %}">Contact Concierge</a>
+        </section>
+    </main>
 </section>
 
-<style>
-.track-order-card {
-    background: white;
-    padding: 40px;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-}
+<div class="otm-desktop-only">
+    <div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
+        <div class="container">
+            <div class="row">
+                <div class="col-xl-12">
+                    <div class="page-banner-content text-center">
+                        <h4 class="breadcrumb-title">Track Order</h4>
+                        <div class="breadcrumb-two">
+                            <nav>
+                                <nav class="breadcrumb-trail breadcrumbs">
+                                    <ul class="breadcrumb-menu">
+                                        <li class="breadcrumb-trail">
+                                            <a href="{% url 'index' %}"><span>Home</span></a>
+                                        </li>
+                                        <li class="trail-item">
+                                            <span>Track Order</span>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-.track-order-section {
-    background: #f8f9fa;
-    min-height: 60vh;
-}
+    <section class="track-order-section pt-120 pb-120">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-6 col-md-8">
+                    <div class="track-order-card">
+                        <div class="text-center mb-4">
+                            <i class="fas fa-shipping-fast track-order-icon"></i>
+                            <h2 class="mt-3 mb-2">Track Your Order</h2>
+                            <p class="text-muted">Enter your order number to track your shipment</p>
+                        </div>
 
-.form-control:focus {
-    border-color: #3B4CB8 !important;
-    box-shadow: 0 0 0 0.2rem rgba(59, 76, 184, 0.15) !important;
-}
+                        <form method="POST" action="{% url 'track_order' %}">
+                            {% csrf_token %}
+                            {% if messages %}
+                                <div class="mb-3">
+                                    {% for message in messages %}
+                                        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}info{% endif %} mb-2" role="alert">
+                                            {{ message }}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-group mb-3">
+                                <label for="order_number" class="form-label">Order Number</label>
+                                <input type="text" class="form-control form-control-lg track-order-input" id="order_number" name="order_number" placeholder="e.g., ORD-20260202-1234567" required>
+                                <small class="text-muted">You can find your order number in the order confirmation email</small>
+                            </div>
 
-.btn-primary:hover {
-    background: #2d3a8c !important;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(59, 76, 184, 0.3);
-    transition: all 0.3s ease;
-}
+                            <button type="submit" class="btn btn-primary w-100 btn-lg mt-3 track-order-btn">
+                                <i class="fas fa-search me-2"></i>Track Order
+                            </button>
+                        </form>
 
-@media (max-width: 768px) {
-    .track-order-card {
-        padding: 30px 20px;
-    }
-}
-</style>
+                        <div class="mt-4 text-center">
+                            <p class="mb-2">Need help?</p>
+                            <a href="{% url 'contact' %}" class="text-decoration-none track-order-help-link">
+                                <i class="fas fa-headset me-1"></i>Contact Support
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
 {% endblock %}

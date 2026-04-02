@@ -1,0 +1,444 @@
+/* Desktop About Us replacement based on vibemall-abous-us--d */
+.vm-about-d-only {
+    display: none;
+}
+
+.vm-about-desktop-legacy {
+    display: none !important;
+}
+
+@media (min-width: 992px) {
+    .vm-about-d-only {
+        display: block;
+        background: #fbf9f4;
+        color: #171818;
+        font-family: "Manrope", sans-serif;
+    }
+
+    .vm-about-d-wrap {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 0 24px;
+    }
+
+    .vm-about-d-top {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        background: rgba(251, 249, 244, 0.88);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(23, 24, 24, 0.1);
+    }
+
+    .vm-about-d-top .vm-about-d-wrap {
+        height: 84px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .vm-about-d-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        text-decoration: none;
+        color: #171818;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+    }
+
+    .vm-about-d-brand i {
+        font-size: 18px;
+    }
+
+    .vm-about-d-search {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 300px;
+        background: #f0eee9;
+        border-radius: 999px;
+        padding: 10px 16px;
+        color: #6f5c37;
+    }
+
+    .vm-about-d-search input {
+        width: 100%;
+        border: none;
+        outline: none;
+        background: transparent;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: #1b1c19;
+    }
+
+    .vm-about-d-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 18px;
+    }
+
+    .vm-about-d-actions a {
+        color: #171818;
+        text-decoration: none;
+    }
+
+    .vm-about-d-hero {
+        position: relative;
+        min-height: 70vh;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        margin-bottom: 72px;
+    }
+
+    .vm-about-d-hero img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0.62;
+    }
+
+    .vm-about-d-hero::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(251, 249, 244, 0.15) 0%, rgba(251, 249, 244, 0.82) 100%);
+    }
+
+    .vm-about-d-hero-content {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+        padding: 0 24px;
+    }
+
+    .vm-about-d-hero-content span {
+        display: block;
+        color: #6f5c37;
+        letter-spacing: 0.38em;
+        text-transform: uppercase;
+        font-size: 11px;
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+
+    .vm-about-d-hero-content h1 {
+        margin: 0;
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: clamp(48px, 6vw, 92px);
+        line-height: 0.95;
+        letter-spacing: -0.02em;
+    }
+
+    .vm-about-d-story {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 64px;
+        align-items: center;
+        margin-bottom: 80px;
+    }
+
+    .vm-about-d-story-media {
+        position: relative;
+    }
+
+    .vm-about-d-story-media img {
+        width: 100%;
+        aspect-ratio: 4 / 5;
+        object-fit: cover;
+        border-radius: 10px;
+        box-shadow: 0 20px 44px rgba(15, 23, 42, 0.18);
+    }
+
+    .vm-about-d-quote {
+        position: absolute;
+        right: -26px;
+        bottom: -26px;
+        background: #fadfb1;
+        color: #171818;
+        max-width: 240px;
+        padding: 22px;
+        font-family: "Noto Serif", Georgia, serif;
+        font-style: italic;
+        font-size: 20px;
+        line-height: 1.4;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.14);
+    }
+
+    .vm-about-d-story-copy h2 {
+        margin: 0 0 20px;
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: clamp(36px, 4vw, 56px);
+        line-height: 1.08;
+    }
+
+    .vm-about-d-story-copy p {
+        margin: 0 0 14px;
+        color: #4a4e4f;
+        line-height: 1.8;
+        font-size: 16px;
+    }
+
+    .vm-about-d-cta {
+        margin-top: 18px;
+        display: inline-block;
+        border: none;
+        border-radius: 999px;
+        background: #171818;
+        color: #fff;
+        text-decoration: none;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 14px 30px;
+    }
+
+    .vm-about-d-stats {
+        background: #f0eee9;
+        border-top: 1px solid rgba(23, 24, 24, 0.08);
+        border-bottom: 1px solid rgba(23, 24, 24, 0.08);
+        margin-bottom: 80px;
+    }
+
+    .vm-about-d-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 20px;
+        padding: 42px 0;
+        text-align: center;
+    }
+
+    .vm-about-d-stats-grid h3 {
+        margin: 0 0 6px;
+        font-family: "Noto Serif", Georgia, serif;
+        color: #6f5c37;
+        font-size: 40px;
+    }
+
+    .vm-about-d-stats-grid p {
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        font-size: 10px;
+        color: #666;
+        font-weight: 700;
+    }
+
+    .vm-about-d-services {
+        margin-bottom: 88px;
+    }
+
+    .vm-about-d-services-head {
+        text-align: center;
+        margin-bottom: 36px;
+    }
+
+    .vm-about-d-services-head h2 {
+        margin: 0 0 10px;
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: 46px;
+    }
+
+    .vm-about-d-services-head p {
+        margin: 0;
+        color: #5f6364;
+    }
+
+    .vm-about-d-services-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1px;
+        background: #ddd7cd;
+    }
+
+    .vm-about-d-service {
+        background: #f6f4ef;
+        padding: 42px 34px;
+        transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .vm-about-d-service:hover {
+        background: #171818;
+        color: #fff;
+    }
+
+    .vm-about-d-service i {
+        font-size: 34px;
+        color: #6f5c37;
+        margin-bottom: 18px;
+        display: inline-block;
+    }
+
+    .vm-about-d-service h4 {
+        margin: 0 0 10px;
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: 30px;
+    }
+
+    .vm-about-d-service p {
+        margin: 0;
+        line-height: 1.8;
+        font-size: 14px;
+        opacity: 0.88;
+    }
+
+    .vm-about-d-why {
+        background: #171818;
+        color: #fff;
+        margin-bottom: 0;
+    }
+
+    .vm-about-d-why-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0;
+    }
+
+    .vm-about-d-why-copy {
+        padding: 72px 72px 74px;
+    }
+
+    .vm-about-d-why-copy h2 {
+        margin: 0 0 28px;
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: 46px;
+    }
+
+    .vm-about-d-why-item {
+        display: flex;
+        gap: 14px;
+        margin-bottom: 20px;
+    }
+
+    .vm-about-d-why-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .vm-about-d-why-item span {
+        color: #6f5c37;
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: 32px;
+        line-height: 1;
+    }
+
+    .vm-about-d-why-item h5 {
+        margin: 0 0 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        font-size: 11px;
+        color: #c6af84;
+    }
+
+    .vm-about-d-why-item p {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.72);
+        line-height: 1.7;
+        font-size: 14px;
+    }
+
+    .vm-about-d-why-media img {
+        width: 100%;
+        height: 100%;
+        min-height: 420px;
+        object-fit: cover;
+        opacity: 0.64;
+    }
+
+    .vm-about-d-newsletter {
+        padding: 72px 0;
+        background: #f0eee9;
+    }
+
+    .vm-about-d-newsletter .vm-about-d-wrap {
+        max-width: 760px;
+        text-align: center;
+    }
+
+    .vm-about-d-newsletter h3 {
+        margin: 0 0 10px;
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: 42px;
+    }
+
+    .vm-about-d-newsletter p {
+        margin: 0 0 20px;
+        color: #535657;
+    }
+
+    .vm-about-d-newsletter-form {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+    }
+
+    .vm-about-d-newsletter-form input {
+        border: 1px solid #d8d4cc;
+        background: #fff;
+        border-radius: 999px;
+        padding: 14px 18px;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .vm-about-d-newsletter-form button {
+        border: none;
+        background: #6f5c37;
+        color: #fff;
+        border-radius: 999px;
+        padding: 14px 24px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-weight: 700;
+    }
+
+    .vm-about-d-social {
+        background: #171818;
+        color: #fff;
+        padding: 26px 0;
+    }
+
+    .vm-about-d-social .vm-about-d-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+    }
+
+    .vm-about-d-social p {
+        margin: 0;
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.75);
+    }
+
+    .vm-about-d-social-links {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .vm-about-d-social-links a {
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .vm-about-d-only {
+        display: none !important;
+    }
+}

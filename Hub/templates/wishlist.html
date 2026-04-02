@@ -6,14 +6,88 @@
 
 
 {% block title %}Wishlist - VibeMall{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-mobile-wishlist{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'assets/css/wishlist-responsive.css' %}?v=20260222-01">
+<link rel="stylesheet" href="{% static 'assets/css/wishlist-mobile-alt.css' %}?v=20260329-02">
 {% endblock %}
 
 {% block content %}
 
-<main>
+<section class="vm-wishlist-mobile-only" aria-label="Wishlist mobile view">
+    {% include 'partials/vm_mobile_alt_header.html' %}
+
+    <main class="vm-wishlist-m-main vm-mobile-content-offset">
+        <section class="vm-wishlist-m-banner">
+            <img src="{% static 'assets/img/banner/page-banner-4.jpg' %}" alt="Editorial fashion banner">
+            <div class="vm-wishlist-m-banner__overlay"></div>
+            <div class="vm-wishlist-m-banner__content">
+                <span>Curated Selection</span>
+                <h2>Wishlist</h2>
+            </div>
+        </section>
+
+        {% if messages %}
+        <section class="vm-wishlist-m-messages" aria-live="polite">
+            {% for message in messages %}
+            <div class="vm-wishlist-m-alert vm-wishlist-m-alert--{{ message.tags|default:'info' }}">{{ message }}</div>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        {% if wishlist_items %}
+        <section class="vm-wishlist-m-grid">
+            {% for item in wishlist_items %}
+            <article class="vm-wishlist-m-card">
+                <a href="{% url 'product-details' item.product.id %}" class="vm-wishlist-m-card__image">
+                    {% if item.product.image %}
+                    <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+                    {% else %}
+                    <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.product.name }}">
+                    {% endif %}
+                </a>
+                <div class="vm-wishlist-m-card__body">
+                    <h3><a href="{% url 'product-details' item.product.id %}">{{ item.product.name }}</a></h3>
+                    <p>
+                        {% if item.product.brand %}
+                        {{ item.product.brand }}
+                        {% elif item.product.category %}
+                        {{ item.product.category }}
+                        {% elif item.product.stock > 0 %}
+                        In Stock
+                        {% else %}
+                        Out of Stock
+                        {% endif %}
+                    </p>
+                    <strong>&#8377;{{ item.product.price }}</strong>
+                </div>
+                <div class="vm-wishlist-m-card__actions">
+                    <form method="POST" action="{% url 'move_wishlist_to_cart' item.id %}">
+                        {% csrf_token %}
+                        <button type="submit" {% if item.product.stock == 0 %}disabled{% endif %}>Add to Cart</button>
+                    </form>
+                    <a href="{% url 'remove_from_wishlist' item.id %}" class="vm-wishlist-m-remove js-confirm-remove" data-confirm-message="Remove this item?" aria-label="Remove {{ item.product.name }}">
+                        <i class="far fa-times"></i>
+                    </a>
+                </div>
+            </article>
+            {% endfor %}
+        </section>
+        {% else %}
+        <section class="vm-wishlist-m-empty">
+            <h3>Your Wishlist is Empty</h3>
+            <p>Add some products to your wishlist to save them for later.</p>
+            <a href="{% url 'shop' %}">Start Shopping</a>
+        </section>
+        {% endif %}
+        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='wishlist-mobile' %}
+    </main>
+
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='wishlist' %}
+</section>
+
+<main class="vm-wishlist-legacy-content">
         <!-- page-banner-area-start -->
         <div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
             <div class="container">
@@ -218,18 +292,6 @@
         </section>
         <!-- cta-area-end -->
 
-        <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                document.querySelectorAll('.js-confirm-remove').forEach(function (element) {
-                    element.addEventListener('click', function (event) {
-                        const message = this.getAttribute('data-confirm-message') || 'Are you sure?';
-                        if (!window.confirm(message)) {
-                            event.preventDefault();
-                        }
-                    });
-                });
-            });
-        </script>
 
     </main>
 

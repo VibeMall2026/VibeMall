@@ -6,9 +6,13 @@
 
 {% block title %}{{ product.name }} - Buy Online on VibeMall{% endblock %}
 {% block meta_description %}Buy {{ product.name }} online on VibeMall. Get exclusive deals, fast shipping, and secure checkout. {% if product.old_price %}Save {{ product.discount_percent }}%!{% endif %}{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-mobile-product{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'assets/css/product-details-responsive.css' %}">
+<link rel="stylesheet" href="{% static 'assets/css/product-details-mobile-alt.css' %}?v=20260329-02">
+<link rel="stylesheet" href="{% static 'assets/css/feedback-mobile-alt.css' %}?v=20260329-01">
+<link rel="stylesheet" href="{% static 'assets/css/product-details-desktop-view.css' %}?v=20260401-02">
 {% endblock %}
 
 <!-- JSON-LD Schema for Product -->
@@ -47,6 +51,629 @@
 </script>
 
 {% block content %}
+
+<section class="vm-pd-mobile-only" aria-label="Product details mobile layout">
+    {% include 'partials/vm_mobile_alt_header.html' %}
+
+    <main class="vm-pd-m-main vm-mobile-content-offset">
+        <section class="vm-pd-m-gallery">
+            <div class="vm-pd-m-main-image-wrap">
+                {% if product.image and product.image.name %}
+                <img id="vmPdMainImage" class="vm-pd-m-main-image" src="{{ product.image.url }}" alt="{{ product.name }}">
+                {% else %}
+                <img id="vmPdMainImage" class="vm-pd-m-main-image" src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}">
+                {% endif %}
+            </div>
+            <div class="vm-pd-m-thumbs" role="tablist" aria-label="Product image thumbnails">
+                <button type="button" class="vm-pd-m-thumb is-active" data-image-src="{% if product.image and product.image.name %}{{ product.image.url }}{% else %}{% static 'assets/img/product/tp-1.jpg' %}{% endif %}" aria-label="Main image">
+                    {% if product.image and product.image.name %}
+                    <img src="{{ product.image.url }}" alt="{{ product.name }} thumbnail">
+                    {% else %}
+                    <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }} thumbnail">
+                    {% endif %}
+                </button>
+                {% for additional_image in product.additional_images.all %}
+                    {% if additional_image.image and additional_image.image.name %}
+                    <button type="button" class="vm-pd-m-thumb" data-image-src="{{ additional_image.image.url }}" aria-label="Product image {{ forloop.counter }}">
+                        <img src="{{ additional_image.image.url }}" alt="{{ product.name }} thumbnail {{ forloop.counter }}">
+                    </button>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="vm-pd-m-info">
+            <span class="vm-pd-m-label">Atelier Collection</span>
+            <h2>{{ product.name }}</h2>
+            <h3>₹{{ product.price }}</h3>
+            <div class="vm-pd-m-rating">
+                <ul>
+                    {% for i in "12345" %}
+                        {% if i|add:"0" <= avg_rating %}
+                        <li><i class="fas fa-star"></i></li>
+                        {% else %}
+                        <li><i class="fal fa-star"></i></li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+                <span>{{ total_reviews }} review{% if total_reviews != 1 %}s{% endif %}</span>
+            </div>
+
+            <div class="vm-pd-m-qty-row">
+                <span>Quantity</span>
+                <div class="vm-pd-m-qty-control" data-max="{{ product.stock|default:999 }}">
+                    <button type="button" class="vm-pd-m-qty-btn" data-step="-1" aria-label="Decrease quantity"><i class="far fa-minus"></i></button>
+                    <input id="vmPdMobileQty" type="number" class="vm-pd-m-qty-input" value="1" min="1" max="{{ product.stock|default:999 }}" inputmode="numeric" aria-label="Quantity">
+                    <button type="button" class="vm-pd-m-qty-btn" data-step="1" aria-label="Increase quantity"><i class="far fa-plus"></i></button>
+                </div>
+            </div>
+
+            <div class="vm-pd-m-actions">
+                <form method="POST" action="{% url 'add_to_cart' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                    <input type="hidden" name="quantity" id="vmPdMobileQtyHidden" value="1">
+                    <button type="submit" {% if product.stock == 0 %}disabled{% endif %}>Add to Bag</button>
+                </form>
+                <button type="button" class="vm-pd-m-wishlist {% if in_wishlist %}is-active{% endif %}" data-product-id="{{ product.id }}" data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}" data-label-active="In wishlist" data-label-inactive="Save to wishlist" onclick="handlePdWishlistClick(this)">
+                    <i class="{% if in_wishlist %}fas{% else %}far{% endif %} fa-heart"></i>
+                    <span>{% if in_wishlist %}In wishlist{% else %}Save to wishlist{% endif %}</span>
+                </button>
+                <button type="button" class="vm-pd-m-buy-now" onclick="buyNow({{ product.id }}, document.getElementById('vmPdMobileQty').value)" {% if product.stock == 0 %}disabled{% endif %}>Buy Now</button>
+            </div>
+        </section>
+
+        <section class="vm-pd-m-tabs">
+            <div class="vm-pd-m-tab-head">
+                <button type="button" class="is-active" data-pd-mobile-tab="description">Description</button>
+                <button type="button" data-pd-mobile-tab="specs">Specifications</button>
+                <button type="button" data-pd-mobile-tab="reviews">Reviews</button>
+            </div>
+            <div class="vm-pd-m-tab-panel is-active" data-pd-mobile-panel="description">
+                {% if product.description %}
+                {{ product.description|linebreaks }}
+                {% else %}
+                <p>No description available for this product.</p>
+                {% endif %}
+            </div>
+            <div class="vm-pd-m-tab-panel" data-pd-mobile-panel="specs">
+                <ul>
+                    {% if product.weight %}<li><strong>Weight:</strong> {{ product.weight }}</li>{% endif %}
+                    {% if product.dimensions %}<li><strong>Dimensions:</strong> {{ product.dimensions }}</li>{% endif %}
+                    {% if product.color %}<li><strong>Color:</strong> {{ product.color }}</li>{% endif %}
+                    {% if product.size %}<li><strong>Size:</strong> {{ product.size }}</li>{% endif %}
+                    {% if product.brand %}<li><strong>Brand:</strong> {{ product.brand }}</li>{% endif %}
+                    <li><strong>Stock:</strong> {% if product.stock > 0 %}In stock{% else %}Sold out{% endif %}</li>
+                </ul>
+            </div>
+            <div class="vm-pd-m-tab-panel" data-pd-mobile-panel="reviews">
+                {% include 'partials/feedback_mobile_alt.html' %}
+            </div>
+        </section>
+        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='product-details-mobile' %}
+    </main>
+
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='shop' %}
+</section>
+
+<div class="vm-pd-legacy-content">
+<section class="pddx-shell" aria-label="Product details desktop layout">
+    <div class="pddx-topbar">
+        <div class="pddx-topbar__brand"><span>{{ product.brand|default:"VibeMall" }}</span></div>
+        <div class="pddx-topbar__actions">
+            <a href="{% url 'shop' %}" aria-label="Search products"><i class="far fa-search"></i></a>
+            <a href="{% url 'cart' %}" class="pddx-topbar__cart" aria-label="Open cart">
+                <i class="far fa-shopping-bag"></i>
+                <span>{{ cart_count|default:"0" }}</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="pddx-breadcrumbs" aria-label="Breadcrumb">
+        <a href="{% url 'index' %}">Home</a>
+        <span>/</span>
+        <a href="{% url 'shop' %}">{{ product.get_category_display|default:"Shop" }}</a>
+        <span>/</span>
+        <strong>{{ product.name }}</strong>
+    </div>
+
+    <div class="pddx-layout">
+        <aside class="pddx-thumbs" aria-label="Product image thumbnails">
+            <button type="button" class="pddx-thumb is-active" data-image-src="{% if product.image and product.image.name %}{{ product.image.url }}{% else %}{% static 'assets/img/product/tp-1.jpg' %}{% endif %}" aria-label="Main product image">
+                {% if product.image and product.image.name %}
+                <img src="{{ product.image.url }}" alt="{{ product.name }} thumbnail">
+                {% else %}
+                <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }} thumbnail">
+                {% endif %}
+            </button>
+            {% for additional_image in product.additional_images.all %}
+                {% if additional_image.image and additional_image.image.name %}
+                <button type="button" class="pddx-thumb" data-image-src="{{ additional_image.image.url }}" aria-label="Product image {{ forloop.counter }}">
+                    <img src="{{ additional_image.image.url }}" alt="{{ product.name }} thumbnail {{ forloop.counter }}">
+                </button>
+                {% endif %}
+            {% endfor %}
+        </aside>
+
+        <div class="pddx-stage">
+            <div class="pddx-stage__frame">
+                {% if product.image and product.image.name %}
+                <img id="pddxMainImage" class="pddx-stage__image" src="{{ product.image.url }}" alt="{{ product.name }}" onerror="this.src='{% static 'assets/img/product/tp-1.jpg' %}'">
+                {% else %}
+                <img id="pddxMainImage" class="pddx-stage__image" src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}">
+                {% endif %}
+                <button type="button" class="pddx-stage__zoom" onclick="openDesktopProductImage()" aria-label="Open larger image">
+                    <i class="far fa-expand"></i>
+                </button>
+            </div>
+        </div>
+
+        <section class="pddx-summary">
+            <div class="pddx-summary__head">
+                <p class="pddx-kicker">{{ product.brand|default:"VibeMall" }}</p>
+                <h1>{{ product.name }}</h1>
+                <p class="pddx-subtitle">{{ product.sub_category|default:product.get_category_display|default:"Curated Object" }}</p>
+            </div>
+
+            <div class="pddx-price-row">
+                <div>
+                    <p class="pddx-price">&#8377;{{ product.price|floatformat:2 }}</p>
+                    {% if product.old_price %}
+                    <p class="pddx-price-meta">
+                        <span>&#8377;{{ product.old_price|floatformat:2 }}</span>
+                        {% if product.discount_percent_display %}
+                        <strong>Save {{ product.discount_percent_display }}%</strong>
+                        {% endif %}
+                    </p>
+                    {% endif %}
+                </div>
+                <div class="pddx-rating">
+                    <div class="pddx-rating__stars" aria-label="Rating: {{ avg_rating }} out of 5">
+                        {% for i in "12345" %}
+                            {% if i|add:"0" <= avg_rating %}
+                            <i class="fas fa-star" aria-hidden="true"></i>
+                            {% else %}
+                            <i class="fal fa-star" aria-hidden="true"></i>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    <p>{{ avg_rating }}/5 from {{ total_reviews }} review{% if total_reviews != 1 %}s{% endif %}</p>
+                </div>
+            </div>
+
+            <div class="pddx-option-block" data-pddx-color-root data-options="{{ product.color|default:'Signature finish'|escapejs }}">
+                <div class="pddx-option-head">
+                    <p>Color</p>
+                    <span data-pddx-color-value>{{ product.color|default:"Signature finish" }}</span>
+                </div>
+                <div class="pddx-swatch-row" data-pddx-color-list></div>
+            </div>
+
+            <div class="pddx-option-block" data-pddx-size-root data-options="{{ product.size|default:'One Size'|escapejs }}">
+                <div class="pddx-option-head">
+                    <p>Size</p>
+                    <span data-pddx-size-value>{{ product.size|default:"One Size" }}</span>
+                </div>
+                <div class="pddx-size-row" data-pddx-size-list></div>
+            </div>
+
+            <div class="pddx-benefits">
+                <article>
+                    <strong>{% if product.stock > 0 %}In stock{% else %}Sold out{% endif %}</strong>
+                    <span>{% if product.stock > 0 %}{{ product.stock }} unit{% if product.stock != 1 %}s{% endif %} ready to dispatch{% else %}Join the waitlist below{% endif %}</span>
+                </article>
+                <article>
+                    <strong>Delivery</strong>
+                    <span>{% if product.shipping_info %}{{ product.shipping_info }}{% else %}Fast shipping with protected packaging{% endif %}</span>
+                </article>
+                <article>
+                    <strong>Returns</strong>
+                    <span>{% if product.is_returnable %}{{ product.return_days }}-day easy returns{% else %}This product is final sale{% endif %}</span>
+                </article>
+                <article>
+                    <strong>Payments</strong>
+                    <span>{{ product.get_payment_methods_list|join:", " }}</span>
+                </article>
+            </div>
+
+            <div class="pddx-actions">
+                <form method="POST" action="{% url 'add_to_cart' %}" class="pddx-cart-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                    <div class="pddx-qty-control" data-max="{{ product.stock|default:999 }}">
+                        <button type="button" class="pddx-qty-btn" data-step="-1" aria-label="Decrease quantity">-</button>
+                        <input type="number" class="pddx-qty-input" id="pddxQtyInput" name="quantity" value="1" min="1" max="{{ product.stock|default:999 }}" inputmode="numeric" aria-label="Quantity">
+                        <button type="button" class="pddx-qty-btn" data-step="1" aria-label="Increase quantity">+</button>
+                    </div>
+                    <button type="submit" class="pddx-btn pddx-btn--primary" {% if product.stock == 0 %}disabled{% endif %}>Add to Bag</button>
+                </form>
+
+                <div class="pddx-secondary-actions">
+                    <button type="button" class="pddx-btn pddx-btn--secondary {% if in_wishlist %}is-active{% endif %}" data-product-id="{{ product.id }}" data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}" data-label-active="In Wishlist" data-label-inactive="Add to Wishlist" onclick="handlePdWishlistClick(this)" aria-pressed="{% if in_wishlist %}true{% else %}false{% endif %}">
+                        <i class="{% if in_wishlist %}fas{% else %}far{% endif %} fa-heart" aria-hidden="true"></i>
+                        <span>{% if in_wishlist %}In Wishlist{% else %}Add to Wishlist{% endif %}</span>
+                    </button>
+                    <button type="button" class="pddx-btn pddx-btn--ghost" onclick="buyNow({{ product.id }}, document.getElementById('pddxQtyInput').value)" {% if product.stock == 0 %}disabled{% endif %}>Buy Now</button>
+                </div>
+            </div>
+
+            {% if product.stock == 0 %}
+            <div class="pddx-notify">
+                <form method="POST" action="{% url 'request_stock_notification' product.id %}" class="pddx-notify__form">
+                    {% csrf_token %}
+                    {% if user.is_authenticated and user.email %}
+                    <input type="hidden" name="email" value="{{ user.email }}">
+                    <p class="pddx-notify__copy">We can notify {{ user.email }} when this item returns.</p>
+                    {% else %}
+                    <input type="email" name="email" class="pddx-notify__input" placeholder="Enter your email" required aria-label="Email address for stock notification">
+                    {% endif %}
+                    <button type="submit" class="pddx-notify__btn">Notify Me</button>
+                </form>
+            </div>
+            {% endif %}
+        </section>
+    </div>
+
+    <section class="pddx-discovery">
+        <div class="pddx-tabs" role="tablist" aria-label="Product details sections">
+            <button type="button" class="pddx-tab-btn is-active" data-pddx-tab="details">Details</button>
+            <button type="button" class="pddx-tab-btn" data-pddx-tab="specs">Specifications</button>
+            <button type="button" class="pddx-tab-btn" data-pddx-tab="shipping">Shipping &amp; Returns</button>
+            <button type="button" class="pddx-tab-btn" data-pddx-tab="reviews">Customer Reviews</button>
+        </div>
+
+        <div class="pddx-tab-panel is-active" data-pddx-panel="details">
+            <div class="pddx-panel-grid">
+                <article class="pddx-copy-card">
+                    <h3>Description</h3>
+                    {% if product.description %}
+                    {{ product.description|linebreaks }}
+                    {% else %}
+                    <p>No description available for this product.</p>
+                    {% endif %}
+                    {% if product.get_tags_list %}
+                    <ul class="pddx-tag-points">
+                        {% for tag in product.get_tags_list %}
+                        <li>{{ tag }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </article>
+
+                <article class="pddx-copy-card">
+                    <h3>Care Guide</h3>
+                    <p>{% if product.care_info %}{{ product.care_info }}{% else %}Store this piece in a clean, dry place and handle with care to preserve its finish and structure over time.{% endif %}</p>
+                    {% if product.descriptionImage and product.descriptionImage.name %}
+                    <div class="pddx-detail-image">
+                        <img src="{{ product.descriptionImage.url }}" alt="{{ product.name }}">
+                    </div>
+                    {% else %}
+                    <div class="pddx-editorial-note">
+                        <strong>Design Note</strong>
+                        <p>Thoughtful detailing, reliable construction, and a clean silhouette make this piece easy to style every day.</p>
+                    </div>
+                    {% endif %}
+                </article>
+            </div>
+        </div>
+
+        <div class="pddx-tab-panel" data-pddx-panel="specs" hidden>
+            <div class="pddx-spec-grid">
+                <div><span>Brand</span><strong>{{ product.brand|default:"VibeMall" }}</strong></div>
+                <div><span>Category</span><strong>{{ product.get_category_display|default:"General" }}</strong></div>
+                <div><span>Sub-category</span><strong>{{ product.sub_category|default:"Standard" }}</strong></div>
+                <div><span>Stock</span><strong>{% if product.stock > 0 %}{{ product.stock }} available{% else %}Unavailable{% endif %}</strong></div>
+                {% if product.weight %}<div><span>Weight</span><strong>{{ product.weight }}</strong></div>{% endif %}
+                {% if product.dimensions %}<div><span>Dimensions</span><strong>{{ product.dimensions }}</strong></div>{% endif %}
+                {% if product.color %}<div><span>Colors</span><strong>{{ product.color }}</strong></div>{% endif %}
+                {% if product.size %}<div><span>Sizes</span><strong>{{ product.size }}</strong></div>{% endif %}
+            </div>
+        </div>
+
+        <div class="pddx-tab-panel" data-pddx-panel="shipping" hidden>
+            <div class="pddx-panel-grid">
+                <article class="pddx-copy-card">
+                    <h3>Shipping</h3>
+                    <p>{% if product.shipping_info %}{{ product.shipping_info }}{% else %}Orders are packed securely and dispatched through trusted delivery partners with live tracking where available.{% endif %}</p>
+                    <div class="pddx-badge-row">
+                        {% with methods=product.get_payment_methods_list %}
+                        {% for method in methods %}
+                        <span class="pddx-badge">{{ method }}</span>
+                        {% endfor %}
+                        {% endwith %}
+                    </div>
+                </article>
+
+                <article class="pddx-copy-card">
+                    <h3>Returns</h3>
+                    <p>{% if product.is_returnable %}Eligible for returns within {{ product.return_days }} days of delivery.{% else %}This item is not eligible for return once delivered.{% endif %}</p>
+                    {% if product.return_policy %}
+                    <p>{{ product.return_policy }}</p>
+                    {% else %}
+                    <p>Keep the original packaging and ensure the product remains unused for a smoother return process.</p>
+                    {% endif %}
+                </article>
+            </div>
+        </div>
+
+        <div class="pddx-tab-panel pddx-tab-panel--reviews" data-pddx-panel="reviews" hidden>
+            {% include 'review_enhanced.html' %}
+        </div>
+    </section>
+</section>
+
+</div><!-- /.vm-pd-legacy-content -->
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    /* ── Desktop image switcher ── */
+    const pddxMainImg = document.getElementById('pddxMainImage');
+    document.querySelectorAll('.pddx-thumb').forEach(function(thumb) {
+        thumb.addEventListener('click', function() {
+            const src = this.getAttribute('data-image-src');
+            if (pddxMainImg && src) pddxMainImg.src = src;
+            document.querySelectorAll('.pddx-thumb').forEach(function(t) { t.classList.remove('is-active'); });
+            this.classList.add('is-active');
+        });
+    });
+
+    /* ── Desktop quantity control ── */
+    document.querySelectorAll('.pddx-qty-control').forEach(function(control) {
+        const input = control.querySelector('.pddx-qty-input');
+        if (!input) return;
+        const min = parseInt(input.getAttribute('min')) || 1;
+        const max = parseInt(input.getAttribute('max')) || parseInt(control.dataset.max) || 999;
+        control.querySelectorAll('.pddx-qty-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const step = parseInt(this.dataset.step || '1');
+                let val = parseInt(input.value) || min;
+                input.value = Math.min(max, Math.max(min, val + step));
+            });
+        });
+        input.addEventListener('input', function() {
+            let val = parseInt(this.value) || min;
+            this.value = Math.min(max, Math.max(min, val));
+        });
+    });
+
+    /* ── Desktop tabs ── */
+    const desktopTabButtons = document.querySelectorAll('.pddx-tab-btn');
+    const desktopPanels = document.querySelectorAll('[data-pddx-panel]');
+    desktopTabButtons.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const target = this.getAttribute('data-pddx-tab');
+            desktopTabButtons.forEach(function(tab) {
+                tab.classList.remove('is-active');
+            });
+            desktopPanels.forEach(function(panel) {
+                panel.classList.remove('is-active');
+                panel.hidden = true;
+            });
+            this.classList.add('is-active');
+            const panel = document.querySelector('[data-pddx-panel="' + target + '"]');
+            if (panel) {
+                panel.hidden = false;
+                panel.classList.add('is-active');
+            }
+        });
+    });
+
+    initDesktopOptionGroup('[data-pddx-color-root]', '[data-pddx-color-list]', '[data-pddx-color-value]', 'pddx-swatch', true);
+    initDesktopOptionGroup('[data-pddx-size-root]', '[data-pddx-size-list]', '[data-pddx-size-value]', 'pddx-size-btn', false);
+
+    /* ── Mobile image switcher ── */
+    const vmMainImage = document.getElementById('vmPdMainImage');
+    const vmThumbs    = document.querySelectorAll('.vm-pd-m-thumb');
+    const vmQtyInput  = document.getElementById('vmPdMobileQty');
+    const vmQtyHidden = document.getElementById('vmPdMobileQtyHidden');
+
+    vmThumbs.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const src = this.getAttribute('data-image-src');
+            if (vmMainImage && src) vmMainImage.src = src;
+            vmThumbs.forEach(function(el) { el.classList.remove('is-active'); });
+            this.classList.add('is-active');
+        });
+    });
+
+    /* ── Mobile qty control ── */
+    document.querySelectorAll('.vm-pd-m-qty-control').forEach(function(control) {
+        const input = control.querySelector('.vm-pd-m-qty-input');
+        if (!input) return;
+        const min = parseInt(input.getAttribute('min') || '1', 10);
+        const max = parseInt(input.getAttribute('max') || control.getAttribute('data-max') || '999', 10);
+        control.querySelectorAll('.vm-pd-m-qty-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const step = parseInt(this.getAttribute('data-step') || '0', 10);
+                const value = parseInt(input.value || String(min), 10);
+                input.value = Math.min(max, Math.max(min, value + step));
+                if (vmQtyHidden) vmQtyHidden.value = input.value;
+            });
+        });
+        input.addEventListener('input', function() {
+            const value = parseInt(this.value || String(min), 10);
+            this.value = Math.min(max, Math.max(min, value));
+            if (vmQtyHidden) vmQtyHidden.value = this.value;
+        });
+    });
+
+    if (vmQtyInput && vmQtyHidden) {
+        vmQtyHidden.value = vmQtyInput.value || '1';
+    }
+
+    /* ── Mobile tab switcher ── */
+    const tabButtons = document.querySelectorAll('[data-pd-mobile-tab]');
+    const tabPanels  = document.querySelectorAll('[data-pd-mobile-panel]');
+    tabButtons.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const target = this.getAttribute('data-pd-mobile-tab');
+            tabButtons.forEach(function(b) { b.classList.remove('is-active'); });
+            tabPanels.forEach(function(p) { p.classList.remove('is-active'); });
+            this.classList.add('is-active');
+            const panel = document.querySelector('[data-pd-mobile-panel="' + target + '"]');
+            if (panel) panel.classList.add('is-active');
+        });
+    });
+});
+
+/* ── Shared helpers ── */
+function getCsrfTokenPd() {
+    const cookie = document.cookie.split('; ').find(function(r) { return r.startsWith('csrftoken='); });
+    return cookie ? decodeURIComponent(cookie.split('=')[1]) : '';
+}
+
+async function handlePdWishlistClick(button) {
+    if (window.vmStorefrontActions && typeof window.vmStorefrontActions.toggleWishlist === 'function') {
+        return window.vmStorefrontActions.toggleWishlist(button);
+    }
+}
+
+async function buyNow(productId, quantity) {
+    {% if not user.is_authenticated %}
+        window.location.href = "{% url 'login' %}?next={{ request.path }}";
+        return;
+    {% endif %}
+    const url = '/buy-now/' + productId + '/';
+    const csrftoken = getCsrfTokenPd();
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: 'quantity=' + quantity
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+            window.location.href = data.redirect_url || '/cart/';
+        } else {
+            alert(data.message || 'Failed to process order');
+        }
+    } catch (error) {
+        console.error('Buy Now error:', error);
+        alert('An error occurred. Please try again.');
+    }
+}
+
+function shareProduct() {
+    if (navigator.share) {
+        navigator.share({
+            title: '{{ product.name|escapejs }}',
+            text: 'Check out this product: {{ product.name|escapejs }}',
+            url: window.location.href
+        }).catch(function() { fallbackShare(); });
+    } else {
+        fallbackShare();
+    }
+}
+
+function fallbackShare() {
+    const shareUrl  = window.location.href;
+    const shareText = 'Check out {{ product.name|escapejs }}: ';
+    const opts = [
+        { name: 'Facebook',  url: 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(shareUrl) },
+        { name: 'Twitter',   url: 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText) + '&url=' + encodeURIComponent(shareUrl) },
+        { name: 'WhatsApp',  url: 'https://wa.me/?text=' + encodeURIComponent(shareText + shareUrl) },
+        { name: 'Copy Link', action: 'copy' }
+    ];
+    let html = '<div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:20px;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.2);z-index:9999;min-width:250px;">';
+    html += '<h5 style="margin-bottom:15px;">Share this product</h5>';
+    opts.forEach(function(o) {
+        if (o.action === 'copy') {
+            html += '<button onclick="navigator.clipboard.writeText(\'' + shareUrl + '\').then(function(){alert(\'Copied!\');}); closeShareMenu();" style="display:block;width:100%;padding:10px;margin:5px 0;border:1px solid #ddd;border-radius:5px;cursor:pointer;background:#f8f9fa;">' + o.name + '</button>';
+        } else {
+            html += '<a href="' + o.url + '" target="_blank" rel="noopener noreferrer" style="display:block;padding:10px;margin:5px 0;border:1px solid #ddd;border-radius:5px;text-decoration:none;color:#333;background:#f8f9fa;">' + o.name + '</a>';
+        }
+    });
+    html += '<button onclick="closeShareMenu()" style="display:block;width:100%;padding:10px;margin-top:10px;border:1px solid #ddd;border-radius:5px;cursor:pointer;background:#e9ecef;">Close</button></div>';
+    html += '<div id="shareOverlay" onclick="closeShareMenu()" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:9998;"></div>';
+    const div = document.createElement('div');
+    div.id = 'shareMenu';
+    div.innerHTML = html;
+    document.body.appendChild(div);
+}
+
+function closeShareMenu() {
+    const el = document.getElementById('shareMenu');
+    if (el) el.remove();
+}
+
+function initDesktopOptionGroup(rootSelector, listSelector, valueSelector, buttonClass, isColorGroup) {
+    const root = document.querySelector(rootSelector);
+    if (!root) return;
+
+    const list = root.querySelector(listSelector);
+    const valueLabel = root.querySelector(valueSelector);
+    if (!list) return;
+
+    const options = (root.getAttribute('data-options') || '')
+        .split(',')
+        .map(function(option) { return option.trim(); })
+        .filter(Boolean);
+
+    const finalOptions = options.length ? options : [isColorGroup ? 'Signature finish' : 'One Size'];
+    list.innerHTML = '';
+
+    finalOptions.forEach(function(option, index) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = buttonClass + (index === 0 ? ' is-active' : '');
+        button.setAttribute('data-value', option);
+        button.setAttribute('aria-pressed', index === 0 ? 'true' : 'false');
+
+        if (isColorGroup) {
+            const swatch = document.createElement('span');
+            swatch.className = 'pddx-swatch__fill';
+            swatch.style.background = inferDesktopColor(option);
+            button.appendChild(swatch);
+        } else {
+            button.textContent = option;
+        }
+
+        button.addEventListener('click', function() {
+            list.querySelectorAll('.' + buttonClass).forEach(function(item) {
+                item.classList.remove('is-active');
+                item.setAttribute('aria-pressed', 'false');
+            });
+            button.classList.add('is-active');
+            button.setAttribute('aria-pressed', 'true');
+            if (valueLabel) valueLabel.textContent = option;
+        });
+
+        list.appendChild(button);
+    });
+
+    if (valueLabel) valueLabel.textContent = finalOptions[0];
+}
+
+function inferDesktopColor(label) {
+    const value = (label || '').toLowerCase();
+    if (value.includes('black')) return '#1a1a1a';
+    if (value.includes('white') || value.includes('ivory') || value.includes('cream')) return '#f4efe6';
+    if (value.includes('grey') || value.includes('gray') || value.includes('slate')) return '#6b7280';
+    if (value.includes('blue') || value.includes('navy')) return '#274690';
+    if (value.includes('green') || value.includes('olive')) return '#556b2f';
+    if (value.includes('red') || value.includes('maroon') || value.includes('wine')) return '#8b1e3f';
+    if (value.includes('brown') || value.includes('tan') || value.includes('camel')) return '#9c6b3f';
+    if (value.includes('pink') || value.includes('rose')) return '#d977a5';
+    if (value.includes('yellow') || value.includes('gold')) return '#d4a017';
+    if (value.includes('orange') || value.includes('rust')) return '#c96f3b';
+    if (value.includes('purple') || value.includes('violet')) return '#6d4c91';
+    return 'linear-gradient(135deg, #d6d3d1 0%, #57534e 100%)';
+}
+
+function openDesktopProductImage() {
+    const image = document.getElementById('pddxMainImage');
+    if (image && image.src) {
+        window.open(image.src, '_blank', 'noopener');
+    }
+}
+</script>
+
+{% comment %}LEGACY_DESKTOP_CONTENT_REMOVED
 
 <style>
     .pd-cta-wrap { display: flex; flex-direction: column; gap: 12px; }
@@ -335,7 +962,7 @@
                             {% endif %}
                             <div class="details-meta">
                                 <div class="details-actions">
-                                    <button type="button" class="action-chip wishlist-chip {% if in_wishlist %}wishlisted{% endif %}" data-product-id="{{ product.id }}" data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}" onclick="handlePdWishlistClick(this);" aria-label="Add {{ product.name }} to wishlist" aria-pressed="{% if in_wishlist %}true{% else %}false{% endif %}">
+                                    <button type="button" class="action-chip wishlist-chip {% if in_wishlist %}wishlisted{% endif %}" data-product-id="{{ product.id }}" data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}" data-label-active="In wishlist" data-label-inactive="Add to wishlist" onclick="handlePdWishlistClick(this);" aria-label="Add {{ product.name }} to wishlist" aria-pressed="{% if in_wishlist %}true{% else %}false{% endif %}">
                                         <span class="icon"><i class="{% if in_wishlist %}fas{% else %}fal{% endif %} fa-heart"></i></span>
                                         <span>{% if in_wishlist %}In wishlist{% else %}Add to wishlist{% endif %}</span>
                                     </button>
@@ -684,58 +1311,8 @@
         }
 
         async function handlePdWishlistClick(button) {
-            if (!button) return;
-            const loggedIn = button.dataset.loggedIn === '1';
-            const productId = button.dataset.productId;
-
-            if (!loggedIn) {
-                window.location.href = "{% url 'login' %}?next={{ request.path }}";
-                return;
-            }
-
-            if (!productId) return;
-
-            const url = `/wishlist/add/${productId}/`;
-            const csrftoken = getCsrfTokenPd();
-
-            button.disabled = true;
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': csrftoken,
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                    const icon = button.querySelector('i');
-                    const text = button.querySelector('span:last-child');
-                    
-                    if (data.in_wishlist) {
-                        // Added to wishlist
-                        button.classList.add('wishlisted');
-                        if (icon) {
-                            icon.classList.remove('fal');
-                            icon.classList.add('fas');
-                        }
-                        if (text) text.textContent = 'In wishlist';
-                    } else {
-                        // Removed from wishlist
-                        button.classList.remove('wishlisted');
-                        if (icon) {
-                            icon.classList.remove('fas');
-                            icon.classList.add('fal');
-                        }
-                        if (text) text.textContent = 'Add to wishlist';
-                    }
-                }
-            } catch (error) {
-                console.error('Wishlist error', error);
-            } finally {
-                button.disabled = false;
+            if (window.vmStorefrontActions && typeof window.vmStorefrontActions.toggleWishlist === 'function') {
+                return window.vmStorefrontActions.toggleWishlist(button);
             }
         }
 
@@ -849,6 +1426,64 @@
                 console.error('Failed to copy: ', err);
             });
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const mainImage = document.getElementById('vmPdMainImage');
+            const thumbs = document.querySelectorAll('.vm-pd-m-thumb');
+            const qtyInput = document.getElementById('vmPdMobileQty');
+            const qtyHidden = document.getElementById('vmPdMobileQtyHidden');
+
+            thumbs.forEach((btn) => {
+                btn.addEventListener('click', function() {
+                    const src = this.getAttribute('data-image-src');
+                    if (mainImage && src) {
+                        mainImage.src = src;
+                    }
+                    thumbs.forEach((el) => el.classList.remove('is-active'));
+                    this.classList.add('is-active');
+                });
+            });
+
+            document.querySelectorAll('.vm-pd-m-qty-control').forEach((control) => {
+                const input = control.querySelector('.vm-pd-m-qty-input');
+                const min = parseInt(input.getAttribute('min') || '1', 10);
+                const max = parseInt(input.getAttribute('max') || control.getAttribute('data-max') || '999', 10);
+
+                control.querySelectorAll('.vm-pd-m-qty-btn').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        const step = parseInt(btn.getAttribute('data-step') || '0', 10);
+                        const value = parseInt(input.value || String(min), 10);
+                        input.value = Math.min(max, Math.max(min, value + step));
+                        if (qtyHidden) qtyHidden.value = input.value;
+                    });
+                });
+
+                input.addEventListener('input', () => {
+                    const value = parseInt(input.value || String(min), 10);
+                    input.value = Math.min(max, Math.max(min, value));
+                    if (qtyHidden) qtyHidden.value = input.value;
+                });
+            });
+
+            if (qtyInput && qtyHidden) {
+                qtyHidden.value = qtyInput.value || '1';
+            }
+
+            const tabButtons = document.querySelectorAll('[data-pd-mobile-tab]');
+            const panels = document.querySelectorAll('[data-pd-mobile-panel]');
+            tabButtons.forEach((btn) => {
+                btn.addEventListener('click', function() {
+                    const target = this.getAttribute('data-pd-mobile-tab');
+                    tabButtons.forEach((b) => b.classList.remove('is-active'));
+                    panels.forEach((p) => p.classList.remove('is-active'));
+                    this.classList.add('is-active');
+                    const panel = document.querySelector('[data-pd-mobile-panel="' + target + '"]');
+                    if (panel) panel.classList.add('is-active');
+                });
+            });
+        });
         </script>
-        
+
+{% endcomment %}
+
         {% endblock content %}

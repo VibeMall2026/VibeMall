@@ -2,8 +2,116 @@
 {% load static %}
 
 {% block title %}Return Status - VibeMall{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-mobile-returnstatus{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'assets/css/returnstatus-mobile-alt.css' %}?v=20260329-01">
+{% endblock %}
 
 {% block content %}
+<section class="vm-rs-mobile-only" aria-label="Return status mobile view">
+    {% include 'partials/vm_mobile_alt_header.html' %}
+
+    <main class="vm-rs-m-main vm-mobile-content-offset">
+
+        <section class="vm-rs-m-title">
+            <p>Concierge Service</p>
+            <h2>Return Status</h2>
+            <div class="vm-rs-m-line"></div>
+        </section>
+
+        {# ── Active return card ── #}
+        <article class="vm-rs-m-card">
+            <div class="vm-rs-m-card-head">
+                <div>
+                    <p class="vm-rs-m-label">Return Request</p>
+                    <p class="vm-rs-m-ref">Order #{{ return_request.order.order_number }}</p>
+                </div>
+                <span class="vm-rs-m-badge vm-rs-m-badge--{{ return_request.status|lower }}">
+                    {{ return_request.get_status_display }}
+                </span>
+            </div>
+
+            {# items #}
+            {% for item in return_request.items.all %}
+            <div class="vm-rs-m-item">
+                {% if item.order_item.product and item.order_item.product.image %}
+                <img src="{{ item.order_item.product.image.url }}" alt="{{ item.order_item.product_name }}">
+                {% endif %}
+                <div class="vm-rs-m-item-copy">
+                    <h4>{{ item.order_item.product_name }}</h4>
+                    <p>Qty: {{ item.quantity }} &middot; {{ item.get_condition_display }}</p>
+                </div>
+            </div>
+            {% endfor %}
+
+            {# refund amount #}
+            {% if return_request.refund_amount %}
+            <div class="vm-rs-m-refund">
+                <p class="vm-rs-m-label">Refund Amount</p>
+                <p class="vm-rs-m-refund-amount">
+                    &#8377;{{ return_request.refund_amount_net|default:return_request.refund_amount }}
+                    {% if return_request.refund_method %}<span>via {{ return_request.refund_method }}</span>{% endif %}
+                </p>
+                {% if return_request.refund_fee %}
+                <p class="vm-rs-m-refund-fee">Return fee: &#8377;{{ return_request.refund_fee }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {# reason #}
+            <div class="vm-rs-m-reason">
+                <p class="vm-rs-m-label">Reason</p>
+                <p>{{ return_request.get_reason_display }}{% if return_request.reason_notes %} &mdash; {{ return_request.reason_notes }}{% endif %}</p>
+            </div>
+
+            {# lifecycle timeline #}
+            <div class="vm-rs-m-timeline">
+                {% for entry in history %}
+                <div class="vm-rs-m-step vm-rs-m-step--done">
+                    <div class="vm-rs-m-dot"><i class="fas fa-check"></i></div>
+                    <div class="vm-rs-m-step-copy">
+                        <p>
+                            {% if entry.new_status == 'APPROVED' %}Request Approved
+                            {% elif entry.new_status == 'REJECTED' %}Request Rejected
+                            {% elif entry.new_status == 'PENDING' %}Request Received
+                            {% elif entry.new_status == 'REFUNDED' %}Refund Processed
+                            {% else %}{{ entry.new_status|title }}{% endif %}
+                        </p>
+                        <span>{{ entry.created_at|date:"d M Y, h:i A" }}</span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="vm-rs-m-step vm-rs-m-step--active">
+                    <div class="vm-rs-m-dot vm-rs-m-dot--pulse"></div>
+                    <div class="vm-rs-m-step-copy">
+                        <p>Request Received</p>
+                        <span>Under review</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {# admin notes #}
+            {% if return_request.admin_notes %}
+            <div class="vm-rs-m-notes">
+                <p class="vm-rs-m-label"><i class="fas fa-file-alt"></i> Curator Notes</p>
+                <p>{{ return_request.admin_notes }}</p>
+            </div>
+            {% endif %}
+        </article>
+
+        <a href="{% url 'order_details' return_request.order.order_number %}" class="vm-rs-m-back">
+            <i class="fas fa-arrow-left"></i> Back to Order
+        </a>
+
+        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='return-status-mobile' %}
+    </main>
+
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' %}
+</section>
+
+<div class="vm-rs-legacy-content">
 <div class="container my-5">
     <div class="row">
         <div class="col-12">
@@ -67,4 +175,5 @@
         </div>
     </div>
 </div>
+</div>{# /vm-rs-legacy-content #}
 {% endblock %}
