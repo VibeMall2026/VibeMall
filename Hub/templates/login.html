@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block body_class %}vm-page-mobile-alt{% endblock %}
+{% block body_class %}login-page vm-page-mobile-alt{% endblock %}
 
 
 {% block title %}Login - VibeMall{% endblock %}
@@ -13,6 +13,45 @@
     min-height: calc(100vh - 220px);
     background: #f7f5f0;
     padding: 48px 16px;
+  }
+
+  body.login-page .vm-copy-header,
+  body.login-page .vm-copy-footer,
+  body.login-page #mobileBottomNavShell {
+    display: none !important;
+  }
+
+  @media (min-width: 768px) {
+    body.login-page .vm-tablet-alt-header {
+      display: block;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 90;
+      background: rgba(251, 249, 244, 0.96);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(27, 28, 25, 0.08);
+    }
+
+    .vm-auth-wrap {
+      padding-top: 140px;
+    }
+  }
+
+  .vm-login-mobile-only {
+    display: none;
+  }
+
+  @media (max-width: 767.98px) {
+    .vm-login-mobile-only {
+      display: block;
+    }
+
+    .vm-auth-wrap {
+      padding-top: 96px;
+      padding-bottom: 120px;
+    }
   }
   .vm-auth-shell {
     max-width: 1080px;
@@ -143,6 +182,10 @@
 {% endblock %}
 
 {% block content %}
+<section class="vm-login-mobile-only" aria-label="Login mobile header">
+  {% include 'partials/vm_mobile_alt_header.html' %}
+</section>
+
 <section class="vm-auth-wrap">
   <div class="vm-auth-shell">
     <aside class="vm-auth-left">
@@ -199,6 +242,11 @@
       </form>
     </main>
   </div>
+</section>
+
+<section class="vm-login-mobile-only" aria-label="Login mobile footer">
+  {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='login-mobile' %}
+  {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
 </section>
 
 <script>
