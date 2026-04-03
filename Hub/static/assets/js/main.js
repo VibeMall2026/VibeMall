@@ -57,8 +57,15 @@
 	////////////////////////////////////////////////////
 	// 03. Sidebar Js
 	const mobileSearchInput = document.getElementById("mobileSearchInput");
+	const hasMobileAltMenu = function () {
+		return document.querySelector("[data-vm-mobile-menu]") !== null;
+	};
 
 	const lockOffcanvasBody = function () {
+		if (hasMobileAltMenu()) {
+			return;
+		}
+
 		const body = document.body;
 		if (body.classList.contains("offcanvas-open")) {
 			return;
@@ -90,6 +97,10 @@
 	};
 
 	$(".offcanvas-toggle-btn").on("click", function () {
+		if (hasMobileAltMenu()) {
+			return;
+		}
+
 		$(".offcanvas__area").addClass("opened");
 		$(".body-overlay").addClass("opened");
 		lockOffcanvasBody();

@@ -151,9 +151,11 @@
         <div class="vm-ocm-note">
             A confirmation email has been sent{% if order.user.email %} to {{ order.user.email }}{% else %} to your inbox{% endif %}. Thank you for supporting VibeMall.
         </div>
+
+        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='order-confirmation-mobile' %}
     </main>
 
-    {% include 'partials/vm_mobile_alt_bottom_nav.html' %}
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
 </section>
 
 <div class="vm-orderconfirm-legacy-content">

@@ -1,6 +1,13 @@
-/* Side Menu Styles (Mobile + Tablet) - MUST be outside mobile-only media query */
-@media (max-width: 991.98px) {
+/* Side Menu: hidden by default outside supported viewport range */
+.vm-mobile-side-menu-overlay,
+.vm-mobile-side-menu {
+  display: none !important;
+}
+
+/* Side Menu Styles (Mobile + Tablet) */
+@media (max-width: 1199.98px) {
   .vm-mobile-side-menu-overlay {
+    display: block !important;
     position: fixed;
     top: 0;
     left: 0;
@@ -19,6 +26,7 @@
   }
 
   .vm-mobile-side-menu {
+    display: flex !important;
     position: fixed;
     left: 0;
     top: 0;

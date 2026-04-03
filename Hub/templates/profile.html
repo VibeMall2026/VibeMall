@@ -1,5 +1,6 @@
 ﻿{% extends "base.html" %} {% load static %}
 {% block title %}My Profile - VibeMall{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-mobile-profile{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'assets/css/profile-custom.css' %}">
@@ -12,21 +13,9 @@
 {% block content %}
 
 <section class="vm-profile-mobile-only" aria-label="Profile mobile view">
-    <header class="pmv-topbar">
-        <div class="pmv-topbar__left">
-            <a href="{% url 'index' %}" aria-label="Home"><i class="far fa-bars"></i></a>
-            <h1>VIBEMALL</h1>
-        </div>
-        <div class="pmv-topbar__right">
-            <a href="{% url 'shop' %}" aria-label="Search"><i class="far fa-search"></i></a>
-            <a href="{% url 'cart' %}" aria-label="Cart" class="pmv-bag-link">
-                <i class="far fa-shopping-bag"></i>
-                <span class="pmv-badge">{{ cart_count|default:'0' }}</span>
-            </a>
-        </div>
-    </header>
+    {% include 'partials/vm_mobile_alt_header.html' %}
 
-    <main class="pmv-main">
+    <main class="pmv-main vm-mobile-content-offset">
         <section class="pmv-hero-banner">
             <div class="pmv-hero-overlay"></div>
         </section>
@@ -107,6 +96,8 @@
         <section class="pmv-logout-wrap">
             <a href="{% url 'logout' %}" class="pmv-logout-btn"><i class="far fa-sign-out-alt"></i> Logout Account</a>
         </section>
+
+        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='profile-mobile' %}
     </main>
 
     {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}

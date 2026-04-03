@@ -9,352 +9,259 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Serif:wght@400;700&display=swap');
 
-  :root {
-    --bg: #f6f1e8;
-    --surface: rgba(255, 251, 245, 0.86);
-    --text: #171818;
-    --muted: rgba(23, 24, 24, 0.68);
-    --line: rgba(23, 24, 24, 0.08);
-    --accent: #b88b4a;
-    --accent-dark: #8e6730;
-    --shadow: 0 28px 70px rgba(13, 15, 22, 0.18);
+  * {
+    box-sizing: border-box;
   }
 
   body.coming-soon-page {
+    margin: 0;
     min-height: 100vh;
-    background: var(--bg);
-  }
-
-  body.coming-soon-page .progress-wrap,
-  body.coming-soon-page .mobile-bottom-nav-shell,
-  body.coming-soon-page #supportChatWidget,
-  body.coming-soon-page header,
-  body.coming-soon-page footer,
-  body.coming-soon-page .tp-header-area,
-  body.coming-soon-page .header-area,
-  body.coming-soon-page .vm-copy-header,
-  body.coming-soon-page .vm-copy-footer {
-    display: none !important;
-  }
-
-  body.coming-soon-page main {
-    min-height: 100vh;
-  }
-
-  .cs-page {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    color: var(--text);
+    background: #f7f3ec;
+    color: #171818;
     font-family: "Manrope", sans-serif;
   }
 
-  .cs-main {
-    position: relative;
-    flex: 1;
+  body.coming-soon-page #mobileBottomNavShell {
+    display: none !important;
+  }
+
+  .vm-cst-page {
+    min-height: 100vh;
     display: flex;
-    align-items: stretch;
-    justify-content: center;
-    padding: 64px 40px;
-    overflow: hidden;
+    flex-direction: column;
+  }
+
+  .vm-cst-main {
+    flex: 1;
+    padding: 48px 24px;
     background:
-      linear-gradient(135deg, rgba(17, 20, 29, 0.78), rgba(17, 20, 29, 0.38)),
-      url("https://images.unsplash.com/photo-1528459105426-b954836706fc?auto=format&fit=crop&w=1600&q=80") center/cover no-repeat;
-  }
-
-  .cs-main::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at top left, rgba(184, 139, 74, 0.36), transparent 32%);
-    pointer-events: none;
-  }
-
-  .cs-shell {
-    position: relative;
-    z-index: 1;
-    width: min(1180px, 100%);
-    display: grid;
-    grid-template-columns: 1.1fr 0.9fr;
-    gap: 32px;
-    align-items: center;
-  }
-
-  .cs-copy {
+      linear-gradient(180deg, rgba(20, 24, 35, 0.18), rgba(20, 24, 35, 0.72)),
+      url("https://images.unsplash.com/photo-1528459105426-b954836706fc?auto=format&fit=crop&w=1200&q=80") center/cover no-repeat;
     color: #fffdf8;
-    text-align: center;
   }
 
-  .cs-brand {
-    display: inline-block;
-    margin-bottom: 24px;
-    font-family: "Noto Serif", serif;
-    font-size: 32px;
-    font-weight: 700;
-    letter-spacing: -0.04em;
-    color: #f5ede1;
+  .vm-cst-shell {
+    width: min(860px, 100%);
+    margin: 0 auto;
+    display: grid;
+    gap: 24px;
   }
 
-  .cs-kicker,
-  .cs-panel-label {
-    margin: 0 0 14px;
+  .vm-cst-kicker {
+    margin: 0;
     font-size: 11px;
     font-weight: 800;
-    letter-spacing: 0.28em;
+    letter-spacing: 0.24em;
     text-transform: uppercase;
-    color: #dbc294;
+    color: #d5c29f;
   }
 
-  .cs-title {
-    margin: 0;
-    font-family: "Noto Serif", serif;
-    font-size: clamp(56px, 8vw, 92px);
-    line-height: 0.96;
-    letter-spacing: -0.04em;
+  .vm-cst-title {
+    margin: 10px 0 0;
+    font: 700 64px/0.95 "Noto Serif", serif;
+    letter-spacing: -0.05em;
   }
 
-  .cs-subtitle {
-    margin: 24px auto 0;
-    max-width: 640px;
+  .vm-cst-sub {
+    margin: 20px 0 0;
+    max-width: 620px;
     font-size: 17px;
-    line-height: 1.75;
-    color: rgba(255, 251, 244, 0.82);
+    line-height: 1.8;
+    color: rgba(255, 253, 248, 0.8);
   }
 
-  .cs-highlights {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
-    margin-top: 32px;
-  }
-
-  .cs-highlight {
-    padding: 18px;
-    border: 1px solid rgba(255, 251, 244, 0.16);
-    background: rgba(255, 251, 244, 0.06);
-    backdrop-filter: blur(6px);
-    border-radius: 22px;
-  }
-
-  .cs-highlight strong {
-    display: block;
-    margin-bottom: 6px;
-    font-size: 12px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-  }
-
-  .cs-highlight span {
-    font-size: 13px;
-    line-height: 1.7;
-    color: rgba(255, 251, 244, 0.78);
-  }
-
-  .cs-panel {
-    background: var(--surface);
-    border: 1px solid rgba(255, 251, 245, 0.42);
-    border-radius: 32px;
-    box-shadow: var(--shadow);
+  .vm-cst-panel {
+    background: rgba(255, 251, 245, 0.9);
+    color: #171818;
+    padding: 28px 24px;
+    border-radius: 30px;
+    box-shadow: 0 26px 70px rgba(0, 0, 0, 0.18);
     backdrop-filter: blur(16px);
-    padding: 34px;
   }
 
-  .cs-date {
+  .vm-cst-date {
     margin: 0;
-    font-family: "Noto Serif", serif;
-    font-size: 44px;
-    line-height: 1;
+    font: 700 38px/1 "Noto Serif", serif;
   }
 
-  .cs-launch-line {
-    margin: 12px 0 0;
-    color: var(--muted);
-    line-height: 1.7;
+  .vm-cst-copy {
+    margin: 10px 0 0;
+    color: rgba(23, 24, 24, 0.66);
+    line-height: 1.75;
   }
 
-  .cs-countdown {
+  .vm-cst-countdown {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
-    margin-top: 24px;
+    gap: 10px;
+    margin-top: 18px;
   }
 
-  .cs-countdown-card {
-    padding: 16px 12px;
+  .vm-cst-countdown article,
+  .vm-cst-grid article {
+    padding: 16px;
     border-radius: 18px;
-    background: rgba(255, 255, 255, 0.66);
-    border: 1px solid rgba(23, 24, 24, 0.06);
-    text-align: center;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(23, 24, 24, 0.08);
   }
 
-  .cs-countdown-card strong {
+  .vm-cst-countdown strong {
     display: block;
-    font-size: 26px;
-    font-weight: 800;
+    font-size: 24px;
   }
 
-  .cs-countdown-card span {
+  .vm-cst-countdown span {
     font-size: 10px;
-    letter-spacing: 0.22em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: rgba(23, 24, 24, 0.62);
+    color: rgba(23, 24, 24, 0.56);
   }
 
-  .cs-form {
-    margin-top: 28px;
-  }
-
-  .cs-input-row {
-    display: flex;
+  .vm-cst-form {
+    display: grid;
+    grid-template-columns: 1fr auto;
     gap: 12px;
+    margin-top: 22px;
   }
 
-  .cs-form input {
-    flex: 1;
-    min-height: 54px;
+  .vm-cst-form input,
+  .vm-cst-form button {
+    min-height: 52px;
     border-radius: 999px;
-    border: 1px solid var(--line);
-    background: rgba(255, 255, 255, 0.85);
-    padding: 0 22px;
     font: inherit;
   }
 
-  .cs-form button {
-    min-width: 168px;
-    min-height: 54px;
-    padding: 0 24px;
+  .vm-cst-form input {
+    border: 1px solid rgba(23, 24, 24, 0.1);
+    padding: 0 20px;
+    background: #ffffff;
+  }
+
+  .vm-cst-form button {
     border: 0;
-    border-radius: 999px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    background: linear-gradient(135deg, #b88b4a, #8e6730);
     color: #fff;
-    font: inherit;
     font-size: 12px;
     font-weight: 800;
     letter-spacing: 0.18em;
     text-transform: uppercase;
+    padding: 0 24px;
     cursor: pointer;
   }
 
-  .cs-status {
-    min-height: 22px;
-    margin: 12px 0 0;
+  .vm-cst-msg {
+    min-height: 18px;
+    margin: 10px 0 0;
     font-size: 13px;
-    color: var(--accent-dark);
+    color: #8e6730;
   }
 
-  .cs-status.is-error {
+  .vm-cst-msg.error {
     color: #b42318;
   }
 
-  .cs-meta {
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-    padding-top: 20px;
+  .vm-cst-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
     margin-top: 20px;
-    border-top: 1px solid var(--line);
-    color: rgba(23, 24, 24, 0.7);
-    font-size: 12px;
-    line-height: 1.7;
   }
 
-  @media (max-width: 1080px) {
-    .cs-shell {
+  .vm-cst-grid strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .vm-cst-grid span {
+    font-size: 13px;
+    line-height: 1.7;
+    color: rgba(23, 24, 24, 0.7);
+  }
+
+  @media (max-width: 768px) {
+    .vm-cst-title {
+      font-size: 48px;
+    }
+
+    .vm-cst-form {
       grid-template-columns: 1fr;
     }
 
-    .cs-highlights {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-
-  @media (max-width: 720px) {
-    .cs-main {
-      padding: 32px 16px;
-    }
-
-    .cs-panel {
-      padding: 24px 18px;
-    }
-
-    .cs-highlights,
-    .cs-countdown {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .cs-input-row,
-    .cs-meta {
-      flex-direction: column;
-    }
-
-    .cs-form button {
+    .vm-cst-form button {
       width: 100%;
+    }
+
+    .vm-cst-countdown {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<section class="cs-page" aria-labelledby="comingSoonTitle">
-  <div class="cs-main">
-    <div class="cs-shell">
-      <section class="cs-copy">
-        <div class="cs-brand">VIBEMALL</div>
-        <p class="cs-kicker">Private Preview</p>
-        <h1 class="cs-title" id="comingSoonTitle">A New Era of Artistry is Arriving</h1>
-        <p class="cs-subtitle">We are curating a collection that redefines the boundaries of modern craft. Be the first to witness the unveiling.</p>
-        <div class="cs-highlights">
-          <article class="cs-highlight">
-            <strong>Private Access</strong>
-            <span>Join the first wave of visitors who see the new storefront before the public launch.</span>
+<section class="vm-cst-page" aria-labelledby="comingSoonTitle">
+  <main class="vm-cst-main">
+    <section class="vm-cst-shell">
+      <div>
+        <p class="vm-cst-kicker">Private Preview</p>
+        <h1 class="vm-cst-title" id="comingSoonTitle">A New Era of Artistry is Arriving</h1>
+        <p class="vm-cst-sub">We are curating a collection that redefines the boundaries of modern craft. Be the first to witness the unveiling.</p>
+      </div>
+
+      <section class="vm-cst-panel" aria-label="Launch and notify panel">
+        <h2 class="vm-cst-date" id="vmLaunchDate" data-launch-date="{{ launch_date_iso|default:'' }}">{{ launch_date_display|default:'Launching Soon' }}</h2>
+        <p class="vm-cst-copy">Subscribe for early access, private preview updates, and launch alerts the moment the new VibeMall chapter goes live.</p>
+
+        <div class="vm-cst-countdown" id="vmCountdown" aria-label="Launch countdown">
+          <article>
+            <strong id="vmDays">00</strong>
+            <span>Days</span>
           </article>
-          <article class="cs-highlight">
-            <strong>Refined Drops</strong>
-            <span>Expect sharper curation, premium fashion edits, and elevated lifestyle releases.</span>
+          <article>
+            <strong id="vmHours">00</strong>
+            <span>Hours</span>
           </article>
-          <article class="cs-highlight">
-            <strong>Smoother Journey</strong>
-            <span>From discovery to delivery, the next VibeMall experience is being rebuilt with more clarity.</span>
+          <article>
+            <strong id="vmMinutes">00</strong>
+            <span>Minutes</span>
+          </article>
+          <article>
+            <strong id="vmSeconds">00</strong>
+            <span>Seconds</span>
+          </article>
+        </div>
+
+        <form class="vm-cst-form" id="vmNotifyForm" method="post" action="{% url 'subscribe_newsletter' %}">
+          {% csrf_token %}
+          <input id="vmNotifyEmail" type="email" name="email" placeholder="Enter your email address" autocomplete="email" required>
+          <button id="vmNotifyBtn" type="submit">Notify Me</button>
+        </form>
+        <p class="vm-cst-msg" id="vmNotifyMsg" aria-live="polite"></p>
+
+        <div class="vm-cst-grid" aria-label="Coming soon highlights">
+          <article>
+            <strong>Dispatch</strong>
+            <span>Fast dispatch and live status tracking for every order.</span>
+          </article>
+          <article>
+            <strong>Catalog</strong>
+            <span>Fresh collections, sharper curation, and real-time stock visibility.</span>
+          </article>
+          <article>
+            <strong>Checkout</strong>
+            <span>A smoother purchase flow with better order visibility from start to finish.</span>
+          </article>
+          <article>
+            <strong>Offers</strong>
+            <span>Private preview access and launch offers reserved for subscribers.</span>
           </article>
         </div>
       </section>
-      <aside class="cs-panel">
-        <p class="cs-panel-label">Join the Private Viewing</p>
-        <h2 class="cs-date" id="vmLaunchDate" data-launch-date="{{ launch_date_iso|default:'' }}">{{ launch_date_display|default:'Launching Soon' }}</h2>
-        <p class="cs-launch-line">Leave your email and we will let you know the moment the new VibeMall chapter is live.</p>
-        <div class="cs-countdown" id="vmCountdown" aria-label="Launch countdown">
-          <div class="cs-countdown-card">
-            <strong id="vmDays">00</strong>
-            <span>Days</span>
-          </div>
-          <div class="cs-countdown-card">
-            <strong id="vmHours">00</strong>
-            <span>Hours</span>
-          </div>
-          <div class="cs-countdown-card">
-            <strong id="vmMinutes">00</strong>
-            <span>Minutes</span>
-          </div>
-          <div class="cs-countdown-card">
-            <strong id="vmSeconds">00</strong>
-            <span>Seconds</span>
-          </div>
-        </div>
-        <form class="cs-form" id="vmNotifyForm" method="post" action="{% url 'subscribe_newsletter' %}">
-          {% csrf_token %}
-          <div class="cs-input-row">
-            <input id="vmNotifyEmail" type="email" name="email" placeholder="Enter your email address" autocomplete="email" required>
-            <button id="vmNotifyBtn" type="submit">Notify Me</button>
-          </div>
-          <p class="cs-status" id="vmNotifyMsg" aria-live="polite"></p>
-        </form>
-        <div class="cs-meta">
-          <span>No spam. Just launch access and meaningful updates.</span>
-          <span>VibeMall Atelier</span>
-        </div>
-      </aside>
-    </div>
-  </div>
+    </section>
+  </main>
 </section>
 
 <script>
@@ -420,13 +327,14 @@
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
       msg.textContent = '';
+      msg.classList.remove('error');
       btn.disabled = true;
       btn.textContent = 'Sending...';
 
       const csrf = getCookie('csrftoken');
       const payload = new URLSearchParams({
         email: document.getElementById('vmNotifyEmail').value.trim(),
-        source_page: 'ComingSoon',
+        source_page: 'comingsoon-tablet',
         csrfmiddlewaretoken: csrf || ''
       });
 
@@ -443,12 +351,13 @@
         });
 
         const data = await response.json();
-        if (!response.ok) throw new Error(data.message || 'Unable to subscribe now.');
+        if (!response.ok || data.success === false) throw new Error(data.message || 'Unable to subscribe now.');
 
         msg.textContent = data.message || 'Subscribed successfully.';
         form.reset();
       } catch (error) {
         msg.textContent = error.message || 'Unable to subscribe now.';
+        msg.classList.add('error');
       } finally {
         btn.disabled = false;
         btn.textContent = 'Notify Me';

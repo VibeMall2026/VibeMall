@@ -5,6 +5,14 @@
 }
 
 @media (min-width: 768px) and (max-width: 1199px) {
+  body.vm-page-mobile-home .vm-copy-header,
+  body.vm-page-mobile-home .vm-copy-footer,
+  body.vm-page-mobile-home .mobile-bottom-nav-shell,
+  body.vm-page-mobile-home .mobile-bottom-nav,
+  body.vm-page-mobile-home > footer {
+    display: none !important;
+  }
+
   .vm-home-mobile-only,
   .vm-copy-home-desktop {
     display: none !important;
@@ -24,107 +32,8 @@
     padding: 0 28px;
   }
 
-  .vm-home-tablet-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 65;
-    background: rgba(251, 249, 244, 0.82);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(27, 28, 25, 0.08);
-  }
-
-  .vm-home-tablet-header__inner {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 18px 28px;
-    display: grid;
-    grid-template-columns: auto minmax(260px, 1fr) auto;
-    align-items: center;
-    gap: 22px;
-  }
-
-  .vm-home-tablet-header__brand {
-    display: inline-flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  .vm-home-tablet-header__brand button,
-  .vm-home-tablet-header__actions a,
-  .vm-home-tablet-header__actions button {
-    border: 0;
-    background: transparent;
-    color: #171818;
-    text-decoration: none;
-    font-size: 20px;
-    line-height: 1;
-    padding: 0;
-  }
-
-  .vm-home-tablet-header__brand h1 {
-    margin: 0;
-    font-family: 'Noto Serif', Georgia, serif;
-    font-size: 34px;
-    font-style: italic;
-    font-weight: 700;
-    letter-spacing: -0.04em;
-  }
-
-  .vm-home-tablet-search {
-    position: relative;
-  }
-
-  .vm-home-tablet-search input {
-    width: 100%;
-    height: 46px;
-    border: 0;
-    border-radius: 14px;
-    background: #f0eee9;
-    padding: 0 18px 0 46px;
-    font-size: 14px;
-    color: #1b1c19;
-    outline: none;
-  }
-
-  .vm-home-tablet-search i {
-    position: absolute;
-    left: 18px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: rgba(27, 28, 25, 0.45);
-    font-size: 14px;
-  }
-
-  .vm-home-tablet-header__actions {
-    display: inline-flex;
-    align-items: center;
-    gap: 18px;
-  }
-
-  .vm-home-tablet-header__actions .has-badge {
-    position: relative;
-  }
-
-  .vm-home-tablet-header__actions .has-badge span {
-    position: absolute;
-    top: -7px;
-    right: -8px;
-    min-width: 16px;
-    height: 16px;
-    border-radius: 999px;
-    background: #6f5c37;
-    color: #fff;
-    font-size: 9px;
-    font-weight: 700;
-    display: grid;
-    place-items: center;
-    padding: 0 4px;
-  }
-
   .vm-home-tablet-main {
-    padding-top: 88px;
+    padding-top: 112px;
     padding-bottom: 48px;
   }
 

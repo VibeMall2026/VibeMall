@@ -34,12 +34,18 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 
 <style>
-body.vm-shop-copy-root .header,
-body.vm-shop-copy-root .footer,
-body.vm-shop-copy-root .footer-area,
-body.vm-shop-copy-root > footer,
-body.vm-shop-copy-root .offcanvas__area {
-    display: none !important;
+@media (max-width: 991.98px) {
+    body.vm-shop-copy-root .vm-copy-header,
+    body.vm-shop-copy-root .vm-copy-footer,
+    body.vm-shop-copy-root .mobile-bottom-nav-shell,
+    body.vm-shop-copy-root .mobile-bottom-nav,
+    body.vm-shop-copy-root > footer,
+    body.vm-shop-copy-root .header,
+    body.vm-shop-copy-root .footer,
+    body.vm-shop-copy-root .footer-area,
+    body.vm-shop-copy-root .offcanvas__area {
+        display: none !important;
+    }
 }
 
 /* Enforce single shop layout per breakpoint to avoid overlap */
@@ -71,8 +77,18 @@ body.vm-shop-copy-root .offcanvas__area {
         display: block !important;
     }
 
-    .vm-copy-header {
+    body.vm-shop-copy-root .vm-copy-header,
+    body.vm-shop-copy-root .vm-copy-footer,
+    body.vm-shop-copy-root > footer,
+    body.vm-shop-copy-root .header,
+    body.vm-shop-copy-root .footer,
+    body.vm-shop-copy-root .footer-area {
         display: block !important;
+    }
+
+    body.vm-shop-copy-root .mobile-bottom-nav-shell,
+    body.vm-shop-copy-root .mobile-bottom-nav {
+        display: none !important;
     }
 }
 </style>
@@ -403,21 +419,7 @@ body.vm-shop-copy-root .offcanvas__area {
 
 <!-- Tablet Shop View -->
 <section class="vm-shop-tablet-only" aria-label="VibeMall tablet shop layout">
-    <header class="vm-shop-t-header vm-mobile-topbar">
-        <div class="vm-mobile-topbar__left">
-            <button type="button" class="offcanvas-toggle-btn" aria-label="Open menu"><i class="far fa-bars"></i></button>
-            <h1>VIBEMALL</h1>
-        </div>
-        <div class="vm-mobile-topbar__right">
-            <div class="vm-mobile-search" data-vm-mobile-search-root>
-                <button type="button" class="vm-mobile-search__toggle" data-vm-mobile-search-toggle aria-label="Toggle search" aria-expanded="false"><i class="far fa-search"></i></button>
-                <form class="vm-mobile-search__form" data-vm-mobile-search-form action="{% url 'shop' %}" method="get">
-                    <input class="vm-mobile-search__field" type="search" name="q" placeholder="Search products">
-                </form>
-            </div>
-            <a href="{% url 'cart' %}" aria-label="Open cart"><i class="far fa-shopping-bag"></i></a>
-        </div>
-    </header>
+    {% include 'partials/vm_tablet_alt_header.html' %}
 
     <main class="vm-shop-t-main">
         <section class="vm-shop-t-banner">

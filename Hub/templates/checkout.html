@@ -4,12 +4,761 @@
 
 {% block title %}Checkout - VibeMall{% endblock %}
 {% block meta_description %}Secure checkout on VibeMall. Choose from multiple payment methods including Razorpay, UPI, and cash on delivery. Track your order in real-time.{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-mobile-checkout{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'assets/css/checkout-responsive.css' %}">
+<link rel="stylesheet" href="{% static 'assets/css/checkout-mobile-alt.css' %}?v=20260403-01">
+<link rel="stylesheet" href="{% static 'assets/css/checkout-tablet.css' %}?v=20260403-01">
 {% endblock %}
 
 {% block content %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const isDesktop = window.matchMedia('(min-width: 1200px)').matches;
+    const isTablet = window.matchMedia('(min-width: 768px) and (max-width: 1199.98px)').matches;
+
+    if (isDesktop) {
+        document.querySelectorAll('.vm-checkout-mobile-only, .vm-checkout-tablet-only').forEach((node) => node.remove());
+    } else if (isTablet) {
+        document.querySelectorAll('.vm-checkout-mobile-only, .vm-checkout-legacy-content').forEach((node) => node.remove());
+    } else {
+        document.querySelectorAll('.vm-checkout-tablet-only, .vm-checkout-legacy-content').forEach((node) => node.remove());
+    }
+});
+</script>
+
+<section class="vm-checkout-mobile-only" aria-label="Checkout mobile view">
+    <nav class="vm-checkout-mobile-nav" aria-label="Checkout top bar">
+        <div class="vm-checkout-mobile-nav__inner">
+            <div class="vm-checkout-mobile-nav__group">
+                <button type="button" class="vm-checkout-mobile-nav__btn offcanvas-toggle-btn" aria-label="Open menu">
+                    <span class="material-symbols-outlined vm-checkout-icon">menu</span>
+                </button>
+                <a href="{% url 'index' %}" class="vm-checkout-mobile-nav__brand">VibeMall</a>
+            </div>
+            <div class="vm-checkout-mobile-nav__actions">
+                <a href="{% url 'shop' %}" class="vm-checkout-mobile-nav__link" aria-label="Search products">
+                    <span class="material-symbols-outlined vm-checkout-icon">search</span>
+                </a>
+                <a href="{% url 'cart' %}" class="vm-checkout-mobile-nav__link vm-checkout-mobile-nav__cart" aria-label="View cart">
+                    <span class="material-symbols-outlined vm-checkout-icon">shopping_bag</span>
+                    <span class="vm-checkout-mobile-nav__badge">{{ cart_count|default:'0' }}</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    {% if cart_items %}
+    <main class="vm-checkout-mobile-main">
+        {% if messages %}
+        <div class="vm-checkout-mobile-messages" aria-live="polite">
+            {% for message in messages %}
+            <div class="vm-checkout-mobile-message {{ message.tags|default:'info' }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <details class="vm-checkout-mobile-summary" open>
+            <summary>
+                <div>
+                    <span class="vm-checkout-mobile-summary__eyebrow">Your Selection</span>
+                    <span class="vm-checkout-mobile-summary__count">{{ total_item_qty }} item{{ total_item_qty|pluralize }}</span>
+                </div>
+                <span class="material-symbols-outlined vm-checkout-icon vm-checkout-mobile-summary__toggle">expand_more</span>
+            </summary>
+            <div class="vm-checkout-mobile-summary__body">
+                {% for item in cart_items %}
+                <article class="vm-checkout-mobile-item">
+                    <div class="vm-checkout-mobile-item__image">
+                        {% if item.product.image %}
+                        <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+                        {% else %}
+                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.product.name }}">
+                        {% endif %}
+                    </div>
+                    <div class="vm-checkout-mobile-item__meta">
+                        <h3>{{ item.product.name }}</h3>
+                        <p>Quantity {{ item.quantity }}</p>
+                        <strong>&#8377;{{ item.get_total_price|floatformat:2 }}</strong>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </details>
+
+        <div class="vm-checkout-mobile-steps {% if checkout_form.payment_method != 'RAZORPAY' %}is-hidden{% endif %}" id="mobileCheckoutSteps" aria-label="Checkout progress">
+            <div class="vm-checkout-mobile-step vm-checkout-mobile-step--start is-active">
+                <span>Shipping</span>
+                <i></i>
+            </div>
+            <div class="vm-checkout-mobile-step vm-checkout-mobile-step--end">
+                <span>Payment</span>
+                <i></i>
+            </div>
+        </div>
+
+        <form action="{% url 'checkout' %}" method="POST" id="checkoutMobileForm" class="vm-checkout-mobile-form">
+            {% csrf_token %}
+            <input type="hidden" name="pincode_valid" id="mobilePincodeValid" value="0">
+            <input type="hidden" name="first_name" id="mobileFirstNameField" value="{{ checkout_form.first_name|default:user.first_name }}">
+            <input type="hidden" name="last_name" id="mobileLastNameField" value="{{ checkout_form.last_name|default:user.last_name }}">
+            <input type="hidden" name="order_type" id="mobileOrderTypeInput" value="{% if selected_order_type == 'for_resell' or resell_link %}for_resell{% else %}for_self{% endif %}">
+
+            <section class="vm-checkout-mobile-card">
+                <div class="vm-checkout-mobile-card__header">
+                    <div>
+                        <p class="vm-checkout-mobile-card__label" id="mobileToDetailsLabel">{% if selected_order_type == 'for_resell' or resell_link %}TO Details{% else %}Shipping Details{% endif %}</p>
+                        <h2 class="vm-checkout-mobile-card__title">Checkout</h2>
+                    </div>
+                    <span class="vm-checkout-mobile-pill">Secure</span>
+                </div>
+
+                <div class="vm-checkout-mobile-fields">
+                    {% if default_address %}
+                    <div class="vm-checkout-mobile-default">
+                        <strong>Default Address</strong>
+                        <p class="vm-checkout-mobile-pincode-text">{{ default_address.full_name }} · {{ default_address.city }}, {{ default_address.state }} {{ default_address.pincode }}</p>
+                        <label class="vm-checkout-mobile-toggle" for="mobileUseDefaultAddress">
+                            <input
+                                type="checkbox"
+                                name="use_default_address"
+                                id="mobileUseDefaultAddress"
+                                {% if checkout_form.use_default_address %}checked{% endif %}
+                                data-full-name="{{ default_address.full_name }}"
+                                data-phone="{{ default_address.mobile_number }}"
+                                data-address1="{{ default_address.address_line1 }}"
+                                data-address2="{{ default_address.address_line2 }}"
+                                data-city="{{ default_address.city }}"
+                                data-state="{{ default_address.state }}"
+                                data-pincode="{{ default_address.pincode }}"
+                                data-country="{{ default_address.country }}"
+                            >
+                            <span class="vm-checkout-mobile-message-line">Use this saved address</span>
+                        </label>
+                    </div>
+                    {% endif %}
+
+                    <div class="vm-checkout-mobile-field">
+                        <label for="mobileFullNameField">Full Name</label>
+                        <input type="text" id="mobileFullNameField" value="{{ checkout_form.first_name|default:user.first_name }} {{ checkout_form.last_name|default:user.last_name }}" placeholder="Ananya Sharma" required>
+                    </div>
+
+                    <div class="vm-checkout-mobile-field">
+                        <label for="mobileEmailField">Email Address</label>
+                        <input type="email" id="mobileEmailField" name="email" value="{{ checkout_form.email|default:user.email }}" placeholder="you@example.com" required>
+                    </div>
+
+                    <div class="vm-checkout-mobile-field">
+                        <label for="mobileAddressField">Street Address</label>
+                        <input type="text" id="mobileAddressField" name="address" value="{{ checkout_form.address|default:'' }}" placeholder="Flat 402, Lotus Apartments" required>
+                    </div>
+
+                    <div class="vm-checkout-mobile-grid vm-checkout-mobile-grid--tight">
+                        <div class="vm-checkout-mobile-field">
+                            <label for="mobileCityField">City</label>
+                            <input type="text" id="mobileCityField" name="city" value="{{ checkout_form.city|default:'' }}" placeholder="Jaipur" required>
+                            <small class="vm-checkout-mobile-pincode-message" id="mobileCityHint"></small>
+                        </div>
+                        <div class="vm-checkout-mobile-field">
+                            <label for="mobilePostcodeField">PIN Code</label>
+                            <input type="text" id="mobilePostcodeField" name="postcode" value="{{ checkout_form.postcode|default:'' }}" placeholder="302001" required>
+                            <small class="vm-checkout-mobile-pincode-message" id="mobilePincodeError"></small>
+                        </div>
+                    </div>
+
+                    <div class="vm-checkout-mobile-grid">
+                        <div class="vm-checkout-mobile-field">
+                            <label for="mobileStateField">State</label>
+                            <input type="text" id="mobileStateField" name="state" value="{{ checkout_form.state|default:'' }}" placeholder="Rajasthan" required>
+                        </div>
+                        <div class="vm-checkout-mobile-field">
+                            <label for="mobileCountryField">Country</label>
+                            <select name="country" id="mobileCountryField" required>
+                                <option value="India" {% if checkout_form.country == 'India' or not checkout_form.country %}selected{% endif %}>India</option>
+                                <option value="USA" {% if checkout_form.country == 'USA' %}selected{% endif %}>USA</option>
+                                <option value="UK" {% if checkout_form.country == 'UK' %}selected{% endif %}>UK</option>
+                                <option value="Canada" {% if checkout_form.country == 'Canada' %}selected{% endif %}>Canada</option>
+                                <option value="Australia" {% if checkout_form.country == 'Australia' %}selected{% endif %}>Australia</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="vm-checkout-mobile-field">
+                        <label for="mobilePhoneField">Mobile Number</label>
+                        <div class="vm-checkout-mobile-phone">
+                            <span>+91</span>
+                            <input type="text" id="mobilePhoneField" name="phone" value="{{ checkout_form.phone|default:user_profile.mobile_number|default:'' }}" placeholder="98765 43210" required>
+                        </div>
+                    </div>
+
+                    <div class="vm-checkout-mobile-field">
+                        <label for="mobileCustomerNotes">Order Notes</label>
+                        <textarea id="mobileCustomerNotes" name="customer_notes" placeholder="Notes about your order, delivery details, or handling preferences.">{{ checkout_form.customer_notes|default:'' }}</textarea>
+                    </div>
+
+                    <label class="vm-checkout-mobile-checkbox">
+                        <input type="checkbox" name="set_default_address" id="mobileSetDefaultAddress" {% if checkout_form.set_default_address %}checked{% endif %}>
+                        <span class="vm-checkout-mobile-message-line">Set this as my default address</span>
+                    </label>
+                </div>
+            </section>
+
+            <section class="vm-checkout-mobile-card">
+                <div class="vm-checkout-mobile-card__header">
+                    <div>
+                        <p class="vm-checkout-mobile-card__label">Order Type</p>
+                        <h2 class="vm-checkout-mobile-card__title">Resell Flow</h2>
+                    </div>
+                </div>
+
+                {% if resell_link %}
+                <div class="vm-checkout-mobile-info-card">
+                    <div class="vm-checkout-mobile-pills">
+                        <span><span class="material-symbols-outlined vm-checkout-icon">local_shipping</span> Resell order detected</span>
+                    </div>
+                    <p class="vm-checkout-mobile-message-line">This order is linked to reseller {{ resell_link.reseller.get_full_name|default:resell_link.reseller.username }} for {{ resell_link.product.name }}.</p>
+                    <p class="vm-checkout-mobile-pincode-text">Margin: ₹{{ resell_link.margin_amount|floatformat:2 }} per item</p>
+                    <input type="hidden" name="is_resell" value="on">
+                    <input type="hidden" name="from_name" value="{{ resell_link.reseller.get_full_name|default:resell_link.reseller.username }}">
+                    <input type="hidden" name="from_phone" value="{{ resell_link.reseller.userprofile.mobile_number|default:'' }}">
+                    <input type="hidden" name="resell_margin" value="{{ resell_link.margin_amount|default:'0' }}">
+                </div>
+                {% else %}
+                <input type="hidden" name="is_resell" id="mobileIsResellHidden" value="{% if selected_order_type == 'for_resell' %}on{% endif %}">
+                <label class="vm-checkout-mobile-toggle" for="mobileResellCheckbox">
+                    <input type="checkbox" id="mobileResellCheckbox" {% if selected_order_type == 'for_resell' %}checked{% endif %}>
+                    <span class="vm-checkout-mobile-message-line">Is this a resell order?</span>
+                </label>
+                <div class="vm-checkout-mobile-resell-box {% if selected_order_type == 'for_resell' %}is-visible{% endif %}" id="mobileResellDetails">
+                    <p class="vm-checkout-mobile-section-label">Resell Customer Details</p>
+                    <div class="vm-checkout-mobile-resell-fields">
+                        <div class="vm-checkout-mobile-field">
+                            <label for="mobileFromName">Client Name</label>
+                            <input type="text" id="mobileFromName" name="from_name" value="{{ checkout_form.from_name|default:user.get_full_name }}" placeholder="Customer's Full Name">
+                        </div>
+                        <div class="vm-checkout-mobile-field">
+                            <label for="mobileFromPhone">Client Phone</label>
+                            <div class="vm-checkout-mobile-phone">
+                                <span>+91</span>
+                                <input type="text" id="mobileFromPhone" name="from_phone" value="{{ checkout_form.from_phone|default:user_profile.mobile_number|default:'' }}" placeholder="98765 00000">
+                            </div>
+                        </div>
+                        <div class="vm-checkout-mobile-field">
+                            <label for="mobileResellMargin">Margin Per Item</label>
+                            <input type="number" id="mobileResellMargin" name="resell_margin" min="0" step="0.01" value="{{ checkout_form.resell_margin|default:'0' }}" placeholder="0.00">
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </section>
+
+            <section class="vm-checkout-mobile-card">
+                <div class="vm-checkout-mobile-card__header">
+                    <div>
+                        <p class="vm-checkout-mobile-card__label">Delivery Method</p>
+                        <h2 class="vm-checkout-mobile-card__title">Shipping</h2>
+                    </div>
+                </div>
+
+                <div class="vm-checkout-mobile-methods">
+                    <div class="vm-checkout-mobile-radio is-selected">
+                        <span class="material-symbols-outlined vm-checkout-icon">check_circle</span>
+                        <div class="vm-checkout-mobile-radio__copy">
+                            <strong>Standard Heritage</strong>
+                            <p id="mobileShippingMethodCopy">{% if shipping_cost > 0 %}5-7 business days • &#8377;{{ shipping_cost|floatformat:2 }}{% else %}5-7 business days • Complimentary{% endif %}</p>
+                        </div>
+                        <span class="material-symbols-outlined vm-checkout-icon vm-checkout-mobile-radio__icon">check_circle</span>
+                    </div>
+                    <div class="vm-checkout-mobile-radio is-disabled">
+                        <span class="material-symbols-outlined vm-checkout-icon">hourglass_top</span>
+                        <div class="vm-checkout-mobile-radio__copy">
+                            <strong>Express Atelier</strong>
+                            <p>Currently unavailable for this checkout flow</p>
+                        </div>
+                        <span class="material-symbols-outlined vm-checkout-icon vm-checkout-mobile-radio__icon">radio_button_unchecked</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="vm-checkout-mobile-card">
+                <div class="vm-checkout-mobile-card__header">
+                    <div>
+                        <p class="vm-checkout-mobile-card__label">Payment Method</p>
+                        <h2 class="vm-checkout-mobile-card__title">How You'll Pay</h2>
+                    </div>
+                </div>
+
+                <div class="vm-checkout-mobile-methods" id="mobilePaymentMethods">
+                    <label class="vm-checkout-mobile-radio {% if checkout_form.payment_method == 'COD' or not checkout_form.payment_method %}is-selected{% endif %}">
+                        <input type="radio" name="payment_method" value="COD" {% if checkout_form.payment_method == 'COD' or not checkout_form.payment_method %}checked{% endif %}>
+                        <span class="material-symbols-outlined vm-checkout-icon">payments</span>
+                        <div class="vm-checkout-mobile-radio__copy">
+                            <strong>Cash on Delivery</strong>
+                            <p>Pay when the order reaches your doorstep.</p>
+                        </div>
+                        <span class="material-symbols-outlined vm-checkout-icon vm-checkout-mobile-radio__icon">{% if checkout_form.payment_method == 'COD' or not checkout_form.payment_method %}check_circle{% else %}radio_button_unchecked{% endif %}</span>
+                    </label>
+                    <label class="vm-checkout-mobile-radio {% if checkout_form.payment_method == 'RAZORPAY' %}is-selected{% endif %}">
+                        <input type="radio" name="payment_method" value="RAZORPAY" {% if checkout_form.payment_method == 'RAZORPAY' %}checked{% endif %}>
+                        <span class="material-symbols-outlined vm-checkout-icon">credit_card</span>
+                        <div class="vm-checkout-mobile-radio__copy">
+                            <strong>Razorpay</strong>
+                            <p>Cards, UPI, net banking, and wallets.</p>
+                        </div>
+                        <span class="material-symbols-outlined vm-checkout-icon vm-checkout-mobile-radio__icon">{% if checkout_form.payment_method == 'RAZORPAY' %}check_circle{% else %}radio_button_unchecked{% endif %}</span>
+                    </label>
+                </div>
+            </section>
+
+            <section class="vm-checkout-mobile-card">
+                <div class="vm-checkout-mobile-card__header">
+                    <div>
+                        <p class="vm-checkout-mobile-card__label">Offers</p>
+                        <h2 class="vm-checkout-mobile-card__title">Savings</h2>
+                    </div>
+                </div>
+
+                <div class="vm-checkout-mobile-offers">
+                    <div class="vm-checkout-mobile-field">
+                        <label for="mobileCouponCode">Coupon Code</label>
+                        <div class="vm-checkout-mobile-coupon-row">
+                            <input type="text" id="mobileCouponCode" placeholder="Enter coupon code" style="text-transform: uppercase;">
+                            <button type="button" id="mobileApplyCoupon">Apply</button>
+                        </div>
+                        <div class="vm-checkout-mobile-coupon-actions is-visible" id="mobileCouponActions">
+                            <button type="button" id="mobileViewCoupons">Available Coupons</button>
+                            <button type="button" id="mobileRemoveCoupon" style="display:none;">Remove</button>
+                        </div>
+                        <small class="vm-checkout-mobile-coupon-message" id="mobileCouponMessage"></small>
+                        <input type="hidden" id="mobileAppliedCouponId" name="coupon_id" value="{{ checkout_form.coupon_id|default:'' }}">
+                    </div>
+
+                    {% if user.is_authenticated and loyalty_account and loyalty_account.points_available > 0 %}
+                    <div class="vm-checkout-mobile-inline-card">
+                        <div class="vm-checkout-mobile-pills">
+                            <span><span class="material-symbols-outlined vm-checkout-icon">stars</span> {{ loyalty_account.points_available }} loyalty points available</span>
+                        </div>
+                        <label class="vm-checkout-mobile-toggle" for="mobileRedeemPoints">
+                            <input type="checkbox" name="redeem_points" id="mobileRedeemPoints" {% if checkout_form.redeem_points %}checked{% endif %}>
+                            <span class="vm-checkout-mobile-message-line">Use points on this order</span>
+                        </label>
+                        <div class="vm-checkout-mobile-points" id="mobilePointsBox" style="{% if checkout_form.redeem_points %}{% else %}display:none;{% endif %}">
+                            <div class="vm-checkout-mobile-field">
+                                <label for="mobilePointsToRedeem">Points to Redeem</label>
+                                <input type="number" name="points_to_redeem" id="mobilePointsToRedeem" min="0" max="{{ loyalty_account.points_available }}" value="{{ checkout_form.points_to_redeem|default:'0' }}">
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+
+            <section class="vm-checkout-mobile-card">
+                <div class="vm-checkout-mobile-card__header">
+                    <div>
+                        <p class="vm-checkout-mobile-card__label">Order Review</p>
+                        <h2 class="vm-checkout-mobile-card__title">Totals</h2>
+                    </div>
+                </div>
+
+                <div class="vm-checkout-mobile-totals">
+                    <div class="vm-checkout-mobile-total-row">
+                        <span>Cart Subtotal</span>
+                        <strong id="mobileCartSubtotalAmount">&#8377;{{ total_price|floatformat:2 }}</strong>
+                    </div>
+                    <div class="vm-checkout-mobile-total-row vm-checkout-mobile-total-row--accent" id="mobileResellMarginRow" style="{% if resell_link or selected_order_type == 'for_resell' %}{% else %}display:none;{% endif %}">
+                        <span id="mobileResellMarginLabel">{% if resell_link and resell_link_matching_qty %}Reseller Margin ({{ resell_link_matching_qty }} linked items){% else %}Reseller Margin{% endif %}</span>
+                        <strong id="mobileResellMarginAmount">+&#8377;{{ manual_resell_margin_total|floatformat:2 }}</strong>
+                    </div>
+                    <div class="vm-checkout-mobile-total-row">
+                        <span>Tax (5%)</span>
+                        <strong id="mobileTaxAmount">&#8377;{{ tax_amount|floatformat:2 }}</strong>
+                    </div>
+                    <div class="vm-checkout-mobile-total-row">
+                        <span>Shipping</span>
+                        <strong id="mobileShippingCost">{% if shipping_cost > 0 %}&#8377;{{ shipping_cost|floatformat:2 }}{% else %}FREE{% endif %}</strong>
+                    </div>
+                    <div class="vm-checkout-mobile-total-row" id="mobileCouponDiscountRow" style="display:none;">
+                        <span>Coupon Discount</span>
+                        <strong id="mobileCouponDiscountAmount">-&#8377;0.00</strong>
+                    </div>
+                    {% if user.is_authenticated and loyalty_account and loyalty_account.points_available > 0 %}
+                    <div class="vm-checkout-mobile-total-row" id="mobilePointsDiscountRow" style="{% if checkout_form.redeem_points %}{% else %}display:none;{% endif %}">
+                        <span>Points Discount</span>
+                        <strong id="mobilePointsDiscountAmount">-&#8377;0.00</strong>
+                    </div>
+                    {% endif %}
+                    <div class="vm-checkout-mobile-total-row vm-checkout-mobile-total-row--total">
+                        <span>Total Payable</span>
+                        <strong id="mobileFinalTotalDisplay">&#8377;{{ final_total|floatformat:2 }}</strong>
+                    </div>
+                </div>
+            </section>
+        </form>
+    </main>
+
+    <footer class="vm-checkout-mobile-fixed">
+        <div class="vm-checkout-mobile-fixed__inner">
+            <div class="vm-checkout-mobile-fixed__row">
+                <span class="vm-checkout-mobile-fixed__eyebrow">Total Payable</span>
+                <strong class="vm-checkout-mobile-fixed__total" id="mobileFixedTotalDisplay">&#8377;{{ final_total|floatformat:2 }}</strong>
+            </div>
+            <button type="submit" form="checkoutMobileForm" class="vm-checkout-mobile-submit" id="mobilePlaceOrderButton">
+                Continue to Payment
+            </button>
+            <p class="vm-checkout-mobile-fixed__note">Secure encrypted checkout</p>
+        </div>
+    </footer>
+    {% else %}
+    <main class="vm-checkout-mobile-empty">
+        <h2>Your cart is empty</h2>
+        <p>Add a few pieces to your cart before moving to checkout.</p>
+        <a href="{% url 'shop' %}">Continue Shopping</a>
+    </main>
+    {% endif %}
+</section>
+
+<!-- TABLET VIEW START -->
+<section class="vm-checkout-tablet-only" aria-label="Checkout tablet view">
+    {% include 'partials/vm_tablet_alt_header.html' %}
+
+    {% if cart_items %}
+    <!-- Progress Stepper -->
+    <div class="vm-checkout-tablet-stepper">
+        <div class="vm-checkout-tablet-step is-active">
+            <div class="vm-checkout-tablet-step__circle">1</div>
+            <span class="vm-checkout-tablet-step__label">Shipping</span>
+            <div class="vm-checkout-tablet-step__divider"></div>
+        </div>
+        <div class="vm-checkout-tablet-step is-active">
+            <div class="vm-checkout-tablet-step__circle">2</div>
+            <span class="vm-checkout-tablet-step__label">Payment</span>
+            <div class="vm-checkout-tablet-step__divider"></div>
+        </div>
+        <div class="vm-checkout-tablet-step {% if checkout_form.payment_method != 'RAZORPAY' %}is-hidden{% endif %}" id="tabletReviewStep">
+            <div class="vm-checkout-tablet-step__circle">3</div>
+            <span class="vm-checkout-tablet-step__label">Review</span>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="vm-checkout-tablet-container">
+        <!-- LEFT COLUMN: FORM -->
+        <div class="vm-checkout-tablet-form-column">
+            <form action="{% url 'checkout' %}" method="POST" id="checkoutTabletForm" class="vm-checkout-tablet-form">
+                {% csrf_token %}
+                <input type="hidden" name="pincode_valid" id="tabletPincodeValid" value="0">
+                <input type="hidden" name="first_name" id="tabletFirstNameField" value="{{ checkout_form.first_name|default:user.first_name }}">
+                <input type="hidden" name="last_name" id="tabletLastNameField" value="{{ checkout_form.last_name|default:user.last_name }}">
+                <input type="hidden" name="order_type" id="tabletOrderTypeInput" value="{% if selected_order_type == 'for_resell' or resell_link %}for_resell{% else %}for_self{% endif %}">
+
+                <!-- Shipping Information Card -->
+                <div class="vm-checkout-tablet-card">
+                    <div class="vm-checkout-tablet-card__header">
+                        <span class="vm-checkout-tablet-card__eyebrow">Address</span>
+                        <h2 class="vm-checkout-tablet-card__title">Shipping Information</h2>
+                    </div>
+
+                    <div class="vm-checkout-tablet-grid">
+                        {% if default_address %}
+                        <div class="vm-checkout-tablet-default-address">
+                            <p class="vm-checkout-tablet-default-address__text">{{ default_address.full_name }} · {{ default_address.city }}, {{ default_address.state }} {{ default_address.pincode }}</p>
+                            <label class="vm-checkout-tablet-toggle">
+                                <input type="checkbox" name="use_default_address" id="tabletUseDefaultAddress" {% if checkout_form.use_default_address %}checked{% endif %} 
+                                    data-full-name="{{ default_address.full_name }}"
+                                    data-phone="{{ default_address.mobile_number }}"
+                                    data-address1="{{ default_address.address_line1 }}"
+                                    data-city="{{ default_address.city }}"
+                                    data-state="{{ default_address.state }}"
+                                    data-pincode="{{ default_address.pincode }}"
+                                    data-country="{{ default_address.country }}">
+                                <span>Use this saved address</span>
+                            </label>
+                        </div>
+                        {% endif %}
+
+                        <div class="vm-checkout-tablet-field">
+                            <label for="tabletFullNameField">Full Name</label>
+                            <input type="text" id="tabletFullNameField" value="{{ checkout_form.first_name|default:user.first_name }} {{ checkout_form.last_name|default:user.last_name }}" placeholder="Ananya Sharma" required>
+                        </div>
+
+                        <div class="vm-checkout-tablet-field">
+                            <label for="tabletEmailField">Email Address</label>
+                            <input type="email" id="tabletEmailField" name="email" value="{{ checkout_form.email|default:user.email }}" placeholder="you@example.com" required>
+                        </div>
+
+                        <div class="vm-checkout-tablet-field">
+                            <label for="tabletAddressField">Street Address</label>
+                            <input type="text" id="tabletAddressField" name="address" value="{{ checkout_form.address|default:'' }}" placeholder="Flat 402, Lotus Apartments" required>
+                        </div>
+
+                        <div class="vm-checkout-tablet-grid vm-checkout-tablet-grid--2col">
+                            <div class="vm-checkout-tablet-field">
+                                <label for="tabletCityField">City</label>
+                                <input type="text" id="tabletCityField" name="city" value="{{ checkout_form.city|default:'' }}" placeholder="Jaipur" required>
+                                <small id="tabletCityHint"></small>
+                            </div>
+                            <div class="vm-checkout-tablet-field">
+                                <label for="tabletPostcodeField">PIN Code</label>
+                                <input type="text" id="tabletPostcodeField" name="postcode" value="{{ checkout_form.postcode|default:'' }}" placeholder="302001" required>
+                                <small id="tabletPincodeError"></small>
+                            </div>
+                        </div>
+
+                        <div class="vm-checkout-tablet-grid vm-checkout-tablet-grid--2col">
+                            <div class="vm-checkout-tablet-field">
+                                <label for="tabletStateField">State</label>
+                                <input type="text" id="tabletStateField" name="state" value="{{ checkout_form.state|default:'' }}" placeholder="Rajasthan" required>
+                            </div>
+                            <div class="vm-checkout-tablet-field">
+                                <label for="tabletCountryField">Country</label>
+                                <select name="country" id="tabletCountryField" required>
+                                    <option value="India" {% if checkout_form.country == 'India' or not checkout_form.country %}selected{% endif %}>India</option>
+                                    <option value="USA" {% if checkout_form.country == 'USA' %}selected{% endif %}>USA</option>
+                                    <option value="UK" {% if checkout_form.country == 'UK' %}selected{% endif %}>UK</option>
+                                    <option value="Canada" {% if checkout_form.country == 'Canada' %}selected{% endif %}>Canada</option>
+                                    <option value="Australia" {% if checkout_form.country == 'Australia' %}selected{% endif %}>Australia</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="vm-checkout-tablet-field">
+                            <label for="tabletPhoneField">Mobile Number</label>
+                            <div class="vm-checkout-tablet-phone">
+                                <span>+91</span>
+                                <input type="text" id="tabletPhoneField" name="phone" value="{{ checkout_form.phone|default:user_profile.mobile_number|default:'' }}" placeholder="98765 43210" required>
+                            </div>
+                        </div>
+
+                        <div class="vm-checkout-tablet-field">
+                            <label for="tabletCustomerNotes">Order Notes</label>
+                            <textarea id="tabletCustomerNotes" name="customer_notes" placeholder="Notes about your order, delivery details, or handling preferences.">{{ checkout_form.customer_notes|default:'' }}</textarea>
+                        </div>
+
+                        <label class="vm-checkout-tablet-toggle">
+                            <input type="checkbox" name="set_default_address" id="tabletSetDefaultAddress" {% if checkout_form.set_default_address %}checked{% endif %}>
+                            <span>Set this as my default address</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Shipping Method Card -->
+                <div class="vm-checkout-tablet-card">
+                    <div class="vm-checkout-tablet-card__header">
+                        <span class="vm-checkout-tablet-card__eyebrow">Delivery</span>
+                        <h2 class="vm-checkout-tablet-card__title">Shipping Method</h2>
+                    </div>
+
+                    <div class="vm-checkout-tablet-radio-group">
+                        <label class="vm-checkout-tablet-radio is-selected">
+                            <input type="radio" name="shipping_method" value="standard" checked disabled>
+                            <div class="vm-checkout-tablet-radio__content">
+                                <p class="vm-checkout-tablet-radio__title">Standard Heritage</p>
+                                <p class="vm-checkout-tablet-radio__description" id="tabletShippingMethodCopy">{% if shipping_cost > 0 %}5-7 business days • ₹{{ shipping_cost|floatformat:2 }}{% else %}5-7 business days • Complimentary{% endif %}</p>
+                            </div>
+                            <span class="vm-checkout-tablet-radio__price">{% if shipping_cost > 0 %}₹{{ shipping_cost|floatformat:2 }}{% else %}FREE{% endif %}</span>
+                        </label>
+                        <label class="vm-checkout-tablet-radio">
+                            <input type="radio" name="shipping_method" value="express" disabled>
+                            <div class="vm-checkout-tablet-radio__content">
+                                <p class="vm-checkout-tablet-radio__title">Express Atelier</p>
+                                <p class="vm-checkout-tablet-radio__description">Currently unavailable</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Payment Method Card -->
+                <div class="vm-checkout-tablet-card">
+                    <div class="vm-checkout-tablet-card__header">
+                        <span class="vm-checkout-tablet-card__eyebrow">Payment</span>
+                        <h2 class="vm-checkout-tablet-card__title">How You'll Pay</h2>
+                    </div>
+
+                    <div class="vm-checkout-tablet-radio-group" id="tabletPaymentMethods">
+                        <label class="vm-checkout-tablet-radio {% if checkout_form.payment_method == 'COD' or not checkout_form.payment_method %}is-selected{% endif %}">
+                            <input type="radio" name="payment_method" value="COD" {% if checkout_form.payment_method == 'COD' or not checkout_form.payment_method %}checked{% endif %}>
+                            <span class="material-symbols-outlined" style="font-size: 1.5rem;">payments</span>
+                            <div class="vm-checkout-tablet-radio__content">
+                                <p class="vm-checkout-tablet-radio__title">Cash on Delivery</p>
+                                <p class="vm-checkout-tablet-radio__description">Pay when the order reaches your doorstep.</p>
+                            </div>
+                        </label>
+                        <label class="vm-checkout-tablet-radio {% if checkout_form.payment_method == 'RAZORPAY' %}is-selected{% endif %}">
+                            <input type="radio" name="payment_method" value="RAZORPAY" {% if checkout_form.payment_method == 'RAZORPAY' %}checked{% endif %}>
+                            <span class="material-symbols-outlined" style="font-size: 1.5rem;">credit_card</span>
+                            <div class="vm-checkout-tablet-radio__content">
+                                <p class="vm-checkout-tablet-radio__title">Razorpay</p>
+                                <p class="vm-checkout-tablet-radio__description">Cards, UPI, net banking, and wallets.</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Offers Card -->
+                <div class="vm-checkout-tablet-card">
+                    <div class="vm-checkout-tablet-card__header">
+                        <span class="vm-checkout-tablet-card__eyebrow">Savings</span>
+                        <h2 class="vm-checkout-tablet-card__title">Offers & Promotions</h2>
+                    </div>
+
+                    <div class="vm-checkout-tablet-grid">
+                        <div class="vm-checkout-tablet-field">
+                            <label for="tabletCouponCode">Coupon Code</label>
+                            <div class="vm-checkout-tablet-coupon-group">
+                                <input type="text" id="tabletCouponCode" placeholder="Enter coupon code" style="text-transform: uppercase;">
+                                <button type="button" id="tabletApplyCoupon">Apply</button>
+                            </div>
+                            <div class="vm-checkout-tablet-coupon-actions is-visible" id="tabletCouponActions">
+                                <button type="button" id="tabletViewCoupons">Available Coupons</button>
+                                <button type="button" id="tabletRemoveCoupon" style="display:none;">Remove</button>
+                            </div>
+                            <small class="vm-checkout-tablet-coupon-message" id="tabletCouponMessage"></small>
+                            <input type="hidden" id="tabletAppliedCouponId" name="coupon_id" value="{{ checkout_form.coupon_id|default:'' }}">
+                        </div>
+
+                        {% if user.is_authenticated and loyalty_account and loyalty_account.points_available > 0 %}
+                        <div class="vm-checkout-tablet-field">
+                            <label class="vm-checkout-tablet-toggle">
+                                <input type="checkbox" name="redeem_points" id="tabletRedeemPoints" {% if checkout_form.redeem_points %}checked{% endif %}>
+                                <span>Use {{ loyalty_account.points_available }} loyalty points on this order</span>
+                            </label>
+                            <div class="vm-checkout-tablet-points-box {% if checkout_form.redeem_points %}is-visible{% endif %}" id="tabletPointsBox">
+                                <div class="vm-checkout-tablet-points-info">
+                                    <span class="material-symbols-outlined">stars</span>
+                                    <span>{{ loyalty_account.points_available }} points available</span>
+                                </div>
+                                <div class="vm-checkout-tablet-field">
+                                    <label for="tabletPointsToRedeem">Points to Redeem</label>
+                                    <input type="number" name="points_to_redeem" id="tabletPointsToRedeem" min="0" max="{{ loyalty_account.points_available }}" value="{{ checkout_form.points_to_redeem|default:'0' }}">
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- RIGHT COLUMN: ORDER SUMMARY -->
+        <div class="vm-checkout-tablet-summary-column">
+            <!-- Order Summary Card -->
+            <div class="vm-checkout-tablet-summary-card">
+                <div class="vm-checkout-tablet-summary-card__header">
+                    <h3 class="vm-checkout-tablet-summary-card__title">Order Summary</h3>
+                </div>
+
+                <div class="vm-checkout-tablet-items">
+                    {% for item in cart_items %}
+                    <div class="vm-checkout-tablet-item">
+                        <div class="vm-checkout-tablet-item__image">
+                            {% if item.product.image %}
+                            <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+                            {% else %}
+                            <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.product.name }}">
+                            {% endif %}
+                        </div>
+                        <div class="vm-checkout-tablet-item__content">
+                            <h4 class="vm-checkout-tablet-item__name">{{ item.product.name }}</h4>
+                            <p class="vm-checkout-tablet-item__variant">Qty: {{ item.quantity }}</p>
+                            <p class="vm-checkout-tablet-item__price">₹{{ item.get_total_price|floatformat:2 }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Totals -->
+                <div class="vm-checkout-tablet-totals">
+                    <div class="vm-checkout-tablet-total-row">
+                        <span>Subtotal</span>
+                        <strong id="tabletSubtotalAmount">₹{{ total_price|floatformat:2 }}</strong>
+                    </div>
+                    <div class="vm-checkout-tablet-total-row {% if resell_link or selected_order_type == 'for_resell' %}{% else %}is-hidden{% endif %}" id="tabletResellMarginRow">
+                        <span id="tabletResellMarginLabel">Reseller Margin</span>
+                        <strong id="tabletResellMarginAmount">+₹{{ manual_resell_margin_total|floatformat:2 }}</strong>
+                    </div>
+                    <div class="vm-checkout-tablet-total-row">
+                        <span>Tax (5%)</span>
+                        <strong id="tabletTaxAmount">₹{{ tax_amount|floatformat:2 }}</strong>
+                    </div>
+                    <div class="vm-checkout-tablet-total-row">
+                        <span>Shipping</span>
+                        <strong id="tabletShippingCost">{% if shipping_cost > 0 %}₹{{ shipping_cost|floatformat:2 }}{% else %}FREE{% endif %}</strong>
+                    </div>
+                    <div class="vm-checkout-tablet-total-row is-hidden" id="tabletCouponDiscountRow">
+                        <span>Coupon Discount</span>
+                        <strong id="tabletCouponDiscountAmount">-₹0.00</strong>
+                    </div>
+                    {% if user.is_authenticated and loyalty_account and loyalty_account.points_available > 0 %}
+                    <div class="vm-checkout-tablet-total-row {% if checkout_form.redeem_points %}{% else %}is-hidden{% endif %}" id="tabletPointsDiscountRow">
+                        <span>Points Discount</span>
+                        <strong id="tabletPointsDiscountAmount">-₹0.00</strong>
+                    </div>
+                    {% endif %}
+                    <div class="vm-checkout-tablet-total-row vm-checkout-tablet-total-row--final">
+                        <span>Total Payable</span>
+                        <strong id="tabletFinalTotalDisplay">₹{{ final_total|floatformat:2 }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Heritage Note -->
+            <div class="vm-checkout-tablet-heritage-note">
+                <span class="material-symbols-outlined vm-checkout-tablet-heritage-note__icon" style="fill: 1;">verified</span>
+                <div class="vm-checkout-tablet-heritage-note__content">
+                    <p class="vm-checkout-tablet-heritage-note__label">Atelier Authentication</p>
+                    <p class="vm-checkout-tablet-heritage-note__text">Every piece is inspected by our artisans before dispatching from the studio.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fixed Action Bar -->
+    <div class="vm-checkout-tablet-action">
+        <div class="vm-checkout-tablet-action__inner">
+            <div class="vm-checkout-tablet-action__total">
+                <span class="vm-checkout-tablet-action__label">Total Payable</span>
+                <span class="vm-checkout-tablet-action__price" id="tabletFixedTotalDisplay">₹{{ final_total|floatformat:2 }}</span>
+            </div>
+            <button type="submit" form="checkoutTabletForm" class="vm-checkout-tablet-action__button" id="tabletPlaceOrderButton">
+                Continue to Payment
+                <span class="material-symbols-outlined">arrow_forward</span>
+            </button>
+        </div>
+        <p class="vm-checkout-tablet-action__note">Secure encrypted checkout</p>
+    </div>
+
+    <!-- Coupon Modal -->
+    <div class="vm-checkout-tablet-modal-backdrop" id="tabletCouponModal">
+        <div class="vm-checkout-tablet-modal">
+            <div class="vm-checkout-tablet-modal__header">
+                <h2 class="vm-checkout-tablet-modal__title">Available Coupons</h2>
+                <button type="button" class="vm-checkout-tablet-modal__close" id="tabletCloseCouponModal">&times;</button>
+            </div>
+            <div class="vm-checkout-tablet-modal__body" id="tabletCouponList"></div>
+            <div class="vm-checkout-tablet-modal__footer">
+                <button type="button" class="vm-checkout-tablet-modal__button" id="tabletCancelCoupon">Cancel</button>
+                <button type="button" class="vm-checkout-tablet-modal__button is-primary" id="tabletApplyCouponFromModal">Apply Coupon</button>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <main class="vm-checkout-tablet-empty">
+        <h2>Your cart is empty</h2>
+        <p>Add a few pieces to your cart before moving to checkout.</p>
+        <a href="{% url 'shop' %}">Continue Shopping</a>
+    </main>
+    {% endif %}
+
+    {% include 'partials/vm_mobile_alt_footer.html' %}
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' %}
+</section>
+<!-- TABLET VIEW END -->
+
+<div class="vm-checkout-legacy-content">
 
 <!-- page-banner-area-start -->
 <div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
@@ -495,6 +1244,603 @@
     </div>
 </section>
 <!-- checkout-area-end -->
+
+</div>
+
+<script>
+(function () {
+    const form = document.getElementById('checkoutMobileForm');
+    if (!form) {
+        return;
+    }
+
+    const baseCartSubtotal = Number('{{ cart_base_total|default:0|floatformat:2 }}');
+    const totalItemQty = Number('{{ total_item_qty|default:0 }}');
+    const linkedResellQty = Number('{{ resell_link_matching_qty|default:0 }}');
+    const autoResell = {% if resell_link %}true{% else %}false{% endif %};
+    const autoResellMargin = Number('{{ manual_resell_margin_per_unit|default:0|floatformat:2 }}');
+    const mobileState = {
+        appliedCoupon: null,
+    };
+
+    const fullNameField = document.getElementById('mobileFullNameField');
+    const firstNameField = document.getElementById('mobileFirstNameField');
+    const lastNameField = document.getElementById('mobileLastNameField');
+    const addressField = document.getElementById('mobileAddressField');
+    const cityField = document.getElementById('mobileCityField');
+    const stateField = document.getElementById('mobileStateField');
+    const postcodeField = document.getElementById('mobilePostcodeField');
+    const phoneField = document.getElementById('mobilePhoneField');
+    const countryField = document.getElementById('mobileCountryField');
+    const pincodeValidField = document.getElementById('mobilePincodeValid');
+    const pincodeError = document.getElementById('mobilePincodeError');
+    const cityHint = document.getElementById('mobileCityHint');
+    const useDefaultAddress = document.getElementById('mobileUseDefaultAddress');
+    const placeOrderButton = document.getElementById('mobilePlaceOrderButton');
+    const resellCheckbox = document.getElementById('mobileResellCheckbox');
+    const resellDetails = document.getElementById('mobileResellDetails');
+    const orderTypeInput = document.getElementById('mobileOrderTypeInput');
+    const isResellHidden = document.getElementById('mobileIsResellHidden');
+    const toDetailsLabel = document.getElementById('mobileToDetailsLabel');
+    const fromNameField = document.getElementById('mobileFromName');
+    const fromPhoneField = document.getElementById('mobileFromPhone');
+    const marginField = document.getElementById('mobileResellMargin');
+    const subtotalDisplay = document.getElementById('mobileCartSubtotalAmount');
+    const marginRow = document.getElementById('mobileResellMarginRow');
+    const marginAmount = document.getElementById('mobileResellMarginAmount');
+    const taxDisplay = document.getElementById('mobileTaxAmount');
+    const shippingDisplay = document.getElementById('mobileShippingCost');
+    const shippingCopy = document.getElementById('mobileShippingMethodCopy');
+    const finalDisplay = document.getElementById('mobileFinalTotalDisplay');
+    const fixedTotalDisplay = document.getElementById('mobileFixedTotalDisplay');
+    const couponInput = document.getElementById('mobileCouponCode');
+    const couponIdInput = document.getElementById('mobileAppliedCouponId');
+    const couponMessage = document.getElementById('mobileCouponMessage');
+    const couponRow = document.getElementById('mobileCouponDiscountRow');
+    const couponAmount = document.getElementById('mobileCouponDiscountAmount');
+    const couponActions = document.getElementById('mobileCouponActions');
+    const applyCouponButton = document.getElementById('mobileApplyCoupon');
+    const viewCouponsButton = document.getElementById('mobileViewCoupons');
+    const removeCouponButton = document.getElementById('mobileRemoveCoupon');
+    const redeemCheckbox = document.getElementById('mobileRedeemPoints');
+    const pointsBox = document.getElementById('mobilePointsBox');
+    const pointsInput = document.getElementById('mobilePointsToRedeem');
+    const pointsRow = document.getElementById('mobilePointsDiscountRow');
+    const pointsAmount = document.getElementById('mobilePointsDiscountAmount');
+    const checkoutSteps = document.getElementById('mobileCheckoutSteps');
+    const maxPoints = Number('{% if user.is_authenticated and loyalty_account and loyalty_account.points_available > 0 %}{{ loyalty_account.points_available }}{% else %}0{% endif %}');
+
+    function syncSplitName() {
+        if (!fullNameField || !firstNameField || !lastNameField) {
+            return;
+        }
+
+        const rawValue = (fullNameField.value || '').trim().replace(/\s+/g, ' ');
+        if (!rawValue) {
+            firstNameField.value = '';
+            lastNameField.value = '';
+            return;
+        }
+
+        const parts = rawValue.split(' ');
+        const first = parts.shift() || '';
+        const last = parts.join(' ') || first;
+        firstNameField.value = first;
+        lastNameField.value = last;
+    }
+
+    function isManualResellSelected() {
+        return !autoResell && !!resellCheckbox && resellCheckbox.checked;
+    }
+
+    function currentMarginPerItem() {
+        if (autoResell) {
+            return Number.isFinite(autoResellMargin) ? autoResellMargin : 0;
+        }
+
+        const value = marginField ? Number(marginField.value || 0) : 0;
+        return Number.isFinite(value) && value > 0 ? value : 0;
+    }
+
+    function calculateSubtotalWithMargin() {
+        if (autoResell) {
+            return baseCartSubtotal + (currentMarginPerItem() * linkedResellQty);
+        }
+
+        if (!isManualResellSelected()) {
+            return baseCartSubtotal;
+        }
+
+        return baseCartSubtotal + (currentMarginPerItem() * totalItemQty);
+    }
+
+    function formatCurrency(amount) {
+        return `₹${amount.toFixed(2)}`;
+    }
+
+    function calculateBaseTotalBeforeDiscounts() {
+        const subtotal = calculateSubtotalWithMargin();
+        const tax = subtotal * 0.05;
+        const shipping = subtotal > 500 ? 0 : 50;
+        const marginTotal = currentMarginPerItem() * (autoResell ? linkedResellQty : totalItemQty);
+
+        if (subtotalDisplay) {
+            subtotalDisplay.textContent = formatCurrency(subtotal);
+        }
+        if (taxDisplay) {
+            taxDisplay.textContent = formatCurrency(tax);
+        }
+        if (shippingDisplay) {
+            shippingDisplay.textContent = shipping === 0 ? 'FREE' : formatCurrency(shipping);
+        }
+        if (shippingCopy) {
+            shippingCopy.textContent = shipping === 0 ? '5-7 business days • Complimentary' : `5-7 business days • ${formatCurrency(shipping)}`;
+        }
+        if (marginRow && marginAmount) {
+            if (autoResell || isManualResellSelected()) {
+                marginRow.style.display = 'flex';
+                marginAmount.textContent = `+${formatCurrency(marginTotal)}`;
+            } else {
+                marginRow.style.display = 'none';
+            }
+        }
+
+        return subtotal + tax + shipping;
+    }
+
+    function updatePointsUI() {
+        if (!redeemCheckbox || !pointsRow || !pointsInput || !pointsAmount) {
+            return 0;
+        }
+
+        if (!redeemCheckbox.checked) {
+            if (pointsBox) {
+                pointsBox.style.display = 'none';
+            }
+            pointsRow.style.display = 'none';
+            pointsInput.value = 0;
+            pointsAmount.textContent = '-₹0.00';
+            return 0;
+        }
+
+        if (pointsBox) {
+            pointsBox.style.display = 'grid';
+        }
+
+        let points = parseInt(pointsInput.value, 10) || 0;
+        const maxDiscount = Math.floor(calculateBaseTotalBeforeDiscounts());
+        points = Math.min(points, maxPoints, maxDiscount);
+        if (points < 0) {
+            points = 0;
+        }
+        pointsInput.value = points;
+        const discount = points * 0.03;
+        pointsRow.style.display = points > 0 ? 'flex' : 'none';
+        pointsAmount.textContent = `-${formatCurrency(discount)}`;
+        return discount;
+    }
+
+    function updateFinalTotal() {
+        let total = calculateBaseTotalBeforeDiscounts();
+
+        if (mobileState.appliedCoupon) {
+            total -= Number(mobileState.appliedCoupon.discount_amount || 0);
+        }
+
+        total -= updatePointsUI();
+
+        if (total < 0) {
+            total = 0;
+        }
+
+        if (finalDisplay) {
+            finalDisplay.textContent = formatCurrency(total);
+        }
+        if (fixedTotalDisplay) {
+            fixedTotalDisplay.textContent = formatCurrency(total);
+        }
+    }
+
+    function applyOrderTypeUI() {
+        const isResell = autoResell || isManualResellSelected();
+
+        if (resellDetails) {
+            resellDetails.classList.toggle('is-visible', isResell);
+        }
+        if (orderTypeInput) {
+            orderTypeInput.value = isResell ? 'for_resell' : 'for_self';
+        }
+        if (isResellHidden) {
+            isResellHidden.value = isResell ? 'on' : '';
+        }
+        if (toDetailsLabel) {
+            toDetailsLabel.textContent = isResell ? 'TO Details' : 'Shipping Details';
+        }
+        if (fromNameField) {
+            fromNameField.required = isResell;
+        }
+        if (fromPhoneField) {
+            fromPhoneField.required = isResell;
+        }
+        if (marginField) {
+            marginField.required = isResell;
+        }
+
+        updateFinalTotal();
+    }
+
+    function showCouponMessage(message, type) {
+        if (!couponMessage) {
+            return;
+        }
+        couponMessage.textContent = message || '';
+        couponMessage.className = 'vm-checkout-mobile-coupon-message';
+        if (type === 'danger' || type === 'error') {
+            couponMessage.classList.add('is-error');
+        }
+    }
+
+    function syncCouponUI() {
+        if (!couponRow || !couponAmount || !couponActions || !couponIdInput) {
+            return;
+        }
+
+        if (mobileState.appliedCoupon) {
+            couponRow.style.display = 'flex';
+            couponAmount.textContent = `-${formatCurrency(Number(mobileState.appliedCoupon.discount_amount || 0))}`;
+            couponIdInput.value = mobileState.appliedCoupon.coupon_id;
+            if (removeCouponButton) {
+                removeCouponButton.style.display = 'inline-flex';
+            }
+        } else {
+            couponRow.style.display = 'none';
+            couponAmount.textContent = '-₹0.00';
+            couponIdInput.value = '';
+            if (removeCouponButton) {
+                removeCouponButton.style.display = 'none';
+            }
+        }
+
+        updateFinalTotal();
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let index = 0; index < cookies.length; index += 1) {
+                const cookie = cookies[index].trim();
+                if (cookie.substring(0, name.length + 1) === `${name}=`) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function applyCouponCode(code) {
+        fetch('/api/validate-coupon/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                code: code,
+                cart_total: calculateBaseTotalBeforeDiscounts()
+            })
+        })
+        .then(function (response) {
+            return response.json().then(function (data) {
+                return { response: response, data: data };
+            });
+        })
+        .then(function (payload) {
+            if (!payload.response.ok || !payload.data.valid) {
+                throw new Error(payload.data.message || 'Unable to apply coupon.');
+            }
+
+            mobileState.appliedCoupon = payload.data;
+            if (couponInput) {
+                couponInput.value = payload.data.code;
+            }
+            showCouponMessage(payload.data.message, 'success');
+            syncCouponUI();
+        })
+        .catch(function (error) {
+            showCouponMessage(error.message || 'Error applying coupon.', 'danger');
+        });
+    }
+
+    function removeCoupon() {
+        mobileState.appliedCoupon = null;
+        if (couponInput) {
+            couponInput.value = '';
+        }
+        showCouponMessage('Coupon removed.', 'info');
+        syncCouponUI();
+    }
+
+    function showCouponsModal(coupons) {
+        let html = '';
+        html += '<div class="modal fade" id="mobileCouponsModal" tabindex="-1">';
+        html += '<div class="modal-dialog modal-dialog-centered">';
+        html += '<div class="modal-content">';
+        html += '<div class="modal-header"><h5 class="modal-title">Available Coupons</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>';
+        html += '<div class="modal-body">';
+
+        coupons.forEach(function (coupon) {
+            const buttonHtml = coupon.used
+                ? '<button class="btn btn-sm btn-secondary" disabled>Used</button>'
+                : `<button class="btn btn-sm btn-dark apply-mobile-coupon" data-code="${coupon.code}">Apply</button>`;
+            html += `<div class="coupon-card mb-3 p-3 border rounded ${coupon.used ? 'opacity-50' : ''}">`;
+            html += '<div class="d-flex justify-content-between align-items-start gap-3">';
+            html += '<div class="flex-grow-1">';
+            html += `<h6 class="mb-1">${coupon.title}</h6>`;
+            html += `<p class="text-muted small mb-2">${coupon.description}</p>`;
+            html += `<small class="text-muted">Code: ${coupon.code}</small>`;
+            html += '</div>';
+            html += `<div>${buttonHtml}</div>`;
+            html += '</div></div>';
+        });
+
+        html += '</div></div></div></div>';
+
+        const existing = document.getElementById('mobileCouponsModal');
+        if (existing) {
+            existing.remove();
+        }
+        document.body.insertAdjacentHTML('beforeend', html);
+        const modalElement = document.getElementById('mobileCouponsModal');
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+
+        document.querySelectorAll('.apply-mobile-coupon').forEach(function (button) {
+            button.addEventListener('click', function () {
+                const code = this.getAttribute('data-code');
+                if (couponInput) {
+                    couponInput.value = code;
+                }
+                modal.hide();
+                applyCouponCode(code);
+            });
+        });
+    }
+
+    function loadAvailableCoupons() {
+        fetch('/api/available-coupons/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                cart_total: calculateBaseTotalBeforeDiscounts()
+            })
+        })
+        .then(function (response) {
+            return response.json();
+        })
+        .then(function (data) {
+            if (!data.success || !data.coupons || !data.coupons.length) {
+                throw new Error('No coupons available at the moment.');
+            }
+            showCouponsModal(data.coupons);
+        })
+        .catch(function (error) {
+            showCouponMessage(error.message || 'Unable to load coupons.', 'danger');
+        });
+    }
+
+    function setHint(text, isError) {
+        if (!cityHint) {
+            return;
+        }
+        cityHint.textContent = text || '';
+        cityHint.classList.toggle('is-error', !!isError);
+    }
+
+    function setPincodeError(text) {
+        if (!pincodeError) {
+            return;
+        }
+        pincodeError.textContent = text || '';
+        pincodeError.classList.toggle('is-error', !!text);
+    }
+
+    function isIndia() {
+        return ((countryField && countryField.value) || '').toLowerCase() === 'india';
+    }
+
+    function updateSubmitState(isValid) {
+        if (pincodeValidField) {
+            pincodeValidField.value = isValid ? '1' : '0';
+        }
+        if (placeOrderButton) {
+            placeOrderButton.disabled = !isValid && isIndia();
+        }
+    }
+
+    function fetchCity(pincode) {
+        setHint('Detecting city...', false);
+        fetch(`https://api.postalpincode.in/pincode/${pincode}`)
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (data) {
+                const result = Array.isArray(data) ? data[0] : null;
+                if (!result || result.Status !== 'Success' || !result.PostOffice || !result.PostOffice.length) {
+                    throw new Error('Invalid pincode. Please enter a valid 6-digit pincode.');
+                }
+
+                const office = result.PostOffice[0];
+                if (office && office.District) {
+                    cityField.value = office.District;
+                    setHint(`Detected: ${office.District}`, false);
+                    setPincodeError('');
+                    updateSubmitState(true);
+                    return;
+                }
+
+                throw new Error('Invalid pincode. Please enter a valid 6-digit pincode.');
+            })
+            .catch(function (error) {
+                setHint(error.message === 'Unable to validate pincode right now.' ? error.message : '', !!error.message);
+                setPincodeError(error.message || 'Unable to validate pincode right now.');
+                updateSubmitState(false);
+            });
+    }
+
+    function applyDefaultAddress() {
+        if (!useDefaultAddress || !useDefaultAddress.checked) {
+            return;
+        }
+
+        if (fullNameField) {
+            fullNameField.value = useDefaultAddress.dataset.fullName || '';
+        }
+        if (phoneField) {
+            phoneField.value = useDefaultAddress.dataset.phone || '';
+        }
+        if (addressField) {
+            const line1 = (useDefaultAddress.dataset.address1 || '').trim();
+            const line2 = (useDefaultAddress.dataset.address2 || '').trim();
+            addressField.value = [line1, line2].filter(Boolean).join(', ');
+        }
+        if (cityField) {
+            cityField.value = useDefaultAddress.dataset.city || '';
+        }
+        if (stateField) {
+            stateField.value = useDefaultAddress.dataset.state || '';
+        }
+        if (postcodeField) {
+            postcodeField.value = useDefaultAddress.dataset.pincode || '';
+        }
+        if (countryField && useDefaultAddress.dataset.country) {
+            countryField.value = useDefaultAddress.dataset.country;
+        }
+
+        syncSplitName();
+
+        const pinValue = (postcodeField.value || '').trim();
+        if (/^[0-9]{6}$/.test(pinValue)) {
+            fetchCity(pinValue);
+        } else {
+            updateSubmitState(!isIndia());
+        }
+    }
+
+    function syncPaymentLabels() {
+        const radios = form.querySelectorAll('label.vm-checkout-mobile-radio');
+        radios.forEach(function (label) {
+            const input = label.querySelector('input[type="radio"]');
+            const icon = label.querySelector('.vm-checkout-mobile-radio__icon');
+            const selected = !!(input && input.checked);
+            label.classList.toggle('is-selected', selected);
+            if (icon) {
+                icon.textContent = selected ? 'check_circle' : 'radio_button_unchecked';
+            }
+        });
+
+        const selectedPayment = form.querySelector('input[name="payment_method"]:checked');
+        if (checkoutSteps) {
+            checkoutSteps.classList.toggle('is-hidden', !selectedPayment || selectedPayment.value !== 'RAZORPAY');
+        }
+    }
+
+    if (fullNameField) {
+        fullNameField.addEventListener('input', syncSplitName);
+    }
+    if (resellCheckbox) {
+        resellCheckbox.addEventListener('change', applyOrderTypeUI);
+    }
+    if (marginField) {
+        marginField.addEventListener('input', updateFinalTotal);
+    }
+    if (applyCouponButton) {
+        applyCouponButton.addEventListener('click', function () {
+            const code = (couponInput && couponInput.value || '').trim().toUpperCase();
+            if (!code) {
+                showCouponMessage('Please enter a coupon code.', 'danger');
+                return;
+            }
+            applyCouponCode(code);
+        });
+    }
+    if (viewCouponsButton) {
+        viewCouponsButton.addEventListener('click', loadAvailableCoupons);
+    }
+    if (removeCouponButton) {
+        removeCouponButton.addEventListener('click', removeCoupon);
+    }
+    if (redeemCheckbox) {
+        redeemCheckbox.addEventListener('change', updateFinalTotal);
+    }
+    if (pointsInput) {
+        pointsInput.addEventListener('input', updateFinalTotal);
+    }
+    if (useDefaultAddress) {
+        useDefaultAddress.addEventListener('change', applyDefaultAddress);
+    }
+    if (postcodeField) {
+        postcodeField.addEventListener('input', function () {
+            const value = (postcodeField.value || '').trim();
+            if (!/^[0-9]{6}$/.test(value)) {
+                setHint('', false);
+                setPincodeError(value ? 'Invalid pincode. Please enter a valid 6-digit pincode.' : '');
+                updateSubmitState(false);
+                return;
+            }
+            fetchCity(value);
+        });
+    }
+    if (countryField) {
+        countryField.addEventListener('change', function () {
+            if (!isIndia()) {
+                setHint('', false);
+                setPincodeError('');
+                updateSubmitState(true);
+                return;
+            }
+            const initialPin = (postcodeField && postcodeField.value || '').trim();
+            if (/^[0-9]{6}$/.test(initialPin)) {
+                fetchCity(initialPin);
+            } else {
+                setPincodeError('Invalid pincode. Please enter a valid 6-digit pincode.');
+                updateSubmitState(false);
+            }
+        });
+    }
+    form.querySelectorAll('input[name="payment_method"]').forEach(function (radio) {
+        radio.addEventListener('change', syncPaymentLabels);
+    });
+    form.addEventListener('submit', function (event) {
+        syncSplitName();
+        if (isIndia() && pincodeValidField && pincodeValidField.value !== '1') {
+            event.preventDefault();
+            setHint('Please enter a valid pincode before submitting.', true);
+            setPincodeError('Invalid pincode. Please enter a valid 6-digit pincode.');
+        }
+    });
+
+    syncSplitName();
+    syncPaymentLabels();
+    applyOrderTypeUI();
+    syncCouponUI();
+
+    const initialPin = (postcodeField && postcodeField.value || '').trim();
+    if (isIndia() && /^[0-9]{6}$/.test(initialPin)) {
+        fetchCity(initialPin);
+    } else {
+        updateSubmitState(isIndia() ? false : true);
+    }
+    if (useDefaultAddress && useDefaultAddress.checked) {
+        applyDefaultAddress();
+    }
+    updateFinalTotal();
+})();
+</script>
 
 <script>
 // ===== ORDER TYPE (FOR SELF / FOR RESELL) =====
@@ -1056,3 +2402,7 @@ function getCookie(name) {
 </script>
 
 {% endblock content %}
+
+{% block extra_js %}
+<script src="{% static 'assets/js/checkout-tablet.js' %}?v=20260403-01"></script>
+{% endblock %}

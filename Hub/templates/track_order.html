@@ -262,21 +262,9 @@
 
 {% block content %}
 <section class="otm-mobile-only" aria-label="Order tracking mobile view">
-    <header class="otm-header">
-        <div class="otm-header__left">
-            <a href="{% url 'index' %}" aria-label="Menu"><i class="far fa-bars"></i></a>
-            <span>VibeMall</span>
-        </div>
-        <div class="otm-header__right">
-            <a href="{% url 'shop' %}" aria-label="Search"><i class="far fa-search"></i></a>
-            <a href="{% url 'cart' %}" aria-label="Cart" class="otm-cart-link">
-                <i class="far fa-shopping-bag"></i>
-                <small>{{ cart_count|default:'0' }}</small>
-            </a>
-        </div>
-    </header>
+    {% include 'partials/vm_mobile_alt_header.html' %}
 
-    <main class="otm-main">
+    <main class="otm-main vm-mobile-content-offset">
         <section class="otm-intro">
             <p>ORDER #VM-729410</p>
             <h2>Journey to Your Doorstep</h2>
@@ -347,7 +335,11 @@
             </form>
             <a href="{% url 'contact' %}">Contact Concierge</a>
         </section>
+
+        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='track-order-mobile' %}
     </main>
+
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
 </section>
 
 <div class="otm-desktop-only">
