@@ -3,7 +3,7 @@
 
 {% block title %}Coming Soon - VibeMall{% endblock %}
 {% block meta_description %}VibeMall launch updates and early access subscription.{% endblock %}
-{% block body_class %}coming-soon-page{% endblock %}
+{% block body_class %}coming-soon-page vm-page-mobile-alt{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -19,6 +19,11 @@
     background: #f7f3ec;
     color: #171818;
     font-family: "Manrope", sans-serif;
+  }
+
+  body.coming-soon-page .vm-copy-header,
+  body.coming-soon-page .vm-tablet-alt-header {
+    display: none !important;
   }
 
   body.coming-soon-page #mobileBottomNavShell {

@@ -1,5 +1,8 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% load static %}
+
+{% block body_class %}vm-page-mobile-alt{% endblock %}
+
 
 {% block title %}Add Product - VibeMall{% endblock %}
 
@@ -56,7 +59,7 @@
                         <!-- 1. Basic Information Section -->
                         <div class="product-form-section">
                             <div class="section-title">
-                                <span>📋</span>
+                                <span>??</span>
                                 <span>Basic Information</span>
                             </div>
                             
@@ -107,7 +110,7 @@
                         <!-- 2. Pricing & Inventory Section -->
                         <div class="product-form-section">
                             <div class="section-title">
-                                <span>💰</span>
+                                <span>??</span>
                                 <span>Pricing & Inventory</span>
                             </div>
                             
@@ -149,14 +152,14 @@
                         <!-- 3. Product Images Section -->
                         <div class="product-form-section">
                             <div class="section-title">
-                                <span>🖼️</span>
+                                <span>???</span>
                                 <span>Product Images</span>
                             </div>
                             
                             <div class="form-group">
                                 <label for="image">Main Product Image *</label>
                                 <input type="file" name="image" id="image" accept="image/*" required>
-                                <div class="field-hint">Required - Recommended size: 400×400px, Max 5MB</div>
+                                <div class="field-hint">Required - Recommended size: 400�400px, Max 5MB</div>
                             </div>
 
                             <div class="form-group">
@@ -169,7 +172,7 @@
                         <!-- 4. Product Description Section -->
                         <div class="product-form-section">
                             <div class="section-title">
-                                <span>📝</span>
+                                <span>??</span>
                                 <span>Product Description</span>
                             </div>
                             
@@ -189,7 +192,7 @@
                         <!-- 5. Product Specifications Section -->
                         <div class="product-form-section">
                             <div class="section-title">
-                                <span>📏</span>
+                                <span>??</span>
                                 <span>Product Specifications</span>
                             </div>
                             
@@ -270,7 +273,7 @@
                         <!-- Submit Button -->
                         <div style="margin-top: 40px; padding-top: 30px; border-top: 1px solid #e5e5e5;">
                             <button type="submit" class="submit-btn">
-                                ✓ Add Product to Store
+                                ? Add Product to Store
                             </button>
                         </div>
                     </form>
@@ -281,7 +284,7 @@
             {% if products %}
             <div class="table-section" style="margin-top: 60px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3>📊 Recently Added Products</h3>
+                    <h3>?? Recently Added Products</h3>
                 </div>
                 
                 <div class="table-responsive">
@@ -317,10 +320,10 @@
                                 </td>
                                 <td style="text-align: center;">
                                     {% if product.is_active %}
-                                        <span style="color: #28a745; font-size: 18px; vertical-align: middle;">●</span>
+                                        <span style="color: #28a745; font-size: 18px; vertical-align: middle;">?</span>
                                         <span style="color: #28a745; font-weight: 600; font-size: 12px;">Active</span>
                                     {% else %}
-                                        <span style="color: #dc3545; font-size: 18px; vertical-align: middle;">●</span>
+                                        <span style="color: #dc3545; font-size: 18px; vertical-align: middle;">?</span>
                                         <span style="color: #dc3545; font-weight: 600; font-size: 12px;">Inactive</span>
                                     {% endif %}
                                 </td>
