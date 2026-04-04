@@ -2,528 +2,368 @@
 {% load static %}
 
 {% block title %}Order #{{ order.order_number }} - VibeMall{% endblock %}
-{% block body_class %}vm-page-mobile-alt vm-orderdetails-tablet-page{% endblock %}
+{% block body_class %}vm-orderdetails-desktop-page{% endblock %}
 
 {% block extra_css %}
 <style>
-.vm-orderdetails-tablet-page {
+.vm-orderdetails-desktop-page {
     background: #fbf9f4;
+    color: #171818;
 }
 
-.vm-odt-wrap {
-    width: min(100%, 1024px);
+/* Deployment-safe guards: keep only desktop header/footer visible on this page */
+.vm-orderdetails-desktop-page .vm-tablet-alt-header,
+.vm-orderdetails-desktop-page .vm-mobile-side-menu,
+.vm-orderdetails-desktop-page .vm-mobile-side-menu-overlay,
+.vm-orderdetails-desktop-page .vm-tab-bnav-shell,
+.vm-orderdetails-desktop-page .vm-tablet-alt-footer {
+    display: none !important;
+}
+
+.vm-orderdetails-desktop-page .vm-copy-header,
+.vm-orderdetails-desktop-page .vm-copy-footer {
+    display: block;
+}
+
+.vm-odd-wrap {
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 132px 24px 72px;
+    padding: 40px 22px 64px;
 }
 
-.vm-odt-title {
-    margin: 0;
-    font-family: 'Noto Serif', Georgia, serif;
-    font-size: clamp(36px, 6vw, 52px);
-    line-height: 1.05;
-    letter-spacing: -0.03em;
-    color: #171818;
-}
-
-.vm-odt-title-bar {
-    width: 52px;
-    height: 4px;
-    margin-top: 10px;
-    background: #6f5c37;
-}
-
-.vm-odt-info {
-    margin-top: 28px;
-    padding: 22px;
-    border-radius: 12px;
-    background: #f5f3ee;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
-    align-items: end;
-}
-
-.vm-odt-label {
-    margin: 0 0 4px;
-    font-size: 10px;
-    letter-spacing: 0.12em;
-    font-weight: 800;
-    color: #6f7474;
-    text-transform: uppercase;
-}
-
-.vm-odt-value {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 800;
-    color: #171818;
-}
-
-.vm-odt-chip {
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    padding: 8px 14px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.11em;
-}
-
-.vm-odt-chip--status {
-    background: #e4e2e1;
-    color: #474747;
-}
-
-.vm-odt-chip--status.delivered {
-    background: #d7ecd8;
-    color: #2f6f3e;
-}
-
-.vm-odt-chip--status.cancelled {
-    background: #ffdad6;
-    color: #93000a;
-}
-
-.vm-odt-chip--status.pending {
-    background: #f7dcae;
-    color: #6f5c37;
-}
-
-.vm-odt-actions {
-    margin-top: 22px;
+.vm-odd-breadcrumb {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
+    margin-bottom: 28px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-weight: 700;
+    color: #767b7b;
 }
 
-.vm-odt-btn {
-    min-height: 44px;
-    padding: 0 18px;
-    border-radius: 999px;
-    border: 1px solid transparent;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
+.vm-odd-breadcrumb a {
+    color: #555c5c;
     text-decoration: none;
-    font-size: 11px;
+}
+
+.vm-odd-breadcrumb a:hover {
+    color: #171818;
+}
+
+.vm-odd-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+.vm-odd-header h1 {
+    margin: 0;
+    font-size: clamp(30px, 4vw, 46px);
+    letter-spacing: -0.03em;
+}
+
+.vm-odd-muted {
+    color: #606666;
+}
+
+.vm-odd-pill {
+    display: inline-flex;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #eae8e3;
+    font-size: 10px;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.13em;
 }
 
-.vm-odt-btn--primary {
+.vm-odd-actions {
+    background: #f5f3ee;
+    padding: 8px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+.vm-odd-btn {
+    border: 1px solid #d3d6d6;
+    background: #fff;
+    color: #171818;
+    padding: 12px 18px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.vm-odd-btn:hover { background: #eceae5; }
+
+.vm-odd-btn--primary {
     background: #171818;
     color: #fff;
+    border-color: #171818;
 }
 
-.vm-odt-btn--soft {
-    background: #eae8e3;
-    color: #171818;
-}
-
-.vm-odt-btn--danger {
+.vm-odd-btn--danger {
+    color: #ba1a1a;
     background: transparent;
-    border-color: #d8b4b4;
-    color: #93000a;
+    border-color: #efc2c2;
 }
 
-.vm-odt-grid {
-    margin-top: 30px;
+.vm-odd-info-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 18px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1px;
+    background: rgba(116, 120, 120, 0.18);
+    border-top: 1px solid rgba(116, 120, 120, 0.2);
+    border-bottom: 1px solid rgba(116, 120, 120, 0.2);
+    margin-bottom: 28px;
 }
 
-.vm-odt-card {
-    background: #f0eee9;
-    border-radius: 12px;
-    padding: 22px;
+.vm-odd-info-card {
+    background: #fbf9f4;
+    padding: 24px;
 }
 
-.vm-odt-card h3 {
+.vm-odd-info-card h3 {
     margin: 0 0 14px;
-    font-size: 20px;
-    color: #171818;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: #6b7272;
 }
 
-.vm-odt-card p,
-.vm-odt-card strong {
-    margin: 0;
-    color: #171818;
-    line-height: 1.65;
-}
-
-.vm-odt-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.vm-odt-note {
-    margin-top: 14px;
-    border-radius: 8px;
-    border: 1px solid #d6d9d9;
-    background: #f5f3ee;
+.vm-odd-alert {
+    margin-bottom: 16px;
     padding: 11px 13px;
-    color: #4a5050;
+    border: 1px solid #d4d7d7;
+    background: #f3f3ef;
     font-size: 13px;
-    font-weight: 600;
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
 }
 
-.vm-odt-note--success {
-    border-color: #b7e6c9;
-    background: #eaf8ef;
+.vm-odd-alert--success {
+    background: #e9f8ee;
+    border-color: #b8e0c5;
     color: #1f6d45;
 }
 
-.vm-odt-items {
-    margin-top: 30px;
-}
-
-.vm-odt-items-head {
-    margin-bottom: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.vm-odt-items-head h3 {
-    margin: 0;
-    font-size: 22px;
-}
-
-.vm-odt-items-head span {
-    color: #6f7474;
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-}
-
-.vm-odt-item {
+.vm-odd-table-head,
+.vm-odd-row {
     display: grid;
-    grid-template-columns: 72px minmax(0, 1fr) auto;
+    grid-template-columns: 6fr 2fr 2fr 2fr;
+    align-items: center;
+    column-gap: 10px;
+}
+
+.vm-odd-table-head {
+    border-bottom: 1px solid rgba(116, 120, 120, 0.25);
+    padding-bottom: 14px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.19em;
+    color: #6a7171;
+    font-weight: 700;
+}
+
+.vm-odd-row {
+    border-bottom: 1px solid rgba(116, 120, 120, 0.14);
+    padding: 18px 0;
+}
+
+.vm-odd-product {
+    display: flex;
     gap: 14px;
     align-items: center;
-    padding: 14px 0;
-    border-top: 1px solid rgba(196, 199, 199, 0.34);
 }
 
-.vm-odt-item-media {
-    width: 72px;
-    height: 72px;
-    border-radius: 8px;
-    background: #e4e2dd;
+.vm-odd-media {
+    width: 84px;
+    aspect-ratio: 4/5;
+    background: #ece9e1;
     overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
-.vm-odt-item-media img {
+.vm-odd-media img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.vm-odt-item h4 {
-    margin: 0;
-    font-size: 15px;
-    font-weight: 800;
-    color: #171818;
-}
+.vm-odd-right { text-align: right; }
+.vm-odd-center { text-align: center; }
 
-.vm-odt-item p {
-    margin: 4px 0 0;
-    font-size: 10px;
-    color: #6f7474;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-}
-
-.vm-odt-item-price {
-    text-align: right;
-}
-
-.vm-odt-item-price span {
-    display: block;
-    color: #6f7474;
-    font-size: 10px;
-    letter-spacing: 0.11em;
-    text-transform: uppercase;
-}
-
-.vm-odt-item-price strong {
-    color: #171818;
-    font-size: 15px;
-    font-weight: 800;
-}
-
-.vm-odt-totals {
-    margin-top: 28px;
+.vm-odd-summary {
+    width: min(100%, 420px);
     margin-left: auto;
-    width: min(100%, 340px);
+    margin-top: 22px;
 }
 
-.vm-odt-total-row {
+.vm-odd-summary-row {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    padding: 7px 0;
-    color: #4c5151;
-    font-size: 12px;
+    padding: 6px 0;
+    font-size: 13px;
 }
 
-.vm-odt-total-row strong {
-    color: #171818;
-}
-
-.vm-odt-total-row--grand {
+.vm-odd-summary-total {
+    border-top: 1px solid rgba(23, 24, 24, 0.2);
     margin-top: 8px;
-    padding-top: 10px;
-    border-top: 2px solid #171818;
+    padding-top: 12px;
 }
 
-.vm-odt-total-row--grand span {
-    font-size: 11px;
-    letter-spacing: 0.17em;
-    text-transform: uppercase;
-    font-weight: 800;
-}
-
-.vm-odt-total-row--grand strong {
-    font-size: 30px;
-    font-family: 'Noto Serif', Georgia, serif;
-}
-
-.vm-odt-help {
-    margin-top: 28px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    border-top: 1px solid rgba(196, 199, 199, 0.4);
-    padding-top: 16px;
-}
-
-.vm-odt-help p {
-    margin: 0;
-    color: #585d5d;
-    font-weight: 600;
-}
-
-.vm-odt-help a {
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.13em;
-    color: #5e4b27;
-    text-decoration: none;
+.vm-odd-summary-total strong {
+    font-size: 32px;
+    letter-spacing: -0.03em;
 }
 
 @media (max-width: 991.98px) {
-    .vm-odt-wrap {
-        padding: 116px 16px 44px;
-    }
-
-    .vm-odt-info,
-    .vm-odt-grid {
+    .vm-odd-info-grid {
         grid-template-columns: 1fr;
     }
 
-    .vm-odt-item {
-        grid-template-columns: 58px minmax(0, 1fr);
+    .vm-odd-table-head { display: none; }
+
+    .vm-odd-row {
+        grid-template-columns: 1fr;
+        row-gap: 8px;
     }
 
-    .vm-odt-item-price {
-        grid-column: 2;
+    .vm-odd-center,
+    .vm-odd-right {
         text-align: left;
-    }
-
-    .vm-odt-help {
-        flex-direction: column;
-        align-items: flex-start;
     }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="vm-odt-wrap">
-    <h1 class="vm-odt-title">Order Detail</h1>
-    <div class="vm-odt-title-bar"></div>
+<div class="vm-odd-wrap">
+    <nav class="vm-odd-breadcrumb" aria-label="Breadcrumb">
+        <a href="{% url 'order_list' %}">My Orders</a>
+        <span>/</span>
+        <span>Order Details</span>
+    </nav>
 
-    <section class="vm-odt-info" aria-label="Order summary">
+    <div class="vm-odd-header">
         <div>
-            <p class="vm-odt-label">Order Reference</p>
-            <p class="vm-odt-value">#{{ order.order_number }}</p>
+            <h1>Order #{{ order.order_number }}</h1>
+            <p class="vm-odd-muted">Placed on {{ order.created_at|date:"F d, Y \a\t H:i" }}</p>
         </div>
         <div>
-            <p class="vm-odt-label">Date Placed</p>
-            <p class="vm-odt-value">{{ order.created_at|date:"d F, Y" }}</p>
+            <span class="vm-odd-pill">Status: {{ order.get_order_status_display }}</span>
         </div>
-        <div>
-            <p class="vm-odt-label">Order Status</p>
-            <span class="vm-odt-chip vm-odt-chip--status {{ order.order_status|lower }}">{{ order.get_order_status_display }}</span>
-        </div>
-    </section>
+    </div>
 
-    <div class="vm-odt-actions">
-        <a href="{% url 'order_tracking' order.order_number %}" class="vm-odt-btn vm-odt-btn--primary">
-            <i class="fas fa-map-marker-alt"></i>
-            <span>Track Order</span>
-        </a>
-        <a href="{% url 'download_invoice' order.order_number %}" class="vm-odt-btn vm-odt-btn--soft">
-            <i class="fas fa-download"></i>
-            <span>Download Invoice</span>
-        </a>
+    <div class="vm-odd-actions">
+        <a class="vm-odd-btn vm-odd-btn--primary" href="{% url 'order_tracking' order.order_number %}">Track Order</a>
+        <a class="vm-odd-btn" href="{% url 'download_invoice' order.order_number %}">Download Invoice</a>
         {% if active_return %}
-        <a href="{% url 'return_status' active_return.id %}" class="vm-odt-btn vm-odt-btn--soft">
-            <i class="fas fa-undo"></i>
-            <span>Return: {{ active_return.status|title }}</span>
-        </a>
+        <a class="vm-odd-btn" href="{% url 'return_status' active_return.id %}">Return: {{ active_return.status|title }}</a>
         {% elif is_return_eligible %}
-        <a href="{% url 'return_request' order.id %}" class="vm-odt-btn vm-odt-btn--soft">
-            <i class="fas fa-undo"></i>
-            <span>Request Return</span>
-        </a>
+        <a class="vm-odd-btn" href="{% url 'return_request' order.id %}">Request Return</a>
         {% endif %}
         {% if not cancel_request and cancel_eligible %}
-        <button type="button" class="vm-odt-btn vm-odt-btn--danger" data-bs-toggle="modal" data-bs-target="#cancelOrderModal">
-            <i class="fas fa-ban"></i>
-            <span>Request Cancel</span>
-        </button>
+        <button type="button" class="vm-odd-btn vm-odd-btn--danger" data-bs-toggle="modal" data-bs-target="#cancelOrderModal">Cancel Order</button>
         {% endif %}
     </div>
 
-    <section class="vm-odt-grid" aria-label="Addresses and payment">
-        <article class="vm-odt-card">
-            <h3>Shipping Destination</h3>
-            <div class="vm-odt-list">
-                <p>{{ order.shipping_address|linebreaksbr }}</p>
-            </div>
-        </article>
-        <article class="vm-odt-card">
-            <h3>Payment Architecture</h3>
-            <div class="vm-odt-list">
-                <strong>Method: {{ order.get_payment_method_display }}</strong>
-                {% if order.payment_method == 'COD' and order.order_status == 'DELIVERED' %}
-                <strong>Payment Status: Paid (COD)</strong>
-                {% else %}
-                <strong>Payment Status: {{ order.get_payment_status_display }}</strong>
-                {% endif %}
-                <p>Billing: {{ order.billing_address|linebreaksbr }}</p>
-                {% if order.courier_name %}
-                <p>Courier: {{ order.courier_name }}</p>
-                {% endif %}
-                {% if order.tracking_number %}
-                <p>Tracking: {{ order.tracking_number }}</p>
-                {% endif %}
-            </div>
-        </article>
-    </section>
-
     {% if not active_return and not is_return_eligible and return_reason %}
-    <div class="vm-odt-note">
-        <i class="fas fa-info-circle"></i>
-        <span>{{ return_reason }}</span>
-    </div>
+    <div class="vm-odd-alert">{{ return_reason }}</div>
     {% elif is_return_eligible and return_deadline %}
-    <div class="vm-odt-note vm-odt-note--success">
-        <i class="fas fa-check-circle"></i>
-        <span>Return eligible until {{ return_deadline|date:"d M Y" }}</span>
-    </div>
+    <div class="vm-odd-alert vm-odd-alert--success">Return eligible until {{ return_deadline|date:"d M Y" }}</div>
     {% endif %}
 
     {% if not cancel_eligible and cancel_reason %}
-    <div class="vm-odt-note">
-        <i class="fas fa-info-circle"></i>
-        <span>{{ cancel_reason }}</span>
-    </div>
+    <div class="vm-odd-alert">{{ cancel_reason }}</div>
     {% elif cancel_eligible and cancel_deadline %}
-    <div class="vm-odt-note vm-odt-note--success">
-        <i class="fas fa-check-circle"></i>
-        <span>Cancellation available until {{ cancel_deadline|date:"d M Y, h:i A" }}</span>
-    </div>
+    <div class="vm-odd-alert vm-odd-alert--success">Cancellation available until {{ cancel_deadline|date:"d M Y, h:i A" }}</div>
     {% endif %}
 
     {% if cancel_request %}
-    <div class="vm-odt-note">
-        <i class="fas fa-ban"></i>
-        <span>Cancellation Request Status: {{ cancel_request.get_status_display }}</span>
-    </div>
+    <div class="vm-odd-alert">Cancellation request status: {{ cancel_request.get_status_display }}</div>
     {% endif %}
 
-    <section class="vm-odt-items" aria-label="Order items">
-        <div class="vm-odt-items-head">
-            <h3>Order Contents</h3>
-            <span>{{ order_items|length }} item{{ order_items|length|pluralize }}</span>
+    <section class="vm-odd-info-grid" aria-label="Order information">
+        <article class="vm-odd-info-card">
+            <h3>Shipping Address</h3>
+            <p><strong>{{ request.user.get_full_name|default:request.user.username }}</strong></p>
+            <p>{{ order.shipping_address|linebreaksbr }}</p>
+        </article>
+        <article class="vm-odd-info-card">
+            <h3>Billing and Payment</h3>
+            <p><strong>{{ order.get_payment_method_display }}</strong></p>
+            {% if order.payment_method == 'COD' and order.order_status == 'DELIVERED' %}
+            <p>Payment status: Paid (COD)</p>
+            {% else %}
+            <p>Payment status: {{ order.get_payment_status_display }}</p>
+            {% endif %}
+            <p>{% if order.shipping_address == order.billing_address %}Billing same as shipping{% else %}{{ order.billing_address|linebreaksbr }}{% endif %}</p>
+        </article>
+        <article class="vm-odd-info-card">
+            <h3>Delivery Method</h3>
+            <p><strong>{{ order.courier_name|default:"Standard Courier" }}</strong></p>
+            {% if order.tracking_number %}
+            <p>Tracking: {{ order.tracking_number }}</p>
+            {% endif %}
+            {% if order.delivery_date %}
+            <p>Estimated Arrival: {{ order.delivery_date|date:"F d, Y" }}</p>
+            {% endif %}
+        </article>
+    </section>
+
+    <section aria-label="Order items">
+        <div class="vm-odd-table-head">
+            <div>Product Details</div>
+            <div class="vm-odd-center">Price</div>
+            <div class="vm-odd-center">Quantity</div>
+            <div class="vm-odd-right">Total</div>
         </div>
 
         {% for item in order_items %}
-        <article class="vm-odt-item">
-            <div class="vm-odt-item-media">
-                {% if item.display_image_url %}
-                <img src="{{ item.display_image_url }}" alt="{{ item.product_name }}">
-                {% elif item.product and item.product.image %}
-                <img src="{{ item.product.image.url }}" alt="{{ item.product_name }}">
-                {% else %}
-                <i class="fas fa-box"></i>
-                {% endif %}
+        <div class="vm-odd-row">
+            <div class="vm-odd-product">
+                <div class="vm-odd-media">
+                    {% if item.display_image_url %}
+                    <img src="{{ item.display_image_url }}" alt="{{ item.product_name }}">
+                    {% elif item.product and item.product.image %}
+                    <img src="{{ item.product.image.url }}" alt="{{ item.product_name }}">
+                    {% endif %}
+                </div>
+                <div>
+                    <h4 style="margin:0 0 4px;">{{ item.product_name }}</h4>
+                    <p class="vm-odd-muted" style="margin:0; font-size:11px; text-transform:uppercase; letter-spacing:0.11em;">SKU: {{ item.product.sku|default:'N/A' }}</p>
+                    <p class="vm-odd-muted" style="margin:4px 0 0; font-size:12px;">Color: {{ item.color|default:'N/A' }} / Size: {{ item.size|default:'N/A' }}</p>
+                </div>
             </div>
-            <div>
-                <h4>{{ item.product_name }}</h4>
-                <p>SKU: {{ item.product.sku|default:'N/A' }} • {{ item.color|default:'N/A' }} • {{ item.size|default:'N/A' }}</p>
-            </div>
-            <div class="vm-odt-item-price">
-                <span>Qty: {{ item.quantity }}</span>
-                <strong>&#8377;{{ item.subtotal }}</strong>
-            </div>
-        </article>
-        {% empty %}
-        <div class="vm-odt-note">
-            <i class="fas fa-info-circle"></i>
-            <span>No items found for this order.</span>
+            <div class="vm-odd-center">Rs {{ item.product_price }}</div>
+            <div class="vm-odd-center">{{ item.quantity }}</div>
+            <div class="vm-odd-right"><strong>Rs {{ item.subtotal }}</strong></div>
         </div>
+        {% empty %}
+        <div class="vm-odd-row"><div>No items found for this order.</div></div>
         {% endfor %}
     </section>
 
-    <section class="vm-odt-totals" aria-label="Order total">
-        <div class="vm-odt-total-row">
-            <span>Subtotal</span>
-            <strong>&#8377;{{ order.subtotal }}</strong>
-        </div>
-        <div class="vm-odt-total-row">
-            <span>Shipping</span>
-            <strong>{% if order.shipping_cost %}&#8377;{{ order.shipping_cost }}{% else %}Complimentary{% endif %}</strong>
-        </div>
+    <section class="vm-odd-summary" aria-label="Order total">
+        <div class="vm-odd-summary-row"><span>Subtotal</span><strong>Rs {{ order.subtotal }}</strong></div>
+        <div class="vm-odd-summary-row"><span>Shipping</span><strong>{% if order.shipping_cost %}Rs {{ order.shipping_cost }}{% else %}Complimentary{% endif %}</strong></div>
         {% if order.tax %}
-        <div class="vm-odt-total-row">
-            <span>Estimated Taxes</span>
-            <strong>&#8377;{{ order.tax }}</strong>
-        </div>
+        <div class="vm-odd-summary-row"><span>Estimated Tax</span><strong>Rs {{ order.tax }}</strong></div>
         {% endif %}
         {% if order.coupon_discount %}
-        <div class="vm-odt-total-row">
-            <span>Discount</span>
-            <strong>-&#8377;{{ order.coupon_discount }}</strong>
-        </div>
+        <div class="vm-odd-summary-row"><span>Discount</span><strong>-Rs {{ order.coupon_discount }}</strong></div>
         {% endif %}
-        <div class="vm-odt-total-row vm-odt-total-row--grand">
-            <span>Total Amount</span>
-            <strong>&#8377;{{ order.total_amount }}</strong>
+        <div class="vm-odd-summary-row vm-odd-summary-total">
+            <span style="text-transform:uppercase; letter-spacing:0.18em; font-size:11px;">Total Amount</span>
+            <strong>Rs {{ order.total_amount }}</strong>
         </div>
     </section>
-
-    <div class="vm-odt-help">
-        <p>Need help with your order?</p>
-        <a href="{% url 'contact' %}">Contact Support</a>
-    </div>
 </div>
 
 {% if not cancel_request and cancel_eligible %}
@@ -555,34 +395,17 @@
                             <option value="RAZORPAY">RazorPay (UPI)</option>
                         </select>
                     </div>
-                    <div id="cancelBankFields" style="display: none;">
-                        <div class="mb-2">
-                            <label class="form-label">Account Name</label>
-                            <input type="text" name="bank_account_name" class="form-control">
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label">Account Number</label>
-                            <input type="text" name="bank_account_number" class="form-control">
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label">IFSC Code</label>
-                            <input type="text" name="bank_ifsc" class="form-control">
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label">Bank Name</label>
-                            <input type="text" name="bank_name" class="form-control">
-                        </div>
+                    <div id="cancelBankFields" style="display:none;">
+                        <div class="mb-2"><label class="form-label">Account Name</label><input type="text" name="bank_account_name" class="form-control"></div>
+                        <div class="mb-2"><label class="form-label">Account Number</label><input type="text" name="bank_account_number" class="form-control"></div>
+                        <div class="mb-2"><label class="form-label">IFSC Code</label><input type="text" name="bank_ifsc" class="form-control"></div>
+                        <div class="mb-2"><label class="form-label">Bank Name</label><input type="text" name="bank_name" class="form-control"></div>
                     </div>
-                    <div id="cancelUpiFields" style="display: none;">
-                        <div class="mb-2">
-                            <label class="form-label">UPI ID</label>
-                            <input type="text" name="upi_id" class="form-control">
-                        </div>
+                    <div id="cancelUpiFields" style="display:none;">
+                        <div class="mb-2"><label class="form-label">UPI ID</label><input type="text" name="upi_id" class="form-control"></div>
                     </div>
                     {% else %}
-                    <div class="alert alert-info mb-0">
-                        Refund is not applicable for COD or unpaid orders.
-                    </div>
+                    <div class="alert alert-info mb-0">Refund is not applicable for COD or unpaid orders.</div>
                     {% endif %}
                 </div>
                 <div class="modal-footer">
@@ -600,16 +423,12 @@
 (function () {
     const methodSelect = document.getElementById('cancelRefundMethod');
     if (!methodSelect) return;
-
     const bankFields = document.getElementById('cancelBankFields');
     const upiFields = document.getElementById('cancelUpiFields');
-
     const toggleFields = () => {
-        const value = methodSelect.value;
-        bankFields.style.display = value === 'BANK' ? 'block' : 'none';
-        upiFields.style.display = value === 'RAZORPAY' ? 'block' : 'none';
+        bankFields.style.display = methodSelect.value === 'BANK' ? 'block' : 'none';
+        upiFields.style.display = methodSelect.value === 'RAZORPAY' ? 'block' : 'none';
     };
-
     methodSelect.addEventListener('change', toggleFields);
     toggleFields();
 })();

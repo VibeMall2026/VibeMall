@@ -459,6 +459,45 @@
             flex-shrink: 0;
         }
     }
+
+    /*
+      Global fallback guard:
+      If shared responsive CSS fails to load in production,
+      keep alternate header/footer/menu variants hidden by default
+      to avoid stacked/overlapping layouts.
+    */
+    .vm-tablet-alt-header,
+    .vm-tablet-alt-footer,
+    .vm-mobile-side-menu,
+    .vm-mobile-side-menu-overlay,
+    .vm-tab-bnav-shell,
+    .offcanvas__area,
+    .body-overlay {
+        display: none !important;
+    }
+
+    /* Only show legacy offcanvas pieces when explicitly opened by JS */
+    body.offcanvas-open .offcanvas__area.opened,
+    .body-overlay.opened {
+        display: block !important;
+    }
+
+    /* Desktop fallback: keep classic header/footer only */
+    @media (min-width: 1200px) {
+        .vm-copy-header,
+        .vm-copy-footer {
+            display: block !important;
+        }
+
+        .vm-tablet-alt-header,
+        .vm-tablet-alt-footer,
+        .vm-mobile-side-menu,
+        .vm-mobile-side-menu-overlay,
+        .vm-tab-bnav-shell {
+            display: none !important;
+        }
+    }
+
     </style>
     {% block extra_css %}{% endblock %}
 </head>
