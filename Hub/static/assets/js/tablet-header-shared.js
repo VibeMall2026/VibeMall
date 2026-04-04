@@ -1,4 +1,37 @@
 document.addEventListener('DOMContentLoaded', function () {
+  const tabletBottomNav = document.querySelector('.vm-tab-bnav-shell .vm-mobile-bottom-nav');
+
+  const syncTabletBottomNavOffset = function () {
+    if (!tabletBottomNav) {
+      return;
+    }
+
+    const isTabletWidth = window.matchMedia('(min-width: 768px) and (max-width: 1199.98px)').matches;
+    if (!isTabletWidth) {
+      document.documentElement.style.setProperty('--vm-tablet-nav-offset', '0px');
+      return;
+    }
+
+    const viewport = window.visualViewport;
+    if (!viewport) {
+      document.documentElement.style.setProperty('--vm-tablet-nav-offset', '0px');
+      return;
+    }
+
+    const viewportBottomGap = Math.max(0, window.innerHeight - (viewport.height + viewport.offsetTop));
+    document.documentElement.style.setProperty('--vm-tablet-nav-offset', viewportBottomGap + 'px');
+  };
+
+  syncTabletBottomNavOffset();
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', syncTabletBottomNavOffset);
+    window.visualViewport.addEventListener('scroll', syncTabletBottomNavOffset);
+  }
+
+  window.addEventListener('resize', syncTabletBottomNavOffset);
+  window.addEventListener('orientationchange', syncTabletBottomNavOffset);
+
   const tabletSearchForms = document.querySelectorAll('[data-vm-tablet-search-form]');
 
   tabletSearchForms.forEach(function (form) {

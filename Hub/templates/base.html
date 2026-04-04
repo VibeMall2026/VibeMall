@@ -496,12 +496,12 @@
             position: fixed !important;
             left: 0 !important;
             right: 0 !important;
-            bottom: 0 !important;
+            bottom: var(--vm-tablet-nav-offset, 0px) !important;
             z-index: 1100 !important;
         }
         /* Prevent page content from hiding under the fixed bottom nav */
         body.vm-page-mobile-alt {
-            padding-bottom: 90px !important;
+            padding-bottom: calc(90px + var(--vm-tablet-nav-offset, 0px)) !important;
         }
         body.vm-page-mobile-alt .vm-copy-header,
         body.vm-page-mobile-alt .vm-copy-footer,

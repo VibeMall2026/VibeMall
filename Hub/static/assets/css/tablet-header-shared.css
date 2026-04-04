@@ -206,7 +206,7 @@
       position: fixed;
       left: 0;
       right: 0;
-      bottom: 0;
+      bottom: var(--vm-tablet-nav-offset, 0px);
       z-index: 1100;
       display: flex;
       justify-content: space-around;
@@ -243,5 +243,9 @@
     /* Push tablet footer above the fixed bottom nav */
     body.vm-page-mobile-alt .vm-tablet-alt-footer .vm-tablet-alt-footer__inner {
       padding-bottom: 96px !important;
+    }
+
+    body.vm-page-mobile-alt {
+      padding-bottom: calc(90px + var(--vm-tablet-nav-offset, 0px));
     }
   }
