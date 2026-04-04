@@ -493,6 +493,15 @@
         }
         body.vm-page-mobile-alt .vm-tab-bnav-shell .vm-mobile-bottom-nav {
             display: flex !important;
+            position: fixed !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            z-index: 1100 !important;
+        }
+        /* Prevent page content from hiding under the fixed bottom nav */
+        body.vm-page-mobile-alt {
+            padding-bottom: 90px !important;
         }
         body.vm-page-mobile-alt .vm-copy-header,
         body.vm-page-mobile-alt .vm-copy-footer,
