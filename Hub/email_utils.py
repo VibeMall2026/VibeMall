@@ -7,8 +7,9 @@ from django.core.mail import send_mail, EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.urls import reverse
-from .models import EmailLog, Notification
+from .models import EmailLog, Notification, SiteSettings
 import logging
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,116 @@ def _get_from_email() -> str:
         getattr(settings, 'EMAIL_HOST_USER', '').strip() or
         'info.vibemall@gmail.com'
     )
+
+
+def build_invoice_context(order):
+    from datetime import datetime
+    from decimal import Decimal
+
+    site_settings = SiteSettings.get_settings()
+    site_url = getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000').rstrip('/')
+    parsed_site_url = urlparse(site_url)
+    site_host = parsed_site_url.netloc or site_url.replace('https://', '').replace('http://', '')
+
+    def split_address_lines(raw_value):
+        address = str(raw_value or '').replace('\r', '').strip()
+        if not address:
+            return []
+
+        newline_lines = [line.strip() for line in address.split('\n') if line.strip()]
+        if newline_lines:
+            return newline_lines
+
+        return [part.strip() for part in address.split(',') if part.strip()]
+
+    def absolute_media_url(raw_value):
+        value = str(raw_value or '').strip()
+        if not value:
+            return ''
+        if value.startswith(('http://', 'https://')):
+            return value
+        if value.startswith('/'):
+            return f'{site_url}{value}'
+        return f'{site_url}/{value.lstrip("/")}'
+
+    user_profile = getattr(order.user, 'userprofile', None)
+    customer_name = order.user.get_full_name() or order.user.username
+    customer_phone = ''
+    customer_address = order.billing_address or ''
+
+    if user_profile:
+        customer_phone = user_profile.mobile_number or user_profile.phone or ''
+        if not customer_address:
+            customer_address = user_profile.address or ''
+
+    order_items = []
+    for item in order.items.select_related('product').all():
+        image_url = ''
+        if item.product_image:
+            image_url = absolute_media_url(item.product_image)
+        elif item.product and getattr(item.product, 'image', None):
+            try:
+                image_url = absolute_media_url(item.product.image.url)
+            except Exception:
+                image_url = ''
+
+        variant_parts = []
+        if item.size:
+            variant_parts.append(f'Size: {item.size}')
+        if item.color:
+            variant_parts.append(f'Color: {item.color}')
+
+        order_items.append({
+            'name': item.product_name or (item.product.name if item.product else 'Product'),
+            'quantity': item.quantity,
+            'unit_price': item.product_price,
+            'line_total': item.subtotal,
+            'variant_text': ' | '.join(variant_parts),
+            'image_url': image_url,
+        })
+
+    shipping_amount = Decimal(str(order.shipping_cost or 0))
+    tax_amount = Decimal(str(order.tax or 0))
+    coupon_discount = Decimal(str(order.coupon_discount or 0))
+    subtotal_amount = Decimal(str(order.subtotal or order.get_subtotal() or 0))
+    grand_total = Decimal(str(order.total_amount or 0))
+    invoice_date = order.order_date or order.created_at
+
+    company_name = (getattr(site_settings, 'site_name', None) or 'VibeMall').strip()
+    company_email = (getattr(site_settings, 'contact_email', None) or _get_from_email()).strip()
+    company_phone = (getattr(site_settings, 'contact_phone', None) or '').strip()
+    company_address_lines = [
+        'Design District Hub, Level 4',
+        'Mumbai, Maharashtra 400013',
+    ]
+
+    return {
+        'order': order,
+        'order_items': order_items,
+        'invoice_date': invoice_date,
+        'current_year': datetime.now().year,
+        'site_url': site_url,
+        'site_host': site_host,
+        'company_name': company_name,
+        'company_email': company_email,
+        'company_phone': company_phone,
+        'company_address_lines': company_address_lines,
+        'customer_id': f'CU-{order.user_id:05d}',
+        'customer_name': customer_name,
+        'customer_email': order.user.email,
+        'customer_phone': customer_phone,
+        'billing_lines': split_address_lines(customer_address),
+        'shipping_lines': split_address_lines(order.shipping_address or customer_address),
+        'subtotal_amount': subtotal_amount,
+        'tax_amount': tax_amount,
+        'shipping_amount': shipping_amount,
+        'coupon_discount': coupon_discount,
+        'grand_total': grand_total,
+        'shipping_is_free': shipping_amount <= 0,
+        'payment_method_display': order.get_payment_method_display(),
+        'payment_status_display': order.get_payment_status_display(),
+        'order_status_display': order.get_order_status_display(),
+    }
 
 
 def send_order_confirmation_email(order):
@@ -139,17 +250,14 @@ def send_order_confirmation_email(order):
         if pdf_generation_available:
             try:
                 # Prepare context for invoice PDF
-                invoice_context = {
-                    'order': order,
-                    'current_year': datetime.now().year,
-                }
+                invoice_context = build_invoice_context(order)
                 
                 # Render invoice HTML
                 invoice_html = render_to_string('invoice_pdf.html', invoice_context)
                 
                 # Generate PDF from HTML
                 pdf_file = BytesIO()
-                HTML(string=invoice_html).write_pdf(pdf_file)
+                HTML(string=invoice_html, base_url=invoice_context['site_url']).write_pdf(pdf_file)
                 pdf_file.seek(0)
                 
                 # Attach PDF to email

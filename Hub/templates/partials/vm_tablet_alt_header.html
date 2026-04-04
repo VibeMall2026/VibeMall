@@ -21,10 +21,10 @@
 
         <div class="vm-tablet-alt-header__actions">
             <a href="{% url 'wishlist' %}" aria-label="Wishlist"><i class="far fa-heart"></i></a>
-            <a href="{% url 'cart' %}" aria-label="Open cart" class="has-badge">
+            <button type="button" class="has-badge vm-mini-cart-trigger vm-tablet-cart-trigger" aria-label="Open cart" aria-controls="vmMiniCartDrawer" aria-expanded="false">
                 <i class="far fa-shopping-bag"></i>
-                <span>{{ cart_count|default:"0" }}</span>
-            </a>
+                <span class="vm-mini-cart-badge cart-count">{{ cart_count|default:"0" }}</span>
+            </button>
             {% if request.user.is_authenticated %}
             <a href="{% url 'profile' %}" aria-label="Account"><i class="far fa-user"></i></a>
             <a href="{% url 'logout' %}" aria-label="Logout"><i class="fas fa-sign-out-alt"></i></a>

@@ -3,8 +3,12 @@
 
 <div class="vm-mini-alt">
     <div class="vm-mini-alt__header">
-        <h4>Your Selection</h4>
-        <span><span class="cart-mini-count">{{ cart_count }}</span> Item{% if cart_count != 1 %}s{% endif %} Curated</span>
+        <div class="vm-mini-alt__heading">
+            <div>
+                <h4>Your Bag ({{ cart_count }})</h4>
+                <span></span>
+            </div>
+        </div>
     </div>
 
     <div class="vm-mini-alt__items custom-scrollbar">
@@ -19,20 +23,39 @@
                     {% endif %}
                 </a>
                 <div class="vm-mini-alt__copy">
-                    <div class="vm-mini-alt__row">
+                    <div>
                         <h6><a href="{% url 'product-details' item.product.id %}">{{ item.product.name }}</a></h6>
-                        {% if item.id %}
-                            <a class="vm-mini-alt__remove" href="{% url 'remove_from_cart' item.id %}" aria-label="Remove {{ item.product.name }}">Remove</a>
-                        {% endif %}
+                        <p class="vm-mini-alt__meta">
+                            {% if item.product.color %}{{ item.product.color }}{% endif %}{% if item.product.color and item.size %} / {% endif %}{% if item.size %}{{ item.size }}{% endif %}
+                            {% if not item.product.color and not item.size %}Curated selection{% endif %}
+                        </p>
                     </div>
-                    <p class="vm-mini-alt__meta">Qty: {{ item.quantity }}</p>
-                    <p class="vm-mini-alt__price">&#8377;{{ item.get_total_price }}</p>
+                    <div class="vm-mini-alt__bottom-row">
+                        <div class="vm-mini-alt__controls">
+                            <span>Qty: {{ item.quantity }}</span>
+                            {% if item.id %}
+                                <a class="vm-mini-alt__remove" href="{% url 'remove_from_cart' item.id %}" aria-label="Remove {{ item.product.name }}">Remove</a>
+                            {% endif %}
+                        </div>
+                        <span class="vm-mini-alt__price">&#8377;{{ item.get_total_price }}</span>
+                    </div>
                 </div>
             </article>
             {% endfor %}
+
+            <div class="vm-mini-alt__suggestion">
+                <p>Complete the Look</p>
+                <a href="{% url 'shop' %}" class="vm-mini-alt__suggestion-card">
+                    <span class="vm-mini-alt__suggestion-icon"><i class="far fa-plus"></i></span>
+                    <span class="vm-mini-alt__suggestion-copy">
+                        <strong>Explore more curated pieces</strong>
+                        <small>Discover another atelier selection</small>
+                    </span>
+                </a>
+            </div>
         {% else %}
             <div class="vm-mini-alt__empty">
-                <p>Your archive is empty.</p>
+                <p>Your bag is currently empty.</p>
                 <a href="{% url 'shop' %}">Start shopping</a>
             </div>
         {% endif %}
@@ -40,13 +63,19 @@
 
     <div class="vm-mini-alt__footer">
         <div class="vm-mini-alt__subtotal">
-            <h6>Estimated Subtotal</h6>
+            <h6>Subtotal</h6>
             <span class="cart-subtotal">&#8377;{{ cart_total|default:"0.00" }}</span>
         </div>
         <div class="vm-mini-alt__actions">
-            <a href="{% url 'checkout' %}" class="vm-mini-alt__btn vm-mini-alt__btn--primary">Proceed to Checkout</a>
-            <a href="{% url 'cart' %}" class="vm-mini-alt__btn vm-mini-alt__btn--ghost">View Full Cart</a>
+            <a href="{% url 'checkout' %}" class="vm-mini-alt__btn vm-mini-alt__btn--primary">
+                <span>Checkout</span>
+                <i class="far fa-arrow-right"></i>
+            </a>
+            <a href="{% url 'cart' %}" class="vm-mini-alt__btn vm-mini-alt__btn--ghost">
+                <i class="far fa-shopping-bag"></i>
+                <span>View Cart</span>
+            </a>
         </div>
-        <p class="vm-mini-alt__note">Complimentary shipping on orders above &#8377;500.</p>
+        <p class="vm-mini-alt__note">Free carbon-neutral shipping on all atelier orders.</p>
     </div>
 </div>
