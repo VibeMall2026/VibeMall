@@ -1,0 +1,283 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Serif:ital,wght@0,400;0,700;1,700&display=swap');
+
+body.vm-page-razorpay-payment {
+    background: #fbf9f4;
+    overflow-x: hidden;
+}
+
+body.vm-page-razorpay-payment .vm-copy-header,
+body.vm-page-razorpay-payment .vm-copy-footer,
+body.vm-page-razorpay-payment .vm-tablet-alt-header,
+body.vm-page-razorpay-payment .vm-tablet-alt-footer,
+body.vm-page-razorpay-payment .vm-tab-bnav-shell,
+body.vm-page-razorpay-payment .mobile-bottom-nav-shell,
+body.vm-page-razorpay-payment .mobile-bottom-nav,
+body.vm-page-razorpay-payment > footer {
+    display: none !important;
+}
+
+.vm-rzp {
+    position: relative;
+    min-height: 100vh;
+    color: #1b1c19;
+    font-family: 'Manrope', sans-serif;
+}
+
+.vm-rzp__bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.vm-rzp__bg img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: saturate(0.75) brightness(0.64);
+    transform: scale(1.03);
+}
+
+.vm-rzp__overlay {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 20% 20%, rgba(250, 223, 177, 0.28), transparent 55%),
+                linear-gradient(120deg, rgba(23, 24, 24, 0.68), rgba(23, 24, 24, 0.4));
+}
+
+.vm-rzp__header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 40px;
+}
+
+.vm-rzp__logo {
+    color: #f2f1ec;
+    text-decoration: none;
+    font-family: 'Noto Serif', Georgia, serif;
+    font-style: italic;
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.vm-rzp__header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.vm-rzp__header-actions a {
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+    text-decoration: none;
+    transition: transform 0.22s ease, background 0.22s ease;
+}
+
+.vm-rzp__header-actions a:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.24);
+}
+
+.vm-rzp__main {
+    position: relative;
+    z-index: 2;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 120px 24px 40px;
+}
+
+.vm-rzp__card {
+    width: 100%;
+    max-width: 780px;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(196, 199, 199, 0.34);
+    border-radius: 16px;
+    box-shadow: 0 38px 90px rgba(23, 24, 24, 0.24);
+    padding: 40px 44px;
+    text-align: center;
+}
+
+.vm-rzp__kicker {
+    margin: 0 auto 16px;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #6f5c37;
+    font-weight: 800;
+}
+
+.vm-rzp__card h1 {
+    margin: 0;
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: clamp(34px, 4.5vw, 52px);
+    line-height: 1.06;
+    color: #171818;
+}
+
+.vm-rzp__sub {
+    margin: 14px auto 28px;
+    max-width: 560px;
+    color: #444748;
+    font-size: 15px;
+    line-height: 1.65;
+}
+
+.vm-rzp__summary {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    align-items: center;
+    gap: 20px;
+    background: #f5f3ee;
+    border: 1px solid #e4e2dd;
+    border-radius: 12px;
+    padding: 22px 20px;
+    margin-bottom: 26px;
+    text-align: left;
+}
+
+.vm-rzp__summary span {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 800;
+    color: #444748;
+}
+
+.vm-rzp__summary strong {
+    font-size: 24px;
+    line-height: 1.2;
+    color: #171818;
+    font-family: 'Noto Serif', Georgia, serif;
+}
+
+.vm-rzp__divider {
+    width: 1px;
+    height: 42px;
+    background: #d3d2ce;
+}
+
+.vm-rzp__pay-btn {
+    width: 100%;
+    border: 0;
+    border-radius: 10px;
+    min-height: 62px;
+    padding: 16px 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: #171818;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    font-size: 12px;
+    font-weight: 800;
+    transition: transform 0.24s ease, opacity 0.24s ease;
+}
+
+.vm-rzp__pay-btn:hover {
+    transform: translateY(-1px);
+}
+
+.vm-rzp__pay-btn:disabled {
+    opacity: 0.72;
+    cursor: not-allowed;
+}
+
+.vm-rzp__back {
+    margin-top: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #444748;
+    text-decoration: none;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 700;
+}
+
+.vm-rzp__back:hover {
+    color: #171818;
+}
+
+.vm-rzp__trust {
+    margin: 24px 0 0;
+    color: #444748;
+    font-size: 11px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.vm-rzp__status {
+    margin-top: 10px;
+    color: #5b5f60;
+    font-size: 13px;
+    min-height: 20px;
+}
+
+.vm-rzp__status.is-error {
+    color: #ba1a1a;
+}
+
+@media (max-width: 767.98px) {
+    .vm-rzp__header {
+        padding: 14px 16px;
+    }
+
+    .vm-rzp__logo {
+        font-size: 28px;
+    }
+
+    .vm-rzp__header-actions {
+        gap: 8px;
+    }
+
+    .vm-rzp__header-actions a {
+        width: 34px;
+        height: 34px;
+        font-size: 13px;
+    }
+
+    .vm-rzp__main {
+        padding: 84px 16px 24px;
+        align-items: start;
+    }
+
+    .vm-rzp__card {
+        border-radius: 12px;
+        padding: 26px 18px;
+    }
+
+    .vm-rzp__summary {
+        grid-template-columns: 1fr;
+        text-align: center;
+        gap: 12px;
+    }
+
+    .vm-rzp__divider {
+        display: none;
+    }
+
+    .vm-rzp__summary strong {
+        font-size: 22px;
+    }
+}

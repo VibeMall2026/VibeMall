@@ -8,14 +8,26 @@
     body.vm-page-mobile-orders .vm-copy-footer,
     body.vm-page-mobile-orders .footer,
     body.vm-page-mobile-orders .footer-area,
-    body.vm-page-mobile-orders > footer,
-    body.vm-page-mobile-orders #mobileBottomNavShell {
+    body.vm-page-mobile-orders > footer {
         display: none !important;
     }
 
     body.vm-page-mobile-orders .vm-home-mobile-header,
     body.vm-page-mobile-orders .vm-home-mobile-nav {
         z-index: 110;
+    }
+
+    body.vm-page-mobile-orders .vm-home-mobile-header {
+        background: rgba(251, 249, 244, 0.8);
+        backdrop-filter: blur(18px);
+        border-bottom: 1px solid rgba(196, 199, 199, 0.2);
+    }
+
+    body.vm-page-mobile-orders .vm-home-mobile-header__left h1 {
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: 20px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
     }
 
     .vm-myorders-legacy-content {
@@ -26,244 +38,378 @@
         display: block;
         min-height: 100vh;
         background: #fbf9f4;
-        color: #171818;
+        color: #1b1c19;
         font-family: "Manrope", sans-serif;
-        padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+        padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     }
 
     .vm-myorders-m-main {
-        padding: 16px 16px 0;
-    }
-
-    .vm-myorders-m-main .vm-home-mobile-footer {
-        padding: 38px 0 0;
+        padding: 12px 0 0;
     }
 
     .vm-myorders-m-hero {
-        margin-bottom: 14px;
+        position: relative;
+        height: 192px;
+        margin: 0 16px 22px;
+        overflow: hidden;
+        border-radius: 10px;
+        background: #f0eee9;
     }
 
-    .vm-myorders-m-hero p {
-        margin: 0 0 6px;
-        font-size: 10px;
-        text-transform: uppercase;
-        letter-spacing: 0.18em;
-        color: #6f5c37;
+    .vm-myorders-m-hero::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(251, 249, 244, 0.08) 12%, rgba(27, 28, 25, 0.18) 100%);
+    }
+
+    .vm-myorders-m-hero img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0.62;
+    }
+
+    .vm-myorders-m-hero-copy {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1;
+        padding: 24px 20px;
+    }
+
+    .vm-myorders-m-hero-copy span {
+        display: block;
+        margin-bottom: 4px;
+        color: rgba(27, 28, 25, 0.72);
+        font-size: 11px;
         font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
     }
 
-    .vm-myorders-m-hero h2 {
+    .vm-myorders-m-hero-copy h2 {
         margin: 0;
+        color: #171818;
         font-family: "Noto Serif", Georgia, serif;
-        font-size: 38px;
+        font-size: 34px;
+        font-weight: 700;
+        letter-spacing: -0.04em;
         line-height: 0.96;
     }
 
-    .vm-myorders-m-hero span {
-        display: inline-block;
-        margin-top: 8px;
-        font-size: 11px;
+    .vm-myorders-m-search-note {
+        margin: 0 16px 16px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: #f0eee9;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: rgba(27, 28, 25, 0.74);
+        font-size: 10px;
+        font-weight: 700;
         letter-spacing: 0.12em;
         text-transform: uppercase;
-        color: rgba(23, 24, 24, 0.55);
-        font-weight: 700;
     }
 
-    .vm-myorders-m-search-wrap {
-        margin-bottom: 14px;
-    }
-
-    .vm-myorders-m-search {
-        position: relative;
-        background: #fff;
-        border: 1px solid #e7e2d8;
-        border-radius: 10px;
-        min-height: 44px;
-        display: flex;
-        align-items: center;
-        padding: 0 12px 0 36px;
-    }
-
-    .vm-myorders-m-search i {
-        position: absolute;
-        left: 12px;
-        color: rgba(23, 24, 24, 0.45);
-        font-size: 14px;
-    }
-
-    .vm-myorders-m-search input {
-        width: 100%;
-        border: 0;
-        outline: 0;
-        background: transparent;
-        font-size: 14px;
+    .vm-myorders-m-search-note a {
         color: #171818;
+        text-decoration: none;
+    }
+
+    .vm-myorders-m-tabs {
+        display: flex;
+        gap: 24px;
+        overflow-x: auto;
+        margin: 0 16px 22px;
+        padding: 0 0 12px;
+        border-bottom: 1px solid rgba(196, 199, 199, 0.3);
+        scrollbar-width: none;
+    }
+
+    .vm-myorders-m-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .vm-myorders-m-tab {
+        flex: 0 0 auto;
+        padding-bottom: 12px;
+        border-bottom: 2px solid transparent;
+        color: rgba(27, 28, 25, 0.48);
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-decoration: none;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .vm-myorders-m-tab.is-active {
+        color: #6f5c37;
+        border-bottom-color: #6f5c37;
+        font-weight: 800;
     }
 
     .vm-myorders-m-list {
         display: grid;
-        gap: 12px;
+        gap: 14px;
+        padding: 0 16px;
     }
 
     .vm-myorders-m-card {
-        background: #fff;
-        border-radius: 12px;
-        border: 1px solid #ebe6de;
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
-        overflow: hidden;
+        border-radius: 10px;
+        background: rgba(240, 238, 233, 0.86);
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
     }
 
-    .vm-myorders-m-card-head {
+    .vm-myorders-m-card.is-muted {
+        opacity: 0.62;
+    }
+
+    .vm-myorders-m-card-top {
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        text-decoration: none;
-        color: #171818;
-        padding: 10px 12px;
-        background: linear-gradient(135deg, #f2eee6 0%, #ece5d8 100%);
-        border-bottom: 1px solid #e9e2d5;
+        align-items: flex-start;
+        gap: 16px;
     }
 
-    .vm-myorders-m-card-head strong {
-        font-size: 13px;
-        letter-spacing: 0.02em;
-    }
-
-    .vm-myorders-m-card-head span {
-        font-size: 11px;
-        color: rgba(23, 24, 24, 0.7);
-    }
-
-    .vm-myorders-m-products {
-        padding: 12px;
-        border-bottom: 1px solid #f0ece6;
-    }
-
-    .vm-myorders-m-product {
-        display: grid;
-        grid-template-columns: 56px 1fr;
-        gap: 10px;
-        align-items: center;
-    }
-
-    .vm-myorders-m-product img,
-    .vm-myorders-m-placeholder {
-        width: 56px;
-        height: 56px;
-        border-radius: 9px;
-        object-fit: cover;
-        background: #efebe3;
-        display: grid;
-        place-items: center;
-    }
-
-    .vm-myorders-m-placeholder i {
-        color: rgba(23, 24, 24, 0.45);
-    }
-
-    .vm-myorders-m-product h4 {
-        margin: 0 0 3px;
-        font-size: 13px;
-        line-height: 1.3;
-    }
-
-    .vm-myorders-m-product p {
-        margin: 0;
-        font-size: 12px;
-        color: rgba(23, 24, 24, 0.65);
-    }
-
-    .vm-myorders-m-more {
-        display: inline-block;
-        margin-top: 8px;
-        background: #171818;
-        color: #fff;
-        font-size: 10px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        border-radius: 999px;
-        padding: 4px 9px;
-    }
-
-    .vm-myorders-m-meta {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
-        padding: 12px;
-    }
-
-    .vm-myorders-m-meta label {
-        display: block;
+    .vm-myorders-m-card-copy h3 {
         margin: 0 0 4px;
+        color: rgba(27, 28, 25, 0.62);
         font-size: 10px;
-        text-transform: uppercase;
-        letter-spacing: 0.14em;
-        color: rgba(23, 24, 24, 0.48);
         font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
     }
 
-    .vm-myorders-m-meta strong {
-        font-size: 13px;
+    .vm-myorders-m-card-copy p {
+        margin: 0;
+        color: #171818;
+        font-size: 14px;
+        font-weight: 800;
     }
 
-    .vm-myorders-m-meta .badge {
-        font-size: 10px;
-        padding: 4px 8px;
-    }
-
-    .vm-myorders-m-actions {
-        padding: 0 12px 12px;
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
-    }
-
-    .vm-myorders-m-actions a {
-        min-height: 38px;
-        border-radius: 8px;
-        text-decoration: none;
+    .vm-myorders-m-status {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .vm-myorders-m-status--processing {
+        background: #f7dcae;
+        color: #73603b;
+    }
+
+    .vm-myorders-m-status--shipped {
+        background: #e4e2dd;
+        color: #171818;
+    }
+
+    .vm-myorders-m-status--delivered {
+        background: #f0eee9;
+        color: #444748;
+    }
+
+    .vm-myorders-m-status--cancelled {
+        background: #ffdad6;
+        color: #ba1a1a;
+    }
+
+    .vm-myorders-m-items {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 10px 0;
+        border-top: 1px solid rgba(196, 199, 199, 0.2);
+        border-bottom: 1px solid rgba(196, 199, 199, 0.2);
+    }
+
+    .vm-myorders-m-thumbs {
+        display: flex;
+        margin-right: 2px;
+    }
+
+    .vm-myorders-m-thumb {
+        width: 40px;
+        height: 48px;
+        margin-left: -10px;
+        border: 2px solid #f5f3ee;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #e4e2dd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(27, 28, 25, 0.45);
+        flex: 0 0 auto;
+    }
+
+    .vm-myorders-m-thumb:first-child {
+        margin-left: 0;
+    }
+
+    .vm-myorders-m-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .vm-myorders-m-items p {
+        margin: 0;
+        color: rgba(27, 28, 25, 0.7);
         font-size: 11px;
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
+    }
+
+    .vm-myorders-m-summary {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .vm-myorders-m-summary span {
+        display: block;
+        margin-bottom: 3px;
+        color: rgba(27, 28, 25, 0.56);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+    }
+
+    .vm-myorders-m-summary strong {
         color: #171818;
-        border: 1px solid #ddd5c8;
-        background: #f8f4ec;
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: 26px;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .vm-myorders-m-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #6f5c37;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-decoration: none;
+        text-transform: uppercase;
+        white-space: nowrap;
+        transition: gap 0.2s ease;
+    }
+
+    .vm-myorders-m-card:hover .vm-myorders-m-cta {
+        gap: 11px;
+    }
+
+    .vm-myorders-m-end {
+        padding: 42px 16px 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        opacity: 0.3;
+        text-align: center;
+    }
+
+    .vm-myorders-m-end i {
+        font-size: 34px;
+    }
+
+    .vm-myorders-m-end p {
+        margin: 0;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
     }
 
     .vm-myorders-m-empty {
-        background: #fff;
-        border: 1px solid #ebe6de;
-        border-radius: 12px;
+        margin: 0 16px;
+        border-radius: 10px;
+        background: rgba(240, 238, 233, 0.9);
         text-align: center;
-        padding: 24px 16px;
+        padding: 28px 18px;
     }
 
     .vm-myorders-m-empty h3 {
-        margin: 0 0 6px;
+        margin: 0 0 8px;
+        color: #171818;
         font-family: "Noto Serif", Georgia, serif;
+        font-size: 28px;
     }
 
     .vm-myorders-m-empty p {
-        margin: 0 0 14px;
-        color: rgba(23, 24, 24, 0.62);
+        margin: 0 0 18px;
+        color: rgba(27, 28, 25, 0.64);
+        font-size: 14px;
+        line-height: 1.6;
     }
 
     .vm-myorders-m-empty a {
-        display: inline-block;
-        text-decoration: none;
-        padding: 10px 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: 0 20px;
+        border-radius: 999px;
         background: #171818;
         color: #fff;
-        border-radius: 8px;
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
         font-size: 11px;
-        font-weight: 700;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-decoration: none;
+        text-transform: uppercase;
+    }
+
+    body.vm-page-mobile-orders .vm-home-mobile-nav {
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        justify-content: space-around;
+        padding: 12px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+        background: rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(18px);
+        border-top: 1px solid rgba(196, 199, 199, 0.22);
+        box-shadow: 0 -10px 40px -5px rgba(27, 28, 25, 0.04);
+    }
+
+    body.vm-page-mobile-orders .vm-home-mobile-nav a {
+        width: 44px;
+        height: 44px;
+        border-radius: 999px;
+        color: rgba(23, 24, 24, 0.54);
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+    }
+
+    body.vm-page-mobile-orders .vm-home-mobile-nav a i {
+        font-size: 21px;
+    }
+
+    body.vm-page-mobile-orders .vm-home-mobile-nav a.is-active {
+        background: #171818;
+        color: #fff;
+        transform: none;
     }
 }
 

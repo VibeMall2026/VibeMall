@@ -1,0 +1,435 @@
+/* ============================================
+   About Us - Tablet View (768px - 991px)
+   ============================================ */
+
+/* Hide tablet view on mobile and desktop */
+.vm-about-tablet-only {
+    display: none;
+}
+
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .vm-about-tablet-only {
+        display: block;
+        background: #fbf9f4;
+        color: #171818;
+        font-family: 'Manrope', sans-serif;
+    }
+
+    .vm-tablet-about-main {
+        padding-bottom: 104px;
+    }
+
+    .vm-about-mobile-only,
+    .vm-about-desktop-legacy,
+    .vm-about-d-only {
+        display: none !important;
+    }
+}
+
+/* Tablet Container */
+.vm-tablet-about-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* Main Content */
+.vm-tablet-about-main {
+    position: relative;
+}
+
+/* Breadcrumb */
+.vm-tablet-about-breadcrumb {
+    background: #f5f3ee;
+    padding: 20px 0;
+    border-bottom: 1px solid #e4e2dd;
+    margin-top: 106px;
+}
+
+.vm-tablet-about-breadcrumb nav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+}
+
+.vm-tablet-about-breadcrumb a {
+    color: #6f5c37;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.vm-tablet-about-breadcrumb a:hover {
+    color: #171818;
+}
+
+.vm-tablet-about-breadcrumb .separator {
+    color: #c4c7c7;
+}
+
+/* Page Header */
+.vm-tablet-about-header {
+    padding: 60px 0 40px;
+    text-align: center;
+}
+
+.vm-tablet-about-title {
+    font-family: 'Noto Serif', serif;
+    font-size: 42px;
+    font-weight: 700;
+    color: #171818;
+    margin-bottom: 16px;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+}
+
+.vm-tablet-about-subtitle {
+    font-size: 16px;
+    color: #444748;
+    line-height: 1.6;
+    max-width: 600px;
+    margin: 0 auto;
+    font-weight: 400;
+}
+
+/* Story Section */
+.vm-tablet-about-story {
+    padding: 60px 0;
+    border-bottom: 1px solid #e4e2dd;
+}
+
+.vm-tablet-story-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: center;
+}
+
+.vm-tablet-story-media {
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    aspect-ratio: 4/5;
+}
+
+.vm-tablet-story-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.vm-tablet-story-copy {
+    padding: 0 12px;
+}
+
+.vm-tablet-story-copy h2 {
+    font-family: 'Noto Serif', serif;
+    font-size: 36px;
+    font-weight: 700;
+    color: #171818;
+    margin-bottom: 24px;
+    line-height: 1.2;
+    letter-spacing: -0.3px;
+}
+
+.vm-tablet-story-text {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.vm-tablet-story-text p {
+    font-size: 15px;
+    line-height: 1.8;
+    color: #444748;
+    font-weight: 400;
+}
+
+.vm-tablet-story-quote {
+    font-style: italic;
+    color: #171818;
+    border-left: 3px solid #6f5c37;
+    padding-left: 16px;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+/* Services Section */
+.vm-tablet-about-services {
+    background: #f5f3ee;
+    padding: 60px 0;
+}
+
+.vm-tablet-services-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+}
+
+.vm-tablet-service-card {
+    background: white;
+    padding: 32px 24px;
+    border-radius: 12px;
+    text-align: center;
+    border: 1px solid #e4e2dd;
+    transition: all 0.3s ease;
+}
+
+.vm-tablet-service-card:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    border-color: #6f5c37;
+}
+
+.service-icon {
+    font-size: 32px;
+    color: #6f5c37;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.vm-tablet-service-card h3 {
+    font-family: 'Noto Serif', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #171818;
+    margin-bottom: 14px;
+}
+
+.vm-tablet-service-card p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #444748;
+    font-weight: 400;
+}
+
+/* Stats Section */
+.vm-tablet-about-stats {
+    padding: 60px 0;
+    border-bottom: 1px solid #e4e2dd;
+}
+
+.vm-tablet-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+    text-align: center;
+}
+
+.vm-tablet-stat-item h4 {
+    font-family: 'Noto Serif', serif;
+    font-size: 40px;
+    font-weight: 700;
+    color: #171818;
+    margin-bottom: 8px;
+    line-height: 1;
+}
+
+.vm-tablet-stat-item p {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #444748;
+    font-weight: 600;
+}
+
+/* CTA Section */
+.vm-tablet-about-cta {
+    background: linear-gradient(135deg, #171818 0%, #2c2c2c 100%);
+    color: white;
+    padding: 80px 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.vm-tablet-about-cta::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+        radial-gradient(circle at 20% 50%, rgba(111, 92, 55, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(111, 92, 55, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.vm-tablet-cta-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.vm-tablet-about-cta h2 {
+    font-family: 'Noto Serif', serif;
+    font-size: 38px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 20px;
+    line-height: 1.2;
+}
+
+.vm-tablet-about-cta p {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1.6;
+    margin-bottom: 32px;
+}
+
+.vm-tablet-cta-btn {
+    display: inline-block;
+    background: #6f5c37;
+    color: white;
+    padding: 16px 40px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    border: 2px solid #6f5c37;
+}
+
+.vm-tablet-cta-btn:hover {
+    background: transparent;
+    color: #6f5c37;
+}
+
+/* Newsletter Section */
+.vm-tablet-about-newsletter {
+    padding: 60px 0;
+}
+
+.vm-tablet-newsletter-content {
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.vm-tablet-newsletter-content h3 {
+    font-family: 'Noto Serif', serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: #171818;
+    margin-bottom: 16px;
+}
+
+.vm-tablet-newsletter-content p {
+    font-size: 15px;
+    color: #444748;
+    margin-bottom: 32px;
+    line-height: 1.6;
+}
+
+.vm-tablet-newsletter-form {
+    display: block;
+}
+
+.vm-tablet-form-group {
+    display: flex;
+    gap: 0;
+    border: 1px solid #c4c7c7;
+    border-radius: 8px;
+    overflow: hidden;
+    background: white;
+}
+
+.vm-tablet-form-group input {
+    flex: 1;
+    border: none;
+    padding: 16px 20px;
+    font-family: 'Manrope', sans-serif;
+    font-size: 14px;
+    color: #171818;
+    outline: none;
+}
+
+.vm-tablet-form-group input::placeholder {
+    color: #444748;
+    opacity: 0.6;
+}
+
+.vm-tablet-form-group button {
+    background: #6f5c37;
+    color: white;
+    border: none;
+    padding: 16px 32px;
+    font-family: 'Manrope', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.vm-tablet-form-group button:hover {
+    background: #5a4a2a;
+}
+
+.vm-tablet-newsletter-form .newsletter-feedback {
+    font-size: 13px;
+    color: #6f5c37;
+    font-weight: 500;
+}
+
+.vm-tablet-newsletter-form .newsletter-feedback.error {
+    color: #ba1a1a;
+}
+
+/* Responsive adjustments for smaller tablets (768px-991px) */
+@media (min-width: 768px) and (max-width: 991px) {
+    .vm-tablet-about-title {
+        font-size: 36px;
+    }
+
+    .vm-tablet-story-grid {
+        grid-template-columns: 1fr;
+        gap: 32px;
+    }
+
+    .vm-tablet-story-media {
+        aspect-ratio: 16/9;
+        order: -1;
+    }
+
+    .vm-tablet-services-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .vm-tablet-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px;
+    }
+
+    .vm-tablet-stat-item h4 {
+        font-size: 32px;
+    }
+
+    .vm-tablet-about-cta h2 {
+        font-size: 32px;
+    }
+
+    .vm-tablet-form-group {
+        flex-direction: column;
+    }
+
+    .vm-tablet-form-group button {
+        width: 100%;
+        margin-top: 12px;
+    }
+}
+
+/* Footer adjustments */
+.vm-about-tablet-only .vm-mobile-alt-footer {
+    margin-top: 0;
+}

@@ -7,7 +7,7 @@ from django.http import JsonResponse, HttpResponse, HttpRequest
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
-from django.db.models import Count, Q, Avg, Sum, F, DecimalField, ExpressionWrapper, Case, When, Value, IntegerField, QuerySet, Min, Max
+from django.db.models import Count, Q, Avg, Sum, F, DecimalField, ExpressionWrapper, Case, When, Value, IntegerField, QuerySet, Min, Max, Prefetch
 from django.db.models.functions import Coalesce, Lower, Trim
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger, Page
 from django.contrib.admin.views.decorators import staff_member_required
@@ -164,6 +164,7 @@ def _log_rto_history(rto_case: 'RTOCase', old_status: str, new_status: str, user
     )
 
 from .models import CategoryIcon, SubCategory, Slider, Feature, Banner, Product, DealCountdown, UserProfile, Address, Cart, Wishlist, ProductImage, ProductReview, ReviewImage, ReviewVote, ProductQuestion, Order, OrderItem, OrderStatusHistory, OrderCancellationRequest, ReturnRequest, ReturnItem, ReturnHistory, ReturnAttachment, ReturnLabel, RTOCase, RTOHistory, AdminEmailSettings, ProductStockNotification, BrandPartner, SiteSettings, LoyaltyPoints, PointsTransaction, MainPageProduct, MainPageSubCategoryBanner, MainPageBanner, ChatThread, ChatMessage, ChatAttachment, NewsletterSubscription
+from .models_content_management import FAQCategory, FAQ
 from .email_utils import send_order_confirmation_email, send_order_status_update_email, send_admin_order_notification
 from .view_helpers import (
     _split_full_name,
@@ -5924,7 +5925,69 @@ info.vibemall@gmail.com
             return render(request, 'contact.html')
     
     return render(request, 'contact.html')
-def faq(request): return render(request, 'faq.html')
+def faq(request):
+    active_faqs = FAQ.objects.filter(is_active=True).order_by('sort_order', 'question')
+    categories = (
+        FAQCategory.objects
+        .filter(is_active=True)
+        .prefetch_related(Prefetch('faqs', queryset=active_faqs))
+        .order_by('sort_order', 'name')
+    )
+
+    faq_groups = []
+    for index, category in enumerate(categories, start=1):
+        category_faqs = list(category.faqs.all())
+        if not category_faqs:
+            continue
+
+        anchor = re.sub(r'[^a-z0-9]+', '-', (category.name or '').lower()).strip('-')
+        faq_groups.append({
+            'id': category.id,
+            'name': category.name,
+            'description': category.description,
+            'anchor': anchor or f'faq-category-{index}',
+            'faqs': category_faqs,
+        })
+
+    if not faq_groups:
+        faq_groups = [
+            {
+                'id': 0,
+                'name': 'Order & Delivery',
+                'description': 'Everything related to timelines, tracking, and global shipping.',
+                'anchor': 'order-delivery',
+                'faqs': [
+                    {
+                        'question': 'When will my order ship?',
+                        'answer': 'Ready-to-wear selections usually ship in 2-3 business days. Atelier requests may take longer depending on finishing requirements.'
+                    },
+                    {
+                        'question': 'Do you offer international delivery?',
+                        'answer': 'Yes. We deliver globally with tracking support and partner couriers for secure transit.'
+                    },
+                ],
+            },
+            {
+                'id': 1,
+                'name': 'Returns',
+                'description': 'Return windows, conditions, and support for return processing.',
+                'anchor': 'returns',
+                'faqs': [
+                    {
+                        'question': 'What is your return policy?',
+                        'answer': 'Eligible items can be returned within the defined return window, in original condition and packaging. Final-sale items are excluded.'
+                    },
+                ],
+            },
+        ]
+
+    total_faqs = sum(len(group['faqs']) for group in faq_groups)
+    context = {
+        'faq_groups': faq_groups,
+        'total_faqs': total_faqs,
+        'total_categories': len(faq_groups),
+    }
+    return render(request, 'faq.html', context)
 
 
 def coming_soon(request):
@@ -6426,12 +6489,87 @@ def shop_details(request): return render(request, 'shop-details.html')
 
 @login_required(login_url='login')
 def wishlist(request: HttpRequest) -> HttpResponse:
-    wishlist_items = Wishlist.objects.filter(user=request.user).select_related('product')
-    wishlist_count = wishlist_items.count()
-    
+    wishlist_items = list(
+        Wishlist.objects.filter(user=request.user)
+        .select_related('product')
+        .order_by('-added_at')
+    )
+    wishlist_count = len(wishlist_items)
+
+    wishlist_product_ids = [item.product_id for item in wishlist_items]
+    preferred_brands = sorted({
+        (item.product.brand or '').strip()
+        for item in wishlist_items
+        if getattr(item.product, 'brand', '')
+    })
+    preferred_categories = sorted({
+        item.product.category
+        for item in wishlist_items
+        if getattr(item.product, 'category', '')
+    })
+
+    tablet_wishlist_items = []
+    for item in wishlist_items:
+        product = item.product
+        subtitle = (
+            (product.brand or '').strip()
+            or (product.get_category_display() if product.category else '')
+            or ('In Stock' if product.stock > 0 else 'Out of Stock')
+        )
+        status_label = 'In Stock' if product.stock > 0 else 'Out of Stock'
+        tablet_wishlist_items.append({
+            'wishlist_id': item.id,
+            'product_id': product.id,
+            'name': product.name,
+            'subtitle': subtitle,
+            'price': product.price,
+            'image_url': product.image.url if product.image else '',
+            'detail_url': reverse('product-details', args=[product.id]),
+            'remove_url': reverse('remove_from_wishlist', args=[item.id]),
+            'move_to_cart_url': reverse('move_wishlist_to_cart', args=[item.id]),
+            'is_in_stock': product.stock > 0,
+            'status_label': status_label,
+        })
+
+    recommendation_pool = Product.objects.filter(is_active=True).exclude(id__in=wishlist_product_ids)
+    prioritized_recommendations = recommendation_pool.none()
+    if preferred_brands or preferred_categories:
+        prioritized_recommendations = recommendation_pool.filter(
+            Q(brand__in=preferred_brands) | Q(category__in=preferred_categories)
+        ).order_by('-is_top_deal', '-rating', '-review_count', '-id')
+
+    selected_recommendations = []
+    selected_recommendation_ids = set()
+
+    for product in prioritized_recommendations[:6]:
+        selected_recommendations.append(product)
+        selected_recommendation_ids.add(product.id)
+
+    if len(selected_recommendations) < 6:
+        fallback_recommendations = (
+            recommendation_pool.exclude(id__in=selected_recommendation_ids)
+            .order_by('-is_top_deal', '-rating', '-review_count', '-id')[:6 - len(selected_recommendations)]
+        )
+        for product in fallback_recommendations:
+            selected_recommendations.append(product)
+
+    wishlist_recommendations = [{
+        'id': product.id,
+        'name': product.name,
+        'eyebrow': (
+            (product.brand or '').strip()
+            or (product.get_category_display() if product.category else '')
+            or 'VibeMall Edit'
+        ),
+        'image_url': product.image.url if product.image else '',
+        'detail_url': reverse('product-details', args=[product.id]),
+    } for product in selected_recommendations]
+
     return render(request, 'wishlist.html', {
         'wishlist_items': wishlist_items,
-        'wishlist_count': wishlist_count
+        'wishlist_count': wishlist_count,
+        'tablet_wishlist_items': tablet_wishlist_items,
+        'wishlist_recommendations': wishlist_recommendations,
     })
 
 def page_404(request): return render(request, '404.html', status=404)
@@ -7054,6 +7192,75 @@ def vote_review(request, review_id):
             
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required(login_url='login')
+@require_POST
+def mobile_review_prompt_dismiss(request):
+    """Dismiss mobile delivered-order review prompt for the active login session."""
+    request.session['mobile_review_prompt_seen'] = True
+    request.session.modified = True
+    return JsonResponse({'success': True})
+
+
+@login_required(login_url='login')
+@require_POST
+def mobile_review_prompt_submit(request, product_id):
+    """Submit quick mobile review for delivered product and mark prompt as seen for session."""
+    try:
+        product = Product.objects.get(id=product_id, is_active=True)
+    except Product.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Product not found.'}, status=404)
+
+    delivered_match = OrderItem.objects.filter(
+        order__user=request.user,
+        order__order_status='DELIVERED',
+        product=product,
+    ).exists()
+
+    if not delivered_match:
+        return JsonResponse({'success': False, 'message': 'This review is only available for delivered products.'}, status=403)
+
+    # Prevent duplicate review submissions from this one-time prompt.
+    if ProductReview.objects.filter(product=product, user=request.user).exists():
+        request.session['mobile_review_prompt_seen'] = True
+        request.session.modified = True
+        return JsonResponse({'success': True, 'message': 'Review already submitted for this product.'})
+
+    raw_rating = request.POST.get('rating', '5')
+    comment = (request.POST.get('comment') or '').strip()
+
+    try:
+        rating = int(raw_rating)
+    except (TypeError, ValueError):
+        rating = 5
+
+    if rating < 1:
+        rating = 1
+    if rating > 5:
+        rating = 5
+
+    ProductReview.objects.create(
+        product=product,
+        user=request.user,
+        rating=rating,
+        name=request.user.get_full_name().strip() or request.user.username,
+        email=request.user.email or f'{request.user.username}@example.com',
+        comment=comment,
+        is_approved=True,
+        is_verified_purchase=True,
+    )
+
+    request.session['mobile_review_prompt_seen'] = True
+    request.session.modified = True
+
+    product.refresh_from_db(fields=['review_count', 'rating'])
+    return JsonResponse({
+        'success': True,
+        'message': 'Thanks for sharing your experience.',
+        'review_count': int(product.review_count or 0),
+        'rating': float(product.rating or 0),
+    })
 
 
 @login_required
@@ -7878,7 +8085,7 @@ def order_confirmation(request, order_id):
     
     # Calculate loyalty points earned (₹1 = 33 points, 1 point = ₹0.03)
     loyalty_points_earned = int(order.total_amount * 33)
-    
+
     context = {
         'order': order,
         'order_items': order.items.all(),
@@ -7933,6 +8140,7 @@ def razorpay_payment(request, order_id):
             'razorpay_key': razorpay_key,
             'razorpay_order_id': order.razorpay_order_id,
             'order_amount': amount_paise,
+            'first_item': order.items.select_related('product').first(),
         }
         return render(request, 'razorpay_payment.html', context)
         
@@ -8252,9 +8460,328 @@ def order_list(request: HttpRequest) -> HttpResponse:
     """Display list of user's orders"""
     if not request.user.is_authenticated:
         return redirect('login')
-    
-    orders = Order.objects.filter(user=request.user).order_by('-created_at')
-    return render(request, 'order_list.html', {'orders': orders})
+
+    returned_statuses = [
+        'REQUESTED',
+        'APPROVED',
+        'PICKUP_SCHEDULED',
+        'RECEIVED',
+        'QC_PENDING',
+        'QC_PASSED',
+        'QC_FAILED',
+        'REFUND_PENDING',
+        'WRONG_RETURN',
+        'REFUNDED',
+        'REPLACED',
+    ]
+    returned_orders_q = Q(return_requests__status__in=returned_statuses) | Q(payment_status='REFUNDED')
+    status_definitions = [
+        {
+            'value': 'ALL',
+            'label': 'All Orders',
+            'query': None,
+        },
+        {
+            'value': 'PENDING',
+            'label': 'Pending',
+            'query': Q(order_status__in=['PENDING', 'PROCESSING']) & ~returned_orders_q,
+        },
+        {
+            'value': 'IN_TRANSIT',
+            'label': 'In Transit',
+            'query': Q(order_status='SHIPPED') & ~returned_orders_q,
+        },
+        {
+            'value': 'DELIVERED',
+            'label': 'Delivered',
+            'query': Q(order_status='DELIVERED') & ~returned_orders_q,
+        },
+        {
+            'value': 'RETURNED',
+            'label': 'Returned',
+            'query': returned_orders_q,
+        },
+    ]
+    mobile_status_definitions = [
+        {
+            'value': 'ALL',
+            'label': 'All',
+            'query': None,
+        },
+        {
+            'value': 'AWAITING',
+            'label': 'Pending',
+            'query': Q(order_status='PENDING') & ~returned_orders_q,
+        },
+        {
+            'value': 'PROCESSING',
+            'label': 'Processing',
+            'query': Q(order_status='PROCESSING') & ~returned_orders_q,
+        },
+        {
+            'value': 'SHIPPED',
+            'label': 'Shipped',
+            'query': Q(order_status='SHIPPED') & ~returned_orders_q,
+        },
+        {
+            'value': 'DELIVERED',
+            'label': 'Delivered',
+            'query': Q(order_status='DELIVERED') & ~returned_orders_q,
+        },
+        {
+            'value': 'CANCELLED',
+            'label': 'Cancelled',
+            'query': Q(order_status='CANCELLED') | Q(payment_status='REFUNDED'),
+        },
+    ]
+    filter_query_map = {item['value']: item['query'] for item in status_definitions}
+    filter_query_map.update({item['value']: item['query'] for item in mobile_status_definitions})
+
+    all_orders = (
+        Order.objects.filter(user=request.user)
+        .prefetch_related('items__product', 'return_requests')
+        .order_by('-created_at')
+    )
+
+    search_query = request.GET.get('q', '').strip()
+    active_status = (request.GET.get('status') or 'ALL').upper()
+    valid_statuses = set(filter_query_map.keys())
+    if active_status not in valid_statuses:
+        active_status = 'ALL'
+
+    filtered_orders = all_orders
+    active_status_query = filter_query_map.get(active_status)
+    if active_status_query is not None:
+        filtered_orders = filtered_orders.filter(active_status_query).distinct()
+
+    if search_query:
+        filtered_orders = filtered_orders.filter(
+            Q(order_number__icontains=search_query) |
+            Q(items__product_name__icontains=search_query)
+        ).distinct()
+
+    total_orders_count = all_orders.count()
+    filtered_orders_count = filtered_orders.count()
+    paginator = Paginator(filtered_orders, 10)
+    page_obj = paginator.get_page(request.GET.get('page') or 1)
+
+    def build_orders_url(**updates):
+        params = request.GET.copy()
+        page_updated = 'page' in updates
+
+        for key, value in updates.items():
+            if key == 'status' and value == 'ALL':
+                params.pop('status', None)
+                continue
+
+            if key == 'page' and str(value) == '1':
+                params.pop('page', None)
+                continue
+
+            if value in (None, ''):
+                params.pop(key, None)
+                continue
+
+            params[key] = str(value)
+
+        if not page_updated:
+            params.pop('page', None)
+
+        query_string = params.urlencode()
+        base_url = reverse('order_list')
+        return f'{base_url}?{query_string}' if query_string else base_url
+
+    status_tabs = []
+    for status_item in status_definitions:
+        query = status_item['query']
+        count = total_orders_count if query is None else all_orders.filter(query).distinct().count()
+        status_tabs.append({
+            'label': status_item['label'],
+            'value': status_item['value'],
+            'count': count,
+            'is_active': active_status == status_item['value'],
+            'url': build_orders_url(status=status_item['value'], page=None),
+        })
+
+    mobile_status_tabs = []
+    for status_item in mobile_status_definitions:
+        query = status_item['query']
+        count = total_orders_count if query is None else all_orders.filter(query).distinct().count()
+        mobile_status_tabs.append({
+            'label': status_item['label'],
+            'value': status_item['value'],
+            'count': count,
+            'is_active': active_status == status_item['value'],
+            'url': build_orders_url(status=status_item['value'], page=None),
+        })
+
+    order_cards = []
+    for order in page_obj.object_list:
+        order_items = list(order.items.all())
+        latest_return = next(iter(order.return_requests.all()), None)
+        primary_item = order_items[0] if order_items else None
+        image_items = order_items[:3]
+        return_in_progress = bool(latest_return and latest_return.status not in ['REJECTED', 'CANCELLED'])
+        return_resolved = bool(
+            latest_return and latest_return.status in ['REFUNDED', 'REPLACED']
+        ) or order.payment_status == 'REFUNDED'
+
+        state_key = 'delivered'
+        headline_label = order.get_order_status_display()
+        tag_label = 'Completed Order'
+        tag_tone = 'neutral'
+        amount_label = 'Grand Total'
+        amount_value = order.total_amount
+        mobile_badge_label = order.get_order_status_display()
+        mobile_badge_tone = order.order_status.lower()
+        mobile_primary_action_label = 'View Details'
+        mobile_primary_action_url = reverse('order_details', args=[order.order_number])
+        actions = [{
+            'label': 'View Details',
+            'url': reverse('order_details', args=[order.order_number]),
+            'style': 'primary',
+        }]
+
+        if return_resolved:
+            state_key = 'returned'
+            headline_label = 'Returned'
+            tag_label = 'Refund Issued' if order.payment_status == 'REFUNDED' else (latest_return.get_status_display() if latest_return else 'Returned')
+            tag_tone = 'soft'
+            amount_label = 'Refund Amount'
+            amount_value = (
+                getattr(latest_return, 'refund_amount_net', None)
+                or getattr(latest_return, 'refund_amount', None)
+                or order.total_amount
+            )
+            mobile_badge_label = 'Cancelled' if order.order_status == 'CANCELLED' else 'Returned'
+            mobile_badge_tone = 'cancelled'
+            mobile_primary_action_label = 'Details'
+            reorder_url = reverse('shop')
+            if primary_item and primary_item.product and getattr(primary_item.product, 'slug', ''):
+                reorder_url = reverse('product_detail', args=[primary_item.product.slug])
+            actions = [{
+                'label': 'Reorder Items',
+                'url': reorder_url,
+                'style': 'primary',
+            }]
+        elif return_in_progress:
+            state_key = 'returned'
+            headline_label = 'Return in Review'
+            tag_label = latest_return.get_status_display()
+            tag_tone = 'soft'
+            mobile_badge_label = 'Cancelled'
+            mobile_badge_tone = 'cancelled'
+            mobile_primary_action_label = 'Details'
+            actions.append({
+                'label': 'Return Status',
+                'url': reverse('return_status', args=[latest_return.id]),
+                'style': 'secondary',
+            })
+        elif order.order_status == 'SHIPPED':
+            state_key = 'in-transit'
+            headline_label = 'In Transit'
+            tag_label = 'Tracking Live' if order.tracking_number else 'On the Way'
+            tag_tone = 'gold'
+            mobile_badge_label = 'Shipped'
+            mobile_badge_tone = 'shipped'
+            mobile_primary_action_label = 'Track Order'
+            mobile_primary_action_url = reverse('order_tracking', args=[order.order_number])
+            actions.append({
+                'label': 'Track Order',
+                'url': reverse('order_tracking', args=[order.order_number]),
+                'style': 'secondary',
+            })
+        elif order.order_status == 'DELIVERED':
+            state_key = 'delivered'
+            headline_label = 'Delivered'
+            tag_label = 'Completed Order'
+            tag_tone = 'gold'
+            mobile_badge_label = 'Delivered'
+            mobile_badge_tone = 'delivered'
+            actions.append({
+                'label': 'Track Order',
+                'url': reverse('order_tracking', args=[order.order_number]),
+                'style': 'secondary',
+            })
+        elif order.order_status == 'PROCESSING':
+            state_key = 'processing'
+            headline_label = 'Processing'
+            tag_label = 'Awaiting Atelier'
+            tag_tone = 'rose'
+            mobile_badge_label = 'Processing'
+            mobile_badge_tone = 'processing'
+            actions.append({
+                'label': 'Support',
+                'url': '#vmOrdersHelp',
+                'style': 'secondary',
+            })
+        elif order.order_status == 'PENDING':
+            state_key = 'pending'
+            headline_label = 'Pending'
+            tag_label = 'Awaiting Payment' if order.payment_status == 'PENDING' else 'Order Received'
+            tag_tone = 'rose'
+            mobile_badge_label = 'Pending'
+            mobile_badge_tone = 'processing'
+            actions.append({
+                'label': 'Support',
+                'url': '#vmOrdersHelp',
+                'style': 'secondary',
+            })
+        elif order.order_status == 'CANCELLED':
+            state_key = 'cancelled'
+            headline_label = 'Cancelled'
+            tag_label = 'Order Cancelled'
+            tag_tone = 'soft'
+            mobile_badge_label = 'Cancelled'
+            mobile_badge_tone = 'cancelled'
+            mobile_primary_action_label = 'Details'
+            actions.append({
+                'label': 'Continue Shopping',
+                'url': reverse('shop'),
+                'style': 'secondary',
+            })
+
+        order_cards.append({
+            'order': order,
+            'primary_item': primary_item,
+            'image_items': image_items,
+            'more_items_count': max(len(order_items) - len(image_items), 0),
+            'mobile_items_label': (
+                '1 item'
+                if len(order_items) == 1
+                else f"+ {len(order_items)} items"
+            ),
+            'headline': f"{headline_label} {order.created_at.strftime('%b %d, %Y')}",
+            'tag_label': tag_label,
+            'tag_tone': tag_tone,
+            'amount_label': amount_label,
+            'amount_value': amount_value,
+            'mobile_badge_label': mobile_badge_label,
+            'mobile_badge_tone': mobile_badge_tone,
+            'mobile_primary_action_label': mobile_primary_action_label,
+            'mobile_primary_action_url': mobile_primary_action_url,
+            'state_key': state_key,
+            'actions': actions,
+            'is_dimmed': state_key == 'returned',
+        })
+
+    context = {
+        'orders': page_obj.object_list,
+        'order_cards': order_cards,
+        'page_obj': page_obj,
+        'status_tabs': status_tabs,
+        'mobile_status_tabs': mobile_status_tabs,
+        'active_status': active_status,
+        'search_query': search_query,
+        'total_orders_count': total_orders_count,
+        'filtered_orders_count': filtered_orders_count,
+        'has_active_filters': bool(search_query or active_status != 'ALL'),
+        'clear_filters_url': reverse('order_list'),
+        'clear_search_url': build_orders_url(q='', page=None),
+        'previous_page_url': build_orders_url(page=page_obj.previous_page_number()) if page_obj.has_previous() else '',
+        'next_page_url': build_orders_url(page=page_obj.next_page_number()) if page_obj.has_next() else '',
+    }
+    return render(request, 'order_list.html', context)
 
 
 def _calculate_return_refund_amount(return_request):

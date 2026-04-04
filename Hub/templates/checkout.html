@@ -8,26 +8,12 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'assets/css/checkout-responsive.css' %}">
-<link rel="stylesheet" href="{% static 'assets/css/checkout-mobile-alt.css' %}?v=20260403-01">
-<link rel="stylesheet" href="{% static 'assets/css/checkout-tablet.css' %}?v=20260403-01">
+<link rel="stylesheet" href="{% static 'assets/css/checkout-mobile-alt.css' %}?v=20260403-02">
+<link rel="stylesheet" href="{% static 'assets/css/checkout-tablet.css' %}?v=20260403-04">
+<link rel="stylesheet" href="{% static 'assets/css/checkout-desktop-alt.css' %}?v=20260403-01">
 {% endblock %}
 
 {% block content %}
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const isDesktop = window.matchMedia('(min-width: 1200px)').matches;
-    const isTablet = window.matchMedia('(min-width: 768px) and (max-width: 1199.98px)').matches;
-
-    if (isDesktop) {
-        document.querySelectorAll('.vm-checkout-mobile-only, .vm-checkout-tablet-only').forEach((node) => node.remove());
-    } else if (isTablet) {
-        document.querySelectorAll('.vm-checkout-mobile-only, .vm-checkout-legacy-content').forEach((node) => node.remove());
-    } else {
-        document.querySelectorAll('.vm-checkout-tablet-only, .vm-checkout-legacy-content').forEach((node) => node.remove());
-    }
-});
-</script>
 
 <section class="vm-checkout-mobile-only" aria-label="Checkout mobile view">
     <nav class="vm-checkout-mobile-nav" aria-label="Checkout top bar">
@@ -422,8 +408,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <!-- TABLET VIEW START -->
 <section class="vm-checkout-tablet-only" aria-label="Checkout tablet view">
-    {% include 'partials/vm_tablet_alt_header.html' %}
-
     {% if cart_items %}
     <!-- Progress Stepper -->
     <div class="vm-checkout-tablet-stepper">
@@ -470,6 +454,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                     data-full-name="{{ default_address.full_name }}"
                                     data-phone="{{ default_address.mobile_number }}"
                                     data-address1="{{ default_address.address_line1 }}"
+                                    data-address2="{{ default_address.address_line2 }}"
                                     data-city="{{ default_address.city }}"
                                     data-state="{{ default_address.state }}"
                                     data-pincode="{{ default_address.pincode }}"
@@ -712,6 +697,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     <p class="vm-checkout-tablet-heritage-note__text">Every piece is inspected by our artisans before dispatching from the studio.</p>
                 </div>
             </div>
+
+            <div class="vm-checkout-tablet-inline-action" aria-label="Checkout action fallback">
+                <button type="submit" form="checkoutTabletForm" class="vm-checkout-tablet-inline-action__button" id="tabletPlaceOrderButtonInline">
+                    Continue to Payment
+                    <span class="material-symbols-outlined">arrow_forward</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -753,498 +745,11 @@ document.addEventListener('DOMContentLoaded', function () {
     </main>
     {% endif %}
 
-    {% include 'partials/vm_mobile_alt_footer.html' %}
-    {% include 'partials/vm_mobile_alt_bottom_nav.html' %}
 </section>
 <!-- TABLET VIEW END -->
 
 <div class="vm-checkout-legacy-content">
-
-<!-- page-banner-area-start -->
-<div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
-    <div class="container">
-        <div class="row">
-            <div class="col-xl-12">
-                <div class="page-banner-content text-center">
-                    <h4 class="breadcrumb-title">Checkout</h4>
-                    <div class="breadcrumb-two">
-                        <nav>
-                           <nav class="breadcrumb-trail breadcrumbs">
-                              <ul class="breadcrumb-menu">
-                                 <li class="breadcrumb-trail">
-                                    <a href="{% url 'index' %}"><span>Home</span></a>
-                                 </li>
-                                 <li class="trail-item">
-                                    <span>Checkout</span>
-                                 </li>
-                              </ul>
-                           </nav> 
-                        </nav>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- page-banner-area-end -->
-
-<!-- checkout-area-start -->
-<section class="checkout-area pt-120 pb-85">
-    <div class="container">
-        <!-- Messages -->
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{% if message.tags %}{{ message.tags }}{% else %}info{% endif %} alert-dismissible fade show mb-30" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
-
-        {% if cart_items %}
-        <form action="{% url 'checkout' %}" method="POST" id="checkoutForm">
-            {% csrf_token %}
-            <input type="hidden" name="pincode_valid" id="pincodeValid" value="0">
-            
-            <div class="row">
-                <div class="col-lg-12">
-                    <!-- Order Type Selection (First Thing User Sees) -->
-                    <div class="card mb-4" style="border: 2px solid #e3e6f0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                        <div class="card-body">
-                            <h4 class="mb-3">
-                                <i class="fas fa-shopping-cart"></i> Select Order Type
-                            </h4>
-                            <div class="row g-3" role="group" aria-label="Order type selection">
-                                <div class="col-md-6">
-                                    <label class="order-type-card" style="cursor: pointer; display: block; padding: 20px; border: 2px solid #ddd; border-radius: 10px; transition: all 0.3s;">
-                                        <input type="radio" name="order_type" value="for_self" id="order_type_self" {% if selected_order_type != 'for_resell' and not resell_link %}checked{% endif %} {% if resell_link %}disabled{% endif %} style="margin-right: 10px;" aria-label="For Self - Buying for personal use">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div style="font-size: 2.5rem;" aria-hidden="true">🛍️</div>
-                                            <div>
-                                                <h5 class="mb-1">For Self</h5>
-                                                <small class="text-muted">Buying for personal use</small>
-                                            </div>
-                                        </div>
-                                    </label>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="order-type-card" style="cursor: pointer; display: block; padding: 20px; border: 2px solid #ddd; border-radius: 10px; transition: all 0.3s;">
-                                        <input type="radio" name="order_type" value="for_resell" id="order_type_resell" {% if selected_order_type == 'for_resell' or resell_link %}checked{% endif %} style="margin-right: 10px;" aria-label="For Resell - Reselling to another customer">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div style="font-size: 2.5rem;" aria-hidden="true">🔄</div>
-                                            <div>
-                                                <h5 class="mb-1">For Resell</h5>
-                                                <small class="text-muted">Reselling to another customer</small>
-                                            </div>
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="col-lg-6" id="billing_details_section">
-                    <!-- FOR SELF: Normal Billing Details -->
-                    <div class="checkbox-form" id="for_self_section">
-                        <h3 id="toDetailsHeading">Billing Details</h3>
-                        {% if default_address %}
-                        <div class="alert alert-light border d-flex align-items-center justify-content-between" style="gap: 10px;">
-                            <div>
-                                <strong>Default Address</strong><br>
-                                <small class="text-muted">{{ default_address.full_name }} - {{ default_address.city }}, {{ default_address.state }} {{ default_address.pincode }}</small>
-                            </div>
-                            <label class="d-flex align-items-center gap-2 mb-0" for="useDefaultAddress">
-                                <input
-                                    type="checkbox"
-                                    name="use_default_address"
-                                    id="useDefaultAddress"
-                                    {% if checkout_form.use_default_address %}checked{% endif %}
-                                    aria-label="Use your default address for this order"
-                                    data-full-name="{{ default_address.full_name }}"
-                                    data-phone="{{ default_address.mobile_number }}"
-                                    data-address1="{{ default_address.address_line1 }}"
-                                    data-address2="{{ default_address.address_line2 }}"
-                                    data-city="{{ default_address.city }}"
-                                    data-state="{{ default_address.state }}"
-                                    data-pincode="{{ default_address.pincode }}"
-                                    data-country="{{ default_address.country }}"
-                                >
-                                <span>Use default address</span>
-                            </label>
-                        </div>
-                        {% endif %}
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="checkout-form-list mb-3">
-                                    <label for="firstNameField">First Name <span class="required">*</span></label>
-                                    <input type="text" id="firstNameField" name="first_name" value="{{ checkout_form.first_name|default:user.first_name }}" required aria-label="First name" aria-required="true">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="checkout-form-list mb-3">
-                                    <label for="lastNameField">Last Name <span class="required">*</span></label>
-                                    <input type="text" id="lastNameField" name="last_name" value="{{ checkout_form.last_name|default:user.last_name }}" required aria-label="Last name" aria-required="true">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="checkout-form-list mb-3">
-                                    <label for="emailField">Email Address <span class="required">*</span></label>
-                                    <input type="email" id="emailField" name="email" value="{{ checkout_form.email|default:user.email }}" required aria-label="Email address" aria-required="true">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="checkout-form-list mb-3">
-                                    <label for="phoneField">Phone <span class="required">*</span></label>
-                                    <input type="text" id="phoneField" name="phone" value="{{ checkout_form.phone|default:user_profile.mobile_number|default:'' }}" required aria-label="Phone number" aria-required="true">
-                                </div>
-                            </div>
-                            <div class="col-md-12">
-                                <div class="country-select mb-3">
-                                    <label for="countrySelect">Country <span class="required">*</span></label>
-                                    <select name="country" id="countrySelect" required aria-label="Shipping country" aria-required="true">
-                                        <option value="India" {% if checkout_form.country == 'India' or not checkout_form.country %}selected{% endif %}>India</option>
-                                        <option value="USA" {% if checkout_form.country == 'USA' %}selected{% endif %}>USA</option>
-                                        <option value="UK" {% if checkout_form.country == 'UK' %}selected{% endif %}>UK</option>
-                                        <option value="Canada" {% if checkout_form.country == 'Canada' %}selected{% endif %}>Canada</option>
-                                        <option value="Australia" {% if checkout_form.country == 'Australia' %}selected{% endif %}>Australia</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-12">
-                                <div class="checkout-form-list mb-3">
-                                    <label for="addressField">Address <span class="required">*</span></label>
-                                    <input type="text" id="addressField" name="address" value="{{ checkout_form.address|default:'' }}" placeholder="Street address" required aria-label="Street address" aria-required="true">
-                                </div>
-                            </div>
-                            <div class="col-md-12">
-                                <div class="checkout-form-list mb-3">
-                                    <label for="cityField">Town / City <span class="required">*</span></label>
-                                    <input type="text" name="city" id="cityField" value="{{ checkout_form.city|default:'' }}" placeholder="Town / City" required aria-label="City or Town" aria-required="true">
-                                    <small class="text-muted" id="cityHint"></small>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="checkout-form-list mb-3">
-                                    <label for="stateField">State / County <span class="required">*</span></label>
-                                    <input type="text" id="stateField" name="state" value="{{ checkout_form.state|default:'' }}" placeholder="State" required aria-label="State or County" aria-required="true">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="checkout-form-list mb-3">
-                                    <label for="postcodeField">Postcode / Zip <span class="required">*</span></label>
-                                    <input type="text" name="postcode" id="postcodeField" value="{{ checkout_form.postcode|default:'' }}" placeholder="Postcode / Zip" required aria-label="Postal code or ZIP" aria-required="true">
-                                    <small class="text-danger" id="pincodeError"></small>
-                                </div>
-                            </div>
-                            <div class="col-md-12">
-                                <div class="order-notes">
-                                    <div class="checkout-form-list">
-                                        <label>Order Notes (Optional)</label>
-                                        <textarea name="customer_notes" cols="30" rows="5" placeholder="Notes about your order, e.g. special notes for delivery."></textarea>
-                                        <label class="d-flex align-items-center gap-2 mt-2">
-                                            <input type="checkbox" name="set_default_address" {% if checkout_form.set_default_address %}checked{% endif %}>
-                                            <span>Set as default address</span>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Resell Order Indication (Automatic Detection) -->
-                            {% if resell_link %}
-                            <div class="col-md-12 mt-3">
-                                <div class="alert alert-info border-info" style="background-color: #e7f3ff; border-left: 4px solid #0d6efd;">
-                                    <div class="d-flex align-items-start gap-3">
-                                        <div style="font-size: 2rem;">🔄</div>
-                                        <div class="flex-grow-1">
-                                            <h6 class="mb-2" style="color: #0d6efd;">
-                                                <strong>Resell Order Detected</strong>
-                                            </h6>
-                                            <p class="mb-2">
-                                                You're purchasing through reseller: <strong>{{ resell_link.reseller.get_full_name|default:resell_link.reseller.username }}</strong>
-                                            </p>
-                                            <div class="row g-2 mt-2">
-                                                <div class="col-md-6">
-                                                    <small class="text-muted">📦 Product:</small><br>
-                                                    <small><strong>{{ resell_link.product.name }}</strong></small>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <small class="text-muted">💰 Reseller Margin:</small><br>
-                                                    <small><strong>₹{{ resell_link.margin_amount }} per item</strong></small>
-                                                </div>
-                                            </div>
-                                            <hr class="my-2">
-                                            <small class="text-muted">
-                                                <i class="fas fa-info-circle"></i> This order will be tracked as a resell order. The reseller will earn commission when the order is delivered.
-                                            </small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Hidden field to mark as resell order -->
-                                <input type="hidden" name="is_resell" value="on">
-                                <input type="hidden" name="from_name" value="{{ resell_link.reseller.get_full_name|default:resell_link.reseller.username }}">
-                                <input type="hidden" name="from_phone" value="{{ resell_link.reseller.userprofile.mobile_number|default:'' }}">
-                                <input type="hidden" name="resell_margin" value="{{ resell_link.margin_amount|default:'0' }}">
-                            </div>
-                            {% else %}
-                            <input type="hidden" id="is_resell_hidden" name="is_resell" value="{% if selected_order_type == 'for_resell' %}on{% endif %}">
-
-                            <!-- Resell FROM Details (Hidden by default) -->
-                            <div id="resell_from_section" style="{% if selected_order_type == 'for_resell' %}display: block;{% else %}display: none;{% endif %}" class="col-md-12 mt-3">
-                                <div class="card" style="background-color: #f8f9fa; border: 2px dashed #007bff;">
-                                    <div class="card-body">
-                                        <h6 class="mb-3" style="color: #007bff;">
-                                            <i class="fas fa-user-tie"></i> FROM Details (Reseller)
-                                        </h6>
-                                        <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <label>FROM Name <span class="required">*</span></label>
-                                                <input type="text" id="from_name" name="from_name" value="{{ checkout_form.from_name|default:user.get_full_name }}" class="form-control">
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <label>FROM Phone <span class="required">*</span></label>
-                                                <input type="text" id="from_phone" name="from_phone" value="{{ checkout_form.from_phone|default:user_profile.mobile_number|default:'' }}" class="form-control">
-                                            </div>
-                                            <div class="col-md-12 mb-3">
-                                                <label>Add Margin Per Item (₹) <span class="required">*</span></label>
-                                                <input type="number" id="resell_margin" name="resell_margin" min="0" step="0.01" value="{{ checkout_form.resell_margin|default:'0' }}" class="form-control">
-                                                <small class="text-muted">This margin is added to each product quantity.</small>
-                                            </div>
-                                        </div>
-                                        <small class="text-muted">
-                                            <i class="fas fa-info-circle"></i> These FROM details will appear on resell invoices. TO details are entered in the billing form above.
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-lg-6">
-                    <div class="your-order mb-30">
-                        <h3>Your order</h3>
-                        <div class="your-order-table table-responsive">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th class="product-name">Product</th>
-                                        <th class="product-total">Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for item in cart_items %}
-                                    <tr class="cart_item">
-                                        <td class="product-name">
-                                            <div class="d-flex align-items-center">
-                                                {% if item.product.image %}
-                                                    <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px; margin-right: 10px;">
-                                                {% endif %}
-                                                <div>
-                                                    {{ item.product.name }}
-                                                    <strong class="product-quantity"> × {{ item.quantity }}</strong>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="product-total">
-                                            <span class="amount">&#8377;{{ item.get_total_price|floatformat:2 }}</span>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                                <tfoot>
-                                    <tr class="cart-subtotal">
-                                        <th>Cart Subtotal</th>
-                                        <td><span class="amount" id="cart_subtotal_amount">&#8377;{{ total_price|floatformat:2 }}</span></td>
-                                    </tr>
-                                    
-                                    <!-- Resell Margin (Only shown for resell orders) -->
-                                    {% if resell_link %}
-                                    <tr class="resell-margin" style="background-color: #fff3cd;">
-                                        <th>
-                                            <span style="color: #856404;">
-                                                <i class="fas fa-share-alt"></i> Reseller Margin
-                                                {% if resell_link_matching_qty %}
-                                                    ({{ resell_link_matching_qty }} linked items)
-                                                {% endif %}
-                                            </span>
-                                        </th>
-                                        <td>
-                                            <span class="amount" style="color: #856404; font-weight: 600;">
-                                                +&#8377;{{ manual_resell_margin_total|floatformat:2 }}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    {% endif %}
-                                    <tr class="resell-margin" id="manual_resell_margin_row" style="background-color: #fff3cd; {% if resell_link or selected_order_type != 'for_resell' %}display: none;{% endif %}">
-                                        <th>
-                                            <span style="color: #856404;">
-                                                <i class="fas fa-share-alt"></i> Reseller Margin
-                                            </span>
-                                        </th>
-                                        <td>
-                                            <span class="amount" style="color: #856404; font-weight: 600;" id="manual_resell_margin_amount">
-                                                +&#8377;{{ manual_resell_margin_total|floatformat:2 }}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    
-                                    <tr class="tax">
-                                        <th>Tax (5%)</th>
-                                        <td><span class="amount" id="tax_amount_value">&#8377;{{ tax_amount|floatformat:2 }}</span></td>
-                                    </tr>
-                                    <tr class="shipping">
-                                        <th>Shipping</th>
-                                        <td>
-                                            {% if total_price > 500 %}
-                                                <span class="amount" id="shipping_cost_value" style="color: green;">FREE</span>
-                                            {% else %}
-                                                <span class="amount" id="shipping_cost_value">&#8377;50.00</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    
-                                    <!-- Coupon Discount Row (Hidden by default, shown when coupon applied) -->
-                                    <tr class="coupon-discount-row" id="coupon_discount_row" style="display: none;">
-                                        <th>Coupon Discount</th>
-                                        <td>
-                                            <span class="amount" id="coupon_discount_amount" style="color: #28a745;">-₹0.00</span>
-                                        </td>
-                                    </tr>
-                                    
-                                    <!-- Loyalty Points Redemption -->
-                                    {% if user.is_authenticated and loyalty_account and loyalty_account.points_available > 0 %}
-                                    <tr class="loyalty-points-row">
-                                        <th colspan="2">
-                                            <div style="display: flex; align-items: center; justify-content: space-between;">
-                                                <span>
-                                                    <i class="fas fa-star" style="color: #ffc107;"></i> Loyalty Points Available
-                                                </span>
-                                                <span style="font-weight: 600; color: #ffc107;">{{ loyalty_account.points_available }} Points</span>
-                                            </div>
-                                        </th>
-                                    </tr>
-                                    <tr class="loyalty-redeem-row">
-                                        <th colspan="2">
-                                            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                                                <label style="display: flex; align-items: center; gap: 8px; margin: 0; cursor: pointer;">
-                                                    <input type="checkbox" name="redeem_points" id="redeem_points" value="1">
-                                                    <span>Use loyalty points for this order</span>
-                                                </label>
-                                                <small style="color: #666; display: block; width: 100%; margin-left: 28px;">
-                                                    ₹1 = 33 points earned | 1 point = ₹0.03 discount | Max discount: ₹{% widthratio loyalty_account.points_available 100 3 %}
-                                                </small>
-                                            </div>
-                                        </th>
-                                    </tr>
-                                    <tr class="points-discount-row" id="points_discount_row" style="display: none;">
-                                        <th>Points Discount</th>
-                                        <td>
-                                            <div style="display: flex; gap: 10px; align-items: center;">
-                                                <span class="amount" id="points_discount_amount">-₹0.00</span>
-                                                <input type="number" name="points_to_redeem" id="points_to_redeem" min="0" max="{{ loyalty_account.points_available }}" value="0" style="width: 80px; padding: 5px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;" placeholder="Points">
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    {% endif %}
-                                    
-                                    <tr class="order-total">
-                                        <th>Order Total</th>
-                                        <td><strong><span class="amount" id="final_total_display">&#8377;{{ final_total|floatformat:2 }}</span></strong></td>
-                                    </tr>
-                                
-                                </tfoot>
-                            </table>
-                        </div>
-
-                        <!-- Coupon Section -->
-                        <div class="coupon-section mt-4" style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="mb-0">Have a Coupon?</h5>
-                                <button type="button" id="viewAvailableCoupons" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-ticket-alt"></i> Available Coupons
-                                </button>
-                            </div>
-                            
-                            <div class="input-group">
-                                <input type="text" id="couponCode" name="coupon_code" class="form-control" placeholder="Enter coupon code" style="text-transform: uppercase;">
-                                <button type="button" id="applyCoupon" class="btn btn-primary">Apply</button>
-                            </div>
-                            
-                            <div id="couponMessage" class="mt-2"></div>
-                            
-                            <div id="appliedCouponDisplay" style="display: none;" class="mt-3 p-3 bg-success text-white rounded">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <strong><i class="fas fa-check-circle"></i> <span id="appliedCouponCode"></span></strong>
-                                        <div class="small">Discount: ₹<span id="appliedCouponAmount">0</span></div>
-                                    </div>
-                                    <button type="button" id="removeCoupon" class="btn btn-sm btn-light">
-                                        <i class="fas fa-times"></i> Remove
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <input type="hidden" id="appliedCouponId" name="coupon_id" value="">
-                        </div>
-
-                        <div class="payment-method mt-4">
-                            <h4 class="mb-3">Select Payment Method</h4>
-                            <div class="accordion" id="checkoutAccordion">
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header" id="codHeader">
-                                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#codPayment" aria-expanded="true" aria-controls="codPayment">
-                                            <input type="radio" name="payment_method" value="COD" id="cod_payment" {% if checkout_form.payment_method == 'COD' or not checkout_form.payment_method %}checked{% endif %} style="margin-right: 10px;">
-                                            Cash on Delivery (COD)
-                                        </button>
-                                    </h2>
-                                    <div id="codPayment" class="accordion-collapse collapse show" aria-labelledby="codHeader" data-bs-parent="#checkoutAccordion">
-                                        <div class="accordion-body">
-                                            <p>Pay with cash upon delivery. Your order will be dispatched within 1-2 business days.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header" id="razorpayHeader">
-                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#razorpayPayment" aria-expanded="false" aria-controls="razorpayPayment">
-                                            <input type="radio" name="payment_method" value="RAZORPAY" id="razorpay_payment" {% if checkout_form.payment_method == 'RAZORPAY' %}checked{% endif %} style="margin-right: 10px;">
-                                            Razorpay (Cards, UPI, Wallets)
-                                        </button>
-                                    </h2>
-                                    <div id="razorpayPayment" class="accordion-collapse collapse" aria-labelledby="razorpayHeader" data-bs-parent="#checkoutAccordion">
-                                        <div class="accordion-body">
-                                            <p>Pay securely with Razorpay using Credit Card, Debit Card, UPI, Net Banking, or Digital Wallets.</p>
-                                            <img src="https://razorpay.com/assets/razorpay-glyph.svg" alt="Razorpay" style="width: 120px;">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="order-button-payment mt-20">
-                                <button type="submit" class="tp-btn-h1" id="placeOrderButton">Place Order</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </form>
-        {% else %}
-        <div class="row">
-            <div class="col-12 text-center">
-                <h3>Your cart is empty!</h3>
-                <p class="mt-3">Add some items to your cart to proceed to checkout.</p>
-                <a href="{% url 'index' %}" class="tp-btn-h1 mt-3">Continue Shopping</a>
-            </div>
-        </div>
-        {% endif %}
-    </div>
-</section>
-<!-- checkout-area-end -->
-
+    {% include 'partials/checkout_desktop_alt.html' %}
 </div>
 
 <script>
@@ -2404,5 +1909,5 @@ function getCookie(name) {
 {% endblock content %}
 
 {% block extra_js %}
-<script src="{% static 'assets/js/checkout-tablet.js' %}?v=20260403-01"></script>
+<script src="{% static 'assets/js/checkout-tablet.js' %}?v=20260404-01"></script>
 {% endblock %}

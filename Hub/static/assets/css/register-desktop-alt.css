@@ -1,0 +1,419 @@
+@media (min-width: 1200px) {
+  .vm-register-mobile-only,
+  .vm-register-tablet-only {
+    display: none !important;
+  }
+
+  .vm-register-legacy-content {
+    display: block;
+  }
+
+  .vm-register-d-layout {
+    position: relative;
+    min-height: calc(100vh - 220px);
+    padding: 138px 32px 72px;
+    overflow: hidden;
+    background: #fbf9f4;
+  }
+
+  .vm-register-d-backdrop {
+    position: absolute;
+    inset: 0;
+  }
+
+  .vm-register-d-backdrop img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .vm-register-d-backdrop-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(23, 24, 24, 0.26);
+    backdrop-filter: brightness(0.78);
+  }
+
+  .vm-register-d-frame {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .vm-register-d-panel {
+    max-height: 870px;
+    overflow-y: auto;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(22px);
+    box-shadow: 0 32px 70px -42px rgba(0, 0, 0, 0.6);
+  }
+
+  .vm-register-d-panel::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .vm-register-d-panel::-webkit-scrollbar-thumb {
+    background: #6f5c37;
+    border-radius: 999px;
+  }
+
+  .vm-register-d-inner {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 48px 48px 44px;
+  }
+
+  .vm-register-d-messages {
+    margin-bottom: 24px;
+  }
+
+  .vm-register-d-head {
+    text-align: center;
+    margin-bottom: 44px;
+  }
+
+  .vm-register-d-head h1 {
+    margin: 0 0 8px;
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 48px;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+    color: #171818;
+  }
+
+  .vm-register-d-head p {
+    margin: 0;
+    font-family: 'Manrope', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(68, 71, 72, 0.9);
+  }
+
+  .vm-register-d-form {
+    display: grid;
+    gap: 36px;
+  }
+
+  .vm-register-d-profile {
+    display: grid;
+    justify-items: center;
+    gap: 14px;
+  }
+
+  .vm-register-d-profile input[type='file'] {
+    display: none;
+  }
+
+  .vm-register-d-avatar-shell {
+    position: relative;
+    cursor: pointer;
+  }
+
+  .vm-register-d-avatar {
+    width: 96px;
+    height: 96px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background: #eae8e3;
+    box-shadow: 0 0 0 4px #ffffff;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .vm-register-d-avatar-shell:hover .vm-register-d-avatar {
+    transform: translateY(-2px);
+    box-shadow: 0 0 0 4px #ffffff, 0 0 0 6px rgba(111, 92, 55, 0.28);
+  }
+
+  .vm-register-d-avatar i {
+    font-size: 36px;
+    color: rgba(68, 71, 72, 0.72);
+  }
+
+  .vm-register-d-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .vm-register-d-avatar-chip {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background: #6f5c37;
+    color: #fff;
+    border: 2px solid #fff;
+  }
+
+  .vm-register-d-avatar-label {
+    font-family: 'Manrope', sans-serif;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #6f5c37;
+  }
+
+  .vm-register-d-section {
+    display: grid;
+    gap: 24px;
+  }
+
+  .vm-register-d-section-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .vm-register-d-section-head span {
+    font-family: 'Noto Serif', Georgia, serif;
+    font-style: italic;
+    font-size: 22px;
+    color: #6f5c37;
+  }
+
+  .vm-register-d-section-head h2 {
+    margin: 0;
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: #171818;
+  }
+
+  .vm-register-d-section-head i {
+    height: 1px;
+    flex: 1;
+    background: rgba(196, 199, 199, 0.38);
+  }
+
+  .vm-register-d-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+  }
+
+  .vm-register-d-stack {
+    display: grid;
+    gap: 20px;
+  }
+
+  .vm-register-d-field {
+    display: grid;
+    gap: 9px;
+  }
+
+  .vm-register-d-field--full {
+    grid-column: 1 / -1;
+  }
+
+  .vm-register-d-field label {
+    font-family: 'Manrope', sans-serif;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(68, 71, 72, 0.88);
+    margin-left: 2px;
+  }
+
+  .vm-register-d-field input,
+  .vm-register-d-field select {
+    width: 100%;
+    min-height: 52px;
+    border-radius: 6px;
+    border: 1px solid rgba(196, 199, 199, 0.42);
+    background: #f5f3ee;
+    padding: 0 16px;
+    font-size: 14px;
+    color: #171818;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  }
+
+  .vm-register-d-field input:focus,
+  .vm-register-d-field select:focus {
+    border-color: #6f5c37;
+    box-shadow: 0 0 0 3px rgba(111, 92, 55, 0.1);
+    background: #fff;
+  }
+
+  .vm-register-d-pass {
+    position: relative;
+  }
+
+  .vm-register-d-pass button {
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    transform: translateY(-50%);
+    border: 0;
+    background: transparent;
+    color: rgba(68, 71, 72, 0.72);
+  }
+
+  .vm-register-d-strength {
+    display: none;
+    gap: 10px;
+  }
+
+  .vm-register-d-strength-bars {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    height: 4px;
+  }
+
+  .vm-register-d-strength-bars i {
+    display: block;
+    border-radius: 999px;
+    background: #d8d6d1;
+  }
+
+  .vm-register-d-strength.is-weak .vm-register-d-strength-bars i:nth-child(-n+1),
+  .vm-register-d-strength.is-fair .vm-register-d-strength-bars i:nth-child(-n+2),
+  .vm-register-d-strength.is-good .vm-register-d-strength-bars i:nth-child(-n+3),
+  .vm-register-d-strength.is-strong .vm-register-d-strength-bars i:nth-child(-n+4) {
+    background: #6f5c37;
+  }
+
+  .vm-register-d-strength span {
+    font-family: 'Manrope', sans-serif;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #6f5c37;
+  }
+
+  .vm-register-d-feedback,
+  .vm-register-d-error {
+    display: none;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .vm-register-d-feedback.is-valid,
+  .vm-register-d-error.is-success {
+    display: block;
+    color: #2e7d32;
+  }
+
+  .vm-register-d-feedback.is-error,
+  .vm-register-d-error.is-visible {
+    display: block;
+    color: #ba1a1a;
+  }
+
+  .vm-register-d-terms {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+  }
+
+  .vm-register-d-terms-box {
+    position: relative;
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+  }
+
+  .vm-register-d-terms-box input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .vm-register-d-terms-mark {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 1px solid rgba(196, 199, 199, 0.72);
+    background: #f5f3ee;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+
+  .vm-register-d-terms-mark i {
+    font-size: 10px;
+    opacity: 0;
+  }
+
+  .vm-register-d-terms-box input:checked + .vm-register-d-terms-mark {
+    background: #6f5c37;
+    border-color: #6f5c37;
+  }
+
+  .vm-register-d-terms-box input:checked + .vm-register-d-terms-mark i {
+    opacity: 1;
+  }
+
+  .vm-register-d-terms > span:last-child {
+    font-size: 13px;
+    line-height: 1.6;
+    color: rgba(68, 71, 72, 0.88);
+  }
+
+  .vm-register-d-terms a,
+  .vm-register-d-actions a {
+    color: #6f5c37;
+    text-decoration: none;
+    font-weight: 700;
+  }
+
+  .vm-register-d-actions {
+    display: grid;
+    gap: 18px;
+    padding-top: 8px;
+  }
+
+  .vm-register-d-submit {
+    width: 100%;
+    min-height: 58px;
+    border: 0;
+    border-radius: 8px;
+    background: #171818;
+    color: #fff;
+    font-family: 'Manrope', sans-serif;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    box-shadow: 0 20px 35px -24px rgba(23, 24, 24, 0.78);
+    transition: transform 0.3s ease, background 0.3s ease, letter-spacing 0.3s ease;
+  }
+
+  .vm-register-d-submit:hover {
+    transform: translateY(-1px);
+    background: rgba(23, 24, 24, 0.92);
+    letter-spacing: 0.24em;
+  }
+
+  .vm-register-d-submit:disabled {
+    opacity: 0.72;
+    cursor: not-allowed;
+  }
+
+  .vm-register-d-actions p {
+    margin: 0;
+    text-align: center;
+    font-size: 13px;
+    color: rgba(68, 71, 72, 0.88);
+    font-style: italic;
+  }
+}

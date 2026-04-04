@@ -1,363 +1,370 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Confirmed - VibeMall</title>
+    <title>{{ hero_title }} - VibeMall</title>
     <style>
-        * {
+        body {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
+            background: #fbf9f4;
+            color: #1b1c19;
+            font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+            line-height: 1.45;
         }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #f5f7fa;
-            padding: 20px;
-            line-height: 1.6;
+
+        table {
+            border-collapse: collapse;
         }
-        .email-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+
+        .wrapper {
+            width: 100%;
+            background: #fbf9f4;
+            padding: 24px 12px;
         }
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 40px 20px;
-            text-align: center;
-            color: white;
+
+        .shell {
+            width: 100%;
+            max-width: 760px;
+            background: #fbf9f4;
         }
-        .header .checkmark {
-            width: 60px;
-            height: 60px;
-            background: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 15px;
-            font-size: 32px;
-            color: #4caf50;
-        }
-        .header h1 {
-            font-size: 24px;
-            margin-bottom: 5px;
-            font-weight: 600;
-        }
-        .header p {
-            font-size: 14px;
-            opacity: 0.95;
-        }
-        .content {
-            padding: 30px 20px;
-        }
-        .greeting {
-            font-size: 16px;
-            color: #333;
-            margin-bottom: 20px;
-        }
-        .order-info {
-            background: #f9fafb;
-            border-left: 4px solid #667eea;
-            padding: 15px;
-            margin-bottom: 25px;
-            border-radius: 4px;
-        }
-        .order-info-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-        .order-info-row:last-child {
-            margin-bottom: 0;
-        }
-        .order-info-label {
-            color: #6b7280;
-            font-weight: 500;
-        }
-        .order-info-value {
-            color: #111827;
-            font-weight: 600;
-        }
-        .section-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #111827;
-            margin: 25px 0 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #e5e7eb;
-        }
-        .order-items {
-            margin-bottom: 25px;
-        }
-        .order-item {
-            display: flex;
-            padding: 15px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            align-items: center;
-        }
-        .item-image {
-            width: 80px;
-            height: 80px;
-            border-radius: 8px;
-            object-fit: cover;
-            margin-right: 15px;
-            background: #f3f4f6;
-        }
-        .item-details {
-            flex: 1;
-        }
-        .item-name {
-            font-weight: 600;
-            color: #111827;
-            font-size: 15px;
-            margin-bottom: 5px;
-        }
-        .item-price {
-            color: #667eea;
-            font-weight: 600;
-            font-size: 14px;
-        }
-        .item-qty {
-            color: #6b7280;
-            font-size: 13px;
-            margin-top: 3px;
-        }
-        .item-total {
+
+        .hero-title {
+            margin: 0;
+            font-size: 38px;
+            line-height: 1.1;
+            letter-spacing: -0.3px;
+            color: #171818;
             font-weight: 700;
-            color: #111827;
-            font-size: 16px;
         }
-        .pricing-table {
-            background: #f9fafb;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 25px;
-        }
-        .pricing-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            font-size: 14px;
-        }
-        .pricing-row.total {
-            border-top: 2px solid #e5e7eb;
-            margin-top: 10px;
-            padding-top: 15px;
-            font-size: 18px;
-            font-weight: 700;
-            color: #111827;
-        }
-        .pricing-label {
-            color: #6b7280;
-        }
-        .pricing-value {
-            font-weight: 600;
-            color: #111827;
-        }
-        .pricing-row.total .pricing-value {
-            color: #667eea;
-        }
-        .address-box {
-            background: #fff7ed;
-            border: 2px dashed #fed7aa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 25px;
-        }
-        .address-title {
-            font-weight: 600;
-            color: #ea580c;
-            font-size: 15px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-        }
-        .address-title::before {
-            content: "📦";
-            margin-right: 8px;
-            font-size: 18px;
-        }
-        .address-content {
-            color: #78350f;
-            font-size: 14px;
-            line-height: 1.8;
-            white-space: pre-line;
-        }
-        .track-button {
-            display: block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-align: center;
-            padding: 15px 30px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 16px;
-            margin: 25px 0;
-            transition: transform 0.2s;
-        }
-        .track-button:hover {
-            transform: translateY(-2px);
-        }
-        .help-section {
-            background: #f0f9ff;
-            padding: 20px;
-            border-radius: 8px;
-            margin-top: 25px;
-            text-align: center;
-        }
-        .help-section h3 {
-            font-size: 16px;
-            color: #1e40af;
-            margin-bottom: 10px;
-        }
-        .help-section p {
-            font-size: 13px;
-            color: #1e40af;
-            margin-bottom: 5px;
-        }
-        .help-section a {
-            color: #2563eb;
-            text-decoration: none;
-            font-weight: 600;
-        }
-        .footer {
-            background: #1f2937;
-            padding: 30px 20px;
-            text-align: center;
-            color: #9ca3af;
-        }
-        .footer-logo {
-            font-size: 24px;
-            font-weight: 700;
-            color: white;
-            margin-bottom: 15px;
-        }
-        .footer-text {
-            font-size: 13px;
-            margin-bottom: 15px;
-            line-height: 1.6;
-        }
-        .social-links {
-            margin: 20px 0;
-        }
-        .social-links a {
-            display: inline-block;
-            margin: 0 8px;
-            width: 36px;
-            height: 36px;
-            background: #374151;
-            border-radius: 50%;
-            color: white;
-            text-decoration: none;
-            line-height: 36px;
-            font-size: 16px;
-        }
-        .social-links a:hover {
-            background: #667eea;
-        }
-        .footer-note {
+
+        .hero-kicker {
+            margin: 10px 0 0;
             font-size: 11px;
-            color: #6b7280;
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #374151;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #6f5c37;
+            font-weight: 700;
+        }
+
+        .hero-copy {
+            margin: 18px 0 0;
+            font-size: 16px;
+            line-height: 1.7;
+            color: #444748;
+            font-style: italic;
+            max-width: 640px;
+        }
+
+        .section-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #444748;
+            font-weight: 700;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #d9d8d2;
+            margin: 0 0 20px;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #e4e2dd;
+        }
+
+        .item-image {
+            width: 140px;
+            height: 170px;
+            border: 1px solid #eceae4;
+            background: #f0eee9;
+            object-fit: cover;
+            display: block;
+        }
+
+        .item-name {
+            margin: 0;
+            color: #171818;
+            font-size: 25px;
+            line-height: 1.15;
+            font-weight: 700;
+        }
+
+        .item-meta {
+            margin: 10px 0 0;
+            font-size: 14px;
+            line-height: 1.65;
+            color: #444748;
+        }
+
+        .item-qty {
+            margin: 10px 0 0;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #444748;
+            font-weight: 700;
+        }
+
+        .item-price {
+            font-size: 20px;
+            color: #171818;
+            font-weight: 700;
+            white-space: nowrap;
+            vertical-align: top;
+            text-align: right;
+        }
+
+        .totals-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #444748;
+        }
+
+        .totals-value {
+            font-size: 15px;
+            color: #171818;
+            font-weight: 600;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .totals-total {
+            font-size: 30px;
+            color: #171818;
+            font-weight: 700;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .address-text {
+            font-style: normal;
+            margin: 0;
+            font-size: 15px;
+            line-height: 1.8;
+            color: #171818;
+        }
+
+        .arrival-title {
+            margin: 0;
+            font-size: 27px;
+            color: #171818;
+            line-height: 1.2;
+            font-weight: 700;
+        }
+
+        .arrival-sub {
+            margin: 8px 0 0;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #444748;
+        }
+
+        .cta {
+            display: inline-block;
+            background: #171818;
+            color: #ffffff !important;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 16px 34px;
+            border: 1px solid #171818;
+        }
+
+        .footnote {
+            margin: 16px 0 0;
+            font-size: 12px;
+            line-height: 1.6;
+            color: rgba(68, 71, 72, 0.75);
+            max-width: 520px;
+        }
+
+        .footer {
+            border-top: 1px solid #ddd9cf;
+            margin-top: 34px;
+            padding-top: 18px;
+            font-size: 12px;
+            color: #747878;
+        }
+
+        .footer a {
+            color: #6f5c37 !important;
+            text-decoration: none;
+        }
+
+        @media only screen and (max-width: 640px) {
+            .hero-title {
+                font-size: 30px !important;
+            }
+
+            .item-image {
+                width: 110px !important;
+                height: 135px !important;
+            }
+
+            .item-name {
+                font-size: 21px !important;
+            }
+
+            .stack,
+            .stack td {
+                display: block !important;
+                width: 100% !important;
+            }
+
+            .item-price {
+                text-align: left !important;
+                padding-top: 8px;
+            }
+
+            .totals-total {
+                font-size: 24px !important;
+            }
+
+            .cta {
+                display: block !important;
+                text-align: center !important;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="email-container">
-        <!-- Header -->
-        <div class="header">
-            <div class="checkmark">✓</div>
-            <h1>Order Confirmed!</h1>
-            <p>Thank you for shopping with VibeMall</p>
-        </div>
-        
-        <!-- Content -->
-        <div class="content">
-            <p class="greeting">
-                Hi {{ order.user.first_name|default:order.user.username }},
-            </p>
-            <p style="color: #6b7280; font-size: 14px; margin-bottom: 20px;">
-                Your order has been successfully placed and is being processed. We'll send you another email once your order has been shipped.
-            </p>
+    <table role="presentation" width="100%" class="wrapper" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="100%" class="shell" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td style="padding: 8px 8px 30px;">
+                            <h1 class="hero-title">{{ hero_title }}</h1>
+                            <p class="hero-kicker">ORDER #{{ order.order_number }}</p>
+                            <p class="hero-copy">{{ hero_message }}</p>
+                        </td>
+                    </tr>
 
-            <!-- Order Info -->
-            <div class="order-info">
-                <div class="order-info-row">
-                    <span class="order-info-label">📋 Order Number:</span>
-                    <span class="order-info-value">#{{ order.order_number }}</span>
-                </div>
-                <div class="order-info-row">
-                    <span class="order-info-label">📅 Order Date:</span>
-                    <span class="order-info-value">{{ order.created_at|date:"F d, Y - h:i A" }}</span>
-                </div>
-                <div class="order-info-row">
-                    <span class="order-info-label">💳 Payment Method:</span>
-                    <span class="order-info-value">{{ order.get_payment_method_display }}</span>
-                </div>
-                <div class="order-info-row">
-                    <span class="order-info-label">📊 Payment Status:</span>
-                    <span class="order-info-value" style="color: {% if order.payment_status == 'PAID' %}#10b981{% else %}#f59e0b{% endif %};">
-                        {{ order.get_payment_status_display }}
-                    </span>
-                </div>
-            </div>
+                    <tr>
+                        <td style="padding: 0 8px 26px;">
+                            <p class="section-label">Order Summary</p>
+                        </td>
+                    </tr>
 
-            <!-- Order Items -->
-            <h2 class="section-title">Order Items</h2>
-            <div class="order-items">
-                {% for item in order.items.all %}
-                <div class="order-item">
-                    {% if item.product_image %}
-                    <img src="{{ item.product_image }}" alt="{{ item.product_name }}" class="item-image" style="display: block; max-width: 80px; height: 80px; object-fit: cover;">
-                    {% else %}
-                    <div class="item-image" style="width: 80px; height: 80px; background: #e5e7eb; display: flex; align-items: center; justify-content: center; font-size: 32px; color: #9ca3af; border-radius: 6px;">📦</div>
-                    {% endif %}
-                    <div class="item-details">
-                        <div class="item-name">{{ item.product_name }}</div>
-                        <div class="item-price">₹{{ item.product_price|floatformat:2 }}</div>
-                        <div class="item-qty">Quantity: {{ item.quantity }}</div>
-                    </div>
-                    <div class="item-total">₹{{ item.subtotal|floatformat:2 }}</div>
-                </div>
-                {% endfor %}
-            </div>
+                    {% for item in order_items %}
+                    <tr>
+                        <td style="padding: 0 8px 18px;">
+                            <table role="presentation" width="100%" class="card stack" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td width="160" style="padding: 12px; vertical-align: top;">
+                                        {% if item.image_url %}
+                                        <img src="{{ item.image_url }}" alt="{{ item.product_name }}" class="item-image">
+                                        {% else %}
+                                        <div class="item-image" style="text-align:center; line-height:170px; color:#8d918f; font-size:34px;">&#9632;</div>
+                                        {% endif %}
+                                    </td>
+                                    <td style="padding: 12px 8px 12px 0; vertical-align: top;">
+                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                <td style="vertical-align: top;">
+                                                    <h3 class="item-name">{{ item.product_name }}</h3>
+                                                </td>
+                                                <td class="item-price">₹{{ item.product_price|floatformat:2 }}</td>
+                                            </tr>
+                                        </table>
+                                        {% if item.variant_text %}
+                                        <p class="item-meta">{{ item.variant_text }}</p>
+                                        {% endif %}
+                                        <p class="item-qty">Qty: {{ item.quantity|stringformat:"02d" }}</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    {% endfor %}
 
-            <!-- Pricing -->
-            <div class="pricing-table">
-                <div class="pricing-row">
-                    <span class="pricing-label">Subtotal:</span>
-                    <span class="pricing-value">₹{{ order.subtotal|floatformat:2 }}</span>
-                </div>
-                <div class="pricing-row">
-                    <span class="pricing-label">Shipping Cost:</span>
-                    <span class="pricing-value">₹{{ order.shipping_cost|floatformat:2 }}</span>
-                </div>
-                <div class="pricing-row">
-                    <span class="pricing-label">Tax (GST 5%):</span>
-                    <span class="pricing-value">₹{{ order.tax|floatformat:2 }}</span>
-                </div>
-                <div class="pricing-row total">
-                    <span class="pricing-label">Total Amount:</span>
-                    <span class="pricing-value">₹{{ order.total_amount|floatformat:2 }}</span>
-                </div>
-            </div>
+                    <tr>
+                        <td style="padding: 8px 8px 34px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #d9d8d2; padding-top:14px;">
+                                <tr>
+                                    <td width="64%"></td>
+                                    <td>
+                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                <td class="totals-label" style="padding: 0 0 6px;">Subtotal</td>
+                                                <td class="totals-value" style="padding: 0 0 6px;">₹{{ order.subtotal|floatformat:2 }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="totals-label" style="padding: 0 0 6px;">Concierge Delivery</td>
+                                                <td class="totals-value" style="padding: 0 0 6px;">{{ shipping_cost_display }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="totals-label" style="padding: 0 0 6px;">Tax</td>
+                                                <td class="totals-value" style="padding: 0 0 6px;">₹{{ order.tax|floatformat:2 }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding-top: 10px; border-top:1px solid #ebe9e2;">
+                                                    <span class="totals-label" style="font-size:17px; color:#171818; letter-spacing:0; text-transform:none;">Total</span>
+                                                </td>
+                                                <td class="totals-total" style="padding-top: 10px; border-top:1px solid #ebe9e2;">₹{{ order.total_amount|floatformat:2 }}</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
 
-            <!-- Shipping Address -->
-            <h2 class="section-title">Shipping Address</h2>
-            <div class="address-box">
-                <div class="address-title">Shipping Address</div>
-                <div class="address-content">{{ order.shipping_address }}</div>
-            </div>
+                    <tr>
+                        <td style="padding: 0 8px 32px;">
+                            <table role="presentation" width="100%" class="stack" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td width="50%" style="vertical-align: top; padding-right: 18px;">
+                                        <p class="section-label" style="margin-bottom: 14px;">Delivery Destination</p>
+                                        <p class="address-text">{{ order.shipping_address|linebreaksbr }}</p>
+                                    </td>
+                                    <td width="50%" style="vertical-align: top; padding-left: 18px;">
+                                        <p class="section-label" style="margin-bottom: 14px;">Estimated Arrival</p>
+                                        <p class="arrival-title">
+                                            {% if order.delivery_date %}
+                                            {{ order.delivery_date|date:"F d, Y" }}
+                                            {% elif order.order_status == 'DELIVERED' %}
+                                            Delivered
+                                            {% elif order.order_status == 'SHIPPED' %}
+                                            On the Way
+                                            {% else %}
+                                            To Be Confirmed
+                                            {% endif %}
+                                        </p>
+                                        <p class="arrival-sub">A shipping confirmation email will be sent once your items depart the dispatch center.</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 0 8px 18px;">
+                            <a class="cta" href="{{ site_url }}{% url 'order_details' order.order_number %}">View Your Order</a>
+                            <p class="footnote">
+                                If you have any questions regarding your order, please contact our Concierge team and quote your order number #{{ order.order_number }}.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td class="footer" style="padding-left:8px; padding-right:8px;">
+                            <strong style="color:#171818;">VibeMall</strong><br>
+                            Curating style, trust, and seamless shopping experiences.<br>
+                            <a href="{{ site_url }}">{{ site_url }}</a><br>
+                            &copy; {{ current_year }} VibeMall. All rights reserved.
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
 
             <!-- Track Order Button -->
             <a href="{{ site_url }}/track-order/" class="track-button">

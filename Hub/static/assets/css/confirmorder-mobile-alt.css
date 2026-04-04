@@ -1,0 +1,376 @@
+.vm-checkoutconfirm-mobile-only {
+    display: none;
+}
+
+@media (max-width: 767.98px) {
+    body.vm-page-mobile-checkout-confirm .vm-checkoutconfirm-mobile-only {
+        display: block;
+        min-height: 100vh;
+        background:
+            radial-gradient(circle at top right, rgba(250, 223, 177, 0.45), transparent 34%),
+            linear-gradient(180deg, #fbf9f4 0%, #f4f1ea 100%);
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-checkoutconfirm-tablet-only,
+    body.vm-page-mobile-checkout-confirm .vm-checkoutconfirm-legacy,
+    body.vm-page-mobile-checkout-confirm .vm-tab-bnav-shell {
+        display: none !important;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-nav {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        background: rgba(251, 249, 244, 0.92);
+        backdrop-filter: blur(18px);
+        border-bottom: 1px solid rgba(196, 199, 199, 0.2);
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-nav__inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 18px;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-nav__group,
+    body.vm-page-mobile-checkout-confirm .vm-ccm-nav__actions {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-nav__btn,
+    body.vm-page-mobile-checkout-confirm .vm-ccm-nav__link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        border: 0;
+        border-radius: 999px;
+        background: rgba(23, 24, 24, 0.04);
+        color: #171818;
+        text-decoration: none;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-nav__brand {
+        color: #171818;
+        text-decoration: none;
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: 24px;
+        font-style: italic;
+        font-weight: 700;
+        letter-spacing: -0.04em;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-main {
+        padding: 24px 18px 40px;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-hero {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 8px 0 24px;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-hero__badge {
+        display: grid;
+        place-items: center;
+        width: 88px;
+        height: 88px;
+        margin-bottom: 20px;
+        border-radius: 999px;
+        background: rgba(250, 223, 177, 0.92);
+        color: #6f5c37;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-hero__badge .material-symbols-outlined {
+        font-size: 42px;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-hero h1 {
+        margin: 0;
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: clamp(40px, 13vw, 56px);
+        font-style: italic;
+        font-weight: 700;
+        letter-spacing: -0.05em;
+        line-height: 1;
+        color: #171818;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-hero p {
+        max-width: 320px;
+        margin: 12px 0 0;
+        color: rgba(23, 24, 24, 0.68);
+        font-size: 14px;
+        line-height: 1.75;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-hero__meta {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 16px;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-hero__meta span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 9px 14px;
+        border-radius: 999px;
+        background: rgba(23, 24, 24, 0.06);
+        color: #171818;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-card {
+        margin-top: 16px;
+        padding: 24px 20px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 24px 45px -30px rgba(23, 24, 24, 0.28);
+        backdrop-filter: blur(10px);
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-card--soft {
+        background: rgba(240, 238, 233, 0.94);
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-card__head {
+        margin-bottom: 18px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid rgba(116, 120, 120, 0.14);
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-card__head h2 {
+        margin: 0;
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: 24px;
+        line-height: 1.2;
+        color: #171818;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-items {
+        display: grid;
+        gap: 18px;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-item {
+        display: grid;
+        grid-template-columns: 72px minmax(0, 1fr);
+        gap: 14px;
+        align-items: center;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-item__media {
+        width: 72px;
+        height: 96px;
+        overflow: hidden;
+        border-radius: 16px;
+        background: #e4e2dd;
+        display: grid;
+        place-items: center;
+        color: rgba(68, 71, 72, 0.72);
+        font-size: 20px;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-item__media img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-item__content h3 {
+        margin: 0;
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: 18px;
+        line-height: 1.35;
+        color: #171818;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-item__content p {
+        margin: 6px 0 0;
+        color: #6f5c37;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-item__meta {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 12px;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-item__meta span {
+        color: rgba(23, 24, 24, 0.6);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-item__meta strong {
+        color: #171818;
+        font-size: 15px;
+        font-weight: 700;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-totals {
+        display: grid;
+        gap: 10px;
+        margin-top: 22px;
+        padding-top: 18px;
+        border-top: 1px solid rgba(116, 120, 120, 0.14);
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-totals div {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        color: #444748;
+        font-size: 13px;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-totals strong {
+        color: #171818;
+        font-weight: 700;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-totals__total {
+        margin-top: 8px;
+        padding-top: 14px;
+        border-top: 1px solid rgba(116, 120, 120, 0.14);
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-totals__total span,
+    body.vm-page-mobile-checkout-confirm .vm-ccm-totals__total strong {
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: 22px;
+        color: #171818;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-info-group + .vm-ccm-info-group {
+        margin-top: 18px;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-info-group h4 {
+        margin: 0 0 8px;
+        color: rgba(68, 71, 72, 0.82);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-info-group p,
+    body.vm-page-mobile-checkout-confirm .vm-ccm-address {
+        margin: 0;
+        color: #171818;
+        font-size: 14px;
+        line-height: 1.75;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-payment {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-payment .material-symbols-outlined {
+        color: rgba(68, 71, 72, 0.86);
+        font-size: 22px;
+        margin-top: 2px;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-payment p {
+        margin: 0;
+        color: #171818;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.65;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-payment small {
+        display: block;
+        margin-top: 4px;
+        color: rgba(23, 24, 24, 0.58);
+        font-size: 12px;
+        line-height: 1.6;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-actions {
+        display: grid;
+        gap: 14px;
+        margin-top: 22px;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        min-height: 56px;
+        padding: 16px 18px;
+        border: 0;
+        border-radius: 18px;
+        text-decoration: none;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+        cursor: pointer;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-btn:active {
+        transform: scale(0.98);
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-btn--primary {
+        background: #171818;
+        color: #ffffff;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-btn--secondary {
+        background: #f0eee9;
+        color: #171818;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-help {
+        max-width: 320px;
+        margin: 24px auto 0;
+        text-align: center;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-help p {
+        margin: 0;
+        color: rgba(23, 24, 24, 0.56);
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.8;
+    }
+
+    body.vm-page-mobile-checkout-confirm .vm-ccm-help a {
+        color: #171818;
+        text-decoration: underline;
+        text-decoration-color: #6f5c37;
+        text-underline-offset: 4px;
+    }
+}

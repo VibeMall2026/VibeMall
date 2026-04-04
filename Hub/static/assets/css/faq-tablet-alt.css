@@ -1,0 +1,279 @@
+.vm-faq-tablet-only {
+    display: none;
+}
+
+@media (min-width: 768px) and (max-width: 1199.98px) {
+    body.vm-page-mobile-faq .vm-faq-mobile-only,
+    body.vm-page-mobile-faq .vm-faq-desktop-content,
+    body.vm-page-mobile-faq .vm-tablet-alt-footer,
+    body.vm-page-mobile-faq .vm-tab-bnav-shell {
+        display: none !important;
+    }
+
+    body.vm-page-mobile-faq {
+        background: #fbf9f4;
+        color: #1b1c19;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-tablet-only {
+        display: block;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-main {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 152px 32px 72px;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-hero {
+        margin-bottom: 48px;
+        text-align: center;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-kicker {
+        display: block;
+        margin-bottom: 16px;
+        color: #6f5c37;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-hero h1 {
+        margin: 0;
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: clamp(54px, 7vw, 70px);
+        line-height: 1.05;
+        letter-spacing: -0.03em;
+        color: #171818;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-hero p {
+        max-width: 540px;
+        margin: 20px auto 0;
+        color: #444748;
+        font-size: 18px;
+        line-height: 1.8;
+        font-weight: 300;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-metrics {
+        margin-top: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        flex-wrap: wrap;
+        color: #6f5c37;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-metrics span {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-metrics span + span::before {
+        content: "";
+        display: inline-block;
+        width: 24px;
+        height: 1px;
+        margin-right: 10px;
+        background: rgba(116, 120, 120, 0.38);
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-categories {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 48px;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-categories a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 14px 24px;
+        background: #f0eee9;
+        color: #444748;
+        text-decoration: none;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-categories a:hover,
+    body.vm-page-mobile-faq .vm-faq-t-categories a.is-active {
+        background: #171818;
+        color: #ffffff;
+        transform: translateY(-1px);
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-groups {
+        display: grid;
+        gap: 22px;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-group {
+        scroll-margin-top: 120px;
+        background: #f5f3ee;
+        border: 1px solid rgba(196, 199, 199, 0.18);
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-group-head {
+        padding: 30px 32px 18px;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-group-head h2 {
+        margin: 0;
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: 30px;
+        line-height: 1.15;
+        color: #171818;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-group-head p {
+        margin: 12px 0 0;
+        max-width: 600px;
+        color: #444748;
+        font-size: 15px;
+        line-height: 1.75;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-accordion {
+        padding: 0 20px 20px;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-accordion details {
+        background: #fbf9f4;
+        border-top: 1px solid rgba(196, 199, 199, 0.28);
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-accordion details:first-child {
+        border-top: 0;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-accordion summary {
+        list-style: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 26px 12px;
+        transition: background 0.2s ease;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-accordion summary::-webkit-details-marker {
+        display: none;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-accordion summary:hover {
+        background: #f0eee9;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-accordion summary span {
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: 24px;
+        line-height: 1.4;
+        color: #171818;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-accordion summary i {
+        flex-shrink: 0;
+        color: rgba(68, 71, 72, 0.42);
+        font-size: 20px;
+        transition: transform 0.25s ease, color 0.25s ease;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-accordion details[open] summary i {
+        transform: rotate(180deg);
+        color: #6f5c37;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-accordion details > div {
+        padding: 0 12px 26px;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-accordion details p {
+        margin: 0;
+        color: #444748;
+        font-size: 15px;
+        line-height: 1.9;
+        font-weight: 300;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-contact {
+        margin-top: 72px;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-contact-media {
+        position: relative;
+        aspect-ratio: 21 / 9;
+        overflow: hidden;
+        background: #eae8e3;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-contact-media img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        mix-blend-mode: multiply;
+        opacity: 0.82;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-contact-copy {
+        margin-top: -1px;
+        padding: 44px 32px;
+        text-align: center;
+        background: #eae8e3;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-contact-copy h2 {
+        margin: 0;
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: 38px;
+        line-height: 1.15;
+        color: #171818;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-contact-copy p {
+        max-width: 420px;
+        margin: 16px auto 26px;
+        color: #444748;
+        font-size: 15px;
+        line-height: 1.8;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-contact-copy a {
+        display: inline-block;
+        border-bottom: 2px solid #6f5c37;
+        padding-bottom: 3px;
+        color: #171818;
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        transition: color 0.2s ease, border-color 0.2s ease;
+    }
+
+    body.vm-page-mobile-faq .vm-faq-t-contact-copy a:hover {
+        color: #6f5c37;
+        border-color: #6f5c37;
+    }
+}
+
+@media (min-width: 1200px) {
+    body.vm-page-mobile-faq .vm-faq-tablet-only {
+        display: none !important;
+    }
+}

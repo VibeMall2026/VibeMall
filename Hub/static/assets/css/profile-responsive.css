@@ -393,3 +393,67 @@
         font-size: 9.5px !important;
     }
 }
+
+/* Edit Profile modal action layout */
+.pdv-modal-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.pdv-modal-actions .pdv-modal-btn {
+    min-height: 54px;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 30px;
+    line-height: 1;
+}
+
+.pdv-modal-actions .pdv-modal-btn--cancel {
+    min-width: 190px;
+    background: #ececec;
+    color: #2f3135;
+    border: 1px solid #dfdfdf;
+}
+
+.pdv-modal-actions .pdv-modal-btn--save {
+    min-width: 280px;
+    background: #f6bf00;
+    border-color: #f6bf00;
+    color: #fff;
+}
+
+.pdv-modal-actions .pdv-modal-btn--save:hover {
+    background: #e4af00;
+    border-color: #e4af00;
+}
+
+@media (max-width: 767.98px) {
+    .pdv-modal-actions {
+        gap: 10px;
+        flex-wrap: nowrap;
+    }
+
+    .pdv-modal-actions .pdv-modal-btn {
+        min-height: 50px;
+        font-size: 14px;
+        padding: 0 18px;
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    .pdv-modal-actions .pdv-modal-btn--cancel {
+        flex: 0 0 42%;
+    }
+
+    .pdv-modal-actions .pdv-modal-btn--save {
+        flex: 1 1 58%;
+    }
+}

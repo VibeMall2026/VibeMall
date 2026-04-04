@@ -57,8 +57,6 @@
                 <a href="{% url 'checkout' %}">Checkout</a>
                 {% if user.is_staff %}
                 <a class="vm-admin-nav-link" href="{% url 'admin_dashboard' %}">Admin</a>
-                {% else %}
-                <a class="vm-admin-nav-link" href="{% url 'login' %}">Admin</a>
                 {% endif %}
             </nav>
 
@@ -82,7 +80,12 @@
                     <i class="far fa-shopping-bag"></i>
                     <span class="vm-mini-cart-badge cart-count">{{ cart_count|default:"0" }}</span>
                 </button>
+                {% if request.user.is_authenticated %}
                 <a href="{% url 'profile' %}" aria-label="Profile"><i class="far fa-user"></i></a>
+                <a href="{% url 'logout' %}" aria-label="Logout"><i class="fas fa-sign-out-alt"></i></a>
+                {% else %}
+                <a href="{% url 'login' %}" aria-label="Login"><i class="far fa-user"></i></a>
+                {% endif %}
             </div>
         </div>
     </div>

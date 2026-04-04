@@ -175,6 +175,8 @@ urlpatterns = [
     # Review URLs
     path('product/<int:product_id>/submit-review/', views.submit_review, name='submit_review'),
     path('review/<int:review_id>/vote/', views.vote_review, name='vote_review'),
+    path('mobile-review-prompt/dismiss/', views.mobile_review_prompt_dismiss, name='mobile_review_prompt_dismiss'),
+    path('mobile-review-prompt/submit/<int:product_id>/', views.mobile_review_prompt_submit, name='mobile_review_prompt_submit'),
     path('product/<int:product_id>/submit-question/', views.submit_question, name='submit_question'),
     path('product/<int:product_id>/notify/', views.request_stock_notification, name='request_stock_notification'),
     

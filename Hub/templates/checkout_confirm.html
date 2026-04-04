@@ -2,293 +2,483 @@
 
 {% load static %}
 
-{% block body_class %}vm-page-mobile-alt{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-mobile-checkout-confirm{% endblock %}
 
 
 {% block title %}Confirm Order - VibeMall{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'assets/css/confirmorder-responsive.css' %}">
+<link rel="stylesheet" href="{% static 'assets/css/confirmorder-mobile-alt.css' %}?v=20260404-01">
+<link rel="stylesheet" href="{% static 'assets/css/confirmorder-tablet-alt.css' %}?v=20260404-01">
+<link rel="stylesheet" href="{% static 'assets/css/confirmorder-desktop-alt.css' %}?v=20260404-01">
 {% endblock %}
 
 {% block content %}
-<div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
-    <div class="container">
-        <div class="row">
-            <div class="col-xl-12">
-                <div class="page-banner-content text-center">
-                    <h4 class="breadcrumb-title">Confirm Order</h4>
-                    <div class="breadcrumb-two">
-                        <nav>
-                           <nav class="breadcrumb-trail breadcrumbs">
-                              <ul class="breadcrumb-menu">
-                                 <li class="breadcrumb-trail">
-                                    <a href="{% url 'index' %}"><span>Home</span></a>
-                                 </li>
-                                 <li class="trail-item">
-                                    <span>Confirm Order</span>
-                                 </li>
-                              </ul>
-                           </nav>
-                        </nav>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<section class="vm-checkoutconfirm-mobile-only" aria-label="Confirm order mobile view">
+    {% include 'partials/vm_mobile_alt_header.html' %}
 
-<section class="checkout-area pt-120 pb-85">
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-7">
-                <div class="card mb-4">
-                    <div class="card-header bg-light d-flex align-items-center justify-content-between">
-                        <h5 class="mb-0">Delivery Details</h5>
-                        <a href="{% url 'checkout' %}" class="btn btn-sm btn-outline-primary">Edit</a>
-                    </div>
-                    <div class="card-body">
-                        {% if is_resell %}
-                        <div class="row g-3 mb-2">
-                            <div class="col-md-6">
-                                <div class="border rounded p-3 h-100">
-                                    <h6 class="mb-2 text-primary">FROM (Reseller)</h6>
-                                    <p class="mb-1"><strong>{{ from_name|default:user.get_full_name|default:user.username }}</strong></p>
-                                    <p class="mb-0">{{ from_phone|default:"-" }}</p>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="border rounded p-3 h-100">
-                                    <h6 class="mb-2 text-success">TO (Customer)</h6>
-                                    <p class="mb-0" style="white-space: pre-line;">{{ address_text }}</p>
-                                </div>
-                            </div>
-                        </div>
+    <main class="vm-ccm-main vm-mobile-content-offset">
+        <section class="vm-ccm-hero">
+            <div class="vm-ccm-hero__badge" aria-hidden="true">
+                <i class="fas fa-check"></i>
+            </div>
+            <h1>Confirm Order</h1>
+            <p>One final review before we begin preparing your curated pieces in the atelier.</p>
+            <div class="vm-ccm-hero__meta">
+                <span>{{ total_item_qty }} item{{ total_item_qty|pluralize }}</span>
+                {% if is_resell %}
+                <span>Resell Order</span>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="vm-ccm-card">
+            <div class="vm-ccm-card__head">
+                <h2>Order Summary</h2>
+            </div>
+
+            <div class="vm-ccm-items">
+                {% for item in cart_items %}
+                <article class="vm-ccm-item">
+                    <div class="vm-ccm-item__media">
+                        {% if item.product_image %}
+                        <img src="{{ item.product_image }}" alt="{{ item.product_name|default:item.product.name }}">
+                        {% elif item.product and item.product.image %}
+                        <img src="{{ item.product.image.url }}" alt="{{ item.product_name|default:item.product.name }}">
                         {% else %}
-                        <p class="mb-2" style="white-space: pre-line;">{{ address_text }}</p>
+                        <span><i class="fas fa-box" aria-hidden="true"></i></span>
                         {% endif %}
-                        <div class="mt-3">
-                            <strong>Payment Method:</strong>
-                            <span class="ms-2">{{ payment_method }}</span>
+                    </div>
+                    <div class="vm-ccm-item__content">
+                        <h3>{{ item.product_name|default:item.product.name }}</h3>
+                        <p>Selected piece</p>
+                        <div class="vm-ccm-item__meta">
+                            <span>Qty {{ item.quantity }}</span>
+                            <strong>
+                                {% if item.subtotal %}
+                                &#8377;{{ item.subtotal|floatformat:2 }}
+                                {% else %}
+                                &#8377;{{ item.get_total_price|floatformat:2 }}
+                                {% endif %}
+                            </strong>
                         </div>
                     </div>
-                </div>
+                </article>
+                {% endfor %}
+            </div>
 
-                <div class="card mb-4">
-                    <div class="card-header bg-light">
-                        <h5 class="mb-0">Products</h5>
+            <div class="vm-ccm-totals">
+                <div>
+                    <span>Subtotal</span>
+                    <strong>&#8377;{{ subtotal|floatformat:2 }}</strong>
+                </div>
+                {% if is_resell and total_margin > 0 %}
+                <div>
+                    <span>Resell Margin</span>
+                    <strong>+&#8377;{{ total_margin|floatformat:2 }}</strong>
+                </div>
+                {% endif %}
+                <div>
+                    <span>Tax</span>
+                    <strong>&#8377;{{ tax|floatformat:2 }}</strong>
+                </div>
+                <div>
+                    <span>Shipping</span>
+                    <strong>{% if shipping_cost == 0 %}Included{% else %}&#8377;{{ shipping_cost|floatformat:2 }}{% endif %}</strong>
+                </div>
+                {% if applied_coupon and coupon_discount > 0 %}
+                <div>
+                    <span>Coupon Discount</span>
+                    <strong>-&#8377;{{ coupon_discount|floatformat:2 }}</strong>
+                </div>
+                {% endif %}
+                {% if points_discount and points_discount > 0 %}
+                <div>
+                    <span>Points Discount</span>
+                    <strong>-&#8377;{{ points_discount|floatformat:2 }}</strong>
+                </div>
+                {% endif %}
+                <div class="vm-ccm-totals__total">
+                    <span>Total</span>
+                    <strong>&#8377;{{ total_amount|floatformat:2 }}</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="vm-ccm-card vm-ccm-card--soft">
+            <div class="vm-ccm-card__head">
+                <h2>Delivery Details</h2>
+            </div>
+
+            {% if is_resell %}
+            <div class="vm-ccm-info-group">
+                <h4>From</h4>
+                <p><strong>{{ from_name|default:user.get_full_name|default:user.username }}</strong></p>
+                <p>{{ from_phone|default:"-" }}</p>
+            </div>
+            <div class="vm-ccm-info-group">
+                <h4>To</h4>
+                <div class="vm-ccm-address">{{ address_text|linebreaksbr }}</div>
+            </div>
+            {% else %}
+            <div class="vm-ccm-info-group">
+                <h4>Shipping Address</h4>
+                <div class="vm-ccm-address">{{ address_text|linebreaksbr }}</div>
+            </div>
+            {% endif %}
+        </section>
+
+        <section class="vm-ccm-card vm-ccm-card--soft">
+            <div class="vm-ccm-card__head">
+                <h2>Payment Method</h2>
+            </div>
+            <div class="vm-ccm-payment">
+                <i class="far fa-credit-card" aria-hidden="true"></i>
+                <div>
+                    <p>
+                        {% if payment_method == 'COD' %}
+                        Cash on Delivery
+                        {% elif payment_method == 'RAZORPAY' %}
+                        Razorpay
+                        {% else %}
+                        {{ payment_method }}
+                        {% endif %}
+                    </p>
+                    <small>Payment will be processed after confirmation</small>
+                </div>
+            </div>
+        </section>
+
+        <form method="post" class="vm-ccm-actions">
+            {% csrf_token %}
+            <button type="submit" class="vm-ccm-btn vm-ccm-btn--primary">
+                <span>Confirm &amp; Place Order</span>
+                <i class="far fa-arrow-right" aria-hidden="true"></i>
+            </button>
+            <a href="{% url 'checkout' %}" class="vm-ccm-btn vm-ccm-btn--secondary">Edit Details</a>
+        </form>
+
+        <div class="vm-ccm-help">
+            <p>
+                Questions before placing your order?<br>
+                <a href="{% url 'contact' %}">Connect with a Concierge</a>
+            </p>
+        </div>
+
+        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='checkout-confirm-mobile' %}
+    </main>
+
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='cart' %}
+</section>
+
+<section class="vm-checkoutconfirm-tablet-only" aria-label="Confirm order tablet view">
+    <main class="vm-cct-main">
+        <section class="vm-cct-hero">
+            <div class="vm-cct-hero__badge" aria-hidden="true">
+                <i class="fas fa-check"></i>
+            </div>
+            <h1>Confirm Order</h1>
+            <p>Your curation is ready. Review the pieces, delivery details, and payment method before we begin preparing your order.</p>
+            <div class="vm-cct-hero__meta">
+                <span>{{ total_item_qty }} item{{ total_item_qty|pluralize }}</span>
+                {% if is_resell %}
+                <span>Resell Order</span>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="vm-cct-layout">
+            <div class="vm-cct-primary">
+                <article class="vm-cct-card">
+                    <div class="vm-cct-card__head">
+                        <h2>Order Summary</h2>
                     </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Product</th>
-                                        <th>Qty</th>
-                                        <th>Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for item in cart_items %}
-                                    <tr>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-3">
-                                                {% if item.product_image %}
-                                                <img src="{{ item.product_image }}" alt="{{ item.product_name }}" style="width: 56px; height: 56px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;" class="product-img">
-                                                {% elif item.product and item.product.image %}
-                                                <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="width: 56px; height: 56px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;" class="product-img">
-                                                {% endif %}
-                                                <div>
-                                                    <div class="fw-semibold product-name-text">{{ item.product_name|default:item.product.name }}</div>
-                                                    <small class="text-muted product-price-text">&#8377;{{ item.product_price|default:item.product.price }}</small>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="product-qty-text">{{ item.quantity }}</td>
-                                        <td class="product-total-text">
-                                            {% if item.subtotal %}
-                                                &#8377;{{ item.subtotal|floatformat:2 }}
-                                            {% else %}
-                                                &#8377;{{ item.get_total_price|floatformat:2 }}
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+
+                    <div class="vm-cct-items">
+                        {% for item in cart_items %}
+                        <article class="vm-cct-item">
+                            <div class="vm-cct-item__media">
+                                {% if item.product_image %}
+                                <img src="{{ item.product_image }}" alt="{{ item.product_name|default:item.product.name }}">
+                                {% elif item.product and item.product.image %}
+                                <img src="{{ item.product.image.url }}" alt="{{ item.product_name|default:item.product.name }}">
+                                {% else %}
+                                <span><i class="fas fa-box" aria-hidden="true"></i></span>
+                                {% endif %}
+                            </div>
+                            <div class="vm-cct-item__content">
+                                <h3>{{ item.product_name|default:item.product.name }}</h3>
+                                <p>Selected piece</p>
+                                <div class="vm-cct-item__meta">
+                                    <span>Qty: {{ item.quantity|stringformat:"02d" }}</span>
+                                    <strong>
+                                        {% if item.subtotal %}
+                                        &#8377;{{ item.subtotal|floatformat:2 }}
+                                        {% else %}
+                                        &#8377;{{ item.get_total_price|floatformat:2 }}
+                                        {% endif %}
+                                    </strong>
+                                </div>
+                            </div>
+                        </article>
+                        {% endfor %}
+                    </div>
+
+                    <div class="vm-cct-totals">
+                        <div>
+                            <span>Subtotal</span>
+                            <strong>&#8377;{{ subtotal|floatformat:2 }}</strong>
+                        </div>
+                        {% if is_resell and total_margin > 0 %}
+                        <div>
+                            <span>Resell Margin</span>
+                            <strong>+&#8377;{{ total_margin|floatformat:2 }}</strong>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <span>Tax</span>
+                            <strong>&#8377;{{ tax|floatformat:2 }}</strong>
+                        </div>
+                        <div>
+                            <span>Shipping</span>
+                            <strong>{% if shipping_cost == 0 %}Included{% else %}&#8377;{{ shipping_cost|floatformat:2 }}{% endif %}</strong>
+                        </div>
+                        {% if applied_coupon and coupon_discount > 0 %}
+                        <div>
+                            <span>Coupon Discount</span>
+                            <strong>-&#8377;{{ coupon_discount|floatformat:2 }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if points_discount and points_discount > 0 %}
+                        <div>
+                            <span>Points Discount</span>
+                            <strong>-&#8377;{{ points_discount|floatformat:2 }}</strong>
+                        </div>
+                        {% endif %}
+                        <div class="vm-cct-totals__total">
+                            <span>Total</span>
+                            <strong>&#8377;{{ total_amount|floatformat:2 }}</strong>
                         </div>
                     </div>
+                </article>
+            </div>
+
+            <aside class="vm-cct-secondary">
+                <article class="vm-cct-card vm-cct-card--soft">
+                    <div class="vm-cct-card__head">
+                        <h2>Delivery Details</h2>
+                    </div>
+
+                    {% if is_resell %}
+                    <div class="vm-cct-resell-grid">
+                        <div class="vm-cct-info-group">
+                            <h4>From</h4>
+                            <p><strong>{{ from_name|default:user.get_full_name|default:user.username }}</strong></p>
+                            <p>{{ from_phone|default:"-" }}</p>
+                        </div>
+                        <div class="vm-cct-info-group">
+                            <h4>To</h4>
+                            <div class="vm-cct-address">{{ address_text|linebreaksbr }}</div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="vm-cct-info-group">
+                        <h4>Shipping Address</h4>
+                        <div class="vm-cct-address">{{ address_text|linebreaksbr }}</div>
+                    </div>
+                    {% endif %}
+                </article>
+
+                <article class="vm-cct-card vm-cct-card--soft">
+                    <div class="vm-cct-card__head">
+                        <h2>Payment Method</h2>
+                    </div>
+                    <div class="vm-cct-payment">
+                        <i class="far fa-credit-card" aria-hidden="true"></i>
+                        <div>
+                            <p>
+                                {% if payment_method == 'COD' %}
+                                Cash on Delivery
+                                {% elif payment_method == 'RAZORPAY' %}
+                                Razorpay
+                                {% else %}
+                                {{ payment_method }}
+                                {% endif %}
+                            </p>
+                            <span>Payment will be processed after confirmation</span>
+                        </div>
+                    </div>
+                </article>
+
+                <form method="post" class="vm-cct-actions">
+                    {% csrf_token %}
+                    <button type="submit" class="vm-cct-btn vm-cct-btn--primary">
+                        <span>Confirm &amp; Place Order</span>
+                        <i class="far fa-arrow-right" aria-hidden="true"></i>
+                    </button>
+                    <a href="{% url 'checkout' %}" class="vm-cct-btn vm-cct-btn--secondary">Edit Details</a>
+                </form>
+
+                <div class="vm-cct-help">
+                    <p>
+                        Questions before placing your order?<br>
+                        <a href="{% url 'contact' %}">Connect with a Concierge</a>
+                    </p>
+                </div>
+            </aside>
+        </section>
+
+        <footer class="vm-cct-footer" aria-label="Checkout confirmation tablet footer">
+            <div class="vm-cct-footer__grid">
+                <div class="vm-cct-footer__brand">
+                    <span>VibeMall Atelier</span>
+                    <p>Curating exceptional fashion, elevated service, and a seamless checkout experience.</p>
+                </div>
+                <div class="vm-cct-footer__links">
+                    <h3>Explore</h3>
+                    <a href="{% url 'shop' %}">Collections</a>
+                    <a href="{% url 'about' %}">Our Story</a>
+                    <a href="{% url 'faq' %}">FAQs</a>
+                </div>
+                <div class="vm-cct-footer__links">
+                    <h3>Assistance</h3>
+                    <a href="{% url 'track_order' %}">Shipping</a>
+                    <a href="{% url 'faq' %}">Returns</a>
+                    <a href="{% url 'contact' %}">Contact</a>
+                </div>
+            </div>
+            <div class="vm-cct-footer__bottom">
+                <span>&copy; {% now "Y" %} VibeMall Atelier. All rights reserved.</span>
+                <div>
+                    <a href="{% url 'privacy-policy' %}">Privacy</a>
+                    <a href="{% url 'terms-and-conditions' %}">Terms</a>
+                </div>
+            </div>
+        </footer>
+    </main>
+</section>
+
+<section class="vm-checkoutconfirm-d-only" aria-label="Confirm order desktop view">
+    <div class="vm-ccd-shell">
+        <section class="vm-ccd-hero">
+            <div class="vm-ccd-hero__badge" aria-hidden="true"><i class="fas fa-check-circle"></i></div>
+            <h1>Confirm Your Curation</h1>
+            <p>Review your selected pieces, delivery details, and payment method before placing the order.</p>
+            <div class="vm-ccd-hero__meta">
+                <span>{{ total_item_qty }} item{{ total_item_qty|pluralize }}</span>
+                {% if is_resell %}<span>Resell Order</span>{% endif %}
+            </div>
+        </section>
+
+        <div class="vm-ccd-grid">
+            <div class="vm-ccd-left">
+                <article class="vm-ccd-card">
+                    <h2>Order Items</h2>
+                    <div class="vm-ccd-items">
+                        {% for item in cart_items %}
+                        <article class="vm-ccd-item">
+                            <div class="vm-ccd-item__media">
+                                {% if item.product_image %}
+                                <img src="{{ item.product_image }}" alt="{{ item.product_name|default:item.product.name }}">
+                                {% elif item.product and item.product.image %}
+                                <img src="{{ item.product.image.url }}" alt="{{ item.product_name|default:item.product.name }}">
+                                {% else %}
+                                <span><i class="fas fa-box" aria-hidden="true"></i></span>
+                                {% endif %}
+                            </div>
+                            <div class="vm-ccd-item__content">
+                                {% if item.product and item.product.category %}
+                                <span class="vm-ccd-item__cat">{{ item.product.category.name }}</span>
+                                {% endif %}
+                                <h3>{{ item.product_name|default:item.product.name }}</h3>
+                                <p>Quantity: {{ item.quantity }}</p>
+                            </div>
+                            <strong class="vm-ccd-item__price">
+                                {% if item.subtotal %}
+                                &#8377;{{ item.subtotal|floatformat:2 }}
+                                {% else %}
+                                &#8377;{{ item.get_total_price|floatformat:2 }}
+                                {% endif %}
+                            </strong>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </article>
+
+                <div class="vm-ccd-meta-grid">
+                    <article class="vm-ccd-card vm-ccd-card--soft">
+                        <h2>Delivery Address</h2>
+                        {% if is_resell %}
+                        <p class="vm-ccd-kicker">From</p>
+                        <p><strong>{{ from_name|default:user.get_full_name|default:user.username }}</strong></p>
+                        <p>{{ from_phone|default:"-" }}</p>
+                        <p class="vm-ccd-kicker">To</p>
+                        {% endif %}
+                        <div class="vm-ccd-address">{{ address_text|linebreaksbr }}</div>
+                    </article>
+
+                    <article class="vm-ccd-card vm-ccd-card--soft">
+                        <h2>Payment Method</h2>
+                        <div class="vm-ccd-payment">
+                            <i class="far fa-credit-card" aria-hidden="true"></i>
+                            <p>
+                                {% if payment_method == 'COD' %}
+                                Cash on Delivery
+                                {% elif payment_method == 'RAZORPAY' %}
+                                Razorpay
+                                {% else %}
+                                {{ payment_method }}
+                                {% endif %}
+                            </p>
+                        </div>
+                        <span class="vm-ccd-note">Payment is processed after order placement.</span>
+                    </article>
                 </div>
             </div>
 
-            <div class="col-lg-5">
-                <div class="your-order mb-30">
-                    <h3>Order Summary</h3>
-                    <div class="your-order-table table-responsive">
-                        <table>
-                            <tbody>
-                                <tr>
-                                    <th>Subtotal</th>
-                                    <td>&#8377;{{ subtotal|floatformat:2 }}</td>
-                                </tr>
-                                {% if is_resell and total_margin > 0 %}
-                                <tr>
-                                    <th>Base Amount</th>
-                                    <td>&#8377;{{ base_amount|floatformat:2 }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Resell Margin ({{ resell_margin_item_qty }} items)</th>
-                                    <td style="color: #d97706;">+&#8377;{{ total_margin|floatformat:2 }}</td>
-                                </tr>
-                                {% endif %}
-                                <tr>
-                                    <th>Tax (5%)</th>
-                                    <td>&#8377;{{ tax|floatformat:2 }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Shipping</th>
-                                    <td>{% if shipping_cost == 0 %}FREE{% else %}&#8377;{{ shipping_cost|floatformat:2 }}{% endif %}</td>
-                                </tr>
-                                {% if applied_coupon and coupon_discount > 0 %}
-                                <tr>
-                                    <th>Coupon Discount ({{ applied_coupon.code }})</th>
-                                    <td style="color: #28a745;">-&#8377;{{ coupon_discount|floatformat:2 }}</td>
-                                </tr>
-                                {% endif %}
-                                {% if points_discount and points_discount > 0 %}
-                                <tr>
-                                    <th>Points Discount</th>
-                                    <td>-&#8377;{{ points_discount|floatformat:2 }}</td>
-                                </tr>
-                                {% endif %}
-                                <tr class="order-total">
-                                    <th>Total</th>
-                                    <td><strong>&#8377;{{ total_amount|floatformat:2 }}</strong></td>
-                                </tr>
-                            </tbody>
-                        </table>
+            <aside class="vm-ccd-right">
+                <article class="vm-ccd-summary">
+                    <h2>Payment Summary</h2>
+                    <div class="vm-ccd-summary__rows">
+                        <div><span>Subtotal</span><strong>&#8377;{{ subtotal|floatformat:2 }}</strong></div>
+                        {% if is_resell and total_margin > 0 %}
+                        <div><span>Base Amount</span><strong>&#8377;{{ base_amount|floatformat:2 }}</strong></div>
+                        <div><span>Resell Margin ({{ resell_margin_item_qty }} items)</span><strong>+&#8377;{{ total_margin|floatformat:2 }}</strong></div>
+                        {% endif %}
+                        <div><span>Tax (5%)</span><strong>&#8377;{{ tax|floatformat:2 }}</strong></div>
+                        <div><span>Shipping</span><strong>{% if shipping_cost == 0 %}FREE{% else %}&#8377;{{ shipping_cost|floatformat:2 }}{% endif %}</strong></div>
+                        {% if applied_coupon and coupon_discount > 0 %}
+                        <div><span>Coupon Discount ({{ applied_coupon.code }})</span><strong>-&#8377;{{ coupon_discount|floatformat:2 }}</strong></div>
+                        {% endif %}
+                        {% if points_discount and points_discount > 0 %}
+                        <div><span>Points Discount</span><strong>-&#8377;{{ points_discount|floatformat:2 }}</strong></div>
+                        {% endif %}
+                    </div>
+                    <div class="vm-ccd-summary__total">
+                        <span>Total</span>
+                        <strong>&#8377;{{ total_amount|floatformat:2 }}</strong>
                     </div>
 
-                    <form method="post" class="mt-4">
+                    <form method="post" class="vm-ccd-actions">
                         {% csrf_token %}
-                        <button type="submit" class="tp-btn-h1 w-100">Confirm & Place Order</button>
-                        <a href="{% url 'checkout' %}" class="btn btn-outline-secondary w-100 mt-2">Edit Details</a>
+                        <button type="submit" class="vm-ccd-btn vm-ccd-btn--primary">Confirm &amp; Place Order</button>
+                        <a href="{% url 'checkout' %}" class="vm-ccd-btn vm-ccd-btn--ghost">Edit Details</a>
+                        <a href="{% url 'shop' %}" class="vm-ccd-btn vm-ccd-btn--link">Continue Shopping</a>
                     </form>
-                </div>
-            </div>
+                </article>
+
+                <a class="vm-ccd-assist" href="{% url 'contact' %}">
+                    <span><i class="fas fa-headset" aria-hidden="true"></i></span>
+                    <div>
+                        <h3>Need assistance?</h3>
+                        <p>Contact our concierge team</p>
+                    </div>
+                    <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                </a>
+            </aside>
         </div>
     </div>
 </section>
-
-<script>
-// Convert product table to mobile cards on small screens
-(function() {
-    function createMobileProductCards() {
-        if (window.innerWidth <= 767) {
-            const tableResponsive = document.querySelector('.table-responsive');
-            if (!tableResponsive) return;
-
-            const table = tableResponsive.querySelector('.table');
-            if (!table) return;
-
-            // Check if mobile cards already exist
-            if (tableResponsive.querySelector('.mobile-confirm-products')) return;
-
-            const tbody = table.querySelector('tbody');
-            if (!tbody) return;
-
-            const rows = tbody.querySelectorAll('tr');
-            if (rows.length === 0) return;
-
-            // Create mobile cards container
-            const mobileContainer = document.createElement('div');
-            mobileContainer.className = 'mobile-confirm-products';
-
-            rows.forEach(row => {
-                const productImg = row.querySelector('.product-img');
-                const productName = row.querySelector('.product-name-text');
-                const productPrice = row.querySelector('.product-price-text');
-                const productQty = row.querySelector('.product-qty-text');
-                const productTotal = row.querySelector('.product-total-text');
-
-                if (!productName || !productQty || !productTotal) return;
-
-                const card = document.createElement('div');
-                card.className = 'mobile-confirm-product-card';
-
-                const productRow = document.createElement('div');
-                productRow.className = 'product-row';
-
-                // Add image if exists
-                if (productImg) {
-                    const imgClone = productImg.cloneNode(true);
-                    imgClone.className = 'product-image';
-                    productRow.appendChild(imgClone);
-                }
-
-                // Product info
-                const productInfo = document.createElement('div');
-                productInfo.className = 'product-info';
-
-                const nameDiv = document.createElement('div');
-                nameDiv.className = 'product-name';
-                nameDiv.textContent = productName.textContent.trim();
-                productInfo.appendChild(nameDiv);
-
-                if (productPrice) {
-                    const priceDiv = document.createElement('div');
-                    priceDiv.className = 'product-price';
-                    priceDiv.textContent = productPrice.textContent.trim();
-                    productInfo.appendChild(priceDiv);
-                }
-
-                productRow.appendChild(productInfo);
-                card.appendChild(productRow);
-
-                // Product details (qty and total)
-                const detailsDiv = document.createElement('div');
-                detailsDiv.className = 'product-details';
-
-                const qtyDiv = document.createElement('div');
-                qtyDiv.className = 'product-qty';
-                qtyDiv.innerHTML = `Qty: <span>${productQty.textContent.trim()}</span>`;
-                detailsDiv.appendChild(qtyDiv);
-
-                const totalDiv = document.createElement('div');
-                totalDiv.className = 'product-total';
-                totalDiv.textContent = productTotal.textContent.trim();
-                detailsDiv.appendChild(totalDiv);
-
-                card.appendChild(detailsDiv);
-                mobileContainer.appendChild(card);
-            });
-
-            // Insert mobile cards before the table
-            tableResponsive.insertBefore(mobileContainer, table);
-        }
-    }
-
-    // Run on load
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', createMobileProductCards);
-    } else {
-        createMobileProductCards();
-    }
-
-    // Run on resize (debounced)
-    let resizeTimer;
-    window.addEventListener('resize', function() {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(function() {
-            // Remove existing mobile cards
-            const existingMobile = document.querySelector('.mobile-confirm-products');
-            if (existingMobile) {
-                existingMobile.remove();
-            }
-            createMobileProductCards();
-        }, 250);
-    });
-})();
-</script>
 
 {% endblock %}

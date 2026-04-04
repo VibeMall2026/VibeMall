@@ -1,45 +1,71 @@
 <footer class="vm-copy-footer">
-    <div class="vm-copy-container vm-copy-footer-grid">
-        <div>
-            <a href="{% url 'index' %}" class="vm-copy-logo">VibeMall</a>
-            <p>Curating smart shopping with trusted products, great prices, and a seamless experience across every category.</p>
+    <div class="vm-copy-container">
+        <div class="vm-copy-footer-grid">
+            <div class="vm-copy-footer-brand">
+                <a href="{% url 'index' %}" class="vm-copy-footer-wordmark">{{ site_settings.site_name|default:"VibeMall"|upper }}</a>
+                <p>Discover trusted fashion, lifestyle, beauty, and everyday essentials in one seamless VibeMall shopping experience.</p>
+            </div>
+
+            <div class="vm-copy-footer-col">
+                <h6>Shop Categories</h6>
+                <a href="{% url 'shop' %}">All Products</a>
+                {% if header_categories %}
+                    {% for category in header_categories|slice:":4" %}
+                    <a href="{% url 'shop' %}?category={{ category.key|urlencode }}">{{ category.label }}</a>
+                    {% endfor %}
+                {% elif categories %}
+                    {% for category in categories|slice:":4" %}
+                    <a href="{% url 'shop' %}?category={{ category.category_key|urlencode }}">{{ category.name }}</a>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <div class="vm-copy-footer-col">
+                <h6>Customer Care</h6>
+                <a href="{% url 'track_order' %}">Track Order</a>
+                <a href="{% url 'track_order' %}">Shipping Information</a>
+                <a href="{% url 'contact' %}">Help &amp; Support</a>
+                <a href="{% url 'privacy-policy' %}">Privacy Policy</a>
+            </div>
+
+            <div class="vm-copy-footer-col">
+                <h6>My Account</h6>
+                <a href="{% url 'profile' %}">My Profile</a>
+                <a href="{% url 'wishlist' %}">Wishlist</a>
+                <a href="{% url 'cart' %}">Cart</a>
+                <a href="{% url 'order_list' %}">My Orders</a>
+            </div>
+
+            <div class="vm-copy-footer-col">
+                <h6>Company</h6>
+                <a href="{% url 'about' %}">About Us</a>
+                <a href="{% url 'blog' %}">Blog</a>
+                <a href="{% url 'terms-and-conditions' %}">Terms of Service</a>
+                <a href="{% url 'contact' %}">Contact Us</a>
+            </div>
+
+            <div class="vm-copy-footer-col vm-copy-footer-col--newsletter">
+                <h6>The Insider</h6>
+                <p class="vm-copy-footer-news-copy">Sign up for early access</p>
+                <form class="vm-copy-footer-newsletter js-newsletter-form" action="{% url 'subscribe_newsletter' %}" method="post" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" name="source_page" value="{{ request.resolver_match.url_name|default:'desktop-footer' }}-desktop-footer">
+                    <input type="email" name="email" placeholder="EMAIL ADDRESS" aria-label="Email address" required>
+                    <button type="submit" aria-label="Subscribe to newsletter">
+                        <i class="far fa-arrow-right"></i>
+                    </button>
+                </form>
+                <small class="newsletter-feedback vm-copy-footer-news-feedback" aria-live="polite"></small>
+            </div>
         </div>
-        <div>
-            <h6>All Categories</h6>
-            <a href="{% url 'shop' %}">All Categories</a>
-            {% if header_categories %}
-                {% for category in header_categories|slice:":6" %}
-                <a href="{% url 'shop' %}?category={{ category.key|urlencode }}">{{ category.label }}</a>
-                {% endfor %}
-            {% elif categories %}
-                {% for category in categories|slice:":6" %}
-                <a href="{% url 'shop' %}?category={{ category.category_key|urlencode }}">{{ category.name }}</a>
-                {% endfor %}
-            {% endif %}
-        </div>
-        <div>
-            <h6>My Account</h6>
-            <a href="{% url 'profile' %}">My Account</a>
-            <a href="{% url 'cart' %}">Cart</a>
-            <a href="{% url 'wishlist' %}">Wishlist</a>
-            <a href="{% url 'order_list' %}">My Orders</a>
-            <a href="{% url 'track_order' %}">Order Tracking</a>
-            <a href="{% url 'checkout' %}">Checkout</a>
-        </div>
-        <div>
-            <h6>Quick Links</h6>
-            <a href="{% url 'index' %}">Home</a>
-            <a href="{% url 'about' %}">About Us</a>
-            <a href="{% url 'shop' %}">Shop</a>
-            <a href="{% url 'blog' %}">Blog</a>
-            <a href="{% url 'track_order' %}">Order Tracking</a>
-        </div>
-    </div>
-    <div class="vm-copy-container vm-copy-footer-bottom">
-        <p>© 2024 {{ site_settings.site_name|default:"VibeMall" }}. All Rights Reserved.</p>
-        <div>
-            <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer"><i class="fab fa-instagram"></i></a>
-            <a href="{% url 'index' %}"><i class="fal fa-globe"></i></a>
+
+        <div class="vm-copy-footer-bottom">
+            <p>© {% now "Y" %} {{ site_settings.site_name|default:"VibeMall"|upper }} ATELIER PRIVATE LIMITED. ALL RIGHTS RESERVED.</p>
+            <div class="vm-copy-footer-socials">
+                <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer">Instagram</a>
+                <a href="{% url 'about' %}">Stories</a>
+                <a href="https://www.pinterest.com/" target="_blank" rel="noopener noreferrer">Pinterest</a>
+            </div>
         </div>
     </div>
 </footer>

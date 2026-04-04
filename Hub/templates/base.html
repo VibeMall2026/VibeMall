@@ -47,6 +47,7 @@
     <link rel="stylesheet" href="{% static 'assets/css/base-custom.css' %}?v=20260329-03">
     <link rel="stylesheet" href="{% static 'assets/css/mobile-alt-shared.css' %}?v=20260329-02">
     <link rel="stylesheet" href="{% static 'assets/css/tablet-header-shared.css' %}?v=20260403-01">
+    <link rel="stylesheet" href="{% static 'assets/css/tablet-footer-shared.css' %}?v=20260404-01">
     <link rel="stylesheet" href="{% static 'assets/css/vm-home-editorial.css' %}?v=20260329-03">
     <style>
     @media (min-width: 1450px) and (max-width: 1599.98px) {
@@ -60,6 +61,402 @@
             max-width: calc(100vw - 8px) !important;
             padding-left: 8px !important;
             padding-right: 8px !important;
+        }
+    }
+
+    .vm-review-overlay {
+        display: none;
+    }
+
+    @media (max-width: 1199.98px) {
+        .vm-review-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1200;
+            background: rgba(27, 28, 25, 0.20);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 14px;
+        }
+
+        .vm-review-overlay.is-open {
+            display: flex;
+        }
+
+        .vm-review-modal {
+            width: min(100%, 768px);
+            background: #fbf9f4;
+            box-shadow: 0 40px 60px -5px rgba(27, 28, 25, 0.12);
+            position: relative;
+            overflow: hidden;
+            border-radius: 10px;
+        }
+
+        .vm-review-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            z-index: 5;
+            border: 0;
+            background: transparent;
+            color: rgba(68, 71, 72, 0.72);
+            width: 32px;
+            height: 32px;
+            font-size: 24px;
+            line-height: 1;
+        }
+
+        .vm-review-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+        }
+
+        .vm-review-media {
+            background: #f0eee9;
+            position: relative;
+        }
+
+        .vm-review-media img {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+        }
+
+        .vm-review-media-copy {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            padding: 16px;
+            background: linear-gradient(180deg, rgba(23, 24, 24, 0) 0%, rgba(23, 24, 24, 0.45) 100%);
+            color: #fff;
+        }
+
+        .vm-review-media-copy small {
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            font-size: 10px;
+            opacity: 0.86;
+            margin-bottom: 5px;
+        }
+
+        .vm-review-media-copy h3 {
+            margin: 0;
+            font-family: 'Noto Serif', Georgia, serif;
+            font-size: 22px;
+            line-height: 1.16;
+        }
+
+        .vm-review-form-wrap {
+            padding: 18px;
+            background: #fbf9f4;
+        }
+
+        .vm-review-head p {
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            font-size: 10px;
+            font-weight: 700;
+            color: #6f5c37;
+        }
+
+        .vm-review-head h2 {
+            margin: 4px 0 0;
+            font-family: 'Noto Serif', Georgia, serif;
+            font-size: 29px;
+            line-height: 1.1;
+            color: #171818;
+        }
+
+        .vm-review-stars {
+            display: flex;
+            gap: 5px;
+            margin: 12px 0 6px;
+        }
+
+        .vm-review-star {
+            border: 0;
+            background: transparent;
+            padding: 0;
+            font-size: 31px;
+            line-height: 1;
+            color: rgba(116, 120, 120, 0.35);
+        }
+
+        .vm-review-star.is-active {
+            color: #6f5c37;
+        }
+
+        .vm-review-rating-text {
+            margin: 0;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #6f5c37;
+        }
+
+        .vm-review-field {
+            margin-top: 12px;
+        }
+
+        .vm-review-label {
+            display: block;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            font-size: 10px;
+            font-weight: 700;
+            color: rgba(68, 71, 72, 0.74);
+        }
+
+        .vm-review-comment {
+            width: 100%;
+            min-height: 96px;
+            border: 1px solid rgba(196, 199, 199, 0.55);
+            border-radius: 8px;
+            background: #f5f3ee;
+            padding: 10px 12px;
+            font-size: 14px;
+            color: #171818;
+            resize: none;
+            outline: none;
+        }
+
+        .vm-review-comment:focus {
+            border-color: #6f5c37;
+            box-shadow: 0 0 0 2px rgba(111, 92, 55, 0.14);
+        }
+
+        .vm-review-actions {
+            margin-top: 12px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .vm-review-submit,
+        .vm-review-later {
+            border: 0;
+            border-radius: 8px;
+            min-height: 44px;
+            padding: 0 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.13em;
+            font-size: 10px;
+            font-weight: 800;
+        }
+
+        .vm-review-submit {
+            background: #171818;
+            color: #fff;
+        }
+
+        .vm-review-submit:disabled {
+            opacity: 0.65;
+        }
+
+        .vm-review-later {
+            background: #e4e2dd;
+            color: #171818;
+        }
+
+        .vm-review-feedback {
+            margin: 8px 0 0;
+            min-height: 18px;
+            font-size: 12px;
+            color: #2f6f44;
+        }
+
+        .vm-review-feedback.is-error {
+            color: #ba1a1a;
+        }
+    }
+
+    @media (min-width: 768px) and (max-width: 1199.98px) {
+        .vm-review-layout {
+            grid-template-columns: 45% 55%;
+        }
+
+        .vm-review-media img {
+            height: 100%;
+            min-height: 520px;
+        }
+
+        .vm-review-form-wrap {
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .vm-review-head h2 {
+            font-size: 36px;
+        }
+    }
+
+    @media (min-width: 1200px) {
+        .vm-review-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1200;
+            background: rgba(27, 28, 25, 0.40);
+            backdrop-filter: blur(5px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .vm-review-overlay.is-open {
+            display: flex;
+        }
+
+        .vm-review-modal {
+            width: min(100%, 1080px);
+            min-height: 650px;
+            background: #ffffff;
+            box-shadow: 0 40px 60px -5px rgba(27, 28, 25, 0.10);
+            border-radius: 0;
+            overflow: hidden;
+        }
+
+        .vm-review-close {
+            top: 18px;
+            right: 18px;
+            color: rgba(68, 71, 72, 0.55);
+            font-size: 30px;
+        }
+
+        .vm-review-layout {
+            display: grid;
+            grid-template-columns: 42% 58%;
+            min-height: 650px;
+        }
+
+        .vm-review-media img {
+            height: 100%;
+            min-height: 650px;
+        }
+
+        .vm-review-media-copy {
+            padding: 26px;
+        }
+
+        .vm-review-media-copy small {
+            font-size: 10px;
+            letter-spacing: 0.20em;
+        }
+
+        .vm-review-media-copy h3 {
+            font-size: 33px;
+            line-height: 1.1;
+        }
+
+        .vm-review-form-wrap {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 42px 54px;
+            background: #fbf9f4;
+        }
+
+        .vm-review-head p {
+            font-size: 11px;
+            letter-spacing: 0.15em;
+        }
+
+        .vm-review-head h2 {
+            font-size: 44px;
+            line-height: 1.06;
+            margin-top: 6px;
+        }
+
+        .vm-review-stars {
+            margin: 18px 0 6px;
+            gap: 6px;
+        }
+
+        .vm-review-star {
+            font-size: 34px;
+        }
+
+        .vm-review-rating-text {
+            font-size: 11px;
+            letter-spacing: 0.14em;
+        }
+
+        .vm-review-field {
+            margin-top: 16px;
+        }
+
+        .vm-review-label {
+            margin-bottom: 8px;
+            font-size: 10px;
+            letter-spacing: 0.14em;
+        }
+
+        .vm-review-comment {
+            min-height: 124px;
+            border: 0;
+            border-bottom: 1px solid rgba(116, 120, 120, 0.28);
+            border-radius: 0;
+            background: transparent;
+            padding: 2px 0 12px;
+            font-size: 16px;
+        }
+
+        .vm-review-actions {
+            margin-top: 22px;
+            gap: 12px;
+        }
+
+        .vm-review-submit,
+        .vm-review-later {
+            min-height: 48px;
+            padding: 0 24px;
+            font-size: 10px;
+            letter-spacing: 0.15em;
+            border-radius: 6px;
+        }
+
+        .vm-review-submit {
+            min-width: 220px;
+        }
+
+        .vm-review-later {
+            background: rgba(228, 226, 221, 0.6);
+        }
+
+        .vm-review-footnote {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-top: 1px solid rgba(116, 120, 120, 0.20);
+            margin-top: 24px;
+            padding-top: 18px;
+            color: rgba(68, 71, 72, 0.85);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .vm-review-footnote-badge {
+            width: 30px;
+            height: 30px;
+            border-radius: 999px;
+            background: #eae8e3;
+            color: #6f5c37;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 800;
+            flex-shrink: 0;
         }
     }
     </style>
@@ -94,43 +491,68 @@
         {% block content %}
         {% endblock %}
     </main>
-        {% include 'partials/vm_copy_footer.html' %}
 
-        <div id="mobileBottomNavShell" class="mobile-bottom-nav-shell d-xl-none">
-            <nav id="mobileBottomNav" class="mobile-bottom-nav" aria-label="Mobile bottom navigation">
-                <a class="mobile-bottom-nav__item" data-nav-key="home" href="{% url 'index' %}" aria-label="Home">
-                    <span class="mobile-bottom-nav__icon"><i class="far fa-home"></i></span>
-                    <span>Home</span>
-                </a>
-                <a class="mobile-bottom-nav__item" data-nav-key="shop" href="{% url 'shop' %}" aria-label="Shop">
-                    <span class="mobile-bottom-nav__icon"><i class="far fa-store"></i></span>
-                    <span>Shop</span>
-                </a>
-                <a class="mobile-bottom-nav__item" data-nav-key="wishlist" href="{% url 'wishlist' %}" aria-label="Wishlist">
-                    <span class="mobile-bottom-nav__icon"><i class="far fa-heart"></i></span>
-                    <span>Wishlist</span>
-                    <span class="mobile-bottom-nav__badge wishlist-count">{{ wishlist_count|default:"0" }}</span>
-                </a>
-                <a class="mobile-bottom-nav__item" data-nav-key="cart" href="{% url 'cart' %}" aria-label="Cart">
-                    <span class="mobile-bottom-nav__icon"><i class="far fa-shopping-bag"></i></span>
-                    <span>Cart</span>
-                    <span class="mobile-bottom-nav__badge cart-count">{{ cart_count|default:"0" }}</span>
-                </a>
-                {% if user.is_authenticated %}
-                <a class="mobile-bottom-nav__item" data-nav-key="account" href="{% url 'profile' %}" aria-label="Account">
-                    <span class="mobile-bottom-nav__icon"><i class="far fa-user"></i></span>
-                    <span>Account</span>
-                </a>
-                {% else %}
-                <a class="mobile-bottom-nav__item" data-nav-key="account" href="{% url 'login' %}" aria-label="Account">
-                    <span class="mobile-bottom-nav__icon"><i class="far fa-user"></i></span>
-                    <span>Account</span>
-                </a>
-                {% endif %}
-            </nav>
-        </div>
+    {% if mobile_review_prompt %}
+    <div class="vm-review-overlay" id="vmMobileReviewOverlay" data-submit-url="{{ mobile_review_prompt.submit_url }}" data-dismiss-url="{{ mobile_review_prompt.dismiss_url }}" data-product-id="{{ mobile_review_prompt.product_id }}">
+        <section class="vm-review-modal" role="dialog" aria-modal="true" aria-label="Share your experience">
+            <button type="button" class="vm-review-close" id="vmMobileReviewClose" aria-label="Close">&times;</button>
+
+            <div class="vm-review-layout">
+                <div class="vm-review-media">
+                    {% if mobile_review_prompt.image_url %}
+                    <img src="{{ mobile_review_prompt.image_url }}" alt="{{ mobile_review_prompt.product_name }}">
+                    {% else %}
+                    <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ mobile_review_prompt.product_name }}">
+                    {% endif %}
+                    <div class="vm-review-media-copy">
+                        <small>Heritage Collection</small>
+                        <h3>{{ mobile_review_prompt.product_name }}</h3>
+                    </div>
+                </div>
+
+                <div class="vm-review-form-wrap">
+                    <div class="vm-review-head">
+                        <p>Share your experience</p>
+                        <h2>Refined Review</h2>
+                    </div>
+
+                    <div class="vm-review-stars" role="radiogroup" aria-label="Rate product">
+                        <button type="button" class="vm-review-star" data-vm-r-star="1" aria-label="1 star">★</button>
+                        <button type="button" class="vm-review-star" data-vm-r-star="2" aria-label="2 stars">★</button>
+                        <button type="button" class="vm-review-star" data-vm-r-star="3" aria-label="3 stars">★</button>
+                        <button type="button" class="vm-review-star" data-vm-r-star="4" aria-label="4 stars">★</button>
+                        <button type="button" class="vm-review-star" data-vm-r-star="5" aria-label="5 stars">★</button>
+                    </div>
+                    <p class="vm-review-rating-text" id="vmMobileReviewRatingText">Excellent</p>
+
+                    <div class="vm-review-field">
+                        <label class="vm-review-label" for="vmMobileReviewComment">Write your feedback</label>
+                        <textarea id="vmMobileReviewComment" class="vm-review-comment" placeholder="Describe the craftsmanship, fit, and feel..."></textarea>
+                    </div>
+
+                    <div class="vm-review-actions">
+                        <button type="button" class="vm-review-submit" id="vmMobileReviewSubmit">Submit Review</button>
+                        <button type="button" class="vm-review-later" id="vmMobileReviewLater">Maybe Later</button>
+                    </div>
+                    <p class="vm-review-feedback" id="vmMobileReviewFeedback" aria-live="polite"></p>
+
+                    <div class="vm-review-footnote">
+                        <span class="vm-review-footnote-badge">✓</span>
+                        <span>Your review will be shared with the VibeMall community to help others make an informed choice.</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+    {% endif %}
+        {% include 'partials/vm_copy_footer.html' %}
+        {% include 'partials/vm_tablet_alt_footer.html' %}
 
         <div id="supportChatWidget">
+                {# ── Tablet bottom nav: shown 768–1199px on vm-page-mobile-alt pages ── #}
+                <div class="vm-tab-bnav-shell">
+                    {% include 'partials/vm_mobile_alt_bottom_nav.html' %}
+                </div>
             <button id="supportChatToggle" type="button" aria-label="Open support chat widget" aria-expanded="false" aria-controls="supportChatPanel">Support</button>
             <div id="supportChatPanel" class="chat-hidden" role="region" aria-label="Support chat window">
                 <div class="chat-header">
@@ -217,6 +639,131 @@
             } else {
                 applyLazyLoading();
             }
+        })();
+
+        (function () {
+            const overlay = document.getElementById('vmMobileReviewOverlay');
+            if (!overlay) return;
+
+            const closeBtn = document.getElementById('vmMobileReviewClose');
+            const laterBtn = document.getElementById('vmMobileReviewLater');
+            const submitBtn = document.getElementById('vmMobileReviewSubmit');
+            const commentInput = document.getElementById('vmMobileReviewComment');
+            const feedback = document.getElementById('vmMobileReviewFeedback');
+            const ratingText = document.getElementById('vmMobileReviewRatingText');
+            const stars = Array.from(document.querySelectorAll('[data-vm-r-star]'));
+
+            const labels = {
+                1: 'Needs Improvement',
+                2: 'Fair',
+                3: 'Good',
+                4: 'Very Good',
+                5: 'Excellent',
+            };
+
+            const getCookie = (name) => {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            };
+
+            let rating = 5;
+            const renderRating = () => {
+                stars.forEach((star) => {
+                    const value = parseInt(star.getAttribute('data-vm-r-star') || '0', 10);
+                    star.classList.toggle('is-active', value <= rating);
+                });
+                if (ratingText) ratingText.textContent = labels[rating] || 'Excellent';
+            };
+
+            const closePrompt = () => {
+                overlay.classList.remove('is-open');
+                document.body.style.removeProperty('overflow');
+            };
+
+            const dismissPrompt = () => {
+                const dismissUrl = overlay.getAttribute('data-dismiss-url');
+                fetch(dismissUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                }).finally(closePrompt);
+            };
+
+            stars.forEach((star) => {
+                star.addEventListener('click', () => {
+                    rating = parseInt(star.getAttribute('data-vm-r-star') || '5', 10);
+                    renderRating();
+                });
+            });
+
+            if (closeBtn) closeBtn.addEventListener('click', dismissPrompt);
+            if (laterBtn) laterBtn.addEventListener('click', dismissPrompt);
+
+            if (submitBtn) {
+                submitBtn.addEventListener('click', () => {
+                    const submitUrl = overlay.getAttribute('data-submit-url');
+                    const formData = new FormData();
+                    formData.append('rating', String(rating));
+                    formData.append('comment', (commentInput ? commentInput.value : '').trim());
+
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Submitting...';
+                    if (feedback) {
+                        feedback.textContent = '';
+                        feedback.classList.remove('is-error');
+                    }
+
+                    fetch(submitUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken'),
+                        },
+                        body: formData,
+                    })
+                        .then((res) => res.json())
+                        .then((data) => {
+                            if (!data.success) {
+                                throw new Error(data.message || 'Could not submit review.');
+                            }
+
+                            if (feedback) {
+                                feedback.textContent = data.message || 'Thanks for your review.';
+                                feedback.classList.remove('is-error');
+                            }
+
+                            const productId = overlay.getAttribute('data-product-id');
+                            if (window.location.pathname.indexOf('/product-details/' + productId + '/') !== -1) {
+                                window.location.reload();
+                                return;
+                            }
+
+                            setTimeout(closePrompt, 500);
+                        })
+                        .catch((error) => {
+                            if (feedback) {
+                                feedback.textContent = error.message || 'Failed to submit review.';
+                                feedback.classList.add('is-error');
+                            }
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = 'Submit Review';
+                        });
+                });
+            }
+
+            renderRating();
+            overlay.classList.add('is-open');
+            document.body.style.overflow = 'hidden';
         })();
         </script>
 </body>

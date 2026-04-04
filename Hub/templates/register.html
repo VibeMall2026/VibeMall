@@ -10,6 +10,8 @@
 <link rel="stylesheet" href="{% static 'assets/css/register-custom.css' %}">
 <link rel="stylesheet" href="{% static 'assets/css/register-responsive.css' %}?v=20260222-01">
 <link rel="stylesheet" href="{% static 'assets/css/register-mobile-alt.css' %}?v=20260329-03">
+<link rel="stylesheet" href="{% static 'assets/css/register-tablet-alt.css' %}?v=20260404-01">
+<link rel="stylesheet" href="{% static 'assets/css/register-desktop-alt.css' %}?v=20260404-02">
 {% endblock %}
 
 {% block content %}
@@ -195,224 +197,295 @@
 </section>
 <!-- Mobile Register Section End -->
 
-<!-- Legacy Desktop Section Start -->
-<div class="vm-register-legacy-content">
+<!-- Tablet Register Section Start -->
+<section class="vm-register-tablet-only" aria-label="Register tablet layout">
+    <div class="vm-register-t-bg" aria-hidden="true">
+        <img src="{% static 'assets/img/banner/page-banner-4.jpg' %}" alt="">
+    </div>
 
-<!-- Page Banner Start -->
-<div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
-    <div class="container">
-        <div class="row">
-            <div class="col-xl-12">
-                <div class="page-banner-content text-center">
-                    <h4 class="breadcrumb-title">Create Account</h4>
-                    <div class="breadcrumb-two">
-                        <nav>
-                            <nav class="breadcrumb-trail breadcrumbs">
-                                <ul class="breadcrumb-menu">
-                                    <li class="breadcrumb-trail">
-                                        <a href="{% url 'index' %}"><span>Home</span></a>
-                                    </li>
-                                    <li class="trail-item">
-                                        <span>Register</span>
-                                    </li>
-                                </ul>
-                            </nav>
-                        </nav>
+    <div class="vm-register-t-card">
+        {% if messages %}
+        <div class="vm-register-d-messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'danger' }}" role="alert">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <header class="vm-register-t-head">
+            <h1>Create Your Legacy</h1>
+            <p>Join the VibeMall Atelier Member Program</p>
+        </header>
+
+        <form method="POST" enctype="multipart/form-data" class="vm-register-t-form" id="vmRegisterTabletForm">
+            {% csrf_token %}
+
+            <div class="vm-register-t-profile">
+                <label for="vmRegisterTabletProfileImage" class="vm-register-t-file" aria-label="Upload profile portrait">
+                    <span class="vm-register-t-avatar" id="vmRegisterTabletAvatar">
+                        <i class="far fa-user"></i>
+                    </span>
+                    <span>Upload Profile Portrait</span>
+                    <input type="file" name="profile_image" id="vmRegisterTabletProfileImage" accept="image/*">
+                </label>
+            </div>
+
+            <div class="vm-register-t-section">
+                <div class="vm-register-t-divider"><span>Personal Details</span></div>
+                <div class="vm-register-t-grid">
+                    <div class="vm-register-t-field">
+                        <label for="vmRegisterTabletFirstName">First Name</label>
+                        <input id="vmRegisterTabletFirstName" type="text" placeholder="e.g. Julian" value="{{ form.name.value|default:'' }}">
+                    </div>
+                    <div class="vm-register-t-field">
+                        <label for="vmRegisterTabletLastName">Last Name</label>
+                        <input id="vmRegisterTabletLastName" type="text" placeholder="e.g. Vogue">
+                    </div>
+                    <input type="hidden" id="vmRegisterTabletName" name="name" value="{{ form.name.value|default:'' }}">
+                </div>
+            </div>
+
+            <div class="vm-register-t-section">
+                <div class="vm-register-t-divider"><span>Account Details</span></div>
+                <div class="vm-register-t-grid">
+                    <div class="vm-register-t-field">
+                        <label for="vmRegisterTabletUsername">Member Username</label>
+                        <input id="vmRegisterTabletUsername" name="username" type="text" placeholder="@vibe_curator" value="{{ form.username.value|default:'' }}" required>
+                    </div>
+                    <div class="vm-register-t-field">
+                        <label for="vmRegisterTabletEmail">Email Address</label>
+                        <input id="vmRegisterTabletEmail" name="email" type="email" placeholder="curator@vibemall.com" value="{{ form.email.value|default:'' }}" required>
+                        <p id="vmRegisterTabletEmailFeedback" class="vm-register-t-error"></p>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
-<!-- Page Banner End -->
 
-<!-- Registration Area Start -->
-<section class="register-area pt-100 pb-100">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-lg-8">
-                <!-- Messages -->
-                {% if messages %}
-                    <div class="mb-30">
-                        {% for message in messages %}
-                            <div class="alert alert-{{ message.tags|default:'danger' }} alert-dismissible fade show" role="alert">
-                                <i class="fas fa-{% if message.tags == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i> 
-                                <strong>{% if message.tags == 'success' %}Success!{% else %}Error!{% endif %}</strong> {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        {% endfor %}
+            <div class="vm-register-t-section">
+                <div class="vm-register-t-divider"><span>Contact</span></div>
+                <div class="vm-register-t-grid">
+                    <div class="vm-register-t-field">
+                        <label for="vmRegisterTabletMobile">Phone Number</label>
+                        <input id="vmRegisterTabletMobile" name="mobile_number" type="tel" placeholder="+1 (555) 000-0000" value="{{ form.mobile_number.value|default:'' }}">
                     </div>
-                {% endif %}
-
-                <div class="register-form-wrapper">
-                    <div class="register-form-header text-center mb-40">
-                        <h3 class="mb-10">
-                            <i class="fas fa-user-plus"></i> Create Your Account
-                        </h3>
-                        <p class="text-muted">Join VibeMall and explore amazing deals</p>
+                    <div class="vm-register-t-field">
+                        <label for="vmRegisterTabletCountrySelect">Country of Residence</label>
+                        <select id="vmRegisterTabletCountrySelect">
+                            <option value="+44">United Kingdom</option>
+                            <option value="+1">United States</option>
+                            <option value="+33">France</option>
+                            <option value="+91">India</option>
+                            <option value="+81">Japan</option>
+                            <option value="+39">Italy</option>
+                        </select>
+                        <input type="hidden" id="vmRegisterTabletCountryCode" name="country_code" value="{{ form.country_code.value|default:'+44' }}">
                     </div>
+                </div>
+            </div>
 
-                    <form method="POST" enctype="multipart/form-data">
-                        {% csrf_token %}
-
-                        <!-- Profile Image Section -->
-                        <div class="form-section mb-35">
-                            <h6 class="mb-20 pb-2 border-bottom">
-                                <i class="fas fa-image"></i> Profile Picture
-                            </h6>
-                            <div class="profile-image-upload">
-                                <div class="file-input-wrapper">
-                                    <input type="file" name="profile_image" id="profileImage" class="form-control" accept="image/*">
-                                    <label for="profileImage" class="file-label">
-                                        <i class="fas fa-cloud-upload-alt"></i> Choose Profile Image (Optional)
-                                    </label>
-                                    <small class="text-muted d-block mt-2">Recommended size: 200x200px</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Personal Information Section -->
-                        <div class="form-section mb-35">
-                            <h6 class="mb-20 pb-2 border-bottom">
-                                <i class="fas fa-user-circle"></i> Personal Information
-                            </h6>
-
-                            <div class="row">
-                                <div class="col-md-12 mb-20">
-                                    <label class="form-label">Full Name <span class="text-danger">*</span></label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-user"></i></span>
-                                        <input type="text" name="name" class="form-control" placeholder="Enter your full name" required maxlength="30">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Account Details Section -->
-                        <div class="form-section mb-35">
-                            <h6 class="mb-20 pb-2 border-bottom">
-                                <i class="fas fa-lock"></i> Account Details
-                            </h6>
-
-                            <div class="row">
-                                <div class="col-md-6 mb-20">
-                                    <label class="form-label">Username <span class="text-danger">*</span></label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-at"></i></span>
-                                        <input type="text" name="username" class="form-control" placeholder="Choose a username" required>
-                                    </div>
-                                </div>
-                                <div class="col-md-6 mb-20">
-                                    <label class="form-label">Email <span class="text-danger">*</span></label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                                        <input type="email" name="email" id="email" class="form-control" placeholder="Your email address" required>
-                                    </div>
-                                    <span id="email_feedback" class="input-feedback"></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Contact Information Section -->
-                        <div class="form-section mb-35">
-                            <h6 class="mb-20 pb-2 border-bottom">
-                                <i class="fas fa-phone"></i> Contact Information
-                            </h6>
-
-                            <div class="row">
-                                <div class="col-md-6 mb-20">
-                                    <label class="form-label">Country Code <span class="text-muted">(Optional)</span></label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-globe"></i></span>
-                                        <input type="text" name="country_code" class="form-control" placeholder="e.g., +91 (India)">
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6 mb-20">
-                                    <label class="form-label">Mobile Number <span class="text-muted">(Optional)</span></label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-mobile-alt"></i></span>
-                                        <input type="text" name="mobile_number" class="form-control" placeholder="Your mobile number">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Password Section -->
-                        <div class="form-section mb-35">
-                            <h6 class="mb-20 pb-2 border-bottom">
-                                <i class="fas fa-key"></i> Password
-                            </h6>
-
-                            <div class="row">
-                                <div class="col-md-6 mb-20">
-                                    <label class="form-label">Password <span class="text-danger">*</span></label>
-                                    <div class="password-input-group">
-                                        <div class="input-group">
-                                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                                            <input type="password" name="password" id="password" class="form-control" placeholder="Create a strong password" required>
-                                            <button type="button" class="btn toggle-password-btn" data-target="password">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                        </div>
-                                        <!-- Password Strength Indicator -->
-                                        <div class="password-strength-container mt-2" style="display: none;" id="strength_container">
-                                            <div class="password-strength-bar"><div id="strength_bar" class="strength-fill"></div></div>
-                                            <span id="strength_text" class="password-strength-text">Password strength: Weak</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6 mb-20">
-                                    <label class="form-label">Confirm Password <span class="text-danger">*</span></label>
-                                    <div class="password-input-group">
-                                        <div class="input-group">
-                                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                                            <input type="password" name="confirm_password" id="confirm_password" class="form-control" placeholder="Confirm your password" required>
-                                            <button type="button" class="btn toggle-password-btn" data-target="confirm_password">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <p id="password_error" class="text-danger mt-2" style="display:none;"></p>
-                        </div>
-
-                        <!-- Register Button -->
-                        <div class="form-section mb-35">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="terms_accepted" name="terms_accepted" required>
-                                <label class="form-check-label" for="terms_accepted">
-                                    I agree to the <a href="/terms-and-conditions/" target="_blank" style="color: #696cff; text-decoration: underline;">Terms & Conditions</a> and <a href="/privacy-policy/" target="_blank" style="color: #696cff; text-decoration: underline;">Privacy Policy</a> <span class="text-danger">*</span>
-                                </label>
-                            </div>
-                            <div id="terms_error" class="text-danger mt-2" style="display: none;">
-                                <i class="fas fa-exclamation-circle"></i> You must accept the Terms & Conditions to register
-                            </div>
-                        </div>
-                        
-                        <div class="register-form-actions">
-                            <button type="submit" class="tp-btn-h1 w-100" id="submitBtn">
-                                <i class="fas fa-check-circle"></i> Create Account
+            <div class="vm-register-t-section">
+                <div class="vm-register-t-divider"><span>Security</span></div>
+                <div class="vm-register-t-grid">
+                    <div class="vm-register-t-field vm-register-t-field--full">
+                        <label for="vmRegisterTabletPassword">Master Password</label>
+                        <div class="vm-register-t-pass">
+                            <input id="vmRegisterTabletPassword" name="password" type="password" placeholder="••••••••••••" required>
+                            <button type="button" data-toggle-tablet-password="vmRegisterTabletPassword" aria-label="Toggle password visibility">
+                                <i class="far fa-eye"></i>
                             </button>
                         </div>
-
-                        <!-- Login Link -->
-                        <div class="login-link-section text-center">
-                            <p class="mb-0">Already have an account? 
-                                <a href="{% url 'login' %}" class="login-link">
-                                    <i class="fas fa-sign-in-alt"></i> Login here
-                                </a>
-                            </p>
+                        <div id="vmRegisterTabletStrength" class="vm-register-t-strength">
+                            <div class="vm-register-t-strength-bars">
+                                <i></i><i></i><i></i><i></i>
+                            </div>
+                            <p id="vmRegisterTabletStrengthText">Strength: Weak</p>
                         </div>
-                    </form>
+                    </div>
+
+                    <div class="vm-register-t-field vm-register-t-field--full">
+                        <label for="vmRegisterTabletConfirmPassword">Confirm Password</label>
+                        <div class="vm-register-t-pass">
+                            <input id="vmRegisterTabletConfirmPassword" name="confirm_password" type="password" placeholder="••••••••••••" required>
+                            <button type="button" data-toggle-tablet-password="vmRegisterTabletConfirmPassword" aria-label="Toggle confirm password visibility">
+                                <i class="far fa-eye"></i>
+                            </button>
+                        </div>
+                        <p id="vmRegisterTabletPasswordError" class="vm-register-t-error"></p>
+                    </div>
                 </div>
+            </div>
+
+            <div class="vm-register-t-section">
+                <label class="vm-register-t-terms" for="vmRegisterTabletTerms">
+                    <input id="vmRegisterTabletTerms" type="checkbox" name="terms_accepted" required>
+                    <span>I accept the <a href="/terms-and-conditions/" target="_blank">Terms &amp; Service</a> and <a href="/privacy-policy/" target="_blank">Privacy Policy</a> of VibeMall Atelier.</span>
+                </label>
+                <p id="vmRegisterTabletTermsError" class="vm-register-t-error"></p>
+            </div>
+
+            <button type="submit" class="vm-register-t-submit" id="vmRegisterTabletSubmit">Create Account</button>
+            <p class="vm-register-t-login">Already an atelier member? <a href="{% url 'login' %}">Sign In</a></p>
+        </form>
+    </div>
+</section>
+<!-- Tablet Register Section End -->
+
+<!-- Legacy Desktop Section Start -->
+<div class="vm-register-legacy-content">
+<section class="vm-register-d-layout" aria-label="Register desktop layout">
+    <div class="vm-register-d-backdrop" aria-hidden="true">
+        <img src="{% static 'assets/img/banner/page-banner-4.jpg' %}" alt="">
+        <div class="vm-register-d-backdrop-overlay"></div>
+    </div>
+
+    <div class="vm-register-d-frame">
+        <div class="vm-register-d-panel">
+            <div class="vm-register-d-inner">
+                {% if messages %}
+                <div class="vm-register-d-messages">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'danger' }}" role="alert">{{ message }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <header class="vm-register-d-head">
+                    <h1>Create Your Legacy</h1>
+                    <p>Join the VibeMall Atelier Member Program</p>
+                </header>
+
+                <form method="POST" enctype="multipart/form-data" class="vm-register-d-form" id="vmRegisterDesktopForm">
+                    {% csrf_token %}
+
+                    <section class="vm-register-d-profile">
+                        <input type="file" name="profile_image" id="vmRegisterDesktopProfileImage" accept="image/*">
+                        <label for="vmRegisterDesktopProfileImage" class="vm-register-d-avatar-shell" aria-label="Upload profile portrait">
+                            <span class="vm-register-d-avatar" id="vmRegisterDesktopAvatar">
+                                <i class="far fa-user"></i>
+                            </span>
+                            <span class="vm-register-d-avatar-chip"><i class="far fa-camera"></i></span>
+                        </label>
+                        <span class="vm-register-d-avatar-label">Upload Profile Portrait</span>
+                    </section>
+
+                    <section class="vm-register-d-section">
+                        <div class="vm-register-d-section-head">
+                            <span>01.</span>
+                            <h2>Personal Details</h2>
+                            <i aria-hidden="true"></i>
+                        </div>
+                        <div class="vm-register-d-grid">
+                            <div class="vm-register-d-field">
+                                <label for="vmRegisterDesktopFirstName">First Name</label>
+                                <input id="vmRegisterDesktopFirstName" type="text" placeholder="e.g. Julian" value="{{ form.name.value|default:'' }}">
+                            </div>
+                            <div class="vm-register-d-field">
+                                <label for="vmRegisterDesktopLastName">Last Name</label>
+                                <input id="vmRegisterDesktopLastName" type="text" placeholder="e.g. Vogue">
+                            </div>
+                            <input type="hidden" id="vmRegisterDesktopName" name="name" value="{{ form.name.value|default:'' }}">
+                        </div>
+                    </section>
+
+                    <section class="vm-register-d-section">
+                        <div class="vm-register-d-section-head">
+                            <span>02.</span>
+                            <h2>Account Details</h2>
+                            <i aria-hidden="true"></i>
+                        </div>
+                        <div class="vm-register-d-grid">
+                            <div class="vm-register-d-field">
+                                <label for="vmRegisterDesktopUsername">Member Username</label>
+                                <input id="vmRegisterDesktopUsername" name="username" type="text" placeholder="@vibe_curator" value="{{ form.username.value|default:'' }}" required>
+                            </div>
+                            <div class="vm-register-d-field">
+                                <label for="vmRegisterDesktopEmail">Email Address</label>
+                                <input id="vmRegisterDesktopEmail" name="email" type="email" placeholder="curator@vibemall.com" value="{{ form.email.value|default:'' }}" required>
+                                <span id="vmRegisterDesktopEmailFeedback" class="vm-register-d-feedback"></span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="vm-register-d-section">
+                        <div class="vm-register-d-section-head">
+                            <span>03.</span>
+                            <h2>Contact</h2>
+                            <i aria-hidden="true"></i>
+                        </div>
+                        <div class="vm-register-d-grid">
+                            <div class="vm-register-d-field">
+                                <label for="vmRegisterDesktopMobile">Phone Number</label>
+                                <input id="vmRegisterDesktopMobile" name="mobile_number" type="tel" placeholder="+1 (555) 000-0000" value="{{ form.mobile_number.value|default:'' }}">
+                            </div>
+                            <div class="vm-register-d-field">
+                                <label for="vmRegisterDesktopCountrySelect">Country of Residence</label>
+                                <select id="vmRegisterDesktopCountrySelect">
+                                    <option value="+44">United Kingdom</option>
+                                    <option value="+1">United States</option>
+                                    <option value="+33">France</option>
+                                    <option value="+91">India</option>
+                                    <option value="+81">Japan</option>
+                                    <option value="+39">Italy</option>
+                                </select>
+                                <input type="hidden" id="vmRegisterDesktopCountryCode" name="country_code" value="{{ form.country_code.value|default:'+44' }}">
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="vm-register-d-section">
+                        <div class="vm-register-d-section-head">
+                            <span>04.</span>
+                            <h2>Security</h2>
+                            <i aria-hidden="true"></i>
+                        </div>
+
+                        <div class="vm-register-d-stack">
+                            <div class="vm-register-d-field">
+                                <label for="vmRegisterDesktopPassword">Master Password</label>
+                                <div class="vm-register-d-pass">
+                                    <input id="vmRegisterDesktopPassword" name="password" type="password" placeholder="••••••••••••" required>
+                                    <button type="button" data-toggle-desktop-password="vmRegisterDesktopPassword" aria-label="Toggle password visibility">
+                                        <i class="far fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div id="vmRegisterDesktopStrength" class="vm-register-d-strength">
+                                    <div class="vm-register-d-strength-bars">
+                                        <i></i><i></i><i></i><i></i>
+                                    </div>
+                                    <span id="vmRegisterDesktopStrengthText">Strength: Weak</span>
+                                </div>
+                            </div>
+
+                            <div class="vm-register-d-field">
+                                <label for="vmRegisterDesktopConfirmPassword">Confirm Password</label>
+                                <div class="vm-register-d-pass">
+                                    <input id="vmRegisterDesktopConfirmPassword" name="confirm_password" type="password" placeholder="••••••••••••" required>
+                                    <button type="button" data-toggle-desktop-password="vmRegisterDesktopConfirmPassword" aria-label="Toggle confirm password visibility">
+                                        <i class="far fa-eye"></i>
+                                    </button>
+                                </div>
+                                <p id="vmRegisterDesktopPasswordError" class="vm-register-d-error"></p>
+                            </div>
+
+                            <label class="vm-register-d-terms" for="vmRegisterDesktopTerms">
+                                <span class="vm-register-d-terms-box">
+                                    <input id="vmRegisterDesktopTerms" type="checkbox" name="terms_accepted" required>
+                                    <span class="vm-register-d-terms-mark"><i class="fas fa-check"></i></span>
+                                </span>
+                                <span>I accept the <a href="/terms-and-conditions/" target="_blank">Terms &amp; Service</a> and <a href="/privacy-policy/" target="_blank">Privacy Policy</a> of VibeMall Atelier.</span>
+                            </label>
+                            <p id="vmRegisterDesktopTermsError" class="vm-register-d-error"></p>
+                        </div>
+                    </section>
+
+                    <div class="vm-register-d-actions">
+                        <button type="submit" class="vm-register-d-submit" id="vmRegisterDesktopSubmit">Create Account</button>
+                        <p>Already an atelier member? <a href="{% url 'login' %}">Sign In</a></p>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 </section>
-<!-- Registration Area End -->
 
 </div>
 <!-- Legacy Desktop Section End -->
@@ -562,7 +635,8 @@
     // Hide global header/footer when mobile register is active
     window.addEventListener('DOMContentLoaded', () => {
         const mobileRegisterSection = document.querySelector('.vm-register-mobile-only');
-        if (mobileRegisterSection) {
+        const isMobileViewport = window.matchMedia('(max-width: 767.98px)').matches;
+        if (mobileRegisterSection && isMobileViewport) {
             const globalHeader = document.querySelector('.vm_copy_header');
             const globalFooter = document.querySelector('.vm_copy_footer');
             const bottomNav = document.querySelector('.bottom-navbar');
@@ -574,185 +648,422 @@
     });
 </script>
 
+<!-- Tablet Register Scripts -->
+<script>
+    (function () {
+        const tabletForm = document.getElementById('vmRegisterTabletForm');
+        if (!tabletForm) return;
+
+        const firstName = document.getElementById('vmRegisterTabletFirstName');
+        const lastName = document.getElementById('vmRegisterTabletLastName');
+        const fullName = document.getElementById('vmRegisterTabletName');
+        const countrySelect = document.getElementById('vmRegisterTabletCountrySelect');
+        const countryCode = document.getElementById('vmRegisterTabletCountryCode');
+        const emailInput = document.getElementById('vmRegisterTabletEmail');
+        const emailFeedback = document.getElementById('vmRegisterTabletEmailFeedback');
+        const passwordInput = document.getElementById('vmRegisterTabletPassword');
+        const confirmInput = document.getElementById('vmRegisterTabletConfirmPassword');
+        const passwordError = document.getElementById('vmRegisterTabletPasswordError');
+        const terms = document.getElementById('vmRegisterTabletTerms');
+        const termsError = document.getElementById('vmRegisterTabletTermsError');
+        const submitBtn = document.getElementById('vmRegisterTabletSubmit');
+        const strengthWrap = document.getElementById('vmRegisterTabletStrength');
+        const strengthText = document.getElementById('vmRegisterTabletStrengthText');
+        const profileInput = document.getElementById('vmRegisterTabletProfileImage');
+        const avatarWrap = document.getElementById('vmRegisterTabletAvatar');
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        const hydrateNamesFromFullName = () => {
+            if (!fullName || !fullName.value || (firstName && firstName.value) || (lastName && lastName.value)) return;
+            const parts = fullName.value.trim().split(/\s+/);
+            if (!parts.length) return;
+            if (firstName) firstName.value = parts.shift() || '';
+            if (lastName) lastName.value = parts.join(' ');
+        };
+
+        const syncFullName = () => {
+            if (!fullName) return;
+            fullName.value = [firstName ? firstName.value.trim() : '', lastName ? lastName.value.trim() : '']
+                .filter(Boolean)
+                .join(' ');
+        };
+
+        const getStrength = (value) => {
+            let score = 0;
+            if (value.length >= 8) score += 1;
+            if (/[a-z]/.test(value)) score += 1;
+            if (/[A-Z]/.test(value)) score += 1;
+            if (/[0-9]/.test(value)) score += 1;
+            if (/[^a-zA-Z0-9]/.test(value)) score += 1;
+            return score;
+        };
+
+        hydrateNamesFromFullName();
+        if (firstName) firstName.addEventListener('input', syncFullName);
+        if (lastName) lastName.addEventListener('input', syncFullName);
+        syncFullName();
+
+        if (countrySelect && countryCode) {
+            const syncCountryCode = () => { countryCode.value = countrySelect.value; };
+            if (countryCode.value) {
+                const existing = Array.from(countrySelect.options).find((opt) => opt.value === countryCode.value);
+                if (existing) countrySelect.value = countryCode.value;
+            }
+            syncCountryCode();
+            countrySelect.addEventListener('change', syncCountryCode);
+        }
+
+        if (emailInput && emailFeedback) {
+            emailInput.addEventListener('blur', function () {
+                const value = this.value.trim();
+                if (!value.length) {
+                    emailFeedback.textContent = '';
+                    emailFeedback.style.display = 'none';
+                    return;
+                }
+                emailFeedback.textContent = emailRegex.test(value) ? 'Valid email address' : 'Invalid email address';
+                emailFeedback.style.color = emailRegex.test(value) ? '#2f6f44' : '#ba1a1a';
+                emailFeedback.style.display = 'block';
+            });
+        }
+
+        document.querySelectorAll('[data-toggle-tablet-password]').forEach((button) => {
+            button.addEventListener('click', function () {
+                const targetId = this.getAttribute('data-toggle-tablet-password');
+                const target = document.getElementById(targetId);
+                const icon = this.querySelector('i');
+                if (!target || !icon) return;
+                const isPassword = target.type === 'password';
+                target.type = isPassword ? 'text' : 'password';
+                icon.classList.toggle('fa-eye', !isPassword);
+                icon.classList.toggle('fa-eye-slash', isPassword);
+            });
+        });
+
+        if (passwordInput && strengthWrap && strengthText) {
+            passwordInput.addEventListener('input', function () {
+                const value = this.value;
+                if (!value.length) {
+                    strengthWrap.style.display = 'none';
+                    strengthWrap.className = 'vm-register-t-strength';
+                    strengthText.textContent = 'Strength: Weak';
+                    return;
+                }
+
+                const score = getStrength(value);
+                strengthWrap.style.display = 'grid';
+                strengthWrap.className = 'vm-register-t-strength';
+
+                if (score <= 2) {
+                    strengthWrap.classList.add('vm-register-t-strength-weak');
+                    strengthText.textContent = 'Strength: Refined';
+                } else if (score === 3) {
+                    strengthWrap.classList.add('vm-register-t-strength-fair');
+                    strengthText.textContent = 'Strength: Elevated';
+                } else if (score === 4) {
+                    strengthWrap.classList.add('vm-register-t-strength-good');
+                    strengthText.textContent = 'Strength: Sophisticated';
+                } else {
+                    strengthWrap.classList.add('vm-register-t-strength-strong');
+                    strengthText.textContent = 'Strength: Atelier Grade';
+                }
+            });
+        }
+
+        if (confirmInput && passwordInput && passwordError) {
+            confirmInput.addEventListener('input', function () {
+                if (!this.value.length) {
+                    passwordError.textContent = '';
+                    passwordError.style.display = 'none';
+                    return;
+                }
+                passwordError.textContent = this.value === passwordInput.value ? 'Passwords match' : 'Passwords do not match';
+                passwordError.style.color = this.value === passwordInput.value ? '#2f6f44' : '#ba1a1a';
+                passwordError.style.display = 'block';
+            });
+        }
+
+        if (profileInput && avatarWrap) {
+            profileInput.addEventListener('change', function () {
+                const file = this.files && this.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    avatarWrap.innerHTML = '<img src="' + event.target.result + '" alt="Profile preview">';
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        tabletForm.addEventListener('submit', function (event) {
+            let hasError = false;
+            syncFullName();
+
+            if (!fullName.value.trim()) {
+                hasError = true;
+                if (firstName) firstName.focus();
+            }
+
+            if (emailInput && !emailRegex.test(emailInput.value.trim())) {
+                hasError = true;
+                if (emailFeedback) {
+                    emailFeedback.textContent = 'Invalid email address';
+                    emailFeedback.style.color = '#ba1a1a';
+                    emailFeedback.style.display = 'block';
+                }
+            }
+
+            if (passwordInput && getStrength(passwordInput.value) < 3) {
+                hasError = true;
+                if (passwordError) {
+                    passwordError.textContent = 'Use uppercase, lowercase, number, and special character.';
+                    passwordError.style.color = '#ba1a1a';
+                    passwordError.style.display = 'block';
+                }
+            }
+
+            if (passwordInput && confirmInput && passwordInput.value !== confirmInput.value) {
+                hasError = true;
+                if (passwordError) {
+                    passwordError.textContent = 'Passwords do not match';
+                    passwordError.style.color = '#ba1a1a';
+                    passwordError.style.display = 'block';
+                }
+            }
+
+            if (!terms || !terms.checked) {
+                hasError = true;
+                if (termsError) {
+                    termsError.textContent = 'You must accept Terms and Privacy Policy';
+                    termsError.style.display = 'block';
+                }
+            } else if (termsError) {
+                termsError.textContent = '';
+                termsError.style.display = 'none';
+            }
+
+            if (hasError) {
+                event.preventDefault();
+                return;
+            }
+
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Creating Account...';
+            }
+        });
+    })();
+</script>
+
 <!-- Legacy Desktop Scripts -->
 <script>
-    function togglePassword(id) {
-        const input = document.getElementById(id);
-        const button = input.parentElement.querySelector('.toggle-password-btn i');
-        
-        if (input.type === "password") {
-            input.type = "text";
-            button.classList.remove('fa-eye');
-            button.classList.add('fa-eye-slash');
-        } else {
-            input.type = "password";
-            button.classList.remove('fa-eye-slash');
-            button.classList.add('fa-eye');
+    (function () {
+        const desktopForm = document.getElementById('vmRegisterDesktopForm');
+        if (!desktopForm) return;
+
+        const firstName = document.getElementById('vmRegisterDesktopFirstName');
+        const lastName = document.getElementById('vmRegisterDesktopLastName');
+        const fullName = document.getElementById('vmRegisterDesktopName');
+        const countrySelect = document.getElementById('vmRegisterDesktopCountrySelect');
+        const countryCode = document.getElementById('vmRegisterDesktopCountryCode');
+        const emailInput = document.getElementById('vmRegisterDesktopEmail');
+        const emailFeedback = document.getElementById('vmRegisterDesktopEmailFeedback');
+        const passwordInput = document.getElementById('vmRegisterDesktopPassword');
+        const confirmInput = document.getElementById('vmRegisterDesktopConfirmPassword');
+        const passwordError = document.getElementById('vmRegisterDesktopPasswordError');
+        const terms = document.getElementById('vmRegisterDesktopTerms');
+        const termsError = document.getElementById('vmRegisterDesktopTermsError');
+        const submitBtn = document.getElementById('vmRegisterDesktopSubmit');
+        const strengthWrap = document.getElementById('vmRegisterDesktopStrength');
+        const strengthText = document.getElementById('vmRegisterDesktopStrengthText');
+        const profileInput = document.getElementById('vmRegisterDesktopProfileImage');
+        const avatarWrap = document.getElementById('vmRegisterDesktopAvatar');
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        const hydrateNamesFromFullName = () => {
+            if (!fullName || !fullName.value || (firstName && firstName.value) || (lastName && lastName.value)) return;
+            const parts = fullName.value.trim().split(/\s+/);
+            if (!parts.length) return;
+            if (firstName) firstName.value = parts.shift() || '';
+            if (lastName) lastName.value = parts.join(' ');
+        };
+
+        const syncFullName = () => {
+            if (!fullName) return;
+            const composed = [firstName ? firstName.value.trim() : '', lastName ? lastName.value.trim() : '']
+                .filter(Boolean)
+                .join(' ');
+            fullName.value = composed;
+        };
+
+        hydrateNamesFromFullName();
+        if (firstName) firstName.addEventListener('input', syncFullName);
+        if (lastName) lastName.addEventListener('input', syncFullName);
+        syncFullName();
+
+        if (countrySelect && countryCode) {
+            const syncCountryCode = () => { countryCode.value = countrySelect.value; };
+            if (countryCode.value) {
+                const existing = Array.from(countrySelect.options).find((opt) => opt.value === countryCode.value);
+                if (existing) countrySelect.value = countryCode.value;
+            }
+            syncCountryCode();
+            countrySelect.addEventListener('change', syncCountryCode);
         }
-    }
 
-    // Attach event listeners to toggle password buttons
-    document.querySelectorAll('.toggle-password-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const targetId = this.getAttribute('data-target');
-            togglePassword(targetId);
+        if (emailInput && emailFeedback) {
+            emailInput.addEventListener('blur', function () {
+                const value = this.value.trim();
+                if (!value.length) {
+                    emailFeedback.textContent = '';
+                    emailFeedback.className = 'vm-register-d-feedback';
+                    return;
+                }
+                if (emailRegex.test(value)) {
+                    emailFeedback.textContent = 'Valid email address';
+                    emailFeedback.className = 'vm-register-d-feedback is-valid';
+                } else {
+                    emailFeedback.textContent = 'Invalid email address';
+                    emailFeedback.className = 'vm-register-d-feedback is-error';
+                }
+            });
+        }
+
+        document.querySelectorAll('[data-toggle-desktop-password]').forEach((button) => {
+            button.addEventListener('click', function () {
+                const targetId = this.getAttribute('data-toggle-desktop-password');
+                const target = document.getElementById(targetId);
+                const icon = this.querySelector('i');
+                if (!target || !icon) return;
+                const isPassword = target.type === 'password';
+                target.type = isPassword ? 'text' : 'password';
+                icon.classList.toggle('fa-eye', !isPassword);
+                icon.classList.toggle('fa-eye-slash', isPassword);
+            });
         });
-    });
 
-    const password = document.getElementById('password');
-    const confirm_password = document.getElementById('confirm_password');
-    const password_error = document.getElementById('password_error');
-    const emailInput = document.getElementById('email');
-    const emailFeedback = document.getElementById('email_feedback');
-    const strengthBar = document.getElementById('strength_bar');
-    const strengthText = document.getElementById('strength_text');
-    const strengthContainer = document.getElementById('strength_container');
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const getStrength = (value) => {
+            let score = 0;
+            if (value.length >= 8) score += 1;
+            if (/[a-z]/.test(value)) score += 1;
+            if (/[A-Z]/.test(value)) score += 1;
+            if (/[0-9]/.test(value)) score += 1;
+            if (/[^a-zA-Z0-9]/.test(value)) score += 1;
+            return score;
+        };
 
-    // Email Validation
-    if (emailInput) {
-        emailInput.addEventListener('blur', function() {
-            const value = this.value.trim();
-            if (value === '') {
-                emailFeedback.textContent = '';
-                emailFeedback.className = '';
+        if (passwordInput && strengthWrap && strengthText) {
+            passwordInput.addEventListener('input', function () {
+                const value = this.value;
+                if (!value.length) {
+                    strengthWrap.style.display = 'none';
+                    strengthWrap.className = 'vm-register-d-strength';
+                    strengthText.textContent = 'Strength: Weak';
+                    return;
+                }
+
+                const score = getStrength(value);
+                strengthWrap.style.display = 'grid';
+                strengthWrap.className = 'vm-register-d-strength';
+
+                if (score <= 2) {
+                    strengthWrap.classList.add('is-weak');
+                    strengthText.textContent = 'Strength: Refined';
+                } else if (score === 3) {
+                    strengthWrap.classList.add('is-fair');
+                    strengthText.textContent = 'Strength: Elevated';
+                } else if (score === 4) {
+                    strengthWrap.classList.add('is-good');
+                    strengthText.textContent = 'Strength: Sophisticated';
+                } else {
+                    strengthWrap.classList.add('is-strong');
+                    strengthText.textContent = 'Strength: Atelier Grade';
+                }
+            });
+        }
+
+        if (confirmInput && passwordInput && passwordError) {
+            confirmInput.addEventListener('input', function () {
+                if (!this.value.length) {
+                    passwordError.className = 'vm-register-d-error';
+                    return;
+                }
+                if (this.value !== passwordInput.value) {
+                    passwordError.textContent = 'Passwords do not match';
+                    passwordError.className = 'vm-register-d-error is-visible';
+                } else {
+                    passwordError.textContent = 'Passwords match';
+                    passwordError.className = 'vm-register-d-error is-visible is-success';
+                }
+            });
+        }
+
+        if (profileInput && avatarWrap) {
+            profileInput.addEventListener('change', function () {
+                const file = this.files && this.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    avatarWrap.innerHTML = '<img src="' + event.target.result + '" alt="Profile preview">';
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        desktopForm.addEventListener('submit', function (event) {
+            let hasError = false;
+            syncFullName();
+
+            if (!fullName.value.trim()) {
+                hasError = true;
+                if (firstName) firstName.focus();
+            }
+
+            if (emailInput && !emailRegex.test(emailInput.value.trim())) {
+                hasError = true;
+                if (emailFeedback) {
+                    emailFeedback.textContent = 'Invalid email address';
+                    emailFeedback.className = 'vm-register-d-feedback is-error';
+                }
+            }
+
+            if (passwordInput && getStrength(passwordInput.value) < 3) {
+                hasError = true;
+                if (passwordError) {
+                    passwordError.textContent = 'Use uppercase, lowercase, number, and special character.';
+                    passwordError.className = 'vm-register-d-error is-visible';
+                }
+            }
+
+            if (passwordInput && confirmInput && passwordInput.value !== confirmInput.value) {
+                hasError = true;
+                if (passwordError) {
+                    passwordError.textContent = 'Passwords do not match';
+                    passwordError.className = 'vm-register-d-error is-visible';
+                }
+            }
+
+            if (!terms || !terms.checked) {
+                hasError = true;
+                if (termsError) {
+                    termsError.textContent = 'You must accept Terms and Privacy Policy';
+                    termsError.className = 'vm-register-d-error is-visible';
+                }
+            } else if (termsError) {
+                termsError.className = 'vm-register-d-error';
+            }
+
+            if (hasError) {
+                event.preventDefault();
                 return;
             }
-            if (emailRegex.test(value)) {
-                emailFeedback.textContent = '✓ Valid email';
-                emailFeedback.className = 'input-feedback success';
-            } else {
-                emailFeedback.textContent = '✗ Invalid email';
-                emailFeedback.className = 'input-feedback error';
-            }
-        });
-    }
 
-    // Password Strength Calculation
-    function calculatePasswordStrengthDesktop(pwd) {
-        let strength = 0;
-        if (pwd.length >= 8) strength++;
-        if (pwd.length >= 12) strength++;
-        if (/[a-z]/.test(pwd)) strength++;
-        if (/[A-Z]/.test(pwd)) strength++;
-        if (/[0-9]/.test(pwd)) strength++;
-        if (/[^a-zA-Z0-9]/.test(pwd)) strength++;
-        return strength;
-    }
-
-    // Password Strength Indicator
-    if (password) {
-        password.addEventListener('input', function() {
-            const value = this.value;
-            if (strengthContainer) strengthContainer.style.display = value.length > 0 ? 'block' : 'none';
-            
-            if (value.length === 0) {
-                if (strengthBar) strengthBar.className = 'strength-fill';
-                if (strengthText) strengthText.textContent = 'Password strength: Weak';
-                return;
-            }
-            
-            const strength = calculatePasswordStrengthDesktop(value);
-            if (strengthBar) strengthBar.className = 'strength-fill';
-            
-            if (strength <= 2) {
-                if (strengthBar) strengthBar.classList.add('weak');
-                if (strengthText) strengthText.textContent = '✗ Weak';
-            } else if (strength <= 3) {
-                if (strengthBar) strengthBar.classList.add('fair');
-                if (strengthText) strengthText.textContent = '⚠ Fair';
-            } else if (strength <= 4) {
-                if (strengthBar) strengthBar.classList.add('good');
-                if (strengthText) strengthText.textContent = '✓ Good';
-            } else {
-                if (strengthBar) strengthBar.classList.add('strong');
-                if (strengthText) strengthText.textContent = '✓ Strong';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Creating Account...';
             }
         });
-    }
-
-    // Password Match Validation
-    if (confirm_password && password) {
-        confirm_password.addEventListener('keyup', () => {
-            if (password.value !== confirm_password.value) {
-                if (password_error) {
-                    password_error.textContent = '✗ Passwords do not match';
-                    password_error.style.display = 'block';
-                    password_error.style.color = '#e74c3c';
-                }
-            } else if (password.value.length > 0) {
-                if (password_error) {
-                    password_error.textContent = '✓ Passwords match';
-                    password_error.style.display = 'block';
-                    password_error.style.color = '#27ae60';
-                }
-            } else {
-                if (password_error) {
-                    password_error.textContent = '';
-                    password_error.style.display = 'none';
-                }
-            }
-        });
-    }
-
-    // Form Submission Validation
-    const registerForm = document.querySelector('form.vm-register-legacy-content form');
-    const termsCheckboxDesktop = document.getElementById('terms_accepted');
-    const termsErrorDesktop = document.getElementById('terms_error');
-    const submitBtnDesktop = document.getElementById('submitBtn');
-    
-    // Terms checkbox validation
-    if (termsCheckboxDesktop) {
-        termsCheckboxDesktop.addEventListener('change', function() {
-            if (this.checked) {
-                if (termsErrorDesktop) termsErrorDesktop.style.display = 'none';
-                this.parentElement.style.border = 'none';
-            }
-        });
-    }
-    
-    if (registerForm) {
-        registerForm.addEventListener('submit', function(e) {
-            // Check terms acceptance
-            if (termsCheckboxDesktop && !termsCheckboxDesktop.checked) {
-                e.preventDefault();
-                if (termsErrorDesktop) termsErrorDesktop.style.display = 'block';
-                termsCheckboxDesktop.parentElement.style.border = '2px solid #e74c3c';
-                termsCheckboxDesktop.parentElement.style.padding = '10px';
-                termsCheckboxDesktop.parentElement.style.borderRadius = '5px';
-                termsCheckboxDesktop.focus();
-                
-                // Scroll to terms
-                termsCheckboxDesktop.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                return false;
-            }
-            
-            if (emailInput) {
-                const emailValue = emailInput.value.trim();
-                const passwordValue = password ? password.value : '';
-                
-                if (!emailRegex.test(emailValue)) {
-                    e.preventDefault();
-                    if (emailFeedback) {
-                        emailFeedback.textContent = '✗ Invalid email';
-                        emailFeedback.className = 'input-feedback error';
-                    }
-                    return false;
-                }
-                
-                if (calculatePasswordStrengthDesktop(passwordValue) < 3) {
-                    e.preventDefault();
-                    alert('Password must be strong: Use uppercase, lowercase, numbers & special characters.');
-                    return false;
-                }
-            }
-            
-            if (submitBtnDesktop) {
-                submitBtnDesktop.disabled = true;
-                submitBtnDesktop.innerHTML = '<i class=\"fas fa-spinner fa-spin\"></i> Creating Account...';
-            }
-        });
-    }
+    })();
 </script>
 
 {% endblock content %}

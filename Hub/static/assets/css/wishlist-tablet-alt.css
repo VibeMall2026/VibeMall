@@ -1,0 +1,314 @@
+body.vm-page-mobile-wishlist .vm-wishlist-tablet-only {
+    background: #fbf9f4;
+    color: #171818;
+    font-family: 'Manrope', sans-serif;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-shell {
+    width: min(1120px, calc(100% - 72px));
+    margin: 0 auto;
+    padding: 132px 0 88px;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-hero {
+    margin-bottom: 56px;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-headline h1 {
+    margin: 0 0 18px;
+    color: #171818;
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: clamp(3.1rem, 6vw, 4rem);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 0.92;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-divider {
+    width: 96px;
+    height: 1px;
+    background: #6f5c37;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-headline p {
+    margin: 22px 0 0;
+    color: rgba(68, 71, 72, 0.88);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-alerts {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 24px;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-alert {
+    padding: 12px 16px;
+    border-left: 3px solid #4caf50;
+    background: #e8f5e9;
+    color: #1b5e20;
+    font-size: 13px;
+    border-radius: 8px;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-alert.is-error {
+    border-left-color: #ba1a1a;
+    background: #ffebee;
+    color: #c62828;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 36px 30px;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-card {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-media {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: #f5f3ee;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-card:hover .vm-wishlist-t-media img {
+    transform: scale(1.05);
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-remove {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    text-decoration: none;
+    color: #171818;
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(8px);
+    transition: background 0.25s ease, color 0.25s ease;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-remove:hover {
+    color: #ba1a1a;
+    background: rgba(255, 255, 255, 0.96);
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-brand {
+    color: #171818;
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 1.35rem;
+    font-style: italic;
+    font-weight: 700;
+    line-height: 1.15;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-copy h2 {
+    margin: 8px 0 0;
+    font-size: 1.15rem;
+    line-height: 1.45;
+    font-weight: 400;
+    color: #444748;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-copy h2 a,
+body.vm-page-mobile-wishlist .vm-wishlist-t-reco-card h4 a {
+    color: inherit;
+    text-decoration: none;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-meta {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    margin-top: 14px;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-meta p {
+    margin: 0;
+    color: #171818;
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-meta span {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-meta .is-in-stock {
+    color: #6f5c37;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-meta .is-out-of-stock {
+    color: #ba1a1a;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-cta {
+    width: 100%;
+    margin-top: 20px;
+    padding: 15px 18px;
+    border: 0;
+    background: #171818;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    transition: opacity 0.25s ease, background 0.25s ease;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-cta:hover {
+    background: rgba(23, 24, 24, 0.92);
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-cta[disabled] {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-empty {
+    margin-top: 10px;
+    padding: 72px 28px;
+    text-align: center;
+    background: #f5f3ee;
+    border: 1px dashed rgba(116, 120, 120, 0.28);
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-empty i {
+    font-size: 46px;
+    color: rgba(23, 24, 24, 0.35);
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-empty h3 {
+    margin: 16px 0 10px;
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 2rem;
+    font-weight: 700;
+    font-style: italic;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-empty p {
+    margin: 0;
+    color: #444748;
+    font-size: 14px;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-empty a {
+    display: inline-block;
+    margin-top: 20px;
+    color: #171818;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    text-decoration: none;
+    border-bottom: 1px solid #171818;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-recommendations {
+    margin-top: 96px;
+    padding-top: 72px;
+    border-top: 1px solid rgba(196, 199, 199, 0.35);
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-recommendations-head h3 {
+    margin: 0 0 34px;
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 2.2rem;
+    font-weight: 700;
+    line-height: 1.05;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-recommendations-rail {
+    display: flex;
+    gap: 24px;
+    overflow-x: auto;
+    padding-bottom: 12px;
+    scrollbar-width: none;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-recommendations-rail::-webkit-scrollbar {
+    display: none;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-reco-card {
+    min-width: 250px;
+    flex: 0 0 250px;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-reco-media {
+    display: block;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    background: #f5f3ee;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-reco-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-reco-card p {
+    margin: 16px 0 0;
+    color: #6f5c37;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+body.vm-page-mobile-wishlist .vm-wishlist-t-reco-card h4 {
+    margin: 8px 0 0;
+    color: #171818;
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.45;
+}
+
+@media (min-width: 768px) and (max-width: 920px) {
+    body.vm-page-mobile-wishlist .vm-wishlist-t-shell {
+        width: min(100% - 48px, 960px);
+        padding-top: 120px;
+    }
+
+    body.vm-page-mobile-wishlist .vm-wishlist-t-grid {
+        gap: 28px 22px;
+    }
+
+    body.vm-page-mobile-wishlist .vm-wishlist-t-brand {
+        font-size: 1.2rem;
+    }
+
+    body.vm-page-mobile-wishlist .vm-wishlist-t-copy h2 {
+        font-size: 1.02rem;
+    }
+}

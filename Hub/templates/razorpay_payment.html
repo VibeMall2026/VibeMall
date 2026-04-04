@@ -2,53 +2,67 @@
 
 {% load static %}
 
-{% block body_class %}vm-page-mobile-alt{% endblock %}
+{% block body_class %}vm-page-razorpay-payment{% endblock %}
 
+{% block title %}Secure Payment - VibeMall{% endblock %}
 
-{% block title %}Payment - VibeMall{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'assets/css/razorpay-payment-desktop.css' %}?v=20260404-01">
+{% endblock %}
 
 {% block content %}
+<section class="vm-rzp" aria-label="Razorpay payment page">
+    <div class="vm-rzp__bg" aria-hidden="true">
+        {% if first_item and first_item.display_image_url %}
+        <img src="{{ first_item.display_image_url }}" alt="" role="presentation">
+        {% else %}
+        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="" role="presentation">
+        {% endif %}
+        <div class="vm-rzp__overlay"></div>
+    </div>
 
-<!-- page-banner-area-start -->
-<div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
-    <div class="container">
-        <div class="row">
-            <div class="col-xl-12">
-                <div class="page-banner-content text-center">
-                    <h4 class="breadcrumb-title">Payment</h4>
+    <header class="vm-rzp__header">
+        <a href="{% url 'index' %}" class="vm-rzp__logo">VibeMall</a>
+        <div class="vm-rzp__header-actions">
+            <a href="{% url 'shop' %}" aria-label="Go to shop"><i class="fas fa-search" aria-hidden="true"></i></a>
+            <a href="{% url 'cart' %}" aria-label="Go to cart"><i class="fas fa-shopping-bag" aria-hidden="true"></i></a>
+            <a href="{% url 'profile' %}" aria-label="Go to profile"><i class="fas fa-user" aria-hidden="true"></i></a>
+        </div>
+    </header>
+
+    <main class="vm-rzp__main">
+        <article class="vm-rzp__card">
+            <div class="vm-rzp__kicker">Checkout Initiation</div>
+            <h1>Complete Your Transaction</h1>
+            <p class="vm-rzp__sub">Secure your curated VibeMall selection with our premium payment gateway.</p>
+
+            <div class="vm-rzp__summary">
+                <div>
+                    <span>Reference</span>
+                    <strong>#{{ order.order_number }}</strong>
+                </div>
+                <div class="vm-rzp__divider" aria-hidden="true"></div>
+                <div>
+                    <span>Amount Due</span>
+                    <strong>&#8377;{{ order.total_amount|floatformat:2 }}</strong>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
-<!-- page-banner-area-end -->
 
-<!-- payment-area-start -->
-<section class="payment-area pt-120 pb-120">
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-6 mx-auto">
-                <div class="payment-card text-center" style="background: #f9f9f9; padding: 40px; border-radius: 10px;">
-                    <h3 class="mb-4">Complete Your Payment</h3>
-                    
-                    <div class="order-summary mb-4">
-                        <p><strong>Order #:</strong> {{ order.order_number }}</p>
-                        <h4 class="mt-3">Amount to Pay: <span class="text-success">&#8377;{{ order.total_amount }}</span></h4>
-                    </div>
-                    
-                    <button id="rzp-button" class="tp-btn-h1" style="background-color: #528ff0;">
-                        <i class="fas fa-lock"></i> Pay with Razorpay
-                    </button>
-                    <p class="mt-3 text-muted mb-0">
-                        <small>Secure payment powered by Razorpay</small>
-                    </p>
-                    <div id="rzp-status" class="small mt-2 text-muted"></div>
-                </div>
-            </div>
-        </div>
-    </div>
+            <button id="rzp-button" type="button" class="vm-rzp__pay-btn">
+                <span>Secure Checkout with Razorpay</span>
+                <i class="fas fa-lock" aria-hidden="true"></i>
+            </button>
+
+            <a class="vm-rzp__back" href="{% url 'order_confirmation' order_id=order.id %}">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                Return to Order Confirmation
+            </a>
+
+            <p class="vm-rzp__trust">Secure 256-bit SSL encrypted payment</p>
+            <div id="rzp-status" class="vm-rzp__status" aria-live="polite"></div>
+        </article>
+    </main>
 </section>
-<!-- payment-area-end -->
 
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
@@ -58,7 +72,7 @@ const statusEl = document.getElementById('rzp-status');
 function setStatus(msg, isError=false) {
     if (!statusEl) return;
     statusEl.textContent = msg;
-    statusEl.className = 'small mt-2 ' + (isError ? 'text-danger' : 'text-muted');
+    statusEl.className = 'vm-rzp__status ' + (isError ? 'is-error' : '');
 }
 
 payBtn.onclick = function(e){
@@ -74,10 +88,10 @@ payBtn.onclick = function(e){
         description: "Order #{{ order.order_number }}",
         order_id: "{{ order.razorpay_order_id }}",
         prefill: {
-            name: "{{ user.get_full_name }}",
+            name: "{{ user.get_full_name|default:user.username }}",
             email: "{{ user.email }}",
         },
-        theme: { color: "#f67828" },
+        theme: { color: "#171818" },
         handler: function (response){
             setStatus('Confirming payment...');
             fetch("{% url 'razorpay_payment_success' %}", {
@@ -93,7 +107,7 @@ payBtn.onclick = function(e){
                 })
             }).then(function(res) {
                 if (res.ok) {
-                    window.location.href = "{% url 'order_confirmation' order.id %}";
+                    window.location.href = "{% url 'order_confirmation' order_id=order.id %}";
                 } else {
                     setStatus('Payment verification failed. Please check Orders and retry.', true);
                     payBtn.disabled = false;
@@ -109,7 +123,7 @@ payBtn.onclick = function(e){
     rzp.on('payment.failed', function (response){
         setStatus('Payment failed: ' + (response.error && response.error.description ? response.error.description : 'Please try again'), true);
         payBtn.disabled = false;
-        window.location.href = "{% url 'razorpay_payment_cancel' order.id %}";
+        window.location.href = "{% url 'razorpay_payment_cancel' order_id=order.id %}";
     });
     rzp.open();
 };

@@ -1,593 +1,661 @@
-﻿{% load static %}
 {% load hub_filters %}
-<!-- Enhanced Reviews & Questions Section -->
-<div class="product__details-review">
-    <style>
-            /* Tabs */
-            .review-tabs { border-bottom: 2px solid #e5e7eb; margin-bottom: 30px; }
-            .review-tabs ul { list-style: none; padding: 0; margin: 0; display: flex; gap: 30px; }
-            .review-tabs li { position: relative; }
-            .review-tabs a { display: inline-block; padding: 15px 5px; color: #6b7280; font-weight: 600; text-decoration: none; transition: color 0.2s; }
-            .review-tabs a:hover { color: #111827; }
-            .review-tabs .active a { color: #111827; }
-            .review-tabs .active::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 2px; background: #111827; }
-            
-            .tab-content { display: none; }
-            .tab-content.active { display: block; }
-            
-            /* Rating Breakdown */
-            .rating-summary { background: #f9fafb; padding: 30px; border-radius: 8px; margin-bottom: 30px; }
-            .rating-summary-main { display: flex; align-items: center; gap: 30px; margin-bottom: 25px; }
-            .avg-rating { text-align: center; }
-            .avg-rating-number { font-size: 48px; font-weight: 700; color: #111827; margin-bottom: 5px; }
-            .avg-rating-stars { color: #f59e0b; font-size: 20px; margin-bottom: 5px; }
-            .total-reviews { color: #6b7280; font-size: 14px; }
-            .rating-bars { flex: 1; }
-            .rating-bar-item { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-            .rating-bar-label { min-width: 70px; color: #6b7280; font-size: 14px; }
-            .rating-bar-container { flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
-            .rating-bar-fill { height: 100%; background: #f59e0b; transition: width 0.3s ease; }
-            .rating-bar-count { min-width: 40px; text-align: right; color: #6b7280; font-size: 14px; }
-            
-            /* Filter & Sort */
-            .review-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px; }
-            .review-filter-btns { display: flex; gap: 8px; flex-wrap: wrap; }
-            .filter-btn { padding: 8px 16px; border: 1px solid #d1d5db; background: white; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
-            .filter-btn:hover, .filter-btn.active { background: #111827; color: white; border-color: #111827; }
-            .review-sort select { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; cursor: pointer; }
-            
-            /* Review Item */
-            .review-item { padding: 25px 0; border-bottom: 1px solid #e5e7eb; }
-            .review-item:last-child { border-bottom: none; }
-            .review-header { display: flex; align-items: flex-start; gap: 15px; margin-bottom: 15px; }
-            .review-avatar { width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: grid; place-items: center; font-weight: 700; color: white; flex-shrink: 0; }
-            .review-meta { flex: 1; }
-            .review-author { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
-            .review-author h6 { margin: 0; font-weight: 600; color: #111827; }
-            .verified-badge { display: inline-flex; align-items: center; gap: 4px; background: #d1fae5; color: #065f46; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
-            .verified-badge i { font-size: 10px; }
-            .review-stars { color: #f59e0b; margin-bottom: 8px; font-size: 16px; }
-            .review-date { color: #6b7280; font-size: 13px; }
-            .review-comment { color: #4b5563; line-height: 1.7; margin-bottom: 15px; }
-            
-            /* Review Images */
-            .review-images { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
-            .review-image { width: 80px; height: 80px; border-radius: 8px; overflow: hidden; cursor: pointer; border: 2px solid #e5e7eb; transition: all 0.2s; }
-            .review-image:hover { border-color: #111827; transform: scale(1.05); }
-            .review-image img { width: 100%; height: 100%; object-fit: cover; }
-            
-            /* Helpfulness Voting */
-            .review-helpful { display: flex; align-items: center; gap: 15px; }
-            .helpful-text { color: #6b7280; font-size: 14px; }
-            .helpful-btns { display: flex; gap: 8px; }
-            .helpful-btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border: 1px solid #d1d5db; background: white; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
-            .helpful-btn:hover { background: #f3f4f6; }
-            .helpful-btn.voted { background: #111827; color: white; border-color: #111827; }
-            .helpful-btn i { font-size: 12px; }
-            
-            /* No Reviews */
-            .no-reviews { text-align: center; padding: 60px 20px; }
-            .no-reviews i { font-size: 64px; color: #d1d5db; margin-bottom: 15px; display: block; }
-            .no-reviews p { color: #6b7280; font-size: 16px; }
-            
-            /* Q&A Section */
-            .qa-section { margin-top: 40px; padding-top: 40px; border-top: 2px solid #e5e7eb; }
-            .qa-item { padding: 20px; background: #f9fafb; border-radius: 8px; margin-bottom: 15px; }
-            .qa-question { font-weight: 600; color: #111827; margin-bottom: 10px; }
-            .qa-question-icon { color: #f59e0b; margin-right: 8px; }
-            .qa-answer { color: #4b5563; padding-left: 28px; margin-top: 10px; }
-            .qa-answer-icon { color: #10b981; margin-right: 8px; }
-            .qa-meta { font-size: 12px; color: #9ca3af; padding-left: 28px; margin-top: 5px; }
-            .qa-form { background: #f9fafb; padding: 25px; border-radius: 8px; margin-bottom: 25px; }
-            .qa-form-title { font-size: 18px; font-weight: 600; margin-bottom: 15px; color: #111827; }
-            .qa-form textarea { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 6px; resize: vertical; min-height: 100px; font-family: inherit; }
-            .qa-submit-btn { background: #111827; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; margin-top: 10px; }
-            .qa-submit-btn:hover { background: #374151; }
-        </style>
-        
-        <!-- Tabs Navigation -->
-        <nav class="review-tabs">
-            <ul>
-                <li class="active"><a href="#reviews-tab" data-tab="reviews-tab">Customer Reviews ({{ total_reviews }})</a></li>
-                <li><a href="#questions-tab" data-tab="questions-tab">Questions & Answers ({{ total_questions }})</a></li>
-            </ul>
-        </nav>
 
-        <!-- Reviews Tab Content -->
-        <div id="reviews-tab" class="tab-content active">
-        <!-- Rating Summary -->
-        <div class="rating-summary">
-            <div class="rating-summary-main">
-                <div class="avg-rating">
-                    <div class="avg-rating-number">{{ avg_rating }}</div>
-                    <div class="avg-rating-stars">
-                        {% for i in "12345" %}
-                            {% if i|add:"0" <= avg_rating %}
-                                <i class="fas fa-star"></i>
-                            {% elif i|add:"0"|add:"-0.5" <= avg_rating %}
-                                <i class="fas fa-star-half-alt"></i>
-                            {% else %}
-                                <i class="fal fa-star"></i>
-                            {% endif %}
-                        {% endfor %}
-                    </div>
-                    <div class="total-reviews">{{ total_reviews }} review{{ total_reviews|pluralize }}</div>
-                </div>
-                
-                <div class="rating-bars">
-                    {% for rating in "54321" %}
-                    <div class="rating-bar-item">
-                        <span class="rating-bar-label">{{ rating }} <i class="fas fa-star" style="color: #f59e0b; font-size: 12px;"></i></span>
-                        <div class="rating-bar-container">
-                            <div class="rating-bar-fill" style="width: {{ rating_percentages|get_item:rating }}%"></div>
-                        </div>
-                        <span class="rating-bar-count">{{ rating_breakdown|get_item:rating }}</span>
-                    </div>
+<div class="vm-rev-shell product__details-review" data-vm-reviews>
+    <style>
+        .vm-rev-shell {
+            --vm-rev-bg: #ffffff;
+            --vm-rev-surface: #f7f8fa;
+            --vm-rev-border: #e6e9ef;
+            --vm-rev-ink: #121521;
+            --vm-rev-muted: #6d7485;
+            --vm-rev-accent: #f5a623;
+            --vm-rev-accent-soft: #fff4df;
+            --vm-rev-good: #1f9d5c;
+            color: var(--vm-rev-ink);
+        }
+
+        .vm-rev-tabs {
+            display: flex;
+            gap: 18px;
+            border-bottom: 1px solid var(--vm-rev-border);
+            margin-bottom: 22px;
+        }
+
+        .vm-rev-tab {
+            border: none;
+            background: transparent;
+            padding: 0 0 12px;
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+            color: #8b93a3;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .vm-rev-tab.is-active {
+            color: var(--vm-rev-ink);
+        }
+
+        .vm-rev-tab.is-active::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -1px;
+            height: 2px;
+            background: var(--vm-rev-ink);
+        }
+
+        .vm-rev-panel[hidden] {
+            display: none !important;
+        }
+
+        .vm-rev-summary {
+            background: var(--vm-rev-surface);
+            border: 1px solid var(--vm-rev-border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: 210px minmax(0, 1fr);
+            gap: 24px;
+            align-items: center;
+        }
+
+        .vm-rev-average {
+            text-align: center;
+        }
+
+        .vm-rev-score {
+            font-size: 52px;
+            line-height: 1;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            margin-bottom: 8px;
+        }
+
+        .vm-rev-stars {
+            color: var(--vm-rev-accent);
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .vm-rev-total {
+            color: var(--vm-rev-muted);
+            font-size: 14px;
+        }
+
+        .vm-rev-breakdown {
+            display: grid;
+            gap: 10px;
+        }
+
+        .vm-rev-row {
+            display: grid;
+            grid-template-columns: 58px minmax(0, 1fr) 34px;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .vm-rev-row-label,
+        .vm-rev-row-count {
+            color: var(--vm-rev-muted);
+            font-size: 14px;
+        }
+
+        .vm-rev-row-track {
+            height: 8px;
+            border-radius: 999px;
+            background: #e9edf4;
+            overflow: hidden;
+        }
+
+        .vm-rev-row-fill {
+            height: 100%;
+            background: var(--vm-rev-accent);
+        }
+
+        .vm-rev-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .vm-rev-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .vm-rev-filter {
+            border: 1px solid #cfd6e4;
+            background: #fff;
+            color: #2a3142;
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 14px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .vm-rev-filter.is-active,
+        .vm-rev-filter:hover {
+            background: #0f1a2f;
+            border-color: #0f1a2f;
+            color: #fff;
+        }
+
+        .vm-rev-sort {
+            border: 1px solid #cfd6e4;
+            border-radius: 8px;
+            background: #fff;
+            min-height: 40px;
+            padding: 0 12px;
+            color: #2a3142;
+        }
+
+        .vm-rev-list {
+            display: grid;
+            gap: 14px;
+        }
+
+        .vm-rev-card {
+            border: 1px solid var(--vm-rev-border);
+            border-radius: 14px;
+            padding: 18px;
+            background: #fff;
+        }
+
+        .vm-rev-head {
+            display: grid;
+            grid-template-columns: 44px minmax(0, 1fr);
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .vm-rev-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 999px;
+            background: linear-gradient(160deg, #0f1a2f 0%, #2f4f73 100%);
+            color: #fff;
+            display: grid;
+            place-items: center;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .vm-rev-author {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .vm-rev-meta {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 4px;
+            color: var(--vm-rev-muted);
+            font-size: 13px;
+        }
+
+        .vm-rev-badge {
+            background: #e9f8f0;
+            color: #17663f;
+            border-radius: 999px;
+            padding: 2px 9px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .vm-rev-comment {
+            margin: 8px 0 0;
+            color: #293043;
+            line-height: 1.7;
+            font-size: 14px;
+        }
+
+        .vm-rev-images {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .vm-rev-image {
+            width: 72px;
+            height: 72px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #d5dce9;
+            cursor: pointer;
+            padding: 0;
+            background: #fff;
+        }
+
+        .vm-rev-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .vm-rev-vote {
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .vm-rev-vote-label {
+            color: var(--vm-rev-muted);
+            font-size: 13px;
+        }
+
+        .vm-rev-vote-actions {
+            display: inline-flex;
+            gap: 8px;
+        }
+
+        .vm-rev-vote-btn {
+            border: 1px solid #cfd6e4;
+            border-radius: 8px;
+            background: #fff;
+            color: #36405a;
+            min-height: 34px;
+            min-width: 58px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 0 10px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .vm-rev-vote-btn.is-active {
+            background: #0f1a2f;
+            border-color: #0f1a2f;
+            color: #fff;
+        }
+
+        .vm-rev-empty {
+            border: 1px dashed #cfd6e4;
+            background: #f8f9fc;
+            border-radius: 14px;
+            padding: 30px 16px;
+            text-align: center;
+            color: #7b8396;
+        }
+
+        .vm-rev-qa-title {
+            font-size: 28px;
+            margin: 0 0 14px;
+            letter-spacing: -0.02em;
+        }
+
+        .vm-rev-login-note {
+            background: #e8f7ff;
+            border: 1px solid #c4e8fb;
+            color: #1f5e7e;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 16px;
+        }
+
+        .vm-rev-login-note a {
+            color: inherit;
+            font-weight: 700;
+            text-decoration: underline;
+        }
+
+        .vm-rev-question {
+            border: 1px solid var(--vm-rev-border);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+            background: #fff;
+        }
+
+        .vm-rev-question h5 {
+            margin: 0;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .vm-rev-question small {
+            display: block;
+            margin-top: 6px;
+            color: var(--vm-rev-muted);
+            font-size: 12px;
+        }
+
+        .vm-rev-answer {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #d8deeb;
+            color: #2a3142;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 991.98px) {
+            .vm-rev-tab {
+                font-size: 16px;
+            }
+
+            .vm-rev-summary {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .vm-rev-average {
+                text-align: left;
+            }
+
+            .vm-rev-score {
+                font-size: 44px;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .vm-rev-shell {
+                margin-top: 6px;
+            }
+
+            .vm-rev-tab {
+                font-size: 14px;
+            }
+
+            .vm-rev-summary {
+                border-radius: 12px;
+                padding: 14px;
+            }
+
+            .vm-rev-score {
+                font-size: 36px;
+            }
+
+            .vm-rev-row {
+                grid-template-columns: 48px minmax(0, 1fr) 28px;
+                gap: 8px;
+            }
+
+            .vm-rev-card {
+                border-radius: 12px;
+                padding: 14px;
+            }
+
+            .vm-rev-qa-title {
+                font-size: 24px;
+            }
+        }
+    </style>
+
+    <div class="vm-rev-tabs" role="tablist" aria-label="Customer reviews and questions">
+        <button type="button" class="vm-rev-tab is-active" data-vm-tab="reviews" role="tab" aria-selected="true">
+            Customer Reviews ({{ total_reviews }})
+        </button>
+        <button type="button" class="vm-rev-tab" data-vm-tab="qa" role="tab" aria-selected="false">
+            Questions &amp; Answers ({{ total_questions }})
+        </button>
+    </div>
+
+    <section class="vm-rev-panel" data-vm-panel="reviews">
+        <div class="vm-rev-summary">
+            <div class="vm-rev-average">
+                <div class="vm-rev-score">{{ avg_rating|default:"0.0" }}</div>
+                <div class="vm-rev-stars" aria-label="Average rating {{ avg_rating }}">
+                    {% for i in "12345" %}
+                        {% if i|add:"0" <= avg_rating %}
+                            <i class="fas fa-star"></i>
+                        {% elif i|add:"0"|add:"-0.5" <= avg_rating %}
+                            <i class="fas fa-star-half-alt"></i>
+                        {% else %}
+                            <i class="fal fa-star"></i>
+                        {% endif %}
                     {% endfor %}
                 </div>
+                <div class="vm-rev-total">{{ total_reviews }} review{{ total_reviews|pluralize }}</div>
+            </div>
+
+            <div class="vm-rev-breakdown">
+                {% for rating in "54321" %}
+                <div class="vm-rev-row">
+                    <span class="vm-rev-row-label">{{ rating }} <i class="fas fa-star"></i></span>
+                    <div class="vm-rev-row-track">
+                        <div class="vm-rev-row-fill" style="width: {{ rating_percentages|get_item:rating|default:0 }}%"></div>
+                    </div>
+                    <span class="vm-rev-row-count">{{ rating_breakdown|get_item:rating|default:0 }}</span>
+                </div>
+                {% endfor %}
             </div>
         </div>
-        
-        <!-- Filter & Sort Controls -->
-        <div class="review-controls">
-            <div class="review-filter-btns">
-                <button type="button" class="filter-btn js-filter-btn {% if rating_filter == 'all' %}active{% endif %}" data-filter="all">All</button>
-                <button type="button" class="filter-btn js-filter-btn {% if rating_filter == '5' %}active{% endif %}" data-filter="5">5 ⭐</button>
-                <button type="button" class="filter-btn js-filter-btn {% if rating_filter == '4' %}active{% endif %}" data-filter="4">4 ⭐</button>
-                <button type="button" class="filter-btn js-filter-btn {% if rating_filter == '3' %}active{% endif %}" data-filter="3">3 ⭐</button>
-                <button type="button" class="filter-btn js-filter-btn {% if rating_filter == '2' %}active{% endif %}" data-filter="2">2 ⭐</button>
-                <button type="button" class="filter-btn js-filter-btn {% if rating_filter == '1' %}active{% endif %}" data-filter="1">1 ⭐</button>
+
+        <div class="vm-rev-controls">
+            <div class="vm-rev-filters">
+                <button type="button" class="vm-rev-filter {% if rating_filter == 'all' %}is-active{% endif %}" data-filter="all">All</button>
+                <button type="button" class="vm-rev-filter {% if rating_filter == '5' %}is-active{% endif %}" data-filter="5">5 <i class="fas fa-star"></i></button>
+                <button type="button" class="vm-rev-filter {% if rating_filter == '4' %}is-active{% endif %}" data-filter="4">4 <i class="fas fa-star"></i></button>
+                <button type="button" class="vm-rev-filter {% if rating_filter == '3' %}is-active{% endif %}" data-filter="3">3 <i class="fas fa-star"></i></button>
+                <button type="button" class="vm-rev-filter {% if rating_filter == '2' %}is-active{% endif %}" data-filter="2">2 <i class="fas fa-star"></i></button>
+                <button type="button" class="vm-rev-filter {% if rating_filter == '1' %}is-active{% endif %}" data-filter="1">1 <i class="fas fa-star"></i></button>
             </div>
-            
-            <div class="review-sort">
-                <select id="sortSelect">
-                    <option value="recent" {% if sort_by == 'recent' %}selected{% endif %}>Most Recent</option>
-                    <option value="rating_high" {% if sort_by == 'rating_high' %}selected{% endif %}>Highest Rating</option>
-                    <option value="rating_low" {% if sort_by == 'rating_low' %}selected{% endif %}>Lowest Rating</option>
-                    <option value="helpful" {% if sort_by == 'helpful' %}selected{% endif %}>Most Helpful</option>
-                </select>
-            </div>
+
+            <select class="vm-rev-sort" data-vm-sort>
+                <option value="recent" {% if sort_by == 'recent' %}selected{% endif %}>Most Recent</option>
+                <option value="rating_high" {% if sort_by == 'rating_high' %}selected{% endif %}>Highest Rating</option>
+                <option value="rating_low" {% if sort_by == 'rating_low' %}selected{% endif %}>Lowest Rating</option>
+                <option value="helpful" {% if sort_by == 'helpful' %}selected{% endif %}>Most Helpful</option>
+            </select>
         </div>
-        
-        <!-- Reviews List -->
-        <div class="reviews-list" id="reviewsList">
+
+        <div class="vm-rev-list">
             {% if reviews %}
                 {% for review in reviews %}
-                <div class="review-item">
-                    <div class="review-header">
-                        <div class="review-avatar">{{ review.name|first|upper }}</div>
-                        <div class="review-meta">
-                            <div class="review-author">
-                                <h6>{{ review.name }}</h6>
-                                {% if review.is_verified_purchase %}
-                                <span class="verified-badge">
-                                    <i class="fas fa-check-circle"></i> Verified Purchase
+                <article class="vm-rev-card">
+                    <div class="vm-rev-head">
+                        <div class="vm-rev-avatar">{{ review.name|default:"U"|first|upper }}</div>
+                        <div>
+                            <h4 class="vm-rev-author">{{ review.name|default:"Anonymous" }}</h4>
+                            <div class="vm-rev-meta">
+                                <span class="vm-rev-stars">
+                                    {% for i in "12345" %}
+                                        {% if forloop.counter <= review.rating %}
+                                            <i class="fas fa-star"></i>
+                                        {% else %}
+                                            <i class="fal fa-star"></i>
+                                        {% endif %}
+                                    {% endfor %}
                                 </span>
+                                <span>{{ review.created_at|date:"M d, Y" }}</span>
+                                {% if review.is_verified_purchase %}
+                                <span class="vm-rev-badge"><i class="fas fa-check-circle"></i> Verified</span>
                                 {% endif %}
                             </div>
-                            <div class="review-stars">
-                                {% for i in "12345" %}
-                                    {% if forloop.counter <= review.rating %}
-                                        <i class="fas fa-star"></i>
-                                    {% else %}
-                                        <i class="fal fa-star"></i>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                            <div class="review-date">{{ review.created_at|date:"F d, Y" }}</div>
                         </div>
                     </div>
-                    
+
                     {% if review.comment %}
-                    <p class="review-comment">{{ review.comment }}</p>
+                    <p class="vm-rev-comment">{{ review.comment }}</p>
                     {% endif %}
-                    
-                    <!-- Review Images -->
+
                     {% if review.images.all %}
-                    <div class="review-images">
+                    <div class="vm-rev-images">
                         {% for image in review.images.all %}
-                        <div class=\"review-image js-review-image\" data-image-url=\"{{ image.image.url }}\" title=\"Click to open\">
+                        <button type="button" class="vm-rev-image" data-vm-image-url="{{ image.image.url }}" aria-label="Open review image">
                             <img src="{{ image.image.url }}" alt="Review image">
-                        </div>
+                        </button>
                         {% endfor %}
                     </div>
                     {% endif %}
-                    
-                    <!-- Helpfulness Voting -->
-                    <div class="review-helpful">
-                        <span class="helpful-text">Was this helpful?</span>
-                        <div class="helpful-btns">
+
+                    <div class="vm-rev-vote">
+                        <span class="vm-rev-vote-label">Was this review helpful?</span>
+                        <div class="vm-rev-vote-actions">
                             {% if user.is_authenticated %}
-                                <button class="helpful-btn js-vote-helpful {% if user_votes|get_item:review.id %}voted{% endif %}" 
-                                        data-review-id="{{ review.id }}" data-is-helpful="true">
-                                    <i class="fas fa-thumbs-up"></i>
-                                    <span class="helpful-count">{{ review.helpful_count }}</span>
-                                </button>
-                                <button class="helpful-btn js-vote-helpful {% if user_votes|get_item:review.id == False %}voted{% endif %}" 
-                                        data-review-id="{{ review.id }}" data-is-helpful="false">
-                                    <i class="fas fa-thumbs-down"></i>
-                                    <span class="not-helpful-count">{{ review.not_helpful_count }}</span>
-                                </button>
+                            <button type="button" class="vm-rev-vote-btn js-vote-helpful {% if user_votes|get_item:review.id %}is-active{% endif %}" data-review-id="{{ review.id }}" data-is-helpful="true">
+                                <i class="fas fa-thumbs-up"></i>
+                                <span class="helpful-count">{{ review.helpful_count }}</span>
+                            </button>
+                            <button type="button" class="vm-rev-vote-btn js-vote-helpful {% if user_votes|get_item:review.id == False %}is-active{% endif %}" data-review-id="{{ review.id }}" data-is-helpful="false">
+                                <i class="fas fa-thumbs-down"></i>
+                                <span class="not-helpful-count">{{ review.not_helpful_count }}</span>
+                            </button>
                             {% else %}
-                                <span class="text-muted small">
-                                    <a href="{% url 'login' %}?next={{ request.path }}">Login</a> to vote
-                                </span>
+                            <a href="{% url 'login' %}?next={{ request.path }}" class="vm-rev-vote-label">Login to vote</a>
                             {% endif %}
                         </div>
                     </div>
-                </div>
+                </article>
                 {% endfor %}
             {% else %}
-                <div class="no-reviews">
-                    <i class="fal fa-comments"></i>
-                    <p>No reviews yet. Be the first to review this product!</p>
+                <div class="vm-rev-empty">
+                    <i class="far fa-comments" style="font-size: 36px; margin-bottom: 8px;"></i>
+                    <p style="margin: 0;">No reviews yet. Be the first to review this product.</p>
                 </div>
             {% endif %}
         </div>
-        
-        <!-- Q&A Section -->
-        <div class="qa-section">
-            <h4 class="mb-4">Questions & Answers</h4>
-            
-            {% if user.is_authenticated %}
-            <div class="qa-form">
-                <h6 class="mb-3">Have a question about this product?</h6>
-                <form method="POST" action="{% url 'submit_question' product.id %}">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <textarea name="question" class="form-control" rows="3" placeholder="Ask your question here..." required></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Submit Question</button>
-                </form>
-            </div>
-            {% else %}
-            <div class="alert alert-info">
-                <a href="{% url 'login' %}?next={{ request.path }}">Login</a> to ask a question about this product.
-            </div>
-            {% endif %}
-            
-            {% if questions %}
-                {% for qa in questions %}
-                <div class="qa-item">
-                    <div class="qa-question">
-                        <i class="fas fa-question-circle qa-question-icon"></i>
-                        {{ qa.question }}
-                    </div>
-                    <div class="qa-meta">
-                        Asked by {{ qa.user.username }} on {{ qa.created_at|date:"M d, Y" }}
-                    </div>
-                    {% if qa.is_answered %}
-                    <div class="qa-answer">
-                        <i class="fas fa-check-circle qa-answer-icon"></i>
-                        {{ qa.answer }}
-                    </div>
-                    <div class="qa-meta">
-                        Answered on {{ qa.answered_at|date:"M d, Y" }}
-                    </div>
-                    {% else %}
-                    <div class="qa-meta text-muted">
-                        <em>Awaiting answer from our team...</em>
+    </section>
+
+    <section class="vm-rev-panel" data-vm-panel="qa" hidden>
+        <h3 class="vm-rev-qa-title">Questions &amp; Answers</h3>
+
+        {% if user.is_authenticated %}
+            <form method="POST" action="{% url 'submit_question' product.id %}" style="margin-bottom: 18px;">
+                {% csrf_token %}
+                <textarea name="question" rows="3" placeholder="Ask your question about this product..." required style="width: 100%; border: 1px solid #cfd6e4; border-radius: 10px; padding: 12px; resize: vertical;"></textarea>
+                <button type="submit" style="margin-top: 10px; border: none; border-radius: 8px; background: #0f1a2f; color: #fff; min-height: 40px; padding: 0 16px; font-weight: 700;">Submit Question</button>
+            </form>
+        {% else %}
+            <p class="vm-rev-login-note"><a href="{% url 'login' %}?next={{ request.path }}">Login</a> to ask a question about this product.</p>
+        {% endif %}
+
+        {% with qa_list=approved_questions %}
+            {% if qa_list %}
+                {% for qa in qa_list %}
+                <article class="vm-rev-question">
+                    <h5><i class="fas fa-question-circle" style="color: #f5a623;"></i> {{ qa.question }}</h5>
+                    <small>Asked by {{ qa.user.username|default:"Customer" }} on {{ qa.created_at|date:"M d, Y" }}</small>
+                    {% if qa.answer %}
+                    <div class="vm-rev-answer">
+                        <strong><i class="fas fa-check-circle" style="color: var(--vm-rev-good);"></i> Answer:</strong>
+                        <span>{{ qa.answer }}</span>
+                        {% if qa.answered_at %}
+                        <small style="display:block; margin-top: 6px; color: var(--vm-rev-muted);">Answered on {{ qa.answered_at|date:"M d, Y" }}</small>
+                        {% endif %}
                     </div>
                     {% endif %}
-                </div>
+                </article>
                 {% endfor %}
             {% else %}
-                <p class="text-muted text-center py-4">No questions yet. Be the first to ask!</p>
+                <div class="vm-rev-empty">
+                    <i class="far fa-comment-alt" style="font-size: 36px; margin-bottom: 8px;"></i>
+                    <p style="margin: 0;">No questions yet. Be the first to ask.</p>
+                </div>
             {% endif %}
-        </div>
-        
-        <!-- Write Review Form - Hidden for future implementation (will show after order delivered) -->
-        {% comment %}
-        <div class="row mt-5" style="display: none;">
-            <div class="col-xl-12">
-                <div class="product__details-comment">
-                    <div class="comment-title mb-20">
-                       <h3>Write a Review</h3>
-                       <p>Share your thoughts with other customers</p>
-                       {% if not user.is_authenticated %}
-                           <p class="text-danger"><strong>Please <a href="{% url 'login' %}?next={{ request.path }}">login</a> to submit a review.</strong></p>
-                       {% endif %}
-                    </div>
-                    
-                    {% if user.is_authenticated %}
-                    <div class="comment-input-box">
-                       <form method="POST" action="{% url 'submit_review' product.id %}" enctype="multipart/form-data">
-                          {% csrf_token %}
-                          <div class="row">
-                            <div class="col-xxl-12 mb-3">
-                                <label class="form-label fw-bold">Overall rating *</label>
-                                <div class="rating-selector" style="display: flex; gap: 8px; font-size: 32px;">
-                                    <input type="radio" name="rating" value="5" id="star5" checked style="display: none;">
-                                    <label for="star5" style="cursor: pointer; color: #d1d5db;"><i class="fas fa-star"></i></label>
-                                    <input type="radio" name="rating" value="4" id="star4" style="display: none;">
-                                    <label for="star4" style="cursor: pointer; color: #d1d5db;"><i class="fas fa-star"></i></label>
-                                    <input type="radio" name="rating" value="3" id="star3" style="display: none;">
-                                    <label for="star3" style="cursor: pointer; color: #d1d5db;"><i class="fas fa-star"></i></label>
-                                    <input type="radio" name="rating" value="2" id="star2" style="display: none;">
-                                    <label for="star2" style="cursor: pointer; color: #d1d5db;"><i class="fas fa-star"></i></label>
-                                    <input type="radio" name="rating" value="1" id="star1" style="display: none;">
-                                    <label for="star1" style="cursor: pointer; color: #d1d5db;"><i class="fas fa-star"></i></label>
-                                </div>
-                            </div>
-                            <div class="col-xxl-6 col-xl-6">
-                                <div class="comment-input">
-                                   <input type="text" name="name" placeholder="Your Name *" required value="{{ user.get_full_name|default:user.username }}" class="form-control">
-                                </div>
-                             </div>
-                             <div class="col-xxl-6 col-xl-6">
-                                <div class="comment-input">
-                                   <input type="email" name="email" placeholder="Your Email *" required value="{{ user.email }}" class="form-control">
-                                </div>
-                             </div>
-                             <div class="col-xxl-12 mb-3">
-                                   <textarea name="comment" placeholder="Your review (optional)" class="form-control" rows="5"></textarea>
-                             </div>
-                             <div class="col-xxl-12 mb-3">
-                                <label class="form-label">Add Photos (Optional - Max 5)</label>
-                                <input type="file" name="review_images" class="form-control" multiple accept="image/*" onchange="previewImages(this)">
-                                <div id="imagePreview" style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;"></div>
-                             </div>
-                             <div class="col-xxl-12">
-                                <div class="comment-submit">
-                                   <button type="submit" class="btn btn-dark px-4 py-2">Submit Review</button>
-                                   <p class="text-muted small mt-2">Your review will be visible after admin approval.</p>
-                                </div>
-                             </div>
-                          </div>
-                       </form>
-                    </div>
-                    {% endif %}
-                 </div>
-            </div>
-        </div>
-        {% endcomment %}
+        {% endwith %}
+    </section>
 </div>
 
 <script>
-// Star rating selector
-document.querySelectorAll('.rating-selector label').forEach(label => {
-    label.addEventListener('click', function() {
-        const stars = this.parentElement.querySelectorAll('label');
-        const index = Array.from(stars).indexOf(this);
-        
-        stars.forEach((star, i) => {
-            if (i <= index) {
-                star.style.color = '#f59e0b';
-            } else {
-                star.style.color = '#d1d5db';
-            }
-        });
-    });
-});
+(function () {
+    function voteReview(reviewId, isHelpful, button) {
+        const tokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+        const csrfToken = tokenInput ? tokenInput.value : '';
 
-// Image preview
-function previewImages(input) {
-    const preview = document.getElementById('imagePreview');
-    preview.innerHTML = '';
-    
-    if (input.files) {
-        Array.from(input.files).slice(0, 5).forEach((file, index) => {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = document.createElement('img');
-                img.src = e.target.result;
-                img.style.width = '80px';
-                img.style.height = '80px';
-                img.style.objectFit = 'cover';
-                img.style.borderRadius = '8px';
-                img.style.border = '2px solid #e5e7eb';
-                preview.appendChild(img);
-            }
-            reader.readAsDataURL(file);
-        });
+        fetch('/review/' + reviewId + '/vote/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrfToken
+            },
+            body: 'is_helpful=' + (isHelpful ? 'true' : 'false')
+        })
+        .then(function (response) { return response.json(); })
+        .then(function (data) {
+            if (!data.success) return;
+            const card = button.closest('.vm-rev-card');
+            if (!card) return;
+            const helpful = card.querySelector('.helpful-count');
+            const notHelpful = card.querySelector('.not-helpful-count');
+            if (helpful) helpful.textContent = data.helpful_count;
+            if (notHelpful) notHelpful.textContent = data.not_helpful_count;
+            card.querySelectorAll('.js-vote-helpful').forEach(function (btn) {
+                btn.classList.remove('is-active');
+            });
+            button.classList.add('is-active');
+        })
+        .catch(function () {});
     }
-}
 
-// Review voting
-function voteReview(reviewId, isHelpful, button) {
-    fetch(`/review/${reviewId}/vote/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        },
-        body: `is_helpful=${isHelpful}`
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Update counts
-            const container = button.closest('.review-helpful');
-            container.querySelector('.helpful-count').textContent = data.helpful_count;
-            container.querySelector('.not-helpful-count').textContent = data.not_helpful_count;
-            
-            // Update button states
-            container.querySelectorAll('.helpful-btn').forEach(btn => btn.classList.remove('voted'));
-            button.classList.add('voted');
-        }
-    })
-    .catch(error => console.error('Error:', error));
-}
-
-// Global variables for current filter and sort
-let currentRating = '{{ rating_filter|default:"all" }}';
-let currentSort = '{{ sort_by|default:"recent" }}';
-
-// Filter reviews by rating without page reload
-function filterReviews(rating) {
-    currentRating = rating;
-    loadReviews();
-    
-    // Update active button state
-    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
-}
-
-// Sort reviews without page reload
-function sortReviews(sort) {
-    currentSort = sort;
-    loadReviews();
-}
-
-// Load reviews via AJAX
-function loadReviews() {
-    const productId = {{ product.id }};
-    const url = `/product-details/${productId}/?rating=${currentRating}&sort=${currentSort}`;
-    
-    // Show loading state
-    const reviewsList = document.getElementById('reviewsList');
-    reviewsList.style.opacity = '0.5';
-    reviewsList.style.pointerEvents = 'none';
-    
-    fetch(url, {
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.text())
-    .then(html => {
-        // Parse the HTML and extract only the reviews list content
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        const newReviewsList = doc.getElementById('reviewsList');
-        
-        if (newReviewsList) {
-            reviewsList.innerHTML = newReviewsList.innerHTML;
-        }
-        
-        // Restore interactive state
-        reviewsList.style.opacity = '1';
-        reviewsList.style.pointerEvents = 'auto';
-        
-        // Update URL without page reload
-        const newUrl = `/product-details/${productId}/?rating=${currentRating}&sort=${currentSort}`;
-        window.history.pushState({}, '', newUrl);
-    })
-    .catch(error => {
-        console.error('Error loading reviews:', error);
-        reviewsList.style.opacity = '1';
-        reviewsList.style.pointerEvents = 'auto';
-    });
-}
-
-// Tab switching functionality
-document.addEventListener('DOMContentLoaded', function() {
-    const tabLinks = document.querySelectorAll('.review-tabs a');
-    
-    tabLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Remove active class from all tabs
-            document.querySelectorAll('.review-tabs li').forEach(li => li.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            // Add active class to clicked tab
-            this.parentElement.classList.add('active');
-            const tabId = this.getAttribute('data-tab');
-            document.getElementById(tabId).classList.add('active');
+    function setQueryAndGo(updates) {
+        const params = new URLSearchParams(window.location.search);
+        Object.keys(updates).forEach(function (key) {
+            params.set(key, updates[key]);
         });
-    });
-});
-</script>
-
-</div> <!-- End Reviews Tab -->
-
-<!-- Questions Tab Content -->
-<div id="questions-tab" class="tab-content">
-    <div class="qa-section">
-        <h4 style="margin-bottom: 25px; font-size: 22px; font-weight: 600;">Product Questions & Answers</h4>
-        
-        <!-- Question Submission Form -->
-        <div class="qa-form">
-            <h5 class="qa-form-title">Have a question about this product?</h5>
-            <form method="POST" action="{% url 'submit_question' product.id %}">
-                {% csrf_token %}
-                <textarea name="question" placeholder="Type your question here..." required></textarea>
-                <button type="submit" class="qa-submit-btn">
-                    <i class="fas fa-paper-plane"></i> Submit Question
-                </button>
-            </form>
-            {% if user.is_authenticated %}
-                <p style="margin-top: 10px; font-size: 13px; color: #6b7280;">
-                    <i class="fas fa-info-circle"></i> Your question will be reviewed by our team before appearing here.
-                </p>
-            {% else %}
-                <p style="margin-top: 10px; font-size: 13px; color: #dc2626;">
-                    <i class="fas fa-exclamation-circle"></i> Please <a href="{% url 'login' %}?next={{ request.path }}" style="color: #dc2626; text-decoration: underline;">login</a> to submit a question.
-                </p>
-            {% endif %}
-        </div>
-        
-        <!-- Approved Questions List -->
-        {% if approved_questions %}
-            <div class="qa-list">
-                {% for question in approved_questions %}
-                <div class="qa-item">
-                    <div class="qa-question">
-                        <i class="fas fa-question-circle qa-question-icon"></i>
-                        {{ question.question }}
-                    </div>
-                    <div class="qa-meta">
-                        Asked by {{ question.user.username }} on {{ question.created_at|date:"M d, Y" }}
-                    </div>
-                    
-                    {% if question.answer %}
-                    <div class="qa-answer">
-                        <i class="fas fa-check-circle qa-answer-icon"></i>
-                        <strong>Answer:</strong> {{ question.answer }}
-                    </div>
-                    <div class="qa-meta">
-                        Answered by {{ question.answered_by.username }} on {{ question.answered_at|date:"M d, Y" }}
-                    </div>
-                    {% endif %}
-                </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="no-reviews">
-                <i class="fas fa-comments"></i>
-                <p>No questions yet. Be the first to ask!</p>
-            </div>
-        {% endif %}
-    </div>
-</div> <!-- End Questions Tab -->
-
-</div> <!-- End product__details-review -->
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    // Filter buttons
-    document.querySelectorAll('.js-filter-btn').forEach(function (btn) {
-        btn.addEventListener('click', function (event) {
-            const filter = this.getAttribute('data-filter');
-            filterReviews(filter);
-        });
-    });
-    
-    // Sort dropdown
-    const sortSelect = document.getElementById('sortSelect');
-    if (sortSelect) {
-        sortSelect.addEventListener('change', function (event) {
-            sortReviews(this.value);
-        });
+        window.location.search = params.toString();
     }
-    
-    // Review images
-    document.querySelectorAll('.js-review-image').forEach(function (img) {
-        img.addEventListener('click', function (event) {
-            const url = this.getAttribute('data-image-url');
-            window.open(url, '_blank');
+
+    document.querySelectorAll('[data-vm-reviews]').forEach(function (root) {
+        const tabs = root.querySelectorAll('.vm-rev-tab');
+        const panels = root.querySelectorAll('.vm-rev-panel');
+
+        tabs.forEach(function (tab) {
+            tab.addEventListener('click', function () {
+                const key = tab.getAttribute('data-vm-tab');
+                tabs.forEach(function (t) {
+                    t.classList.remove('is-active');
+                    t.setAttribute('aria-selected', 'false');
+                });
+                tab.classList.add('is-active');
+                tab.setAttribute('aria-selected', 'true');
+
+                panels.forEach(function (panel) {
+                    if (panel.getAttribute('data-vm-panel') === key) {
+                        panel.removeAttribute('hidden');
+                    } else {
+                        panel.setAttribute('hidden', 'hidden');
+                    }
+                });
+            });
+        });
+
+        root.querySelectorAll('.vm-rev-filter').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                setQueryAndGo({ rating: btn.getAttribute('data-filter') || 'all' });
+            });
+        });
+
+        const sortSelect = root.querySelector('[data-vm-sort]');
+        if (sortSelect) {
+            sortSelect.addEventListener('change', function () {
+                setQueryAndGo({ sort: sortSelect.value || 'recent' });
+            });
+        }
+
+        root.querySelectorAll('[data-vm-image-url]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const url = btn.getAttribute('data-vm-image-url');
+                if (url) window.open(url, '_blank');
+            });
+        });
+
+        root.querySelectorAll('.js-vote-helpful').forEach(function (button) {
+            button.addEventListener('click', function () {
+                const reviewId = button.getAttribute('data-review-id');
+                const isHelpful = button.getAttribute('data-is-helpful') === 'true';
+                voteReview(reviewId, isHelpful, button);
+            });
         });
     });
-    
-    // Vote buttons
-    document.querySelectorAll('.js-vote-helpful').forEach(function (btn) {
-        btn.addEventListener('click', function (event) {
-            const reviewId = this.getAttribute('data-review-id');
-            const isHelpful = this.getAttribute('data-is-helpful') === 'true';
-            voteReview(reviewId, isHelpful, this);
-        });
-    });
-});
+})();
 </script>

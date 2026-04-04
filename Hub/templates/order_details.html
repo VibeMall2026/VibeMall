@@ -1,499 +1,538 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% load static %}
 
 {% block title %}Order #{{ order.order_number }} - VibeMall{% endblock %}
-{% block body_class %}vm-page-mobile-alt vm-page-mobile-orderdetails{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-orderdetails-tablet-page{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'assets/css/orderdetails-responsive.css' %}?v=20260329-01">
-<link rel="stylesheet" href="{% static 'assets/css/orderdetails-mobile-alt.css' %}?v=20260329-01">
+<style>
+.vm-orderdetails-tablet-page {
+    background: #fbf9f4;
+}
+
+.vm-odt-wrap {
+    width: min(100%, 1024px);
+    margin: 0 auto;
+    padding: 132px 24px 72px;
+}
+
+.vm-odt-title {
+    margin: 0;
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: clamp(36px, 6vw, 52px);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    color: #171818;
+}
+
+.vm-odt-title-bar {
+    width: 52px;
+    height: 4px;
+    margin-top: 10px;
+    background: #6f5c37;
+}
+
+.vm-odt-info {
+    margin-top: 28px;
+    padding: 22px;
+    border-radius: 12px;
+    background: #f5f3ee;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    align-items: end;
+}
+
+.vm-odt-label {
+    margin: 0 0 4px;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    font-weight: 800;
+    color: #6f7474;
+    text-transform: uppercase;
+}
+
+.vm-odt-value {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 800;
+    color: #171818;
+}
+
+.vm-odt-chip {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.11em;
+}
+
+.vm-odt-chip--status {
+    background: #e4e2e1;
+    color: #474747;
+}
+
+.vm-odt-chip--status.delivered {
+    background: #d7ecd8;
+    color: #2f6f3e;
+}
+
+.vm-odt-chip--status.cancelled {
+    background: #ffdad6;
+    color: #93000a;
+}
+
+.vm-odt-chip--status.pending {
+    background: #f7dcae;
+    color: #6f5c37;
+}
+
+.vm-odt-actions {
+    margin-top: 22px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.vm-odt-btn {
+    min-height: 44px;
+    padding: 0 18px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+
+.vm-odt-btn--primary {
+    background: #171818;
+    color: #fff;
+}
+
+.vm-odt-btn--soft {
+    background: #eae8e3;
+    color: #171818;
+}
+
+.vm-odt-btn--danger {
+    background: transparent;
+    border-color: #d8b4b4;
+    color: #93000a;
+}
+
+.vm-odt-grid {
+    margin-top: 30px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.vm-odt-card {
+    background: #f0eee9;
+    border-radius: 12px;
+    padding: 22px;
+}
+
+.vm-odt-card h3 {
+    margin: 0 0 14px;
+    font-size: 20px;
+    color: #171818;
+}
+
+.vm-odt-card p,
+.vm-odt-card strong {
+    margin: 0;
+    color: #171818;
+    line-height: 1.65;
+}
+
+.vm-odt-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.vm-odt-note {
+    margin-top: 14px;
+    border-radius: 8px;
+    border: 1px solid #d6d9d9;
+    background: #f5f3ee;
+    padding: 11px 13px;
+    color: #4a5050;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.vm-odt-note--success {
+    border-color: #b7e6c9;
+    background: #eaf8ef;
+    color: #1f6d45;
+}
+
+.vm-odt-items {
+    margin-top: 30px;
+}
+
+.vm-odt-items-head {
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.vm-odt-items-head h3 {
+    margin: 0;
+    font-size: 22px;
+}
+
+.vm-odt-items-head span {
+    color: #6f7474;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.vm-odt-item {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: center;
+    padding: 14px 0;
+    border-top: 1px solid rgba(196, 199, 199, 0.34);
+}
+
+.vm-odt-item-media {
+    width: 72px;
+    height: 72px;
+    border-radius: 8px;
+    background: #e4e2dd;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.vm-odt-item-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.vm-odt-item h4 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 800;
+    color: #171818;
+}
+
+.vm-odt-item p {
+    margin: 4px 0 0;
+    font-size: 10px;
+    color: #6f7474;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.vm-odt-item-price {
+    text-align: right;
+}
+
+.vm-odt-item-price span {
+    display: block;
+    color: #6f7474;
+    font-size: 10px;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+}
+
+.vm-odt-item-price strong {
+    color: #171818;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.vm-odt-totals {
+    margin-top: 28px;
+    margin-left: auto;
+    width: min(100%, 340px);
+}
+
+.vm-odt-total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 0;
+    color: #4c5151;
+    font-size: 12px;
+}
+
+.vm-odt-total-row strong {
+    color: #171818;
+}
+
+.vm-odt-total-row--grand {
+    margin-top: 8px;
+    padding-top: 10px;
+    border-top: 2px solid #171818;
+}
+
+.vm-odt-total-row--grand span {
+    font-size: 11px;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+    font-weight: 800;
+}
+
+.vm-odt-total-row--grand strong {
+    font-size: 30px;
+    font-family: 'Noto Serif', Georgia, serif;
+}
+
+.vm-odt-help {
+    margin-top: 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    border-top: 1px solid rgba(196, 199, 199, 0.4);
+    padding-top: 16px;
+}
+
+.vm-odt-help p {
+    margin: 0;
+    color: #585d5d;
+    font-weight: 600;
+}
+
+.vm-odt-help a {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    color: #5e4b27;
+    text-decoration: none;
+}
+
+@media (max-width: 991.98px) {
+    .vm-odt-wrap {
+        padding: 116px 16px 44px;
+    }
+
+    .vm-odt-info,
+    .vm-odt-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .vm-odt-item {
+        grid-template-columns: 58px minmax(0, 1fr);
+    }
+
+    .vm-odt-item-price {
+        grid-column: 2;
+        text-align: left;
+    }
+
+    .vm-odt-help {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+</style>
 {% endblock %}
 
 {% block content %}
-<section class="vm-orderdetails-mobile-only" aria-label="Order details mobile view">
-    {% include 'partials/vm_mobile_alt_header.html' %}
+<div class="vm-odt-wrap">
+    <h1 class="vm-odt-title">Order Detail</h1>
+    <div class="vm-odt-title-bar"></div>
 
-    <main class="vm-orderdetails-m-main vm-mobile-content-offset">
-        <a href="{% url 'order_list' %}" class="vm-orderdetails-m-back">
-            <i class="fas fa-arrow-left"></i>
-            <span>Back to Orders</span>
+    <section class="vm-odt-info" aria-label="Order summary">
+        <div>
+            <p class="vm-odt-label">Order Reference</p>
+            <p class="vm-odt-value">#{{ order.order_number }}</p>
+        </div>
+        <div>
+            <p class="vm-odt-label">Date Placed</p>
+            <p class="vm-odt-value">{{ order.created_at|date:"d F, Y" }}</p>
+        </div>
+        <div>
+            <p class="vm-odt-label">Order Status</p>
+            <span class="vm-odt-chip vm-odt-chip--status {{ order.order_status|lower }}">{{ order.get_order_status_display }}</span>
+        </div>
+    </section>
+
+    <div class="vm-odt-actions">
+        <a href="{% url 'order_tracking' order.order_number %}" class="vm-odt-btn vm-odt-btn--primary">
+            <i class="fas fa-map-marker-alt"></i>
+            <span>Track Order</span>
         </a>
-
-        <section class="vm-orderdetails-m-banner">
-            <img src="{% static 'assets/img/banner/page-banner-4.jpg' %}" alt="Order details banner">
-            <div class="vm-orderdetails-m-banner__overlay"></div>
-            <div class="vm-orderdetails-m-banner__content">
-                <span>Order Details</span>
-                <h2>#{{ order.order_number }}</h2>
-                <p>Placed on {{ order.created_at|date:"d M Y, h:i A" }}</p>
-            </div>
-        </section>
-
-        <section class="vm-orderdetails-m-summary">
-            <div class="vm-orderdetails-m-summary__top">
-                <div>
-                    <span class="vm-orderdetails-m-label">Status</span>
-                    <span class="vm-orderdetails-m-status vm-orderdetails-m-status--{{ order.order_status|lower }}">
-                        {{ order.get_order_status_display }}
-                    </span>
-                </div>
-                <div class="vm-orderdetails-m-summary__right">
-                    <span class="vm-orderdetails-m-label">Payment Status</span>
-                    <span class="vm-orderdetails-m-status vm-orderdetails-m-status--payment-{{ order.payment_status|lower }}">
-                        {% if order.payment_method == 'COD' and order.order_status == 'DELIVERED' %}
-                            Paid (COD)
-                        {% else %}
-                            {{ order.get_payment_status_display }}
-                        {% endif %}
-                    </span>
-                </div>
-            </div>
-
-            <div class="vm-orderdetails-m-summary__grid">
-                <div class="vm-orderdetails-m-summary__cell">
-                    <span class="vm-orderdetails-m-label">Payment</span>
-                    <strong>{{ order.get_payment_method_display }}</strong>
-                </div>
-                <div class="vm-orderdetails-m-summary__cell">
-                    <span class="vm-orderdetails-m-label">Total</span>
-                    <strong>&#8377;{{ order.total_amount }}</strong>
-                </div>
-                <div class="vm-orderdetails-m-summary__cell">
-                    <span class="vm-orderdetails-m-label">Updated</span>
-                    <strong>{{ order.updated_at|date:"d M Y" }}</strong>
-                </div>
-                <div class="vm-orderdetails-m-summary__cell">
-                    <span class="vm-orderdetails-m-label">Items</span>
-                    <strong>{{ order_items|length }} Item{{ order_items|length|pluralize }}</strong>
-                </div>
-            </div>
-
-            {% if order.is_resell %}
-            <div class="vm-orderdetails-m-chip">
-                <i class="fas fa-recycle"></i>
-                <span>Resell Order</span>
-            </div>
-            {% endif %}
-        </section>
-
-        {% if not active_return and not is_return_eligible and return_reason %}
-        <section class="vm-orderdetails-m-note">
-            <i class="fas fa-info-circle"></i>
-            <p>{{ return_reason }}</p>
-        </section>
-        {% elif is_return_eligible and return_deadline %}
-        <section class="vm-orderdetails-m-note vm-orderdetails-m-note--success">
-            <i class="fas fa-check-circle"></i>
-            <p>Return eligible until {{ return_deadline|date:"d M Y" }}</p>
-        </section>
+        <a href="{% url 'download_invoice' order.order_number %}" class="vm-odt-btn vm-odt-btn--soft">
+            <i class="fas fa-download"></i>
+            <span>Download Invoice</span>
+        </a>
+        {% if active_return %}
+        <a href="{% url 'return_status' active_return.id %}" class="vm-odt-btn vm-odt-btn--soft">
+            <i class="fas fa-undo"></i>
+            <span>Return: {{ active_return.status|title }}</span>
+        </a>
+        {% elif is_return_eligible %}
+        <a href="{% url 'return_request' order.id %}" class="vm-odt-btn vm-odt-btn--soft">
+            <i class="fas fa-undo"></i>
+            <span>Request Return</span>
+        </a>
         {% endif %}
-
-        {% if not cancel_eligible and cancel_reason %}
-        <section class="vm-orderdetails-m-note">
-            <i class="fas fa-info-circle"></i>
-            <p>{{ cancel_reason }}</p>
-        </section>
-        {% elif cancel_eligible and cancel_deadline %}
-        <section class="vm-orderdetails-m-note vm-orderdetails-m-note--success">
-            <i class="fas fa-check-circle"></i>
-            <p>Cancellation available until {{ cancel_deadline|date:"d M Y, h:i A" }}</p>
-        </section>
+        {% if not cancel_request and cancel_eligible %}
+        <button type="button" class="vm-odt-btn vm-odt-btn--danger" data-bs-toggle="modal" data-bs-target="#cancelOrderModal">
+            <i class="fas fa-ban"></i>
+            <span>Request Cancel</span>
+        </button>
         {% endif %}
+    </div>
 
-        <section class="vm-orderdetails-m-card">
-            <div class="vm-orderdetails-m-card__head">
-                <i class="fas fa-truck"></i>
-                <h3>Shipping Destination</h3>
+    <section class="vm-odt-grid" aria-label="Addresses and payment">
+        <article class="vm-odt-card">
+            <h3>Shipping Destination</h3>
+            <div class="vm-odt-list">
+                <p>{{ order.shipping_address|linebreaksbr }}</p>
             </div>
-            <p class="vm-orderdetails-m-address">{{ order.shipping_address|linebreaksbr }}</p>
-        </section>
-
-        {% if order.is_resell and order.resell_from_name %}
-        <section class="vm-orderdetails-m-card vm-orderdetails-m-card--accent">
-            <div class="vm-orderdetails-m-card__head">
-                <i class="fas fa-user"></i>
-                <h3>Original Sender</h3>
-            </div>
-            <div class="vm-orderdetails-m-detail-list">
-                <div>
-                    <span class="vm-orderdetails-m-label">Name</span>
-                    <strong>{{ order.resell_from_name }}</strong>
-                </div>
-                {% if order.resell_from_phone %}
-                <div>
-                    <span class="vm-orderdetails-m-label">Phone</span>
-                    <strong>{{ order.resell_from_phone }}</strong>
-                </div>
+        </article>
+        <article class="vm-odt-card">
+            <h3>Payment Architecture</h3>
+            <div class="vm-odt-list">
+                <strong>Method: {{ order.get_payment_method_display }}</strong>
+                {% if order.payment_method == 'COD' and order.order_status == 'DELIVERED' %}
+                <strong>Payment Status: Paid (COD)</strong>
+                {% else %}
+                <strong>Payment Status: {{ order.get_payment_status_display }}</strong>
+                {% endif %}
+                <p>Billing: {{ order.billing_address|linebreaksbr }}</p>
+                {% if order.courier_name %}
+                <p>Courier: {{ order.courier_name }}</p>
+                {% endif %}
+                {% if order.tracking_number %}
+                <p>Tracking: {{ order.tracking_number }}</p>
                 {% endif %}
             </div>
-        </section>
-        {% endif %}
+        </article>
+    </section>
 
-        <section class="vm-orderdetails-m-items">
-            <div class="vm-orderdetails-m-section-head">
-                <h3>Your Selection</h3>
-                <span>{{ order_items|length }} item{{ order_items|length|pluralize }}</span>
-            </div>
+    {% if not active_return and not is_return_eligible and return_reason %}
+    <div class="vm-odt-note">
+        <i class="fas fa-info-circle"></i>
+        <span>{{ return_reason }}</span>
+    </div>
+    {% elif is_return_eligible and return_deadline %}
+    <div class="vm-odt-note vm-odt-note--success">
+        <i class="fas fa-check-circle"></i>
+        <span>Return eligible until {{ return_deadline|date:"d M Y" }}</span>
+    </div>
+    {% endif %}
 
-            <div class="vm-orderdetails-m-item-list">
-                {% for item in order_items %}
-                <article class="vm-orderdetails-m-item">
-                    <div class="vm-orderdetails-m-item__media">
-                        {% if item.product_image %}
-                        <img src="{{ item.product_image }}" alt="{{ item.product_name }}">
-                        {% elif item.product and item.product.image %}
-                        <img src="{{ item.product.image.url }}" alt="{{ item.product_name }}">
-                        {% else %}
-                        <div class="vm-orderdetails-m-item__placeholder">
-                            <i class="fas fa-box"></i>
-                        </div>
-                        {% endif %}
-                    </div>
+    {% if not cancel_eligible and cancel_reason %}
+    <div class="vm-odt-note">
+        <i class="fas fa-info-circle"></i>
+        <span>{{ cancel_reason }}</span>
+    </div>
+    {% elif cancel_eligible and cancel_deadline %}
+    <div class="vm-odt-note vm-odt-note--success">
+        <i class="fas fa-check-circle"></i>
+        <span>Cancellation available until {{ cancel_deadline|date:"d M Y, h:i A" }}</span>
+    </div>
+    {% endif %}
 
-                    <div class="vm-orderdetails-m-item__body">
-                        <span class="vm-orderdetails-m-item__eyebrow">Order Item</span>
-                        <h4>{{ item.product_name }}</h4>
-                        <p>{{ item.color|default:"Color N/A" }} / {{ item.size|default:"Size N/A" }}</p>
+    {% if cancel_request %}
+    <div class="vm-odt-note">
+        <i class="fas fa-ban"></i>
+        <span>Cancellation Request Status: {{ cancel_request.get_status_display }}</span>
+    </div>
+    {% endif %}
 
-                        <div class="vm-orderdetails-m-item__meta">
-                            <span>Qty: {{ item.quantity }}</span>
-                            <span>Price: &#8377;{{ item.product_price }}</span>
-                        </div>
+    <section class="vm-odt-items" aria-label="Order items">
+        <div class="vm-odt-items-head">
+            <h3>Order Contents</h3>
+            <span>{{ order_items|length }} item{{ order_items|length|pluralize }}</span>
+        </div>
 
-                        <div class="vm-orderdetails-m-item__footer">
-                            <strong>&#8377;{{ item.subtotal }}</strong>
-                            {% if item.product %}
-                            <a href="{% url 'product-details' item.product.id %}">View Product</a>
-                            {% endif %}
-                        </div>
-                    </div>
-                </article>
-                {% empty %}
-                <div class="vm-orderdetails-m-empty">
-                    <h4>No items found</h4>
-                    <p>This order does not have any visible items yet.</p>
-                </div>
-                {% endfor %}
-            </div>
-        </section>
-
-        <section class="vm-orderdetails-m-totals">
-            <div class="vm-orderdetails-m-totals__row">
-                <span>Subtotal</span>
-                <span>&#8377;{{ order.subtotal }}</span>
-            </div>
-            {% if order.shipping_cost %}
-            <div class="vm-orderdetails-m-totals__row">
-                <span>Shipping</span>
-                <span>&#8377;{{ order.shipping_cost }}</span>
-            </div>
-            {% else %}
-            <div class="vm-orderdetails-m-totals__row">
-                <span>Shipping</span>
-                <span>Complimentary</span>
-            </div>
-            {% endif %}
-            {% if order.tax %}
-            <div class="vm-orderdetails-m-totals__row">
-                <span>Tax</span>
-                <span>&#8377;{{ order.tax }}</span>
-            </div>
-            {% endif %}
-            {% if order.coupon_discount %}
-            <div class="vm-orderdetails-m-totals__row">
-                <span>Discount</span>
-                <span>-&#8377;{{ order.coupon_discount }}</span>
-            </div>
-            {% endif %}
-            <div class="vm-orderdetails-m-totals__row vm-orderdetails-m-totals__row--grand">
-                <span>Total Amount</span>
-                <strong>&#8377;{{ order.total_amount }}</strong>
-            </div>
-        </section>
-
-        <section class="vm-orderdetails-m-actions">
-            <a href="{% url 'order_tracking' order.order_number %}" class="vm-orderdetails-m-btn vm-orderdetails-m-btn--primary">
-                <i class="fas fa-map-marker-alt"></i>
-                <span>Track Order</span>
-            </a>
-
-            <a href="{% url 'download_invoice' order.order_number %}" class="vm-orderdetails-m-btn vm-orderdetails-m-btn--secondary">
-                <i class="fas fa-download"></i>
-                <span>Download Invoice</span>
-            </a>
-
-            {% if active_return %}
-            <a href="{% url 'return_status' active_return.id %}" class="vm-orderdetails-m-btn vm-orderdetails-m-btn--secondary">
-                <i class="fas fa-undo"></i>
-                <span>Return: {{ active_return.status|title }}</span>
-            </a>
-            {% elif is_return_eligible %}
-            <a href="{% url 'return_request' order.id %}" class="vm-orderdetails-m-btn vm-orderdetails-m-btn--secondary">
-                <i class="fas fa-undo"></i>
-                <span>Request Return</span>
-            </a>
-            {% endif %}
-
-            {% if cancel_request %}
-            <div class="vm-orderdetails-m-status-card">
-                <span class="vm-orderdetails-m-label">Cancellation</span>
-                <strong>{{ cancel_request.get_status_display }}</strong>
-            </div>
-            {% elif cancel_eligible %}
-            <button type="button" class="vm-orderdetails-m-btn vm-orderdetails-m-btn--ghost" data-bs-toggle="modal" data-bs-target="#cancelOrderModal">
-                <i class="fas fa-ban"></i>
-                <span>Request Cancel</span>
-            </button>
-            {% endif %}
-        </section>
-
-        <section class="vm-orderdetails-m-help">
-            <p>Having issues with your order?</p>
-            <a href="{% url 'contact' %}">Contact Concierge</a>
-        </section>
-
-        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='order-details-mobile' %}
-    </main>
-
-    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
-</section>
-
-<div class="vm-orderdetails-legacy-content">
-<div class="container my-5">
-    <div class="row">
-        <div class="col-12">
-            <!-- Back Button -->
-            <a href="{% url 'order_list' %}" class="btn btn-outline-secondary mb-3">
-                <i class="fas fa-arrow-left"></i> Back to Orders
-            </a>
-            
-            <!-- Order Header -->
-            <div class="card mb-4">
-                <div class="card-header bg-dark text-white">
-                    <div class="row align-items-center">
-                        <div class="col-md-6">
-                            <h4 class="mb-0">Order #{{ order.order_number }}</h4>
-                            <small>Placed on {{ order.created_at|date:"d F Y, h:i A" }}</small>
-                        </div>
-                        <div class="col-md-6 text-md-end">
-                            {% if order.is_resell %}
-                                <span class="badge bg-purple fs-6" style="background-color: #6f42c1;">
-                                    <i class="fas fa-recycle"></i> Resell Order
-                                </span>
-                            {% endif %}
-                            <a href="{% url 'order_tracking' order.order_number %}" class="btn btn-info btn-sm ms-2">
-                                <i class="fas fa-map-marker-alt"></i> Track Order
-                            </a>
-                            <a href="{% url 'download_invoice' order.order_number %}" class="btn btn-success btn-sm ms-2">
-                                <i class="fas fa-download"></i> Download Invoice
-                            </a>
-                            {% if active_return %}
-                                <a href="{% url 'return_status' active_return.id %}" class="btn btn-outline-warning btn-sm ms-2">
-                                    <i class="fas fa-undo"></i> Return: {{ active_return.status|title }}
-                                </a>
-                            {% elif is_return_eligible %}
-                                <a href="{% url 'return_request' order.id %}" class="btn btn-warning btn-sm ms-2">
-                                    <i class="fas fa-undo"></i> Request Return
-                                </a>
-                            {% endif %}
-                            {% if cancel_request %}
-                                <span class="badge bg-secondary fs-6 ms-2">Cancel: {{ cancel_request.get_status_display }}</span>
-                            {% elif cancel_eligible %}
-                                <button type="button" class="btn btn-danger btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#cancelOrderModal">
-                                    <i class="fas fa-ban"></i> Request Cancel
-                                </button>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <h6 class="text-muted">Order Status</h6>
-                            <h5>
-                                {% if order.order_status == 'PENDING' %}
-                                    <span class="badge bg-warning">Pending</span>
-                                {% elif order.order_status == 'PROCESSING' %}
-                                    <span class="badge bg-info">Processing</span>
-                                {% elif order.order_status == 'SHIPPED' %}
-                                    <span class="badge bg-primary">Shipped</span>
-                                {% elif order.order_status == 'DELIVERED' %}
-                                    <span class="badge bg-success">Delivered</span>
-                                {% elif order.order_status == 'CANCELLED' %}
-                                    <span class="badge bg-danger">Cancelled</span>
-                                {% endif %}
-                            </h5>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <h6 class="text-muted">Payment Status</h6>
-                            <h5>
-                                {% if order.payment_method == 'COD' and order.order_status == 'DELIVERED' %}
-                                    <span class="badge bg-success">Paid (COD)</span>
-                                {% elif order.payment_status == 'PAID' %}
-                                    <span class="badge bg-success">Paid</span>
-                                {% elif order.payment_status == 'PENDING' %}
-                                    <span class="badge bg-warning">Pending</span>
-                                {% elif order.payment_status == 'REFUNDED' %}
-                                    <span class="badge bg-info">Refunded</span>
-                                {% else %}
-                                    <span class="badge bg-danger">Failed</span>
-                                {% endif %}
-                            </h5>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <h6 class="text-muted">Payment Method</h6>
-                            <p>{{ order.payment_method|upper }}</p>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <h6 class="text-muted">Total Amount</h6>
-                            <h5 class="text-success">&#8377;{{ order.total_amount }}</h5>
-                        </div>
-                    </div>
-                    {% if not active_return and not is_return_eligible and return_reason %}
-                        <div class="alert alert-light border mt-2 mb-0">
-                            <i class="fas fa-info-circle"></i> {{ return_reason }}
-                        </div>
-                    {% elif is_return_eligible and return_deadline %}
-                        <div class="alert alert-success border mt-2 mb-0">
-                            <i class="fas fa-check-circle"></i> Return eligible until {{ return_deadline|date:"d M Y" }}
-                        </div>
-                    {% endif %}
-                    {% if not cancel_eligible and cancel_reason %}
-                        <div class="alert alert-light border mt-2 mb-0">
-                            <i class="fas fa-info-circle"></i> {{ cancel_reason }}
-                        </div>
-                    {% elif cancel_eligible and cancel_deadline %}
-                        <div class="alert alert-success border mt-2 mb-0">
-                            <i class="fas fa-check-circle"></i> Cancellation available until {{ cancel_deadline|date:"d M Y, h:i A" }}
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Shipping & Resell Information -->
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <div class="card h-100">
-                        <div class="card-header bg-light">
-                            <h5 class="mb-0">Shipping Address</h5>
-                        </div>
-                        <div class="card-body">
-                            <p class="mb-0" style="white-space: pre-line;">{{ order.shipping_address }}</p>
-                        </div>
-                    </div>
-                </div>
-                
-                {% if order.is_resell and order.resell_from_name %}
-                <div class="col-md-6">
-                    <div class="card h-100 border-purple" style="border-color: #6f42c1 !important;">
-                        <div class="card-header" style="background-color: #6f42c1; color: white;">
-                            <h5 class="mb-0">
-                                <i class="fas fa-user"></i> FROM (Original Sender)
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <p class="mb-1"><strong>Name:</strong> {{ order.resell_from_name }}</p>
-                            {% if order.resell_from_phone %}
-                            <p class="mb-1"><strong>Phone:</strong> {{ order.resell_from_phone }}</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
+        {% for item in order_items %}
+        <article class="vm-odt-item">
+            <div class="vm-odt-item-media">
+                {% if item.display_image_url %}
+                <img src="{{ item.display_image_url }}" alt="{{ item.product_name }}">
+                {% elif item.product and item.product.image %}
+                <img src="{{ item.product.image.url }}" alt="{{ item.product_name }}">
+                {% else %}
+                <i class="fas fa-box"></i>
                 {% endif %}
             </div>
-
-            <!-- Order Items -->
-            <div class="card">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0">Order Items</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Product</th>
-                                    <th>Size</th>
-                                    <th>Color</th>
-                                    <th>Quantity</th>
-                                    <th>Price</th>
-                                    <th>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for item in order_items %}
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center gap-3">
-                                            {% if item.product_image %}
-                                            <img src="{{ item.product_image }}" alt="{{ item.product_name }}" 
-                                                 style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px; border: 2px solid #f0f0f0;">
-                                            {% elif item.product and item.product.image %}
-                                            <img src="{{ item.product.image.url }}" alt="{{ item.product_name }}" 
-                                                 style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px; border: 2px solid #f0f0f0;">
-                                            {% else %}
-                                            <div style="width: 70px; height: 70px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                                                <i class="fas fa-box" style="font-size: 30px; color: white;"></i>
-                                            </div>
-                                            {% endif %}
-                                            <div>
-                                                <strong style="font-size: 15px;">{{ item.product_name }}</strong>
-                                                {% if item.product %}
-                                                <br>
-                                                <a href="{% url 'product-details' item.product.id %}" class="btn btn-sm btn-outline-primary mt-1" style="font-size: 11px;">
-                                                    <i class="fas fa-eye"></i> View Product
-                                                </a>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>{{ item.size|default:"N/A" }}</td>
-                                    <td>{{ item.color|default:"N/A" }}</td>
-                                    <td>
-                                        <span class="badge bg-primary">{{ item.quantity }}</span>
-                                    </td>
-                                    <td>&#8377;{{ item.product_price }}</td>
-                                    <td><strong>&#8377;{{ item.subtotal }}</strong></td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                            <tfoot class="table-light">
-                                <tr>
-                                    <td colspan="5" class="text-end"><strong>Subtotal (Incl. Tax):</strong></td>
-                                    <td><strong>&#8377;{{ order.subtotal }}</strong></td>
-                                </tr>
-                                {% if order.shipping_cost %}
-                                <tr>
-                                    <td colspan="5" class="text-end"><strong>Shipping:</strong></td>
-                                    <td><strong>&#8377;{{ order.shipping_cost }}</strong></td>
-                                </tr>
-                                <tr class="table-success">
-                                    <td colspan="5" class="text-end"><strong>Grand Total:</strong></td>
-                                    <td><strong>&#8377;{{ order.total_amount }}</strong></td>
-                                </tr>
-                                {% else %}
-                                <tr class="table-success">
-                                    <td colspan="5" class="text-end"><strong>Grand Total:</strong></td>
-                                    <td><strong>&#8377;{{ order.total_amount }}</strong></td>
-                                </tr>
-                                {% endif %}
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
+            <div>
+                <h4>{{ item.product_name }}</h4>
+                <p>SKU: {{ item.product.sku|default:'N/A' }} • {{ item.color|default:'N/A' }} • {{ item.size|default:'N/A' }}</p>
             </div>
-</div>
-</div>
-</div>
+            <div class="vm-odt-item-price">
+                <span>Qty: {{ item.quantity }}</span>
+                <strong>&#8377;{{ item.subtotal }}</strong>
+            </div>
+        </article>
+        {% empty %}
+        <div class="vm-odt-note">
+            <i class="fas fa-info-circle"></i>
+            <span>No items found for this order.</span>
+        </div>
+        {% endfor %}
+    </section>
+
+    <section class="vm-odt-totals" aria-label="Order total">
+        <div class="vm-odt-total-row">
+            <span>Subtotal</span>
+            <strong>&#8377;{{ order.subtotal }}</strong>
+        </div>
+        <div class="vm-odt-total-row">
+            <span>Shipping</span>
+            <strong>{% if order.shipping_cost %}&#8377;{{ order.shipping_cost }}{% else %}Complimentary{% endif %}</strong>
+        </div>
+        {% if order.tax %}
+        <div class="vm-odt-total-row">
+            <span>Estimated Taxes</span>
+            <strong>&#8377;{{ order.tax }}</strong>
+        </div>
+        {% endif %}
+        {% if order.coupon_discount %}
+        <div class="vm-odt-total-row">
+            <span>Discount</span>
+            <strong>-&#8377;{{ order.coupon_discount }}</strong>
+        </div>
+        {% endif %}
+        <div class="vm-odt-total-row vm-odt-total-row--grand">
+            <span>Total Amount</span>
+            <strong>&#8377;{{ order.total_amount }}</strong>
+        </div>
+    </section>
+
+    <div class="vm-odt-help">
+        <p>Need help with your order?</p>
+        <a href="{% url 'contact' %}">Contact Support</a>
+    </div>
 </div>
 
-<!-- Cancel Order Modal -->
+{% if not cancel_request and cancel_eligible %}
 <div class="modal fade" id="cancelOrderModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Request Order Cancellation</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form method="POST" action="{% url 'customer_cancel_order' order.id %}">
                 {% csrf_token %}
@@ -554,139 +593,26 @@
         </div>
     </div>
 </div>
-
-{% if order.payment_method != 'COD' and order.payment_status == 'PAID' %}
-<script>
-    (function () {
-        const methodSelect = document.getElementById('cancelRefundMethod');
-        if (!methodSelect) return;
-        const bankFields = document.getElementById('cancelBankFields');
-        const upiFields = document.getElementById('cancelUpiFields');
-
-        const toggleFields = () => {
-            const value = methodSelect.value;
-            bankFields.style.display = value === 'BANK' ? 'block' : 'none';
-            upiFields.style.display = value === 'RAZORPAY' ? 'block' : 'none';
-        };
-
-        methodSelect.addEventListener('change', toggleFields);
-        toggleFields();
-    })();
-</script>
 {% endif %}
 
+{% if order.payment_method != 'COD' and order.payment_status == 'PAID' and not cancel_request and cancel_eligible %}
 <script>
-// Convert table to mobile cards on small screens
-(function() {
-    function createMobileCards() {
-        if (window.innerWidth > 767) return;
-        
-        const tableResponsive = document.querySelector('.vm-orderdetails-legacy-content .table-responsive');
-        if (!tableResponsive) return;
-        
-        const table = tableResponsive.querySelector('table');
-        if (!table || table.style.display === 'none') return;
-        
-        const tbody = table.querySelector('tbody');
-        const tfoot = table.querySelector('tfoot');
-        if (!tbody) return;
-        
-        // Create container for mobile cards
-        const mobileContainer = document.createElement('div');
-        mobileContainer.className = 'mobile-cards-container';
-        
-        // Convert each row to a card
-        const rows = tbody.querySelectorAll('tr');
-        rows.forEach(row => {
-            const cells = row.querySelectorAll('td');
-            if (cells.length < 6) return;
-            
-            const card = document.createElement('div');
-            card.className = 'mobile-product-card';
-            
-            // Product image and name
-            const imageSection = document.createElement('div');
-            imageSection.className = 'product-image-section';
-            const productCell = cells[0].cloneNode(true);
-            imageSection.appendChild(productCell);
-            card.appendChild(imageSection);
-            
-            // Size
-            const sizeRow = document.createElement('div');
-            sizeRow.className = 'product-details-row';
-            sizeRow.innerHTML = `<span class="label">Size</span><span class="value">${cells[1].textContent.trim()}</span>`;
-            card.appendChild(sizeRow);
-            
-            // Color
-            const colorRow = document.createElement('div');
-            colorRow.className = 'product-details-row';
-            colorRow.innerHTML = `<span class="label">Color</span><span class="value">${cells[2].textContent.trim()}</span>`;
-            card.appendChild(colorRow);
-            
-            // Quantity
-            const qtyRow = document.createElement('div');
-            qtyRow.className = 'product-details-row';
-            const qtyValue = cells[3].cloneNode(true);
-            qtyRow.innerHTML = `<span class="label">Quantity</span>`;
-            qtyRow.appendChild(qtyValue);
-            card.appendChild(qtyRow);
-            
-            // Price
-            const priceRow = document.createElement('div');
-            priceRow.className = 'product-details-row';
-            priceRow.innerHTML = `<span class="label">Price</span><span class="value">${cells[4].textContent.trim()}</span>`;
-            card.appendChild(priceRow);
-            
-            // Total
-            const totalRow = document.createElement('div');
-            totalRow.className = 'product-details-row total';
-            totalRow.innerHTML = `<span class="label">Total</span><span class="value">${cells[5].textContent.trim()}</span>`;
-            card.appendChild(totalRow);
-            
-            mobileContainer.appendChild(card);
-        });
-        
-        // Create price summary card
-        if (tfoot) {
-            const summaryCard = document.createElement('div');
-            summaryCard.className = 'mobile-price-summary';
-            summaryCard.innerHTML = '<div class="summary-title">Price Details</div>';
-            
-            const tfootRows = tfoot.querySelectorAll('tr');
-            tfootRows.forEach((row, index) => {
-                const cells = row.querySelectorAll('td');
-                if (cells.length >= 2) {
-                    const summaryRow = document.createElement('div');
-                    summaryRow.className = 'summary-row';
-                    if (row.classList.contains('table-success')) {
-                        summaryRow.classList.add('grand-total');
-                    }
-                    summaryRow.innerHTML = `<span class="label">${cells[0].textContent.trim()}</span><span class="value">${cells[1].textContent.trim()}</span>`;
-                    summaryCard.appendChild(summaryRow);
-                }
-            });
-            
-            mobileContainer.appendChild(summaryCard);
-        }
-        
-        // Replace table with mobile cards
-        table.style.display = 'none';
-        tableResponsive.appendChild(mobileContainer);
-    }
-    
-    // Run on load and resize
-    createMobileCards();
-    window.addEventListener('resize', function() {
-        const mobileContainer = document.querySelector('.vm-orderdetails-legacy-content .mobile-cards-container');
-        if (mobileContainer) {
-            mobileContainer.remove();
-        }
-        const table = document.querySelector('.vm-orderdetails-legacy-content .table-responsive table');
-        if (table) {
-            table.style.display = '';
-        }
-        createMobileCards();
-    });
+(function () {
+    const methodSelect = document.getElementById('cancelRefundMethod');
+    if (!methodSelect) return;
+
+    const bankFields = document.getElementById('cancelBankFields');
+    const upiFields = document.getElementById('cancelUpiFields');
+
+    const toggleFields = () => {
+        const value = methodSelect.value;
+        bankFields.style.display = value === 'BANK' ? 'block' : 'none';
+        upiFields.style.display = value === 'RAZORPAY' ? 'block' : 'none';
+    };
+
+    methodSelect.addEventListener('change', toggleFields);
+    toggleFields();
 })();
 </script>
+{% endif %}
 {% endblock %}

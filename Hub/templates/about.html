@@ -11,13 +11,8 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'assets/css/aboutus-responsive.css' %}?v=20260307-02">
 <link rel="stylesheet" href="{% static 'assets/css/aboutus-mobile-alt.css' %}?v=20260329-03">
+<link rel="stylesheet" href="{% static 'assets/css/aboutus-tablet-alt.css' %}?v=20260404-01">
 <link rel="stylesheet" href="{% static 'assets/css/aboutus-desktop-alt.css' %}?v=20260329-01">
-<style>
-body.vm-page-mobile-about .vm-copy-header,
-body.vm-page-mobile-about #mobileBottomNavShell {
-    display: none !important;
-}
-</style>
 {% endblock %}
 
 {% block content %}
@@ -105,255 +100,136 @@ body.vm-page-mobile-about #mobileBottomNavShell {
 
     </section>
 
-    <div class="about-page vm-about-desktop-content vm-about-desktop-legacy">
-    <div class="page-banner-area page-banner-height" data-background="{% static 'assets/img/banner/page-banner-1.jpg' %}">
-        <div class="container">
-            <div class="row">
-                <div class="col-xl-12">
-                    <div class="page-banner-content text-center">
-                        <h3 style="color: white;">About Us </h3>
+    <!-- Tablet View: Dynamic Modern Design -->
+    <section class="vm-about-tablet-only" aria-label="About VibeMall tablet layout">
+        {% include 'partials/vm_tablet_alt_header.html' %}
 
-                        <p style="color: white;">VibeMall blends trend-aware shopping, dependable service, and a modern marketplace feel <br> into one destination made for everyday discovery and confident online buying.</p>
-                        <div class="page-bottom-btn mt-55">
-                            <a href="{% url 'shop' %}" class="st-btn-4">Explore Collection</a>
+        <main class="vm-tablet-about-main">
+            <!-- Breadcrumb Navigation -->
+            <div class="vm-tablet-about-breadcrumb">
+                <div class="vm-tablet-about-container">
+                    <nav>
+                        <a href="{% url 'index' %}">Home</a>
+                        <span class="separator">/</span>
+                        <span>About Us</span>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Hero Section with Page Title -->
+            <header class="vm-tablet-about-header">
+                <div class="vm-tablet-about-container">
+                    <h1 class="vm-tablet-about-title">Our Story</h1>
+                    <p class="vm-tablet-about-subtitle">{{ about_subtitle|default:"VibeMall blends trend-aware shopping, dependable service, and a modern marketplace feel into one destination made for everyday discovery." }}</p>
+                </div>
+            </header>
+
+            <!-- Story Section: Image + Copy -->
+            <section class="vm-tablet-about-story">
+                <div class="vm-tablet-about-container">
+                    <div class="vm-tablet-story-grid">
+                        <div class="vm-tablet-story-media">
+                            <img src="{% static 'assets/img/about/about-b.png' %}" alt="VibeMall heritage story image" loading="lazy">
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="about-area pt-80 pb-80" data-background="{% static 'assets/img/bg/about-bg.png' %}">
-        <div class="container">
-            <div class="row align-items-center">
-               <div class="col-xl-6 col-lg-6">
-                    <div class="about-content">
-                        <span>ABOUT VIBEMALL</span>
-                        <h4>Welcome to</h4>
-                        <h5 class="banner-t mb-30">A Marketplace Designed Around Style, Ease, and Trust</h5>
-                        <p class="about-text">VibeMall is more than an online store. It is a customer-focused shopping destination built to make product discovery feel exciting and every purchase feel simple, secure, and worthwhile.</p>
-                        <p>We bring together curated fashion, lifestyle products, and everyday essentials in one place so shoppers can browse with clarity, compare with confidence, and order without friction. Every touchpoint on VibeMall is shaped to feel modern, practical, and aligned with how real customers shop today.</p>
-                        <div class="vm-about-points">
-                            <div class="vm-about-point">
-                                <strong>Curated Selection</strong>
-                                <span>Relevant products chosen for style, utility, and appeal.</span>
-                            </div>
-                            <div class="vm-about-point">
-                                <strong>Reliable Experience</strong>
-                                <span>Clear browsing, secure checkout, and support that stays available.</span>
-                            </div>
-                            <div class="vm-about-point">
-                                <strong>Brand With Personality</strong>
-                                <span>A shopping platform that feels fresh, useful, and distinctly VibeMall.</span>
-                            </div>
-                        </div>
-                    </div>
-               </div>
-               <div class="col-xl-6 col-lg-6">
-                    <div class="about-image w-img">
-                        <img src="{% static 'assets/img/about/about-b.png' %}" alt="VibeMall online marketplace illustration">
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="services-area pt-70 light-bg-s pb-50">
-        <div class="container">
-            <div class="row">
-                <div class="col-xl-12">
-                    <div class="abs-section-title text-center">
-                        <span>HOW VIBEMALL WORKS</span>
-                        <h4>Simple Flow, Strong Experience</h4>
-                        <p>VibeMall keeps the shopping journey clean and intuitive, so customers move from browsing <br> to checkout to post-purchase support without confusion or clutter.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="row mt-40">
-                <div class="col-xl-4 col-lg-4 col-md-6">
-                    <div class="services-item mb-30">
-                        <div class="services-icon mb-25"><i class="fal fa-share-square"></i></div>
-                        <h6>Discover What Fits You</h6>
-                        <p>Browse collections built around current trends, practical needs, and products customers actually enjoy shopping for.</p>
-                        <div class="s-count-number"><span>01</span></div>
-                    </div>
-                </div>
-                <div class="col-xl-4 col-lg-4 col-md-6">
-                    <div class="services-item mb-30">
-                        <div class="services-icon mb-25"><i class="fal fa-file"></i></div>
-                        <h6>Checkout With Confidence</h6>
-                        <p>Get a smooth order flow with clear pricing, secure checkout steps, and a buying process designed to reduce friction.</p>
-                        <div class="s-count-number"><span>02</span></div>
-                    </div>
-                </div>
-                <div class="col-xl-4 col-lg-4 col-md-6">
-                    <div class="services-item mb-30">
-                        <div class="services-icon mb-25"><i class="fal fa-thumbs-up"></i></div>
-                        <h6>Stay Connected After Purchase</h6>
-                        <p>From support questions to order updates, VibeMall is built to keep the customer journey responsive and reassuring.</p>
-                        <div class="s-count-number"><span>03</span></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="technolgy-index mt-70 mb-10">
-        <div class="container">
-            <div class="row mb-15">
-                <div class="col-xl-12">
-                    <div class="abs-section-title text-center">
-                        <span>WHY VIBEMALL</span>
-                        <h4>Built to Feel Modern, Useful, and Trustworthy</h4>
-                        <p>VibeMall combines visual appeal with practical shopping value, creating a store experience <br> that feels polished enough for a brand and simple enough for daily use.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-xl-6 col-lg-6">
-                    <div class="main-abs mb-30">
-                        <div class="ab-counter-image w-img mb-40">
-                            <img src="{% static 'assets/img/about/ab-01.jpg' %}" alt="VibeMall team collaborating on customer experience">
-                        </div>
-                        <div class="row">
-                            <div class="col-xl-6 col-lg-6 col-md-6 col-sm-6">
-                                <div class="ab-counter-item mb-30">
-                                    <div class="ab-counter mb-20">
-                                        <div class="counter-icon mr-10"><img src="{% static 'assets/img/about/c-icon-01.png' %}" alt=""></div>
-                                        <div class="counter_info"><span class="counter">24</span><p>/7</p></div>
-                                    </div>
-                                    <h5>Customer-First Support</h5>
-                                    <p>Responsive support remains a core part of the VibeMall experience whenever shoppers need clarity or help.</p>
-                                </div>
-                            </div>
-                            <div class="col-xl-6 col-lg-6 col-md-6 col-sm-6">
-                                <div class="ab-counter-item mb-30">
-                                    <div class="ab-counter mb-20">
-                                        <div class="counter-icon mr-10"><img src="{% static 'assets/img/about/c-icon-01.png' %}" alt=""></div>
-                                        <div class="counter_info"><span class="counter">100</span><p>+</p></div>
-                                    </div>
-                                    <h5>Fresh Picks</h5>
-                                    <p>Collections are shaped to feel updated, relevant, and aligned with what customers want to discover next.</p>
-                                </div>
+                        <div class="vm-tablet-story-copy">
+                            <h2>The VibeMall Legacy</h2>
+                            <div class="vm-tablet-story-text">
+                                <p>Founded at the intersection of artisanal heritage and contemporary minimalism, VibeMall was conceived as a digital sanctuary for those who seek more than just products.</p>
+                                <p>Our journey began in a small atelier, where we realized that the true luxury lies in the narrative of the craft. We curate each piece not as a commodity, but as a silent testament to the hands that shaped it.</p>
+                                <p class="vm-tablet-story-quote">"We don't just sell aesthetics; we cultivate an atmosphere of intentional living."</p>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-xl-6 col-lg-6">
-                    <div class="main-abs mb-30">
-                        <div class="ab-counter-image w-img mb-40">
-                            <img src="{% static 'assets/img/about/ab-02.jpg' %}" alt="Customers exploring products on VibeMall">
-                        </div>
-                        <div class="row">
-                            <div class="col-xl-6 col-lg-6 col-md-6 col-sm-6">
-                                <div class="ab-counter-item mb-30">
-                                    <div class="ab-counter mb-20">
-                                        <div class="counter-icon mr-10"><img src="{% static 'assets/img/about/c-icon-01.png' %}" alt=""></div>
-                                        <div class="counter_info"><span class="counter">5</span><p>+</p></div>
-                                    </div>
-                                    <h5>Shopping Categories</h5>
-                                    <p>VibeMall continues to grow as a multi-category platform where convenience and discovery stay balanced.</p>
-                                </div>
+            </section>
+
+            <!-- Services Grid -->
+            <section class="vm-tablet-about-services">
+                <div class="vm-tablet-about-container">
+                    <div class="vm-tablet-services-grid">
+                        <article class="vm-tablet-service-card">
+                            <div class="service-icon">
+                                <i class="far fa-sparkles"></i>
                             </div>
-                            <div class="col-xl-6 col-lg-6 col-md-6 col-sm-6">
-                                <div class="ab-counter-item mb-30">
-                                    <div class="ab-counter mb-20">
-                                        <div class="counter-icon mr-10"><img src="{% static 'assets/img/about/c-icon-01.png' %}" alt=""></div>
-                                        <div class="counter_info"><span class="counter">100</span><p>%</p></div>
-                                    </div>
-                                    <h5>Secure Checkout Focus</h5>
-                                    <p>Checkout is designed to feel transparent, reliable, and steady from product page to final confirmation.</p>
-                                </div>
+                            <h3>Curated Excellence</h3>
+                            <p>Every item in our archive undergoes a rigorous selection process to ensure it meets our standard of timelessness and quality.</p>
+                        </article>
+                        <article class="vm-tablet-service-card">
+                            <div class="service-icon">
+                                <i class="far fa-pen-nib"></i>
                             </div>
-                        </div>
+                            <h3>Atelier Tailoring</h3>
+                            <p>Our in-house artisans provide bespoke adjustments, ensuring that every silhouette aligns perfectly with your persona.</p>
+                        </article>
+                        <article class="vm-tablet-service-card">
+                            <div class="service-icon">
+                                <i class="far fa-globe"></i>
+                            </div>
+                            <h3>Global Archive</h3>
+                            <p>We source rare, ethically produced materials from historical craft clusters across the globe, bringing heritage to your doorstep.</p>
+                        </article>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Contact Us Section -->
-    <section class="contact-cta-section pt-80 pb-80" style="background: linear-gradient(135deg, #FDB913 0%, #F7931E 100%); position: relative; overflow: hidden; margin-bottom: 0;">
-        <!-- Background Pattern -->
-        <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0.1; background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
-        
-        <div class="container" style="position: relative; z-index: 1;">
-            <div class="row align-items-center">
-                <div class="col-lg-8">
-                    <div class="contact-cta-content" style="color: white;">
-                        <h2 style="color: white; font-size: 36px; font-weight: 700; margin-bottom: 15px; text-shadow: 0 2px 10px rgba(0,0,0,0.2);">Questions About VibeMall? Let’s Talk.</h2>
-                        <p style="font-size: 18px; opacity: 0.95; margin-bottom: 0;">Whether you need help with products, orders, delivery, or returns, the VibeMall support team is ready to assist.</p>
-                    </div>
-                </div>
-                <div class="col-lg-4 text-lg-end text-center mt-lg-0 mt-4">
-                    <a href="{% url 'contact' %}" class="btn" style="background: white; color: #FDB913; padding: 15px 40px; border-radius: 10px; font-size: 16px; font-weight: 600; text-decoration: none; display: inline-block; box-shadow: 0 5px 15px rgba(0,0,0,0.2); transition: all 0.3s ease;">
-                        <i class="fas fa-envelope"></i> Contact VibeMall
-                    </a>
-                </div>
-            </div>
-        </div>
-    </section>
-    
-    <section class="cta-area d-ldark-bg pt-55 pb-0">
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-6 col-md-6">
-                    <div class="cta-item cta-item-d mb-30">
-                        <h5 class="cta-title">Follow Us</h5>
-                        <p>Stay connected with VibeMall for product drops, curated edits, announcements, and fresh shopping inspiration.</p>
-                        <div class="cta-social">
-                            <div class="social-icon">
-                                <a href="{{ site_settings.facebook_url|default:'#' }}" class="facebook" {% if site_settings.facebook_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
-                                <a href="{{ site_settings.twitter_url|default:'#' }}" class="twitter" {% if site_settings.twitter_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="Twitter"><i class="fab fa-twitter"></i></a>
-                                <a href="{{ site_settings.youtube_url|default:'#' }}" class="youtube" {% if site_settings.youtube_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="YouTube"><i class="fab fa-youtube"></i></a>
-                                <a href="{{ site_settings.instagram_url|default:'#' }}" class="linkedin" {% if site_settings.instagram_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="Instagram"><i class="fab fa-instagram"></i></a>
-                                <a href="mailto:{{ site_settings.contact_email|default:'support@vibemall.com' }}" class="rss" aria-label="Email"><i class="fas fa-envelope"></i></a>
-                                <a href="{% url 'contact' %}" class="dribbble" aria-label="Contact"><i class="fas fa-headset"></i></a>
-                            </div>
+            </section>
+
+            <!-- Stats Section -->
+            <section class="vm-tablet-about-stats">
+                <div class="vm-tablet-about-container">
+                    <div class="vm-tablet-stats-grid">
+                        <div class="vm-tablet-stat-item">
+                            <h4>{{ about_stats.products|default:"12k+" }}</h4>
+                            <p>Products Curated</p>
+                        </div>
+                        <div class="vm-tablet-stat-item">
+                            <h4>{{ about_stats.artisans|default:"450+" }}</h4>
+                            <p>Global Artisans</p>
+                        </div>
+                        <div class="vm-tablet-stat-item">
+                            <h4>{{ about_stats.clients|default:"85k" }}</h4>
+                            <p>Loyal Clients</p>
+                        </div>
+                        <div class="vm-tablet-stat-item">
+                            <h4>{{ about_stats.awards|default:"14" }}</h4>
+                            <p>Design Awards</p>
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-6 col-md-6">
-                    <div class="cta-item mb-30">
-                        <h5 class="cta-title">Join The VibeMall Newsletter</h5>
-                        <p>Subscribe for new arrivals, featured categories, exclusive offers, and updates from the VibeMall store.</p>
-                        <div class="subscribe__form">
-                            <form action="{% url 'subscribe_newsletter' %}" method="post" class="js-newsletter-form" novalidate>
-                                {% csrf_token %}
-                                <input type="hidden" name="source_page" value="about">
-                                <input type="email" name="email" placeholder="Enter your email here..." required>
-                                <button type="submit">subscribe</button>
-                            </form>
+            </section>
+
+            <!-- CTA Section -->
+            <section class="vm-tablet-about-cta">
+                <div class="vm-tablet-about-container">
+                    <div class="vm-tablet-cta-content">
+                        <h2>Have a specific vision for your wardrobe?</h2>
+                        <p>Our concierge team is available for private consultations and bespoke sourcing requests. Let us help you find the extraordinary.</p>
+                        <a href="{% url 'contact' %}" class="vm-tablet-cta-btn">Inquire Now</a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Newsletter Section -->
+            <section class="vm-tablet-about-newsletter">
+                <div class="vm-tablet-about-container">
+                    <div class="vm-tablet-newsletter-content">
+                        <h3>Stay Connected</h3>
+                        <p>Subscribe for new arrivals, featured drops, and exclusive VibeMall updates.</p>
+                        <form action="{% url 'subscribe_newsletter' %}" method="post" class="vm-tablet-newsletter-form js-newsletter-form" novalidate>
+                            {% csrf_token %}
+                            <input type="hidden" name="source_page" value="about-tablet">
+                            <div class="vm-tablet-form-group">
+                                <input type="email" name="email" placeholder="Enter your email address" required>
+                                <button type="submit">Subscribe</button>
+                            </div>
                             <small class="newsletter-feedback d-block mt-2" aria-live="polite"></small>
-                        </div>
+                        </form>
                     </div>
                 </div>
-            </div>
-        </div>
-    </section>
+            </section>
 
-    </div>
+        </main>
+    </section>
 
     <section class="vm-about-d-only" aria-label="About VibeMall desktop layout">
-        <header class="vm-about-d-top">
-            <div class="vm-about-d-wrap">
-                <a class="vm-about-d-brand" href="{% url 'index' %}">
-                    <i class="far fa-bars"></i>
-                    <span>VibeMall</span>
-                </a>
-
-                <label class="vm-about-d-search" aria-label="Search the atelier">
-                    <i class="far fa-search"></i>
-                    <input type="text" placeholder="Search the atelier..." aria-label="Search products">
-                </label>
-
-                <div class="vm-about-d-actions">
-                    <a href="{% url 'cart' %}" aria-label="Cart"><i class="far fa-shopping-bag"></i></a>
-                    {% if request.user.is_authenticated %}
-                    <a href="{% url 'profile' %}" aria-label="Account"><i class="far fa-user"></i></a>
-                    {% else %}
-                    <a href="{% url 'login' %}" aria-label="Account"><i class="far fa-user"></i></a>
-                    {% endif %}
-                </div>
-            </div>
-        </header>
 
         <section class="vm-about-d-hero">
             <img src="{% static 'assets/img/about/ab-01.jpg' %}" alt="Luxury boutique interior">

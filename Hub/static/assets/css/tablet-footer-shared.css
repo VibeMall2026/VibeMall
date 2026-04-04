@@ -1,0 +1,247 @@
+/* =========================================================
+   vm-tablet-alt-footer  –  Universal footer (≥768px)
+   Replaces vm_copy_footer for all body.vm-page-mobile-alt
+   pages at tablet AND desktop. Mobile footer is handled
+   separately by vm_mobile_alt_footer.
+   ========================================================= */
+
+.vm-tablet-alt-footer {
+  display: none;
+}
+
+@media (min-width: 768px) and (max-width: 1199.98px) {
+  body.vm-page-mobile-alt .vm-tablet-alt-footer {
+    display: block !important;
+    background: #171818;
+    color: rgba(251, 249, 244, 0.82);
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ── Inner wrapper ─────────────────────────────────────── */
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__inner {
+    max-width: 1220px;
+    margin: 0 auto;
+    padding: 56px 32px 28px;
+  }
+
+  /* ── Top row: brand + newsletter ──────────────────────── */
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__top {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    padding-bottom: 44px;
+    border-bottom: 1px solid rgba(251, 249, 244, 0.1);
+    margin-bottom: 44px;
+  }
+
+  /* Brand column */
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__logo {
+    display: inline-block;
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: clamp(36px, 4vw, 48px);
+    font-style: italic;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+    color: #fbf9f4;
+    text-decoration: none;
+    margin-bottom: 16px;
+  }
+
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__tagline {
+    margin: 14px 0 22px;
+    font-size: 13px;
+    color: rgba(251, 249, 244, 0.56);
+    max-width: 320px;
+    line-height: 1.65;
+  }
+
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__socials {
+    display: flex;
+    gap: 16px;
+  }
+
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__socials a {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid rgba(251, 249, 244, 0.2);
+    display: grid;
+    place-items: center;
+    color: rgba(251, 249, 244, 0.72);
+    font-size: 14px;
+    text-decoration: none;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+  }
+
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__socials a:hover {
+    border-color: #6f5c37;
+    background: #6f5c37;
+    color: #fbf9f4;
+  }
+
+  /* Newsletter column */
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__nl-kicker {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #6f5c37;
+    margin-bottom: 8px;
+  }
+
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__nl-title {
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 24px;
+    font-weight: 700;
+    font-style: italic;
+    color: #fbf9f4;
+    margin: 0 0 8px;
+    line-height: 1.2;
+  }
+
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__nl-sub {
+    font-size: 13px;
+    color: rgba(251, 249, 244, 0.56);
+    margin-bottom: 20px;
+    line-height: 1.55;
+  }
+
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__nl-form {
+    display: flex;
+    gap: 0;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(251, 249, 244, 0.14);
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__nl-form input[type="email"] {
+    flex: 1;
+    padding: 14px 18px;
+    background: transparent;
+    border: 0;
+    color: #fbf9f4;
+    font-size: 14px;
+    outline: none;
+    min-width: 0;
+  }
+
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__nl-form input[type="email"]::placeholder {
+    color: rgba(251, 249, 244, 0.38);
+  }
+
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__nl-form button {
+    padding: 14px 22px;
+    background: #6f5c37;
+    border: 0;
+    color: #fbf9f4;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__nl-form button:hover {
+    background: #5c4c2d;
+  }
+
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__nl-msg {
+    display: block;
+    margin-top: 8px;
+    font-size: 12px;
+    color: rgba(251, 249, 244, 0.5);
+    min-height: 18px;
+  }
+
+  /* ── Mid row: link columns ─────────────────────────────── */
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__links {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+    padding-bottom: 36px;
+    border-bottom: 1px solid rgba(251, 249, 244, 0.1);
+    margin-bottom: 24px;
+  }
+
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__col h6 {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(251, 249, 244, 0.44);
+    margin: 0 0 14px;
+  }
+
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__col a {
+    display: block;
+    color: rgba(251, 249, 244, 0.72);
+    text-decoration: none;
+    font-size: 13.5px;
+    margin-bottom: 9px;
+    transition: color 0.15s;
+  }
+
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__col a:hover {
+    color: #fbf9f4;
+  }
+
+  /* ── Bottom bar ────────────────────────────────────────── */
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__bottom p {
+    font-size: 12px;
+    color: rgba(251, 249, 244, 0.36);
+    margin: 0;
+  }
+
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__bottom-tagline {
+    font-size: 11px !important;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+}
+
+/* Desktop overrides: wider padding and link grid */
+@media (min-width: 1200px) {
+  body.vm-page-mobile-alt .vm-tablet-alt-footer {
+    display: none !important;
+  }
+
+  body.vm-page-mobile-alt .vm-copy-footer {
+    display: block !important;
+  }
+
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__inner {
+    padding: 72px 48px 36px;
+  }
+
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__top {
+    grid-template-columns: 1.2fr 1fr;
+    gap: 80px;
+  }
+
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__links {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 48px;
+  }
+
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__logo {
+    font-size: clamp(44px, 3.6vw, 60px);
+  }
+
+  body.vm-page-mobile-alt .vm-tablet-alt-footer__nl-title {
+    font-size: 28px;
+  }
+}

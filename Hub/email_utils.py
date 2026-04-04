@@ -6,6 +6,7 @@ Handles sending order confirmations, status updates, and other notifications
 from django.core.mail import send_mail, EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
+from django.urls import reverse
 from .models import EmailLog, Notification
 import logging
 
@@ -44,30 +45,78 @@ def send_order_confirmation_email(order):
             pdf_generation_available = False
         
         # Get site URL from settings or use default
-        site_url = getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000')
-        
+        site_url = getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000').rstrip('/')
+
+        # Build email-friendly order items (with absolute image URLs)
+        order_items = []
+        for item in order.items.select_related('product').all():
+            image_url = ''
+            if item.product_image:
+                image_url = str(item.product_image).strip()
+            elif item.product and item.product.image:
+                image_url = item.product.image.url
+
+            if image_url:
+                if image_url.startswith('/'):
+                    image_url = f"{site_url}{image_url}"
+                elif not image_url.startswith(('http://', 'https://')):
+                    image_url = f"{site_url}/{image_url.lstrip('/')}"
+
+            variant_parts = [part for part in [item.size, item.color] if part]
+
+            order_items.append({
+                'product_name': item.product_name,
+                'quantity': item.quantity,
+                'product_price': item.product_price,
+                'subtotal': item.subtotal,
+                'variant_text': ' - '.join(variant_parts),
+                'image_url': image_url,
+            })
+
+        is_review_state = order.order_status in {'PENDING', 'PROCESSING'}
+        hero_title = 'Your Order is Being Reviewed' if is_review_state else 'Your Order is Confirmed'
+        hero_message = (
+            'Your order has been successfully placed and is now awaiting final review. '
+            'Once approved, you will receive a formal confirmation and shipping timeline.'
+            if is_review_state else
+            'Your order has been successfully placed and is now confirmed. '
+            'You will receive shipping updates as soon as your package is dispatched.'
+        )
+
+        shipping_cost_display = 'Complimentary' if float(order.shipping_cost or 0) == 0 else f"₹{order.shipping_cost:.2f}"
+
         # Render HTML email template
         html_content = render_to_string('emails/order_confirmation.html', {
             'order': order,
             'site_url': site_url,
+            'order_items': order_items,
+            'hero_title': hero_title,
+            'hero_message': hero_message,
+            'shipping_cost_display': shipping_cost_display,
+            'current_year': datetime.now().year,
         })
         
         # Plain text fallback
+        try:
+            order_path = reverse('order_details', args=[order.order_number])
+        except Exception:
+            order_path = f"/orders/{order.order_number}/"
+
         text_content = f"""
-        Order Confirmation - #{order.order_number}
-        
+        {hero_title} - #{order.order_number}
+
         Dear {order.user.get_full_name() or order.user.username},
-        
-        Thank you for your order! Your order has been successfully placed.
-        
+
+        {hero_message}
+
         Order Details:
         - Order Number: {order.order_number}
         - Order Date: {order.order_date.strftime('%B %d, %Y')}
         - Total Amount: ₹{order.total_amount}
         - Payment Method: {order.get_payment_method_display()}
-        
-        You can track your order at: {site_url}/orders/{order.id}/
-        
+
+        View your order: {site_url}{order_path}
+
         Best regards,
         VibeMall Team
         """
@@ -223,6 +272,9 @@ def send_order_status_update_email(order, old_status, new_status):
                 'color': item.color,
                 'quantity': item.quantity,
                 'image_url': image_url,
+                'unit_price': item.product_price,
+                'line_total': item.subtotal,
+                'variant_text': ' / '.join([part for part in [item.color, item.size] if part]) or '',
             })
         
         status_config = {
@@ -252,15 +304,78 @@ def send_order_status_update_email(order, old_status, new_status):
             return False
         
         status_info = status_config[new_status]
+
+        tracking_url = f"{site_url}{reverse('order_tracking', args=[order.order_number])}" if order.tracking_number else f'{site_url}/orders/{order.id}/'
+        order_details_url = f"{site_url}{reverse('order_details', args=[order.order_number])}"
+        past_orders_url = f"{site_url}{reverse('order_list')}"
+        first_review_product = next((item.product for item in order.items.select_related('product').all() if item.product_id), None)
+        review_url = f"{site_url}{reverse('product-details', args=[first_review_product.id])}" if first_review_product else order_details_url
+        shipping_address_lines = [
+            line.strip()
+            for line in str(order.shipping_address or '').replace('\r', '').split('\n')
+            if line.strip()
+        ]
+        if not shipping_address_lines and order.shipping_address:
+            shipping_address_lines = [part.strip() for part in str(order.shipping_address).split(',') if part.strip()]
+
+        status_badge = {
+            'PROCESSING': 'ORDER IN ATELIER',
+            'SHIPPED': 'SHIPPING UPDATE',
+            'DELIVERED': 'DELIVERY CONFIRMED',
+            'CANCELLED': 'ORDER UPDATE',
+        }.get(new_status, 'ORDER UPDATE')
+
+        hero_title = {
+            'PROCESSING': 'Your Order is Being Prepared',
+            'SHIPPED': 'Your Order is En Route',
+            'DELIVERED': 'Your Order Has Arrived',
+            'CANCELLED': 'Your Order Was Cancelled',
+        }.get(new_status, status_info['title'])
+
+        hero_body = {
+            'PROCESSING': 'The artisanal pieces you selected are being prepared with care in our studio.',
+            'SHIPPED': 'The artisanal pieces you selected have been carefully packed and are now making their way to your sanctuary.',
+            'DELIVERED': 'Your curated order has reached its destination. We hope every piece feels special when unboxed.',
+            'CANCELLED': 'Your latest order update is below. If you need help, our concierge team is here for you.',
+        }.get(new_status, status_info['message'])
+
+        cta_label = 'Track My Package' if order.tracking_number else 'View My Order'
+        timeline_label = 'Estimated Arrival'
+        timeline_value = 'We will update you shortly'
+        if new_status == 'DELIVERED':
+            timeline_label = 'Delivered On'
+            timeline_value = order.delivery_date.strftime('%B %d, %Y').upper() if order.delivery_date else 'Delivered'
+        elif new_status == 'SHIPPED':
+            timeline_value = order.delivery_date.strftime('%B %d, %Y').upper() if order.delivery_date else 'Carrier update pending'
+        elif new_status == 'PROCESSING':
+            timeline_label = 'Current Stage'
+            timeline_value = 'Preparing for Dispatch'
+        elif new_status == 'CANCELLED':
+            timeline_label = 'Current Stage'
+            timeline_value = 'Cancelled'
+
+        carrier_label = order.courier_name or 'VibeMall Logistics'
         
-        # Render beautiful HTML template
+        # Render HTML email template
         html_content = render_to_string('emails/order_status_update.html', {
             'order': order,
             'order_items': order_items,
             'status_type': status_info['type'],
             'status_title': status_info['title'],
             'status_message': status_info['message'],
-            'order_url': f'{site_url}/orders/{order.id}/',
+            'order_url': order_details_url,
+            'tracking_url': tracking_url,
+            'past_orders_url': past_orders_url,
+            'review_url': review_url,
+            'shipping_address_lines': shipping_address_lines,
+            'status_badge': status_badge,
+            'hero_title': hero_title,
+            'hero_body': hero_body,
+            'cta_label': cta_label,
+            'timeline_label': timeline_label,
+            'timeline_value': timeline_value,
+            'carrier_label': carrier_label,
+            'item_count': sum(int(item['quantity'] or 0) for item in order_items),
         })
         
         # Plain text fallback

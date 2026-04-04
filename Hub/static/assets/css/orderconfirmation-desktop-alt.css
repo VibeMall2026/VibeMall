@@ -1,0 +1,452 @@
+/* ============================================================
+   ORDER CONFIRMATION — DESKTOP EDITORIAL VIEW
+   Shown at min-width: 1200px
+   All styles scoped to .vm-orderconfirm-d-only
+   ============================================================ */
+
+.vm-orderconfirm-d-only {
+    display: none;
+}
+
+@media (min-width: 1200px) {
+    /* Hide the legacy desktop block */
+    body.vm-page-mobile-order-confirmation .vm-orderconfirm-legacy-content {
+        display: none !important;
+    }
+
+    /* Show the new desktop section */
+    .vm-orderconfirm-d-only {
+        display: block;
+        background: #fbf9f4;
+        color: #1b1c19;
+        font-family: 'Manrope', sans-serif;
+        min-height: 100vh;
+    }
+
+    /* ── Shell ── */
+    .vm-ocd-shell {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 128px 96px 96px;
+    }
+
+    /* ── Hero ── */
+    .vm-ocd-hero {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        margin-bottom: 96px;
+    }
+
+    .vm-ocd-hero__icon-ring {
+        position: relative;
+        margin-bottom: 32px;
+    }
+
+    .vm-ocd-hero__icon-ring::before {
+        content: '';
+        position: absolute;
+        inset: -14px;
+        background: rgba(250, 223, 177, 0.35);
+        border-radius: 50%;
+        filter: blur(20px);
+    }
+
+    .vm-ocd-hero__check {
+        position: relative;
+        font-size: 72px;
+        color: #6f5c37;
+        z-index: 1;
+    }
+
+    .vm-ocd-hero__headline {
+        margin: 0 0 16px;
+        font-family: 'Noto Serif', Georgia, serif;
+        font-size: clamp(52px, 5.5vw, 80px);
+        font-style: italic;
+        line-height: 1.05;
+        letter-spacing: -0.03em;
+        color: #171818;
+    }
+
+    .vm-ocd-hero__sub {
+        max-width: 540px;
+        margin: 0;
+        font-size: 17px;
+        line-height: 1.75;
+        color: #444748;
+    }
+
+    .vm-ocd-hero__sub strong {
+        color: #171818;
+        font-weight: 700;
+    }
+
+    /* ── Content Grid ── */
+    .vm-ocd-grid {
+        display: grid;
+        grid-template-columns: 7fr 5fr;
+        gap: 64px;
+        align-items: start;
+    }
+
+    /* ── Left Column ── */
+    .vm-ocd-left {
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+    }
+
+    /* Order Items Card */
+    .vm-ocd-card {
+        background: #f5f3ee;
+        border-radius: 4px;
+        padding: 40px;
+    }
+
+    .vm-ocd-card__title {
+        margin: 0 0 28px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid rgba(196, 199, 199, 0.4);
+        font-family: 'Noto Serif', Georgia, serif;
+        font-size: 28px;
+        font-style: italic;
+        font-weight: 400;
+        color: #171818;
+    }
+
+    .vm-ocd-items {
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+    }
+
+    .vm-ocd-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 32px;
+    }
+
+    .vm-ocd-item__thumb {
+        flex-shrink: 0;
+        width: 112px;
+        aspect-ratio: 4 / 5;
+        overflow: hidden;
+        background: #e4e2dd;
+    }
+
+    .vm-ocd-item__thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.65s ease;
+    }
+
+    .vm-ocd-item:hover .vm-ocd-item__thumb img {
+        transform: scale(1.05);
+    }
+
+    .vm-ocd-item__body {
+        flex: 1;
+        padding-top: 4px;
+    }
+
+    .vm-ocd-item__cat {
+        display: block;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: #6f5c37;
+        margin-bottom: 6px;
+    }
+
+    .vm-ocd-item__name {
+        margin: 0 0 6px;
+        font-family: 'Noto Serif', Georgia, serif;
+        font-size: 20px;
+        font-weight: 400;
+        color: #171818;
+    }
+
+    .vm-ocd-item__variant {
+        margin: 0 0 4px;
+        font-size: 13px;
+        color: #444748;
+    }
+
+    .vm-ocd-item__qty {
+        margin: 0 0 14px;
+        font-size: 13px;
+        color: #444748;
+    }
+
+    .vm-ocd-item__price {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 600;
+        color: #171818;
+    }
+
+    .vm-ocd-empty {
+        color: #444748;
+        font-size: 14px;
+        padding: 8px 0;
+    }
+
+    /* ── Meta Grid (Delivery + Payment) ── */
+    .vm-ocd-meta-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .vm-ocd-meta-card {
+        background: #f0eee9;
+        border-radius: 4px;
+        padding: 36px;
+    }
+
+    .vm-ocd-meta-card__label {
+        display: block;
+        margin-bottom: 20px;
+        font-family: 'Manrope', sans-serif;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: #444748;
+    }
+
+    .vm-ocd-meta-card__name {
+        margin: 0 0 8px;
+        font-size: 15px;
+        font-weight: 700;
+        color: #171818;
+    }
+
+    .vm-ocd-meta-card__text {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.75;
+        color: #171818;
+    }
+
+    .vm-ocd-meta-card__pay {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 15px;
+        color: #171818;
+        margin-bottom: 10px;
+    }
+
+    .vm-ocd-meta-card__pay i {
+        font-size: 18px;
+        color: #444748;
+    }
+
+    .vm-ocd-meta-card__status {
+        margin: 0;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: #444748;
+    }
+
+    /* ── Right Column (sticky) ── */
+    .vm-ocd-right {
+        position: sticky;
+        top: 128px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    /* ── Payment Summary Card (dark) ── */
+    .vm-ocd-summary {
+        position: relative;
+        overflow: hidden;
+        background: #171818;
+        color: #ffffff;
+        border-radius: 4px;
+        padding: 48px;
+    }
+
+    .vm-ocd-summary__glow {
+        position: absolute;
+        top: -48px;
+        right: -48px;
+        width: 192px;
+        height: 192px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 50%;
+        filter: blur(36px);
+        pointer-events: none;
+    }
+
+    .vm-ocd-summary__title {
+        position: relative;
+        margin: 0 0 36px;
+        padding-bottom: 22px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        font-family: 'Noto Serif', Georgia, serif;
+        font-size: 28px;
+        font-style: italic;
+        font-weight: 400;
+        color: #ffffff;
+    }
+
+    .vm-ocd-summary__rows {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .vm-ocd-summary__row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .vm-ocd-summary__total {
+        position: relative;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-top: 28px;
+        padding-top: 24px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .vm-ocd-summary__total > span:first-child {
+        font-family: 'Noto Serif', Georgia, serif;
+        font-size: 22px;
+        font-style: italic;
+        color: #ffffff;
+    }
+
+    .vm-ocd-summary__total > span:last-child {
+        font-family: 'Noto Serif', Georgia, serif;
+        font-size: 26px;
+        font-style: italic;
+        color: #dcc397;
+    }
+
+    .vm-ocd-summary__actions {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        margin-top: 44px;
+    }
+
+    /* ── Buttons ── */
+    .vm-ocd-btn {
+        display: block;
+        padding: 18px 24px;
+        border-radius: 3px;
+        font-family: 'Manrope', sans-serif;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        text-align: center;
+        text-decoration: none;
+        transition: opacity 0.25s ease, background 0.25s ease;
+    }
+
+    .vm-ocd-btn--gold {
+        background: #dcc397;
+        color: #261900;
+    }
+
+    .vm-ocd-btn--gold:hover {
+        opacity: 0.88;
+        color: #261900;
+        text-decoration: none;
+    }
+
+    .vm-ocd-btn--ghost {
+        background: transparent;
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .vm-ocd-btn--ghost:hover {
+        background: rgba(255, 255, 255, 0.06);
+        color: #ffffff;
+        text-decoration: none;
+    }
+
+    .vm-ocd-summary__delivery {
+        position: relative;
+        margin-top: 36px;
+        padding-top: 24px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        text-align: center;
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    /* ── Assistance Card ── */
+    .vm-ocd-assist {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #eae8e3;
+        padding: 28px 32px;
+        text-decoration: none;
+        color: inherit;
+        transition: background 0.25s ease;
+    }
+
+    .vm-ocd-assist:hover {
+        background: rgba(247, 220, 174, 0.35);
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .vm-ocd-assist__inner {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .vm-ocd-assist__icon {
+        font-size: 22px;
+        color: #6f5c37;
+    }
+
+    .vm-ocd-assist__title {
+        margin: 0 0 4px;
+        font-family: 'Noto Serif', Georgia, serif;
+        font-size: 18px;
+        font-style: italic;
+        font-weight: 400;
+        color: #171818;
+    }
+
+    .vm-ocd-assist__sub {
+        margin: 0;
+        font-size: 13px;
+        color: #444748;
+    }
+
+    .vm-ocd-assist__arrow {
+        font-size: 16px;
+        color: #444748;
+        transition: transform 0.25s ease;
+    }
+
+    .vm-ocd-assist:hover .vm-ocd-assist__arrow {
+        transform: translateX(4px);
+    }
+}

@@ -11,6 +11,8 @@
 <link rel="stylesheet" href="{% static 'assets/css/cart-custom.css' %}">
 <link rel="stylesheet" href="{% static 'assets/css/cart-responsive.css' %}?v=20260223-01">
 <link rel="stylesheet" href="{% static 'assets/css/cart-mobile-alt.css' %}?v=20260329-02">
+<link rel="stylesheet" href="{% static 'assets/css/cart-tablet-alt.css' %}?v=20260404-01">
+<link rel="stylesheet" href="{% static 'assets/css/cart-desktop-alt.css' %}?v=20260404-01">
 {% endblock %}
 
 {% block content %}
@@ -76,219 +78,220 @@
     {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='cart' %}
 </section>
 
+<section class="vm-cart-tablet-only" aria-label="VibeMall cart tablet layout">
+    <div class="vm-cart-t-shell">
+        <header class="vm-cart-t-head">
+            <h1>Your Gallery</h1>
+            <p>{{ cart_items|length }} Item{{ cart_items|length|pluralize }} Curated for Purchase</p>
+        </header>
 
+        {% if messages %}
+        <section class="vm-cart-t-messages" aria-label="Cart notifications">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }}" role="alert">{{ message }}</div>
+            {% endfor %}
+        </section>
+        {% endif %}
 
- <main class="vm-cart-legacy-content">
-        <!-- page-banner-area-start -->
-        <div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg'%}">
-            <div class="container">
-                <div class="row">
-                    <div class="col-xl-12">
-                        <div class="page-banner-content text-center">
-                            <h4 class="breadcrumb-title">Your Cart</h4>
-                            <div class="breadcrumb-two">
-                                <nav>
-                                   <nav class="breadcrumb-trail breadcrumbs">
-                                      <ul class="breadcrumb-menu">
-                                         <li class="breadcrumb-trail">
-                                            <a href="{% url 'index' %}"><span>Home</span></a>
-                                         </li>
-                                         <li class="trail-item">
-                                            <span>Cart</span>
-                                         </li>
-                                      </ul>
-                                   </nav> 
-                                </nav>
+        {% if cart_items %}
+        <section class="vm-cart-t-list" aria-label="Cart items">
+            {% for item in cart_items %}
+            <article class="vm-cart-t-item">
+                <a class="vm-cart-t-media" href="{% url 'product-details' item.product.id %}">
+                    {% if item.product.image %}
+                    <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+                    {% else %}
+                    <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.product.name }}">
+                    {% endif %}
+                </a>
+
+                <div class="vm-cart-t-body">
+                    <div class="vm-cart-t-row">
+                        <div>
+                            <h3>{{ item.product.name }}</h3>
+                            <p class="vm-cart-t-meta">Refined Selection</p>
+                        </div>
+                        <strong>₹{{ item.get_total_price|floatformat:2 }}</strong>
+                    </div>
+
+                    <div class="vm-cart-t-controls">
+                        <form method="POST" action="{% url 'update_cart_quantity' item.id %}" class="vm-cart-t-qty-form" aria-label="Update quantity for {{ item.product.name }}">
+                            {% csrf_token %}
+                            <div class="vm-cart-t-qty-wrap" data-max="999">
+                                <button type="button" class="vm-cart-t-qty-btn" data-step="-1" aria-label="Decrease quantity for {{ item.product.name }}">-</button>
+                                <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="999" class="vm-cart-t-qty-input" inputmode="numeric" aria-label="Quantity for {{ item.product.name }}">
+                                <button type="button" class="vm-cart-t-qty-btn" data-step="1" aria-label="Increase quantity for {{ item.product.name }}">+</button>
+                                <button type="submit" class="vm-cart-t-update">Update</button>
                             </div>
-                        </div>
+                        </form>
+
+                        <a href="{% url 'remove_from_cart' item.id %}" class="vm-cart-t-remove js-confirm-remove" data-confirm-message="Remove this item?" aria-label="Remove {{ item.product.name }}">
+                            Remove
+                        </a>
                     </div>
                 </div>
+            </article>
+            {% endfor %}
+        </section>
+
+        <section class="vm-cart-t-summary" aria-label="Order summary">
+            <div class="vm-cart-t-summary-grid">
+                <div>
+                    <h4>Summary</h4>
+                    <div class="vm-cart-t-lines">
+                        <div><span>Subtotal</span><strong>₹{{ total_price|floatformat:2 }}</strong></div>
+                        <div><span>Estimated Shipping</span><strong>₹0.00</strong></div>
+                        <div><span>Tax</span><strong>Calculated at checkout</strong></div>
+                        <div class="vm-cart-t-total"><span>Total</span><strong>₹{{ total_price|floatformat:2 }}</strong></div>
+                    </div>
+                </div>
+
+                <div class="vm-cart-t-actions">
+                    <p>Every purchase supports local artisans and preserves traditional heritage techniques.</p>
+                    <a href="{% url 'checkout' %}" class="vm-cart-t-checkout">Proceed to Checkout</a>
+                    <a href="{% url 'shop' %}" class="vm-cart-t-continue">Continue Shopping</a>
+                </div>
             </div>
+        </section>
+        {% else %}
+        <section class="vm-cart-t-empty" aria-label="Empty cart">
+            <h3>Your gallery is currently empty.</h3>
+            <p>Add products to continue your curated checkout.</p>
+            <a href="{% url 'shop' %}">Explore Collection</a>
+        </section>
+        {% endif %}
+    </div>
+</section>
+
+
+
+ <main class="vm-cart-legacy-content" aria-label="VibeMall cart desktop layout">
+    <section class="vm-cart-d-shell">
+        <header class="vm-cart-d-head">
+            <h1>Your Bag</h1>
+            <p>Carefully selected artisanal pieces awaiting their new home.</p>
+        </header>
+
+        {% if messages %}
+        <section class="vm-cart-d-messages" aria-label="Cart notifications">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }}" role="alert">{{ message }}</div>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        {% if cart_items %}
+        <div class="vm-cart-d-grid">
+            <section class="vm-cart-d-items" aria-label="Cart items">
+                {% for item in cart_items %}
+                <article class="vm-cart-d-item">
+                    <a class="vm-cart-d-media" href="{% url 'product-details' item.product.id %}">
+                        {% if item.product.image %}
+                        <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+                        {% else %}
+                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.product.name }}">
+                        {% endif %}
+                    </a>
+
+                    <div class="vm-cart-d-copy">
+                        <div class="vm-cart-d-copy-main">
+                            <h3>{{ item.product.name }}</h3>
+                            <p>Quantity-ready atelier selection</p>
+                            <a href="{% url 'remove_from_cart' item.id %}" class="vm-cart-d-remove js-confirm-remove" data-confirm-message="Remove this item?" aria-label="Remove {{ item.product.name }}">Remove</a>
+                        </div>
+
+                        <form method="POST" action="{% url 'update_cart_quantity' item.id %}" class="vm-cart-d-qty-form" aria-label="Update quantity for {{ item.product.name }}">
+                            {% csrf_token %}
+                            <div class="vm-cart-d-qty-wrap" data-max="999">
+                                <button type="button" class="vm-cart-d-qty-btn" data-step="-1" aria-label="Decrease quantity for {{ item.product.name }}">-</button>
+                                <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="999" class="vm-cart-d-qty-input" inputmode="numeric" aria-label="Quantity for {{ item.product.name }}">
+                                <button type="button" class="vm-cart-d-qty-btn" data-step="1" aria-label="Increase quantity for {{ item.product.name }}">+</button>
+                                <button type="submit" class="vm-cart-d-qty-update">Update</button>
+                            </div>
+                        </form>
+
+                        <div class="vm-cart-d-prices">
+                            <span>₹{{ item.product.price|floatformat:2 }}</span>
+                            <strong>₹{{ item.get_total_price|floatformat:2 }}</strong>
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
+            </section>
+
+            <aside class="vm-cart-d-summary" aria-label="Order summary">
+                <h2>Order Summary</h2>
+
+                <div class="vm-cart-d-lines">
+                    <div><span>Subtotal</span><strong id="cartSubtotal">₹{{ total_price|floatformat:2 }}</strong></div>
+                    <div><span>Shipping</span><strong>Complimentary</strong></div>
+                    <div><span>Estimated Tax</span><strong>Calculated at checkout</strong></div>
+                    <div id="couponDiscountRow" class="is-hidden"><span>Coupon Discount</span><strong id="cartCouponDiscount">-₹0.00</strong></div>
+                    <div class="vm-cart-d-total"><span>Grand Total</span><strong id="cartTotal">₹{{ total_price|floatformat:2 }}</strong></div>
+                </div>
+
+                <a href="{% url 'checkout' %}" class="vm-cart-d-checkout">Proceed to Checkout</a>
+                <a href="{% url 'shop' %}" class="vm-cart-d-continue">Continue Shopping</a>
+
+                <div class="vm-cart-d-coupon">
+                    <label for="coupon_code">Promo Code</label>
+                    <div class="vm-cart-d-coupon-row">
+                        <input id="coupon_code" name="coupon_code" type="text" placeholder="ENTER CODE" autocomplete="off">
+                        <button id="applyCouponBtn" type="button">Apply</button>
+                    </div>
+                    <div id="couponMessage" aria-live="polite"></div>
+                    <div id="appliedCouponDisplay" class="vm-cart-d-coupon-applied is-hidden">
+                        <p><strong id="appliedCouponCode"></strong> applied</p>
+                        <p>Discount: ₹<span id="appliedCouponAmount">0.00</span></p>
+                        <button type="button" id="removeCouponBtn" aria-label="Remove coupon">Remove</button>
+                    </div>
+                </div>
+            </aside>
         </div>
-        <!-- page-banner-area-end -->
+        {% else %}
+        <section class="vm-cart-d-empty" aria-label="Empty cart">
+            <h3>Your cart is empty.</h3>
+            <p>Add items to begin your curated checkout.</p>
+            <a href="{% url 'shop' %}">Continue Shopping</a>
+        </section>
+        {% endif %}
+    </section>
+ </main>
 
-        <!-- cart-area-start -->
-        <section class="cart-area pt-120 pb-120">
-            <div class="container">
-                <!-- Messages -->
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="alert alert-{% if message.tags %}{{ message.tags }}{% else %}info{% endif %} alert-dismissible fade show mb-30" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    {% endfor %}
-                {% endif %}
+    <script>
+        document.querySelectorAll('.vm-cart-t-qty-wrap').forEach((wrap) => {
+            const input = wrap.querySelector('.vm-cart-t-qty-input');
+            const buttons = wrap.querySelectorAll('.vm-cart-t-qty-btn');
+            if (!input) return;
 
-                {% if cart_items %}
-                <div class="row">
-                  <div class="col-12">
-                        <div class="cart-responsive-grid">
-                           {% for item in cart_items %}
-                           <div class="cart-r-card">
-                              <div class="cart-r-top">
-                                 <a href="#" class="cart-r-thumb">
-                                    {% if item.product.image %}
-                                       <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
-                                    {% else %}
-                                       <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.product.name }}">
-                                    {% endif %}
-                                 </a>
-                                 <a href="#" class="cart-r-name">{{ item.product.name }}</a>
-                              </div>
+            const max = parseInt(input.getAttribute('max') || wrap.getAttribute('data-max') || '999', 10);
+            const min = parseInt(input.getAttribute('min') || '1', 10);
+            const clamp = (value) => Math.min(max, Math.max(min, value));
 
-                              <div class="cart-r-prices">
-                                 <div class="cart-r-line">
-                                    <span>Unit Price</span>
-                                    <strong>&#8377;{{ item.product.price }}</strong>
-                                 </div>
-                                 <div class="cart-r-line">
-                                    <span>Total</span>
-                                    <strong>&#8377;{{ item.get_total_price }}</strong>
-                                 </div>
-                              </div>
+            buttons.forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const step = parseInt(btn.getAttribute('data-step') || '0', 10);
+                    const current = parseInt(input.value || min, 10);
+                    input.value = clamp(current + step);
+                });
+            });
 
-                              <form method="POST" action="{% url 'update_cart_quantity' item.id %}" class="cart-r-qty-form" aria-label="Update quantity for {{ item.product.name }}">
-                                 {% csrf_token %}
-                                 <label class="cart-r-label" id="label-qty-{{ item.id }}">Quantity</label>
-                                 <div class="cart-qty-wrap" data-max="999" role="group" aria-labelledby="label-qty-{{ item.id }}">
-                                    <div class="cart-qty">
-                                       <button type="button" class="cart-qty-btn" data-step="-1" aria-label="Decrease quantity for {{ item.product.name }}">-</button>
-                                       <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="999" class="cart-qty-input" inputmode="numeric" aria-label="Quantity for {{ item.product.name }}">
-                                       <button type="button" class="cart-qty-btn" data-step="1" aria-label="Increase quantity for {{ item.product.name }}">+</button>
-                                    </div>
-                                    <button type="submit" class="btn btn-sm btn-primary cart-qty-action" aria-label="Update quantity in cart">Update</button>
-                                 </div>
-                              </form>
+            input.addEventListener('input', () => {
+                const current = parseInt(input.value || min, 10);
+                input.value = clamp(current);
+            });
+        });
+    </script>
 
-                              <div class="cart-r-footer">
-                                 <a href="{% url 'remove_from_cart' item.id %}" class="btn btn-sm btn-danger cart-r-remove js-confirm-remove" data-confirm-message="Remove this item?" aria-label="Remove {{ item.product.name }} from cart">
-                                    <i class="fa fa-times" aria-hidden="true"></i>
-                                 </a>
-                              </div>
-                           </div>
-                           {% endfor %}
-                        </div>
-
-                        <div class="table-content table-responsive cart-desktop-table">
-                           <table class="table">
-                                 <thead>
-                                    <tr>
-                                       <th class="product-thumbnail">Image</th>
-                                       <th class="cart-product-name">Product</th>
-                                       <th class="product-price">Unit Price</th>
-                                       <th class="product-quantity">Quantity</th>
-                                       <th class="product-subtotal">Total</th>
-                                       <th class="product-remove">Action</th>
-                                    </tr>
-                                 </thead>
-                                 <tbody>
-                                    {% for item in cart_items %}
-                                    <tr>
-                                       <td class="product-thumbnail">
-                                          <a href="#">
-                                              {% if item.product.image %}
-                                                  <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="max-width: 80px; height: auto;">
-                                              {% else %}
-                                                  <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.product.name }}" style="max-width: 80px; height: auto; background-color: #f0f0f0;">
-                                              {% endif %}
-                                          </a>
-                                       </td>
-                                       <td class="product-name"><a href="#">{{ item.product.name }}</a></td>
-                                       <td class="product-price"><span class="amount">&#8377;{{ item.product.price }}</span></td>
-                                       <td class="product-quantity">
-                                             <form method="POST" action="{% url 'update_cart_quantity' item.id %}" style="display: inline;">
-                                                {% csrf_token %}
-                                                                <div class="cart-qty-wrap" data-max="999">
-                                                                    <div class="cart-qty">
-                                                                         <button type="button" class="cart-qty-btn" data-step="-1" aria-label="Decrease quantity">-</button>
-                                                                         <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="999" class="cart-qty-input" inputmode="numeric">
-                                                                         <button type="button" class="cart-qty-btn" data-step="1" aria-label="Increase quantity">+</button>
-                                                                    </div>
-                                                                    <button type="submit" class="btn btn-sm btn-primary cart-qty-action">Update</button>
-                                                                </div>
-                                             </form>
-                                       </td>
-                                       <td class="product-subtotal"><span class="amount">&#8377;{{ item.get_total_price }}</span></td>
-                                       <td class="product-remove">
-                                          <a href="{% url 'remove_from_cart' item.id %}" class="btn btn-sm btn-danger js-confirm-remove" data-confirm-message="Remove this item?">
-                                             <i class="fa fa-times"></i>
-                                          </a>
-                                       </td>
-                                    </tr>
-                                    {% endfor %}
-                                 </tbody>
-                           </table>
-                        </div>
-                        <div class="row mt-40">
-                           <div class="col-12">
-                                 <div class="coupon-all">
-                                    <!-- Coupon Section -->
-                                    <div class="coupon" style="flex: 1; max-width: 600px;">
-                                       <div class="d-flex gap-2 mb-2 flex-wrap">
-                                          <input id="coupon_code" class="input-text" name="coupon_code" value="" placeholder="Enter coupon code" type="text" style="flex: 1; min-width: 200px; text-transform: uppercase;">
-                                          <button class="tp-btn-h1" id="applyCouponBtn" type="button">Apply</button>
-                                          <button class="tp-btn-h2" id="viewCouponsBtn" type="button" style="white-space: nowrap;">
-                                             <i class="fas fa-ticket-alt"></i> Coupons
-                                          </button>
-                                       </div>
-                                       <div id="couponMessage"></div>
-                                       <div id="appliedCouponDisplay" style="display: none;" class="mt-2 p-2 bg-success text-white rounded">
-                                          <div class="d-flex justify-content-between align-items-center">
-                                             <div>
-                                                <strong><i class="fas fa-check-circle"></i> <span id="appliedCouponCode"></span></strong>
-                                                <div class="small">Discount: ₹<span id="appliedCouponAmount">0</span></div>
-                                             </div>
-                                             <button type="button" id="removeCouponBtn" class="btn btn-sm btn-light">
-                                                <i class="fas fa-times"></i>
-                                             </button>
-                                          </div>
-                                       </div>
-                                    </div>
-                                    <div class="coupon2">
-                                       <a class="tp-btn-h2" href="{% url 'shop' %}">Continue Shopping</a>
-                                    </div>
-                                 </div>
-                           </div>
-                        </div>
-                        <div class="row justify-content-end mt-40">
-                           <div class="col-md-5">
-                                 <div class="cart-page-total">
-                                    <h2>Cart Totals</h2>
-                                    <ul class="mb-20">
-                                       <li>Subtotal <span id="cartSubtotal">&#8377;{{ total_price }}</span></li>
-                                       <li id="couponDiscountRow" style="display: none; color: #28a745;">
-                                          Coupon Discount <span id="cartCouponDiscount">-₹0.00</span>
-                                       </li>
-                                       <li><strong>Total</strong> <span id="cartTotal"><strong>&#8377;{{ total_price }}</strong></span></li>
-                                    </ul>
-                                    <a class="tp-btn-h1 w-100 text-center" href="{% url 'checkout' %}" id="checkoutBtn">Proceed to Checkout</a>
-                                 </div>
-                           </div>
-                        </div>
-                  </div>
-               </div>
-                {% else %}
-                <div class="row">
-                    <div class="col-12 text-center py-5">
-                        <h4 class="mb-30">Your Cart is Empty</h4>
-                        <p class="mb-30">Add some products to your cart to proceed with checkout.</p>
-                        <a href="{% url 'shop' %}" class="tp-btn-h1">Continue Shopping</a>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-         </section>
-         <!-- cart-area-end -->
-
-        <script>
-            document.querySelectorAll('.cart-qty-wrap').forEach((wrap) => {
-                const input = wrap.querySelector('.cart-qty-input');
-                const buttons = wrap.querySelectorAll('.cart-qty-btn');
+    <script>
+        (function () {
+            document.querySelectorAll('.vm-cart-d-qty-wrap').forEach((wrap) => {
+                const input = wrap.querySelector('.vm-cart-d-qty-input');
+                const buttons = wrap.querySelectorAll('.vm-cart-d-qty-btn');
                 if (!input) return;
+
                 const max = parseInt(input.getAttribute('max') || wrap.getAttribute('data-max') || '999', 10);
                 const min = parseInt(input.getAttribute('min') || '1', 10);
-
                 const clamp = (value) => Math.min(max, Math.max(min, value));
 
                 buttons.forEach((btn) => {
@@ -305,31 +308,64 @@
                 });
             });
 
-            // ===== COUPON FUNCTIONALITY =====
-            let appliedCoupon = null;
-            const cartTotal = {{ total_price }};
+            const couponInput = document.getElementById('coupon_code');
+            const applyCouponBtn = document.getElementById('applyCouponBtn');
+            const removeCouponBtn = document.getElementById('removeCouponBtn');
+            const couponMessage = document.getElementById('couponMessage');
+            const appliedDisplay = document.getElementById('appliedCouponDisplay');
+            const appliedCode = document.getElementById('appliedCouponCode');
+            const appliedAmount = document.getElementById('appliedCouponAmount');
+            const discountRow = document.getElementById('couponDiscountRow');
+            const discountValue = document.getElementById('cartCouponDiscount');
+            const totalEl = document.getElementById('cartTotal');
 
-            // Apply Coupon
-            document.getElementById('applyCouponBtn').addEventListener('click', function() {
-                const code = document.getElementById('coupon_code').value.trim().toUpperCase();
-                if (!code) {
-                    showCouponMessage('Please enter a coupon code', 'warning');
+            if (!couponInput || !applyCouponBtn || !totalEl) return;
+
+            let appliedCoupon = null;
+            const cartTotal = {{ total_price|default:0 }};
+
+            const getCookie = (name) => {
+                let cookieValue = null;
+                if (!document.cookie) return cookieValue;
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+                return cookieValue;
+            };
+
+            const renderTotals = () => {
+                let total = cartTotal;
+                if (appliedCoupon) total -= appliedCoupon.discount_amount;
+                if (total < 0) total = 0;
+                totalEl.textContent = '₹' + total.toFixed(2);
+            };
+
+            const showMessage = (message, type) => {
+                if (!couponMessage) return;
+                couponMessage.textContent = message;
+                couponMessage.className = 'vm-cart-d-coupon-msg ' + (type || 'info');
+            };
+
+            const renderCoupon = () => {
+                if (!appliedDisplay || !discountRow || !appliedCode || !appliedAmount || !discountValue) return;
+                if (!appliedCoupon) {
+                    appliedDisplay.classList.add('is-hidden');
+                    discountRow.classList.add('is-hidden');
                     return;
                 }
-                applyCouponCode(code);
-            });
+                appliedCode.textContent = appliedCoupon.code;
+                appliedAmount.textContent = Number(appliedCoupon.discount_amount || 0).toFixed(2);
+                discountValue.textContent = '-₹' + Number(appliedCoupon.discount_amount || 0).toFixed(2);
+                appliedDisplay.classList.remove('is-hidden');
+                discountRow.classList.remove('is-hidden');
+            };
 
-            // View Available Coupons
-            document.getElementById('viewCouponsBtn').addEventListener('click', function() {
-                showAvailableCouponsPopup();
-            });
-
-            // Remove Coupon
-            document.getElementById('removeCouponBtn').addEventListener('click', function() {
-                removeCoupon();
-            });
-
-            function applyCouponCode(code) {
+            const applyCouponCode = (code) => {
                 fetch('/api/validate-coupon/', {
                     method: 'POST',
                     headers: {
@@ -341,222 +377,58 @@
                         cart_total: cartTotal
                     })
                 })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.valid) {
-                        appliedCoupon = data;
-                        document.getElementById('appliedCouponCode').textContent = data.code;
-                        document.getElementById('appliedCouponAmount').textContent = data.discount_amount.toFixed(2);
-                        document.getElementById('appliedCouponDisplay').style.display = 'block';
-                        
-                        // Show discount in cart totals
-                        document.getElementById('couponDiscountRow').style.display = 'list-item';
-                        document.getElementById('cartCouponDiscount').textContent = `-₹${data.discount_amount.toFixed(2)}`;
-                        
-                        updateCartTotal();
-                        showCouponMessage(data.message, 'success');
-                        
-                        // Store coupon in session for checkout
-                        sessionStorage.setItem('appliedCoupon', JSON.stringify(data));
-                    } else {
-                        showCouponMessage(data.message, 'danger');
-                    }
-                })
-                .catch(err => {
-                    showCouponMessage('Error applying coupon', 'danger');
-                });
-            }
-
-            function removeCoupon() {
-                appliedCoupon = null;
-                document.getElementById('coupon_code').value = '';
-                document.getElementById('appliedCouponDisplay').style.display = 'none';
-                document.getElementById('couponDiscountRow').style.display = 'none';
-                updateCartTotal();
-                showCouponMessage('Coupon removed', 'info');
-                sessionStorage.removeItem('appliedCoupon');
-            }
-
-            function updateCartTotal() {
-                let total = cartTotal;
-                if (appliedCoupon) {
-                    total -= appliedCoupon.discount_amount;
-                }
-                if (total < 0) total = 0;
-                document.getElementById('cartTotal').innerHTML = '<strong>₹' + total.toFixed(2) + '</strong>';
-            }
-
-            function showCouponMessage(message, type) {
-                const msgDiv = document.getElementById('couponMessage');
-                msgDiv.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show mt-2"><small>${message}</small><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
-                setTimeout(() => msgDiv.innerHTML = '', 5000);
-            }
-
-            function showAvailableCouponsPopup() {
-                fetch('/api/available-coupons/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken')
-                    },
-                    body: JSON.stringify({
-                        cart_total: cartTotal
-                    })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success && data.coupons.length > 0) {
-                        showCouponsModal(data.coupons);
-                    } else {
-                        showCouponMessage('No coupons available at the moment', 'info');
-                    }
-                })
-                .catch(err => {
-                    showCouponMessage('Error loading coupons', 'danger');
-                });
-            }
-
-            function showCouponsModal(coupons) {
-                let html = `
-                    <div class="modal fade" id="couponsModal" tabindex="-1">
-                        <div class="modal-dialog modal-dialog-centered">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title"><i class="fas fa-ticket-alt"></i> Available Coupons</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body">
-                `;
-                
-                coupons.forEach(coupon => {
-                    const usedBadge = coupon.used ? '<span class="badge bg-secondary">USED</span>' : '';
-                    const applyBtn = coupon.used ? 
-                        '<button class="btn btn-sm btn-secondary" disabled>Used</button>' : 
-                        `<button class="btn btn-sm btn-primary apply-coupon-btn" data-code="${coupon.code}">Apply</button>`;
-                    
-                    html += `
-                        <div class="coupon-card mb-3 p-3 border rounded ${coupon.used ? 'opacity-50' : ''}">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-1">${coupon.title} ${usedBadge}</h6>
-                                    <p class="text-muted small mb-2">${coupon.description}</p>
-                                    <div class="d-flex gap-2">
-                                        <span class="badge bg-success">${coupon.discount}</span>
-                                        <span class="badge bg-info">Code: ${coupon.code}</span>
-                                    </div>
-                                </div>
-                                <div class="ms-2">
-                                    ${applyBtn}
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                html += `
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                // Remove existing modal if any
-                const existingModal = document.getElementById('couponsModal');
-                if (existingModal) existingModal.remove();
-                
-                // Add modal to body
-                document.body.insertAdjacentHTML('beforeend', html);
-                
-                // Show modal
-                const modal = new bootstrap.Modal(document.getElementById('couponsModal'));
-                modal.show();
-                
-                // Add event listeners to apply buttons
-                document.querySelectorAll('.apply-coupon-btn').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        const code = this.getAttribute('data-code');
-                        document.getElementById('coupon_code').value = code;
-                        modal.hide();
-                        applyCouponCode(code);
-                    });
-                });
-            }
-
-            function getCookie(name) {
-                let cookieValue = null;
-                if (document.cookie && document.cookie !== '') {
-                    const cookies = document.cookie.split(';');
-                    for (let i = 0; i < cookies.length; i++) {
-                        const cookie = cookies[i].trim();
-                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                            break;
+                    .then((res) => res.json())
+                    .then((data) => {
+                        if (!data.valid) {
+                            showMessage(data.message || 'Coupon is not valid', 'error');
+                            return;
                         }
-                    }
+                        appliedCoupon = data;
+                        renderCoupon();
+                        renderTotals();
+                        showMessage(data.message || 'Coupon applied successfully', 'success');
+                        sessionStorage.setItem('appliedCoupon', JSON.stringify(data));
+                    })
+                    .catch(() => {
+                        showMessage('Error applying coupon', 'error');
+                    });
+            };
+
+            applyCouponBtn.addEventListener('click', () => {
+                const code = (couponInput.value || '').trim().toUpperCase();
+                if (!code.length) {
+                    showMessage('Please enter a coupon code', 'warning');
+                    return;
                 }
-                return cookieValue;
+                couponInput.value = code;
+                applyCouponCode(code);
+            });
+
+            if (removeCouponBtn) {
+                removeCouponBtn.addEventListener('click', () => {
+                    appliedCoupon = null;
+                    couponInput.value = '';
+                    renderCoupon();
+                    renderTotals();
+                    showMessage('Coupon removed', 'info');
+                    sessionStorage.removeItem('appliedCoupon');
+                });
             }
 
-            // Load saved coupon from session storage on page load
-            window.addEventListener('DOMContentLoaded', function() {
-                const savedCoupon = sessionStorage.getItem('appliedCoupon');
-                if (savedCoupon) {
-                    try {
-                        appliedCoupon = JSON.parse(savedCoupon);
-                        document.getElementById('coupon_code').value = appliedCoupon.code;
-                        document.getElementById('appliedCouponCode').textContent = appliedCoupon.code;
-                        document.getElementById('appliedCouponAmount').textContent = appliedCoupon.discount_amount.toFixed(2);
-                        document.getElementById('appliedCouponDisplay').style.display = 'block';
-                        document.getElementById('couponDiscountRow').style.display = 'list-item';
-                        document.getElementById('cartCouponDiscount').textContent = `-₹${appliedCoupon.discount_amount.toFixed(2)}`;
-                        updateCartTotal();
-                    } catch (e) {
-                        sessionStorage.removeItem('appliedCoupon');
-                    }
+            const savedCoupon = sessionStorage.getItem('appliedCoupon');
+            if (savedCoupon) {
+                try {
+                    appliedCoupon = JSON.parse(savedCoupon);
+                    if (couponInput && appliedCoupon.code) couponInput.value = appliedCoupon.code;
+                } catch (e) {
+                    sessionStorage.removeItem('appliedCoupon');
+                    appliedCoupon = null;
                 }
-            });
-        </script>
+            }
 
-        <!-- cta-area-start -->
-        <section class="cta-area d-ldark-bg pt-55 pb-10">
-            <div class="container">
-                <div class="row">
-                    <div class="col-lg-6 col-md-6">
-                        <div class="cta-item cta-item-d mb-30">
-                            <h5 class="cta-title">Follow Us</h5>
-                            <p>We make consolidating, marketing and tracking your social media website easy.</p>
-                            <div class="cta-social">
-                                <div class="social-icon">
-                                    <a href="{{ site_settings.facebook_url|default:'#' }}" class="facebook" {% if site_settings.facebook_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
-                                    <a href="{{ site_settings.twitter_url|default:'#' }}" class="twitter" {% if site_settings.twitter_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="Twitter"><i class="fab fa-twitter"></i></a>
-                                    <a href="{{ site_settings.youtube_url|default:'#' }}" class="youtube" {% if site_settings.youtube_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="YouTube"><i class="fab fa-youtube"></i></a>
-                                    <a href="{{ site_settings.instagram_url|default:'#' }}" class="linkedin" {% if site_settings.instagram_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="Instagram"><i class="fab fa-instagram"></i></a>
-                                    <a href="mailto:{{ site_settings.contact_email|default:'support@vibemall.com' }}" class="rss" aria-label="Email"><i class="fas fa-envelope"></i></a>
-                                    <a href="{% url 'contact' %}" class="dribbble" aria-label="Contact"><i class="fas fa-headset"></i></a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-6 col-md-6">
-                        <div class="cta-item mb-30">
-                            <h5 class="cta-title">Sign Up To Newsletter</h5>
-                            <p>Join 60.000+ subscribers and get a new discount coupon  on every Saturday.</p>
-                            <div class="subscribe__form">
-                                <form action="{% url 'subscribe_newsletter' %}" method="post" class="js-newsletter-form" novalidate>
-                                    {% csrf_token %}
-                                    <input type="hidden" name="source_page" value="cart">
-                                    <input type="email" name="email" placeholder="Enter your email here..." required>
-                                    <button type="submit">subscribe</button>
-                                </form>
-                                <small class="newsletter-feedback d-block mt-2" aria-live="polite"></small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </section>
-
-    </main>
+            renderCoupon();
+            renderTotals();
+        })();
+    </script>
 
 {% endblock content %}

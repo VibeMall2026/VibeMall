@@ -10,6 +10,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'assets/css/faq-responsive.css' %}?v=20260222-01">
 <link rel="stylesheet" href="{% static 'assets/css/faq-mobile-alt.css' %}?v=20260329-03">
+<link rel="stylesheet" href="{% static 'assets/css/faq-tablet-alt.css' %}?v=20260404-01">
 {% endblock %}
 
 {% block content %}
@@ -72,179 +73,124 @@
 
     </section>
 
-    <main class="vm-faq-desktop-content">
-        <!-- page-banner-area-start -->
-        <div class="page-banner-area page-banner-height" data-background="{%static 'assets/img/banner/page-banner-3.jpg' %}">
-            <div class="container">
-                <div class="row">
-                    <div class="col-xl-12">
-                        <div class="page-banner-content text-center">
-                            <h4 class="breadcrumb-title">FAQs</h4>
-                            <div class="breadcrumb-two">
-                                <nav>
-                                   <nav class="breadcrumb-trail breadcrumbs">
-                                      <ul class="breadcrumb-menu">
-                                         <li class="breadcrumb-trail">
-                                            <a href="{% url 'index' %}"><span>Home</span></a>
-                                         </li>
-                                         <li class="trail-item">
-                                            <span>FAQs</span>
-                                         </li>
-                                      </ul>
-                                   </nav> 
-                                </nav>
-                            </div>
-                        </div>
-                    </div>
+    <section class="vm-faq-tablet-only" aria-label="VibeMall FAQ tablet layout">
+        <main class="vm-faq-t-main">
+            <section class="vm-faq-t-hero">
+                <span class="vm-faq-t-kicker">Client Services</span>
+                <h1>How can we assist?</h1>
+                <p>Explore our curated guide to services, from sizing consultations to the bespoke journey of our Atelier.</p>
+                <div class="vm-faq-t-metrics" aria-label="FAQ overview">
+                    <span>{{ total_categories }} categories</span>
+                    <span>{{ total_faqs }} answers</span>
                 </div>
-            </div>
-        </div>
-        <!-- page-banner-area-end -->
+            </section>
 
-        <!-- faq-area-start -->
-        <div class="faq-area mt-70 mb-60">
-            <div class="container">
-                <div class="row">
-                    <div class="col-lg-6">
-                        <div class="single-faqs mb-40">
-                            <div class="faq-title">
-                                <h5>Orders, Tracking & Returns</h5>
+            <nav class="vm-faq-t-categories" aria-label="FAQ categories">
+                {% for group in faq_groups %}
+                <a href="#tablet-{{ group.anchor }}" class="{% if forloop.first %}is-active{% endif %}">{{ group.name }}</a>
+                {% endfor %}
+            </nav>
+
+            <section class="vm-faq-t-groups" aria-label="Frequently asked questions">
+                {% for group in faq_groups %}
+                <section id="tablet-{{ group.anchor }}" class="vm-faq-t-group">
+                    <header class="vm-faq-t-group-head">
+                        <h2>{{ group.name }}</h2>
+                        {% if group.description %}
+                        <p>{{ group.description }}</p>
+                        {% endif %}
+                    </header>
+
+                    <div class="vm-faq-t-accordion">
+                        {% for item in group.faqs %}
+                        <details {% if forloop.parentloop.first and forloop.first %}open{% endif %}>
+                            <summary>
+                                <span>{{ item.question }}</span>
+                                <i class="far fa-angle-down" aria-hidden="true"></i>
+                            </summary>
+                            <div>
+                                <p>{{ item.answer }}</p>
                             </div>
-                            <div class="faq-content mt-10">
-                                <div class="accordion" id="accordionExample1">
-                                      <div class="accordion-item">
-                                         <h2 class="accordion-header" id="headingOne">
-                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
-                                                How do I place an order on VibeMall?
-                                            </button>
-                                         </h2>
-                                         <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample1">
-                                            <div class="accordion-body">
-                                            <p>Select your product, click Add to Cart, proceed to Checkout, fill shipping details, choose payment method, and confirm your order. You will receive an order confirmation after successful placement.</p>
-                                            </div>
-                                         </div>
-                                      </div>
-                                      <div class="accordion-item">
-                                         <h2 class="accordion-header" id="headingTwo">
-                                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
-                                                How can I track my order status?
-                                            </button>
-                                         </h2>
-                                         <div id="collapseTwo" class="accordion-collapse collapse show" aria-labelledby="headingTwo" data-bs-parent="#accordionExample1">
-                                            <div class="accordion-body">
-                                            <p>Go to My Orders and open the order details to see live status updates. If a tracking number is available, it will be shown there once your order is shipped.</p>
-                                            </div>
-                                         </div>
-                                      </div>
-                                      <div class="accordion-item">
-                                         <h2 class="accordion-header" id="headingThree">
-                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
-                                                What is your return policy?
-                                            </button>
-                                         </h2>
-                                         <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#accordionExample1">
-                                            <div class="accordion-body">
-                                            <p>Return eligibility depends on the product. Items marked as No Return cannot be returned. For returnable products, request within the allowed return window and keep product in original condition with tags and packaging.</p>
-                                            </div>
-                                         </div>
-                                      </div>
-                                 </div>
-                            </div>
-                        </div>
+                        </details>
+                        {% endfor %}
                     </div>
-                    <div class="col-lg-6">
-                        <div class="single-faqs mb-40">
-                            <div class="faq-title">
-                                <h5>Payments, Shipping & Support</h5>
-                            </div>
-                            <div class="faq-content mt-10">
-                                <div class="accordion" id="accordionExample2">
-                                      <div class="accordion-item">
-                                         <h2 class="accordion-header" id="heading1">
-                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1" aria-expanded="false" aria-controls="collapse1">
-                                            Which payment methods are available?
-                                            </button>
-                                         </h2>
-                                         <div id="collapse1" class="accordion-collapse collapse" aria-labelledby="heading1" data-bs-parent="#accordionExample2">
-                                            <div class="accordion-body">
-                                            <p>We currently support Cash on Delivery (COD) and secure online payment via Razorpay, including cards, UPI, net banking, and supported wallets.</p>
-                                            </div>
-                                         </div>
-                                      </div>
-                                      <div class="accordion-item">
-                                         <h2 class="accordion-header" id="heading2">
-                                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2" aria-expanded="true" aria-controls="collapse2">
-                                                What are your shipping charges?
-                                            </button>
-                                         </h2>
-                                         <div id="collapse2" class="accordion-collapse collapse show" aria-labelledby="heading2" data-bs-parent="#accordionExample2">
-                                            <div class="accordion-body">
-                                            <p>Shipping is free on qualifying higher-value orders. For smaller orders, a standard shipping fee may apply at checkout based on your cart total and delivery location.</p>
-                                            </div>
-                                         </div>
-                                      </div>
-                                      <div class="accordion-item">
-                                         <h2 class="accordion-header" id="heading3">
-                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3" aria-expanded="false" aria-controls="collapse3">
-                                                When will I receive my refund and how can I contact support?
-                                            </button>
-                                         </h2>
-                                         <div id="collapse3" class="accordion-collapse collapse" aria-labelledby="heading3" data-bs-parent="#accordionExample2">
-                                            <div class="accordion-body">
-                                            <p>Refunds are usually processed within 7-14 business days after return approval. For help with orders, returns, or payments, use the support chat on the website or contact us at info.vibemall@gmail.com.</p>
-                                            </div>
-                                         </div>
-                                      </div>
-                                 </div>
-                            </div>
-                        </div>
-                    </div>
+                </section>
+                {% endfor %}
+            </section>
+
+            <section class="vm-faq-t-contact" aria-label="Contact concierge">
+                <div class="vm-faq-t-contact-media">
+                    <img src="{% static 'assets/img/about/ab-01.jpg' %}" alt="Luxury concierge studio interior">
                 </div>
-            </div>
-        </div>
-        <!-- faq-area-end -->
-
-        <!-- cta-area-start -->
-        <section class="cta-area d-ldark-bg pt-55 pb-10">
-            <div class="container">
-                <div class="row">
-                    <div class="col-lg-4 col-md-6">
-                        <div class="cta-item cta-item-d mb-30">
-                            <h5 class="cta-title">Follow Us</h5>
-                            <p>We make consolidating, marketing and tracking your social media website easy.</p>
-                            <div class="cta-social">
-                                <div class="social-icon">
-                                    <a href="{{ site_settings.facebook_url|default:'#' }}" class="facebook" {% if site_settings.facebook_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
-                                    <a href="{{ site_settings.twitter_url|default:'#' }}" class="twitter" {% if site_settings.twitter_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="Twitter"><i class="fab fa-twitter"></i></a>
-                                    <a href="{{ site_settings.youtube_url|default:'#' }}" class="youtube" {% if site_settings.youtube_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="YouTube"><i class="fab fa-youtube"></i></a>
-                                    <a href="{{ site_settings.instagram_url|default:'#' }}" class="linkedin" {% if site_settings.instagram_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="Instagram"><i class="fab fa-instagram"></i></a>
-                                    <a href="mailto:{{ site_settings.contact_email|default:'support@vibemall.com' }}" class="rss" aria-label="Email"><i class="fas fa-envelope"></i></a>
-                                    <a href="{% url 'contact' %}" class="dribbble" aria-label="Contact"><i class="fas fa-headset"></i></a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-4 col-md-6">
-                        <div class="cta-item mb-30">
-                            <h5 class="cta-title">Sign Up To Newsletter</h5>
-                            <p>Join 60.000+ subscribers and get a new discount coupon  on every Saturday.</p>
-                            <div class="subscribe__form">
-                                <form action="{% url 'subscribe_newsletter' %}" method="post" class="js-newsletter-form" novalidate>
-                                    {% csrf_token %}
-                                    <input type="hidden" name="source_page" value="faq">
-                                    <input type="email" name="email" placeholder="Enter your email here..." required>
-                                    <button type="submit">subscribe</button>
-                                </form>
-                                <small class="newsletter-feedback d-block mt-2" aria-live="polite"></small>
-                            </div>
-                        </div>
-                    </div>
+                <div class="vm-faq-t-contact-copy">
+                    <h2>Still looking for answers?</h2>
+                    <p>Our specialists are available for private consultation through our digital concierge service.</p>
+                    <a href="{% url 'contact' %}">Contact Concierge</a>
                 </div>
-            </div>
+            </section>
+        </main>
+    </section>
 
+    <main class="vm-faq-desktop-content vm-faq-d-shell" aria-label="Support and inquiries desktop view">
+        <section class="vm-faq-d-hero">
+            <span class="vm-faq-d-kicker">Assistance &amp; Care</span>
+            <h1>How may we guide you?</h1>
+            <p>Explore our curated guide to services, from global delivery to the artisanal secrets of our Atelier.</p>
         </section>
-        <!-- cta-area-end -->
 
+        <section class="vm-faq-d-layout">
+            <aside class="vm-faq-d-sidebar">
+                <div class="vm-faq-d-sidebar-inner">
+                    <h3>Inquiries</h3>
+                    <nav aria-label="FAQ category links">
+                        {% for group in faq_groups %}
+                        <a href="#{{ group.anchor }}" {% if forloop.first %}class="is-active"{% endif %}>{{ group.name }}</a>
+                        {% endfor %}
+                    </nav>
+                    <div class="vm-faq-d-concierge">
+                        <p>Need personalized help?</p>
+                        <a href="{% url 'contact' %}">Contact Concierge</a>
+                    </div>
+                </div>
+            </aside>
+
+            <div class="vm-faq-d-content">
+                {% for group in faq_groups %}
+                <section id="{{ group.anchor }}" class="vm-faq-d-group">
+                    <h2>{{ group.name }}</h2>
+                    {% if group.description %}
+                    <p class="vm-faq-d-group-intro">{{ group.description }}</p>
+                    {% endif %}
+
+                    <div class="vm-faq-d-accordion">
+                        {% for item in group.faqs %}
+                        <details {% if forloop.first %}open{% endif %}>
+                            <summary>
+                                <span>{{ item.question }}</span>
+                                <i class="far fa-angle-down" aria-hidden="true"></i>
+                            </summary>
+                            <div>
+                                <p>{{ item.answer }}</p>
+                            </div>
+                        </details>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="vm-faq-d-editorial">
+            <div class="vm-faq-d-editorial-media">
+                <img src="{% static 'assets/img/about/ab-01.jpg' %}" alt="VibeMall boutique interior">
+            </div>
+            <div class="vm-faq-d-editorial-copy">
+                <h3>Uncompromising Quality</h3>
+                <p>Behind every query is our commitment to excellence. We do not just sell objects; we curate experiences that last.</p>
+                <p class="vm-faq-d-meta">{{ total_faqs }} answers across {{ total_categories }} categories.</p>
+                <a href="{% url 'about' %}">Read Our Story <i class="far fa-arrow-right"></i></a>
+            </div>
+        </section>
     </main>
 
 {% endblock content %}

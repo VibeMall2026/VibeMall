@@ -11,6 +11,237 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'assets/css/wishlist-responsive.css' %}?v=20260222-01">
 <link rel="stylesheet" href="{% static 'assets/css/wishlist-mobile-alt.css' %}?v=20260329-02">
+<link rel="stylesheet" href="{% static 'assets/css/wishlist-tablet-alt.css' %}?v=20260404-01">
+<style>
+    .vm-wishlist-tablet-only {
+        display: none;
+    }
+
+    .vm-wishlist-desktop-only {
+        background: #fbf9f4;
+        color: #171818;
+        font-family: 'Manrope', sans-serif;
+        padding: 120px 28px 60px;
+    }
+
+    @media (max-width: 1199.98px) {
+        .vm-wishlist-desktop-only {
+            display: none !important;
+        }
+    }
+
+    @media (min-width: 768px) and (max-width: 1199.98px) {
+        .vm-wishlist-tablet-only {
+            display: block;
+        }
+    }
+
+    @media (min-width: 1200px) {
+        .vm-wishlist-desktop-only {
+            padding-top: 144px;
+        }
+    }
+
+    .vm-wishlist-d-shell {
+        width: min(1280px, 100%);
+        margin: 0 auto;
+    }
+
+    .vm-wishlist-d-hero {
+        display: grid;
+        align-items: end;
+        min-height: 320px;
+        border-radius: 16px;
+        overflow: hidden;
+        position: relative;
+        margin-bottom: 34px;
+        background: #e7e4de;
+    }
+
+    .vm-wishlist-d-hero img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0.6;
+        mix-blend-mode: multiply;
+    }
+
+    .vm-wishlist-d-hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to top, rgba(251, 249, 244, 0.96), rgba(251, 249, 244, 0.25) 55%, rgba(251, 249, 244, 0));
+        z-index: 1;
+    }
+
+    .vm-wishlist-d-hero-copy {
+        position: relative;
+        z-index: 2;
+        padding: 34px 36px;
+    }
+
+    .vm-wishlist-d-hero-copy h1 {
+        margin: 0;
+        font-family: 'Noto Serif', Georgia, serif;
+        font-size: clamp(44px, 6vw, 74px);
+        font-style: italic;
+        letter-spacing: -0.04em;
+        line-height: 0.9;
+    }
+
+    .vm-wishlist-d-hero-copy p {
+        margin: 10px 0 0;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #6f5c37;
+    }
+
+    .vm-wishlist-d-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 28px;
+    }
+
+    .vm-wishlist-d-card {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .vm-wishlist-d-media {
+        position: relative;
+        aspect-ratio: 1 / 1;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #f0eee9;
+    }
+
+    .vm-wishlist-d-media img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.35s ease;
+    }
+
+    .vm-wishlist-d-card:hover .vm-wishlist-d-media img {
+        transform: scale(1.04);
+    }
+
+    .vm-wishlist-d-remove {
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        border: 0;
+        background: rgba(255,255,255,0.9);
+        color: #171818;
+        display: grid;
+        place-items: center;
+        text-decoration: none;
+    }
+
+    .vm-wishlist-d-remove:hover {
+        color: #ba1a1a;
+    }
+
+    .vm-wishlist-d-title {
+        margin: 0;
+        font-family: 'Noto Serif', Georgia, serif;
+        font-size: 22px;
+        font-style: italic;
+        line-height: 1.2;
+    }
+
+    .vm-wishlist-d-subtitle {
+        margin: 0;
+        font-size: 13px;
+        color: #444748;
+    }
+
+    .vm-wishlist-d-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .vm-wishlist-d-price {
+        font-size: 20px;
+        font-weight: 800;
+        color: #171818;
+    }
+
+    .vm-wishlist-d-btn {
+        border: none;
+        background: #171818;
+        color: #fff;
+        padding: 11px 16px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        border-radius: 0;
+    }
+
+    .vm-wishlist-d-btn[disabled] {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+
+    .vm-wishlist-d-empty {
+        text-align: center;
+        padding: 84px 16px;
+        border: 1px dashed rgba(23, 24, 24, 0.2);
+        border-radius: 14px;
+        background: #f5f3ee;
+    }
+
+    .vm-wishlist-d-empty h3 {
+        margin: 12px 0 10px;
+        font-family: 'Noto Serif', Georgia, serif;
+        font-size: 30px;
+        font-style: italic;
+    }
+
+    .vm-wishlist-d-empty a {
+        display: inline-block;
+        margin-top: 18px;
+        text-transform: uppercase;
+        letter-spacing: 0.13em;
+        font-size: 11px;
+        font-weight: 700;
+        color: #171818;
+        border-bottom: 1px solid #171818;
+        text-decoration: none;
+    }
+
+    .vm-wishlist-d-alerts {
+        margin-bottom: 24px;
+        display: grid;
+        gap: 10px;
+    }
+
+    .vm-wishlist-d-alert {
+        padding: 11px 14px;
+        border-radius: 8px;
+        font-size: 13px;
+        border-left: 3px solid #4caf50;
+        background: #e8f5e9;
+        color: #1b5e20;
+    }
+
+    .vm-wishlist-d-alert--error {
+        border-left-color: #ba1a1a;
+        background: #ffebee;
+        color: #c62828;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -87,212 +318,158 @@
     {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='wishlist' %}
 </section>
 
-<main class="vm-wishlist-legacy-content">
-        <!-- page-banner-area-start -->
-        <div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
-            <div class="container">
-                <div class="row">
-                    <div class="col-xl-12">
-                        <div class="page-banner-content text-center">
-                            <h4 class="breadcrumb-title">Wishlist</h4>
-                            <div class="breadcrumb-two">
-                                <nav>
-                                   <nav class="breadcrumb-trail breadcrumbs">
-                                      <ul class="breadcrumb-menu">
-                                         <li class="breadcrumb-trail">
-                                            <a href="{% url 'index' %}"><span>Home</span></a>
-                                         </li>
-                                         <li class="trail-item">
-                                            <span>Wishlist</span>
-                                         </li>
-                                      </ul>
-                                   </nav> 
-                                </nav>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+<section class="vm-wishlist-tablet-only" aria-label="Wishlist tablet view">
+    <div class="vm-wishlist-t-shell">
+        <header class="vm-wishlist-t-hero">
+            <div class="vm-wishlist-t-headline">
+                <h1>Your Curated Wishlist</h1>
+                <div class="vm-wishlist-t-divider"></div>
+                <p>{{ wishlist_count }} Item{{ wishlist_count|pluralize }} Saved for Your Viewing</p>
             </div>
-        </div>
-        <!-- page-banner-area-end -->
+        </header>
 
-        <!-- cart-area-start -->
-        <section class="cart-area pb-120 pt-120">
-            <div class="container">
-                <!-- Messages -->
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="alert alert-{% if message.tags %}{{ message.tags }}{% else %}info{% endif %} alert-dismissible fade show mb-30" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    {% endfor %}
-                {% endif %}
+        {% if messages %}
+        <section class="vm-wishlist-t-alerts" aria-live="polite">
+            {% for message in messages %}
+            <div class="vm-wishlist-t-alert{% if message.tags == 'error' %} is-error{% endif %}">{{ message }}</div>
+            {% endfor %}
+        </section>
+        {% endif %}
 
-                {% if wishlist_items %}
-                <div class="row">
-                    <div class="col-12">
-                        <div class="table-content table-responsive wishlist-desktop-wrap d-none d-xl-block">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th class="product-thumbnail">Image</th>
-                                        <th class="cart-product-name">Product</th>
-                                        <th class="product-price">Unit Price</th>
-                                        <th class="product-quantity">Stock</th>
-                                        <th class="product-quantity">Action</th>
-                                        <th class="product-remove">Remove</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for item in wishlist_items %}
-                                    <tr>
-                                        <td class="product-thumbnail">
-                                            <a href="#">
-                                                {% if item.product.image %}
-                                                    <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="max-width: 80px; height: auto;">
-                                                {% else %}
-                                                    <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.product.name }}" style="max-width: 80px; height: auto; background-color: #f0f0f0;">
-                                                {% endif %}
-                                            </a>
-                                        </td>
-                                        <td class="product-name"><a href="#">{{ item.product.name }}</a></td>
-                                        <td class="product-price"><span class="amount">&#8377;{{ item.product.price }}</span></td>
-                                        <td class="product-quantity">
-                                            {% if item.product.stock > 0 %}
-                                                <span class="badge bg-success">In Stock</span>
-                                            {% else %}
-                                                <span class="badge bg-danger">Out of Stock</span>
-                                            {% endif %}
-                                        </td>
-                                        <td class="product-quantity">
-                                            <form method="POST" action="{% url 'move_wishlist_to_cart' item.id %}" style="display: inline;">
-                                                {% csrf_token %}
-                                                <button type="submit" class="tp-btn-h2 btn-sm" {% if item.product.stock == 0 %}disabled{% endif %}>
-                                                    <i class="fas fa-shopping-bag"></i> Add to Cart
-                                                </button>
-                                            </form>
-                                        </td>
-                                        <td class="product-remove">
-                                            <a href="{% url 'remove_from_wishlist' item.id %}" class="btn btn-sm btn-danger js-confirm-remove" data-confirm-message="Remove this item?">
-                                                <i class="fa fa-times"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div class="wishlist-mobile-wrap d-xl-none">
-                            <div class="wishlist-mobile-grid" style="--wishlist-cols:{% if wishlist_items|length >= 2 %}2{% else %}{{ wishlist_items|length }}{% endif %};">
-                                {% for item in wishlist_items %}
-                                <article class="wishlist-mobile-card">
-                                    <a href="#" class="wishlist-mobile-thumb">
-                                        {% if item.product.image %}
-                                            <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
-                                        {% else %}
-                                            <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.product.name }}">
-                                        {% endif %}
-                                    </a>
-
-                                    <div class="wishlist-mobile-info">
-                                        <h6 class="wishlist-mobile-name">
-                                            <a href="#">{{ item.product.name }}</a>
-                                        </h6>
-
-                                        <div class="wishlist-mobile-price">&#8377;{{ item.product.price }}</div>
-
-                                        <div class="wishlist-mobile-stock">
-                                            {% if item.product.stock > 0 %}
-                                                <span class="badge bg-success">In Stock</span>
-                                            {% else %}
-                                                <span class="badge bg-danger">Out of Stock</span>
-                                            {% endif %}
-                                        </div>
-
-                                        <div class="wishlist-mobile-actions">
-                                            <form method="POST" action="{% url 'move_wishlist_to_cart' item.id %}">
-                                                {% csrf_token %}
-                                                <button type="submit" class="tp-btn-h2 btn-sm" {% if item.product.stock == 0 %}disabled{% endif %}>
-                                                    <i class="fas fa-shopping-bag"></i> Add to Cart
-                                                </button>
-                                            </form>
-
-                                            <a href="{% url 'remove_from_wishlist' item.id %}" class="btn btn-sm btn-danger wishlist-mobile-remove js-confirm-remove" data-confirm-message="Remove this item?">
-                                                <i class="fa fa-times"></i>
-                                            </a>
-                                        </div>
-                                    </div>
-                                </article>
-                                {% endfor %}
-                            </div>
-                        </div>
-
-                        <div class="row mt-40">
-                            <div class="col-12">
-                                <a href="{% url 'shop' %}" class="tp-btn-h2">
-                                    <i class="fas fa-arrow-left"></i> Continue Shopping
-                                </a>
-                            </div>
-                        </div>
-                    </div>
+        {% if tablet_wishlist_items %}
+        <section class="vm-wishlist-t-grid">
+            {% for item in tablet_wishlist_items %}
+            <article class="vm-wishlist-t-card">
+                <div class="vm-wishlist-t-media">
+                    <a href="{{ item.detail_url }}">
+                        {% if item.image_url %}
+                        <img src="{{ item.image_url }}" alt="{{ item.name }}">
+                        {% else %}
+                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.name }}">
+                        {% endif %}
+                    </a>
+                    <a href="{{ item.remove_url }}" class="vm-wishlist-t-remove js-confirm-remove" data-confirm-message="Remove this item?" aria-label="Remove {{ item.name }} from wishlist">
+                        <i class="far fa-times"></i>
+                    </a>
                 </div>
-                {% else %}
-                <div class="row">
-                    <div class="col-12 text-center py-5">
-                        <h4 class="mb-30">Your Wishlist is Empty</h4>
-                        <p class="mb-30">Add some products to your wishlist to save them for later.</p>
-                        <a href="{% url 'shop' %}" class="tp-btn-h1">Start Shopping</a>
+                <div class="vm-wishlist-t-copy">
+                    <span class="vm-wishlist-t-brand">{{ item.subtitle }}</span>
+                    <h2><a href="{{ item.detail_url }}">{{ item.name }}</a></h2>
+                    <div class="vm-wishlist-t-meta">
+                        <p>&#8377;{{ item.price|floatformat:2 }}</p>
+                        <span class="{% if item.is_in_stock %}is-in-stock{% else %}is-out-of-stock{% endif %}">{{ item.status_label }}</span>
                     </div>
+                    <form method="POST" action="{{ item.move_to_cart_url }}">
+                        {% csrf_token %}
+                        <button type="submit" class="vm-wishlist-t-cta" {% if not item.is_in_stock %}disabled{% endif %}>Add to Bag</button>
+                    </form>
                 </div>
-                {% endif %}
+            </article>
+            {% endfor %}
+        </section>
+        {% else %}
+        <section class="vm-wishlist-t-empty">
+            <i class="far fa-heart"></i>
+            <h3>Your Wishlist is Empty</h3>
+            <p>Add some products to your wishlist to save them for later.</p>
+            <a href="{% url 'shop' %}">Start Shopping</a>
+        </section>
+        {% endif %}
+
+        {% if wishlist_recommendations %}
+        <section class="vm-wishlist-t-recommendations">
+            <div class="vm-wishlist-t-recommendations-head">
+                <h3>Recommended for You</h3>
+            </div>
+            <div class="vm-wishlist-t-recommendations-rail">
+                {% for product in wishlist_recommendations %}
+                <article class="vm-wishlist-t-reco-card">
+                    <a href="{{ product.detail_url }}" class="vm-wishlist-t-reco-media">
+                        {% if product.image_url %}
+                        <img src="{{ product.image_url }}" alt="{{ product.name }}">
+                        {% else %}
+                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}">
+                        {% endif %}
+                    </a>
+                    <p>{{ product.eyebrow }}</p>
+                    <h4><a href="{{ product.detail_url }}">{{ product.name }}</a></h4>
+                </article>
+                {% endfor %}
             </div>
         </section>
-         <!-- cart-area-end -->
+        {% endif %}
+    </div>
+</section>
 
-        <!-- cta-area-start -->
-        <section class="cta-area d-ldark-bg pt-55 pb-10">
-            <div class="container">
-                <div class="row">
-                    <div class="col-lg-6 col-md-6">
-                        <div class="cta-item cta-item-d mb-30">
-                            <h5 class="cta-title">Follow Us</h5>
-                            <p>We make consolidating, marketing and tracking your social media website easy.</p>
-                            <div class="cta-social">
-                                <div class="social-icon">
-                                    <a href="{{ site_settings.facebook_url|default:'#' }}" class="facebook" {% if site_settings.facebook_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
-                                    <a href="{{ site_settings.twitter_url|default:'#' }}" class="twitter" {% if site_settings.twitter_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="Twitter"><i class="fab fa-twitter"></i></a>
-                                    <a href="{{ site_settings.youtube_url|default:'#' }}" class="youtube" {% if site_settings.youtube_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="YouTube"><i class="fab fa-youtube"></i></a>
-                                    <a href="{{ site_settings.instagram_url|default:'#' }}" class="linkedin" {% if site_settings.instagram_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="Instagram"><i class="fab fa-instagram"></i></a>
-                                    <a href="mailto:{{ site_settings.contact_email|default:'support@vibemall.com' }}" class="rss" aria-label="Email"><i class="fas fa-envelope"></i></a>
-                                    <a href="{% url 'contact' %}" class="dribbble" aria-label="Contact"><i class="fas fa-headset"></i></a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-6 col-md-6">
-                        <div class="cta-item mb-30">
-                            <h5 class="cta-title">Sign Up To Newsletter</h5>
-                            <p>Join 60.000+ subscribers and get a new discount coupon  on every Saturday.</p>
-                            <div class="subscribe__form">
-                                <form action="{% url 'subscribe_newsletter' %}" method="post" class="js-newsletter-form" novalidate>
-                                    {% csrf_token %}
-                                    <input type="hidden" name="source_page" value="wishlist">
-                                    <input type="email" name="email" placeholder="Enter your email here..." required>
-                                    <button type="submit">subscribe</button>
-                                </form>
-                                <small class="newsletter-feedback d-block mt-2" aria-live="polite"></small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+<section class="vm-wishlist-desktop-only" aria-label="Wishlist desktop view">
+    <div class="vm-wishlist-d-shell">
+        <header class="vm-wishlist-d-hero">
+            <img src="{% static 'assets/img/banner/page-banner-4.jpg' %}" alt="Wishlist editorial banner">
+            <div class="vm-wishlist-d-hero-copy">
+                <h1>Your Curated Wishlist</h1>
+                <p>Artisanal Heritage &amp; Crafted Excellence - {{ wishlist_items|length }} Item{{ wishlist_items|length|pluralize }}</p>
             </div>
+        </header>
 
+        {% if messages %}
+        <section class="vm-wishlist-d-alerts" aria-live="polite">
+            {% for message in messages %}
+            <div class="vm-wishlist-d-alert {% if message.tags == 'error' %}vm-wishlist-d-alert--error{% endif %}">{{ message }}</div>
+            {% endfor %}
         </section>
-        <!-- cta-area-end -->
+        {% endif %}
 
+        {% if wishlist_items %}
+        <section class="vm-wishlist-d-grid">
+            {% for item in wishlist_items %}
+            <article class="vm-wishlist-d-card">
+                <div class="vm-wishlist-d-media">
+                    <a href="{% url 'product-details' item.product.id %}">
+                    {% if item.product.image %}
+                    <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+                    {% else %}
+                    <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.product.name }}">
+                    {% endif %}
+                    </a>
+                    <a href="{% url 'remove_from_wishlist' item.id %}" class="vm-wishlist-d-remove js-confirm-remove" data-confirm-message="Remove this item?" aria-label="Remove {{ item.product.name }} from wishlist">
+                        <i class="far fa-times"></i>
+                    </a>
+                </div>
 
-    </main>
+                <div>
+                    <h2 class="vm-wishlist-d-title">{{ item.product.name }}</h2>
+                    <p class="vm-wishlist-d-subtitle">
+                        {% if item.product.brand %}
+                        {{ item.product.brand }}
+                        {% elif item.product.category %}
+                        {{ item.product.category }}
+                        {% elif item.product.stock > 0 %}
+                        In Stock
+                        {% else %}
+                        Out of Stock
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="vm-wishlist-d-row">
+                    <p class="vm-wishlist-d-price">&#8377;{{ item.product.price }}</p>
+                    <form method="POST" action="{% url 'move_wishlist_to_cart' item.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="vm-wishlist-d-btn" {% if item.product.stock == 0 %}disabled{% endif %}>Add to Bag</button>
+                    </form>
+                </div>
+            </article>
+            {% endfor %}
+        </section>
+        {% else %}
+        <section class="vm-wishlist-d-empty">
+            <i class="far fa-heart" style="font-size: 48px; color: rgba(23,24,24,.35);"></i>
+            <h3>Your Wishlist is Empty</h3>
+            <p>Add some products to your wishlist to save them for later.</p>
+            <a href="{% url 'shop' %}">Start Shopping</a>
+        </section>
+        {% endif %}
+    </div>
+</section>
 
 {% endblock content %}

@@ -1,0 +1,84 @@
+{% load static %}
+{% load i18n %}
+<footer class="vm-tablet-alt-footer" aria-label="VibeMall tablet footer">
+    <div class="vm-tablet-alt-footer__inner">
+
+        <!-- Top row: brand + newsletter -->
+        <div class="vm-tablet-alt-footer__top">
+            <div class="vm-tablet-alt-footer__brand">
+                <a href="{% url 'index' %}" class="vm-tablet-alt-footer__logo">VibeMall</a>
+                <p class="vm-tablet-alt-footer__tagline">Curating modern fashion and lifestyle with trusted brands, elevated discovery, and a seamless experience across every category.</p>
+                <div class="vm-tablet-alt-footer__socials">
+                    <a href="{{ site_settings.instagram_url|default:'#' }}" aria-label="Instagram" {% if site_settings.instagram_url %}target="_blank" rel="noopener noreferrer"{% endif %}><i class="fab fa-instagram"></i></a>
+                    <a href="{{ site_settings.facebook_url|default:'#' }}" aria-label="Facebook" {% if site_settings.facebook_url %}target="_blank" rel="noopener noreferrer"{% endif %}><i class="fab fa-facebook-f"></i></a>
+                    <a href="{{ site_settings.twitter_url|default:'#' }}" aria-label="Twitter" {% if site_settings.twitter_url %}target="_blank" rel="noopener noreferrer"{% endif %}><i class="fab fa-twitter"></i></a>
+                    <a href="{{ site_settings.youtube_url|default:'#' }}" aria-label="YouTube" {% if site_settings.youtube_url %}target="_blank" rel="noopener noreferrer"{% endif %}><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+
+            <div class="vm-tablet-alt-footer__newsletter">
+                <p class="vm-tablet-alt-footer__nl-kicker">Stay Curated</p>
+                <h3 class="vm-tablet-alt-footer__nl-title">Join the Inner Circle</h3>
+                <p class="vm-tablet-alt-footer__nl-sub">Early access to collections, private events and launch alerts.</p>
+                <form class="vm-tablet-alt-footer__nl-form js-newsletter-form" action="{% url 'subscribe_newsletter' %}" method="post" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" name="source_page" value="tablet-footer">
+                    <input type="email" name="email" placeholder="Your email address" required aria-label="Email address">
+                    <button type="submit">Subscribe</button>
+                </form>
+                <small class="newsletter-feedback vm-tablet-alt-footer__nl-msg" aria-live="polite"></small>
+            </div>
+        </div>
+
+        <!-- Mid row: link columns -->
+        <div class="vm-tablet-alt-footer__links">
+            <div class="vm-tablet-alt-footer__col">
+                <h6>Navigation</h6>
+                <a href="{% url 'shop' %}">Collections</a>
+                <a href="{% url 'about' %}">About Us</a>
+                <a href="{% url 'blog' %}">Editorial</a>
+                <a href="{% url 'faq' %}">FAQs</a>
+                <a href="{% url 'contact' %}">Contact</a>
+            </div>
+            <div class="vm-tablet-alt-footer__col">
+                <h6>Shop</h6>
+                <a href="{% url 'shop' %}">All Products</a>
+                <a href="{% url 'shop' %}?sort=latest">New Arrivals</a>
+                <a href="{% url 'wishlist' %}">Wishlist</a>
+                <a href="{% url 'cart' %}">Cart</a>
+                {% if header_categories %}
+                    {% for category in header_categories|slice:":4" %}
+                    <a href="{% url 'shop' %}?category={{ category.key|urlencode }}">{{ category.label }}</a>
+                    {% endfor %}
+                {% elif categories %}
+                    {% for category in categories|slice:":4" %}
+                    <a href="{% url 'shop' %}?category={{ category.category_key|urlencode }}">{{ category.name }}</a>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            <div class="vm-tablet-alt-footer__col">
+                <h6>Concierge</h6>
+                <a href="{% url 'track_order' %}">Order Tracking</a>
+                <a href="{% url 'faq' %}">FAQs</a>
+                {% if request.user.is_authenticated %}
+                <a href="{% url 'profile' %}">My Account</a>
+                <a href="{% url 'order_list' %}">My Orders</a>
+                {% else %}
+                <a href="{% url 'login' %}">My Account</a>
+                {% endif %}
+                <a href="{% url 'contact' %}">Support</a>
+            </div>
+            <div class="vm-tablet-alt-footer__col">
+                <h6>Legal</h6>
+                <a href="{% url 'privacy-policy' %}">Privacy Policy</a>
+                <a href="{% url 'terms-and-conditions' %}">Terms &amp; Conditions</a>
+            </div>
+        </div>
+
+        <!-- Bottom bar -->
+        <div class="vm-tablet-alt-footer__bottom">
+            <p>&copy; {% now "Y" %} {{ site_settings.site_name|default:"VibeMall" }} Atelier. All Rights Reserved.</p>
+            <p class="vm-tablet-alt-footer__bottom-tagline">Luxury Fashion &amp; Lifestyle</p>
+        </div>
+    </div>
+</footer>

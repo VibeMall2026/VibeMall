@@ -2,11 +2,14 @@
   display: none;
 }
 
+/* Tablet bottom nav shell — hidden everywhere by default */
+.vm-tab-bnav-shell {
+  display: none;
+}
+
 @media (min-width: 768px) and (max-width: 1199.98px) {
   body.vm-page-mobile-alt .vm-copy-header,
   body.vm-page-mobile-alt .vm-copy-footer,
-  body.vm-page-mobile-alt .mobile-bottom-nav-shell,
-  body.vm-page-mobile-alt .mobile-bottom-nav,
   body.vm-page-mobile-alt > footer {
     display: none !important;
   }
@@ -192,3 +195,53 @@
     padding: 0 6px;
   }
 }
+
+  /* ── Tablet bottom nav: shown 768–1199px ───────────────────────────────── */
+  @media (min-width: 768px) and (max-width: 1199.98px) {
+    body.vm-page-mobile-alt .vm-tab-bnav-shell {
+      display: block;
+    }
+
+    body.vm-page-mobile-alt .vm-tab-bnav-shell .vm-mobile-bottom-nav {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1100;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 10px 14px calc(20px + env(safe-area-inset-bottom));
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(22px);
+      box-shadow: 0 -10px 40px -5px rgba(27, 28, 25, 0.04);
+      border-top: 1px solid rgba(23, 24, 24, 0.08);
+    }
+
+    body.vm-page-mobile-alt .vm-tab-bnav-shell .vm-mobile-bottom-nav a {
+      width: 52px;
+      height: 52px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      color: rgba(23, 24, 24, 0.42);
+      text-decoration: none;
+      font-size: 22px;
+      transition: background 0.18s ease, color 0.18s ease;
+    }
+
+    body.vm-page-mobile-alt .vm-tab-bnav-shell .vm-mobile-bottom-nav a:hover {
+      color: #171818;
+      background: rgba(23, 24, 24, 0.06);
+    }
+
+    body.vm-page-mobile-alt .vm-tab-bnav-shell .vm-mobile-bottom-nav a.is-active {
+      background: #e4e2dd;
+      color: #171818;
+    }
+
+    /* Push tablet footer above the fixed bottom nav */
+    body.vm-page-mobile-alt .vm-tablet-alt-footer .vm-tablet-alt-footer__inner {
+      padding-bottom: 96px !important;
+    }
+  }

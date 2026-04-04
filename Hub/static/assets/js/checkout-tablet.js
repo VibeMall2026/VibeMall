@@ -175,19 +175,37 @@ document.addEventListener('DOMContentLoaded', function() {
     // DEFAULT ADDRESS AUTOFILL
     // ========================================
 
+    function applyDefaultAddressFromCheckbox() {
+        if (!useDefaultCheckbox || !useDefaultCheckbox.checked) {
+            return;
+        }
+
+        const addressLine1 = (useDefaultCheckbox.dataset.address1 || '').trim();
+        const addressLine2 = (useDefaultCheckbox.dataset.address2 || '').trim();
+        const combinedAddress = [addressLine1, addressLine2].filter(Boolean).join(', ');
+
+        if (fullNameField) fullNameField.value = useDefaultCheckbox.dataset.fullName || '';
+        if (phoneField) phoneField.value = useDefaultCheckbox.dataset.phone || '';
+        if (addressField) addressField.value = combinedAddress;
+        if (cityField) cityField.value = useDefaultCheckbox.dataset.city || '';
+        if (stateField) stateField.value = useDefaultCheckbox.dataset.state || '';
+        if (postcodeField) postcodeField.value = useDefaultCheckbox.dataset.pincode || '';
+        if (countryField) countryField.value = useDefaultCheckbox.dataset.country || 'India';
+
+        syncSplitName();
+
+        if (postcodeField && countryField && countryField.value === 'India') {
+            postcodeField.dispatchEvent(new Event('blur', { bubbles: true }));
+        }
+    }
+
     if (useDefaultCheckbox) {
-        useDefaultCheckbox.addEventListener('change', function() {
-            if (this.checked) {
-                fullNameField.value = this.dataset.fullName || '';
-                phoneField.value = this.dataset.phone || '';
-                addressField.value = this.dataset.address1 || '';
-                cityField.value = this.dataset.city || '';
-                stateField.value = this.dataset.state || '';
-                postcodeField.value = this.dataset.pincode || '';
-                countryField.value = this.dataset.country || 'India';
-                syncSplitName();
-            }
-        });
+        useDefaultCheckbox.addEventListener('change', applyDefaultAddressFromCheckbox);
+        useDefaultCheckbox.addEventListener('click', applyDefaultAddressFromCheckbox);
+
+        if (useDefaultCheckbox.checked) {
+            applyDefaultAddressFromCheckbox();
+        }
     }
 
     // ========================================

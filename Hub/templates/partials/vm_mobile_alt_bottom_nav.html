@@ -1,11 +1,25 @@
+{% with nav_key=mobile_nav_key|default:"" current_url_name=request.resolver_match.url_name %}
 <nav class="vm-mobile-alt-nav vm-home-mobile-nav vm-mobile-bottom-nav" aria-label="Mobile primary navigation">
-    <a href="{% url 'index' %}" class="{% if mobile_nav_key == 'home' %}is-active{% endif %}" aria-label="Home"><i class="fas fa-home"></i></a>
-    <a href="{% url 'shop' %}" class="{% if mobile_nav_key == 'shop' %}is-active{% endif %}" aria-label="Shop"><i class="far fa-store"></i></a>
-    <a href="{% url 'cart' %}" class="{% if mobile_nav_key == 'cart' %}is-active{% endif %}" aria-label="Cart"><i class="far fa-shopping-cart"></i></a>
-    {% if request.user.is_authenticated %}
-    <a href="{% url 'profile' %}" class="{% if mobile_nav_key == 'account' %}is-active{% endif %}" aria-label="Account"><i class="far fa-user"></i></a>
-    {% else %}
-    <a href="{% url 'login' %}" class="{% if mobile_nav_key == 'account' %}is-active{% endif %}" aria-label="Account"><i class="far fa-user"></i></a>
-    {% endif %}
-    <a href="{% url 'wishlist' %}" class="{% if mobile_nav_key == 'wishlist' %}is-active{% endif %}" aria-label="Wishlist"><i class="far fa-heart"></i></a>
+     <a href="{% url 'index' %}"
+         class="{% if nav_key == 'home' or current_url_name == 'index' %}is-active{% endif %}"
+         aria-label="Home"><i class="fas fa-home"></i></a>
+     <a href="{% url 'shop' %}"
+         class="{% if nav_key == 'shop' or current_url_name == 'shop' %}is-active{% endif %}"
+         aria-label="Shop"><i class="far fa-store"></i></a>
+     <a href="{% url 'cart' %}"
+         class="{% if nav_key == 'cart' or current_url_name == 'cart' %}is-active{% endif %}"
+         aria-label="Cart"><i class="far fa-shopping-cart"></i></a>
+     {% if request.user.is_authenticated %}
+     <a href="{% url 'profile' %}"
+         class="{% if nav_key == 'account' or current_url_name == 'profile' or current_url_name == 'address_book' or current_url_name == 'order_list' or current_url_name == 'track_order' or current_url_name == 'payout' %}is-active{% endif %}"
+         aria-label="Account"><i class="far fa-user"></i></a>
+     {% else %}
+     <a href="{% url 'login' %}"
+         class="{% if nav_key == 'account' or current_url_name == 'login' %}is-active{% endif %}"
+         aria-label="Account"><i class="far fa-user"></i></a>
+     {% endif %}
+     <a href="{% url 'wishlist' %}"
+         class="{% if nav_key == 'wishlist' or current_url_name == 'wishlist' %}is-active{% endif %}"
+         aria-label="Wishlist"><i class="far fa-heart"></i></a>
 </nav>
+{% endwith %}

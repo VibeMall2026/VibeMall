@@ -1,0 +1,320 @@
+{% load static %}
+{% if cart_items %}
+<div class="vm-checkout-d-shell">
+    {% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{% if message.tags %}{{ message.tags }}{% else %}info{% endif %} mb-2" role="alert">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="vm-checkout-d-heading">
+        <h1>Checkout</h1>
+        <p>Secure Purchase • Artisanal Heritage</p>
+    </div>
+
+    <form action="{% url 'checkout' %}" method="POST" id="checkoutForm">
+        {% csrf_token %}
+        <input type="hidden" name="pincode_valid" id="pincodeValid" value="0">
+
+        <div class="vm-checkout-d-grid">
+            <div class="vm-checkout-d-main">
+                <section>
+                    <div class="vm-checkout-d-section-head">
+                        <span class="vm-checkout-d-step">01</span>
+                        <h2>Delivery Details</h2>
+                    </div>
+
+                    <div class="vm-checkout-d-fields">
+                        {% if default_address %}
+                        <div class="vm-checkout-d-alert">
+                            <div>
+                                <strong>Default Address</strong><br>
+                                <small>{{ default_address.full_name }} · {{ default_address.city }}, {{ default_address.state }} {{ default_address.pincode }}</small>
+                            </div>
+                            <label class="vm-checkout-d-inline-check" for="useDefaultAddress">
+                                <input
+                                    type="checkbox"
+                                    name="use_default_address"
+                                    id="useDefaultAddress"
+                                    {% if checkout_form.use_default_address %}checked{% endif %}
+                                    data-full-name="{{ default_address.full_name }}"
+                                    data-phone="{{ default_address.mobile_number }}"
+                                    data-address1="{{ default_address.address_line1 }}"
+                                    data-address2="{{ default_address.address_line2 }}"
+                                    data-city="{{ default_address.city }}"
+                                    data-state="{{ default_address.state }}"
+                                    data-pincode="{{ default_address.pincode }}"
+                                    data-country="{{ default_address.country }}"
+                                >
+                                <span>Use default address</span>
+                            </label>
+                        </div>
+                        {% endif %}
+
+                        <div class="vm-checkout-d-field">
+                            <label for="firstNameField">First Name</label>
+                            <input type="text" id="firstNameField" name="first_name" value="{{ checkout_form.first_name|default:user.first_name }}" placeholder="Aarav" required>
+                        </div>
+                        <div class="vm-checkout-d-field">
+                            <label for="lastNameField">Last Name</label>
+                            <input type="text" id="lastNameField" name="last_name" value="{{ checkout_form.last_name|default:user.last_name }}" placeholder="Sharma" required>
+                        </div>
+                        <div class="vm-checkout-d-field">
+                            <label for="emailField">Email Address</label>
+                            <input type="email" id="emailField" name="email" value="{{ checkout_form.email|default:user.email }}" placeholder="aarav@domain.com" required>
+                        </div>
+                        <div class="vm-checkout-d-field">
+                            <label for="phoneField">Phone Number</label>
+                            <div class="vm-checkout-d-phone">
+                                <span class="vm-checkout-d-country-prefix">+91</span>
+                                <input type="text" id="phoneField" name="phone" value="{{ checkout_form.phone|default:user_profile.mobile_number|default:'' }}" placeholder="98765 43210" required>
+                            </div>
+                        </div>
+                        <div class="vm-checkout-d-field vm-checkout-d-field--full">
+                            <label for="addressField">Complete Address</label>
+                            <input type="text" id="addressField" name="address" value="{{ checkout_form.address|default:'' }}" placeholder="Flat/House No., Street, Landmark" required>
+                        </div>
+                        <div class="vm-checkout-d-field">
+                            <label for="cityField">City</label>
+                            <input type="text" id="cityField" name="city" value="{{ checkout_form.city|default:'' }}" placeholder="New Delhi" required>
+                            <small class="text-muted" id="cityHint"></small>
+                        </div>
+                        <div class="vm-checkout-d-field">
+                            <label for="postcodeField">Pincode</label>
+                            <input type="text" id="postcodeField" name="postcode" value="{{ checkout_form.postcode|default:'' }}" placeholder="110001" required>
+                            <small class="text-danger" id="pincodeError"></small>
+                        </div>
+                        <div class="vm-checkout-d-field">
+                            <label for="stateField">State</label>
+                            <input type="text" id="stateField" name="state" value="{{ checkout_form.state|default:'' }}" placeholder="Delhi" required>
+                        </div>
+                        <div class="vm-checkout-d-field">
+                            <label for="countrySelect">Country</label>
+                            <select name="country" id="countrySelect" required>
+                                <option value="India" {% if checkout_form.country == 'India' or not checkout_form.country %}selected{% endif %}>India</option>
+                                <option value="USA" {% if checkout_form.country == 'USA' %}selected{% endif %}>USA</option>
+                                <option value="UK" {% if checkout_form.country == 'UK' %}selected{% endif %}>UK</option>
+                                <option value="Canada" {% if checkout_form.country == 'Canada' %}selected{% endif %}>Canada</option>
+                                <option value="Australia" {% if checkout_form.country == 'Australia' %}selected{% endif %}>Australia</option>
+                            </select>
+                        </div>
+                        <div class="vm-checkout-d-field vm-checkout-d-field--full">
+                            <label for="customerNotes">Order Notes</label>
+                            <textarea id="customerNotes" name="customer_notes" placeholder="Notes about your order, delivery details, or handling preferences.">{{ checkout_form.customer_notes|default:'' }}</textarea>
+                            <label class="vm-checkout-d-inline-check mt-2">
+                                <input type="checkbox" name="set_default_address" {% if checkout_form.set_default_address %}checked{% endif %}>
+                                <span>Set this as my default address</span>
+                            </label>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="vm-checkout-d-resell-card" id="desktopResellSectionShell">
+                    <div class="vm-checkout-d-section-head">
+                        <span class="vm-checkout-d-step">02</span>
+                        <h2>Resell Customer Details</h2>
+                    </div>
+
+                    <div class="vm-checkout-d-order-switch" role="group" aria-label="Order type selection">
+                        <label class="vm-checkout-d-order-card">
+                            <input type="radio" name="order_type" value="for_self" id="order_type_self" {% if selected_order_type != 'for_resell' and not resell_link %}checked{% endif %} {% if resell_link %}disabled{% endif %}>
+                            <h3>For Self</h3>
+                            <p>Buying for personal use.</p>
+                        </label>
+                        <label class="vm-checkout-d-order-card">
+                            <input type="radio" name="order_type" value="for_resell" id="order_type_resell" {% if selected_order_type == 'for_resell' or resell_link %}checked{% endif %}>
+                            <h3>For Resell</h3>
+                            <p>Ordering on behalf of another customer.</p>
+                        </label>
+                    </div>
+
+                    {% if resell_link %}
+                    <div class="vm-checkout-d-help">
+                        Resell order detected via reseller: <strong>{{ resell_link.reseller.get_full_name|default:resell_link.reseller.username }}</strong>.
+                    </div>
+                    <input type="hidden" name="is_resell" value="on">
+                    <input type="hidden" name="from_name" value="{{ resell_link.reseller.get_full_name|default:resell_link.reseller.username }}">
+                    <input type="hidden" name="from_phone" value="{{ resell_link.reseller.userprofile.mobile_number|default:'' }}">
+                    <input type="hidden" name="resell_margin" value="{{ resell_link.margin_amount|default:'0' }}">
+                    {% else %}
+                    <input type="hidden" id="is_resell_hidden" name="is_resell" value="{% if selected_order_type == 'for_resell' %}on{% endif %}">
+                    <div id="resell_from_section" style="{% if selected_order_type == 'for_resell' %}display:block;{% else %}display:none;{% endif %}">
+                        <div class="vm-checkout-d-fields mt-4">
+                            <div class="vm-checkout-d-field">
+                                <label for="from_name">Client / FROM Name</label>
+                                <input type="text" id="from_name" name="from_name" value="{{ checkout_form.from_name|default:user.get_full_name }}" placeholder="Client name">
+                            </div>
+                            <div class="vm-checkout-d-field">
+                                <label for="from_phone">Client / FROM Phone</label>
+                                <input type="text" id="from_phone" name="from_phone" value="{{ checkout_form.from_phone|default:user_profile.mobile_number|default:'' }}" placeholder="Client phone">
+                            </div>
+                            <div class="vm-checkout-d-field vm-checkout-d-field--full">
+                                <label for="resell_margin">Add Margin Per Item (₹)</label>
+                                <input type="number" id="resell_margin" name="resell_margin" min="0" step="0.01" value="{{ checkout_form.resell_margin|default:'0' }}">
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </section>
+
+                <section>
+                    <div class="vm-checkout-d-section-head">
+                        <span class="vm-checkout-d-step">03</span>
+                        <h2>Payment Method</h2>
+                    </div>
+
+                    <div class="vm-checkout-d-payment-grid">
+                        <label class="vm-checkout-d-payment-option">
+                            <input type="radio" name="payment_method" value="RAZORPAY" id="razorpay_payment" {% if checkout_form.payment_method == 'RAZORPAY' %}checked{% endif %}>
+                            <h4>Online Payment</h4>
+                            <p>Credit Card, UPI, Net Banking, and wallets.</p>
+                        </label>
+                        <label class="vm-checkout-d-payment-option">
+                            <input type="radio" name="payment_method" value="COD" id="cod_payment" {% if checkout_form.payment_method == 'COD' or not checkout_form.payment_method %}checked{% endif %}>
+                            <h4>Cash on Delivery</h4>
+                            <p>Pay when you receive the heirloom.</p>
+                        </label>
+                    </div>
+                </section>
+
+                <div class="vm-checkout-d-actions">
+                    <a href="{% url 'cart' %}" class="vm-checkout-d-back"><span class="material-symbols-outlined">arrow_back</span> Back to Cart</a>
+                    <button type="submit" class="vm-checkout-d-submit" id="placeOrderButton">Complete Purchase</button>
+                </div>
+            </div>
+
+            <aside class="vm-checkout-d-aside">
+                <div class="vm-checkout-d-summary">
+                    <h3 class="vm-checkout-d-summary-title">Order Summary</h3>
+
+                    <div class="vm-checkout-d-items">
+                        {% for item in cart_items %}
+                        <article class="vm-checkout-d-item">
+                            <div class="vm-checkout-d-item-media">
+                                {% if item.product.image %}
+                                <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+                                {% else %}
+                                <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.product.name }}">
+                                {% endif %}
+                            </div>
+                            <div class="vm-checkout-d-item-copy">
+                                <div>
+                                    <h4>{{ item.product.name }}</h4>
+                                    <p class="vm-checkout-d-item-meta">Qty: {{ item.quantity }}</p>
+                                </div>
+                                <div class="vm-checkout-d-item-row">
+                                    <span class="vm-checkout-d-item-meta">Curated piece</span>
+                                    <span class="vm-checkout-d-item-price">₹{{ item.get_total_price|floatformat:2 }}</span>
+                                </div>
+                            </div>
+                        </article>
+                        {% endfor %}
+                    </div>
+
+                    <table class="vm-checkout-d-summary-table">
+                        <tbody>
+                            <tr class="cart-subtotal">
+                                <th>Subtotal</th>
+                                <td><span class="amount" id="cart_subtotal_amount">₹{{ total_price|floatformat:2 }}</span></td>
+                            </tr>
+                            {% if resell_link %}
+                            <tr class="resell-margin">
+                                <th>Reseller Margin</th>
+                                <td><span class="amount">+₹{{ manual_resell_margin_total|floatformat:2 }}</span></td>
+                            </tr>
+                            {% endif %}
+                            <tr class="resell-margin" id="manual_resell_margin_row" style="{% if resell_link or selected_order_type != 'for_resell' %}display:none;{% else %}display:table-row;{% endif %}">
+                                <th>Reseller Margin</th>
+                                <td><span class="amount" id="manual_resell_margin_amount">+₹{{ manual_resell_margin_total|floatformat:2 }}</span></td>
+                            </tr>
+                            <tr class="tax">
+                                <th>Delivery</th>
+                                <td><span class="amount" id="shipping_cost_value">{% if shipping_cost > 0 %}₹{{ shipping_cost|floatformat:2 }}{% else %}FREE{% endif %}</span></td>
+                            </tr>
+                            <tr class="shipping">
+                                <th>Tax (5%)</th>
+                                <td><span class="amount" id="tax_amount_value">₹{{ tax_amount|floatformat:2 }}</span></td>
+                            </tr>
+                            <tr class="coupon-discount-row" id="coupon_discount_row" style="display:none;">
+                                <th>Coupon Discount</th>
+                                <td><span class="amount" id="coupon_discount_amount">-₹0.00</span></td>
+                            </tr>
+                            {% if user.is_authenticated and loyalty_account and loyalty_account.points_available > 0 %}
+                            <tr class="loyalty-points-row">
+                                <th>Loyalty Points</th>
+                                <td>{{ loyalty_account.points_available }} pts</td>
+                            </tr>
+                            <tr class="loyalty-redeem-row">
+                                <th colspan="2">
+                                    <label class="vm-checkout-d-inline-check">
+                                        <input type="checkbox" name="redeem_points" id="redeem_points" value="1">
+                                        <span>Use loyalty points for this order</span>
+                                    </label>
+                                    <div class="mt-2">
+                                        <input type="number" name="points_to_redeem" id="points_to_redeem" min="0" max="{{ loyalty_account.points_available }}" value="0" style="width:120px; border:1px solid rgba(196, 199, 199, 0.42); padding:8px 10px; border-radius:6px; background:#fff;">
+                                    </div>
+                                </th>
+                            </tr>
+                            <tr class="points-discount-row" id="points_discount_row" style="display:none;">
+                                <th>Points Discount</th>
+                                <td><span class="amount" id="points_discount_amount">-₹0.00</span></td>
+                            </tr>
+                            {% endif %}
+                            <tr class="order-total">
+                                <th>Grand Total</th>
+                                <td><strong><span class="amount" id="final_total_display">₹{{ final_total|floatformat:2 }}</span></strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="vm-checkout-d-coupon">
+                        <div class="vm-checkout-d-coupon-head">
+                            <h4>Have a Coupon?</h4>
+                            <button type="button" id="viewAvailableCoupons" class="vm-checkout-d-coupon-link">Available Coupons</button>
+                        </div>
+                        <div class="vm-checkout-d-coupon-row">
+                            <input type="text" id="couponCode" name="coupon_code" placeholder="Enter coupon code">
+                            <button type="button" id="applyCoupon">Apply</button>
+                        </div>
+                        <div id="couponMessage" class="vm-checkout-d-coupon-message mt-2"></div>
+                        <div id="appliedCouponDisplay" style="display:none;">
+                            <div class="d-flex justify-content-between align-items-center gap-3">
+                                <div>
+                                    <strong><span id="appliedCouponCode"></span></strong>
+                                    <div class="small">Discount: ₹<span id="appliedCouponAmount">0</span></div>
+                                </div>
+                                <button type="button" id="removeCoupon">Remove</button>
+                            </div>
+                        </div>
+                        <input type="hidden" id="appliedCouponId" name="coupon_id" value="">
+                    </div>
+
+                    <div class="vm-checkout-d-side-note">
+                        <i class="material-symbols-outlined">verified</i>
+                        <div>
+                            <h4>Authenticity guaranteed</h4>
+                            <p>Each piece is hand-curated and authenticated by VibeMall Atelier experts.</p>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </form>
+</div>
+{% else %}
+<div class="vm-checkout-d-shell">
+    <div class="vm-checkout-d-heading">
+        <h1>Checkout</h1>
+        <p>Secure Purchase • Artisanal Heritage</p>
+    </div>
+    <div class="text-center py-5">
+        <h3>Your cart is empty!</h3>
+        <p class="mt-3">Add some items to your cart to proceed to checkout.</p>
+        <a href="{% url 'shop' %}" class="vm-checkout-d-submit d-inline-flex align-items-center justify-content-center text-decoration-none mt-3">Continue Shopping</a>
+    </div>
+</div>
+{% endif %}

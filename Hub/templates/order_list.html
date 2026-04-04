@@ -1,13 +1,15 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% load static %}
 
 {% block title %}My Orders - VibeMall{% endblock %}
 {% block body_class %}vm-page-mobile-alt vm-page-mobile-orders{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'assets/css/myorder-responsive.css' %}">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&amp;family=Manrope:wght@300;400;500;600;700;800&amp;display=swap">
 <link rel="stylesheet" href="{% static 'assets/css/myorders-mobile-alt.css' %}?v=20260329-03">
 <link rel="stylesheet" href="{% static 'assets/css/home-mobile-alt.css' %}?v=20260329-02">
+<link rel="stylesheet" href="{% static 'assets/css/myorders-tablet-alt.css' %}?v=20260404-02">
+<link rel="stylesheet" href="{% static 'assets/css/myorders-desktop-alt.css' %}?v=20260404-01">
 {% endblock %}
 
 {% block content %}
@@ -16,589 +18,417 @@
 
     <main class="vm-myorders-m-main vm-mobile-content-offset">
         <section class="vm-myorders-m-hero">
-            <p>Account Center</p>
-            <h2>My Orders</h2>
-            <span>{{ orders|length }} order{{ orders|length|pluralize }}</span>
-        </section>
-
-        {% if orders %}
-        <section class="vm-myorders-m-search-wrap">
-            <div class="vm-myorders-m-search">
-                <i class="fas fa-search" aria-hidden="true"></i>
-                <input id="vmMyOrdersSearch" type="search" placeholder="Search order number or product" aria-label="Search my orders">
+            <img src="{% static 'assets/img/banner/page-banner-4.jpg' %}" alt="Order history banner">
+            <div class="vm-myorders-m-hero-copy">
+                <span>Account Dashboard</span>
+                <h2>My Orders</h2>
             </div>
         </section>
 
-        <section class="vm-myorders-m-list" id="vmMyOrdersList">
-            {% for order in orders %}
-            <article class="vm-myorders-m-card" data-order-card>
-                <a href="{% url 'order_details' order.order_number %}" class="vm-myorders-m-card-head">
-                    <strong>#{{ order.order_number }}</strong>
-                    <span>{{ order.created_at|date:"d M Y" }}</span>
-                </a>
+        {% if search_query %}
+        <section class="vm-myorders-m-search-note">
+            <span>Search: "{{ search_query }}"</span>
+            <a href="{{ clear_search_url }}">Clear</a>
+        </section>
+        {% endif %}
 
-                <div class="vm-myorders-m-products">
-                    {% for item in order.items.all|slice:":1" %}
-                    <div class="vm-myorders-m-product">
-                        {% if item.product_image %}
-                        <img src="{{ item.product_image }}" alt="{{ item.product_name }}">
-                        {% elif item.product and item.product.image %}
-                        <img src="{{ item.product.image.url }}" alt="{{ item.product_name }}">
-                        {% else %}
-                        <div class="vm-myorders-m-placeholder"><i class="fas fa-box"></i></div>
-                        {% endif %}
-                        <div>
-                            <h4>{{ item.product_name|truncatewords:4 }}</h4>
-                            <p>₹{{ item.product_price }} × {{ item.quantity }}</p>
+        {% if total_orders_count %}
+        <nav class="vm-myorders-m-tabs custom-scrollbar" aria-label="Filter orders by status">
+            {% for tab in mobile_status_tabs %}
+            <a href="{{ tab.url }}" class="vm-myorders-m-tab{% if tab.is_active %} is-active{% endif %}"{% if tab.is_active %} aria-current="page"{% endif %}>
+                {{ tab.label }}
+            </a>
+            {% endfor %}
+        </nav>
+        {% endif %}
+
+        {% if order_cards %}
+        <section class="vm-myorders-m-list">
+            {% for card in order_cards %}
+            <article class="vm-myorders-m-card{% if card.state_key == 'cancelled' or card.state_key == 'returned' %} is-muted{% endif %}" data-order-card>
+                <div class="vm-myorders-m-card-top">
+                    <div class="vm-myorders-m-card-copy">
+                        <h3>Order #{{ card.order.order_number }}</h3>
+                        <p>{{ card.order.created_at|date:"M d, Y" }}</p>
+                    </div>
+                    <span class="vm-myorders-m-status vm-myorders-m-status--{{ card.mobile_badge_tone }}">{{ card.mobile_badge_label }}</span>
+                </div>
+
+                {% if card.image_items %}
+                <div class="vm-myorders-m-items">
+                    <div class="vm-myorders-m-thumbs">
+                        {% for item in card.image_items|slice:":2" %}
+                        <div class="vm-myorders-m-thumb">
+                            {% if item.display_image_url %}
+                            <img src="{{ item.display_image_url }}" alt="{{ item.product_name }}">
+                            {% else %}
+                            <span><i class="fas fa-box" aria-hidden="true"></i></span>
+                            {% endif %}
                         </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
-
-                    {% if order.items.count > 1 %}
-                    <span class="vm-myorders-m-more">+{{ order.items.count|add:"-1" }} more item{{ order.items.count|add:"-1"|pluralize }}</span>
-                    {% endif %}
+                    <p>{{ card.mobile_items_label }}</p>
                 </div>
+                {% endif %}
 
-                <div class="vm-myorders-m-meta">
+                <div class="vm-myorders-m-summary">
                     <div>
-                        <label>Total</label>
-                        <strong>₹{{ order.total_amount }}</strong>
+                        <span>{{ card.amount_label }}</span>
+                        <strong>&#8377;{{ card.amount_value|floatformat:2 }}</strong>
                     </div>
-                    <div>
-                        <label>Payment</label>
-                        {% if order.payment_method == 'COD' and order.order_status == 'DELIVERED' %}
-                            <span class="badge bg-success">Paid (COD)</span>
-                        {% elif order.payment_status == 'PAID' %}
-                            <span class="badge bg-success">Paid</span>
-                        {% elif order.payment_status == 'PENDING' %}
-                            <span class="badge bg-warning">Pending</span>
-                        {% elif order.payment_status == 'REFUNDED' %}
-                            <span class="badge bg-info">Refunded</span>
-                        {% else %}
-                            <span class="badge bg-danger">Failed</span>
-                        {% endif %}
-                    </div>
-                    <div>
-                        <label>Status</label>
-                        {% if order.order_status == 'PENDING' %}
-                            <span class="badge bg-warning">Pending</span>
-                        {% elif order.order_status == 'PROCESSING' %}
-                            <span class="badge bg-info">Processing</span>
-                        {% elif order.order_status == 'SHIPPED' %}
-                            <span class="badge bg-primary">Shipped</span>
-                        {% elif order.order_status == 'DELIVERED' %}
-                            <span class="badge bg-success">Delivered</span>
-                        {% elif order.order_status == 'CANCELLED' %}
-                            <span class="badge bg-danger">Cancelled</span>
-                        {% endif %}
-                    </div>
-                    <div>
-                        <label>Type</label>
-                        {% if order.is_resell %}
-                            <span class="badge" style="background-color:#6f42c1;">Resell</span>
-                        {% else %}
-                            <span class="badge bg-secondary">Normal</span>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <div class="vm-myorders-m-actions">
-                    <a href="{% url 'order_tracking' order.order_number %}"><i class="fas fa-map-marker-alt"></i> Track</a>
-                    <a href="{% url 'order_details' order.order_number %}"><i class="fas fa-eye"></i> Details</a>
-                    <a href="{% url 'download_invoice' order.order_number %}"><i class="fas fa-download"></i> Invoice</a>
-                    {% if order.order_status == 'DELIVERED' %}
-                    <a href="{% url 'return_request' order.id %}"><i class="fas fa-undo"></i> Return</a>
-                    {% endif %}
+                    <a href="{{ card.mobile_primary_action_url }}" class="vm-myorders-m-cta">
+                        {{ card.mobile_primary_action_label }}
+                        <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    </a>
                 </div>
             </article>
             {% endfor %}
         </section>
+
+        <div class="vm-myorders-m-end">
+            <i class="fas fa-box-open" aria-hidden="true"></i>
+            <p>End of History</p>
+        </div>
         {% else %}
         <section class="vm-myorders-m-empty">
+            {% if total_orders_count %}
+            <h3>No matching orders</h3>
+            <p>Try a different order number, product name, or status filter.</p>
+            <a href="{{ clear_filters_url }}">View All Orders</a>
+            {% else %}
             <h3>No orders yet</h3>
             <p>You haven't placed any orders yet.</p>
             <a href="{% url 'shop' %}">Start Shopping</a>
+            {% endif %}
         </section>
         {% endif %}
-
-        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='order-list-mobile' %}
     </main>
 
     {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
 </section>
 
-<div class="vm-myorders-legacy-content">
-<!-- Page Banner Start -->
-<div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
-    <div class="container">
-        <div class="row">
-            <div class="col-xl-12">
-                <div class="page-banner-content text-center">
-                    <h4 class="breadcrumb-title">My Orders</h4>
-                    <div class="breadcrumb-two">
-                        <nav>
-                            <nav class="breadcrumb-trail breadcrumbs">
-                                <ul class="breadcrumb-menu">
-                                    <li class="breadcrumb-trail">
-                                        <a href="{% url 'index' %}"><span>Home</span></a>
-                                    </li>
-                                    <li class="trail-item">
-                                        <span>My Orders</span>
-                                    </li>
-                                </ul>
-                            </nav>
-                        </nav>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- Page Banner End -->
-
-<!-- Orders Area Start -->
-<section class="account-area pt-100 pb-100">
-    <div class="container">
-        <div class="row">
-            <div class="col-12">
-                <div class="orders-content">
-            
-            {% if orders %}
-            
-            <!-- Search Bar -->
-            <div class="order-search-container mb-4">
-                <div class="input-group">
-                    <span class="input-group-text bg-white border-end-0">
-                        <i class="fas fa-search text-muted"></i>
-                    </span>
-                    <input type="text" 
-                           id="orderSearchInput" 
-                           class="form-control border-start-0 ps-0" 
-                           placeholder="Search by Order ID or Product Name..."
-                           autocomplete="off">
-                    <button class="btn btn-outline-secondary" type="button" id="clearSearch" style="display: none;">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <small class="text-muted d-block mt-2">
-                    <i class="fas fa-info-circle"></i> Type to search orders by order number or product name
-                </small>
-            </div>
-            
-            <div class="table-responsive">
-                <table class="table table-hover" id="ordersTable">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Order #</th>
-                            <th>Date</th>
-                            <th>Products</th>
-                            <th>Total</th>
-                            <th>Payment</th>
-                            <th>Status</th>
-                            <th>Type</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for order in orders %}
-                        <tr>
-                            <td>
-                                <a href="{% url 'order_details' order.order_number %}" class="text-decoration-none">
-                                    <strong>{{ order.order_number }}</strong>
-                                </a>
-                            </td>
-                            <td>{{ order.created_at|date:"d M Y" }}</td>
-                            <td>
-                                <div style="display: flex; flex-direction: column; gap: 10px;">
-                                    {% for item in order.items.all %}
-                                    <div style="display: flex; align-items: center; gap: 10px;">
-                                        {% if item.product_image %}
-                                        <img src="{{ item.product_image }}" alt="{{ item.product_name }}" 
-                                             style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 2px solid #f0f0f0;">
-                                        {% elif item.product and item.product.image %}
-                                        <img src="{{ item.product.image.url }}" alt="{{ item.product_name }}" 
-                                             style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 2px solid #f0f0f0;">
-                                        {% else %}
-                                        <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                                            <i class="fas fa-box" style="font-size: 22px; color: white;"></i>
-                                        </div>
-                                        {% endif %}
-                                        <div>
-                                            <div style="font-size: 0.9rem; font-weight: 600; color: #333;">
-                                                {{ item.product_name|truncatewords:4 }}
-                                            </div>
-                                            <small style="color: #666;">
-                                                <i class="fas fa-tag"></i> ₹{{ item.product_price }} × {{ item.quantity }}
-                                            </small>
-                                        </div>
-                                    </div>
-                                    {% empty %}
-                                    <span class="text-muted">No items</span>
-                                    {% endfor %}
-                                </div>
-                            </td>
-                            <td><strong>&#8377;{{ order.total_amount }}</strong></td>
-                            <td>
-                                {% if order.payment_method == 'COD' and order.order_status == 'DELIVERED' %}
-                                    <span class="badge bg-success">Paid (COD)</span>
-                                {% elif order.payment_status == 'PAID' %}
-                                    <span class="badge bg-success">Paid</span>
-                                {% elif order.payment_status == 'PENDING' %}
-                                    <span class="badge bg-warning">Pending</span>
-                                {% elif order.payment_status == 'REFUNDED' %}
-                                    <span class="badge bg-info">Refunded</span>
-                                {% else %}
-                                    <span class="badge bg-danger">Failed</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if order.order_status == 'PENDING' %}
-                                    <span class="badge bg-warning">Pending</span>
-                                {% elif order.order_status == 'PROCESSING' %}
-                                    <span class="badge bg-info">Processing</span>
-                                {% elif order.order_status == 'SHIPPED' %}
-                                    <span class="badge bg-primary">Shipped</span>
-                                {% elif order.order_status == 'DELIVERED' %}
-                                    <span class="badge bg-success">Delivered</span>
-                                {% elif order.order_status == 'CANCELLED' %}
-                                    <span class="badge bg-danger">Cancelled</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if order.is_resell %}
-                                    <span class="badge bg-purple" style="background-color: #6f42c1;">Resell</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">Normal</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <div class="btn-group" role="group">
-                                    <a href="{% url 'order_tracking' order.order_number %}" class="btn btn-sm btn-outline-info" title="Track Order">
-                                        <i class="fas fa-map-marker-alt"></i>
-                                    </a>
-                                    <a href="{% url 'order_details' order.order_number %}" class="btn btn-sm btn-outline-primary" title="View Details">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="{% url 'download_invoice' order.order_number %}" class="btn btn-sm btn-outline-success" title="Download Invoice">
-                                        <i class="fas fa-download"></i>
-                                    </a>
-                                    {% if order.order_status == 'DELIVERED' %}
-                                    <a href="{% url 'return_request' order.id %}" class="btn btn-sm btn-outline-warning" title="Request Return">
-                                        <i class="fas fa-undo"></i>
-                                    </a>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="alert alert-info text-center">
-                <h4>No orders yet</h4>
-                <p>You haven't placed any orders yet.</p>
-                <a href="{% url 'shop' %}" class="btn btn-primary">Start Shopping</a>
+<section class="vm-myorders-tablet vm-myorders-legacy-content" aria-labelledby="vmMyOrdersTabletTitle">
+    <div class="vm-myorders-tablet__shell">
+        <div class="vm-myorders-tablet__intro">
+            <h1 id="vmMyOrdersTabletTitle">My Orders</h1>
+            <p>A curated history of your style</p>
+            {% if search_query %}
+            <div class="vm-myorders-tablet__search-summary">
+                <span>Showing results for "{{ search_query }}"</span>
+                <a href="{{ clear_search_url }}">Clear</a>
             </div>
             {% endif %}
+        </div>
+
+        {% if total_orders_count %}
+        <div class="vm-myorders-tablet__chips" role="tablist" aria-label="Filter orders by status">
+            {% for tab in status_tabs %}
+            <a href="{{ tab.url }}" class="vm-myorders-tablet__chip{% if tab.is_active %} is-active{% endif %}"{% if tab.is_active %} aria-current="page"{% endif %}>
+                <span>{{ tab.label }}</span>
+                <small>{{ tab.count }}</small>
+            </a>
+            {% endfor %}
+        </div>
+
+        {% if order_cards %}
+        <div class="vm-myorders-tablet__list">
+            {% for card in order_cards %}
+            <article class="vm-myorders-tablet__card{% if card.is_dimmed %} is-dimmed{% endif %}">
+                <div class="vm-myorders-tablet__card-body">
+                    <div class="vm-myorders-tablet__card-top">
+                        <div>
+                            <span class="vm-myorders-tablet__ref">Order Ref: #{{ card.order.order_number }}</span>
+                            <h3>{{ card.headline }}</h3>
+                        </div>
+                        <span class="vm-myorders-tablet__tag vm-myorders-tablet__tag--{{ card.tag_tone }}">{{ card.tag_label }}</span>
+                    </div>
+
+                    <div class="vm-myorders-tablet__card-bottom">
+                        <div class="vm-myorders-tablet__thumb-strip">
+                            {% for item in card.image_items %}
+                            <div class="vm-myorders-tablet__thumb{% if card.is_dimmed %} is-muted{% endif %}">
+                                {% if item.display_image_url %}
+                                <img src="{{ item.display_image_url }}" alt="{{ item.product_name }}">
+                                {% else %}
+                                <span><i class="fas fa-box" aria-hidden="true"></i></span>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                            {% if card.more_items_count %}
+                            <div class="vm-myorders-tablet__thumb vm-myorders-tablet__thumb--count">
+                                +{{ card.more_items_count }} More
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="vm-myorders-tablet__amount">
+                            <span>{{ card.amount_label }}</span>
+                            <strong>&#8377;{{ card.amount_value|floatformat:2 }}</strong>
+                        </div>
+                    </div>
                 </div>
+
+                <div class="vm-myorders-tablet__actions">
+                    {% for action in card.actions %}
+                    <a href="{{ action.url }}" class="vm-myorders-tablet__action{% if action.style == 'primary' %} is-primary{% endif %}{% if action.style == 'secondary' %} is-secondary{% endif %}">
+                        {{ action.label }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+
+        {% if page_obj.has_other_pages %}
+        <div class="vm-myorders-tablet__pagination">
+            <span>Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ filtered_orders_count }} orders</span>
+            <div>
+                {% if previous_page_url %}
+                <a href="{{ previous_page_url }}">Previous</a>
+                {% endif %}
+                {% if next_page_url %}
+                <a href="{{ next_page_url }}">Next</a>
+                {% endif %}
             </div>
         </div>
+        {% endif %}
+        {% else %}
+        <section class="vm-myorders-tablet__empty">
+            <h2>No matching orders</h2>
+            <p>Try a different status filter or search term to locate your order history.</p>
+            <a href="{{ clear_filters_url }}">View All Orders</a>
+        </section>
+        {% endif %}
+        {% else %}
+        <section class="vm-myorders-tablet__empty">
+            <h2>No orders yet</h2>
+            <p>You haven't placed any orders yet. Explore the latest collections and start your next order.</p>
+            <a href="{% url 'shop' %}">Start Shopping</a>
+        </section>
+        {% endif %}
+
+        <section class="vm-myorders-tablet__help" id="vmOrdersHelp">
+            <h2>Need Assistance?</h2>
+            <p>Our concierge service is available to help with orders, returns, invoices, and delivery updates.</p>
+            <div class="vm-myorders-tablet__help-actions">
+                <button type="button" class="vm-myorders-tablet__help-button is-primary" data-vm-orders-help="chat">Chat With Us</button>
+                <a href="{% url 'faq' %}" class="vm-myorders-tablet__help-button">Visit FAQ</a>
+            </div>
+        </section>
     </div>
 </section>
-<!-- Orders Area End -->
-</div>
+
+<section class="vm-myorders-desktop vm-myorders-legacy-content" aria-labelledby="vmMyOrdersDesktopTitle">
+    <div class="vm-myorders-desktop__shell">
+        <div class="vm-myorders-desktop__intro">
+            <p class="vm-myorders-desktop__eyebrow">Account Center</p>
+            <h1 id="vmMyOrdersDesktopTitle">My Orders</h1>
+            <p class="vm-myorders-desktop__lede">View and track your curated purchases.</p>
+        </div>
+
+        {% if total_orders_count %}
+        <div class="vm-myorders-desktop__toolbar">
+            <div class="vm-myorders-desktop__tabs" role="tablist" aria-label="Filter orders by status">
+                {% for tab in status_tabs %}
+                <a href="{{ tab.url }}" class="vm-myorders-desktop__tab{% if tab.is_active %} is-active{% endif %}"{% if tab.is_active %} aria-current="page"{% endif %}>
+                    <span>{{ tab.label }}</span>
+                    <small>{{ tab.count }}</small>
+                </a>
+                {% endfor %}
+            </div>
+
+            <form class="vm-myorders-desktop__search" method="get" action="{% url 'order_list' %}">
+                {% if active_status != 'ALL' %}
+                <input type="hidden" name="status" value="{{ active_status }}">
+                {% endif %}
+                <label class="vm-myorders-desktop__search-label" for="vmMyOrdersDesktopSearch">Search orders</label>
+                <div class="vm-myorders-desktop__search-field">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                    <input id="vmMyOrdersDesktopSearch" type="search" name="q" value="{{ search_query }}" placeholder="Search by Order # or product">
+                    <button type="submit">Search</button>
+                </div>
+                {% if search_query %}
+                <a href="{{ clear_search_url }}" class="vm-myorders-desktop__clear">Clear search</a>
+                {% endif %}
+            </form>
+        </div>
+
+        {% if orders %}
+        <div class="vm-myorders-desktop__table-wrap">
+            <table class="vm-myorders-desktop__table">
+                <thead>
+                    <tr>
+                        <th>Order #</th>
+                        <th>Date</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th class="vm-myorders-desktop__actions-head">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    {% with order_items=order.items.all %}
+                    {% with primary_item=order_items|first %}
+                    <tr>
+                        <td data-label="Order #">
+                            <a href="{% url 'order_details' order.order_number %}" class="vm-myorders-desktop__order-link">#{{ order.order_number }}</a>
+                        </td>
+                        <td data-label="Date">
+                            <span class="vm-myorders-desktop__date">{{ order.created_at|date:"M d, Y"|upper }}</span>
+                        </td>
+                        <td data-label="Items">
+                            <div class="vm-myorders-desktop__item">
+                                <div class="vm-myorders-desktop__media">
+                                    {% if primary_item and primary_item.display_image_url %}
+                                    <img src="{{ primary_item.display_image_url }}" alt="{{ primary_item.product_name }}">
+                                    {% else %}
+                                    <span><i class="fas fa-box" aria-hidden="true"></i></span>
+                                    {% endif %}
+                                </div>
+                                <div class="vm-myorders-desktop__copy">
+                                    {% if primary_item %}
+                                    <p class="vm-myorders-desktop__item-title">{{ primary_item.product_name }}</p>
+                                    <p class="vm-myorders-desktop__item-meta">
+                                        &#8377;{{ primary_item.product_price|floatformat:2 }} x {{ primary_item.quantity }}
+                                        {% if order_items|length > 1 %}
+                                        <span>+ {{ order_items|length|add:"-1" }} more item{{ order_items|length|add:"-1"|pluralize }}</span>
+                                        {% endif %}
+                                    </p>
+                                    {% else %}
+                                    <p class="vm-myorders-desktop__item-title">Order details unavailable</p>
+                                    <p class="vm-myorders-desktop__item-meta">This order does not have any visible items.</p>
+                                    {% endif %}
+                                    {% if order.is_resell %}
+                                    <span class="vm-myorders-desktop__type-tag">Resell order</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td data-label="Total">
+                            <span class="vm-myorders-desktop__amount">&#8377;{{ order.total_amount|floatformat:2 }}</span>
+                        </td>
+                        <td data-label="Status">
+                            <div class="vm-myorders-desktop__status-stack">
+                                <span class="vm-myorders-desktop__badge vm-myorders-desktop__badge--{{ order.order_status|lower }}">{{ order.get_order_status_display }}</span>
+                                <p class="vm-myorders-desktop__payment-note">
+                                    {% if order.payment_method == 'COD' and order.order_status == 'DELIVERED' %}
+                                    Paid (COD)
+                                    {% elif order.payment_status == 'PAID' %}
+                                    Paid
+                                    {% elif order.payment_status == 'PENDING' %}
+                                    Payment Pending
+                                    {% elif order.payment_status == 'REFUNDED' %}
+                                    Refunded
+                                    {% else %}
+                                    Payment Failed
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </td>
+                        <td data-label="Actions" class="vm-myorders-desktop__actions">
+                            <a href="{% url 'order_details' order.order_number %}" class="vm-myorders-desktop__action is-primary">View Details</a>
+                            {% if order.order_status == 'PROCESSING' or order.order_status == 'SHIPPED' %}
+                            <a href="{% url 'order_tracking' order.order_number %}" class="vm-myorders-desktop__action">Track Shipment</a>
+                            {% else %}
+                            <a href="{% url 'download_invoice' order.order_number %}" class="vm-myorders-desktop__action">Download Invoice</a>
+                            {% endif %}
+                            {% if order.order_status == 'DELIVERED' %}
+                            <a href="{% url 'return_request' order.id %}" class="vm-myorders-desktop__action vm-myorders-desktop__action--muted">Request Return</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endwith %}
+                    {% endwith %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if page_obj.has_other_pages %}
+        <div class="vm-myorders-desktop__pagination">
+            <span>Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ filtered_orders_count }} orders</span>
+            <div class="vm-myorders-desktop__pagination-actions">
+                {% if previous_page_url %}
+                <a href="{{ previous_page_url }}" class="vm-myorders-desktop__page-link">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                    <span>Previous</span>
+                </a>
+                {% else %}
+                <span class="vm-myorders-desktop__page-link is-disabled">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                    <span>Previous</span>
+                </span>
+                {% endif %}
+
+                {% if next_page_url %}
+                <a href="{{ next_page_url }}" class="vm-myorders-desktop__page-link">
+                    <span>Next</span>
+                    <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                </a>
+                {% else %}
+                <span class="vm-myorders-desktop__page-link is-disabled">
+                    <span>Next</span>
+                    <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        {% else %}
+        <section class="vm-myorders-desktop__empty">
+            <h2>No matching orders</h2>
+            <p>Try a different order number, product name, or status filter.</p>
+            <a href="{{ clear_filters_url }}">View All Orders</a>
+        </section>
+        {% endif %}
+        {% else %}
+        <section class="vm-myorders-desktop__empty">
+            <h2>No orders yet</h2>
+            <p>You haven't placed any orders yet. Start exploring new arrivals and collections.</p>
+            <a href="{% url 'shop' %}">Start Shopping</a>
+        </section>
+        {% endif %}
+    </div>
+</section>
 
 <script>
-// Mobile cards search
-function initMobileMyOrdersSearch() {
+(function () {
     const input = document.getElementById('vmMyOrdersSearch');
     const cards = document.querySelectorAll('#vmMyOrdersList [data-order-card]');
-    if (!input || !cards.length) return;
+
+    if (!input || !cards.length) {
+        return;
+    }
 
     input.addEventListener('input', function () {
         const term = this.value.toLowerCase().trim();
-        cards.forEach((card) => {
+        cards.forEach(function (card) {
             const text = card.textContent.toLowerCase();
             card.style.display = text.includes(term) ? '' : 'none';
         });
     });
-}
+})();
 
-// Order Search Functionality
-function initOrderSearch() {
-    const searchInput = document.getElementById('orderSearchInput');
-    const clearBtn = document.getElementById('clearSearch');
-    const tableBody = document.querySelector('#ordersTable tbody');
-    const mobileContainer = document.querySelector('.mobile-orders-container');
-    
-    if (!searchInput) return;
-    
-    // Search function
-    function performSearch() {
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        
-        // Show/hide clear button
-        if (clearBtn) {
-            clearBtn.style.display = searchTerm ? 'block' : 'none';
-        }
-        
-        // Search in table (desktop/tablet)
-        if (tableBody) {
-            const rows = tableBody.querySelectorAll('tr');
-            let visibleCount = 0;
-            
-            rows.forEach(row => {
-                const orderNumber = row.querySelector('td:first-child')?.textContent.toLowerCase() || '';
-                const productNames = row.querySelector('td:nth-child(3)')?.textContent.toLowerCase() || '';
-                
-                if (orderNumber.includes(searchTerm) || productNames.includes(searchTerm)) {
-                    row.style.display = '';
-                    visibleCount++;
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-            
-            // Show no results message
-            showNoResults(tableBody.parentElement, visibleCount === 0 && searchTerm !== '');
-        }
-        
-        // Search in mobile cards
-        if (mobileContainer) {
-            const cards = mobileContainer.querySelectorAll('.order-card');
-            let visibleCount = 0;
-            
-            cards.forEach(card => {
-                const orderNumber = card.querySelector('.order-number')?.textContent.toLowerCase() || '';
-                const productNames = card.querySelector('.order-products')?.textContent.toLowerCase() || '';
-                
-                if (orderNumber.includes(searchTerm) || productNames.includes(searchTerm)) {
-                    card.style.display = '';
-                    visibleCount++;
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-            
-            // Show no results message
-            showNoResults(mobileContainer, visibleCount === 0 && searchTerm !== '');
-        }
-    }
-    
-    // Show/hide no results message
-    function showNoResults(container, show) {
-        let noResultsMsg = container.querySelector('.no-search-results');
-        
-        if (show && !noResultsMsg) {
-            noResultsMsg = document.createElement('div');
-            noResultsMsg.className = 'no-search-results alert alert-info text-center my-4';
-            noResultsMsg.innerHTML = `
-                <i class="fas fa-search" style="font-size: 48px; color: #0dcaf0; margin-bottom: 16px;"></i>
-                <h5>No orders found</h5>
-                <p class="mb-0">Try searching with a different order number or product name</p>
-            `;
-            container.appendChild(noResultsMsg);
-        } else if (!show && noResultsMsg) {
-            noResultsMsg.remove();
-        }
-    }
-    
-    // Clear search
-    function clearSearch() {
-        searchInput.value = '';
-        performSearch();
-        searchInput.focus();
-    }
-    
-    // Event listeners
-    searchInput.addEventListener('input', performSearch);
-    searchInput.addEventListener('keyup', (e) => {
-        if (e.key === 'Escape') clearSearch();
-    });
-    
-    if (clearBtn) {
-        clearBtn.addEventListener('click', clearSearch);
-    }
-    
-    console.log('Order search initialized');
-}
-
-// Mobile Order Cards Generator
-function createMobileOrderCards() {
-    // Only run on mobile
-    if (window.innerWidth >= 768) {
-        const existing = document.querySelector('.mobile-orders-container');
-        if (existing) existing.remove();
+(function () {
+    const helpTrigger = document.querySelector('[data-vm-orders-help="chat"]');
+    if (!helpTrigger) {
         return;
     }
-    
-    const tableBody = document.querySelector('.orders-content tbody');
-    if (!tableBody) return;
-    
-    // Check if already created
-    if (document.querySelector('.mobile-orders-container')) return;
-    
-    const rows = tableBody.querySelectorAll('tr');
-    const container = document.querySelector('.orders-content');
-    
-    // Create cards container
-    const cardsContainer = document.createElement('div');
-    cardsContainer.className = 'mobile-orders-container';
-    
-    rows.forEach(row => {
-        const cells = row.querySelectorAll('td');
-        if (cells.length === 0) return;
-        
-        // Extract data
-        const orderNumberEl = cells[0].querySelector('strong');
-        const orderLinkEl = cells[0].querySelector('a');
-        if (!orderNumberEl || !orderLinkEl) return;
-        
-        const orderNumber = orderNumberEl.textContent.trim();
-        const orderLink = orderLinkEl.href;
-        const date = cells[1].textContent.trim();
-        const productsDiv = cells[2].querySelector('div');
-        
-        // Get products HTML and count
-        let productsHtml = '';
-        let productCountBadge = '';
-        
-        if (productsDiv) {
-            // Try to find direct product containers with d-flex class
-            let productDivs = productsDiv.querySelectorAll(':scope > div');
-            
-            // Filter to only get actual product items (those with images or placeholders)
-            productDivs = Array.from(productDivs).filter(div => {
-                return div.querySelector('img') || div.querySelector('i.fa-box');
-            });
-            
-            if (productDivs.length > 0) {
-                // Show only first product
-                productsHtml = productDivs[0].outerHTML;
-                
-                // Add count badge ONLY if more than 1 product
-                if (productDivs.length > 1) {
-                    productCountBadge = `<span class="order-products-count">+${productDivs.length - 1} more item${productDivs.length > 2 ? 's' : ''}</span>`;
-                }
-            } else {
-                // Fallback: use all HTML if no products found
-                productsHtml = productsDiv.innerHTML;
-            }
-        }
-        
-        const total = cells[3].textContent.trim();
-        const payment = cells[4].innerHTML;
-        const status = cells[5].innerHTML;
-        const type = cells[6].innerHTML;
-        const actions = cells[7].querySelectorAll('a');
-        
-        // Create card
-        const card = document.createElement('div');
-        card.className = 'order-card';
-        
-        let actionsHtml = '';
-        actions.forEach(a => {
-            const icon = a.querySelector('i');
-            if (!icon) return;
-            const iconClass = icon.className;
-            const title = a.title || a.getAttribute('title') || '';
-            const href = a.href;
-            
-            let btnClass = 'btn-track';
-            let btnText = 'Track';
-            if (title.includes('Details') || title.includes('View')) {
-                btnClass = 'btn-details';
-                btnText = 'Details';
-            } else if (title.includes('Invoice') || title.includes('Download')) {
-                btnClass = 'btn-invoice';
-                btnText = 'Invoice';
-            } else if (title.includes('Return')) {
-                btnClass = 'btn-return';
-                btnText = 'Return';
-            } else if (title.includes('Track')) {
-                btnClass = 'btn-track';
-                btnText = 'Track';
-            }
-            
-            actionsHtml += `<a href="${href}" class="btn ${btnClass}"><i class="${iconClass}"></i> ${btnText}</a>`;
-        });
-        
-        card.innerHTML = `
-            <div class="order-card-header">
-                <a href="${orderLink}" class="order-number">#${orderNumber}</a>
-                <span class="order-date">${date}</span>
-            </div>
-            <div class="order-card-body">
-                <div class="order-products">
-                    ${productsHtml}
-                    ${productCountBadge}
-                </div>
-                <div class="order-info-grid">
-                    <div class="order-info-item">
-                        <span class="order-info-label">Total Amount</span>
-                        <span class="order-info-value">${total}</span>
-                    </div>
-                    <div class="order-info-item">
-                        <span class="order-info-label">Payment</span>
-                        <span class="order-info-value">${payment}</span>
-                    </div>
-                    <div class="order-info-item">
-                        <span class="order-info-label">Status</span>
-                        <span class="order-info-value">${status}</span>
-                    </div>
-                    <div class="order-info-item">
-                        <span class="order-info-label">Type</span>
-                        <span class="order-info-value">${type}</span>
-                    </div>
-                </div>
-                <div class="order-actions">
-                    ${actionsHtml}
-                </div>
-            </div>
-        `;
-        
-        cardsContainer.appendChild(card);
-    });
-    
-    container.appendChild(cardsContainer);
-}
 
-// Run on load
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        initMobileMyOrdersSearch();
-        if (!window.matchMedia('(max-width: 767.98px)').matches) {
-            createMobileOrderCards();
-            initOrderSearch();
+    helpTrigger.addEventListener('click', function () {
+        const chatToggle = document.getElementById('supportChatToggle');
+        const isClosed = chatToggle && chatToggle.getAttribute('aria-expanded') === 'false';
+
+        if (chatToggle && isClosed) {
+            chatToggle.click();
+        }
+
+        const chatPanel = document.getElementById('supportChatWidget');
+        if (chatPanel) {
+            chatPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     });
-} else {
-    initMobileMyOrdersSearch();
-    if (!window.matchMedia('(max-width: 767.98px)').matches) {
-        createMobileOrderCards();
-        initOrderSearch();
-    }
-}
-
-// Run on resize with debounce
-let resizeTimer;
-window.addEventListener('resize', () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => {
-        if (window.matchMedia('(max-width: 767.98px)').matches) {
-            return;
-        }
-        const existing = document.querySelector('.mobile-orders-container');
-        if (existing) existing.remove();
-        createMobileOrderCards();
-        // Re-apply search after cards are recreated
-        const searchInput = document.getElementById('orderSearchInput');
-        if (searchInput && searchInput.value) {
-            searchInput.dispatchEvent(new Event('input'));
-        }
-    }, 250);
-});
+})();
 </script>
-
 {% endblock %}

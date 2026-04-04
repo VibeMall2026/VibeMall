@@ -1,339 +1,884 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block body_class %}vm-page-mobile-alt{% endblock %}
-
-
 {% block title %}Address Book - VibeMall{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-mobile-addressbook{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ============================================================
+   VIEWPORT TOGGLE
+   Mobile section hidden by default; shown only at ≤767px.
+   Desktop section visible by default; hidden at ≤767px.
+   Mirrors the pattern used in track_order.html / wishlist.html
+   ============================================================ */
+.vm-ab-mobile-only {
+    display: none;
+}
+
+@media (max-width: 767.98px) {
+    .vm-ab-mobile-only {
+        display: block;
+        min-height: 100vh;
+        background: #fbf9f4;
+        font-family: 'Manrope', sans-serif;
+        color: #171818;
+    }
+    .vm-ab-desktop-only {
+        display: none !important;
+    }
+}
+
+/* ============================================================
+   MOBILE CONTENT STYLES
+   ============================================================ */
+.vm-ab-m-main {
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: 32px;
+}
+
+.vm-ab-m-heading {
+    margin-bottom: 28px;
+}
+.vm-ab-m-heading h1 {
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: #171818;
+    margin: 0 0 6px;
+    letter-spacing: -0.02em;
+}
+.vm-ab-m-heading p {
+    font-size: 13px;
+    color: #444748;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.vm-ab-m-cta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    background: #171818;
+    color: #fff;
+    padding: 14px 18px;
+    border: none;
+    border-radius: 8px;
+    margin-bottom: 28px;
+    cursor: pointer;
+    font-family: 'Manrope', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.vm-ab-m-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 36px;
+}
+
+.vm-ab-m-card {
+    background: #f5f3ee;
+    padding: 18px;
+    border-radius: 10px;
+}
+.vm-ab-m-card--default {
+    outline: 2px solid #6f5c37;
+}
+
+.vm-ab-m-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+.vm-ab-m-card-head h2 {
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #171818;
+    margin: 0;
+}
+.vm-ab-m-card-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.vm-ab-m-card-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #444748;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s, background 0.2s;
+}
+.vm-ab-m-card-btn:hover { color: #171818; background: rgba(23,24,24,.07); }
+.vm-ab-m-card-btn--del:hover { color: #ba1a1a; background: rgba(186,26,26,.07); }
+.vm-ab-m-card-btn i { font-size: 14px; }
+
+.vm-ab-m-card-text {
+    font-size: 13px;
+    color: #444748;
+    line-height: 1.55;
+    margin: 0 0 2px;
+}
+
+.vm-ab-m-phone {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #171818;
+    font-weight: 600;
+}
+.vm-ab-m-phone i { font-size: 11px; }
+
+.vm-ab-m-card-foot { margin-top: 12px; }
+
+.vm-ab-m-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #6f5c37;
+    font-weight: 700;
+}
+.vm-ab-m-badge-dot {
+    width: 7px;
+    height: 7px;
+    background: #6f5c37;
+    border-radius: 50%;
+}
+.vm-ab-m-setdefault {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #6f5c37;
+    font-weight: 600;
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 0;
+    font-family: 'Manrope', sans-serif;
+}
+
+.vm-ab-m-empty {
+    text-align: center;
+    padding: 48px 16px;
+    color: #444748;
+}
+.vm-ab-m-empty h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #171818;
+    margin: 12px 0 6px;
+}
+.vm-ab-m-empty p { font-size: 13px; margin: 0; }
+
+.vm-ab-m-editorial {
+    margin: 32px 0 8px;
+    border-radius: 10px;
+    overflow: hidden;
+    aspect-ratio: 16/9;
+    background: #e4e2dd;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.vm-ab-m-editorial img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.65;
+    mix-blend-mode: multiply;
+}
+.vm-ab-m-editorial p {
+    position: relative;
+    color: #fff;
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 15px;
+    font-style: italic;
+    letter-spacing: 0.06em;
+    text-align: center;
+    padding: 0 20px;
+}
+
+/* ============================================================
+   TABLET + DESKTOP  (≥768px) — base.html handles header/footer
+   ============================================================ */
+.vm-ab-desktop-only {
+    background: #fbf9f4;
+    font-family: 'Manrope', sans-serif;
+}
+
+.vm-ab-d-wrap {
+    width: min(1220px, 100%);
+    margin: 0 auto;
+    padding: 115px 40px 80px;
+}
+
+@media (min-width: 1200px) {
+    .vm-ab-d-wrap { padding-top: 140px; }
+}
+
+.vm-ab-d-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    flex-wrap: wrap;
+    padding-bottom: 28px;
+    border-bottom: 1px solid rgba(23,24,24,.08);
+    margin-bottom: 40px;
+}
+.vm-ab-d-toolbar h1 {
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: clamp(40px, 5vw, 64px);
+    font-weight: 700;
+    color: #171818;
+    margin: 0;
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+}
+.vm-ab-d-toolbar p {
+    margin: 10px 0 0;
+    font-size: 14px;
+    color: rgba(23,24,24,.52);
+}
+
+.vm-ab-d-add-btn {
+    height: 50px;
+    padding: 0 26px;
+    border: none;
+    border-radius: 999px;
+    background: #171818;
+    color: #fff;
+    font-family: 'Manrope', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    transition: background 0.2s;
+}
+.vm-ab-d-add-btn:hover { background: #2e2f2f; }
+
+.vm-ab-d-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
+    margin-bottom: 60px;
+}
+
+.vm-ab-d-card {
+    background: #f5f3ee;
+    padding: 26px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: box-shadow 0.2s;
+}
+.vm-ab-d-card:hover { box-shadow: 0 4px 20px rgba(23,24,24,.07); }
+.vm-ab-d-card--default { outline: 2px solid #6f5c37; }
+
+.vm-ab-d-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 14px;
+}
+.vm-ab-d-card-head h2 {
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #171818;
+    margin: 0;
+}
+.vm-ab-d-card-actions { display: flex; gap: 8px; }
+
+.vm-ab-d-card-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #444748;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s, background 0.2s;
+}
+.vm-ab-d-card-btn:hover { color: #171818; background: rgba(23,24,24,.06); }
+.vm-ab-d-card-btn--del:hover { color: #ba1a1a; background: rgba(186,26,26,.06); }
+
+.vm-ab-d-card-text {
+    font-size: 13.5px;
+    color: #444748;
+    line-height: 1.62;
+    margin: 0 0 2px;
+}
+
+.vm-ab-d-phone {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 12px;
+    font-size: 13px;
+    color: #171818;
+    font-weight: 600;
+}
+.vm-ab-d-phone i { font-size: 12px; color: #6f5c37; }
+
+.vm-ab-d-type-tag {
+    display: inline-block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(23,24,24,.44);
+    font-weight: 600;
+    background: rgba(23,24,24,.06);
+    padding: 3px 8px;
+    border-radius: 999px;
+    margin-bottom: 12px;
+}
+
+.vm-ab-d-card-foot { margin-top: 18px; }
+
+.vm-ab-d-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #6f5c37;
+    font-weight: 700;
+}
+.vm-ab-d-badge-dot {
+    width: 7px;
+    height: 7px;
+    background: #6f5c37;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.vm-ab-d-setdefault {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    color: #6f5c37;
+    font-weight: 700;
+    border: 1px solid #6f5c37;
+    background: transparent;
+    cursor: pointer;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-family: 'Manrope', sans-serif;
+    transition: all 0.2s;
+}
+.vm-ab-d-setdefault:hover { background: #6f5c37; color: #fff; }
+
+.vm-ab-d-empty {
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 72px 20px;
+    color: #444748;
+}
+.vm-ab-d-empty h3 {
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 22px;
+    color: #171818;
+    margin: 16px 0 8px;
+}
+.vm-ab-d-empty p { font-size: 14px; margin: 0; }
+
+.vm-ab-d-editorial {
+    border-radius: 14px;
+    overflow: hidden;
+    aspect-ratio: 21/6;
+    background: #e4e2dd;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.vm-ab-d-editorial img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.65;
+    mix-blend-mode: multiply;
+}
+.vm-ab-d-editorial p {
+    position: relative;
+    color: #fff;
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 26px;
+    font-style: italic;
+    letter-spacing: 0.05em;
+    text-align: center;
+    padding: 0 32px;
+}
+
+/* ============================================================
+   SHARED MODAL (all viewports)
+   ============================================================ */
+.vm-ab-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.3);
+    z-index: 1050;
+    align-items: flex-end;
+    justify-content: center;
+}
+.vm-ab-modal.is-open { display: flex; }
+
+@media (min-width: 768px) {
+    .vm-ab-modal { align-items: center; }
+}
+
+.vm-ab-modal-box {
+    background: #fff;
+    width: 100%;
+    max-height: 92vh;
+    overflow-y: auto;
+    border-radius: 16px 16px 0 0;
+    padding: 32px 22px 48px;
+    position: relative;
+    animation: vm-ab-slideup 0.25s ease;
+}
+@media (min-width: 768px) {
+    .vm-ab-modal-box {
+        max-width: 560px;
+        border-radius: 12px;
+        padding: 40px 36px;
+        animation: none;
+    }
+}
+@keyframes vm-ab-slideup {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+}
+
+.vm-ab-modal-close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #444748;
+    line-height: 1;
+}
+.vm-ab-modal-title {
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 22px;
+    color: #171818;
+}
+.vm-ab-fg { margin-bottom: 16px; }
+.vm-ab-fl {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    color: #171818;
+}
+.vm-ab-fi, .vm-ab-fs {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1px solid #c4c7c7;
+    border-radius: 8px;
+    font-family: 'Manrope', sans-serif;
+    font-size: 14px;
+    color: #171818;
+    background: #fbf9f4;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+.vm-ab-fi:focus, .vm-ab-fs:focus {
+    outline: none;
+    border-color: #6f5c37;
+}
+.vm-ab-fr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+.vm-ab-fcheck {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+.vm-ab-fcheck input { width: 16px; height: 16px; accent-color: #6f5c37; cursor: pointer; }
+.vm-ab-fcheck label { font-size: 13px; cursor: pointer; color: #171818; }
+.vm-ab-faction {
+    display: flex;
+    gap: 10px;
+    margin-top: 22px;
+}
+.vm-ab-fbtn-cancel, .vm-ab-fbtn-save {
+    flex: 1;
+    padding: 13px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    cursor: pointer;
+    font-family: 'Manrope', sans-serif;
+    transition: background 0.2s;
+}
+.vm-ab-fbtn-cancel {
+    border: 1px solid #c4c7c7;
+    background: #f5f3ee;
+    color: #171818;
+}
+.vm-ab-fbtn-cancel:hover { background: #e8e6e1; }
+.vm-ab-fbtn-save {
+    border: none;
+    background: #171818;
+    color: #fff;
+}
+.vm-ab-fbtn-save:hover { background: #2e2f2f; }
+</style>
+{% endblock %}
 
 {% block content %}
 
-<!-- page-banner-area-start -->
-<div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
-    <div class="container">
-        <div class="row">
-            <div class="col-xl-12">
-                <div class="page-banner-content text-center">
-                    <h4 class="breadcrumb-title">Address Book</h4>
-                    <div class="breadcrumb-two">
-                        <nav>
-                            <nav class="breadcrumb-trail breadcrumbs">
-                                <ul class="breadcrumb-menu">
-                                    <li class="breadcrumb-trail">
-                                        <a href="{% url 'index' %}"><span>Home</span></a>
-                                    </li>
-                                    <li class="breadcrumb-trail">
-                                        <a href="{% url 'profile' %}"><span>My Profile</span></a>
-                                    </li>
-                                    <li class="trail-item">
-                                        <span>Address Book</span>
-                                    </li>
-                                </ul>
-                            </nav>
-                        </nav>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- page-banner-area-end -->
+<section class="vm-ab-mobile-only" aria-label="Address Book mobile view">
 
-<!-- address-book-area-start -->
-<section class="account-area pt-100 pb-100">
-    <div class="container">
+    {% include 'partials/vm_mobile_alt_header.html' %}
+
+    <main class="vm-ab-m-main vm-mobile-content-offset">
 
         {% if messages %}
-        <div class="row mb-30">
-            <div class="col-lg-12">
-                {% for message in messages %}
-                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-                {% endfor %}
+        <div style="margin-bottom:20px;">
+            {% for message in messages %}
+            <div style="padding:11px 14px;border-radius:7px;margin-bottom:8px;font-size:13px;
+                 background:{% if message.tags == 'error' %}#ffebee{% else %}#e8f5e9{% endif %};
+                 color:{% if message.tags == 'error' %}#c62828{% else %}#1b5e20{% endif %};
+                 border-left:3px solid {% if message.tags == 'error' %}#ba1a1a{% else %}#4caf50{% endif %};">
+                {{ message }}
             </div>
+            {% endfor %}
         </div>
         {% endif %}
 
-        <div class="row">
+        <div class="vm-ab-m-heading">
+            <h1>Address Book</h1>
+            <p>Manage your shipping destinations.</p>
+        </div>
 
-            <!-- LEFT: Add New Address -->
-            <div class="col-lg-5 mb-30">
-                <div class="profile-details-box border-1 p-40">
-                    <div class="checkout-area">
-                        <div class="checkbox-form">
-                            <h3>Add New Address</h3>
-                            <form method="POST" action="{% url 'address_book' %}">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="add">
-                                <div class="row">
+        <button class="vm-ab-m-cta" onclick="vmAbOpen()" type="button">
+            <span>Add New Address</span>
+            <i class="far fa-plus"></i>
+        </button>
 
-                                    <div class="col-md-12">
-                                        <div class="checkout-form-list mb-3">
-                                            <label>Full Name <span class="required">*</span></label>
-                                            <input type="text" name="full_name" placeholder="Enter full name" required maxlength="100">
-                                        </div>
-                                    </div>
-
-                                    <div class="col-md-12">
-                                        <div class="checkout-form-list mb-3">
-                                            <label>Mobile Number</label>
-                                            <input type="tel" name="mobile_number" placeholder="e.g. 9876543210" maxlength="15">
-                                        </div>
-                                    </div>
-
-                                    <div class="col-md-12">
-                                        <div class="checkout-form-list mb-3">
-                                            <label>Address Line 1 <span class="required">*</span></label>
-                                            <input type="text" name="address_line1" placeholder="House No., Street, Area" required maxlength="255">
-                                        </div>
-                                    </div>
-
-                                    <div class="col-md-12">
-                                        <div class="checkout-form-list mb-3">
-                                            <label>Address Line 2 <span style="color:#aaa;font-size:12px;">(optional)</span></label>
-                                            <input type="text" name="address_line2" placeholder="Landmark, Nearby area" maxlength="255">
-                                        </div>
-                                    </div>
-
-                                    <div class="col-md-6">
-                                        <div class="checkout-form-list mb-3">
-                                            <label>City <span class="required">*</span></label>
-                                            <input type="text" name="city" placeholder="City" required maxlength="100">
-                                        </div>
-                                    </div>
-
-                                    <div class="col-md-6">
-                                        <div class="checkout-form-list mb-3">
-                                            <label>State <span class="required">*</span></label>
-                                            <input type="text" name="state" placeholder="State" required maxlength="100">
-                                        </div>
-                                    </div>
-
-                                    <div class="col-md-6">
-                                        <div class="checkout-form-list mb-3">
-                                            <label>Pincode <span class="required">*</span></label>
-                                            <input type="text" name="pincode" placeholder="Pincode" required maxlength="10" pattern="[0-9]{4,10}">
-                                        </div>
-                                    </div>
-
-                                    <div class="col-md-6">
-                                        <div class="country-select mb-3">
-                                            <label>Country</label>
-                                            <select name="country">
-                                                <option value="India" selected>India</option>
-                                                <option value="USA">USA</option>
-                                                <option value="UK">UK</option>
-                                                <option value="Canada">Canada</option>
-                                                <option value="Australia">Australia</option>
-                                                <option value="Other">Other</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div class="col-md-12">
-                                        <div class="country-select mb-20">
-                                            <label>Address Type</label>
-                                            <select name="address_type">
-                                                <option value="HOME">Home</option>
-                                                <option value="OFFICE">Office</option>
-                                                <option value="OTHER">Other</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div class="col-md-12 mb-25">
-                                        <div class="coupon-info">
-                                            <p class="form-row">
-                                                <label class="d-flex align-items-center gap-2 mb-0" style="cursor:pointer;">
-                                                    <input type="checkbox" name="is_default" id="isDefaultAddr" style="width:16px;height:16px;">
-                                                    <span style="font-size:14px;color:#6f7172;">Set as default address</span>
-                                                </label>
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div class="col-md-12">
-                                        <button type="submit" class="tp-btn-h1 w-100" style="width:100%;">
-                                            Save Address
-                                        </button>
-                                    </div>
-
-                                </div>
-                            </form>
-                        </div>
+        {% if addresses %}
+        <div class="vm-ab-m-list">
+            {% for addr in addresses %}
+            <div class="vm-ab-m-card {% if addr.is_default %}vm-ab-m-card--default{% endif %}">
+                <div class="vm-ab-m-card-head">
+                    <h2>{{ addr.full_name }}</h2>
+                    <div class="vm-ab-m-card-actions">
+                        <button class="vm-ab-m-card-btn" type="button" aria-label="Edit address"
+                            onclick="vmAbEdit({{ addr.id }},'{{ addr.full_name|escapejs }}','{{ addr.address_line1|escapejs }}','{{ addr.address_line2|escapejs }}','{{ addr.city|escapejs }}','{{ addr.state|escapejs }}','{{ addr.pincode|escapejs }}','{{ addr.country|escapejs }}','{{ addr.mobile_number|escapejs }}','{{ addr.address_type }}')">
+                            <i class="far fa-edit"></i>
+                        </button>
+                        <form method="POST" action="{% url 'address_book' %}" style="display:contents;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="address_id" value="{{ addr.id }}">
+                            <button type="submit" class="vm-ab-m-card-btn vm-ab-m-card-btn--del" aria-label="Delete address"
+                                onclick="return confirm('Remove this address?')">
+                                <i class="far fa-trash-alt"></i>
+                            </button>
+                        </form>
                     </div>
                 </div>
-            </div>
-
-            <!-- RIGHT: Saved Addresses -->
-            <div class="col-lg-7 mb-30">
-                <div class="profile-details-box border-1 p-40">
-                    <h5 class="mb-30" style="font-weight:700;font-size:20px;">
-                        Saved Addresses
-                        <span style="display:inline-block;background:#fcbe00;color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:3px;margin-left:8px;vertical-align:middle;">{{ addresses|length }}</span>
-                    </h5>
-
-                    {% if addresses %}
-                    <div class="vm-addrbook-list">
-                        {% for addr in addresses %}
-                        <div class="vm-addrbook-card {% if addr.is_default %}vm-addrbook-card--default{% endif %}">
-
-                            <div class="vm-addrbook-card__header">
-                                <div class="vm-addrbook-card__tags">
-                                    <span class="vm-addrbook-tag vm-addrbook-tag--type">
-                                        {{ addr.get_address_type_display }}
-                                    </span>
-                                    {% if addr.is_default %}
-                                    <span class="vm-addrbook-tag vm-addrbook-tag--default">
-                                        <i class="fas fa-star"></i> Default
-                                    </span>
-                                    {% endif %}
-                                </div>
-                                <div class="vm-addrbook-card__btns">
-                                    {% if not addr.is_default %}
-                                    <form method="POST" action="{% url 'address_book' %}" style="display:inline;">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="action" value="set_default">
-                                        <input type="hidden" name="address_id" value="{{ addr.id }}">
-                                        <button type="submit" class="vm-addrbook-btn vm-addrbook-btn--star" title="Set as default">
-                                            <i class="far fa-star"></i>
-                                        </button>
-                                    </form>
-                                    {% endif %}
-                                    <form method="POST" action="{% url 'address_book' %}" style="display:inline;" onsubmit="return confirm('Remove this address?')">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="action" value="delete">
-                                        <input type="hidden" name="address_id" value="{{ addr.id }}">
-                                        <button type="submit" class="vm-addrbook-btn vm-addrbook-btn--del" title="Remove">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-
-                            <div class="vm-addrbook-card__body">
-                                <p class="vm-addrbook-name">{{ addr.full_name }}</p>
-                                {% if addr.mobile_number %}
-                                <p class="vm-addrbook-meta"><i class="fas fa-phone-alt"></i> {{ addr.mobile_number }}</p>
-                                {% endif %}
-                                <p class="vm-addrbook-meta">{{ addr.address_line1 }}{% if addr.address_line2 %}, {{ addr.address_line2 }}{% endif %}</p>
-                                <p class="vm-addrbook-meta">{{ addr.city }}, {{ addr.state }} – {{ addr.pincode }}</p>
-                                <p class="vm-addrbook-meta">{{ addr.country }}</p>
-                            </div>
-
-                        </div>
-                        {% endfor %}
-                    </div>
+                <p class="vm-ab-m-card-text">{{ addr.address_line1 }}</p>
+                {% if addr.address_line2 %}<p class="vm-ab-m-card-text">{{ addr.address_line2 }}</p>{% endif %}
+                <p class="vm-ab-m-card-text">{{ addr.city }}, {{ addr.state }} {{ addr.pincode }}</p>
+                <p class="vm-ab-m-card-text">{{ addr.country|default:"India" }}</p>
+                {% if addr.mobile_number %}
+                <p class="vm-ab-m-phone"><i class="fas fa-phone-alt"></i>{{ addr.mobile_number }}</p>
+                {% endif %}
+                <div class="vm-ab-m-card-foot">
+                    {% if addr.is_default %}
+                    <span class="vm-ab-m-badge"><span class="vm-ab-m-badge-dot"></span>Default</span>
                     {% else %}
-                    <div class="vm-addrbook-empty">
-                        <i class="fas fa-map-marked-alt"></i>
-                        <h6>No saved addresses</h6>
-                        <p>Add your first address using the form.</p>
-                    </div>
+                    <form method="POST" action="{% url 'address_book' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="set_default">
+                        <input type="hidden" name="address_id" value="{{ addr.id }}">
+                        <button type="submit" class="vm-ab-m-setdefault">Set as Default</button>
+                    </form>
                     {% endif %}
                 </div>
             </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="vm-ab-m-empty">
+            <i class="far fa-map-marker-alt" style="font-size:38px;color:#c4c7c7;"></i>
+            <h3>No Saved Addresses</h3>
+            <p>Add your first address above.</p>
+        </div>
+        {% endif %}
 
+        <div class="vm-ab-m-editorial">
+            <img src="{% static 'assets/img/banner/page-banner-4.jpg' %}" alt="Editorial">
+            <p>Designed for curation</p>
         </div>
 
-        <div class="row mt-10">
-            <div class="col-12 text-center">
-                <a href="{% url 'profile' %}" class="tp-btn-h2">
-                    <i class="fas fa-arrow-left"></i> Back to Profile
-                </a>
+        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='address-book-mobile' %}
+    </main>
+
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
+</section>
+
+<div class="vm-ab-desktop-only">
+    <div class="vm-ab-d-wrap">
+
+        {% if messages %}
+        <div style="margin-bottom:28px;">
+            {% for message in messages %}
+            <div style="padding:13px 16px;border-radius:8px;margin-bottom:10px;font-size:13px;
+                 background:{% if message.tags == 'error' %}#ffebee{% else %}#e8f5e9{% endif %};
+                 color:{% if message.tags == 'error' %}#c62828{% else %}#1b5e20{% endif %};
+                 border-left:3px solid {% if message.tags == 'error' %}#ba1a1a{% else %}#4caf50{% endif %};">
+                {{ message }}
             </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="vm-ab-d-toolbar">
+            <div>
+                <h1>Address Book</h1>
+                <p>Manage your shipping destinations for a seamless checkout experience.</p>
+            </div>
+            <button class="vm-ab-d-add-btn" onclick="vmAbOpen()" type="button">
+                <i class="far fa-plus"></i> Add New Address
+            </button>
+        </div>
+
+        <div class="vm-ab-d-grid">
+            {% if addresses %}
+                {% for addr in addresses %}
+                <div class="vm-ab-d-card {% if addr.is_default %}vm-ab-d-card--default{% endif %}">
+                    <div>
+                        <span class="vm-ab-d-type-tag">{{ addr.get_address_type_display }}</span>
+                        <div class="vm-ab-d-card-head">
+                            <h2>{{ addr.full_name }}</h2>
+                            <div class="vm-ab-d-card-actions">
+                                <button class="vm-ab-d-card-btn" type="button" aria-label="Edit"
+                                    onclick="vmAbEdit({{ addr.id }},'{{ addr.full_name|escapejs }}','{{ addr.address_line1|escapejs }}','{{ addr.address_line2|escapejs }}','{{ addr.city|escapejs }}','{{ addr.state|escapejs }}','{{ addr.pincode|escapejs }}','{{ addr.country|escapejs }}','{{ addr.mobile_number|escapejs }}','{{ addr.address_type }}')">
+                                    <i class="far fa-edit"></i>
+                                </button>
+                                <form method="POST" action="{% url 'address_book' %}" style="display:contents;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="address_id" value="{{ addr.id }}">
+                                    <button type="submit" class="vm-ab-d-card-btn vm-ab-d-card-btn--del" aria-label="Delete"
+                                        onclick="return confirm('Remove this address?')">
+                                        <i class="far fa-trash-alt"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        <p class="vm-ab-d-card-text">{{ addr.address_line1 }}</p>
+                        {% if addr.address_line2 %}<p class="vm-ab-d-card-text">{{ addr.address_line2 }}</p>{% endif %}
+                        <p class="vm-ab-d-card-text">{{ addr.city }}, {{ addr.state }} {{ addr.pincode }}</p>
+                        <p class="vm-ab-d-card-text">{{ addr.country|default:"India" }}</p>
+                        {% if addr.mobile_number %}
+                        <p class="vm-ab-d-phone"><i class="fas fa-phone-alt"></i>{{ addr.mobile_number }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="vm-ab-d-card-foot">
+                        {% if addr.is_default %}
+                        <span class="vm-ab-d-badge"><span class="vm-ab-d-badge-dot"></span>Default Shipping</span>
+                        {% else %}
+                        <form method="POST" action="{% url 'address_book' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="set_default">
+                            <input type="hidden" name="address_id" value="{{ addr.id }}">
+                            <button type="submit" class="vm-ab-d-setdefault">Set as Default</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="vm-ab-d-empty">
+                <i class="far fa-map-marker-alt" style="font-size:50px;color:#c4c7c7;"></i>
+                <h3>No Saved Addresses</h3>
+                <p>Click "Add New Address" to create your first delivery address.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="vm-ab-d-editorial">
+            <img src="{% static 'assets/img/banner/page-banner-4.jpg' %}" alt="Editorial">
+            <p>"Every destination is the beginning of a new style narrative."</p>
         </div>
 
     </div>
-</section>
-<!-- address-book-area-end -->
+</div>
 
-<style>
-/* ========== Address Book ========== */
-.vm-addrbook-list { display:flex; flex-direction:column; gap:16px; }
+<div class="vm-ab-modal" id="vmAbModal" role="dialog" aria-modal="true" aria-labelledby="vmAbModalTitle">
+    <div class="vm-ab-modal-box">
+        <button class="vm-ab-modal-close" onclick="vmAbClose()" type="button" aria-label="Close">&times;</button>
+        <h2 class="vm-ab-modal-title" id="vmAbModalTitle">Add New Address</h2>
 
-.vm-addrbook-card {
-    border: 1px solid #e5e5e5;
-    padding: 20px 22px;
-    background: #fff;
-    transition: box-shadow .2s;
-}
-.vm-addrbook-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.08); }
-.vm-addrbook-card--default { border-color: #fcbe00; }
+        <form method="POST" action="{% url 'address_book' %}" id="vmAbForm">
+            {% csrf_token %}
+            <input type="hidden" name="action"     id="vmAbAction" value="add">
+            <input type="hidden" name="address_id" id="vmAbAddrId" value="">
 
-.vm-addrbook-card__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 14px;
-    gap: 10px;
-    flex-wrap: wrap;
-}
+            <div class="vm-ab-fg">
+                <label class="vm-ab-fl" for="vmAbName">Full Name *</label>
+                <input type="text" id="vmAbName" name="full_name" required maxlength="100"
+                    class="vm-ab-fi" placeholder="Enter your full name">
+            </div>
+            <div class="vm-ab-fg">
+                <label class="vm-ab-fl" for="vmAbPhone">Mobile Number</label>
+                <input type="tel" id="vmAbPhone" name="mobile_number" maxlength="15"
+                    class="vm-ab-fi" placeholder="+91 98765 43210">
+            </div>
+            <div class="vm-ab-fg">
+                <label class="vm-ab-fl" for="vmAbLine1">Address Line 1 *</label>
+                <input type="text" id="vmAbLine1" name="address_line1" required maxlength="255"
+                    class="vm-ab-fi" placeholder="Building, Street">
+            </div>
+            <div class="vm-ab-fg">
+                <label class="vm-ab-fl" for="vmAbLine2">Address Line 2</label>
+                <input type="text" id="vmAbLine2" name="address_line2" maxlength="255"
+                    class="vm-ab-fi" placeholder="Landmark (optional)">
+            </div>
+            <div class="vm-ab-fg vm-ab-fr">
+                <div>
+                    <label class="vm-ab-fl" for="vmAbCity">City *</label>
+                    <input type="text" id="vmAbCity" name="city" required maxlength="100"
+                        class="vm-ab-fi" placeholder="City">
+                </div>
+                <div>
+                    <label class="vm-ab-fl" for="vmAbState">State *</label>
+                    <input type="text" id="vmAbState" name="state" required maxlength="100"
+                        class="vm-ab-fi" placeholder="State">
+                </div>
+            </div>
+            <div class="vm-ab-fg vm-ab-fr">
+                <div>
+                    <label class="vm-ab-fl" for="vmAbPin">Pincode *</label>
+                    <input type="text" id="vmAbPin" name="pincode" required maxlength="10"
+                        pattern="[0-9]{4,10}" class="vm-ab-fi" placeholder="6-digit">
+                </div>
+                <div>
+                    <label class="vm-ab-fl" for="vmAbCountry">Country</label>
+                    <select id="vmAbCountry" name="country" class="vm-ab-fs">
+                        <option value="India">India</option>
+                        <option value="USA">USA</option>
+                        <option value="UK">UK</option>
+                        <option value="Canada">Canada</option>
+                        <option value="Australia">Australia</option>
+                    </select>
+                </div>
+            </div>
+            <div class="vm-ab-fg">
+                <label class="vm-ab-fl" for="vmAbType">Address Type</label>
+                <select id="vmAbType" name="address_type" class="vm-ab-fs">
+                    <option value="HOME">Home</option>
+                    <option value="OFFICE">Office</option>
+                    <option value="OTHER">Other</option>
+                </select>
+            </div>
+            <div class="vm-ab-fcheck">
+                <input type="checkbox" id="vmAbDefault" name="is_default" value="on">
+                <label for="vmAbDefault">Set as default address</label>
+            </div>
+            <div class="vm-ab-faction">
+                <button type="button" class="vm-ab-fbtn-cancel" onclick="vmAbClose()">Cancel</button>
+                <button type="submit"  class="vm-ab-fbtn-save">Save Address</button>
+            </div>
+        </form>
+    </div>
+</div>
 
-.vm-addrbook-card__tags { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+<script>
+(function () {
+    var modal   = document.getElementById('vmAbModal');
+    var title   = document.getElementById('vmAbModalTitle');
+    var fAction = document.getElementById('vmAbAction');
+    var fId     = document.getElementById('vmAbAddrId');
 
-.vm-addrbook-tag {
-    display: inline-block;
-    padding: 3px 10px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: .5px;
-    text-transform: uppercase;
-    border: 1px solid #e4e4e4;
-    color: #6f7172;
-}
-.vm-addrbook-tag--type { background: #f7f7f7; }
-.vm-addrbook-tag--default { background: #fcbe00; color: #fff; border-color: #fcbe00; }
-.vm-addrbook-tag--default i { font-size: 10px; }
+    window.vmAbOpen = function () {
+        document.getElementById('vmAbForm').reset();
+        fAction.value = 'add';
+        fId.value = '';
+        title.textContent = 'Add New Address';
+        modal.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+    };
 
-.vm-addrbook-card__btns { display:flex; gap:8px; align-items:center; }
+    window.vmAbEdit = function (id, name, l1, l2, city, state, pin, country, phone, type) {
+        document.getElementById('vmAbForm').reset();
+        fAction.value = 'update';
+        fId.value = id;
+        document.getElementById('vmAbName').value    = name;
+        document.getElementById('vmAbLine1').value   = l1;
+        document.getElementById('vmAbLine2').value   = l2;
+        document.getElementById('vmAbCity').value    = city;
+        document.getElementById('vmAbState').value   = state;
+        document.getElementById('vmAbPin').value     = pin;
+        document.getElementById('vmAbCountry').value = country;
+        document.getElementById('vmAbPhone').value   = phone;
+        document.getElementById('vmAbType').value    = type;
+        title.textContent = 'Edit Address';
+        modal.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+    };
 
-.vm-addrbook-btn {
-    width: 34px;
-    height: 34px;
-    border: 1px solid #e4e4e4;
-    background: #fff;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all .2s;
-}
-.vm-addrbook-btn--star { color: #fcbe00; border-color: #fcbe00; }
-.vm-addrbook-btn--star:hover { background: #fcbe00; color: #fff; }
-.vm-addrbook-btn--del { color: #e74c3c; border-color: #e74c3c; }
-.vm-addrbook-btn--del:hover { background: #e74c3c; color: #fff; }
+    window.vmAbClose = function () {
+        modal.classList.remove('is-open');
+        document.body.style.overflow = '';
+    };
 
-.vm-addrbook-name { font-weight: 700; font-size: 15px; color: #222; margin-bottom: 6px; }
-.vm-addrbook-meta { font-size: 13px; color: #6f7172; margin-bottom: 3px; }
-.vm-addrbook-meta i { color: #fcbe00; margin-right: 5px; }
-
-.vm-addrbook-empty { text-align:center; padding:50px 20px; color:#6f7172; }
-.vm-addrbook-empty i { font-size:40px; color:#e4e4e4; margin-bottom:16px; display:block; }
-.vm-addrbook-empty h6 { font-size:15px; font-weight:700; color:#333; margin-bottom:6px; }
-.vm-addrbook-empty p { font-size:13px; }
-
-/* Ensure country-select select matches checkout style */
-.vm-addrbook-card .country-select select,
-.checkout-area .country-select select {
-    background: #fff;
-    border: 1px solid #e4e4e4;
-    height: 45px;
-    padding: 0 10px;
-    width: 100%;
-    outline: none;
-    color: #6f7172;
-}
-.checkout-area .country-select select:focus { border-color: #fcbe00; }
-
-@media (max-width: 767.98px) {
-    .account-area.pt-100 { padding-top: 50px !important; }
-    .account-area.pb-100 { padding-bottom: 50px !important; }
-    .p-40 { padding: 24px 18px !important; }
-}
-</style>
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') vmAbClose();
+    });
+    modal.addEventListener('click', function (e) {
+        if (e.target === modal) vmAbClose();
+    });
+}());
+</script>
 
 {% endblock %}

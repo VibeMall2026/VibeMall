@@ -16,6 +16,10 @@
     display: none;
 }
 
+body.vm-page-mobile-checkout {
+    color-scheme: light;
+}
+
 @media (min-width: 768px) and (max-width: 1199.98px) {
     .vm-checkout-mobile-only,
     .vm-checkout-legacy-content {
@@ -596,19 +600,45 @@
     margin: 0;
 }
 
+.vm-checkout-tablet-inline-action {
+    margin-top: 0.75rem;
+}
+
+.vm-checkout-tablet-inline-action__button {
+    width: 100%;
+    min-height: 52px;
+    border: none;
+    border-radius: 0.25rem;
+    background-color: #171818;
+    color: #fff;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
 /* ========================================
    FIXED ACTION BAR
    ======================================== */
 
 .vm-checkout-tablet-action {
     position: fixed;
-    bottom: 60px;
+    bottom: 0;
     left: 0;
     right: 0;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
     background-color: white;
     border-top: 1px solid #e4e2dd;
     padding: 1rem 1.5rem;
-    z-index: 40;
+    z-index: 200;
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
 }
 
@@ -893,34 +923,5 @@
 
     .vm-checkout-tablet-action__button {
         width: 100%;
-    }
-}
-
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-    .vm-checkout-tablet-header {
-        background-color: #171818;
-        border-bottom-color: #444748;
-    }
-
-    .vm-checkout-tablet-header__brand {
-        color: #fbf9f4;
-    }
-
-    .vm-checkout-tablet-field input,
-    .vm-checkout-tablet-field select,
-    .vm-checkout-tablet-field textarea {
-        background-color: #2c2c2c;
-        border-color: #444748;
-        color: #fbf9f4;
-    }
-
-    .vm-checkout-tablet-card {
-        background-color: #2c2c2c;
-        border-color: #444748;
-    }
-
-    .vm-checkout-tablet-modal {
-        background-color: #2c2c2c;
     }
 }

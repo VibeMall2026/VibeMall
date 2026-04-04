@@ -15,37 +15,91 @@
     padding: 48px 16px;
   }
 
-  body.login-page .vm-copy-header,
-  body.login-page .vm-copy-footer,
   body.login-page #mobileBottomNavShell {
     display: none !important;
   }
 
-  @media (min-width: 768px) {
-    body.login-page .vm-tablet-alt-header {
-      display: block;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 90;
-      background: rgba(251, 249, 244, 0.96);
-      backdrop-filter: blur(14px);
-      border-bottom: 1px solid rgba(27, 28, 25, 0.08);
+  /* Mobile header: hidden by default, shown only on mobile */
+  body.login-page .vm-login-mob-header {
+    display: none;
+  }
+
+  /* Mobile footer: hidden by default */
+  body.login-page .vm-login-mob-footer {
+    display: none;
+  }
+
+  /* Default offset used for non-mobile layouts */
+  .vm-auth-wrap {
+    padding-top: 140px;
+  }
+
+  @media (min-width: 1200px) {
+    body.login-page .vm-copy-header,
+    body.login-page .vm-copy-footer {
+      display: block !important;
+    }
+
+    body.login-page .vm-tablet-alt-header,
+    body.login-page .vm-tablet-alt-footer {
+      display: none !important;
+    }
+
+    body.login-page .vm-login-mob-header,
+    body.login-page .vm-login-mob-footer {
+      display: none !important;
+    }
+
+    .vm-auth-wrap {
+      padding-top: 150px;
+      padding-bottom: 64px;
+    }
+  }
+
+  @media (min-width: 768px) and (max-width: 1199.98px) {
+    body.login-page .vm-copy-header,
+    body.login-page .vm-copy-footer {
+      display: none !important;
+    }
+
+    body.login-page .vm-tablet-alt-header,
+    body.login-page .vm-tablet-alt-footer {
+      display: block !important;
+    }
+
+    body.login-page .vm-login-mob-header,
+    body.login-page .vm-login-mob-footer {
+      display: none !important;
     }
 
     .vm-auth-wrap {
       padding-top: 140px;
+      padding-bottom: 56px;
     }
   }
 
-  .vm-login-mobile-only {
-    display: none;
-  }
-
   @media (max-width: 767.98px) {
-    .vm-login-mobile-only {
-      display: block;
+    body.login-page .vm-copy-header,
+    body.login-page .vm-copy-footer,
+    body.login-page .vm-tablet-alt-header,
+    body.login-page .vm-tablet-alt-footer {
+      display: none !important;
+    }
+
+    body.login-page .vm-tablet-alt-header {
+      display: none !important;
+    }
+
+    body.login-page .vm-login-mob-header {
+      display: block !important;
+    }
+
+    body.login-page .vm-login-mob-header .vm-mobile-topbar {
+      display: flex !important;
+    }
+
+    body.login-page .vm-login-mob-footer {
+      display: block !important;
     }
 
     .vm-auth-wrap {
@@ -182,9 +236,9 @@
 {% endblock %}
 
 {% block content %}
-<section class="vm-login-mobile-only" aria-label="Login mobile header">
+<div class="vm-login-mob-header" aria-label="Login mobile header">
   {% include 'partials/vm_mobile_alt_header.html' %}
-</section>
+</div>
 
 <section class="vm-auth-wrap">
   <div class="vm-auth-shell">
@@ -244,10 +298,10 @@
   </div>
 </section>
 
-<section class="vm-login-mobile-only" aria-label="Login mobile footer">
+<div class="vm-login-mob-footer" aria-label="Login mobile footer">
   {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='login-mobile' %}
   {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
-</section>
+</div>
 
 <script>
   (function () {

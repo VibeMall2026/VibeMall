@@ -226,22 +226,10 @@ document.addEventListener('DOMContentLoaded', function () {
         </footer>
     </main>
 
-    <nav class="vm-home-mobile-nav vm-mobile-bottom-nav" aria-label="Mobile primary navigation">
-        <a href="/" class="is-active" aria-label="Home"><i class="fas fa-home"></i></a>
-        <a href="{% url 'shop' %}" aria-label="Shop"><i class="far fa-store"></i></a>
-        <a href="{% url 'cart' %}" aria-label="Cart"><i class="far fa-shopping-cart"></i></a>
-        {% if request.user.is_authenticated %}
-        <a href="{% url 'profile' %}" aria-label="Account"><i class="far fa-user"></i></a>
-        {% else %}
-        <a href="{% url 'login' %}" aria-label="Account"><i class="far fa-user"></i></a>
-        {% endif %}
-        <a href="{% url 'wishlist' %}" aria-label="Wishlist"><i class="far fa-heart"></i></a>
-    </nav>
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='home' %}
 </section>
 
 <section class="vm-home-tablet-only">
-    {% include 'partials/vm_tablet_alt_header.html' %}
-
     <main class="vm-home-tablet-main">
         <div class="vm-home-tablet-shell">
             <section class="vm-home-tablet-hero">
@@ -477,28 +465,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 <p id="vmCopyNewsletterStatusTablet" data-vm-newsletter-status class="vm-copy-newsletter-status" aria-live="polite"></p>
             </section>
 
-            <footer class="vm-home-tablet-footer">
-                <div class="vm-home-tablet-footer__brand">
-                    <h2>VibeMall Atelier</h2>
-                    <p>Redefining digital shopping with curated fashion narratives, trusted brands, and tablet-optimized discovery.</p>
-                </div>
-                <div>
-                    <span class="vm-home-tablet-footer__label">Navigation</span>
-                    <div class="vm-home-tablet-footer__links">
-                        <a href="{% url 'shop' %}">Collections</a>
-                        <a href="{% url 'about' %}">About Us</a>
-                        <a href="{% url 'blog' %}">Editorial</a>
-                    </div>
-                </div>
-                <div>
-                    <span class="vm-home-tablet-footer__label">Concierge</span>
-                    <div class="vm-home-tablet-footer__links">
-                        <a href="{% url 'track_order' %}">Order Tracking</a>
-                        <a href="{% url 'faq' %}">FAQs</a>
-                        <a href="{% url 'profile' %}">My Account</a>
-                    </div>
-                </div>
-            </footer>
         </div>
     </main>
 </section>

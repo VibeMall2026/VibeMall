@@ -1,0 +1,315 @@
+/* Register tablet-only layout (768px - 1199.98px) */
+.vm-register-tablet-only {
+  display: none;
+}
+
+@media (min-width: 768px) and (max-width: 1199.98px) {
+  .vm-register-mobile-only,
+  .vm-register-legacy-content {
+    display: none !important;
+  }
+
+  .vm-register-tablet-only {
+    display: block;
+    min-height: 100vh;
+    padding: 128px 24px 40px;
+    background: #fbf9f4;
+    color: #171818;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .vm-register-t-bg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .vm-register-t-bg img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.24;
+  }
+
+  .vm-register-t-bg::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(251, 249, 244, 0.8) 0%, rgba(251, 249, 244, 0.95) 100%);
+  }
+
+  .vm-register-t-card {
+    position: relative;
+    z-index: 1;
+    max-width: 980px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.76);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(196, 199, 199, 0.38);
+    border-radius: 16px;
+    box-shadow: 0 22px 48px -34px rgba(23, 24, 24, 0.42);
+    padding: 28px 28px 30px;
+  }
+
+  .vm-register-t-head {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  .vm-register-t-head h1 {
+    margin: 0;
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 38px;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+  }
+
+  .vm-register-t-head p {
+    margin: 8px 0 0;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #6f5c37;
+    font-weight: 700;
+  }
+
+  .vm-register-t-profile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 0 18px;
+  }
+
+  .vm-register-t-file {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+  }
+
+  .vm-register-t-avatar {
+    width: 68px;
+    height: 68px;
+    border-radius: 999px;
+    background: #f0eee9;
+    border: 1px solid rgba(196, 199, 199, 0.44);
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+  }
+
+  .vm-register-t-avatar i {
+    font-size: 24px;
+    color: rgba(68, 71, 72, 0.72);
+  }
+
+  .vm-register-t-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .vm-register-t-file span {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: rgba(68, 71, 72, 0.85);
+    font-weight: 700;
+  }
+
+  .vm-register-t-file input {
+    display: none;
+  }
+
+  .vm-register-t-form {
+    display: grid;
+    gap: 20px;
+  }
+
+  .vm-register-t-section {
+    display: grid;
+    gap: 14px;
+  }
+
+  .vm-register-t-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .vm-register-t-divider::before,
+  .vm-register-t-divider::after {
+    content: "";
+    height: 1px;
+    flex: 1;
+    background: rgba(196, 199, 199, 0.5);
+  }
+
+  .vm-register-t-divider span {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: #6f5c37;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .vm-register-t-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .vm-register-t-field {
+    display: grid;
+    gap: 6px;
+  }
+
+  .vm-register-t-field--full {
+    grid-column: 1 / -1;
+  }
+
+  .vm-register-t-field label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(68, 71, 72, 0.9);
+  }
+
+  .vm-register-t-field input,
+  .vm-register-t-field select {
+    width: 100%;
+    height: 44px;
+    border: 1px solid rgba(196, 199, 199, 0.68);
+    border-radius: 4px;
+    background: #fff;
+    padding: 0 12px;
+    font-size: 14px;
+    color: #171818;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .vm-register-t-field input:focus,
+  .vm-register-t-field select:focus {
+    border-color: #6f5c37;
+    box-shadow: 0 0 0 3px rgba(111, 92, 55, 0.12);
+  }
+
+  .vm-register-t-pass {
+    position: relative;
+  }
+
+  .vm-register-t-pass button {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 0;
+    background: transparent;
+    color: rgba(68, 71, 72, 0.72);
+    cursor: pointer;
+  }
+
+  .vm-register-t-strength {
+    display: none;
+    gap: 6px;
+  }
+
+  .vm-register-t-strength-bars {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+
+  .vm-register-t-strength-bars i {
+    height: 4px;
+    border-radius: 999px;
+    background: #e4e2dd;
+    display: block;
+  }
+
+  .vm-register-t-strength-weak i:nth-child(-n+1),
+  .vm-register-t-strength-fair i:nth-child(-n+2),
+  .vm-register-t-strength-good i:nth-child(-n+3),
+  .vm-register-t-strength-strong i:nth-child(-n+4) {
+    background: #6f5c37;
+  }
+
+  .vm-register-t-strength p {
+    margin: 0;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(68, 71, 72, 0.85);
+    font-weight: 700;
+  }
+
+  .vm-register-t-error {
+    margin: 0;
+    font-size: 12px;
+    color: #ba1a1a;
+    display: none;
+  }
+
+  .vm-register-t-terms {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 2px;
+  }
+
+  .vm-register-t-terms input {
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    accent-color: #171818;
+  }
+
+  .vm-register-t-terms label {
+    font-size: 12px;
+    color: rgba(68, 71, 72, 0.88);
+    line-height: 1.45;
+  }
+
+  .vm-register-t-terms a {
+    color: #6f5c37;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(111, 92, 55, 0.35);
+  }
+
+  .vm-register-t-submit {
+    margin-top: 2px;
+    height: 52px;
+    border: 0;
+    border-radius: 4px;
+    background: #171818;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .vm-register-t-submit:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+
+  .vm-register-t-login {
+    margin: 4px 0 0;
+    font-size: 13px;
+    text-align: center;
+    color: rgba(68, 71, 72, 0.88);
+  }
+
+  .vm-register-t-login a {
+    color: #6f5c37;
+    text-decoration: none;
+    font-weight: 700;
+  }
+}

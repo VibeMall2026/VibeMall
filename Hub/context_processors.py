@@ -8,9 +8,10 @@ from collections import defaultdict
 from django.utils import timezone
 from django.core.cache import cache
 from django.conf import settings
+from django.urls import reverse
 from datetime import timedelta
 
-from .models import Cart, Wishlist, SiteSettings, LoyaltyPoints, CategoryIcon, Product, SubCategory, Coupon, Order
+from .models import Cart, Wishlist, SiteSettings, LoyaltyPoints, CategoryIcon, Product, SubCategory, Coupon, Order, OrderItem, ProductReview
 from django.db.models import F, Sum
 
 
@@ -283,4 +284,57 @@ def admin_panel_context(request):
     except Exception:
         context['admin_billing_alert_count'] = 0
 
+    return context
+
+
+def mobile_review_prompt_context(request):
+    """Provide one-time-per-session mobile review prompt context for delivered products."""
+    context = {
+        'mobile_review_prompt': None,
+    }
+
+    user = getattr(request, 'user', None)
+    if not user or not user.is_authenticated:
+        return context
+
+    # Do not show on admin panel paths.
+    if request.path.startswith('/admin-panel/'):
+        return context
+
+    # Show only once per login session.
+    if request.session.get('mobile_review_prompt_seen'):
+        return context
+
+    delivered_items = (
+        OrderItem.objects
+        .filter(
+            order__user=user,
+            order__order_status='DELIVERED',
+            product__isnull=False,
+            product__is_active=True,
+        )
+        .exclude(product__reviews__user=user)
+        .select_related('product', 'order')
+        .order_by('-order__delivery_date', '-order__created_at', '-id')
+    )
+
+    prompt_item = delivered_items.first()
+    if not prompt_item or not prompt_item.product:
+        return context
+
+    product = prompt_item.product
+    image_url = ''
+    try:
+        if product.image:
+            image_url = product.image.url
+    except Exception:
+        image_url = ''
+
+    context['mobile_review_prompt'] = {
+        'product_id': product.id,
+        'product_name': product.name,
+        'image_url': image_url,
+        'submit_url': reverse('mobile_review_prompt_submit', args=[product.id]),
+        'dismiss_url': reverse('mobile_review_prompt_dismiss'),
+    }
     return context

@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="{% static 'assets/css/shop-responsive.css' %}?v=20260222-09">
 <link rel="stylesheet" href="{% static 'assets/css/shop-mobile-alt.css' %}?v=20260329-06">
 <link rel="stylesheet" href="{% static 'assets/css/quickview-mobile-alt.css' %}?v=20260329-01">
-<link rel="stylesheet" href="{% static 'assets/css/shop-tablet-alt.css' %}?v=20260329-01">
+<link rel="stylesheet" href="{% static 'assets/css/shop-tablet-alt.css' %}?v=20260404-02">
 <link rel="stylesheet" href="{% static 'assets/css/shop-desktop-alt.css' %}?v=20260329-02">
 {% endblock %}
 
@@ -20,8 +20,8 @@ document.addEventListener('DOMContentLoaded', function () {
     document.body.classList.add('vm-shop-copy-root');
 
     // Hard guard: ensure only the correct shop layout exists per viewport.
-    const isDesktop = window.matchMedia('(min-width: 992px)').matches;
-    const isTablet = window.matchMedia('(min-width: 768px) and (max-width: 991.98px)').matches;
+    const isDesktop = window.matchMedia('(min-width: 1200px)').matches;
+    const isTablet = window.matchMedia('(min-width: 768px) and (max-width: 1199.98px)').matches;
 
     if (isDesktop) {
         document.querySelectorAll('.vm-shop-mobile-only, .vm-shop-tablet-only').forEach((node) => node.remove());
@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 
 <style>
-@media (max-width: 991.98px) {
+@media (max-width: 1199.98px) {
     body.vm-shop-copy-root .vm-copy-header,
     body.vm-shop-copy-root .vm-copy-footer,
     body.vm-shop-copy-root .mobile-bottom-nav-shell,
@@ -61,13 +61,13 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 }
 
-@media (min-width: 768px) and (max-width: 991.98px) {
+@media (min-width: 768px) and (max-width: 1199.98px) {
     .vm-shop-tablet-only {
         display: block !important;
     }
 }
 
-@media (min-width: 992px) {
+@media (min-width: 1200px) {
     .vm-shop-mobile-only,
     .vm-shop-tablet-only {
         display: none !important;
@@ -80,10 +80,15 @@ document.addEventListener('DOMContentLoaded', function () {
     body.vm-shop-copy-root .vm-copy-header,
     body.vm-shop-copy-root .vm-copy-footer,
     body.vm-shop-copy-root > footer,
-    body.vm-shop-copy-root .header,
     body.vm-shop-copy-root .footer,
     body.vm-shop-copy-root .footer-area {
         display: block !important;
+    }
+
+    body.vm-shop-copy-root .header,
+    body.vm-shop-copy-root .header-top,
+    body.vm-shop-copy-root .header-mid {
+        display: none !important;
     }
 
     body.vm-shop-copy-root .mobile-bottom-nav-shell,
@@ -419,8 +424,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <!-- Tablet Shop View -->
 <section class="vm-shop-tablet-only" aria-label="VibeMall tablet shop layout">
-    {% include 'partials/vm_tablet_alt_header.html' %}
-
     <main class="vm-shop-t-main">
         <section class="vm-shop-t-banner">
             <nav aria-label="Breadcrumb">
@@ -438,11 +441,97 @@ document.addEventListener('DOMContentLoaded', function () {
 
         <section class="vm-shop-t-toolbar">
             <p>Showing {{ products.start_index }}-{{ products.end_index }} of {{ products.paginator.count }} products</p>
-            <div>
+            <div class="vm-shop-t-toolbar__actions">
                 <button type="button" id="shopFilterFabTablet"><i class="far fa-sliders-h"></i> FILTER</button>
-                <button type="button"><i class="far fa-angle-down"></i> SORT</button>
+                <div class="vm-shop-t-sort" data-shop-tablet-sort>
+                    <button type="button" id="shopSortFabTablet" aria-haspopup="true" aria-expanded="false"><i class="far fa-angle-down"></i> SORT</button>
+                    <div class="vm-shop-t-sort__menu" data-shop-tablet-sort-menu hidden>
+                        <a href="?sort=curated{% if sort_base_query %}&{{ sort_base_query }}{% endif %}" class="{% if selected_sort == 'curated' or selected_sort == 'latest' %}is-active{% endif %}">Curated</a>
+                        <a href="?sort=name_asc{% if sort_base_query %}&{{ sort_base_query }}{% endif %}" class="{% if selected_sort == 'name_asc' %}is-active{% endif %}">Name A-Z</a>
+                        <a href="?sort=name_desc{% if sort_base_query %}&{{ sort_base_query }}{% endif %}" class="{% if selected_sort == 'name_desc' %}is-active{% endif %}">Name Z-A</a>
+                        <a href="?sort=price_asc{% if sort_base_query %}&{{ sort_base_query }}{% endif %}" class="{% if selected_sort == 'price_asc' %}is-active{% endif %}">Price Low To High</a>
+                        <a href="?sort=price_desc{% if sort_base_query %}&{{ sort_base_query }}{% endif %}" class="{% if selected_sort == 'price_desc' %}is-active{% endif %}">Price High To Low</a>
+                    </div>
+                </div>
             </div>
         </section>
+
+        <div class="vm-shop-t-filter-backdrop" id="vmShopTabletFilterBackdrop" hidden></div>
+        <aside class="vm-shop-t-filter-drawer" id="vmShopTabletFilterDrawer" aria-hidden="true">
+            <div class="vm-shop-t-filter-drawer__head">
+                <h3>Filter Products</h3>
+                <button type="button" id="vmShopTabletFilterClose" aria-label="Close filters">
+                    <span>Close</span>
+                    <i class="far fa-times"></i>
+                </button>
+            </div>
+            <form method="get" action="{% url 'shop' %}" class="vm-shop-t-filter-form">
+                {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
+                {% if selected_sort and selected_sort != 'curated' %}<input type="hidden" name="sort" value="{{ selected_sort }}">{% endif %}
+
+                <label>
+                    <span>Category</span>
+                    <select name="category">
+                        <option value="">All Categories</option>
+                        {% for value,label,count in category_data %}
+                        <option value="{{ value }}" {% if selected_category == value %}selected{% endif %}>{{ label }} ({{ count }})</option>
+                        {% endfor %}
+                    </select>
+                </label>
+
+                {% if sub_category_data %}
+                <label>
+                    <span>Sub Category</span>
+                    <select name="sub_category">
+                        <option value="">All Sub Categories</option>
+                        {% for value,label,count in sub_category_data %}
+                        <option value="{{ value }}" {% if selected_sub_category == value %}selected{% endif %}>{{ label }} ({{ count }})</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                {% endif %}
+
+                <div class="vm-shop-t-filter-form__grid">
+                    <label>
+                        <span>Min Price</span>
+                        <input type="number" name="min_price" value="{{ min_price }}" placeholder="0">
+                    </label>
+                    <label>
+                        <span>Max Price</span>
+                        <input type="number" name="max_price" value="{{ max_price }}" placeholder="99999">
+                    </label>
+                </div>
+
+                {% if designer_brands %}
+                <div class="vm-shop-t-filter-group">
+                    <span class="vm-shop-t-filter-group__title">Designer Brands</span>
+                    <div class="vm-shop-t-filter-checks">
+                        {% for brand in designer_brands %}
+                        <label class="vm-shop-t-filter-check">
+                            <input type="checkbox" name="brand" value="{{ brand.brand_label }}" {% if brand.brand_label in selected_brands %}checked{% endif %}>
+                            <span>{{ brand.brand_label }} ({{ brand.product_count }})</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <label>
+                    <span>Minimum Rating</span>
+                    <select name="min_rating">
+                        <option value="">Any Rating</option>
+                        {% for option in rating_options %}
+                        <option value="{{ option.value }}" {% if selected_rating == option.value %}selected{% endif %}>{{ option.label }} ({{ option.count }})</option>
+                        {% endfor %}
+                    </select>
+                </label>
+
+                <div class="vm-shop-t-filter-form__actions">
+                    <button type="button" class="vm-shop-t-filter-reset" id="vmShopTabletFilterDismiss">Close</button>
+                    <button type="submit" class="vm-shop-t-filter-apply">Apply Filters</button>
+                </div>
+            </form>
+        </aside>
 
         <section class="vm-shop-t-grid">
             {% for product in products %}
@@ -475,18 +564,6 @@ document.addEventListener('DOMContentLoaded', function () {
         </section>
         {% endif %}
     </main>
-
-    <nav class="vm-mobile-bottom-nav" aria-label="Mobile primary navigation">
-        <a href="{% url 'index' %}" aria-label="Home"><i class="fas fa-home"></i></a>
-        <a href="{% url 'shop' %}" class="is-active" aria-label="Shop"><i class="far fa-store"></i></a>
-        <a href="{% url 'cart' %}" aria-label="Cart"><i class="far fa-shopping-cart"></i></a>
-        {% if request.user.is_authenticated %}
-        <a href="{% url 'profile' %}" aria-label="Account"><i class="far fa-user"></i></a>
-        {% else %}
-        <a href="{% url 'login' %}" aria-label="Account"><i class="far fa-user"></i></a>
-        {% endif %}
-        <a href="{% url 'wishlist' %}" aria-label="Wishlist"><i class="far fa-heart"></i></a>
-    </nav>
 </section>
 
 <section class="vm-shop-d-only" aria-label="VibeMall desktop shop layout">
@@ -800,103 +877,135 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const sidebar = document.getElementById('vmShopMobileFilterDrawer');
-    const openBtn = document.getElementById('shopFilterFabMobile');
-    const closeBtn = document.getElementById('vmShopMobileFilterClose');
-    const dismissBtn = document.getElementById('vmShopMobileFilterDismiss');
-    const backdrop = document.getElementById('vmShopMobileFilterBackdrop');
-    const sortRoot = document.querySelector('[data-shop-mobile-sort]');
-    const sortTrigger = document.getElementById('shopSortFabMobile');
-    const sortMenu = document.querySelector('[data-shop-mobile-sort-menu]');
+    const initShopPanelControls = (config) => {
+        const sidebar = document.getElementById(config.sidebarId);
+        const openBtn = document.getElementById(config.openBtnId);
+        const closeBtn = document.getElementById(config.closeBtnId);
+        const dismissBtn = document.getElementById(config.dismissBtnId);
+        const backdrop = document.getElementById(config.backdropId);
+        const sortRoot = document.querySelector(config.sortRootSelector);
+        const sortTrigger = document.getElementById(config.sortTriggerId);
+        const sortMenu = document.querySelector(config.sortMenuSelector);
 
-    const setOpenState = (open) => {
-        if (!sidebar || !backdrop || !openBtn) return;
-        sidebar.classList.toggle('is-open', open);
-        backdrop.classList.toggle('is-open', open);
-        document.body.classList.toggle('shop-filter-open', open);
-        sidebar.setAttribute('aria-hidden', open ? 'false' : 'true');
-        openBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-        backdrop.hidden = !open;
-    };
+        const setOpenState = (open) => {
+            if (!sidebar || !backdrop || !openBtn) return;
+            sidebar.classList.toggle('is-open', open);
+            backdrop.classList.toggle('is-open', open);
+            document.body.classList.toggle('shop-filter-open', open);
+            sidebar.setAttribute('aria-hidden', open ? 'false' : 'true');
+            openBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            backdrop.hidden = !open;
+        };
 
-    const openSidebar = () => setOpenState(true);
-    const closeSidebar = () => setOpenState(false);
-    const positionSortMenu = () => {
-        if (!sortMenu || sortMenu.hidden) return;
+        const openSidebar = () => setOpenState(true);
+        const closeSidebar = () => setOpenState(false);
 
-        sortMenu.style.transform = 'translateX(0)';
-
-        const viewportPadding = 16;
-        let rect = sortMenu.getBoundingClientRect();
-        let shift = 0;
-
-        if (rect.right > window.innerWidth - viewportPadding) {
-            shift -= rect.right - (window.innerWidth - viewportPadding);
-        }
-
-        if (rect.left + shift < viewportPadding) {
-            shift += viewportPadding - (rect.left + shift);
-        }
-
-        sortMenu.style.transform = shift ? `translateX(${Math.round(shift)}px)` : 'translateX(0)';
-    };
-
-    if (openBtn && sidebar && backdrop) {
-        openBtn.addEventListener('click', openSidebar);
-    }
-    if (closeBtn) {
-        closeBtn.addEventListener('click', closeSidebar);
-    }
-    if (dismissBtn) {
-        dismissBtn.addEventListener('click', closeSidebar);
-    }
-    if (backdrop) {
-        backdrop.addEventListener('click', closeSidebar);
-    }
-
-    const setSortOpen = (open) => {
-        if (!sortTrigger || !sortMenu) return;
-        sortTrigger.setAttribute('aria-expanded', open ? 'true' : 'false');
-        sortRoot?.classList.toggle('is-open', open);
-        sortMenu.hidden = !open;
-        if (open) {
-            positionSortMenu();
-        } else {
+        const positionSortMenu = () => {
+            if (!sortMenu || sortMenu.hidden) return;
             sortMenu.style.transform = 'translateX(0)';
-        }
-    };
 
-    if (sortTrigger && sortMenu) {
-        setSortOpen(false);
-        sortTrigger.addEventListener('click', function () {
-            const next = sortMenu.hidden;
-            setSortOpen(next);
-        });
-        document.addEventListener('click', function (event) {
-            if (sortRoot && !sortRoot.contains(event.target)) {
+            const viewportPadding = 16;
+            const rect = sortMenu.getBoundingClientRect();
+            let shift = 0;
+
+            if (rect.right > window.innerWidth - viewportPadding) {
+                shift -= rect.right - (window.innerWidth - viewportPadding);
+            }
+
+            if (rect.left + shift < viewportPadding) {
+                shift += viewportPadding - (rect.left + shift);
+            }
+
+            sortMenu.style.transform = shift ? `translateX(${Math.round(shift)}px)` : 'translateX(0)';
+        };
+
+        const setSortOpen = (open) => {
+            if (!sortTrigger || !sortMenu) return;
+            sortTrigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+            sortRoot?.classList.toggle('is-open', open);
+            sortMenu.hidden = !open;
+            if (open) {
+                positionSortMenu();
+            } else {
+                sortMenu.style.transform = 'translateX(0)';
+            }
+        };
+
+        if (openBtn && sidebar && backdrop) {
+            openBtn.addEventListener('click', openSidebar);
+        }
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeSidebar);
+        }
+        if (dismissBtn) {
+            dismissBtn.addEventListener('click', closeSidebar);
+        }
+        if (backdrop) {
+            backdrop.addEventListener('click', closeSidebar);
+        }
+
+        if (sortTrigger && sortMenu) {
+            setSortOpen(false);
+            sortTrigger.addEventListener('click', function () {
+                setSortOpen(sortMenu.hidden);
+            });
+            document.addEventListener('click', function (event) {
+                if (sortRoot && !sortRoot.contains(event.target)) {
+                    setSortOpen(false);
+                }
+            });
+            window.addEventListener('resize', function () {
+                if (!sortMenu.hidden) {
+                    positionSortMenu();
+                }
+            });
+        }
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closeSidebar();
                 setSortOpen(false);
             }
         });
-        window.addEventListener('resize', function () {
-            if (!sortMenu.hidden) {
-                positionSortMenu();
-            }
-        });
-    }
 
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape') {
-            closeSidebar();
-            setSortOpen(false);
+        const media = window.matchMedia(config.mediaQuery);
+        const closeOnBreak = () => {
+            if (!media.matches) {
+                closeSidebar();
+                setSortOpen(false);
+            }
+        };
+
+        if (typeof media.addEventListener === 'function') {
+            media.addEventListener('change', closeOnBreak);
+        } else if (typeof media.addListener === 'function') {
+            media.addListener(closeOnBreak);
         }
+    };
+
+    initShopPanelControls({
+        sidebarId: 'vmShopMobileFilterDrawer',
+        openBtnId: 'shopFilterFabMobile',
+        closeBtnId: 'vmShopMobileFilterClose',
+        dismissBtnId: 'vmShopMobileFilterDismiss',
+        backdropId: 'vmShopMobileFilterBackdrop',
+        sortRootSelector: '[data-shop-mobile-sort]',
+        sortTriggerId: 'shopSortFabMobile',
+        sortMenuSelector: '[data-shop-mobile-sort-menu]',
+        mediaQuery: '(max-width: 767.98px)'
     });
 
-    window.addEventListener('resize', function () {
-        if (window.innerWidth > 767.98) {
-            closeSidebar();
-            setSortOpen(false);
-        }
-    }, { passive: true });
+    initShopPanelControls({
+        sidebarId: 'vmShopTabletFilterDrawer',
+        openBtnId: 'shopFilterFabTablet',
+        closeBtnId: 'vmShopTabletFilterClose',
+        dismissBtnId: 'vmShopTabletFilterDismiss',
+        backdropId: 'vmShopTabletFilterBackdrop',
+        sortRootSelector: '[data-shop-tablet-sort]',
+        sortTriggerId: 'shopSortFabTablet',
+        sortMenuSelector: '[data-shop-tablet-sort-menu]',
+        mediaQuery: '(min-width: 768px) and (max-width: 1199.98px)'
+    });
 });
 </script>
 

@@ -1,0 +1,305 @@
+.vm-orderconfirm-tablet-only {
+    display: none;
+}
+
+@media (min-width: 768px) and (max-width: 1199.98px) {
+    body.vm-page-mobile-order-confirmation {
+        background: #fbf9f4;
+        color: #1b1c19;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-orderconfirm-mobile-only,
+    body.vm-page-mobile-order-confirmation .vm-orderconfirm-legacy-content,
+    body.vm-page-mobile-order-confirmation .vm-tablet-alt-footer,
+    body.vm-page-mobile-order-confirmation .vm-tab-bnav-shell,
+    body.vm-page-mobile-order-confirmation #celebration-container {
+        display: none !important;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-orderconfirm-tablet-only {
+        position: relative;
+        display: block;
+        overflow: hidden;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-ambient {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        overflow: hidden;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-ambient__blob {
+        position: absolute;
+        border-radius: 999px;
+        filter: blur(110px);
+        opacity: 0.34;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-ambient__blob--left {
+        top: -12%;
+        left: -12%;
+        width: 42%;
+        height: 42%;
+        background: rgba(250, 223, 177, 0.34);
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-ambient__blob--right {
+        right: -8%;
+        bottom: -6%;
+        width: 34%;
+        height: 34%;
+        background: rgba(255, 218, 217, 0.28);
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-main {
+        position: relative;
+        z-index: 1;
+        min-height: calc(100vh - 120px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 56px 32px;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-shell {
+        width: 100%;
+        max-width: 1080px;
+        display: grid;
+        grid-template-columns: minmax(320px, 0.92fr) minmax(0, 1fr);
+        gap: 48px;
+        align-items: center;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-media {
+        order: 1;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-media__frame {
+        position: relative;
+        aspect-ratio: 4 / 5;
+        overflow: hidden;
+        border-radius: 28px;
+        background: #f0eee9;
+        box-shadow: 0 34px 70px -34px rgba(23, 24, 24, 0.32);
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-media__frame img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+        filter: grayscale(100%);
+        mix-blend-mode: multiply;
+        opacity: 0.92;
+        transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-media__frame:hover img {
+        transform: scale(1.04);
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-media__overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(23, 24, 24, 0.02) 0%, rgba(23, 24, 24, 0.18) 100%);
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-content {
+        order: 2;
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+        text-align: left;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-status {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        align-items: flex-start;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-status__icon {
+        position: relative;
+        width: 72px;
+        height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6f5c37;
+        font-size: 42px;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-status__glow {
+        position: absolute;
+        inset: 10px;
+        border-radius: 999px;
+        background: rgba(250, 223, 177, 0.5);
+        transform: scale(1.45);
+        filter: blur(18px);
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-status__icon i {
+        position: relative;
+        z-index: 1;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-status__copy h1 {
+        margin: 0;
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: clamp(58px, 8vw, 84px);
+        font-style: italic;
+        font-weight: 700;
+        letter-spacing: -0.06em;
+        line-height: 0.96;
+        color: #171818;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-status__copy p {
+        max-width: 460px;
+        margin: 16px 0 0;
+        color: #444748;
+        font-size: 18px;
+        font-weight: 300;
+        line-height: 1.8;
+        letter-spacing: 0.01em;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-summary-card {
+        padding: 28px 30px;
+        border-radius: 22px;
+        background: rgba(245, 243, 238, 0.92);
+        border: 1px solid rgba(196, 199, 199, 0.16);
+        box-shadow: 0 18px 40px -30px rgba(23, 24, 24, 0.26);
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-summary-row {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-items: flex-start;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-summary-row > span {
+        color: rgba(68, 71, 72, 0.62);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-summary-row > strong {
+        font-family: "Noto Serif", Georgia, serif;
+        font-size: 28px;
+        font-style: italic;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        color: #171818;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-summary-divider {
+        height: 1px;
+        width: 100%;
+        margin: 24px 0;
+        background: rgba(196, 199, 199, 0.22);
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-points {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #171818;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-points i {
+        color: #6f5c37;
+        font-size: 18px;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-points p {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 500;
+        line-height: 1.6;
+        color: #1b1c19;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-points strong {
+        color: #6f5c37;
+        font-weight: 700;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-actions {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        padding-top: 6px;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 58px;
+        padding: 16px 30px;
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-btn--primary {
+        border-radius: 10px;
+        background: #171818;
+        color: #ffffff;
+        box-shadow: 0 20px 40px -12px rgba(23, 24, 24, 0.3);
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-btn--primary:hover {
+        opacity: 0.92;
+        transform: translateY(-2px);
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-btn--link {
+        padding-left: 10px;
+        padding-right: 10px;
+        border-bottom: 1px solid rgba(111, 92, 55, 0.3);
+        color: #171818;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-btn--link:hover {
+        border-bottom-color: #6f5c37;
+        color: #6f5c37;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-return {
+        padding-top: 8px;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-return a {
+        color: rgba(68, 71, 72, 0.8);
+        text-decoration: none;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        border-bottom: 1px solid transparent;
+        transition: color 0.2s ease, border-color 0.2s ease;
+    }
+
+    body.vm-page-mobile-order-confirmation .vm-oct-return a:hover {
+        color: #171818;
+        border-bottom-color: #171818;
+    }
+}
+
+@media (min-width: 1200px) {
+    body.vm-page-mobile-order-confirmation .vm-orderconfirm-tablet-only {
+        display: none !important;
+    }
+}
