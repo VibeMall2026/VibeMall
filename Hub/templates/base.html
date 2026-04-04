@@ -482,6 +482,36 @@
         display: block !important;
     }
 
+    /* Restore tablet chrome for vm-page-mobile-alt pages at tablet widths (768–1199px).
+       The global guard above uses !important; these overrides re-enable the mechanism. */
+    @media (min-width: 768px) and (max-width: 1199.98px) {
+        body.vm-page-mobile-alt .vm-tablet-alt-header {
+            display: block !important;
+        }
+        body.vm-page-mobile-alt .vm-tab-bnav-shell {
+            display: block !important;
+        }
+        body.vm-page-mobile-alt .vm-tab-bnav-shell .vm-mobile-bottom-nav {
+            display: flex !important;
+        }
+        body.vm-page-mobile-alt .vm-copy-header,
+        body.vm-page-mobile-alt .vm-copy-footer,
+        body.vm-page-mobile-alt > footer {
+            display: none !important;
+        }
+    }
+
+    /* Restore side menu for all vm-page-mobile-alt pages (mobile + tablet).
+       Side menu stays off-screen via transform until JS adds .is-open. */
+    @media (max-width: 1199.98px) {
+        body.vm-page-mobile-alt .vm-mobile-side-menu {
+            display: flex !important;
+        }
+        body.vm-page-mobile-alt .vm-mobile-side-menu-overlay {
+            display: block !important;
+        }
+    }
+
     /* Desktop fallback: keep classic header/footer only */
     @media (min-width: 1200px) {
         .vm-copy-header,
@@ -498,10 +528,54 @@
         }
     }
 
+        /*
+            Reusable per-page chrome setting:
+            Set the ui_chrome block in templates extending base.html.
+            Supported values: default | tablet | desktop | mobile
+        */
+    @media (min-width: 768px) {
+        body[data-ui-chrome="tablet"] .vm-copy-header,
+        body[data-ui-chrome="tablet"] .vm-copy-footer,
+        body[data-ui-chrome="tablet"] > footer {
+            display: none !important;
+        }
+
+        body[data-ui-chrome="tablet"] .vm-tablet-alt-header,
+        body[data-ui-chrome="tablet"] .vm-tablet-alt-footer,
+        body[data-ui-chrome="tablet"] .vm-tab-bnav-shell {
+            display: block !important;
+        }
+
+        body[data-ui-chrome="tablet"] .vm-tab-bnav-shell .vm-mobile-bottom-nav {
+            display: flex !important;
+        }
+    }
+
+    /* Force desktop chrome on all widths */
+    body[data-ui-chrome="desktop"] .vm-copy-header,
+    body[data-ui-chrome="desktop"] .vm-copy-footer {
+        display: block !important;
+    }
+
+    body[data-ui-chrome="desktop"] .vm-tablet-alt-header,
+    body[data-ui-chrome="desktop"] .vm-tablet-alt-footer,
+    body[data-ui-chrome="desktop"] .vm-tab-bnav-shell {
+        display: none !important;
+    }
+
+    /* Mobile-only content chrome: hide shared desktop/tablet wrappers */
+    body[data-ui-chrome="mobile"] .vm-copy-header,
+    body[data-ui-chrome="mobile"] .vm-copy-footer,
+    body[data-ui-chrome="mobile"] .vm-tablet-alt-header,
+    body[data-ui-chrome="mobile"] .vm-tablet-alt-footer,
+    body[data-ui-chrome="mobile"] .vm-tab-bnav-shell {
+        display: none !important;
+    }
+
     </style>
     {% block extra_css %}{% endblock %}
 </head>
-<body class="{% block body_class %}{% endblock %}">
+<body class="{% block body_class %}{% endblock %}" data-ui-chrome="{% block ui_chrome %}default{% endblock %}">
 
 <!-- Pass user authentication status to JavaScript -->
 <script>
