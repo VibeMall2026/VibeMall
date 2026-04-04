@@ -8096,7 +8096,15 @@ def order_confirmation(request, order_id):
 @login_required(login_url='login')
 def razorpay_payment(request, order_id):
     """Razorpay Payment Page with OSrder Creation"""
-    import razorpay
+    try:
+        import razorpay
+    except ModuleNotFoundError as exc:
+        messages.error(
+            request,
+            'Payment service dependency is missing on server. Please contact support and retry shortly.'
+        )
+        logger.error(f'Razorpay import failed in razorpay_payment: {exc}')
+        return redirect('order_confirmation', order_id=order_id)
     
     order = get_object_or_404(Order, id=order_id, user=request.user)
     
@@ -8154,7 +8162,11 @@ def razorpay_payment(request, order_id):
 def razorpay_payment_success(request):
     """Handle Razorpay Payment Success"""
     try:
-        import razorpay
+        try:
+            import razorpay
+        except ModuleNotFoundError as exc:
+            logger.error(f'Razorpay import failed in razorpay_payment_success: {exc}')
+            return JsonResponse({'success': False, 'message': 'Payment service unavailable. Please try again later.'}, status=503)
         
         order_id = request.POST.get('order_id')
         payment_id = request.POST.get('payment_id')
