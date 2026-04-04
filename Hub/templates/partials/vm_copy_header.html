@@ -238,6 +238,13 @@ document.addEventListener('DOMContentLoaded', function () {
         cartOverlay.addEventListener('click', closeMiniCart);
     }
 
+    document.addEventListener('click', function (event) {
+        if (event.target.closest('[data-mini-cart-close]')) {
+            event.preventDefault();
+            closeMiniCart();
+        }
+    });
+
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape') {
             closeMiniCart();

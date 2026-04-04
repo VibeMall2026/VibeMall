@@ -10098,9 +10098,12 @@ def download_invoice(request, order_number):
     try:
         try:
             from weasyprint import HTML
-        except ImportError:
-            logger.error("WeasyPrint not installed for invoice generation")
-            return HttpResponse('Invoice PDF service is unavailable. Please contact support.', status=503)
+        except (ImportError, OSError) as exc:
+            logger.exception("WeasyPrint is unavailable for invoice generation: %s", exc)
+            return HttpResponse(
+                'Invoice PDF service is temporarily unavailable because PDF rendering dependencies are missing on the server. Please contact support.',
+                status=503,
+            )
 
         # Get order
         order_filter = {'order_number': order_number}

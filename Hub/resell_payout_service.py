@@ -11,6 +11,7 @@ Handles:
 import logging
 from decimal import Decimal
 from datetime import timedelta
+from urllib.parse import urlparse
 from django.utils import timezone
 from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
@@ -20,6 +21,19 @@ from django.db import transaction
 from .models import Order, ResellerEarning, PayoutTransaction, ReturnRequest, User
 
 logger = logging.getLogger(__name__)
+
+
+def _split_invoice_lines(value):
+    if not value:
+        return []
+
+    normalized = str(value).replace('\r', '\n')
+    if '\n' in normalized:
+        parts = [line.strip() for line in normalized.split('\n')]
+    else:
+        parts = [line.strip() for line in normalized.split(',')]
+
+    return [part for part in parts if part]
 
 
 class PayoutEligibilityManager:
@@ -218,6 +232,81 @@ class PayoutInvoiceGenerator:
     """Generates PDF invoices for payouts"""
 
     @staticmethod
+    def build_payout_invoice_context(payout_transaction, earning_list):
+        reseller = payout_transaction.reseller
+        generated_date = timezone.now()
+        payout_date = payout_transaction.completed_at or payout_transaction.initiated_at or generated_date
+        company_name = getattr(settings, 'COMPANY_NAME', 'VibeMall')
+        company_address = getattr(settings, 'COMPANY_ADDRESS', '')
+        company_phone = getattr(settings, 'COMPANY_PHONE', '')
+        company_email = getattr(settings, 'COMPANY_EMAIL', settings.DEFAULT_FROM_EMAIL)
+        site_url = getattr(settings, 'SITE_URL', '')
+        site_host = urlparse(site_url).netloc if site_url else ''
+        total_margin = sum((earning.margin_amount for earning in earning_list), Decimal('0.00'))
+
+        earnings_rows = []
+        delivery_dates = []
+        confirmed_dates = []
+
+        for earning in earning_list:
+            delivery_date = getattr(earning.order, 'delivery_date', None)
+            if delivery_date:
+                delivery_dates.append(delivery_date)
+            if earning.confirmed_at:
+                confirmed_dates.append(earning.confirmed_at)
+
+            customer = earning.order.user.get_full_name() or earning.order.user.username
+            earnings_rows.append({
+                'order_number': earning.order.order_number,
+                'customer_name': customer,
+                'delivery_date': delivery_date,
+                'margin_amount': earning.margin_amount,
+                'status_display': earning.get_status_display(),
+            })
+
+        account_destination = payout_transaction.bank_account or payout_transaction.upi_id or 'N/A'
+        if payout_transaction.bank_account:
+            last_four = payout_transaction.bank_account[-4:]
+            account_destination = f"Bank Account ending {last_four}" if last_four else 'Bank Account'
+        elif payout_transaction.upi_id:
+            account_destination = payout_transaction.upi_id
+
+        payout_notes = [
+            'This document confirms the reseller payout processed for completed eligible orders.',
+            'Settlement timelines may vary by bank or payment provider, typically within 1 to 2 business days.',
+            'Retain this invoice for reconciliation, bookkeeping, and tax records.',
+        ]
+
+        return {
+            'company_name': company_name,
+            'company_address_lines': _split_invoice_lines(company_address),
+            'company_phone': company_phone,
+            'company_email': company_email,
+            'site_host': site_host,
+            'generated_date': generated_date,
+            'payout_date': payout_date,
+            'payout_id': payout_transaction.id,
+            'payout_transaction': payout_transaction,
+            'reseller': reseller,
+            'reseller_name': reseller.get_full_name() or reseller.username,
+            'reseller_code': f"RSL-{reseller.id:05d}",
+            'reseller_email': reseller.email,
+            'reseller_username': reseller.username,
+            'earnings': earnings_rows,
+            'total_margin': total_margin,
+            'earnings_count': len(earnings_rows),
+            'coverage_start': min(delivery_dates) if delivery_dates else None,
+            'coverage_end': max(delivery_dates) if delivery_dates else None,
+            'confirmed_on': max(confirmed_dates) if confirmed_dates else None,
+            'payout_method_display': payout_transaction.get_payout_method_display(),
+            'payout_status_display': payout_transaction.get_status_display(),
+            'transaction_reference': payout_transaction.transaction_id or 'Awaiting Reference',
+            'account_destination': account_destination,
+            'admin_notes': payout_transaction.admin_notes,
+            'payout_notes': payout_notes,
+        }
+
+    @staticmethod
     def generate_payout_invoice_pdf(payout_transaction, earning_list):
         """
         Generate a professional PDF invoice for the payout.
@@ -225,22 +314,13 @@ class PayoutInvoiceGenerator:
         Returns: Path to generated PDF file.
         """
         try:
-            from weasyprint import HTML, CSS
+            from weasyprint import HTML
             import os
 
-            # Prepare context data
-            context = {
-                'payout_id': payout_transaction.id,
-                'payout_transaction': payout_transaction,
-                'reseller': payout_transaction.reseller,
-                'earnings': earning_list,
-                'total_margin': sum(e.margin_amount for e in earning_list),
-                'generated_date': timezone.now(),
-                'company_name': getattr(settings, 'COMPANY_NAME', 'VibeMall'),
-                'company_address': getattr(settings, 'COMPANY_ADDRESS', ''),
-                'company_phone': getattr(settings, 'COMPANY_PHONE', ''),
-                'company_email': getattr(settings, 'COMPANY_EMAIL', settings.DEFAULT_FROM_EMAIL),
-            }
+            context = PayoutInvoiceGenerator.build_payout_invoice_context(
+                payout_transaction,
+                earning_list,
+            )
 
             # Render HTML template
             html_content = render_to_string('admin/resell/payout_invoice.html', context)
@@ -251,13 +331,13 @@ class PayoutInvoiceGenerator:
 
             # Generate PDF
             output_path = os.path.join(invoice_dir, f'payout_{payout_transaction.id}.pdf')
-            HTML(string=html_content).write_pdf(output_path)
+            HTML(string=html_content, base_url=settings.BASE_DIR).write_pdf(output_path)
 
             logger.info(f"Generated payout invoice at {output_path}")
             return output_path
 
-        except ImportError:
-            logger.warning("WeasyPrint not installed. Skipping PDF generation.")
+        except (ImportError, OSError) as exc:
+            logger.warning("WeasyPrint PDF dependencies unavailable. Skipping payout PDF generation: %s", exc)
             return None
         except Exception as e:
             logger.error(f"Failed to generate payout invoice: {e}")

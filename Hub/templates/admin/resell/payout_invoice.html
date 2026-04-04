@@ -1,200 +1,473 @@
-{% load static %}
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ company_name }} | Payout Invoice {{ payout_id }}</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; }
-        .container { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
-        
-        /* Header */
-        .header { margin-bottom: 40px; border-bottom: 3px solid #007bff; padding-bottom: 20px; }
-        .company-info { display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px; }
-        .company-name { font-size: 28px; font-weight: bold; color: #007bff; }
-        .company-details { text-align: right; font-size: 12px; color: #666; }
-        .invoice-title { font-size: 24px; font-weight: bold; color: #000; }
-        
-        /* Key Info */
-        .key-info { display: flex; justify-content: space-between; margin-bottom: 30px; background: #f8f9fa; padding: 20px; border-radius: 5px; }
-        .key-info-item { flex: 1; }
-        .key-info-label { font-weight: bold; font-size: 12px; color: #666; text-transform: uppercase; margin-bottom: 5px; }
-        .key-info-value { font-size: 16px; font-weight: bold; color: #000; }
-        
-        /* Section */
-        .section { margin: 30px 0; }
-        .section-title { font-size: 14px; font-weight: bold; background: #e9ecef; padding: 10px 15px; margin-bottom: 15px; border-left: 4px solid #007bff; }
-        
-        /* Reseller Info */
-        .info-box { background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
-        .info-row { margin: 8px 0; }
-        .info-label { font-weight: bold; color: #666; font-size: 12px; }
-        .info-value { color: #000; margin-left: 10px; }
-        
-        /* Table */
-        .earnings-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-        .earnings-table th { background: #007bff; color: white; padding: 12px; text-align: left; font-size: 12px; font-weight: bold; }
-        .earnings-table td { padding: 12px; border-bottom: 1px solid #ddd; font-size: 12px; }
-        .earnings-table tr:nth-child(even) { background: #f8f9fa; }
-        .amount-cell { text-align: right; font-weight: bold; }
-        .order-number { color: #007bff; font-weight: bold; }
-        
-        /* Summary */
-        .summary { float: right; width: 300px; background: #f8f9fa; padding: 20px; border-radius: 5px; border: 2px solid #007bff; }
-        .summary-row { display: flex; justify-content: space-between; margin: 10px 0; }
-        .summary-label { font-weight: bold; font-size: 12px; color: #666; }
-        .summary-value { font-weight: bold; color: #000; }
-        .summary-row.total { border-top: 2px solid #ddd; padding-top: 10px; margin-top: 10px; font-size: 16px; color: #28a745; }
-        .summary-row.total .summary-label { color: #28a745; font-size: 14px; }
-        .summary-row.total .summary-value { color: #28a745; font-size: 18px; }
-        
-        /* Footer */
-        .footer { clear: both; margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; font-size: 11px; color: #999; }
-        .footer-item { margin: 5px 0; }
-        
-        /* Payment Method */
-        .payment-method { background: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #28a745; }
-        .payment-method-title { font-weight: bold; color: #155724; margin-bottom: 10px; }
-        .payment-method-details { font-size: 12px; color: #155724; }
-        
-        /* Print */
-        @media print {
-            body { background: white; }
-            .container { padding: 0; }
+        @page {
+            size: A4;
+            margin: 20mm;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            color: #1b1c19;
+            background: #fbf9f4;
+            font-family: "Helvetica", "Arial", sans-serif;
+            font-size: 12px;
+            line-height: 1.55;
+        }
+
+        .page {
+            width: 100%;
+            background: #ffffff;
+            padding: 28px 30px 32px;
+            border: 1px solid #ebe7df;
+        }
+
+        .serif {
+            font-family: "Georgia", "Times New Roman", serif;
+        }
+
+        .caps {
+            text-transform: uppercase;
+            letter-spacing: 0.26em;
+            font-size: 9px;
+            color: #6c6861;
+        }
+
+        .header {
+            margin-bottom: 42px;
+        }
+
+        .brand {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .brand-name {
+            margin: 0;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: 0.22em;
+        }
+
+        .meta {
+            width: 100%;
+            border-bottom: 1px solid #ded8cf;
+            padding-bottom: 16px;
+        }
+
+        .meta-left,
+        .meta-right {
+            display: inline-block;
+            vertical-align: top;
+        }
+
+        .meta-left {
+            width: 49%;
+        }
+
+        .meta-right {
+            width: 50%;
+            text-align: right;
+        }
+
+        .meta-grid {
+            display: inline-block;
+            text-align: left;
+            margin-left: 28px;
+        }
+
+        .meta-label {
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            font-size: 9px;
+            color: #7d786f;
+            margin-bottom: 3px;
+        }
+
+        .meta-value {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1b1c19;
+        }
+
+        .section {
+            margin-bottom: 38px;
+        }
+
+        .info-col {
+            display: inline-block;
+            width: 49%;
+            vertical-align: top;
+        }
+
+        .info-col.right {
+            text-align: right;
+        }
+
+        .info-title {
+            margin: 0 0 12px;
+            color: #6f5c37;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .info-block {
+            font-size: 13px;
+            line-height: 1.75;
+        }
+
+        .info-block .name {
+            font-size: 17px;
+            font-weight: 700;
+            color: #1b1c19;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .items thead th {
+            border-bottom: 1px solid #d9d2c8;
+            padding: 0 10px 12px;
+            text-align: left;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            font-size: 9px;
+            color: #6c6861;
+            font-weight: 700;
+        }
+
+        .items thead th.qty {
+            text-align: center;
+            width: 11%;
+        }
+
+        .items thead th.price,
+        .items thead th.total {
+            text-align: right;
+            width: 16%;
+        }
+
+        .items tbody tr {
+            border-bottom: 1px solid #efebe4;
+        }
+
+        .items td {
+            padding: 18px 10px;
+            vertical-align: middle;
+        }
+
+        .product-name {
+            margin: 0 0 4px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #171818;
+        }
+
+        .product-meta {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #7a766f;
+        }
+
+        .qty-cell {
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .money {
+            text-align: right;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .money strong {
+            font-weight: 700;
+        }
+
+        .summary {
+            width: 46%;
+            margin-left: auto;
+        }
+
+        .summary-row {
+            padding: 10px 0;
+            border-bottom: 1px solid #efebe4;
+        }
+
+        .summary-row.total {
+            border-top: 1px solid #1b1c19;
+            border-bottom: none;
+            margin-top: 8px;
+            padding-top: 14px;
+        }
+
+        .summary-label,
+        .summary-value {
+            display: inline-block;
+            width: 49%;
+        }
+
+        .summary-label {
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            font-size: 9px;
+            color: #6c6861;
+        }
+
+        .summary-value {
+            text-align: right;
+            font-size: 13px;
+            color: #1b1c19;
+        }
+
+        .summary-row.total .summary-label,
+        .summary-row.total .summary-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1b1c19;
+        }
+
+        .footer {
+            border-top: 1px solid #ded8cf;
+            padding-top: 22px;
+        }
+
+        .footer-left,
+        .footer-right {
+            display: inline-block;
+            width: 49%;
+            vertical-align: bottom;
+        }
+
+        .footer-note {
+            max-width: 310px;
+            font-style: italic;
+            font-size: 13px;
+            color: #6f5c37;
+            margin: 0 0 16px;
+        }
+
+        .terms-title {
+            margin: 0 0 6px;
+            font-size: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: #7d786f;
+        }
+
+        .terms-copy {
+            margin: 0;
+            font-size: 8px;
+            line-height: 1.7;
+            color: #8a857f;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .signature {
+            text-align: right;
+        }
+
+        .signature-line {
+            width: 180px;
+            border-bottom: 1px solid #cfc7bc;
+            margin: 0 0 8px auto;
+            height: 26px;
+        }
+
+        .signature-label {
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            font-size: 9px;
+            color: #7d786f;
+        }
+
+        .status-bar {
+            margin-top: 26px;
+            padding-top: 18px;
+            border-top: 1px solid #efebe4;
+            font-size: 11px;
+            color: #5e5a54;
+        }
+
+        .status-chip {
+            display: inline-block;
+            margin-left: 6px;
+            padding: 3px 9px;
+            border: 1px solid #d6d0c6;
+            background: #f7f4ee;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: #1b1c19;
+        }
+
+        .empty-state {
+            padding: 20px 10px;
+            text-align: center;
+            color: #7a766f;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
+    <div class="page">
         <div class="header">
-            <div class="company-info">
-                <div>
-                    <div class="company-name">{{ company_name }}</div>
-                </div>
-                <div class="company-details">
-                    <div>{{ company_address }}</div>
-                    <div>{{ company_phone }}</div>
-                    <div>{{ company_email }}</div>
-                </div>
+            <div class="brand">
+                <h1 class="brand-name serif">{{ company_name|upper }}</h1>
             </div>
-            <div class="invoice-title">PAYOUT INVOICE</div>
-        </div>
 
-        <!-- Key Info -->
-        <div class="key-info">
-            <div class="key-info-item">
-                <div class="key-info-label">Invoice #</div>
-                <div class="key-info-value">{{ payout_id }}</div>
-            </div>
-            <div class="key-info-item">
-                <div class="key-info-label">Generated</div>
-                <div class="key-info-value">{{ generated_date|date:"M d, Y" }}</div>
-            </div>
-            <div class="key-info-item">
-                <div class="key-info-label">Status</div>
-                <div class="key-info-value" style="color: #28a745;">{{ payout_transaction.get_status_display }}</div>
+            <div class="meta">
+                <div class="meta-left">
+                    <div class="caps">Payout Invoice</div>
+                    <div style="margin-top: 14px;">
+                        <div class="meta-label">Payout Number</div>
+                        <div class="meta-value">#{{ payout_id }}</div>
+                    </div>
+                </div>
+                <div class="meta-right">
+                    <div class="meta-grid">
+                        <div class="meta-label">Date</div>
+                        <div class="meta-value">{{ payout_date|date:"F d, Y" }}</div>
+                    </div>
+                    <div class="meta-grid">
+                        <div class="meta-label">Reseller ID</div>
+                        <div class="meta-value">{{ reseller_code }}</div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Reseller Info -->
         <div class="section">
-            <div class="section-title">Payout Recipient</div>
-            <div class="info-box">
-                <div class="info-row">
-                    <span class="info-label">Name:</span>
-                    <span class="info-value">{{ reseller.get_full_name|default:reseller.username }}</span>
+            <div class="info-col">
+                <h3 class="info-title">Paid To</h3>
+                <div class="info-block serif">
+                    <div class="name">{{ reseller_name }}</div>
+                    {% if reseller_email %}<div>{{ reseller_email }}</div>{% endif %}
+                    <div>Username: {{ reseller_username }}</div>
+                    <div>Destination: {{ account_destination }}</div>
                 </div>
-                <div class="info-row">
-                    <span class="info-label">Email:</span>
-                    <span class="info-value">{{ reseller.email }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Username:</span>
-                    <span class="info-value">{{ reseller.username }}</span>
+            </div>
+            <div class="info-col right">
+                <h3 class="info-title">From</h3>
+                <div class="info-block serif">
+                    <div class="name">{{ company_name }}</div>
+                    {% for line in company_address_lines %}
+                    <div>{{ line }}</div>
+                    {% endfor %}
+                    {% if company_email %}<div>{{ company_email }}</div>{% endif %}
+                    {% if company_phone %}<div>{{ company_phone }}</div>{% endif %}
+                    {% if site_host %}<div>{{ site_host }}</div>{% endif %}
                 </div>
             </div>
         </div>
 
-        <!-- Earnings Table -->
         <div class="section">
-            <div class="section-title">Earnings Breakdown</div>
-            <table class="earnings-table">
+            <table class="items">
                 <thead>
                     <tr>
-                        <th>Order #</th>
-                        <th>Customer</th>
-                        <th>Delivery Date</th>
-                        <th class="amount-cell">Margin Amount</th>
+                        <th>Description</th>
+                        <th class="qty">Qty</th>
+                        <th class="price">Margin</th>
+                        <th class="total">Total</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for earning in earnings %}
                     <tr>
-                        <td><span class="order-number">#{{ earning.order.order_number }}</span></td>
-                        <td>{{ earning.order.user.get_full_name|default:earning.order.user.username }}</td>
-                        <td>{{ earning.order.delivery_date|date:"M d, Y" }}</td>
-                        <td class="amount-cell">₹{% if earning.margin_amount %}{{ earning.margin_amount|floatformat:2 }}{% else %}0.00{% endif %}</td>
+                        <td>
+                            <p class="product-name serif">Order #{{ earning.order_number }}</p>
+                            <div class="product-meta">
+                                Customer {{ earning.customer_name }}
+                                {% if earning.delivery_date %} | Delivered {{ earning.delivery_date|date:"M d, Y" }}{% endif %}
+                                | {{ earning.status_display }}
+                            </div>
+                        </td>
+                        <td class="qty-cell">1</td>
+                        <td class="money">Rs.{{ earning.margin_amount|floatformat:2 }}</td>
+                        <td class="money"><strong>Rs.{{ earning.margin_amount|floatformat:2 }}</strong></td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="empty-state">No reseller earnings were attached to this payout.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
 
-        <!-- Summary Box -->
-        <div class="summary">
-            <div class="summary-row">
-                <span class="summary-label">Total Earnings:</span>
-                <span class="summary-value">₹{{ total_margin|floatformat:2 }}</span>
-            </div>
-            <div class="summary-row">
-                <span class="summary-label">Payout Method:</span>
-                <span class="summary-value">{{ payout_transaction.get_payout_method_display }}</span>
-            </div>
-            <div class="summary-row">
-                <span class="summary-label">Transaction ID:</span>
-                <span class="summary-value">{{ payout_transaction.transaction_id|default:"—" }}</span>
-            </div>
-            <div class="summary-row total">
-                <span class="summary-label">Payout Amount:</span>
-                <span class="summary-value">₹{{ payout_transaction.amount|floatformat:2 }}</span>
-            </div>
-        </div>
-
-        <!-- Payment Method Info -->
-        <div style="clear: both; margin-top: 40px;">
-            <div class="payment-method">
-                <div class="payment-method-title">✓ Payment Method Details</div>
-                <div class="payment-method-details">
-                    {% if payout_transaction.payout_method == 'BANK_TRANSFER' %}
-                        Bank Transfer - Your funds will be transferred to the registered bank account
-                    {% elif payout_transaction.payout_method == 'UPI' %}
-                        UPI Transfer - Your funds will be sent to the registered UPI ID
-                    {% elif payout_transaction.payout_method == 'RAZORPAY' %}
-                        Razorpay Payout - Your funds will be processed via Razorpay
-                    {% else %}
-                        {{ payout_transaction.get_payout_method_display }}
-                    {% endif %}
+        <div class="section">
+            <div class="summary">
+                <div class="summary-row">
+                    <span class="summary-label">Included Orders</span>
+                    <span class="summary-value">{{ earnings_count }}</span>
+                </div>
+                {% if coverage_start or coverage_end %}
+                <div class="summary-row">
+                    <span class="summary-label">Coverage</span>
+                    <span class="summary-value">
+                        {% if coverage_start %}{{ coverage_start|date:"M d, Y" }}{% endif %}
+                        {% if coverage_end and coverage_end != coverage_start %} - {{ coverage_end|date:"M d, Y" }}{% endif %}
+                    </span>
+                </div>
+                {% endif %}
+                <div class="summary-row">
+                    <span class="summary-label">Payout Method</span>
+                    <span class="summary-value">{{ payout_method_display }}</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Reference</span>
+                    <span class="summary-value">{{ transaction_reference }}</span>
+                </div>
+                <div class="summary-row total">
+                    <span class="summary-label serif">Payout Amount</span>
+                    <span class="summary-value serif">Rs.{{ payout_transaction.amount|floatformat:2 }}</span>
                 </div>
             </div>
         </div>
 
-        <!-- Notes -->
-        <div class="section">
-            <div class="section-title">Important Notes</div>
-            <div style="padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 5px; font-size: 12px; color: #856404;">
-                <p style="margin-bottom: 10px;">• The funds should reach your account within 1-2 business days, depending on your bank</p>
-                <p style="margin-bottom: 10px;">• This invoice serves as proof of payout for accounting purposes</p>
-                <p>• If you have any questions, please contact our support team</p>
-            </div>
-        </div>
-
-        <!-- Footer -->
         <div class="footer">
-            <div class="footer-item">This is an automated payout invoice generated on {{ generated_date|date:"M d, Y H:i" }}</div>
-            <div class="footer-item">{{ company_name }} - Resell Management System</div>
-            <div class="footer-item">Thank you for your partnership!</div>
+            <div class="footer-left">
+                <p class="footer-note serif">
+                    Thank you for growing with {{ company_name }}. This payout invoice records the earnings settled for your completed reseller orders.
+                </p>
+                <p class="terms-title">Payout Notes</p>
+                <p class="terms-copy">
+                    {% for note in payout_notes %}
+                    {{ note }}{% if not forloop.last %} {% endif %}
+                    {% endfor %}
+                    {% if admin_notes %} ADMIN NOTE: {{ admin_notes }}{% endif %}
+                </p>
+            </div>
+            <div class="footer-right signature">
+                <div class="signature-line"></div>
+                <div class="signature-label">Authorized Signature</div>
+            </div>
+
+            <div class="status-bar">
+                Payout Method:
+                <span class="status-chip">{{ payout_method_display }}</span>
+                Payout Status:
+                <span class="status-chip">{{ payout_status_display }}</span>
+                {% if confirmed_on %}
+                Confirmed On:
+                <span class="status-chip">{{ confirmed_on|date:"M d, Y" }}</span>
+                {% endif %}
+                Reference:
+                <span class="status-chip">{{ transaction_reference }}</span>
+            </div>
         </div>
     </div>
 </body>

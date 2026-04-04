@@ -151,8 +151,8 @@ def send_order_confirmation_email(order):
         try:
             from weasyprint import HTML
             pdf_generation_available = True
-        except ImportError:
-            logger.warning("WeasyPrint not installed. Invoice PDF will not be attached. Install with: pip install weasyprint")
+        except (ImportError, OSError) as exc:
+            logger.warning("WeasyPrint PDF dependencies unavailable. Invoice PDF will not be attached: %s", exc)
             pdf_generation_available = False
         
         # Get site URL from settings or use default
@@ -784,8 +784,8 @@ def send_welcome_email_with_terms(user, request):
         try:
             from weasyprint import HTML, CSS
             pdf_generation_available = True
-        except ImportError:
-            logger.warning("WeasyPrint not installed. PDF will not be attached. Install with: pip install weasyprint")
+        except (ImportError, OSError) as exc:
+            logger.warning("WeasyPrint PDF dependencies unavailable. PDF will not be attached: %s", exc)
             pdf_generation_available = False
 
         # Get site URL
@@ -932,8 +932,8 @@ def send_welcome_email_with_terms(user, request):
         try:
             from weasyprint import HTML, CSS
             pdf_generation_available = True
-        except ImportError:
-            logger.warning("WeasyPrint not installed. PDF will not be attached. Install with: pip install weasyprint")
+        except (ImportError, OSError) as exc:
+            logger.warning("WeasyPrint PDF dependencies unavailable. PDF will not be attached: %s", exc)
             pdf_generation_available = False
         
         # Get site URL
