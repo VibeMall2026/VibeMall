@@ -1,421 +1,484 @@
 {% extends "base.html" %}
 
-{% block body_class %}vm-page-mobile-alt{% endblock %}
+{% block body_class %}vm-page-payment-desktop{% endblock %}
 
 {% block title %}Payment Methods - VibeMall{% endblock %}
 
 {% block content %}
-<section class="vm-payments-mobile">
-    <div class="vm-payments-mobile__hero">
-        <p class="vm-payments-mobile__kicker">Secure Checkout</p>
-        <h1>Payment Methods</h1>
-        <p class="vm-payments-mobile__subtitle">
-            Manage the payment options you have already used on VibeMall.
-        </p>
-    </div>
-
-    <div class="vm-payments-mobile__section-head">
-        <h2>Saved Methods</h2>
-        <span>{{ methods|length }} saved</span>
-    </div>
-
-    {% if methods %}
-    <div class="vm-payments-mobile__saved-list">
-        {% for method in methods %}
-            {% if method.key == 'CARD' or method.key == 'RAZORPAY' %}
-            <article class="vm-pay-card vm-pay-card--featured">
-                <div class="vm-pay-card__top">
-                    <div>
-                        <p class="vm-pay-card__meta">Primary Account</p>
-                        <h3>{{ method.label }}</h3>
-                    </div>
-                    <i class="{{ method.icon }}" aria-hidden="true"></i>
+<section class="vm-payment-desktop">
+    <div class="vm-payment-desktop__layout">
+        <aside class="vm-payment-side">
+            <div class="vm-payment-side__profile">
+                <div class="vm-payment-side__avatar">
+                    {{ request.user.first_name|default:request.user.username|slice:":1"|upper }}
                 </div>
-                <div class="vm-pay-card__number">•••• •••• •••• 4242</div>
-                <div class="vm-pay-card__foot">
-                    <div>
-                        <p class="vm-pay-card__meta">Status</p>
-                        <p class="vm-pay-card__value">Used in past orders</p>
-                    </div>
-                    <div class="vm-pay-card__pill">Active</div>
+                <h2>{{ request.user.get_full_name|default:request.user.username }}</h2>
+                <p>Account member</p>
+            </div>
+
+            <nav class="vm-payment-side__nav" aria-label="Account navigation">
+                <a href="{% url 'profile' %}"><i class="fas fa-user"></i> Profile</a>
+                <a href="{% url 'address_book' %}"><i class="fas fa-map-marker-alt"></i> Addresses</a>
+                <a href="{% url 'my_orders' %}"><i class="fas fa-box"></i> Orders</a>
+                <a href="{% url 'payment_methods' %}" class="is-active"><i class="fas fa-credit-card"></i> Payment Methods</a>
+            </nav>
+
+            <div class="vm-payment-side__note">
+                <h3>Secure Vault</h3>
+                <p>Payment details are encrypted and processed by trusted gateways.</p>
+            </div>
+        </aside>
+
+        <div class="vm-payment-main">
+            <header class="vm-payment-main__hero">
+                <div>
+                    <p class="vm-payment-main__kicker">Payment Center</p>
+                    <h1>Payment Vault</h1>
+                    <p>Manage the methods you have already used on VibeMall checkout.</p>
                 </div>
-            </article>
+                <div class="vm-payment-main__count">{{ methods|length }} saved</div>
+            </header>
+
+            {% if methods %}
+            <div class="vm-payment-grid">
+                {% for method in methods %}
+                <article class="vm-payment-card {% if method.key == 'CARD' or method.key == 'RAZORPAY' %}vm-payment-card--dark{% else %}vm-payment-card--light{% endif %}">
+                    <div class="vm-payment-card__head">
+                        <div class="vm-payment-card__badge">{{ method.key }}</div>
+                        <i class="{{ method.icon }}" aria-hidden="true" {% if method.key != 'CARD' and method.key != 'RAZORPAY' %}style="color: {{ method.color }};"{% endif %}></i>
+                    </div>
+
+                    <h2>{{ method.label }}</h2>
+                    <p>Used in your previous orders</p>
+
+                    <div class="vm-payment-card__meta">
+                        <span>Status</span>
+                        <strong>Active</strong>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
             {% else %}
-            <article class="vm-pay-card vm-pay-card--compact">
-                <div class="vm-pay-card__compact-icon" style="color: {{ method.color }};">
-                    <i class="{{ method.icon }}" aria-hidden="true"></i>
-                </div>
-                <div class="vm-pay-card__compact-copy">
-                    <h3>{{ method.label }}</h3>
-                    <p>Used in your orders</p>
-                </div>
-                <span class="vm-pay-card__compact-tag">Verified</span>
+            <article class="vm-payment-empty">
+                <i class="fas fa-wallet" aria-hidden="true"></i>
+                <h2>No payment methods yet</h2>
+                <p>Complete your first purchase and your used payment options will appear here.</p>
+                <a href="{% url 'shop' %}">Start Shopping</a>
             </article>
             {% endif %}
-        {% endfor %}
-    </div>
-    {% else %}
-    <article class="vm-pay-empty">
-        <i class="fas fa-credit-card" aria-hidden="true"></i>
-        <h3>No payment methods yet</h3>
-        <p>Your saved options will appear here after your first order.</p>
-        <a href="{% url 'shop' %}" class="vm-pay-empty__cta">Start Shopping</a>
-    </article>
-    {% endif %}
 
-    <div class="vm-payments-mobile__section-head vm-payments-mobile__section-head--spaced">
-        <h2>Add New Payment</h2>
-    </div>
+            <section class="vm-payment-add">
+                <div class="vm-payment-add__title-wrap">
+                    <h2>Add New Payment</h2>
+                    <p>Choose your preferred mode during checkout.</p>
+                </div>
 
-    <div class="vm-pay-options">
-        <article class="vm-pay-option">
-            <div class="vm-pay-option__icon"><i class="fas fa-credit-card" aria-hidden="true"></i></div>
-            <div class="vm-pay-option__copy">
-                <h3>Credit or Debit Card</h3>
-                <p>Visa, Mastercard and RuPay</p>
-            </div>
-            <i class="fas fa-chevron-right" aria-hidden="true"></i>
-        </article>
-        <article class="vm-pay-option">
-            <div class="vm-pay-option__icon"><i class="fas fa-university" aria-hidden="true"></i></div>
-            <div class="vm-pay-option__copy">
-                <h3>Net Banking</h3>
-                <p>All major Indian banks</p>
-            </div>
-            <i class="fas fa-chevron-right" aria-hidden="true"></i>
-        </article>
-        <article class="vm-pay-option">
-            <div class="vm-pay-option__icon"><i class="fas fa-wallet" aria-hidden="true"></i></div>
-            <div class="vm-pay-option__copy">
-                <h3>Digital Wallets</h3>
-                <p>Paytm, PhonePe, Amazon Pay</p>
-            </div>
-            <i class="fas fa-chevron-right" aria-hidden="true"></i>
-        </article>
-    </div>
+                <div class="vm-payment-add__options">
+                    <article>
+                        <div><i class="fas fa-credit-card" aria-hidden="true"></i></div>
+                        <h3>Credit or Debit Cards</h3>
+                        <p>Visa, Mastercard and RuPay supported.</p>
+                    </article>
+                    <article>
+                        <div><i class="fas fa-qrcode" aria-hidden="true"></i></div>
+                        <h3>UPI Payments</h3>
+                        <p>Pay using your preferred UPI app instantly.</p>
+                    </article>
+                    <article>
+                        <div><i class="fas fa-university" aria-hidden="true"></i></div>
+                        <h3>Net Banking</h3>
+                        <p>Available for all major Indian banks.</p>
+                    </article>
+                </div>
+            </section>
 
-    <article class="vm-pay-story">
-        <h2>Artisanal Heritage</h2>
-        <p>
-            Every purchase at VibeMall supports traditional weavers and small-batch ateliers across the subcontinent.
-            Your payments stay protected with encrypted checkout and trusted gateway processing.
-        </p>
-    </article>
-
-    <div class="vm-pay-footer-action">
-        <a href="{% url 'profile' %}" class="vm-pay-footer-action__btn">
-            <i class="fas fa-arrow-left" aria-hidden="true"></i>
-            Back to Profile
-        </a>
+            <footer class="vm-payment-main__footer">
+                <a href="{% url 'profile' %}"><i class="fas fa-arrow-left"></i> Back to Profile</a>
+            </footer>
+        </div>
     </div>
 </section>
 
 <style>
-.vm-payments-mobile {
-    --vm-bg: #fbf9f4;
-    --vm-surface: #ffffff;
+.vm-payment-desktop {
     --vm-ink: #171818;
-    --vm-muted: #5e625f;
+    --vm-muted: #5f635d;
     --vm-accent: #6f5c37;
-    --vm-soft: #f0ede6;
-    --vm-border: #e4e0d6;
-    max-width: 560px;
-    margin: 0 auto;
-    padding: 18px 14px 112px;
+    --vm-surface: #ffffff;
+    --vm-soft: #f6f3ec;
+    --vm-border: #e6e0d3;
+    --vm-dark: #1f1f1d;
     color: var(--vm-ink);
+    padding: 22px 18px 86px;
 }
 
-.vm-payments-mobile__hero {
-    background: radial-gradient(circle at 100% 0%, #ede8da 0%, #f8f5ee 45%, var(--vm-bg) 100%);
-    border: 1px solid var(--vm-border);
-    border-radius: 16px;
-    padding: 18px 16px;
-}
-
-.vm-payments-mobile__kicker {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.18em;
-    font-weight: 700;
-    color: var(--vm-accent);
-    margin: 0 0 8px;
-}
-
-.vm-payments-mobile__hero h1 {
-    font-size: 28px;
-    line-height: 1.1;
-    margin: 0 0 8px;
-    font-weight: 800;
-}
-
-.vm-payments-mobile__subtitle {
-    margin: 0;
-    color: var(--vm-muted);
-    font-size: 13px;
-    line-height: 1.5;
-}
-
-.vm-payments-mobile__section-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin: 22px 2px 12px;
-}
-
-.vm-payments-mobile__section-head h2 {
-    margin: 0;
-    font-size: 17px;
-    font-weight: 800;
-}
-
-.vm-payments-mobile__section-head span {
-    font-size: 11px;
-    color: var(--vm-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-weight: 700;
-}
-
-.vm-payments-mobile__section-head--spaced {
-    margin-top: 26px;
-}
-
-.vm-payments-mobile__saved-list {
+.vm-payment-desktop__layout {
+    width: min(1180px, 100%);
+    margin: 0 auto;
     display: grid;
-    gap: 10px;
+    grid-template-columns: 280px 1fr;
+    gap: 22px;
+    align-items: start;
 }
 
-.vm-pay-card {
+.vm-payment-side {
+    position: sticky;
+    top: 106px;
     border: 1px solid var(--vm-border);
-    border-radius: 14px;
-    background: var(--vm-surface);
+    border-radius: 22px;
+    background: linear-gradient(165deg, #f5f1e8 0%, #fbfaf6 100%);
+    padding: 18px;
 }
 
-.vm-pay-card--featured {
-    padding: 16px;
-    color: #ffffff;
-    background: linear-gradient(165deg, #1e1e1e 0%, #2e2d29 100%);
-    border-color: #30302d;
-}
-
-.vm-pay-card__top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 18px;
-}
-
-.vm-pay-card__meta {
-    margin: 0 0 2px;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.11em;
-    opacity: 0.72;
-}
-
-.vm-pay-card__top h3 {
-    margin: 0;
-    font-size: 15px;
-    font-weight: 700;
-}
-
-.vm-pay-card__number {
-    font-size: 18px;
-    letter-spacing: 0.18em;
-    margin-bottom: 18px;
-}
-
-.vm-pay-card__foot {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-}
-
-.vm-pay-card__value {
-    margin: 0;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.vm-pay-card__pill {
-    border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    background: rgba(255, 255, 255, 0.1);
-    padding: 4px 10px;
-    font-size: 11px;
-    font-weight: 700;
-}
-
-.vm-pay-card--compact {
-    padding: 12px;
-    display: grid;
-    grid-template-columns: 40px 1fr auto;
-    align-items: center;
-    gap: 10px;
-}
-
-.vm-pay-card__compact-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: 1px solid var(--vm-border);
-    background: #faf7ef;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 15px;
-}
-
-.vm-pay-card__compact-copy h3 {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 700;
-}
-
-.vm-pay-card__compact-copy p {
-    margin: 2px 0 0;
-    font-size: 12px;
-    color: var(--vm-muted);
-}
-
-.vm-pay-card__compact-tag {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #2f6d40;
-    font-weight: 700;
-    border: 1px solid #d2e9da;
-    background: #f1faf3;
-    border-radius: 999px;
-    padding: 4px 8px;
-}
-
-.vm-pay-empty {
-    border: 1px dashed var(--vm-border);
-    border-radius: 14px;
-    background: #fffefa;
-    padding: 26px 16px;
+.vm-payment-side__profile {
     text-align: center;
 }
 
-.vm-pay-empty i {
-    font-size: 30px;
-    color: #b2b5ad;
-    margin-bottom: 10px;
-}
-
-.vm-pay-empty h3 {
-    margin: 0 0 6px;
-    font-size: 16px;
-    font-weight: 800;
-}
-
-.vm-pay-empty p {
-    margin: 0;
-    font-size: 13px;
-    color: var(--vm-muted);
-}
-
-.vm-pay-empty__cta {
-    display: inline-block;
-    margin-top: 14px;
-    padding: 10px 14px;
-    border-radius: 10px;
-    background: #1d1e1d;
+.vm-payment-side__avatar {
+    width: 66px;
+    height: 66px;
+    border-radius: 50%;
+    background: #1f1f1d;
     color: #ffffff;
-    font-size: 12px;
-    font-weight: 700;
-    text-decoration: none;
-}
-
-.vm-pay-options {
-    display: grid;
-    gap: 10px;
-}
-
-.vm-pay-option {
-    border: 1px solid var(--vm-border);
-    border-radius: 14px;
-    background: var(--vm-surface);
-    padding: 12px;
-    display: grid;
-    grid-template-columns: 34px 1fr auto;
-    gap: 10px;
-    align-items: center;
-}
-
-.vm-pay-option__icon {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-    background: var(--vm-soft);
-    color: var(--vm-accent);
+    font-size: 24px;
+    font-weight: 800;
+    margin: 0 auto 12px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.vm-pay-option__copy h3 {
+.vm-payment-side__profile h2 {
     margin: 0;
-    font-size: 14px;
-    font-weight: 700;
-}
-
-.vm-pay-option__copy p {
-    margin: 2px 0 0;
-    font-size: 12px;
-    color: var(--vm-muted);
-}
-
-.vm-pay-option > i {
-    color: #8c8e88;
-    font-size: 12px;
-}
-
-.vm-pay-story {
-    margin-top: 24px;
-    border-radius: 18px;
-    padding: 16px;
-    border: 1px solid #e5dfd2;
-    background: linear-gradient(145deg, #f5f1e8 0%, #fdfbf7 85%);
-}
-
-.vm-pay-story h2 {
-    margin: 0 0 8px;
     font-size: 18px;
     font-weight: 800;
 }
 
-.vm-pay-story p {
-    margin: 0;
-    font-size: 13px;
-    line-height: 1.6;
-    color: #4f534e;
+.vm-payment-side__profile p {
+    margin: 4px 0 0;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--vm-accent);
+    font-weight: 700;
 }
 
-.vm-pay-footer-action {
+.vm-payment-side__nav {
+    margin: 16px 0;
+    display: grid;
+    gap: 6px;
+}
+
+.vm-payment-side__nav a {
+    text-decoration: none;
+    color: #33352f;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    border: 1px solid transparent;
+    transition: all 0.18s ease;
+}
+
+.vm-payment-side__nav a:hover {
+    background: #efeadd;
+}
+
+.vm-payment-side__nav a.is-active {
+    background: #1f1f1d;
+    color: #ffffff;
+    border-color: #1f1f1d;
+}
+
+.vm-payment-side__note {
+    border-radius: 14px;
+    border: 1px solid #e2d9c8;
+    background: #fefcf7;
+    padding: 12px;
+}
+
+.vm-payment-side__note h3 {
+    margin: 0 0 6px;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.vm-payment-side__note p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--vm-muted);
+    line-height: 1.5;
+}
+
+.vm-payment-main {
+    border: 1px solid var(--vm-border);
+    border-radius: 24px;
+    background: var(--vm-surface);
+    padding: 18px;
+}
+
+.vm-payment-main__hero {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: flex-start;
+    border-radius: 16px;
+    padding: 18px;
+    background: radial-gradient(circle at 100% 0%, #efe7d7 0%, #f8f4eb 43%, #fcfbf7 100%);
+    border: 1px solid #eadfca;
+}
+
+.vm-payment-main__kicker {
+    margin: 0 0 7px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.17em;
+    color: var(--vm-accent);
+    font-weight: 800;
+}
+
+.vm-payment-main__hero h1 {
+    margin: 0 0 6px;
+    font-size: 34px;
+    line-height: 1.05;
+    font-weight: 900;
+}
+
+.vm-payment-main__hero p {
+    margin: 0;
+    color: var(--vm-muted);
+    font-size: 14px;
+}
+
+.vm-payment-main__count {
+    border: 1px solid #dbcda9;
+    background: #fffaf0;
+    color: #5d4d2f;
+    border-radius: 999px;
+    padding: 7px 12px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.vm-payment-grid {
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.vm-payment-card {
+    border-radius: 16px;
+    padding: 14px;
+    border: 1px solid var(--vm-border);
+}
+
+.vm-payment-card--dark {
+    background: linear-gradient(160deg, #181816 0%, #292824 100%);
+    border-color: #2e2d29;
+    color: #ffffff;
+}
+
+.vm-payment-card--light {
+    background: #fcfaf5;
+}
+
+.vm-payment-card__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.vm-payment-card__badge {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.11em;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-weight: 700;
+}
+
+.vm-payment-card--light .vm-payment-card__badge {
+    border-color: #ded6c5;
+    background: #f6f0e4;
+    color: #6a5730;
+}
+
+.vm-payment-card h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.vm-payment-card p {
+    margin: 6px 0 16px;
+    font-size: 13px;
+    opacity: 0.85;
+}
+
+.vm-payment-card__meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+    padding-top: 12px;
+    font-size: 12px;
+}
+
+.vm-payment-card--light .vm-payment-card__meta {
+    border-top-color: #e6dece;
+}
+
+.vm-payment-card__meta span {
+    opacity: 0.72;
+}
+
+.vm-payment-card__meta strong {
+    font-size: 13px;
+}
+
+.vm-payment-empty {
+    margin-top: 16px;
+    border: 1px dashed var(--vm-border);
+    border-radius: 18px;
+    background: #fdfaf4;
+    padding: 40px 18px;
+    text-align: center;
+}
+
+.vm-payment-empty i {
+    font-size: 36px;
+    color: #9ea097;
+}
+
+.vm-payment-empty h2 {
+    margin: 10px 0 8px;
+    font-size: 24px;
+    font-weight: 800;
+}
+
+.vm-payment-empty p {
+    margin: 0;
+    color: var(--vm-muted);
+}
+
+.vm-payment-empty a {
+    margin-top: 14px;
+    display: inline-block;
+    text-decoration: none;
+    background: #1f1f1d;
+    color: #ffffff;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-weight: 700;
+}
+
+.vm-payment-add {
+    margin-top: 18px;
+    border-radius: 16px;
+    border: 1px solid var(--vm-border);
+    background: #fbfaf6;
+    padding: 16px;
+}
+
+.vm-payment-add__title-wrap h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 900;
+}
+
+.vm-payment-add__title-wrap p {
+    margin: 5px 0 0;
+    color: var(--vm-muted);
+    font-size: 13px;
+}
+
+.vm-payment-add__options {
+    margin-top: 13px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.vm-payment-add__options article {
+    border: 1px solid #e7dfcf;
+    border-radius: 12px;
+    background: #ffffff;
+    padding: 11px;
+}
+
+.vm-payment-add__options article div {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: #f4efdf;
+    color: #6d5a35;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 9px;
+}
+
+.vm-payment-add__options article h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.vm-payment-add__options article p {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--vm-muted);
+    line-height: 1.45;
+}
+
+.vm-payment-main__footer {
     margin-top: 16px;
 }
 
-.vm-pay-footer-action__btn {
-    width: 100%;
-    border: 1px solid var(--vm-border);
-    border-radius: 12px;
-    padding: 12px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+.vm-payment-main__footer a {
     text-decoration: none;
-    color: var(--vm-ink);
-    font-weight: 700;
-    background: #ffffff;
+    color: #22231f;
+    font-weight: 800;
+    font-size: 13px;
 }
 
-@media (min-width: 992px) {
-    .vm-payments-mobile {
-        max-width: 700px;
-        padding-top: 26px;
+@media (max-width: 991px) {
+    .vm-payment-desktop {
+        padding: 14px 12px 90px;
+    }
+
+    .vm-payment-desktop__layout {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .vm-payment-side {
+        position: static;
+    }
+
+    .vm-payment-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .vm-payment-main__hero h1 {
+        font-size: 27px;
+    }
+
+    .vm-payment-main__hero {
+        flex-wrap: wrap;
+    }
+
+    .vm-payment-add__options {
+        grid-template-columns: 1fr;
     }
 }
 </style>
