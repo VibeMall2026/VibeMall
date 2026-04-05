@@ -287,13 +287,14 @@ def reseller_dashboard(request):
         messages.info(request, 'Reseller dashboard will unlock after your first resell order is placed.')
         return redirect('order_list')
 
-    # Get dashboard data (mobile dashboard cards + lists)
+    # Get dashboard data
     recent_orders = resell_orders_qs.select_related('user').prefetch_related('items__product').order_by('-created_at')[:10]
 
-    active_links = ResellLink.objects.filter(
+    active_links_qs = ResellLink.objects.filter(
         reseller=request.user,
         is_active=True
-    ).select_related('product').order_by('-created_at')[:10]
+    ).select_related('product').order_by('-created_at')
+    active_links = active_links_qs[:10]
 
     # Calculate pending earnings
     pending_earnings = ResellerEarning.objects.filter(
@@ -301,8 +302,13 @@ def reseller_dashboard(request):
         status='PENDING'
     ).aggregate(total=Sum('margin_amount'))['total'] or Decimal('0.00')
 
-    total_clicks = active_links.aggregate(total=Sum('views_count'))['total'] or 0
+    total_clicks = active_links_qs.aggregate(total=Sum('views_count'))['total'] or 0
     total_resell_orders = resell_orders_qs.count()
+    total_revenue = resell_orders_qs.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+    avg_order_value = Decimal('0.00')
+    if total_resell_orders:
+        avg_order_value = (Decimal(total_revenue) / Decimal(total_resell_orders)).quantize(Decimal('0.01'))
+    active_links_count = active_links_qs.count()
 
     context = {
         'profile': profile,
@@ -312,6 +318,9 @@ def reseller_dashboard(request):
         'first_resell_order': first_resell_order,
         'total_clicks': total_clicks,
         'total_resell_orders': total_resell_orders,
+        'total_revenue': total_revenue,
+        'avg_order_value': avg_order_value,
+        'active_links_count': active_links_count,
     }
     
     return render(request, 'reseller/dashboard.html', context)
