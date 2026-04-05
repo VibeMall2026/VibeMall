@@ -180,6 +180,11 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        // Using an existing saved address should not auto-mark a new default.
+        if (setDefaultCheckbox) {
+            setDefaultCheckbox.checked = false;
+        }
+
         const addressLine1 = (useDefaultCheckbox.dataset.address1 || '').trim();
         const addressLine2 = (useDefaultCheckbox.dataset.address2 || '').trim();
         const combinedAddress = [addressLine1, addressLine2].filter(Boolean).join(', ');

@@ -2631,7 +2631,7 @@ def admin_site_settings(request):
         settings_obj.site_name = request.POST.get('site_name', 'VibeMall')
         settings_obj.site_name_html = request.POST.get('site_name_html', '')
         settings_obj.tagline = request.POST.get('tagline', '')
-        settings_obj.contact_email = request.POST.get('contact_email', 'support@vibemall.com')
+        settings_obj.contact_email = request.POST.get('contact_email', 'info.vibemall@gmail.com')
         settings_obj.contact_phone = request.POST.get('contact_phone', '+91 1234567890')
         settings_obj.facebook_url = request.POST.get('facebook_url', '')
         settings_obj.instagram_url = request.POST.get('instagram_url', '')
@@ -2749,7 +2749,7 @@ def admin_newsletter_subscribers(request):
                         if draft_cta_text and normalized_cta_url:
                             text_content += f"{draft_cta_text}: {normalized_cta_url}\n\n"
                         text_content += (
-                            f"Support: {getattr(site_settings_obj, 'contact_email', 'support@vibemall.com')}\n"
+                            f"Support: {getattr(site_settings_obj, 'contact_email', 'info.vibemall@gmail.com')}\n"
                             f"You received this email because you subscribed to "
                             f"{getattr(site_settings_obj, 'site_name', 'VibeMall')} newsletter."
                         )
@@ -5060,7 +5060,68 @@ def reel_set_like(request, reel_id):
 
 
 
-def about(request): return render(request, 'about.html')
+def about(request):
+    site_settings = SiteSettings.get_settings()
+
+    product_count = Product.objects.filter(is_active=True).count()
+    region_count = Address.objects.exclude(country__isnull=True).exclude(country__exact='').values('country').distinct().count()
+    avg_rating = ProductReview.objects.filter(is_approved=True).aggregate(value=Avg('rating')).get('value') or 0
+
+    if product_count >= 1000:
+        products_display = f"{product_count / 1000:.1f}k+"
+    else:
+        products_display = str(product_count or 0)
+
+    context = {
+        'site_settings': site_settings,
+        'about_subtitle': (
+            site_settings.tagline
+            if site_settings and site_settings.tagline
+            else 'VibeMall blends trend-aware shopping, dependable service, and a modern marketplace feel into one destination made for everyday discovery.'
+        ),
+        'about_hero': {
+            'eyebrow': 'Our Heritage',
+            'title': 'Curation as a Form of Art.',
+            'line_1': 'VibeMall was founded on the belief that shopping should be a narrative experience. We curate collections that balance trend, utility, and long-term style value.',
+            'line_2': 'Every piece in our marketplace is selected to make discovery easier, checkout smoother, and every order more satisfying.',
+        },
+        'about_stats': {
+            'products': products_display,
+            'regions': str(region_count or 0),
+            'rating': f"{avg_rating:.1f}" if avg_rating else '0.0',
+            'artisans': '450+',
+            'clients': '85k',
+            'awards': '14',
+        },
+        'about_concierge': {
+            'title': 'The Concierge Service',
+            'styling_title': 'Personal Styling',
+            'styling_copy': 'Book a private digital session with our stylists to build looks that fit your routine and personality.',
+            'delivery_title': 'White Glove Delivery',
+            'delivery_copy': 'Priority shipping with secure and premium packaging.',
+            'auth_title': 'Authenticity Promise',
+            'auth_copy': 'Carefully sourced products from trusted brands and partners.',
+        },
+        'about_why': [
+            {
+                'index': '01',
+                'title': 'Ethical Sourcing',
+                'copy': 'We evaluate partners for quality standards, fair practices, and responsible sourcing.',
+            },
+            {
+                'index': '02',
+                'title': 'Curated Rarity',
+                'copy': 'Exclusive drops and limited collections that keep the catalog fresh and exciting.',
+            },
+            {
+                'index': '03',
+                'title': 'Timeless Quality',
+                'copy': 'Pieces selected for repeat wear, durability, and style relevance beyond a single season.',
+            },
+        ],
+    }
+
+    return render(request, 'about.html', context)
 def blog(request): return render(request, 'blog.html')
 def blog_details(request): return render(request, 'blog-details.html')
 
@@ -5266,6 +5327,8 @@ def checkout(request: HttpRequest) -> HttpResponse:
             if not default_address:
                 messages.error(request, 'Default address not found. Please enter address manually.')
                 return redirect('checkout')
+            # Reusing an existing default address should not trigger new default-save intent.
+            set_default_address = False
             first_name, last_name = _split_full_name(default_address.full_name)
             phone = default_address.mobile_number
             address = default_address.address_line1
@@ -5953,29 +6016,165 @@ def faq(request):
         faq_groups = [
             {
                 'id': 0,
-                'name': 'Order & Delivery',
-                'description': 'Everything related to timelines, tracking, and global shipping.',
-                'anchor': 'order-delivery',
+                'name': 'Orders & Delivery',
+                'description': 'Everything about placing orders, shipping timelines, and tracking your parcel.',
+                'anchor': 'orders-delivery',
                 'faqs': [
                     {
-                        'question': 'When will my order ship?',
-                        'answer': 'Ready-to-wear selections usually ship in 2-3 business days. Atelier requests may take longer depending on finishing requirements.'
+                        'question': 'How do I place an order on VibeMall?',
+                        'answer': 'Browse any category or use Search to find the product you want. Select your size or variant, click Add to Cart, and proceed to Checkout. You can pay by card, UPI, net banking, or Cash on Delivery.',
                     },
                     {
-                        'question': 'Do you offer international delivery?',
-                        'answer': 'Yes. We deliver globally with tracking support and partner couriers for secure transit.'
+                        'question': 'How long does delivery take?',
+                        'answer': 'Standard orders are delivered within 5 to 7 business days. Delivery timelines may vary based on your pincode and the product category. Estimated delivery is shown at checkout before you confirm the order.',
+                    },
+                    {
+                        'question': 'How can I track my order?',
+                        'answer': 'Once your order is shipped, a tracking link is sent to your registered email and mobile number. You can also check the live status from My Orders inside your account.',
+                    },
+                    {
+                        'question': 'Can I change my delivery address after placing an order?',
+                        'answer': 'Address changes can be requested only before the order is dispatched. Please contact us at info.vibemall@gmail.com immediately with your order number and the updated address.',
+                    },
+                    {
+                        'question': 'Do you deliver across India?',
+                        'answer': 'Yes, VibeMall delivers to most serviceable pin codes across India. You can check delivery availability by entering your pin code on the product page.',
                     },
                 ],
             },
             {
                 'id': 1,
-                'name': 'Returns',
-                'description': 'Return windows, conditions, and support for return processing.',
-                'anchor': 'returns',
+                'name': 'Returns & Refunds',
+                'description': 'Details about return eligibility, the return process, and how refunds are processed.',
+                'anchor': 'returns-refunds',
                 'faqs': [
                     {
-                        'question': 'What is your return policy?',
-                        'answer': 'Eligible items can be returned within the defined return window, in original condition and packaging. Final-sale items are excluded.'
+                        'question': 'What is the return policy at VibeMall?',
+                        'answer': 'Most products are eligible for return within 7 days of delivery, provided the item is unused, unwashed, and returned in its original packaging with all tags intact. The exact return window is shown on each product page.',
+                    },
+                    {
+                        'question': 'How do I initiate a return?',
+                        'answer': 'Go to My Orders in your account, select the order, and click Request Return. Fill in the reason and submit. Our team will review and arrange a pickup within 48 hours of approval.',
+                    },
+                    {
+                        'question': 'When will I receive my refund?',
+                        'answer': 'Refunds are processed within 5 to 7 business days after we receive and inspect the returned item. The amount is credited to your original payment method or as VibeMall wallet credit, depending on the refund type.',
+                    },
+                    {
+                        'question': 'Are there items that cannot be returned?',
+                        'answer': 'Innerwear, customised products, perishable goods, and items marked as final sale are not eligible for return. This is mentioned clearly on the respective product pages.',
+                    },
+                    {
+                        'question': 'What should I do if I received a damaged or wrong product?',
+                        'answer': 'We apologise for the inconvenience. Please email us at info.vibemall@gmail.com within 48 hours of delivery with your order number and clear photos of the item. We will arrange an immediate replacement or full refund.',
+                    },
+                ],
+            },
+            {
+                'id': 2,
+                'name': 'Payments',
+                'description': 'Accepted payment methods, EMI options, coupon usage, and transaction concerns.',
+                'anchor': 'payments',
+                'faqs': [
+                    {
+                        'question': 'What payment methods are accepted?',
+                        'answer': 'We accept all major credit and debit cards, UPI (GPay, PhonePe, Paytm), net banking, and Cash on Delivery for eligible orders.',
+                    },
+                    {
+                        'question': 'Is it safe to use my card or UPI on VibeMall?',
+                        'answer': 'Yes. All transactions are processed through a secure and encrypted payment gateway. VibeMall does not store your card details. Look for the padlock icon in your browser address bar during checkout.',
+                    },
+                    {
+                        'question': 'My payment failed but the amount was deducted. What should I do?',
+                        'answer': 'If a payment fails after deduction, the amount is automatically reversed to your bank or card within 5 to 7 business days. If it is not credited, please contact us at info.vibemall@gmail.com with your order ID and transaction reference.',
+                    },
+                    {
+                        'question': 'How do I apply a coupon or promo code?',
+                        'answer': 'Enter your coupon code in the Promo Code field on the checkout page and click Apply. The discount will be reflected in your order total before payment.',
+                    },
+                    {
+                        'question': 'Is Cash on Delivery available for all orders?',
+                        'answer': 'Cash on Delivery is available for select pin codes and order values. You will see the COD option at checkout if it is available for your location and order.',
+                    },
+                ],
+            },
+            {
+                'id': 3,
+                'name': 'Products & Collections',
+                'description': 'Size guidance, product authenticity, availability, and how we curate our catalogue.',
+                'anchor': 'products-collections',
+                'faqs': [
+                    {
+                        'question': 'How do I find the right size?',
+                        'answer': 'Each product page includes a Size Guide specific to that category. We recommend checking the guide before ordering, especially for clothing and footwear, as sizing may vary by brand.',
+                    },
+                    {
+                        'question': 'Are the products on VibeMall authentic?',
+                        'answer': 'Yes. All products are sourced from verified brand partners and authorised suppliers. We do not list counterfeit or duplicate goods. Quality is reviewed before listings are approved.',
+                    },
+                    {
+                        'question': 'What if a product I want is out of stock?',
+                        'answer': 'You can tap the Notify Me button on the product page to receive an alert when the item is restocked. We restock popular items regularly based on demand.',
+                    },
+                    {
+                        'question': 'Do product images accurately represent the actual item?',
+                        'answer': 'We try our best to display accurate images. However, slight variations in colour may occur due to screen settings and photography lighting. The product description provides additional details about the actual item.',
+                    },
+                    {
+                        'question': 'Can I buy products in bulk or for resale?',
+                        'answer': 'Bulk and resale purchases may be available for selected categories. Please reach out to us at info.vibemall@gmail.com with your requirements for guidance.',
+                    },
+                ],
+            },
+            {
+                'id': 4,
+                'name': 'Account & Profile',
+                'description': 'Managing your account, saved addresses, order history, and profile settings.',
+                'anchor': 'account-profile',
+                'faqs': [
+                    {
+                        'question': 'How do I create a VibeMall account?',
+                        'answer': 'Click on the Profile icon and select Sign Up. Enter your name, email address, and a password. You can also register using your mobile number with OTP verification.',
+                    },
+                    {
+                        'question': 'I forgot my password. How do I reset it?',
+                        'answer': 'On the login page, click Forgot Password and enter your registered email address. A reset link will be sent to your inbox. Follow the link to set a new password.',
+                    },
+                    {
+                        'question': 'How do I save or update a delivery address?',
+                        'answer': 'Go to My Account and select Manage Addresses. You can add new addresses, edit existing ones, and set a default address for faster checkout.',
+                    },
+                    {
+                        'question': 'Where can I see my past orders?',
+                        'answer': 'All your orders are listed under My Orders in your account. You can view order status, tracking details, and download invoices from there.',
+                    },
+                    {
+                        'question': 'Can I cancel my order?',
+                        'answer': 'Orders can be cancelled before they are dispatched. Go to My Orders, select the order, and choose Cancel. If the order has already shipped, you can initiate a return once it is delivered.',
+                    },
+                ],
+            },
+            {
+                'id': 5,
+                'name': 'Support & Contact',
+                'description': 'How to reach our team and what to expect when you contact us.',
+                'anchor': 'support-contact',
+                'faqs': [
+                    {
+                        'question': 'How can I contact VibeMall customer support?',
+                        'answer': 'You can reach us by emailing info.vibemall@gmail.com or by using the Contact Us form on our website. We aim to respond to all queries within 24 hours on business days.',
+                    },
+                    {
+                        'question': 'What are the customer support hours?',
+                        'answer': 'Our support team is available Monday to Saturday, 10 AM to 7 PM IST. For urgent concerns outside these hours, please email us and we will get back to you on the next business day.',
+                    },
+                    {
+                        'question': 'How do I report a problem with an order or the website?',
+                        'answer': 'Email us at info.vibemall@gmail.com with a clear description of the issue and your order number if applicable. Screenshots or photos help us resolve the issue faster.',
+                    },
+                    {
+                        'question': 'I have a suggestion or feedback. How do I share it?',
+                        'answer': 'We love hearing from our customers. Please use the Contact Us page or email us directly at info.vibemall@gmail.com. Your feedback helps us improve the VibeMall experience.',
                     },
                 ],
             },
@@ -10269,12 +10468,12 @@ def download_invoice(request, order_number):
             pdf.drawString(left_col_x, left_y, str(line))
             left_y -= 4.7 * mm
 
-        company_lines = invoice_context.get('company_address_lines') or ['Design District Hub, Level 4', 'Mumbai, Maharashtra 400013']
+        company_lines = invoice_context.get('company_address_lines') or ['katargam 395004 surat ,Gujarat']
         for line in company_lines[:4]:
             pdf.drawString(right_col_x, right_y, str(line))
             right_y -= 4.7 * mm
 
-        company_email = invoice_context.get('company_email') or getattr(settings, 'DEFAULT_FROM_EMAIL', '')
+        company_email = invoice_context.get('company_email') or 'info.vibemall@gmail.com'
         if company_email:
             pdf.drawString(right_col_x, right_y, company_email)
 
@@ -10412,7 +10611,7 @@ def download_invoice(request, order_number):
             pdf_file.seek(0)
             pdf_data = pdf_file.read()
             pdf_file.close()
-        except (ImportError, OSError) as weasy_error:
+        except (ImportError, OSError, TypeError) as weasy_error:
             logger.warning("WeasyPrint unavailable for order %s, using ReportLab fallback: %s", order_number, weasy_error)
             try:
                 invoice_context = build_invoice_context(order)

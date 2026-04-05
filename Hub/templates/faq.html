@@ -31,29 +31,17 @@
                 </div>
             </section>
 
+            {% for group in faq_groups %}
             <section class="vm-faq-m-section">
-                <h3>Orders &amp; Delivery</h3>
+                <h3>{{ group.name }}</h3>
+                {% for item in group.faqs %}
                 <details>
-                    <summary>How can I track my bespoke shipment?<i class="far fa-angle-down"></i></summary>
-                    <p>Once your selection has been curated and prepared, a private tracking link will be dispatched to your registered email. For high-value atelier pieces, a personal concierge will oversee the final-mile delivery.</p>
+                    <summary>{{ item.question }}<i class="far fa-angle-down"></i></summary>
+                    <p>{{ item.answer }}</p>
                 </details>
-                <details>
-                    <summary>International duties and taxes?<i class="far fa-angle-down"></i></summary>
-                    <p>All prices displayed for international destinations are inclusive of landed costs. VIBEMALL handles all customs clearance to ensure a seamless arrival at your doorstep.</p>
-                </details>
+                {% endfor %}
             </section>
-
-            <section class="vm-faq-m-section">
-                <h3>The Collection</h3>
-                <details>
-                    <summary>Authenticity and craftsmanship?<i class="far fa-angle-down"></i></summary>
-                    <p>Every item in VIBEMALL is sourced directly from certified artisans or official brand partners. Each piece arrives with a physical Certificate of Provenance secured by a unique digital signature.</p>
-                </details>
-                <details>
-                    <summary>Can I request a private viewing?<i class="far fa-angle-down"></i></summary>
-                    <p>Private digital viewings for high-jewelry and couture pieces can be scheduled via our Personal Shopper service available in the Profile section.</p>
-                </details>
-            </section>
+            {% endfor %}
 
             <section class="vm-faq-m-contact">
                 <h4>Still seeking answers?</h4>

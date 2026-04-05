@@ -1681,7 +1681,7 @@ class SiteSettings(models.Model):
     tagline = models.CharField(max_length=200, blank=True, help_text='Website tagline/slogan')
     
     # Contact Information
-    contact_email = models.EmailField(default='support@vibemall.com')
+    contact_email = models.EmailField(default='info.vibemall@gmail.com')
     contact_phone = models.CharField(max_length=20, default='+91 1234567890')
     
     # Social Media Links

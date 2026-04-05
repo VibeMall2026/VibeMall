@@ -543,7 +543,6 @@
     height: 54px;
     border: 1px solid #c4c7c7;
     padding: 0 18px;
-    font-size: 11px;
     letter-spacing: 0.18em;
     text-transform: uppercase;
   }
@@ -551,6 +550,7 @@
   .vm-mobile-alt-newsletter input {
     background: #f0eee9;
     color: #171818;
+      font-size: 16px;
   }
 
   .vm-mobile-alt-newsletter button {
@@ -558,6 +558,7 @@
     color: #fff;
     font-weight: 700;
     border-color: #171818;
+      font-size: 11px;
   }
 
   .vm-mobile-alt-newsletter-feedback {
@@ -644,11 +645,16 @@
     display: flex;
     justify-content: space-around;
     align-items: center;
-    padding: 10px 14px calc(20px + env(safe-area-inset-bottom));
+    /* Use max safe-area inset to avoid iOS toolbar-driven jump while scrolling */
+    padding: 10px 14px calc(14px + env(safe-area-max-inset-bottom, env(safe-area-inset-bottom, 0px)));
     background: rgba(255, 255, 255, 0.88);
     backdrop-filter: blur(22px);
     box-shadow: 0 -10px 40px -5px rgba(27, 28, 25, 0.04);
     border-top: 1px solid rgba(23, 24, 24, 0.08);
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
   }
 
   .vm-mobile-bottom-nav a {

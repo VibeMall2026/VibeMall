@@ -22,75 +22,63 @@
         <main class="vm-about-m-main vm-mobile-content-offset">
             <section class="vm-about-m-hero">
                 <img src="{% static 'assets/img/about/about-b.png' %}" alt="Editorial fashion curation">
-                <span>Our Heritage</span>
-                <h2>Curation as a <br>Form of Art.</h2>
+                <span>{{ about_hero.eyebrow|default:'Our Heritage' }}</span>
+                <h2>{{ about_hero.title|default:'Curation as a Form of Art.' }}</h2>
                 <div class="vm-about-m-line"></div>
-                <p>VibeMall was founded on the belief that shopping should be a narrative experience. We curate collections that balance trend, utility, and long-term style value.</p>
-                <p>Every piece in our marketplace is selected to make discovery easier, checkout smoother, and every order more satisfying.</p>
+                <p>{{ about_hero.line_1|default:'VibeMall was founded on the belief that shopping should be a narrative experience. We curate collections that balance trend, utility, and long-term style value.' }}</p>
+                <p>{{ about_hero.line_2|default:'Every piece in our marketplace is selected to make discovery easier, checkout smoother, and every order more satisfying.' }}</p>
             </section>
 
             <section class="vm-about-m-stats">
                 <article>
                     <i class="far fa-sparkles"></i>
-                    <h4>12k+</h4>
+                    <h4>{{ about_stats.products|default:'12k+' }}</h4>
                     <p>Products</p>
                 </article>
                 <article>
                     <i class="far fa-globe"></i>
-                    <h4>24</h4>
+                    <h4>{{ about_stats.regions|default:'24' }}</h4>
                     <p>Regions</p>
                 </article>
                 <article>
                     <i class="far fa-star"></i>
-                    <h4>4.9</h4>
+                    <h4>{{ about_stats.rating|default:'4.9' }}</h4>
                     <p>Rating</p>
                 </article>
             </section>
 
             <section class="vm-about-m-concierge">
-                <h3>The Concierge Service</h3>
+                <h3>{{ about_concierge.title|default:'The Concierge Service' }}</h3>
                 <div class="vm-about-m-grid">
                     <article class="vm-about-m-card vm-about-m-card--wide">
                         <i class="far fa-pen-nib"></i>
-                        <h5>Personal Styling</h5>
-                        <p>Book a private digital session with our stylists to build looks that fit your routine and personality.</p>
+                        <h5>{{ about_concierge.styling_title|default:'Personal Styling' }}</h5>
+                        <p>{{ about_concierge.styling_copy|default:'Book a private digital session with our stylists to build looks that fit your routine and personality.' }}</p>
                     </article>
                     <article class="vm-about-m-card">
                         <i class="far fa-box"></i>
-                        <h6>White Glove Delivery</h6>
-                        <p>Priority shipping with secure and premium packaging.</p>
+                        <h6>{{ about_concierge.delivery_title|default:'White Glove Delivery' }}</h6>
+                        <p>{{ about_concierge.delivery_copy|default:'Priority shipping with secure and premium packaging.' }}</p>
                     </article>
                     <article class="vm-about-m-card">
                         <i class="far fa-shield-check"></i>
-                        <h6>Authenticity Promise</h6>
-                        <p>Carefully sourced products from trusted brands and partners.</p>
+                        <h6>{{ about_concierge.auth_title|default:'Authenticity Promise' }}</h6>
+                        <p>{{ about_concierge.auth_copy|default:'Carefully sourced products from trusted brands and partners.' }}</p>
                     </article>
                 </div>
             </section>
 
             <section class="vm-about-m-why">
-                <h3>Why VIBEMALL?</h3>
+                <h3>Why {{ site_settings.site_name|default:'VIBEMALL'|upper }}?</h3>
+                {% for item in about_why %}
                 <article>
-                    <span>01</span>
+                    <span>{{ item.index }}</span>
                     <div>
-                        <h6>Ethical Sourcing</h6>
-                        <p>We evaluate partners for quality standards, fair practices, and responsible sourcing.</p>
+                        <h6>{{ item.title }}</h6>
+                        <p>{{ item.copy }}</p>
                     </div>
                 </article>
-                <article>
-                    <span>02</span>
-                    <div>
-                        <h6>Curated Rarity</h6>
-                        <p>Exclusive drops and limited collections that keep the catalog fresh and exciting.</p>
-                    </div>
-                </article>
-                <article>
-                    <span>03</span>
-                    <div>
-                        <h6>Timeless Quality</h6>
-                        <p>Pieces selected for repeat wear, durability, and style relevance beyond a single season.</p>
-                    </div>
-                </article>
+                {% endfor %}
             </section>
 
             {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='about-mobile' %}
@@ -132,11 +120,11 @@
                             <img src="{% static 'assets/img/about/about-b.png' %}" alt="VibeMall heritage story image" loading="lazy">
                         </div>
                         <div class="vm-tablet-story-copy">
-                            <h2>The VibeMall Legacy</h2>
+                            <h2>The {{ site_settings.site_name|default:'VibeMall' }} Legacy</h2>
                             <div class="vm-tablet-story-text">
-                                <p>Founded at the intersection of artisanal heritage and contemporary minimalism, VibeMall was conceived as a digital sanctuary for those who seek more than just products.</p>
-                                <p>Our journey began in a small atelier, where we realized that the true luxury lies in the narrative of the craft. We curate each piece not as a commodity, but as a silent testament to the hands that shaped it.</p>
-                                <p class="vm-tablet-story-quote">"We don't just sell aesthetics; we cultivate an atmosphere of intentional living."</p>
+                                <p>{{ about_hero.line_1|default:'Founded at the intersection of artisanal heritage and contemporary minimalism, VibeMall was conceived as a digital sanctuary for those who seek more than just products.' }}</p>
+                                <p>{{ about_hero.line_2|default:'Our journey began in a small atelier, where we realized that the true luxury lies in the narrative of the craft. We curate each piece not as a commodity, but as a silent testament to the hands that shaped it.' }}</p>
+                                <p class="vm-tablet-story-quote">"{{ about_subtitle|default:'We do not just sell aesthetics; we cultivate an atmosphere of intentional living.' }}"</p>
                             </div>
                         </div>
                     </div>
@@ -151,22 +139,22 @@
                             <div class="service-icon">
                                 <i class="far fa-sparkles"></i>
                             </div>
-                            <h3>Curated Excellence</h3>
-                            <p>Every item in our archive undergoes a rigorous selection process to ensure it meets our standard of timelessness and quality.</p>
+                            <h3>{{ about_why.0.title|default:'Curated Excellence' }}</h3>
+                            <p>{{ about_why.0.copy|default:'Every item in our archive undergoes a rigorous selection process to ensure it meets our standard of timelessness and quality.' }}</p>
                         </article>
                         <article class="vm-tablet-service-card">
                             <div class="service-icon">
                                 <i class="far fa-pen-nib"></i>
                             </div>
-                            <h3>Atelier Tailoring</h3>
-                            <p>Our in-house artisans provide bespoke adjustments, ensuring that every silhouette aligns perfectly with your persona.</p>
+                            <h3>{{ about_concierge.styling_title|default:'Atelier Tailoring' }}</h3>
+                            <p>{{ about_concierge.styling_copy|default:'Our in-house artisans provide bespoke adjustments, ensuring that every silhouette aligns perfectly with your persona.' }}</p>
                         </article>
                         <article class="vm-tablet-service-card">
                             <div class="service-icon">
                                 <i class="far fa-globe"></i>
                             </div>
-                            <h3>Global Archive</h3>
-                            <p>We source rare, ethically produced materials from historical craft clusters across the globe, bringing heritage to your doorstep.</p>
+                            <h3>{{ about_why.1.title|default:'Global Archive' }}</h3>
+                            <p>{{ about_why.1.copy|default:'We source rare, ethically produced materials from historical craft clusters across the globe, bringing heritage to your doorstep.' }}</p>
                         </article>
                     </div>
                 </div>
@@ -201,7 +189,7 @@
                 <div class="vm-tablet-about-container">
                     <div class="vm-tablet-cta-content">
                         <h2>Have a specific vision for your wardrobe?</h2>
-                        <p>Our concierge team is available for private consultations and bespoke sourcing requests. Let us help you find the extraordinary.</p>
+                        <p>{{ about_concierge.styling_copy|default:'Our concierge team is available for private consultations and bespoke sourcing requests. Let us help you find the extraordinary.' }}</p>
                         <a href="{% url 'contact' %}" class="vm-tablet-cta-btn">Inquire Now</a>
                     </div>
                 </div>
@@ -235,7 +223,7 @@
             <img src="{% static 'assets/img/about/ab-01.jpg' %}" alt="Luxury boutique interior">
             <div class="vm-about-d-hero-content">
                 <span>EST. 1994</span>
-                <h1>The Art of Refined Living</h1>
+                <h1>The Art of Refined Living at {{ site_settings.site_name|default:'VibeMall' }}</h1>
             </div>
         </section>
 
@@ -246,18 +234,18 @@
             </div>
             <div class="vm-about-d-story-copy">
                 <h2>Our Heritage,<br>Your Expression.</h2>
-                <p>VibeMall Atelier began as a focused curation studio dedicated to quality, authenticity, and timeless style. Today, it connects refined craftsmanship with modern shopping ease.</p>
-                <p>Every collection is selected through a lens of responsible sourcing, premium finishing, and long-term wearability. We do not just list products. We curate legacies.</p>
+                <p>{{ about_hero.line_1|default:'VibeMall Atelier began as a focused curation studio dedicated to quality, authenticity, and timeless style. Today, it connects refined craftsmanship with modern shopping ease.' }}</p>
+                <p>{{ about_hero.line_2|default:'Every collection is selected through a lens of responsible sourcing, premium finishing, and long-term wearability. We do not just list products. We curate legacies.' }}</p>
                 <a href="{% url 'shop' %}" class="vm-about-d-cta">Explore the Archive</a>
             </div>
         </section>
 
         <section class="vm-about-d-stats">
             <div class="vm-about-d-wrap vm-about-d-stats-grid">
-                <article><h3>30+</h3><p>Years of Heritage</p></article>
-                <article><h3>150</h3><p>Artisan Partners</p></article>
-                <article><h3>12</h3><p>Global Ateliers</p></article>
-                <article><h3>100%</h3><p>Ethical Sourcing</p></article>
+                <article><h3>{{ about_stats.products|default:'12k+' }}</h3><p>Products Curated</p></article>
+                <article><h3>{{ about_stats.artisans|default:'450+' }}</h3><p>Global Artisans</p></article>
+                <article><h3>{{ about_stats.regions|default:'24' }}</h3><p>Regions Served</p></article>
+                <article><h3>{{ about_stats.rating|default:'4.9' }}</h3><p>Customer Rating</p></article>
             </div>
         </section>
 
@@ -288,28 +276,16 @@
         <section class="vm-about-d-why">
             <div class="vm-about-d-wrap vm-about-d-why-grid">
                 <div class="vm-about-d-why-copy">
-                    <h2>Why the Atelier?</h2>
+                    <h2>Why {{ site_settings.site_name|default:'VibeMall' }}?</h2>
+                    {% for item in about_why %}
                     <article class="vm-about-d-why-item">
-                        <span>01</span>
+                        <span>{{ item.index }}</span>
                         <div>
-                            <h5>Uncompromising Quality</h5>
-                            <p>Every fabric, finish, and accessory is chosen for tactile value, durability, and premium presentation.</p>
+                            <h5>{{ item.title }}</h5>
+                            <p>{{ item.copy }}</p>
                         </div>
                     </article>
-                    <article class="vm-about-d-why-item">
-                        <span>02</span>
-                        <div>
-                            <h5>Artisan Support</h5>
-                            <p>VibeMall actively partners with skilled makers to sustain craft communities and responsible production.</p>
-                        </div>
-                    </article>
-                    <article class="vm-about-d-why-item">
-                        <span>03</span>
-                        <div>
-                            <h5>Conscious Consumption</h5>
-                            <p>We prioritize fewer, better selections that keep your wardrobe meaningful and long-lasting.</p>
-                        </div>
-                    </article>
+                    {% endfor %}
                 </div>
                 <div class="vm-about-d-why-media">
                     <img src="{% static 'assets/img/about/ab-02.jpg' %}" alt="Atelier visual texture">
@@ -333,7 +309,7 @@
 
         <section class="vm-about-d-social">
             <div class="vm-about-d-wrap">
-                <p>VibeMall Atelier. Curated for the modern connoisseur.</p>
+                <p>{{ site_settings.site_name|default:'VibeMall' }}. Curated for the modern connoisseur.</p>
                 <div class="vm-about-d-social-links">
                     <a href="{{ site_settings.instagram_url|default:'#' }}" {% if site_settings.instagram_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="Instagram"><i class="fab fa-instagram"></i></a>
                     <a href="{{ site_settings.twitter_url|default:'#' }}" {% if site_settings.twitter_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="Twitter"><i class="fab fa-twitter"></i></a>

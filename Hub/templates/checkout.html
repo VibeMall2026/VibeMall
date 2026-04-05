@@ -8,7 +8,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'assets/css/checkout-responsive.css' %}">
-<link rel="stylesheet" href="{% static 'assets/css/checkout-mobile-alt.css' %}?v=20260403-02">
+<link rel="stylesheet" href="{% static 'assets/css/checkout-mobile-alt.css' %}?v=20260405-01">
 <link rel="stylesheet" href="{% static 'assets/css/checkout-tablet.css' %}?v=20260403-04">
 <link rel="stylesheet" href="{% static 'assets/css/checkout-desktop-alt.css' %}?v=20260403-01">
 {% endblock %}
@@ -383,6 +383,10 @@
                 </div>
             </section>
         </form>
+
+        <div class="vm-checkout-mobile-footer">
+            {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='checkout-mobile' %}
+        </div>
     </main>
 
     <footer class="vm-checkout-mobile-fixed">
@@ -403,7 +407,15 @@
         <p>Add a few pieces to your cart before moving to checkout.</p>
         <a href="{% url 'shop' %}">Continue Shopping</a>
     </main>
+
+    <div class="vm-checkout-mobile-footer vm-checkout-mobile-footer--empty">
+        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='checkout-mobile-empty' %}
+    </div>
     {% endif %}
+
+    <div class="vm-checkout-mobile-bnav">
+        {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='cart' %}
+    </div>
 </section>
 
 <!-- TABLET VIEW START -->
@@ -781,6 +793,7 @@
     const pincodeError = document.getElementById('mobilePincodeError');
     const cityHint = document.getElementById('mobileCityHint');
     const useDefaultAddress = document.getElementById('mobileUseDefaultAddress');
+    const setDefaultAddress = document.getElementById('mobileSetDefaultAddress');
     const placeOrderButton = document.getElementById('mobilePlaceOrderButton');
     const resellCheckbox = document.getElementById('mobileResellCheckbox');
     const resellDetails = document.getElementById('mobileResellDetails');
@@ -1202,6 +1215,11 @@
             return;
         }
 
+        // Using an existing saved address should not auto-mark a new default.
+        if (setDefaultAddress) {
+            setDefaultAddress.checked = false;
+        }
+
         if (fullNameField) {
             fullNameField.value = useDefaultAddress.dataset.fullName || '';
         }
@@ -1527,6 +1545,7 @@ if (redeemCheckbox) {
     const lastNameField = document.getElementById('lastNameField');
     const phoneField = document.getElementById('phoneField');
     const useDefaultAddress = document.getElementById('useDefaultAddress');
+    const setDefaultAddress = checkoutForm ? checkoutForm.querySelector('input[name="set_default_address"]') : null;
     const countryField = document.querySelector('select[name="country"]');
     const pincodeValidField = document.getElementById('pincodeValid');
     const placeOrderButton = document.getElementById('placeOrderButton');
@@ -1592,6 +1611,12 @@ if (redeemCheckbox) {
 
     const applyDefaultAddress = () => {
         if (!useDefaultAddress || !useDefaultAddress.checked) return;
+
+        // Using an existing saved address should not auto-mark a new default.
+        if (setDefaultAddress) {
+            setDefaultAddress.checked = false;
+        }
+
         const fullName = useDefaultAddress.dataset.fullName || '';
         const parts = fullName.trim().split(' ');
         const first = parts.shift() || '';
@@ -1909,5 +1934,5 @@ function getCookie(name) {
 {% endblock content %}
 
 {% block extra_js %}
-<script src="{% static 'assets/js/checkout-tablet.js' %}?v=20260404-01"></script>
+<script src="{% static 'assets/js/checkout-tablet.js' %}?v=20260405-01"></script>
 {% endblock %}

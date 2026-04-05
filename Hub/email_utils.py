@@ -96,11 +96,10 @@ def build_invoice_context(order):
     invoice_date = order.order_date or order.created_at
 
     company_name = 'VibeMall'
-    company_email = (getattr(site_settings, 'contact_email', None) or _get_from_email()).strip()
+    company_email = 'info.vibemall@gmail.com'
     company_phone = (getattr(site_settings, 'contact_phone', None) or '').strip()
     company_address_lines = [
-        'Design District Hub, Level 4',
-        'Mumbai, Maharashtra 400013',
+        'katargam 395004 surat ,Gujarat',
     ]
 
     return {
@@ -828,7 +827,7 @@ What You Can Do:
 ✓ Get exclusive deals and offers
 
 Need help? Contact us:
-Email: support@vibemall.com
+Email: info.vibemall@gmail.com
 
 © {context['current_year']} VibeMall. All rights reserved.
         """
@@ -976,7 +975,7 @@ What You Can Do:
 ✓ Get exclusive deals and offers
 
 Need help? Contact us:
-Email: support@vibemall.com
+Email: info.vibemall@gmail.com
 
 © {context['current_year']} VibeMall. All rights reserved.
         """

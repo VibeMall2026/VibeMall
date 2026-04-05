@@ -59,6 +59,15 @@ document.addEventListener('DOMContentLoaded', function () {
             window.scrollTo(0, lockedScrollY);
         }
 
+        function recoverMenuState() {
+            const menuIsOpen = sideMenu.classList.contains('is-open') || menuOverlay.classList.contains('is-open');
+            const hasScrollLock = document.body.dataset.vmMenuScrollLocked === 'true';
+
+            if (!menuIsOpen && hasScrollLock) {
+                unlockPageScroll();
+            }
+        }
+
         // Close menu function
         function closeMenu() {
             sideMenu.classList.remove('is-open');
@@ -115,6 +124,29 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
+        // Ensure stale scroll locks never survive browser navigation restore.
+        window.addEventListener('pagehide', function () {
+            closeMenu();
+        });
+
+        window.addEventListener('pageshow', function () {
+            recoverMenuState();
+        });
+
+        window.addEventListener('popstate', function () {
+            closeMenu();
+            recoverMenuState();
+        });
+
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'hidden') {
+                closeMenu();
+                return;
+            }
+
+            recoverMenuState();
+        });
+
         // Submenu toggle
         submenuToggles.forEach(function (toggle) {
             toggle.addEventListener('click', function (e) {
@@ -137,6 +169,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     closeMenu();
                 }
             });
+
+            link.addEventListener('touchstart', function () {
+                if (link.tagName !== 'BUTTON') {
+                    closeMenu();
+                }
+            }, { passive: true });
         });
     }
 
