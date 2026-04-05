@@ -91,6 +91,12 @@
                 <span><i class="far fa-lock"></i> Payment Methods</span>
                 <i class="far fa-angle-down"></i>
             </a>
+            {% if has_reseller_dashboard_access %}
+            <a href="{% url 'reseller_dashboard' %}">
+                <span><i class="far fa-chart-line"></i> Reseller Dashboard</span>
+                <i class="far fa-angle-down"></i>
+            </a>
+            {% endif %}
         </section>
 
         <section class="pmv-logout-wrap">
@@ -222,6 +228,9 @@
                         <div class="pdv-actions">
                             <button type="button" class="pdv-btn" data-bs-toggle="modal" data-bs-target="#profileModal">Edit Profile</button>
                             <a href="{% url 'payment_methods' %}" class="pdv-btn pdv-btn--light">Payment Methods</a>
+                            {% if has_reseller_dashboard_access %}
+                            <a href="{% url 'reseller_dashboard' %}" class="pdv-btn pdv-btn--light">Reseller Dashboard</a>
+                            {% endif %}
                         </div>
                     </article>
                 </section>

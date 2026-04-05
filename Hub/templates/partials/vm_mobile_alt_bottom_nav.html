@@ -18,6 +18,11 @@
          class="{% if nav_key == 'account' or current_url_name == 'login' %}is-active{% endif %}"
          aria-label="Account"><i class="far fa-user"></i></a>
      {% endif %}
+     {% if has_reseller_dashboard_access %}
+     <a href="{% url 'reseller_dashboard' %}"
+         class="{% if nav_key == 'reseller' or current_url_name == 'reseller_dashboard' or current_url_name == 'reseller_links' or current_url_name == 'earnings_history' or current_url_name == 'reseller_profile' or current_url_name == 'payout_request_page' %}is-active{% endif %}"
+         aria-label="Reseller Dashboard"><i class="fas fa-th-large"></i></a>
+     {% endif %}
      <a href="{% url 'wishlist' %}"
          class="{% if nav_key == 'wishlist' or current_url_name == 'wishlist' %}is-active{% endif %}"
          aria-label="Wishlist"><i class="far fa-heart"></i></a>

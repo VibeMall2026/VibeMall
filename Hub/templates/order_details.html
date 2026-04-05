@@ -283,22 +283,6 @@
     text-underline-offset: 6px;
 }
 
-.vm-odm-help-fab {
-    position: fixed;
-    right: 16px;
-    bottom: 16px;
-    z-index: 1101;
-    width: 54px;
-    height: 54px;
-    border-radius: 999px;
-    border: 0;
-    background: #171818;
-    color: #fff;
-    display: inline-grid;
-    place-items: center;
-    box-shadow: 0 20px 34px -10px rgba(23, 24, 24, 0.45);
-}
-
 .vm-odt-shell {
     min-height: 100vh;
     background: #fbf9f4;
@@ -717,8 +701,7 @@
 }
 
 @media (min-width: 768px) and (max-width: 1199.98px) {
-    .vm-odm-shell,
-    .vm-odm-help-fab {
+    .vm-odm-shell {
         display: none;
     }
 
@@ -764,7 +747,7 @@
         </section>
 
         <section class="vm-odm-actions" aria-label="Primary actions">
-            <a class="vm-odm-action" href="{% url 'order_tracking' order.order_number %}">
+            <a class="vm-odm-action" href="{% url 'track_order' %}?order_number={{ order.order_number|urlencode }}">
                 <i class="fas fa-shipping-fast"></i>
                 <span>Track Order</span>
             </a>
@@ -893,11 +876,7 @@
         {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='order-details-mobile' %}
     </main>
 
-    <button type="button" class="vm-odm-help-fab" aria-label="Support">
-        <i class="fas fa-headset"></i>
-    </button>
-
-    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='home' %}
 </div>
 
 <div class="vm-odt-shell">
@@ -924,7 +903,7 @@
         </section>
 
         <section class="vm-odt-actions" aria-label="Order actions">
-            <a href="{% url 'order_tracking' order.order_number %}" class="vm-odt-action vm-odt-action--primary">
+            <a href="{% url 'track_order' %}?order_number={{ order.order_number|urlencode }}" class="vm-odt-action vm-odt-action--primary">
                 <i class="fas fa-shipping-fast"></i>
                 <span>Track Order</span>
             </a>

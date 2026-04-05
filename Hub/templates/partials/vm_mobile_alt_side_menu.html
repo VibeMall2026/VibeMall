@@ -77,6 +77,14 @@
                     <span>My Account</span>
                 </a>
             </li>
+            {% if has_reseller_dashboard_access %}
+            <li class="vm-mobile-side-menu__item">
+                <a href="{% url 'reseller_dashboard' %}" class="vm-mobile-side-menu__link">
+                    <i class="fas fa-th-large"></i>
+                    <span>Reseller Dashboard</span>
+                </a>
+            </li>
+            {% endif %}
             <li class="vm-mobile-side-menu__item">
                 <a href="{% url 'logout' %}" class="vm-mobile-side-menu__link vm-mobile-side-menu__link--logout">
                     <i class="fas fa-sign-out-alt"></i>

@@ -9246,13 +9246,41 @@ def lookup_ifsc(request):
 
 def track_order_page(request):
     """Order tracking search page"""
+    order_number = ''
+
     if request.method == 'POST':
         order_number = request.POST.get('order_number', '').strip()
         if order_number:
-            return redirect('order_tracking', order_number=order_number)
+            query_params = urlencode({'order_number': order_number})
+            return redirect(f"{reverse('track_order')}?{query_params}")
         else:
             messages.error(request, 'Please enter an order number')
-    
+
+    if request.method == 'GET':
+        order_number = request.GET.get('order_number', '').strip()
+
+    if order_number:
+        if not request.user.is_authenticated:
+            login_query = urlencode({'next': request.get_full_path()})
+            return redirect(f"{reverse('login')}?{login_query}")
+
+        try:
+            order = Order.objects.get(order_number=order_number, user=request.user)
+            order_items = OrderItem.objects.filter(order=order)
+            return_request_obj = order.return_requests.order_by('-requested_at').first()
+            return_history = None
+            if return_request_obj:
+                return_history = return_request_obj.history.select_related('changed_by')
+
+            return render(request, 'order_tracking.html', {
+                'order': order,
+                'order_items': order_items,
+                'return_request': return_request_obj,
+                'return_history': return_history,
+            })
+        except Order.DoesNotExist:
+            messages.error(request, 'Order not found')
+
     return render(request, 'track_order.html')
 
 
@@ -10093,18 +10121,253 @@ def customer_cancel_order(request, order_id):
 def download_invoice(request, order_number):
     """Generate and download PDF invoice for an order"""
     import traceback
+    import os
     from io import BytesIO
+
+    def _generate_reportlab_fallback_pdf(order_obj, invoice_context):
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.units import mm
+        from reportlab.lib import colors
+        from reportlab.lib.utils import ImageReader
+        from reportlab.pdfgen import canvas
+        import requests
+
+        def _draw_line(pdf, text, y_pos, x_pos=18 * mm, font_name='Helvetica', font_size=10):
+            pdf.setFont(font_name, font_size)
+            pdf.drawString(x_pos, y_pos, text)
+            return y_pos - 5.5 * mm
+
+        def _draw_wrapped_lines(pdf, text, x_pos, y_pos, max_width, line_height=4.6 * mm, font_name='Helvetica', font_size=9):
+            words = str(text or '').split()
+            if not words:
+                return y_pos
+
+            pdf.setFont(font_name, font_size)
+            current_line = ''
+            for word in words:
+                candidate = f"{current_line} {word}".strip()
+                if pdf.stringWidth(candidate, font_name, font_size) <= max_width:
+                    current_line = candidate
+                else:
+                    pdf.drawString(x_pos, y_pos, current_line)
+                    y_pos -= line_height
+                    current_line = word
+
+            if current_line:
+                pdf.drawString(x_pos, y_pos, current_line)
+                y_pos -= line_height
+
+            return y_pos
+
+        def _get_image_reader(image_url):
+            if not image_url:
+                return None
+
+            try:
+                if image_url.startswith(('http://', 'https://')):
+                    response = requests.get(image_url, timeout=6)
+                    response.raise_for_status()
+                    return ImageReader(BytesIO(response.content))
+
+                relative_path = ''
+                if image_url.startswith('/media/'):
+                    relative_path = image_url.replace('/media/', '', 1)
+                elif image_url.startswith('media/'):
+                    relative_path = image_url.replace('media/', '', 1)
+
+                if relative_path:
+                    file_path = os.path.join(str(settings.MEDIA_ROOT), relative_path)
+                    if os.path.exists(file_path):
+                        return ImageReader(file_path)
+            except Exception:
+                return None
+
+            return None
+
+        pdf_buffer = BytesIO()
+        pdf = canvas.Canvas(pdf_buffer, pagesize=A4)
+        page_width, page_height = A4
+        cursor_y = page_height - 18 * mm
+
+        company_name = 'VibeMall'
+        payment_status = 'Paid (COD)' if order_obj.payment_method == 'COD' and order_obj.order_status == 'DELIVERED' else order_obj.get_payment_status_display()
+        shipping_lines = invoice_context.get('shipping_lines') or [line.strip() for line in (order_obj.shipping_address or '').replace('\r', '\n').split('\n') if line.strip()]
+
+        pdf.setFont('Helvetica-Bold', 23)
+        pdf.drawCentredString(page_width / 2, cursor_y, company_name.upper())
+        cursor_y -= 8 * mm
+        pdf.setFont('Helvetica-Bold', 9)
+        pdf.setFillColor(colors.HexColor('#666666'))
+        pdf.drawCentredString(page_width / 2, cursor_y, 'INVOICE')
+        pdf.setFillColor(colors.black)
+        cursor_y -= 11 * mm
+
+        pdf.setStrokeColor(colors.HexColor('#D8D4CC'))
+        pdf.setLineWidth(0.7)
+        pdf.line(18 * mm, cursor_y, page_width - 18 * mm, cursor_y)
+        cursor_y -= 9 * mm
+
+        pdf.setFont('Helvetica', 8)
+        pdf.setFillColor(colors.HexColor('#777777'))
+        pdf.drawString(18 * mm, cursor_y, 'ORDER NUMBER')
+        pdf.drawCentredString(page_width / 2, cursor_y, 'DATE')
+        pdf.drawRightString(page_width - 18 * mm, cursor_y, 'CUSTOMER ID')
+        pdf.setFillColor(colors.black)
+        cursor_y -= 5 * mm
+
+        pdf.setFont('Helvetica-Bold', 10)
+        pdf.drawString(18 * mm, cursor_y, f"#{order_obj.order_number}")
+        pdf.drawCentredString(page_width / 2, cursor_y, order_obj.created_at.strftime('%B %d, %Y'))
+        pdf.drawRightString(page_width - 18 * mm, cursor_y, f"CU-{order_obj.user_id:05d}")
+        cursor_y -= 9 * mm
+
+        pdf.line(18 * mm, cursor_y, page_width - 18 * mm, cursor_y)
+        cursor_y -= 9 * mm
+
+        left_col_x = 18 * mm
+        right_col_x = page_width / 2 + 10 * mm
+        box_top = cursor_y
+
+        pdf.setFont('Helvetica-Bold', 8)
+        pdf.setFillColor(colors.HexColor('#6f5c37'))
+        pdf.drawString(left_col_x, cursor_y, 'BILLED TO')
+        pdf.drawString(right_col_x, cursor_y, 'FROM')
+        pdf.setFillColor(colors.black)
+        cursor_y -= 5.5 * mm
+
+        pdf.setFont('Helvetica-Bold', 11)
+        pdf.drawString(left_col_x, cursor_y, invoice_context.get('customer_name') or (order_obj.user.get_full_name() or order_obj.user.username))
+        pdf.drawString(right_col_x, cursor_y, company_name)
+        cursor_y -= 5 * mm
+
+        left_y = cursor_y
+        right_y = cursor_y
+
+        pdf.setFont('Helvetica', 9)
+        for line in shipping_lines[:5]:
+            pdf.drawString(left_col_x, left_y, str(line))
+            left_y -= 4.7 * mm
+
+        company_lines = invoice_context.get('company_address_lines') or ['Design District Hub, Level 4', 'Mumbai, Maharashtra 400013']
+        for line in company_lines[:4]:
+            pdf.drawString(right_col_x, right_y, str(line))
+            right_y -= 4.7 * mm
+
+        company_email = invoice_context.get('company_email') or getattr(settings, 'DEFAULT_FROM_EMAIL', '')
+        if company_email:
+            pdf.drawString(right_col_x, right_y, company_email)
+
+        cursor_y = min(left_y, right_y) - 5 * mm
+
+        pdf.setStrokeColor(colors.HexColor('#D8D4CC'))
+        pdf.line(18 * mm, cursor_y, page_width - 18 * mm, cursor_y)
+        cursor_y -= 8 * mm
+
+        pdf.setFont('Helvetica-Bold', 8)
+        pdf.setFillColor(colors.HexColor('#6b6861'))
+        pdf.drawString(18 * mm, cursor_y, 'Item')
+        pdf.drawString(128 * mm, cursor_y, 'Qty')
+        pdf.drawString(145 * mm, cursor_y, 'Unit')
+        pdf.drawRightString(page_width - 18 * mm, cursor_y, 'Total')
+        pdf.setFillColor(colors.black)
+        cursor_y -= 5 * mm
+        pdf.line(18 * mm, cursor_y, page_width - 18 * mm, cursor_y)
+        cursor_y -= 6 * mm
+
+        fallback_items = invoice_context.get('order_items') or []
+        for item in fallback_items:
+            row_height = 25 * mm
+            if cursor_y < 40 * mm:
+                pdf.showPage()
+                cursor_y = page_height - 20 * mm
+                pdf.setFont('Helvetica-Bold', 10)
+                pdf.drawString(18 * mm, cursor_y, 'Item')
+                pdf.drawString(128 * mm, cursor_y, 'Qty')
+                pdf.drawString(145 * mm, cursor_y, 'Unit')
+                pdf.drawRightString(page_width - 18 * mm, cursor_y, 'Total')
+                cursor_y -= 6 * mm
+
+            image_x = 18 * mm
+            image_y = cursor_y - 19 * mm
+            image_w = 15 * mm
+            image_h = 20 * mm
+
+            pdf.setFillColor(colors.HexColor('#EEEAE2'))
+            pdf.rect(image_x, image_y, image_w, image_h, stroke=0, fill=1)
+            pdf.setFillColor(colors.black)
+
+            image_reader = _get_image_reader(item.get('image_url'))
+            if image_reader:
+                try:
+                    pdf.drawImage(image_reader, image_x, image_y, width=image_w, height=image_h, preserveAspectRatio=True, anchor='c', mask='auto')
+                except Exception:
+                    pass
+
+            text_x = image_x + image_w + 4 * mm
+            text_max_width = 84 * mm
+
+            item_name = item.get('name') or 'Item'
+            pdf.setFont('Helvetica-Bold', 10)
+            name_y = cursor_y - 1 * mm
+            name_y = _draw_wrapped_lines(pdf, item_name, text_x, name_y, text_max_width, line_height=4.2 * mm, font_name='Helvetica-Bold', font_size=9.8)
+
+            variant_text = item.get('variant_text') or ''
+            if variant_text:
+                pdf.setFont('Helvetica', 8)
+                pdf.setFillColor(colors.HexColor('#7a766f'))
+                _draw_wrapped_lines(pdf, variant_text.upper(), text_x, name_y + 0.8 * mm, text_max_width, line_height=3.8 * mm, font_name='Helvetica', font_size=7.2)
+                pdf.setFillColor(colors.black)
+
+            pdf.setFont('Helvetica', 9)
+            pdf.drawString(130 * mm, cursor_y - 2 * mm, str(item.get('quantity') or 0))
+            pdf.drawString(145 * mm, cursor_y - 2 * mm, f"Rs {float(item.get('unit_price') or 0):.2f}")
+            pdf.drawRightString(page_width - 18 * mm, cursor_y - 2 * mm, f"Rs {float(item.get('line_total') or 0):.2f}")
+
+            cursor_y -= row_height
+            pdf.setStrokeColor(colors.HexColor('#EEEAE2'))
+            pdf.line(18 * mm, cursor_y + 4 * mm, page_width - 18 * mm, cursor_y + 4 * mm)
+
+        cursor_y -= 2 * mm
+        pdf.line(18 * mm, cursor_y, page_width - 18 * mm, cursor_y)
+        cursor_y -= 7 * mm
+
+        summary_lines = [
+            ('Subtotal', float(order_obj.subtotal or 0)),
+            ('Shipping', float(order_obj.shipping_cost or 0)),
+        ]
+        if order_obj.tax:
+            summary_lines.append(('Tax', float(order_obj.tax or 0)))
+        if order_obj.coupon_discount:
+            summary_lines.append(('Discount', -float(order_obj.coupon_discount or 0)))
+        summary_lines.append(('Grand Total', float(order_obj.total_amount or 0)))
+
+        for label, amount in summary_lines:
+            is_total = label == 'Grand Total'
+            pdf.setFont('Helvetica-Bold' if is_total else 'Helvetica', 11 if is_total else 10)
+            pdf.drawString(128 * mm, cursor_y, label)
+            display = f"Rs {abs(amount):.2f}"
+            if amount < 0:
+                display = f"- Rs {abs(amount):.2f}"
+            pdf.drawRightString(page_width - 18 * mm, cursor_y, display)
+            cursor_y -= 6 * mm
+
+        cursor_y -= 5 * mm
+        pdf.setStrokeColor(colors.HexColor('#D8D4CC'))
+        pdf.line(18 * mm, cursor_y, page_width - 18 * mm, cursor_y)
+        cursor_y -= 6 * mm
+
+        pdf.setFillColor(colors.HexColor('#6f5c37'))
+        pdf.setFont('Helvetica-Oblique', 9)
+        pdf.drawString(18 * mm, cursor_y, 'Thank you for choosing VibeMall.')
+        pdf.setFillColor(colors.black)
+
+        pdf.showPage()
+        pdf.save()
+
+        pdf_buffer.seek(0)
+        return pdf_buffer.read()
     
     try:
-        try:
-            from weasyprint import HTML
-        except (ImportError, OSError) as exc:
-            logger.exception("WeasyPrint is unavailable for invoice generation: %s", exc)
-            return HttpResponse(
-                'Invoice PDF service is temporarily unavailable because PDF rendering dependencies are missing on the server. Please contact support.',
-                status=503,
-            )
-
         # Get order
         order_filter = {'order_number': order_number}
         if not request.user.is_staff:
@@ -10117,14 +10380,28 @@ def download_invoice(request, order_number):
                 return redirect('admin_invoice_inventory')
             return HttpResponse('Order not found.', status=404)
 
-        invoice_context = build_invoice_context(order)
-        invoice_html = render_to_string('invoice_pdf.html', invoice_context)
+        try:
+            from weasyprint import HTML
 
-        pdf_file = BytesIO()
-        HTML(string=invoice_html, base_url=invoice_context['site_url']).write_pdf(pdf_file)
-        pdf_file.seek(0)
-        pdf_data = pdf_file.read()
-        pdf_file.close()
+            invoice_context = build_invoice_context(order)
+            invoice_html = render_to_string('invoice_pdf.html', invoice_context)
+
+            pdf_file = BytesIO()
+            HTML(string=invoice_html, base_url=invoice_context['site_url']).write_pdf(pdf_file)
+            pdf_file.seek(0)
+            pdf_data = pdf_file.read()
+            pdf_file.close()
+        except (ImportError, OSError) as weasy_error:
+            logger.warning("WeasyPrint unavailable for order %s, using ReportLab fallback: %s", order_number, weasy_error)
+            try:
+                invoice_context = build_invoice_context(order)
+                pdf_data = _generate_reportlab_fallback_pdf(order, invoice_context)
+            except Exception as fallback_error:
+                logger.exception("ReportLab fallback also failed for order %s: %s", order_number, fallback_error)
+                return HttpResponse(
+                    'Invoice PDF service is temporarily unavailable because PDF rendering dependencies are missing on the server. Please contact support.',
+                    status=503,
+                )
         
         # Return PDF with proper headers
         response = HttpResponse(pdf_data, content_type='application/pdf')

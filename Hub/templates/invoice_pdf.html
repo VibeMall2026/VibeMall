@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ company_name }} | Invoice {{ order.order_number }}</title>
+    <title>VibeMall | Invoice {{ order.order_number }}</title>
     <style>
         @page {
             size: A4;
@@ -357,7 +357,7 @@
     <div class="page">
         <div class="header">
             <div class="brand">
-                <h1 class="brand-name serif">{{ company_name|upper }}</h1>
+                <h1 class="brand-name serif">VIBEMALL</h1>
             </div>
 
             <div class="meta">
@@ -398,7 +398,7 @@
             <div class="info-col right">
                 <h3 class="info-title">From</h3>
                 <div class="info-block serif">
-                    <div class="name">{{ company_name }}</div>
+                    <div class="name">VibeMall</div>
                     {% for line in company_address_lines %}
                     <div>{{ line }}</div>
                     {% endfor %}
@@ -486,7 +486,7 @@
         <div class="footer">
             <div class="footer-left">
                 <p class="footer-note serif">
-                    Thank you for choosing {{ company_name }}. It is a privilege to craft pieces that accompany you on your journey.
+                    Thank you for choosing VibeMall. It is a privilege to craft pieces that accompany you on your journey.
                 </p>
                 <p class="terms-title">Terms of Sale</p>
                 <p class="terms-copy">

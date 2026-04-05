@@ -95,7 +95,7 @@ def build_invoice_context(order):
     grand_total = Decimal(str(order.total_amount or 0))
     invoice_date = order.order_date or order.created_at
 
-    company_name = (getattr(site_settings, 'site_name', None) or 'VibeMall').strip()
+    company_name = 'VibeMall'
     company_email = (getattr(site_settings, 'contact_email', None) or _get_from_email()).strip()
     company_phone = (getattr(site_settings, 'contact_phone', None) or '').strip()
     company_address_lines = [

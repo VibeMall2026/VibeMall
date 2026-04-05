@@ -282,28 +282,41 @@ def reseller_dashboard(request):
         messages.warning(request, 'You do not have a reseller profile.')
         return redirect('index')
     
-    # Get dashboard data
-    recent_orders = Order.objects.filter(
+    resell_orders_qs = Order.objects.filter(
         reseller=request.user,
         is_resell=True
-    ).select_related('user').order_by('-created_at')[:10]
-    
+    )
+
+    first_resell_order = resell_orders_qs.order_by('created_at').first()
+    if not first_resell_order:
+        messages.info(request, 'Reseller dashboard will unlock after your first resell order is placed.')
+        return redirect('order_list')
+
+    # Get dashboard data (mobile dashboard cards + lists)
+    recent_orders = resell_orders_qs.select_related('user').prefetch_related('items__product').order_by('-created_at')[:10]
+
     active_links = ResellLink.objects.filter(
         reseller=request.user,
         is_active=True
     ).select_related('product').order_by('-created_at')[:10]
-    
+
     # Calculate pending earnings
     pending_earnings = ResellerEarning.objects.filter(
         reseller=request.user,
         status='PENDING'
     ).aggregate(total=Sum('margin_amount'))['total'] or Decimal('0.00')
-    
+
+    total_clicks = active_links.aggregate(total=Sum('views_count'))['total'] or 0
+    total_resell_orders = resell_orders_qs.count()
+
     context = {
         'profile': profile,
         'recent_orders': recent_orders,
         'active_links': active_links,
         'pending_earnings': pending_earnings,
+        'first_resell_order': first_resell_order,
+        'total_clicks': total_clicks,
+        'total_resell_orders': total_resell_orders,
     }
     
     return render(request, 'reseller/dashboard.html', context)

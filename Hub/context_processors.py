@@ -11,7 +11,7 @@ from django.conf import settings
 from django.urls import reverse
 from datetime import timedelta
 
-from .models import Cart, Wishlist, SiteSettings, LoyaltyPoints, CategoryIcon, Product, SubCategory, Coupon, Order, OrderItem, ProductReview
+from .models import Cart, Wishlist, SiteSettings, LoyaltyPoints, CategoryIcon, Product, SubCategory, Coupon, Order, OrderItem, ProductReview, ResellerProfile
 from django.db.models import F, Sum
 
 
@@ -218,6 +218,42 @@ def header_menu_context(request):
     # Cache the context for performance (1 hour TTL)
     cache.set(cache_key, context, 3600)
     
+    return context
+
+
+def reseller_access_context(request):
+    """Expose whether the user can access reseller dashboard UI shortcuts."""
+    context = {
+        'has_reseller_dashboard_access': False,
+    }
+
+    user = getattr(request, 'user', None)
+    if not user or not user.is_authenticated:
+        return context
+
+    cache_key = f'reseller_dashboard_access_{user.id}'
+    cached_value = cache.get(cache_key)
+    if cached_value is not None:
+        context['has_reseller_dashboard_access'] = bool(cached_value)
+        return context
+
+    try:
+        profile = user.reseller_profile
+    except ResellerProfile.DoesNotExist:
+        cache.set(cache_key, False, 120)
+        return context
+
+    if not profile.is_reseller_enabled:
+        cache.set(cache_key, False, 120)
+        return context
+
+    has_resell_order = Order.objects.filter(
+        reseller=user,
+        is_resell=True,
+    ).only('id').exists()
+
+    cache.set(cache_key, has_resell_order, 120)
+    context['has_reseller_dashboard_access'] = has_resell_order
     return context
 
 
