@@ -802,113 +802,161 @@ def _generate_terms_pdf_bytes(context):
         logger.warning("WeasyPrint failed for welcome terms PDF, using ReportLab fallback: %s", exc)
 
     try:
+        from reportlab.lib import colors
+        from reportlab.lib.enums import TA_CENTER
         from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
         from reportlab.lib.units import mm
-        from reportlab.lib.utils import simpleSplit
-        from reportlab.pdfgen import canvas
+        from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
         pdf_file = BytesIO()
-        pdf = canvas.Canvas(pdf_file, pagesize=A4)
-        width, height = A4
-        left_margin = 18 * mm
-        right_margin = width - (18 * mm)
-        usable_width = right_margin - left_margin
-        cursor_y = height - (20 * mm)
+        doc = SimpleDocTemplate(
+            pdf_file,
+            pagesize=A4,
+            leftMargin=18 * mm,
+            rightMargin=18 * mm,
+            topMargin=16 * mm,
+            bottomMargin=16 * mm,
+            title='VibeMall Terms and Conditions',
+            author='VibeMall',
+        )
 
-        def new_page():
-            nonlocal cursor_y
-            pdf.showPage()
-            cursor_y = height - (20 * mm)
+        styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(
+            name='VmEyebrow',
+            parent=styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=8,
+            leading=10,
+            alignment=TA_CENTER,
+            textColor=colors.HexColor('#6f5c37'),
+            spaceAfter=8,
+        ))
+        styles.add(ParagraphStyle(
+            name='VmBrand',
+            parent=styles['Normal'],
+            fontName='Times-BoldItalic',
+            fontSize=24,
+            leading=28,
+            alignment=TA_CENTER,
+            textColor=colors.HexColor('#171818'),
+            spaceAfter=10,
+        ))
+        styles.add(ParagraphStyle(
+            name='VmMeta',
+            parent=styles['Normal'],
+            fontName='Helvetica',
+            fontSize=9,
+            leading=13,
+            alignment=TA_CENTER,
+            textColor=colors.HexColor('#5c6161'),
+            spaceAfter=2,
+        ))
+        styles.add(ParagraphStyle(
+            name='VmH2',
+            parent=styles['Heading2'],
+            fontName='Times-Bold',
+            fontSize=15,
+            leading=19,
+            textColor=colors.HexColor('#171818'),
+            spaceBefore=10,
+            spaceAfter=6,
+        ))
+        styles.add(ParagraphStyle(
+            name='VmBody',
+            parent=styles['Normal'],
+            fontName='Helvetica',
+            fontSize=10.5,
+            leading=15,
+            textColor=colors.HexColor('#30312e'),
+            spaceAfter=8,
+        ))
+        styles.add(ParagraphStyle(
+            name='VmQuote',
+            parent=styles['Normal'],
+            fontName='Times-Italic',
+            fontSize=11,
+            leading=15,
+            textColor=colors.HexColor('#6f5c37'),
+            spaceAfter=8,
+        ))
+        styles.add(ParagraphStyle(
+            name='VmFooter',
+            parent=styles['Normal'],
+            fontName='Helvetica',
+            fontSize=9,
+            leading=13,
+            alignment=TA_CENTER,
+            textColor=colors.HexColor('#747878'),
+            spaceAfter=4,
+        ))
 
-        def ensure_space(required_height):
-            if cursor_y - required_height < 18 * mm:
-                new_page()
+        story = [
+            Paragraph('ATELIER TERMS OF SERVICE', styles['VmEyebrow']),
+            Paragraph('VIBEMALL', styles['VmBrand']),
+            Paragraph(f"Effective Date: {context['current_date']}", styles['VmMeta']),
+            Paragraph(f"Last Updated: {context['current_date']}", styles['VmMeta']),
+            Spacer(1, 10),
+        ]
 
-        def draw_wrapped(text, font_name='Helvetica', font_size=10, leading=14):
-            nonlocal cursor_y
-            lines = simpleSplit(str(text), font_name, font_size, usable_width)
-            ensure_space(max(len(lines), 1) * leading)
-            pdf.setFont(font_name, font_size)
-            for line in lines:
-                pdf.drawString(left_margin, cursor_y, line)
-                cursor_y -= leading
-
-        pdf.setTitle('VibeMall Terms and Conditions')
-        pdf.setAuthor('VibeMall')
-
-        pdf.setFont('Helvetica-Bold', 20)
-        pdf.drawString(left_margin, cursor_y, 'VIBEMALL TERMS AND CONDITIONS')
-        cursor_y -= 20
-
-        draw_wrapped(f"Effective Date: {context['current_date']}", 'Helvetica', 10, 14)
-        draw_wrapped(f"Last Updated: {context['current_date']}", 'Helvetica', 10, 14)
-        cursor_y -= 8
+        important = Table(
+            [[Paragraph('<b>Important:</b> By registering or using VibeMall, you agree to these Terms of Service and related policies.', styles['VmBody'])]],
+            colWidths=[doc.width],
+        )
+        important.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f5f3ee')),
+            ('BOX', (0, 0), (-1, -1), 0.75, colors.HexColor('#d7d9d9')),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        story.extend([important, Spacer(1, 12)])
 
         sections = [
-            (
-                '1. Acceptance of Terms',
-                [
-                    'By registering or using VibeMall, you agree to be bound by our Terms and Conditions in accordance with applicable Indian law.',
-                ],
-            ),
-            (
-                '2. User Account',
-                [
-                    'You must provide accurate registration details and keep your account credentials secure.',
-                    'VibeMall may suspend accounts that violate platform policies or applicable law.',
-                ],
-            ),
-            (
-                '3. Orders and Payments',
-                [
-                    'Orders placed on VibeMall are subject to acceptance, availability, and payment verification.',
-                    'Payments are processed through approved third-party gateways.',
-                ],
-            ),
-            (
-                '4. Shipping, Returns, and Refunds',
-                [
-                    'Delivery timelines are estimates and may vary.',
-                    'Return and refund eligibility depends on product category, item condition, and the published return window.',
-                ],
-            ),
-            (
-                '5. Acceptable Use',
-                [
-                    'You may not use the platform for illegal, fraudulent, abusive, or unauthorized activities.',
-                ],
-            ),
-            (
-                '6. Liability and Governing Law',
-                [
-                    'VibeMall liability is limited to the amount paid for the relevant transaction, subject to applicable law.',
-                    'These terms are governed by the laws of India.',
-                ],
-            ),
-            (
-                '7. Contact',
-                [
-                    'For questions about these Terms and Conditions, contact info.vibemall@gmail.com.',
-                ],
-            ),
+            ('1. Introduction', [
+                'Welcome to VIBEMALL (the "Atelier"). By accessing our curated collections or engaging with our digital storefront, you acknowledge that you are entering a space defined by craftsmanship, heritage, and mutual respect.',
+                'These Terms of Service are legally binding and may be updated from time to time. Continued use of VIBEMALL signifies acceptance of the latest version.',
+            ]),
+            ('2. User Conduct', [
+                'You agree to provide accurate account and order details, avoid abusive or unlawful behavior, and refrain from scraping, bot activity, or disruption of platform operations.',
+            ]),
+            ('3. Artisan Standards', [
+                'Many pieces are handcrafted. Subtle variation in texture, weave, color, and finish is considered artisan character rather than defect.',
+                '<i>"The imperfection is the evidence of the human hand."</i>',
+            ]),
+            ('4. Intellectual Property', [
+                'All visual assets, copy, layout systems, and brand elements are owned by VIBEMALL or its licensors. Unauthorized reuse is prohibited.',
+            ]),
+            ('5. Custom Orders', [
+                'Custom and made-to-order items are final once production begins. For structural issues outside expected artisan variation, contact concierge support within 48 hours of delivery.',
+            ]),
+            ('6. Orders, Payments, and Delivery', [
+                'Orders are subject to acceptance and verification. Delivery timelines are estimates and may vary due to logistics or force majeure conditions.',
+            ]),
+            ('7. Returns and Refunds', [
+                'Return and refund eligibility depends on product category, item condition, and published return windows. Non-returnable items cannot be returned.',
+            ]),
+            ('8. Governing Law and Contact', [
+                'These terms are governed by applicable laws of India. For legal or policy queries, contact info.vibemall@gmail.com.',
+            ]),
         ]
 
         for heading, paragraphs in sections:
-            ensure_space(28)
-            pdf.setFont('Helvetica-Bold', 13)
-            pdf.drawString(left_margin, cursor_y, heading)
-            cursor_y -= 16
+            story.append(Paragraph(heading, styles['VmH2']))
             for paragraph in paragraphs:
-                draw_wrapped(paragraph, 'Helvetica', 10, 14)
-            cursor_y -= 6
+                if paragraph.startswith('<i>'):
+                    story.append(Paragraph(paragraph, styles['VmQuote']))
+                else:
+                    story.append(Paragraph(paragraph, styles['VmBody']))
 
-        ensure_space(30)
-        pdf.setFont('Helvetica-Oblique', 9)
-        pdf.drawString(left_margin, cursor_y, f"© {context['current_year']} VibeMall. All rights reserved.")
-        cursor_y -= 12
-        pdf.drawString(left_margin, cursor_y, 'By registering on VibeMall, you acknowledge and accept these Terms and Conditions.')
+        story.extend([
+            Spacer(1, 12),
+            Paragraph(f"© {context['current_year']} VIBEMALL ATELIER. All rights reserved.", styles['VmFooter']),
+            Paragraph('By registering on VIBEMALL, you acknowledge and accept these Terms and Conditions.', styles['VmFooter']),
+        ])
 
-        pdf.save()
+        doc.build(story)
         return pdf_file.getvalue()
     except Exception as exc:
         logger.error("ReportLab fallback failed for welcome terms PDF: %s", exc)

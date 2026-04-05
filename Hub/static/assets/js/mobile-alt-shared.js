@@ -10,7 +10,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const pageRoot = document.documentElement;
 
         function getSavedScrollY() {
-            const fromDataset = Number(document.body.dataset.vmMenuScrollY || '');
+            const rawDatasetValue = document.body.dataset.vmMenuScrollY;
+            const fromDataset = rawDatasetValue !== undefined ? Number(rawDatasetValue) : NaN;
             if (Number.isFinite(fromDataset)) {
                 return fromDataset;
             }
@@ -31,7 +32,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.body.dataset.vmMenuScrollLocked === 'true' ||
                 document.body.style.position === 'fixed' ||
                 document.body.style.overflow === 'hidden' ||
-                pageRoot.style.overflow === 'hidden'
+                pageRoot.style.overflow === 'hidden' ||
+                document.body.style.touchAction === 'none' ||
+                pageRoot.style.touchAction === 'none'
             );
         }
 
