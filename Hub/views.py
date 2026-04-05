@@ -6723,7 +6723,9 @@ def password_reset_view(request):
         from .models import PasswordResetLog
         ip = request.META.get('REMOTE_ADDR')
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.filter(email=email).first()
+            if user is None:
+                raise User.DoesNotExist
             # Generate token and uid
             from django.contrib.auth.tokens import default_token_generator
             from django.utils.encoding import force_bytes
@@ -6746,6 +6748,9 @@ def password_reset_view(request):
         except User.DoesNotExist:
             PasswordResetLog.objects.create(user=None, email=email, ip_address=ip, status='failed', reason='No account found')
             messages.error(request, "If an account exists, a reset link will be sent to your email.")
+    
+    return render(request, 'password_reset.html')
+
     
     return render(request, 'password_reset.html')
 
