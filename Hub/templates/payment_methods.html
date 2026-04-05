@@ -1,222 +1,422 @@
 {% extends "base.html" %}
-{% load static %}
 
 {% block body_class %}vm-page-mobile-alt{% endblock %}
-
 
 {% block title %}Payment Methods - VibeMall{% endblock %}
 
 {% block content %}
-
-<!-- page-banner-area-start -->
-<div class="page-banner-area page-banner-height-2" data-background="{% static 'assets/img/banner/page-banner-4.jpg' %}">
-    <div class="container">
-        <div class="row">
-            <div class="col-xl-12">
-                <div class="page-banner-content text-center">
-                    <h4 class="breadcrumb-title">Payment Methods</h4>
-                    <div class="breadcrumb-two">
-                        <nav>
-                            <nav class="breadcrumb-trail breadcrumbs">
-                                <ul class="breadcrumb-menu">
-                                    <li class="breadcrumb-trail">
-                                        <a href="{% url 'index' %}"><span>Home</span></a>
-                                    </li>
-                                    <li class="breadcrumb-trail">
-                                        <a href="{% url 'profile' %}"><span>My Profile</span></a>
-                                    </li>
-                                    <li class="trail-item">
-                                        <span>Payment Methods</span>
-                                    </li>
-                                </ul>
-                            </nav>
-                        </nav>
-                    </div>
-                </div>
-            </div>
-        </div>
+<section class="vm-payments-mobile">
+    <div class="vm-payments-mobile__hero">
+        <p class="vm-payments-mobile__kicker">Secure Checkout</p>
+        <h1>Payment Methods</h1>
+        <p class="vm-payments-mobile__subtitle">
+            Manage the payment options you have already used on VibeMall.
+        </p>
     </div>
-</div>
-<!-- page-banner-area-end -->
 
-<!-- payment-methods-area-start -->
-<section class="account-area pt-100 pb-100">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-lg-8">
+    <div class="vm-payments-mobile__section-head">
+        <h2>Saved Methods</h2>
+        <span>{{ methods|length }} saved</span>
+    </div>
 
-                <!-- Your Payment Methods -->
-                <div class="profile-details-box border-1 p-40 mb-30">
-                    <h5 class="mb-10" style="font-weight:700;">Your Payment Methods</h5>
-                    <p style="font-size:13px;color:#6f7172;margin-bottom:28px;">Payment methods you have used on VibeMall orders.</p>
-
-                    {% if methods %}
-                    <div class="vm-pm-list">
-                        {% for method in methods %}
-                        <div class="vm-pm-row">
-                            <div class="vm-pm-row__icon">
-                                <i class="{{ method.icon }}"></i>
-                            </div>
-                            <div class="vm-pm-row__info">
-                                <strong>{{ method.label }}</strong>
-                                <span>Used in past orders</span>
-                            </div>
-                            <div class="vm-pm-row__badge">
-                                <i class="fas fa-check-circle"></i> Active
-                            </div>
-                        </div>
-                        {% endfor %}
+    {% if methods %}
+    <div class="vm-payments-mobile__saved-list">
+        {% for method in methods %}
+            {% if method.key == 'CARD' or method.key == 'RAZORPAY' %}
+            <article class="vm-pay-card vm-pay-card--featured">
+                <div class="vm-pay-card__top">
+                    <div>
+                        <p class="vm-pay-card__meta">Primary Account</p>
+                        <h3>{{ method.label }}</h3>
                     </div>
-                    {% else %}
-                    <div class="vm-pm-empty">
-                        <i class="fas fa-credit-card"></i>
-                        <h6>No payment methods used yet</h6>
-                        <p>Once you complete an order, your payment methods will appear here.</p>
-                        <a href="{% url 'shop' %}" class="tp-btn-h1" style="display:inline-block;margin-top:20px;">Start Shopping</a>
+                    <i class="{{ method.icon }}" aria-hidden="true"></i>
+                </div>
+                <div class="vm-pay-card__number">•••• •••• •••• 4242</div>
+                <div class="vm-pay-card__foot">
+                    <div>
+                        <p class="vm-pay-card__meta">Status</p>
+                        <p class="vm-pay-card__value">Used in past orders</p>
                     </div>
-                    {% endif %}
+                    <div class="vm-pay-card__pill">Active</div>
                 </div>
-
-                <!-- Accepted at VibeMall -->
-                <div class="profile-details-box border-1 p-40 mb-30">
-                    <h5 class="mb-10" style="font-weight:700;">Accepted at VibeMall</h5>
-                    <p style="font-size:13px;color:#6f7172;margin-bottom:28px;">We support multiple payment options for a fast and secure checkout.</p>
-
-                    <div class="row">
-                        <div class="col-sm-6 mb-20">
-                            <div class="vm-pm-info-row">
-                                <i class="fas fa-money-bill-wave" style="color:#28a745;"></i>
-                                <div>
-                                    <strong>Cash on Delivery</strong>
-                                    <p>Pay when your order arrives at your doorstep.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-sm-6 mb-20">
-                            <div class="vm-pm-info-row">
-                                <i class="fas fa-credit-card" style="color:#2196f3;"></i>
-                                <div>
-                                    <strong>Credit / Debit Cards</strong>
-                                    <p>Visa, Mastercard and RuPay — all accepted.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-sm-6 mb-20">
-                            <div class="vm-pm-info-row">
-                                <i class="fas fa-qrcode" style="color:#9c27b0;"></i>
-                                <div>
-                                    <strong>UPI Payments</strong>
-                                    <p>GPay, PhonePe, Paytm and more.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-sm-6 mb-20">
-                            <div class="vm-pm-info-row">
-                                <i class="fas fa-university" style="color:#ff9800;"></i>
-                                <div>
-                                    <strong>Net Banking</strong>
-                                    <p>All major Indian banks via Razorpay.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            </article>
+            {% else %}
+            <article class="vm-pay-card vm-pay-card--compact">
+                <div class="vm-pay-card__compact-icon" style="color: {{ method.color }};">
+                    <i class="{{ method.icon }}" aria-hidden="true"></i>
                 </div>
-
-                <!-- Secure Payments Note -->
-                <div class="profile-details-box border-1 p-40 mb-30">
-                    <div class="d-flex align-items-start" style="gap:20px;">
-                        <div style="min-width:44px;height:44px;background:#fcbe00;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;flex-shrink:0;">
-                            <i class="fas fa-lock"></i>
-                        </div>
-                        <div>
-                            <h6 style="font-weight:700;margin-bottom:8px;">100% Secure Payments</h6>
-                            <p style="font-size:13px;color:#6f7172;margin:0;">
-                                All transactions on VibeMall are secured with SSL encryption.
-                                We do not store your card details — payments are processed via Razorpay.
-                            </p>
-                        </div>
-                    </div>
+                <div class="vm-pay-card__compact-copy">
+                    <h3>{{ method.label }}</h3>
+                    <p>Used in your orders</p>
                 </div>
+                <span class="vm-pay-card__compact-tag">Verified</span>
+            </article>
+            {% endif %}
+        {% endfor %}
+    </div>
+    {% else %}
+    <article class="vm-pay-empty">
+        <i class="fas fa-credit-card" aria-hidden="true"></i>
+        <h3>No payment methods yet</h3>
+        <p>Your saved options will appear here after your first order.</p>
+        <a href="{% url 'shop' %}" class="vm-pay-empty__cta">Start Shopping</a>
+    </article>
+    {% endif %}
 
-                <div class="text-center">
-                    <a href="{% url 'profile' %}" class="tp-btn-h2">
-                        <i class="fas fa-arrow-left"></i> Back to Profile
-                    </a>
-                </div>
+    <div class="vm-payments-mobile__section-head vm-payments-mobile__section-head--spaced">
+        <h2>Add New Payment</h2>
+    </div>
 
+    <div class="vm-pay-options">
+        <article class="vm-pay-option">
+            <div class="vm-pay-option__icon"><i class="fas fa-credit-card" aria-hidden="true"></i></div>
+            <div class="vm-pay-option__copy">
+                <h3>Credit or Debit Card</h3>
+                <p>Visa, Mastercard and RuPay</p>
             </div>
-        </div>
+            <i class="fas fa-chevron-right" aria-hidden="true"></i>
+        </article>
+        <article class="vm-pay-option">
+            <div class="vm-pay-option__icon"><i class="fas fa-university" aria-hidden="true"></i></div>
+            <div class="vm-pay-option__copy">
+                <h3>Net Banking</h3>
+                <p>All major Indian banks</p>
+            </div>
+            <i class="fas fa-chevron-right" aria-hidden="true"></i>
+        </article>
+        <article class="vm-pay-option">
+            <div class="vm-pay-option__icon"><i class="fas fa-wallet" aria-hidden="true"></i></div>
+            <div class="vm-pay-option__copy">
+                <h3>Digital Wallets</h3>
+                <p>Paytm, PhonePe, Amazon Pay</p>
+            </div>
+            <i class="fas fa-chevron-right" aria-hidden="true"></i>
+        </article>
+    </div>
+
+    <article class="vm-pay-story">
+        <h2>Artisanal Heritage</h2>
+        <p>
+            Every purchase at VibeMall supports traditional weavers and small-batch ateliers across the subcontinent.
+            Your payments stay protected with encrypted checkout and trusted gateway processing.
+        </p>
+    </article>
+
+    <div class="vm-pay-footer-action">
+        <a href="{% url 'profile' %}" class="vm-pay-footer-action__btn">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i>
+            Back to Profile
+        </a>
     </div>
 </section>
-<!-- payment-methods-area-end -->
 
 <style>
-/* ========== Payment Methods ========== */
-.vm-pm-list { display:flex; flex-direction:column; gap:0; border:1px solid #e5e5e5; }
-
-.vm-pm-row {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 16px 18px;
-    border-bottom: 1px solid #e5e5e5;
-    background: #fff;
-    transition: background .15s;
+.vm-payments-mobile {
+    --vm-bg: #fbf9f4;
+    --vm-surface: #ffffff;
+    --vm-ink: #171818;
+    --vm-muted: #5e625f;
+    --vm-accent: #6f5c37;
+    --vm-soft: #f0ede6;
+    --vm-border: #e4e0d6;
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 18px 14px 112px;
+    color: var(--vm-ink);
 }
-.vm-pm-row:last-child { border-bottom: none; }
-.vm-pm-row:hover { background: #fffdf5; }
 
-.vm-pm-row__icon {
-    width: 42px;
-    height: 42px;
-    background: #f7f7f7;
-    border: 1px solid #e4e4e4;
+.vm-payments-mobile__hero {
+    background: radial-gradient(circle at 100% 0%, #ede8da 0%, #f8f5ee 45%, var(--vm-bg) 100%);
+    border: 1px solid var(--vm-border);
+    border-radius: 16px;
+    padding: 18px 16px;
+}
+
+.vm-payments-mobile__kicker {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-weight: 700;
+    color: var(--vm-accent);
+    margin: 0 0 8px;
+}
+
+.vm-payments-mobile__hero h1 {
+    font-size: 28px;
+    line-height: 1.1;
+    margin: 0 0 8px;
+    font-weight: 800;
+}
+
+.vm-payments-mobile__subtitle {
+    margin: 0;
+    color: var(--vm-muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.vm-payments-mobile__section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin: 22px 2px 12px;
+}
+
+.vm-payments-mobile__section-head h2 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.vm-payments-mobile__section-head span {
+    font-size: 11px;
+    color: var(--vm-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+
+.vm-payments-mobile__section-head--spaced {
+    margin-top: 26px;
+}
+
+.vm-payments-mobile__saved-list {
+    display: grid;
+    gap: 10px;
+}
+
+.vm-pay-card {
+    border: 1px solid var(--vm-border);
+    border-radius: 14px;
+    background: var(--vm-surface);
+}
+
+.vm-pay-card--featured {
+    padding: 16px;
+    color: #ffffff;
+    background: linear-gradient(165deg, #1e1e1e 0%, #2e2d29 100%);
+    border-color: #30302d;
+}
+
+.vm-pay-card__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 18px;
+}
+
+.vm-pay-card__meta {
+    margin: 0 0 2px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.11em;
+    opacity: 0.72;
+}
+
+.vm-pay-card__top h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.vm-pay-card__number {
+    font-size: 18px;
+    letter-spacing: 0.18em;
+    margin-bottom: 18px;
+}
+
+.vm-pay-card__foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.vm-pay-card__value {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.vm-pay-card__pill {
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.vm-pay-card--compact {
+    padding: 12px;
+    display: grid;
+    grid-template-columns: 40px 1fr auto;
+    align-items: center;
+    gap: 10px;
+}
+
+.vm-pay-card__compact-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--vm-border);
+    background: #faf7ef;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
-    color: #fcbe00;
-    flex-shrink: 0;
+    font-size: 15px;
 }
 
-.vm-pm-row__info { flex: 1; }
-.vm-pm-row__info strong { display:block; font-size:14px; font-weight:700; color:#222; margin-bottom:2px; }
-.vm-pm-row__info span { font-size:12px; color:#6f7172; }
+.vm-pay-card__compact-copy h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+}
 
-.vm-pm-row__badge {
+.vm-pay-card__compact-copy p {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: var(--vm-muted);
+}
+
+.vm-pay-card__compact-tag {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #2f6d40;
+    font-weight: 700;
+    border: 1px solid #d2e9da;
+    background: #f1faf3;
+    border-radius: 999px;
+    padding: 4px 8px;
+}
+
+.vm-pay-empty {
+    border: 1px dashed var(--vm-border);
+    border-radius: 14px;
+    background: #fffefa;
+    padding: 26px 16px;
+    text-align: center;
+}
+
+.vm-pay-empty i {
+    font-size: 30px;
+    color: #b2b5ad;
+    margin-bottom: 10px;
+}
+
+.vm-pay-empty h3 {
+    margin: 0 0 6px;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.vm-pay-empty p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--vm-muted);
+}
+
+.vm-pay-empty__cta {
+    display: inline-block;
+    margin-top: 14px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: #1d1e1d;
+    color: #ffffff;
     font-size: 12px;
     font-weight: 700;
-    color: #28a745;
-    white-space: nowrap;
+    text-decoration: none;
 }
-.vm-pm-row__badge i { margin-right: 4px; }
 
-.vm-pm-empty { text-align:center; padding:40px 20px; color:#6f7172; }
-.vm-pm-empty i { font-size:40px; color:#e4e4e4; margin-bottom:16px; display:block; }
-.vm-pm-empty h6 { font-size:15px; font-weight:700; color:#333; margin-bottom:8px; }
-.vm-pm-empty p { font-size:13px; }
+.vm-pay-options {
+    display: grid;
+    gap: 10px;
+}
 
-.vm-pm-info-row {
+.vm-pay-option {
+    border: 1px solid var(--vm-border);
+    border-radius: 14px;
+    background: var(--vm-surface);
+    padding: 12px;
+    display: grid;
+    grid-template-columns: 34px 1fr auto;
+    gap: 10px;
+    align-items: center;
+}
+
+.vm-pay-option__icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--vm-soft);
+    color: var(--vm-accent);
     display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    padding: 16px;
-    border: 1px solid #e5e5e5;
-    background: #fff;
-    height: 100%;
-    transition: box-shadow .2s;
+    align-items: center;
+    justify-content: center;
 }
-.vm-pm-info-row:hover { box-shadow: 0 2px 8px rgba(0,0,0,.07); }
-.vm-pm-info-row i { font-size:22px; margin-top:2px; flex-shrink:0; }
-.vm-pm-info-row strong { display:block; font-size:13px; font-weight:700; color:#222; margin-bottom:4px; }
-.vm-pm-info-row p { font-size:12px; color:#6f7172; margin:0; }
 
-@media (max-width: 767.98px) {
-    .account-area.pt-100 { padding-top: 50px !important; }
-    .account-area.pb-100 { padding-bottom: 50px !important; }
-    .p-40 { padding: 24px 18px !important; }
-    .vm-pm-info-row { margin-bottom: 0; }
+.vm-pay-option__copy h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.vm-pay-option__copy p {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: var(--vm-muted);
+}
+
+.vm-pay-option > i {
+    color: #8c8e88;
+    font-size: 12px;
+}
+
+.vm-pay-story {
+    margin-top: 24px;
+    border-radius: 18px;
+    padding: 16px;
+    border: 1px solid #e5dfd2;
+    background: linear-gradient(145deg, #f5f1e8 0%, #fdfbf7 85%);
+}
+
+.vm-pay-story h2 {
+    margin: 0 0 8px;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.vm-pay-story p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #4f534e;
+}
+
+.vm-pay-footer-action {
+    margin-top: 16px;
+}
+
+.vm-pay-footer-action__btn {
+    width: 100%;
+    border: 1px solid var(--vm-border);
+    border-radius: 12px;
+    padding: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    color: var(--vm-ink);
+    font-weight: 700;
+    background: #ffffff;
+}
+
+@media (min-width: 992px) {
+    .vm-payments-mobile {
+        max-width: 700px;
+        padding-top: 26px;
+    }
 }
 </style>
-
 {% endblock %}
