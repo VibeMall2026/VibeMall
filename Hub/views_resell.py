@@ -52,18 +52,28 @@ def get_viewport_type(request):
     Returns:
         'mobile', 'tablet', or 'desktop'
     """
-    user_agent = request.META.get('HTTP_USER_AGENT', '').lower()
-    
-    # Check for tablet
-    if any(keyword in user_agent for keyword in ['tablet', 'ipad', 'android', 'kindle']):
-        if 'mobile' not in user_agent:
-            return 'tablet'
-    
-    # Check for mobile
-    if any(keyword in user_agent for keyword in ['mobile', 'iphone', 'android', 'phone', 'blackberry', 'webos']):
+    # Optional explicit override for testing/debugging.
+    forced_view = (request.GET.get('view') or '').strip().lower()
+    if forced_view in {'mobile', 'tablet', 'desktop'}:
+        return forced_view
+
+    # Client Hints from modern browsers (more reliable than UA parsing).
+    ch_mobile = (request.META.get('HTTP_SEC_CH_UA_MOBILE') or '').strip().lower()
+    if ch_mobile in {'?1', '1', 'true'}:
         return 'mobile'
-    
-    # Default to desktop
+
+    user_agent = (request.META.get('HTTP_USER_AGENT') or '').lower()
+
+    if 'android' in user_agent:
+        return 'mobile' if 'mobile' in user_agent else 'tablet'
+
+    if any(keyword in user_agent for keyword in ['ipad', 'tablet', 'kindle']):
+        return 'tablet'
+
+    if any(keyword in user_agent for keyword in ['mobile', 'iphone', 'ipod', 'phone', 'blackberry', 'webos', 'opera mini', 'iemobile']):
+        return 'mobile'
+
+    # Default to desktop.
     return 'desktop'
 
 

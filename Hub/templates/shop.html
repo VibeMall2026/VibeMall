@@ -694,6 +694,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <div class="vm-shop-d-grid-wrap">
             <div class="vm-shop-d-grid">
                 {% for product in products %}
+                {% with stats=product_stats|get_item:product.id %}
                 <article class="vm-shop-d-card" data-name="{{ product.name|lower }}" data-price="{{ product.price }}" data-order="{{ forloop.counter }}">
                     <a class="vm-shop-d-thumb" href="{% url 'product-details' product.id %}">
                         {% if product.image %}
@@ -711,8 +712,8 @@ document.addEventListener('DOMContentLoaded', function () {
                                 data-product-price="{{ product.price }}"
                                 data-product-old-price="{{ product.old_price|default_if_none:'' }}"
                                 data-product-image="{% if product.image %}{{ product.image.url }}{% else %}{% static 'assets/img/product/tp-1.jpg' %}{% endif %}"
-                                data-product-rating="{% with stats=product_stats|get_item:product.id %}{% if stats %}{{ stats.avg_rating }}{% else %}{{ product.rating }}{% endif %}{% endwith %}"
-                                data-product-reviews="{% with stats=product_stats|get_item:product.id %}{% if stats %}{{ stats.review_count }}{% else %}{{ product.review_count }}{% endif %}{% endwith %}"
+                                data-product-rating="{% if stats %}{{ stats.avg_rating }}{% else %}{{ product.rating }}{% endif %}"
+                                data-product-reviews="{% if stats %}{{ stats.review_count }}{% else %}{{ product.review_count|default:'0' }}{% endif %}"
                                 data-product-link="{% url 'product-details' product.id %}"
                                 data-product-id="{{ product.id }}"
                                 data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
@@ -731,10 +732,49 @@ document.addEventListener('DOMContentLoaded', function () {
                             </button>
                         </div>
                     </a>
-                    <small>{{ product.brand|default:product.category|default:'VIBEMALL ATELIER' }}</small>
-                    <h4><a href="{% url 'product-details' product.id %}">{{ product.name }}</a></h4>
-                    <p>&#8377;{{ product.price }}</p>
+                    <div class="vm-shop-d-info">
+                        <small>{{ product.brand|default:product.category|default:'VIBEMALL ATELIER' }}</small>
+                        <h4><a href="{% url 'product-details' product.id %}">{{ product.name }}</a></h4>
+                        <div class="vm-shop-d-list-rating" data-product-rating="{% if stats %}{{ stats.avg_rating }}{% else %}{{ product.rating }}{% endif %}">
+                            <span class="vm-shop-d-list-stars" aria-hidden="true"></span>
+                            <span class="vm-shop-d-list-review-count">({% if stats %}{{ stats.review_count }}{% else %}{{ product.review_count|default:'0' }}{% endif %} reviews)</span>
+                        </div>
+                        <p>&#8377;{{ product.price }}</p>
+
+                        <div class="vm-shop-d-list-actions">
+                            <button type="button"
+                                class="vm-shop-d-list-btn vm-shop-d-list-btn--cart cart-btn"
+                                data-product-id="{{ product.id }}"
+                                data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
+                                onclick="handleCartClick(this)">
+                                <i class="fal fa-shopping-bag"></i>
+                                <span>Add To Cart</span>
+                            </button>
+
+                            <button type="button"
+                                class="vm-shop-d-list-btn vm-shop-d-list-btn--buy"
+                                data-product-id="{{ product.id }}"
+                                data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
+                                data-checkout-url="{% url 'checkout' %}"
+                                data-add-url="{% url 'add_to_cart' %}"
+                                onclick="handleBuyNowClick(this)">
+                                <i class="fal fa-bolt"></i>
+                                <span>Buy Now</span>
+                            </button>
+
+                            <button type="button"
+                                class="vm-shop-d-list-btn vm-shop-d-list-btn--wish wishlist-btn {% if product.id in wishlist_product_ids %}wishlisted{% endif %}"
+                                data-product-id="{{ product.id }}"
+                                data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
+                                data-in-wishlist="{% if product.id in wishlist_product_ids %}1{% else %}0{% endif %}"
+                                onclick="handleWishlistClick(this)">
+                                <i class="{% if product.id in wishlist_product_ids %}fas{% else %}fal{% endif %} fa-heart"></i>
+                                <span>Wishlist</span>
+                            </button>
+                        </div>
+                    </div>
                 </article>
+                {% endwith %}
                 {% empty %}
                 <p class="vm-shop-d-empty">No products available.</p>
                 {% endfor %}
@@ -777,6 +817,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const listBtn = document.getElementById('vmShopViewList');
     const desktopSearch = document.getElementById('vmShopDesktopSearch');
     const desktopRangeInputs = document.querySelectorAll('.vm-shop-d-range-input');
+
+    const renderDesktopListRatings = () => {
+        const ratingRows = document.querySelectorAll('.vm-shop-d-list-rating[data-product-rating]');
+        ratingRows.forEach((row) => {
+            const value = parseFloat(row.dataset.productRating || '0');
+            const rounded = Math.max(0, Math.min(5, Math.round(value)));
+            const stars = row.querySelector('.vm-shop-d-list-stars');
+            if (!stars) return;
+            stars.innerHTML = '';
+            for (let i = 1; i <= 5; i++) {
+                const icon = document.createElement('i');
+                icon.className = i <= rounded ? 'fas fa-star is-filled' : 'fal fa-star is-empty';
+                stars.appendChild(icon);
+            }
+        });
+    };
 
     const syncRangeProgress = (input) => {
         const min = Number(input.min || 0);
@@ -872,6 +928,8 @@ document.addEventListener('DOMContentLoaded', function() {
             syncRangeProgress(input);
         });
     });
+
+    renderDesktopListRatings();
 });
 </script>
 
@@ -1240,6 +1298,58 @@ document.addEventListener('DOMContentLoaded', function () {
     async function handleCartClick(button) {
         if (window.vmStorefrontActions && typeof window.vmStorefrontActions.toggleCart === 'function') {
             return window.vmStorefrontActions.toggleCart(button);
+        }
+    }
+
+    async function handleBuyNowClick(button) {
+        const loggedIn = button?.dataset?.loggedIn === '1';
+        const productId = button?.dataset?.productId;
+        const addUrl = button?.dataset?.addUrl;
+        const checkoutUrl = button?.dataset?.checkoutUrl || '{% url 'checkout' %}';
+
+        if (!loggedIn) {
+            const next = encodeURIComponent(checkoutUrl);
+            window.location.href = `{% url 'login' %}?next=${next}`;
+            return;
+        }
+
+        if (!productId || !addUrl) {
+            window.location.href = checkoutUrl;
+            return;
+        }
+
+        try {
+            button.disabled = true;
+            const formData = new FormData();
+            formData.append('product_id', productId);
+            formData.append('quantity', '1');
+
+            const response = await fetch(addUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin',
+                body: formData
+            });
+
+            const data = await response.json().catch(() => ({}));
+            if (response.ok && data.success) {
+                if (typeof data.cart_count === 'number') {
+                    const cartCountElements = document.querySelectorAll('.cart-count');
+                    cartCountElements.forEach((element) => {
+                        element.textContent = data.cart_count;
+                    });
+                }
+                window.location.href = checkoutUrl;
+                return;
+            }
+            showErrorNotification(data.message || 'Unable to proceed to checkout.');
+        } catch (error) {
+            showErrorNotification('Unable to proceed to checkout. Please try again.');
+        } finally {
+            button.disabled = false;
         }
     }
 

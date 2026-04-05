@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 
 {% block title %}Request Payout - VibeMall{% endblock %}
-{% block body_class %}vm-page-mobile-alt vm-page-reseller-withdraw-tablet{% endblock %}
-{% block ui_chrome %}tablet{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-reseller-withdraw-mobile{% endblock %}
+{% block ui_chrome %}mobile{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -13,15 +13,15 @@
     font-family: "Manrope", sans-serif;
 }
 
-body.vm-page-reseller-withdraw-tablet .vm-mobile-side-menu,
-body.vm-page-reseller-withdraw-tablet .vm-mobile-side-menu-overlay {
+body.vm-page-reseller-withdraw-mobile .vm-mobile-side-menu,
+body.vm-page-reseller-withdraw-mobile .vm-mobile-side-menu-overlay {
     display: none !important;
 }
 
 .vm-rwt-shell {
     width: min(100%, 1240px);
     margin: 0 auto;
-    padding: 124px 14px 128px;
+    padding: 14px 16px 32px;
 }
 
 .vm-rwt-head {
@@ -373,11 +373,14 @@ body.vm-page-reseller-withdraw-tablet .vm-mobile-side-menu-overlay {
 
 @media (min-width: 768px) {
     .vm-rwt-stats {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        font-size: clamp(34px, 12vw, 52px);
     }
 
     .vm-rwt-grid {
-        grid-template-columns: minmax(340px, 0.9fr) minmax(0, 1.4fr);
+        padding-top: 14px;
+        padding-left: 16px;
+        padding-right: 16px;
+        padding-bottom: 32px;
         align-items: start;
     }
 
@@ -396,7 +399,9 @@ body.vm-page-reseller-withdraw-tablet .vm-mobile-side-menu-overlay {
 
 {% block content %}
 <section class="vm-rwt-page">
-    <div class="vm-rwt-shell">
+    {% include 'partials/vm_mobile_alt_header.html' %}
+
+    <main class="vm-rwt-shell vm-mobile-content-offset">
         {% if messages %}
         <section class="vm-rwt-messages" aria-live="polite">
             {% for message in messages %}
@@ -540,7 +545,11 @@ body.vm-page-reseller-withdraw-tablet .vm-mobile-side-menu-overlay {
                 {% endif %}
             </article>
         </section>
-    </div>
+
+        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='reseller-payout-mobile' %}
+    </main>
+
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
 </section>
 
 <script>
