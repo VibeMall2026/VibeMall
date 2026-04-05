@@ -9326,7 +9326,19 @@ def order_tracking(request, order_number):
         return_history = None
         if return_request_obj:
             return_history = return_request_obj.history.select_related('changed_by')
-        return render(request, 'order_tracking.html', {
+
+        forced_view = (request.GET.get('view') or '').strip().lower()
+        if forced_view == 'mobile':
+            template_name = 'order_tracking_mobile.html'
+        else:
+            ch_mobile = (request.META.get('HTTP_SEC_CH_UA_MOBILE') or '').strip().lower()
+            user_agent = (request.META.get('HTTP_USER_AGENT') or '').lower()
+            is_mobile = ch_mobile in {'?1', '1', 'true'} or any(
+                token in user_agent for token in ['mobile', 'iphone', 'ipod', 'android mobile', 'opera mini', 'iemobile']
+            )
+            template_name = 'order_tracking_mobile.html' if is_mobile else 'order_tracking.html'
+
+        return render(request, template_name, {
             'order': order,
             'order_items': order_items,
             'return_request': return_request_obj,

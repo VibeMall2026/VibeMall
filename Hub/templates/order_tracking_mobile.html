@@ -1,0 +1,428 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Track Order #{{ order.order_number }} - VibeMall{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-mobile-ordertracking-detail{% endblock %}
+
+{% block extra_css %}
+<style>
+.vm-tom-page {
+    background: #fbf9f4;
+    color: #1b1c19;
+    font-family: "Manrope", sans-serif;
+}
+
+.vm-tom-main {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 0 16px 28px;
+}
+
+.vm-tom-head {
+    margin-bottom: 26px;
+}
+
+.vm-tom-head small {
+    display: block;
+    margin-bottom: 8px;
+    color: #6f5c37;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.vm-tom-head h1 {
+    margin: 0;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 34px;
+    line-height: 1;
+    letter-spacing: -0.04em;
+}
+
+.vm-tom-head p {
+    margin: 10px 0 0;
+    color: rgba(27, 28, 25, 0.62);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.vm-tom-timeline {
+    position: relative;
+    margin-bottom: 30px;
+}
+
+.vm-tom-timeline::before {
+    content: "";
+    position: absolute;
+    left: 11px;
+    top: 8px;
+    bottom: 8px;
+    width: 1px;
+    background: rgba(196, 199, 199, 0.38);
+}
+
+.vm-tom-step {
+    position: relative;
+    padding-left: 40px;
+    margin-bottom: 26px;
+}
+
+.vm-tom-step:last-child {
+    margin-bottom: 0;
+}
+
+.vm-tom-step-dot {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    background: #e4e2dd;
+    border: 1px solid rgba(196, 199, 199, 0.4);
+    display: grid;
+    place-items: center;
+    z-index: 1;
+}
+
+.vm-tom-step--done .vm-tom-step-dot {
+    background: #171818;
+    border-color: #171818;
+    color: #fff;
+}
+
+.vm-tom-step--active .vm-tom-step-dot {
+    background: #fbf9f4;
+    border: 2px solid #171818;
+}
+
+.vm-tom-step--active .vm-tom-step-dot::after {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #6f5c37;
+}
+
+.vm-tom-step-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+
+.vm-tom-step-head h3 {
+    margin: 0;
+    color: #171818;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.vm-tom-step-head span {
+    color: rgba(27, 28, 25, 0.62);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.vm-tom-step p {
+    margin: 0;
+    color: rgba(27, 28, 25, 0.68);
+    font-size: 14px;
+    line-height: 1.65;
+}
+
+.vm-tom-track-chip {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 12px;
+    background: #f0eee9;
+    border: 1px solid rgba(196, 199, 199, 0.2);
+}
+
+.vm-tom-track-chip p {
+    margin: 0;
+}
+
+.vm-tom-track-chip small {
+    display: block;
+    color: rgba(27, 28, 25, 0.54);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.vm-tom-track-chip strong {
+    display: block;
+    margin-top: 3px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.vm-tom-items-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.vm-tom-items-head h2 {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+
+.vm-tom-items-head span {
+    color: rgba(27, 28, 25, 0.62);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.vm-tom-items {
+    display: grid;
+    gap: 12px;
+}
+
+.vm-tom-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px;
+    border-radius: 16px;
+    background: #f5f3ee;
+}
+
+.vm-tom-item-media {
+    width: 80px;
+    height: 96px;
+    overflow: hidden;
+    border-radius: 10px;
+    background: #e4e2dd;
+    flex: 0 0 80px;
+}
+
+.vm-tom-item-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.vm-tom-item p {
+    margin: 0 0 4px;
+    color: #6f5c37;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.vm-tom-item h3 {
+    margin: 0 0 6px;
+    color: #171818;
+    font-size: 15px;
+    line-height: 1.3;
+    font-weight: 800;
+}
+
+.vm-tom-item small {
+    display: block;
+    color: rgba(27, 28, 25, 0.62);
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+
+.vm-tom-item strong {
+    color: #171818;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.vm-tom-total {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(196, 199, 199, 0.26);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.vm-tom-total span {
+    color: rgba(27, 28, 25, 0.62);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.vm-tom-total strong {
+    color: #171818;
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.vm-tom-actions {
+    margin-top: 18px;
+}
+
+.vm-tom-btn {
+    width: 100%;
+    min-height: 48px;
+    border: 0;
+    border-radius: 12px;
+    background: #171818;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.vm-tom-address {
+    margin-top: 16px;
+    padding: 14px;
+    border-radius: 14px;
+    background: #f0eee9;
+    border-left: 4px solid #6f5c37;
+}
+
+.vm-tom-address h4 {
+    margin: 0 0 8px;
+    color: rgba(27, 28, 25, 0.62);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.vm-tom-address p {
+    margin: 0;
+    color: rgba(27, 28, 25, 0.74);
+    font-size: 14px;
+    line-height: 1.6;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="vm-tom-page">
+    {% include 'partials/vm_mobile_alt_header.html' %}
+
+    <main class="vm-tom-main vm-mobile-content-offset">
+        <section class="vm-tom-head">
+            <small>Order Tracking</small>
+            <h1>Order #{{ order.order_number }}</h1>
+            <p>Estimated Delivery: {% if order.delivery_date %}{{ order.delivery_date|date:'d M, Y' }}{% else %}Awaiting courier update{% endif %}</p>
+        </section>
+
+        <section class="vm-tom-timeline">
+            <article class="vm-tom-step vm-tom-step--done">
+                <div class="vm-tom-step-dot"><i class="fas fa-check" aria-hidden="true"></i></div>
+                <div class="vm-tom-step-head">
+                    <h3>Order Placed</h3>
+                    <span>{{ order.created_at|date:'d M, h:i A' }}</span>
+                </div>
+                <p>Your order has been received and is awaiting fulfillment from our atelier.</p>
+            </article>
+
+            <article class="vm-tom-step {% if order.order_status == 'PROCESSING' %}vm-tom-step--active{% elif order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}vm-tom-step--done{% endif %}">
+                <div class="vm-tom-step-dot">{% if order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}<i class="fas fa-check" aria-hidden="true"></i>{% endif %}</div>
+                <div class="vm-tom-step-head">
+                    <h3>Processing</h3>
+                    <span>{% if order.order_status == 'PROCESSING' or order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}{{ order.updated_at|date:'d M, h:i A' }}{% else %}Pending{% endif %}</span>
+                </div>
+                <p>Hand-crafting and quality inspection are in progress for your selected pieces.</p>
+            </article>
+
+            <article class="vm-tom-step {% if order.order_status == 'SHIPPED' %}vm-tom-step--active{% elif order.order_status == 'DELIVERED' %}vm-tom-step--done{% endif %}">
+                <div class="vm-tom-step-dot">{% if order.order_status == 'DELIVERED' %}<i class="fas fa-check" aria-hidden="true"></i>{% endif %}</div>
+                <div class="vm-tom-step-head">
+                    <h3>In Transit</h3>
+                    <span>{% if order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}{{ order.updated_at|date:'d M, h:i A' }}{% else %}Pending{% endif %}</span>
+                </div>
+                <p>{% if order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}Parcel has been handed to our courier partner and is moving through the current hub network.{% else %}The shipment will move into transit after processing completes.{% endif %}</p>
+
+                {% if order.tracking_number %}
+                <div class="vm-tom-track-chip">
+                    <i class="fas fa-truck text-secondary" aria-hidden="true"></i>
+                    <div>
+                        <small>Tracking Number</small>
+                        <strong>{{ order.tracking_number }}</strong>
+                    </div>
+                </div>
+                {% endif %}
+            </article>
+
+            <article class="vm-tom-step {% if order.order_status == 'DELIVERED' %}vm-tom-step--done{% endif %}"{% if order.order_status != 'DELIVERED' %} style="opacity:0.45;"{% endif %}>
+                <div class="vm-tom-step-dot">{% if order.order_status == 'DELIVERED' %}<i class="fas fa-check" aria-hidden="true"></i>{% endif %}</div>
+                <div class="vm-tom-step-head">
+                    <h3>Delivered</h3>
+                    <span>{% if order.order_status == 'DELIVERED' %}{{ order.delivery_date|default:order.updated_at|date:'d M, h:i A' }}{% endif %}</span>
+                </div>
+                <p>{% if order.order_status == 'DELIVERED' %}Your parcel has been delivered successfully.{% else %}Estimated arrival at your doorstep by {% if order.delivery_date %}{{ order.delivery_date|date:'d M, Y' }}{% else %}the next courier update{% endif %}.{% endif %}</p>
+            </article>
+        </section>
+
+        <section>
+            <div class="vm-tom-items-head">
+                <h2>Items in This Shipment</h2>
+                <span>{{ order_items|length }} Item{{ order_items|length|pluralize }}</span>
+            </div>
+
+            <div class="vm-tom-items">
+                {% for item in order_items %}
+                <article class="vm-tom-item">
+                    <div class="vm-tom-item-media">
+                        {% if item.product_image %}
+                        <img src="{{ item.product_image }}" alt="{{ item.product_name }}">
+                        {% else %}
+                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.product_name }}">
+                        {% endif %}
+                    </div>
+                    <div class="flex-1">
+                        <p>{{ item.product.category|default:'Order Item' }}</p>
+                        <h3>{{ item.product_name }}</h3>
+                        <small>Qty: {{ item.quantity }}{% if item.color %} — {{ item.color }}{% elif item.size %} — {{ item.size }}{% endif %}</small>
+                        <strong>Rs {{ item.product_price }}</strong>
+                    </div>
+                </article>
+                {% empty %}
+                <p>No items found for this order.</p>
+                {% endfor %}
+            </div>
+
+            <div class="vm-tom-total">
+                <span>Total Amount Paid</span>
+                <strong>Rs {{ order.total_amount }}</strong>
+            </div>
+
+            <div class="vm-tom-actions">
+                <a class="vm-tom-btn" href="{% url 'download_invoice' order.order_number %}">Download Invoice</a>
+            </div>
+
+            <div class="vm-tom-address">
+                <h4>Shipping Destination</h4>
+                <p>{{ order.shipping_address|linebreaksbr }}</p>
+            </div>
+        </section>
+
+        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='order-tracking-mobile' %}
+    </main>
+
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
+</section>
+{% endblock %}

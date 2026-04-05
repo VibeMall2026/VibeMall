@@ -289,125 +289,241 @@
 }
 
 .vm-odt-main {
-    max-width: 980px;
+    max-width: 1150px;
     margin: 0 auto;
     padding: 122px 28px 64px;
 }
 
-.vm-odt-page-title {
+.vm-odt-header h1 {
     margin: 0;
     color: #171818;
     font-family: 'Noto Serif', Georgia, serif;
-    font-size: 42px;
-    font-weight: 600;
-    letter-spacing: -0.05em;
+    font-size: 46px;
+    font-weight: 700;
+    letter-spacing: -0.04em;
 }
 
-.vm-odt-page-underline {
-    width: 48px;
-    height: 4px;
-    margin-top: 10px;
-    background: #6f5c37;
-}
-
-.vm-odt-order-bar {
-    margin: 34px 0 28px;
-    padding: 24px 28px;
-    background: #ffffff;
-    border-radius: 20px;
+.vm-odt-header-meta {
+    margin-top: 12px;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    box-shadow: 0 18px 50px -30px rgba(27, 28, 25, 0.25);
+    gap: 10px;
 }
 
-.vm-odt-order-meta-group {
-    display: grid;
-    gap: 4px;
-}
-
-.vm-odt-order-label {
-    color: rgba(27, 28, 25, 0.52);
-    font-size: 10px;
+.vm-odt-meta {
+    color: rgba(27, 28, 25, 0.58);
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
 }
 
-.vm-odt-order-value {
-    color: #171818;
-    font-size: 19px;
+.vm-odt-meta-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #c4c7c7;
+}
+
+.vm-odt-meta-emphasis {
+    color: #6f5c37;
+    font-size: 11px;
     font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
 }
 
-.vm-odt-order-value--soft {
-    font-size: 16px;
-    font-weight: 600;
+.vm-odt-layout {
+    margin-top: 28px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
 }
 
-.vm-odt-status {
-    display: inline-flex;
+.vm-odt-card {
+    background: #ffffff;
+    border-radius: 18px;
+    border: 1px solid rgba(196, 199, 199, 0.28);
+}
+
+.vm-odt-card--timeline {
+    padding: 26px;
+}
+
+.vm-odt-label {
+    margin: 0 0 18px;
+    color: rgba(27, 28, 25, 0.56);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.vm-odt-timeline {
+    position: relative;
+}
+
+.vm-odt-timeline::before {
+    content: "";
+    position: absolute;
+    left: 11px;
+    top: 2px;
+    bottom: 6px;
+    width: 1px;
+    background: #e4e2dd;
+}
+
+.vm-odt-step {
+    position: relative;
+    padding-left: 36px;
+    padding-bottom: 18px;
+}
+
+.vm-odt-step:last-child {
+    padding-bottom: 0;
+}
+
+.vm-odt-step-point {
+    position: absolute;
+    left: 0;
+    top: 2px;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    display: flex;
     align-items: center;
     justify-content: center;
-    padding: 9px 18px;
-    border-radius: 999px;
-    font-size: 11px;
+    z-index: 2;
+}
+
+.vm-odt-step-point i {
+    font-size: 12px;
+}
+
+.vm-odt-step-current .vm-odt-step-point {
+    background: #171818;
+    color: #fff;
+}
+
+.vm-odt-step-complete .vm-odt-step-point {
+    background: #f0eee9;
+    color: #6f5c37;
+}
+
+.vm-odt-step-future .vm-odt-step-point {
+    border: 1px solid #c4c7c7;
+    background: #fbf9f4;
+    color: #747878;
+}
+
+.vm-odt-step-title {
+    margin: 0;
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 21px;
+    color: #171818;
+    line-height: 1.2;
+}
+
+.vm-odt-step-copy {
+    margin: 4px 0 0;
+    color: rgba(27, 28, 25, 0.72);
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.vm-odt-step-meta {
+    margin-top: 6px;
+    color: #6f5c37;
+    font-size: 10px;
     font-weight: 800;
     letter-spacing: 0.12em;
     text-transform: uppercase;
 }
 
-.vm-odt-status--pending,
-.vm-odt-status--processing {
-    background: #fff4d6;
-    color: #8b5e00;
+.vm-odt-step-complete .vm-odt-step-title,
+.vm-odt-step-complete .vm-odt-step-copy,
+.vm-odt-step-complete .vm-odt-step-meta {
+    opacity: 0.72;
 }
 
-.vm-odt-status--shipped {
-    background: #eef2ff;
-    color: #4338ca;
+.vm-odt-step-future .vm-odt-step-title,
+.vm-odt-step-future .vm-odt-step-copy {
+    opacity: 0.52;
 }
 
-.vm-odt-status--delivered {
-    background: #e9f8ee;
-    color: #17643f;
+.vm-odt-address {
+    margin-top: 18px;
+    padding: 20px 22px;
+    background: #f5f3ee;
+    border-left: 4px solid #6f5c37;
+    border-radius: 14px;
 }
 
-.vm-odt-status--cancelled,
-.vm-odt-status--rejected {
-    background: #ffe6e5;
-    color: #b42318;
+.vm-odt-address-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
 }
 
-.vm-odt-status--default {
-    background: #f0eee9;
-    color: #5f5e5e;
+.vm-odt-address-row i {
+    margin-top: 2px;
+    color: #6f5c37;
+}
+
+.vm-odt-address-copy strong {
+    display: block;
+    margin-top: 2px;
+    margin-bottom: 4px;
+    color: #171818;
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 18px;
+}
+
+.vm-odt-address-copy div {
+    color: rgba(27, 28, 25, 0.7);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.vm-odt-summary {
+    position: sticky;
+    top: 100px;
+}
+
+.vm-odt-summary-top {
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(196, 199, 199, 0.3);
+    background: #f5f3ee;
+}
+
+.vm-odt-summary-body {
+    padding: 20px;
 }
 
 .vm-odt-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 14px;
-    margin-bottom: 26px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
 }
 
 .vm-odt-action,
 .vm-odt-action-btn {
     border: 0;
-    border-radius: 999px;
-    padding: 14px 22px;
+    border-radius: 10px;
+    padding: 12px 14px;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
-    transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    letter-spacing: 0.13em;
+    transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
 .vm-odt-action:hover,
@@ -421,14 +537,14 @@
 }
 
 .vm-odt-action--secondary {
-    background: #e4e2dd;
+    background: #f0eee9;
     color: #171818;
 }
 
 .vm-odt-action--ghost {
     background: transparent;
     color: #171818;
-    border: 1px solid rgba(196, 199, 199, 0.45);
+    border: 1px solid rgba(116, 120, 120, 0.5);
 }
 
 .vm-odt-action--danger {
@@ -442,17 +558,17 @@
 
 .vm-odt-alerts {
     display: grid;
-    gap: 10px;
-    margin-bottom: 26px;
+    gap: 8px;
+    margin: 0 0 16px;
 }
 
 .vm-odt-alert {
-    padding: 14px 16px;
-    border-radius: 14px;
+    padding: 10px 12px;
+    border-radius: 10px;
     background: #f5f3ee;
     border: 1px solid rgba(196, 199, 199, 0.28);
     color: #3b3f3f;
-    font-size: 14px;
+    font-size: 12px;
 }
 
 .vm-odt-alert--success {
@@ -461,132 +577,23 @@
     color: #1f6d45;
 }
 
-.vm-odt-summary-grid {
+.vm-odt-line-items {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 24px;
-    margin-bottom: 30px;
-}
-
-.vm-odt-panel {
-    padding: 30px;
-    background: #f0eee9;
-    border-radius: 22px;
-}
-
-.vm-odt-panel h3 {
-    margin: 0 0 22px;
-    color: #171818;
-    font-family: 'Noto Serif', Georgia, serif;
-    font-size: 24px;
-    font-weight: 600;
-    letter-spacing: -0.03em;
-}
-
-.vm-odt-panel-row {
-    display: flex;
-    gap: 14px;
-    align-items: flex-start;
-}
-
-.vm-odt-panel-row + .vm-odt-panel-row {
-    margin-top: 18px;
-}
-
-.vm-odt-panel-row i {
-    color: #6f5c37;
-    font-size: 18px;
-    margin-top: 3px;
-}
-
-.vm-odt-panel-copy {
-    color: rgba(27, 28, 25, 0.78);
-    font-size: 14px;
-    line-height: 1.75;
-}
-
-.vm-odt-panel-copy strong {
-    display: block;
-    color: #171818;
-    font-size: 15px;
-    font-weight: 800;
-}
-
-.vm-odt-divider-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
     gap: 12px;
-    padding-bottom: 14px;
-    margin-bottom: 14px;
-    border-bottom: 1px solid rgba(196, 199, 199, 0.26);
-}
-
-.vm-odt-divider-row:last-child {
-    margin-bottom: 0;
-    padding-bottom: 0;
-    border-bottom: 0;
-}
-
-.vm-odt-divider-row p {
-    margin: 0;
-    font-size: 14px;
-    color: rgba(27, 28, 25, 0.72);
-}
-
-.vm-odt-divider-row span {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: rgba(27, 28, 25, 0.52);
-}
-
-.vm-odt-content-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 18px;
-}
-
-.vm-odt-content-header h3 {
-    margin: 0;
-    color: #171818;
-    font-family: 'Noto Serif', Georgia, serif;
-    font-size: 24px;
-    font-weight: 600;
-    letter-spacing: -0.03em;
-}
-
-.vm-odt-content-header span {
-    color: rgba(27, 28, 25, 0.52);
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-}
-
-.vm-odt-items {
-    overflow: hidden;
-    border-top: 1px solid rgba(196, 199, 199, 0.3);
 }
 
 .vm-odt-item {
     display: flex;
-    align-items: center;
-    gap: 18px;
-    padding: 24px 0;
-    border-bottom: 1px solid rgba(196, 199, 199, 0.18);
+    gap: 10px;
 }
 
 .vm-odt-item-thumb {
-    width: 72px;
-    height: 72px;
-    border-radius: 12px;
+    width: 66px;
+    height: 76px;
+    border-radius: 10px;
     overflow: hidden;
     background: #e4e2dd;
-    flex: 0 0 72px;
+    flex: 0 0 66px;
 }
 
 .vm-odt-item-thumb img {
@@ -595,109 +602,80 @@
     object-fit: cover;
 }
 
-.vm-odt-item-grid {
-    flex: 1;
-    display: grid;
-    grid-template-columns: minmax(0, 1.8fr) minmax(0, 0.5fr) minmax(0, 0.7fr);
-    gap: 16px;
-    align-items: center;
-}
-
-.vm-odt-item-grid h4 {
+.vm-odt-item-info h4 {
     margin: 0;
     color: #171818;
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 800;
+    line-height: 1.35;
 }
 
-.vm-odt-item-grid p {
-    margin: 4px 0 0;
-    color: rgba(27, 28, 25, 0.52);
+.vm-odt-item-meta {
+    margin-top: 3px;
+    color: rgba(27, 28, 25, 0.55);
     font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    line-height: 1.5;
-}
-
-.vm-odt-item-qty {
-    text-align: center;
-    color: rgba(27, 28, 25, 0.66);
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.11em;
     text-transform: uppercase;
 }
 
 .vm-odt-item-price {
-    text-align: right;
+    margin-top: 6px;
     color: #171818;
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 800;
 }
 
-.vm-odt-empty {
-    padding: 26px 0;
-    color: rgba(27, 28, 25, 0.58);
-    font-size: 14px;
-}
-
-.vm-odt-totals {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 32px;
-}
-
-.vm-odt-totals-card {
-    width: 100%;
-    max-width: 340px;
-    display: grid;
-    gap: 14px;
+.vm-odt-divider {
+    height: 1px;
+    background: rgba(196, 199, 199, 0.35);
+    margin: 14px 0;
 }
 
 .vm-odt-total-line {
     display: flex;
     justify-content: space-between;
-    gap: 16px;
-    font-size: 14px;
-}
-
-.vm-odt-total-line span:first-child {
-    color: rgba(27, 28, 25, 0.62);
-    font-weight: 600;
-}
-
-.vm-odt-total-line span:last-child {
-    color: #171818;
+    gap: 8px;
+    color: rgba(27, 28, 25, 0.72);
+    font-size: 11px;
     font-weight: 700;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    padding: 4px 0;
 }
 
-.vm-odt-total-line--accent span:last-child {
+.vm-odt-total-line strong {
+    color: #171818;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.vm-odt-total-line--accent strong {
     color: #6f5c37;
 }
 
 .vm-odt-total-grand {
+    margin-top: 10px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(116, 120, 120, 0.3);
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    gap: 12px;
-    padding-top: 16px;
-    border-top: 2px solid #171818;
 }
 
-.vm-odt-total-grand span:first-child {
+.vm-odt-total-grand span {
     color: #171818;
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 14px;
+    font-weight: 700;
 }
 
 .vm-odt-total-grand strong {
     color: #171818;
-    font-size: 34px;
-    font-weight: 800;
-    letter-spacing: -0.04em;
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 28px;
+    line-height: 1;
 }
 
 @media (min-width: 768px) and (max-width: 1199.98px) {
@@ -711,23 +689,21 @@
 }
 
 @media (max-width: 920px) {
-    .vm-odt-summary-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .vm-odt-item-grid {
+    .vm-odt-layout {
         grid-template-columns: minmax(0, 1fr);
-        gap: 6px;
     }
 
-    .vm-odt-item-qty,
-    .vm-odt-item-price {
-        text-align: left;
+    .vm-odt-summary {
+        position: static;
     }
 
     .vm-odt-main {
         padding-left: 20px;
         padding-right: 20px;
+    }
+
+    .vm-odt-header h1 {
+        font-size: 38px;
     }
 }
 </style>
@@ -881,198 +857,218 @@
 
 <div class="vm-odt-shell">
     <main class="vm-odt-main">
-        <section>
-            <h1 class="vm-odt-page-title">Order Detail</h1>
-            <div class="vm-odt-page-underline"></div>
+        <section class="vm-odt-header">
+            <h1>Track Your Order</h1>
+            <div class="vm-odt-header-meta">
+                <span class="vm-odt-meta">Order ID: #{{ order.order_number }}</span>
+                <span class="vm-odt-meta-dot" aria-hidden="true"></span>
+                <span class="vm-odt-meta-emphasis">Status: {{ order.get_order_status_display }}</span>
+                {% if order.delivery_date %}
+                <span class="vm-odt-meta-dot" aria-hidden="true"></span>
+                <span class="vm-odt-meta">Estimated Arrival: {{ order.delivery_date|date:"M d, Y" }}</span>
+                {% endif %}
+            </div>
         </section>
 
-        <section class="vm-odt-order-bar" aria-label="Order summary bar">
-            <div class="vm-odt-order-meta-group">
-                <p class="vm-odt-order-label">Order Reference</p>
-                <p class="vm-odt-order-value">#{{ order.order_number }}</p>
-            </div>
-            <div class="vm-odt-order-meta-group">
-                <p class="vm-odt-order-label">Date Placed</p>
-                <p class="vm-odt-order-value vm-odt-order-value--soft">{{ order.created_at|date:"F d, Y" }}</p>
-            </div>
+        <section class="vm-odt-layout">
             <div>
-                <span class="vm-odt-status {% if order.order_status == 'PENDING' or order.order_status == 'PROCESSING' %}vm-odt-status--processing{% elif order.order_status == 'SHIPPED' %}vm-odt-status--shipped{% elif order.order_status == 'DELIVERED' %}vm-odt-status--delivered{% elif order.order_status == 'CANCELLED' or order.order_status == 'REJECTED' %}vm-odt-status--cancelled{% else %}vm-odt-status--default{% endif %}">
-                    {{ order.get_order_status_display }}
-                </span>
-            </div>
-        </section>
+                <article class="vm-odt-card vm-odt-card--timeline">
+                    <h2 class="vm-odt-label">Journey Status</h2>
+                    <div class="vm-odt-timeline">
+                        {% for status in order.status_history.all|slice:":4" %}
+                        <div class="vm-odt-step {% if forloop.first %}vm-odt-step-current{% else %}vm-odt-step-complete{% endif %}">
+                            <div class="vm-odt-step-point">
+                                {% if forloop.first %}
+                                <i class="fas fa-shipping-fast" aria-hidden="true"></i>
+                                {% else %}
+                                <i class="fas fa-check-circle" aria-hidden="true"></i>
+                                {% endif %}
+                            </div>
+                            <h3 class="vm-odt-step-title">
+                                {% if status.new_status == 'PENDING' %}
+                                Order Confirmed
+                                {% elif status.new_status == 'PROCESSING' %}
+                                Processed for Shipping
+                                {% elif status.new_status == 'SHIPPED' %}
+                                In Transit
+                                {% elif status.new_status == 'DELIVERED' %}
+                                Delivered
+                                {% elif status.new_status == 'CANCELLED' %}
+                                Order Cancelled
+                                {% else %}
+                                {{ status.new_status|title }}
+                                {% endif %}
+                            </h3>
+                            <p class="vm-odt-step-copy">
+                                {% if status.notes %}
+                                {{ status.notes }}
+                                {% elif status.changed_by %}
+                                Updated by {{ status.changed_by.get_full_name|default:status.changed_by.username }}.
+                                {% else %}
+                                Order milestone updated successfully.
+                                {% endif %}
+                            </p>
+                            <div class="vm-odt-step-meta">
+                                {{ status.created_at|date:"M d, h:i A" }}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="vm-odt-step vm-odt-step-current">
+                            <div class="vm-odt-step-point">
+                                <i class="fas fa-box" aria-hidden="true"></i>
+                            </div>
+                            <h3 class="vm-odt-step-title">{{ order.get_order_status_display }}</h3>
+                            <p class="vm-odt-step-copy">Your order has been placed and is now in progress.</p>
+                            <div class="vm-odt-step-meta">{{ order.created_at|date:"M d, h:i A" }}</div>
+                        </div>
+                        {% endfor %}
 
-        <section class="vm-odt-actions" aria-label="Order actions">
-            <a href="{% url 'track_order' %}?order_number={{ order.order_number|urlencode }}" class="vm-odt-action vm-odt-action--primary">
-                <i class="fas fa-shipping-fast"></i>
-                <span>Track Order</span>
-            </a>
-            <a href="{% url 'download_invoice' order.order_number %}" class="vm-odt-action vm-odt-action--secondary">
-                <i class="fas fa-download"></i>
-                <span>Download Invoice</span>
-            </a>
-            {% if not cancel_request and cancel_eligible %}
-            <button type="button" class="vm-odt-action-btn vm-odt-action--ghost vm-odt-action--danger" data-bs-toggle="modal" data-bs-target="#cancelOrderModal">
-                <i class="fas fa-times-circle"></i>
-                <span>Request Cancel</span>
-            </button>
-            {% elif active_return %}
-            <a href="{% url 'return_status' active_return.id %}" class="vm-odt-action vm-odt-action--ghost">
-                <i class="fas fa-undo"></i>
-                <span>View Return</span>
-            </a>
-            {% elif is_return_eligible %}
-            <a href="{% url 'return_request' order.id %}" class="vm-odt-action vm-odt-action--ghost">
-                <i class="fas fa-undo"></i>
-                <span>Request Return</span>
-            </a>
-            {% elif cancel_request %}
-            <span class="vm-odt-action vm-odt-action--ghost vm-odt-action--disabled">
-                <i class="fas fa-ban"></i>
-                <span>{{ cancel_request.get_status_display }}</span>
-            </span>
-            {% else %}
-            <span class="vm-odt-action vm-odt-action--ghost vm-odt-action--disabled">
-                <i class="fas fa-ban"></i>
-                <span>Action Locked</span>
-            </span>
-            {% endif %}
-        </section>
-
-        <section class="vm-odt-alerts" aria-label="Order notices">
-            {% if not active_return and not is_return_eligible and return_reason %}
-            <div class="vm-odt-alert">{{ return_reason }}</div>
-            {% elif is_return_eligible and return_deadline %}
-            <div class="vm-odt-alert vm-odt-alert--success">Return eligible until {{ return_deadline|date:"d M Y" }}</div>
-            {% endif %}
-
-            {% if not cancel_eligible and cancel_reason %}
-            <div class="vm-odt-alert">{{ cancel_reason }}</div>
-            {% elif cancel_eligible and cancel_deadline %}
-            <div class="vm-odt-alert vm-odt-alert--success">Cancellation available until {{ cancel_deadline|date:"d M Y, h:i A" }}</div>
-            {% endif %}
-
-            {% if cancel_request %}
-            <div class="vm-odt-alert">Cancellation request status: {{ cancel_request.get_status_display }}</div>
-            {% endif %}
-        </section>
-
-        <section class="vm-odt-summary-grid">
-            <div class="vm-odt-panel">
-                <h3>Shipping Destination</h3>
-                <div class="vm-odt-panel-row">
-                    <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
-                    <div class="vm-odt-panel-copy">
-                        <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
-                        <div>{{ order.shipping_address|linebreaksbr }}</div>
-                    </div>
-                </div>
-                {% if request.user.email %}
-                <div class="vm-odt-panel-row">
-                    <i class="far fa-envelope" aria-hidden="true"></i>
-                    <div class="vm-odt-panel-copy">{{ request.user.email }}</div>
-                </div>
-                {% endif %}
-            </div>
-
-            <div class="vm-odt-panel">
-                <h3>Payment Architecture</h3>
-                <div class="vm-odt-divider-row">
-                    <div>
-                        <p>{{ order.get_payment_method_display }}</p>
-                    </div>
-                    <span>{% if order.payment_status == 'PAID' %}Verified{% else %}{{ order.get_payment_status_display }}{% endif %}</span>
-                </div>
-                {% if order.razorpay_payment_id %}
-                <div class="vm-odt-divider-row">
-                    <div>
-                        <p>Transaction Reference</p>
-                    </div>
-                    <span>{{ order.razorpay_payment_id }}</span>
-                </div>
-                {% elif order.payment_method == 'COD' %}
-                <div class="vm-odt-divider-row">
-                    <div>
-                        <p>Settlement</p>
-                    </div>
-                    <span>{% if order.order_status == 'DELIVERED' %}Paid on delivery{% else %}Pay on delivery{% endif %}</span>
-                </div>
-                {% endif %}
-                <div class="vm-odt-divider-row">
-                    <div>
-                        <p>Billing Address</p>
-                    </div>
-                    <span>{% if order.billing_address == order.shipping_address %}Same as shipping{% else %}Custom billing{% endif %}</span>
-                </div>
-                {% if order.billing_address and order.billing_address != order.shipping_address %}
-                <div class="vm-odt-panel-copy">{{ order.billing_address|linebreaksbr }}</div>
-                {% endif %}
-            </div>
-        </section>
-
-        <section>
-            <div class="vm-odt-content-header">
-                <h3>Order Contents</h3>
-                <span>{{ order_items|length }} Item{{ order_items|length|pluralize }}</span>
-            </div>
-            <div class="vm-odt-items">
-                {% for item in order_items %}
-                <article class="vm-odt-item">
-                    <div class="vm-odt-item-thumb">
-                        {% if item.display_image_url %}
-                        <img src="{{ item.display_image_url }}" alt="{{ item.product_name }}">
-                        {% elif item.product and item.product.image %}
-                        <img src="{{ item.product.image.url }}" alt="{{ item.product_name }}">
-                        {% else %}
-                        <div style="width:100%; height:100%; background:#e4e2dd;"></div>
+                        {% if order.order_status != 'DELIVERED' and order.order_status != 'CANCELLED' %}
+                        <div class="vm-odt-step vm-odt-step-future">
+                            <div class="vm-odt-step-point">
+                                <i class="fas fa-circle" aria-hidden="true"></i>
+                            </div>
+                            <h3 class="vm-odt-step-title">
+                                {% if order.order_status == 'PENDING' %}
+                                Processed for Shipping
+                                {% elif order.order_status == 'PROCESSING' %}
+                                In Transit
+                                {% else %}
+                                Out for Delivery
+                                {% endif %}
+                            </h3>
+                            <p class="vm-odt-step-copy">Your package will proceed to the next milestone soon.</p>
+                        </div>
                         {% endif %}
                     </div>
-                    <div class="vm-odt-item-grid">
-                        <div>
-                            <h4>{{ item.product_name }}</h4>
-                            <p>
-                                {% if item.product and item.product.sku %}SKU: {{ item.product.sku }}{% else %}Order Item{% endif %}
-                                {% if item.color %} • {{ item.color }}{% endif %}
-                                {% if item.size %} • {{ item.size }}{% endif %}
-                            </p>
+                </article>
+
+                <article class="vm-odt-address">
+                    <h2 class="vm-odt-label" style="margin-bottom:10px;">Shipping Destination</h2>
+                    <div class="vm-odt-address-row">
+                        <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
+                        <div class="vm-odt-address-copy">
+                            <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+                            <div>{{ order.shipping_address|linebreaksbr }}</div>
                         </div>
-                        <div class="vm-odt-item-qty">QTY: {{ item.quantity }}</div>
-                        <div class="vm-odt-item-price">₹{{ item.subtotal|floatformat:2 }}</div>
                     </div>
                 </article>
-                {% empty %}
-                <div class="vm-odt-empty">No items found for this order.</div>
-                {% endfor %}
             </div>
-        </section>
 
-        <section class="vm-odt-totals">
-            <div class="vm-odt-totals-card">
-                <div class="vm-odt-total-line">
-                    <span>Subtotal</span>
-                    <span>₹{{ order.subtotal|floatformat:2 }}</span>
+            <aside class="vm-odt-summary vm-odt-card" aria-label="Order summary">
+                <div class="vm-odt-summary-top">
+                    <h2 class="vm-odt-label" style="margin:0; color:#171818;">Order Summary ({{ order_items|length }})</h2>
                 </div>
-                <div class="vm-odt-total-line vm-odt-total-line--accent">
-                    <span>Shipping{% if not order.shipping_cost %} (Express){% endif %}</span>
-                    <span>{% if order.shipping_cost %}₹{{ order.shipping_cost|floatformat:2 }}{% else %}Complimentary{% endif %}</span>
+                <div class="vm-odt-summary-body">
+                    <section class="vm-odt-actions" aria-label="Order actions">
+                        <a href="{% url 'track_order' %}?order_number={{ order.order_number|urlencode }}" class="vm-odt-action vm-odt-action--primary">
+                            <i class="fas fa-shipping-fast"></i>
+                            <span>Track Order</span>
+                        </a>
+                        <a href="{% url 'download_invoice' order.order_number %}" class="vm-odt-action vm-odt-action--secondary">
+                            <i class="fas fa-download"></i>
+                            <span>Download Invoice</span>
+                        </a>
+                        {% if not cancel_request and cancel_eligible %}
+                        <button type="button" class="vm-odt-action-btn vm-odt-action--ghost vm-odt-action--danger" data-bs-toggle="modal" data-bs-target="#cancelOrderModal">
+                            <i class="fas fa-times-circle"></i>
+                            <span>Request Cancel</span>
+                        </button>
+                        {% elif active_return %}
+                        <a href="{% url 'return_status' active_return.id %}" class="vm-odt-action vm-odt-action--ghost">
+                            <i class="fas fa-undo"></i>
+                            <span>View Return</span>
+                        </a>
+                        {% elif is_return_eligible %}
+                        <a href="{% url 'return_request' order.id %}" class="vm-odt-action vm-odt-action--ghost">
+                            <i class="fas fa-undo"></i>
+                            <span>Request Return</span>
+                        </a>
+                        {% elif cancel_request %}
+                        <span class="vm-odt-action vm-odt-action--ghost vm-odt-action--disabled">
+                            <i class="fas fa-ban"></i>
+                            <span>{{ cancel_request.get_status_display }}</span>
+                        </span>
+                        {% else %}
+                        <span class="vm-odt-action vm-odt-action--ghost vm-odt-action--disabled">
+                            <i class="fas fa-ban"></i>
+                            <span>Action Locked</span>
+                        </span>
+                        {% endif %}
+                    </section>
+
+                    <section class="vm-odt-alerts" aria-label="Order notices">
+                        {% if not active_return and not is_return_eligible and return_reason %}
+                        <div class="vm-odt-alert">{{ return_reason }}</div>
+                        {% elif is_return_eligible and return_deadline %}
+                        <div class="vm-odt-alert vm-odt-alert--success">Return eligible until {{ return_deadline|date:"d M Y" }}</div>
+                        {% endif %}
+
+                        {% if not cancel_eligible and cancel_reason %}
+                        <div class="vm-odt-alert">{{ cancel_reason }}</div>
+                        {% elif cancel_eligible and cancel_deadline %}
+                        <div class="vm-odt-alert vm-odt-alert--success">Cancellation available until {{ cancel_deadline|date:"d M Y, h:i A" }}</div>
+                        {% endif %}
+
+                        {% if cancel_request %}
+                        <div class="vm-odt-alert">Cancellation request status: {{ cancel_request.get_status_display }}</div>
+                        {% endif %}
+                    </section>
+
+                    <section class="vm-odt-line-items">
+                        {% for item in order_items|slice:":3" %}
+                        <article class="vm-odt-item">
+                            <div class="vm-odt-item-thumb">
+                                {% if item.display_image_url %}
+                                <img src="{{ item.display_image_url }}" alt="{{ item.product_name }}">
+                                {% elif item.product and item.product.image %}
+                                <img src="{{ item.product.image.url }}" alt="{{ item.product_name }}">
+                                {% else %}
+                                <div style="width:100%; height:100%; background:#e4e2dd;"></div>
+                                {% endif %}
+                            </div>
+                            <div class="vm-odt-item-info">
+                                <h4>{{ item.product_name }}</h4>
+                                <div class="vm-odt-item-meta">Qty: {{ item.quantity }}{% if item.color %} • {{ item.color }}{% endif %}{% if item.size %} • {{ item.size }}{% endif %}</div>
+                                <div class="vm-odt-item-price">₹{{ item.subtotal|floatformat:2 }}</div>
+                            </div>
+                        </article>
+                        {% endfor %}
+                        {% if order_items|length > 3 %}
+                        <div class="vm-odt-alert">+{{ order_items|length|add:"-3" }} more item{{ order_items|length|add:"-3"|pluralize }}</div>
+                        {% endif %}
+                    </section>
+
+                    <div class="vm-odt-divider"></div>
+
+                    <section>
+                        <div class="vm-odt-total-line">
+                            <span>Subtotal</span>
+                            <strong>₹{{ order.subtotal|floatformat:2 }}</strong>
+                        </div>
+                        <div class="vm-odt-total-line vm-odt-total-line--accent">
+                            <span>Shipping</span>
+                            <strong>{% if order.shipping_cost %}₹{{ order.shipping_cost|floatformat:2 }}{% else %}Complimentary{% endif %}</strong>
+                        </div>
+                        {% if order.tax %}
+                        <div class="vm-odt-total-line">
+                            <span>Estimated Taxes</span>
+                            <strong>₹{{ order.tax|floatformat:2 }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if order.coupon_discount %}
+                        <div class="vm-odt-total-line">
+                            <span>Discount</span>
+                            <strong>-₹{{ order.coupon_discount|floatformat:2 }}</strong>
+                        </div>
+                        {% endif %}
+                        <div class="vm-odt-total-grand">
+                            <span>Total Amount</span>
+                            <strong>₹{{ order.total_amount|floatformat:2 }}</strong>
+                        </div>
+                    </section>
                 </div>
-                {% if order.tax %}
-                <div class="vm-odt-total-line">
-                    <span>Estimated Taxes</span>
-                    <span>₹{{ order.tax|floatformat:2 }}</span>
-                </div>
-                {% endif %}
-                {% if order.coupon_discount %}
-                <div class="vm-odt-total-line">
-                    <span>Discount</span>
-                    <span>-₹{{ order.coupon_discount|floatformat:2 }}</span>
-                </div>
-                {% endif %}
-                <div class="vm-odt-total-grand">
-                    <span>Total Amount</span>
-                    <strong>₹{{ order.total_amount|floatformat:2 }}</strong>
-                </div>
-            </div>
+            </aside>
         </section>
     </main>
 </div>
