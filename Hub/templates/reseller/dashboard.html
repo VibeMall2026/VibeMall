@@ -50,6 +50,12 @@
     display: none;
 }
 
+.vm-rdd-actions-row .vm-rdd-action-btn {
+    min-height: 40px;
+    padding: 0 12px;
+    font-size: 10px;
+}
+
 .vm-rdd-chip-btn {
     flex: 0 0 auto;
     border: 0;
@@ -353,14 +359,8 @@
     }
 
     .vm-rdd-panels {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: minmax(0, 1fr);
         gap: 16px;
-    }
-}
-
-@media (min-width: 1440px) {
-    .vm-rdd-panels .vm-rdd-panel:first-child {
-        grid-column: span 2;
     }
 }
 </style>
@@ -392,8 +392,18 @@
                 <p>Welcome back, {{ request.user.first_name|default:request.user.username }}. Your reseller storefront is growing this season.</p>
             </div>
             <div class="vm-rdd-actions-row">
-                <a href="{% url 'earnings_history' %}" class="vm-rdd-chip-btn"><i class="fas fa-file-download"></i><span>Export Report</span></a>
-                <a href="{% url 'earnings_history' %}" class="vm-rdd-chip-btn is-primary"><i class="fas fa-chart-line"></i><span>View Insights</span></a>
+                <a href="{% url 'reseller_profile' %}" class="vm-rdd-action-btn">
+                    <span>Profile</span>
+                    <i class="fas fa-user-cog" aria-hidden="true"></i>
+                </a>
+                <a href="{% url 'earnings_history' %}" class="vm-rdd-action-btn">
+                    <span>Earnings</span>
+                    <i class="fas fa-chart-line" aria-hidden="true"></i>
+                </a>
+                <a href="{% url 'payout_request_page' %}" class="vm-rdd-action-btn vm-rdd-action-btn--primary">
+                    <span>Withdraw</span>
+                    <i class="fas fa-wallet" aria-hidden="true"></i>
+                </a>
             </div>
         </header>
 
@@ -462,27 +472,6 @@
                 {% endif %}
             </section>
 
-            <section class="vm-rdd-panel">
-                <div class="vm-rdd-panel-head">
-                    <h2>Quick Actions</h2>
-                    <a href="{% url 'reseller_links' %}">Resell Hub</a>
-                </div>
-
-                <div class="vm-rdd-quick-actions">
-                    <a href="{% url 'reseller_profile' %}" class="vm-rdd-action-btn">
-                        <span>Reseller Profile</span>
-                        <i class="fas fa-user-cog" aria-hidden="true"></i>
-                    </a>
-                    <a href="{% url 'earnings_history' %}" class="vm-rdd-action-btn">
-                        <span>Earnings</span>
-                        <i class="fas fa-chart-line" aria-hidden="true"></i>
-                    </a>
-                    <a href="{% url 'payout_request_page' %}" class="vm-rdd-action-btn vm-rdd-action-btn--primary">
-                        <span>Withdraw</span>
-                        <i class="fas fa-wallet" aria-hidden="true"></i>
-                    </a>
-                </div>
-            </section>
         </div>
 
     </div>

@@ -1709,24 +1709,41 @@ body:has(.vm-copy-shop-page) > footer {
 }
 .vm-copy-nav {
   display: flex;
-  gap: 16px;
+  gap: 14px;
   align-items: center;
   justify-self: start;
+  flex-wrap: nowrap;
 }
 .vm-copy-nav > a,
 .vm-copy-nav-item > a {
   text-decoration: none;
   color: #6e6e6e;
-  font-size: 9.5px;
-  letter-spacing: .07em;
+  font-size: 9px;
+  letter-spacing: .05em;
   text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1;
+  flex: 0 0 auto;
 }
-.vm-copy-nav-item { position: relative; }
-.vm-copy-nav-item > a { display: inline-flex; align-items: center; gap: 6px; }
+.vm-copy-nav-item { position: relative; flex: 0 0 auto; }
+.vm-copy-nav > a,
+.vm-copy-nav-item > a { display: inline-flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
 .vm-copy-nav > a.active,
 .vm-copy-nav > a:hover,
 .vm-copy-nav-item > a.active,
 .vm-copy-nav-item > a:hover { color: #1f1f1f; }
+
+@media (max-width: 1360px) and (min-width: 1101px) {
+  .vm-copy-nav {
+    gap: 10px;
+  }
+
+  .vm-copy-nav > a,
+  .vm-copy-nav-item > a {
+    font-size: 8.5px;
+    letter-spacing: .04em;
+  }
+}
 
 .vm-copy-nav-item--dept > a {
   padding: 10px 14px;
