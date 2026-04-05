@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block title %}Track Order #{{ order.order_number }} - VibeMall{% endblock %}
-{% block body_class %}vm-page-track-order-desktop{% endblock %}
+{% block body_class %}vm-page-track-order-desktop vm-page-mobile-alt{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -12,6 +12,11 @@
     font-family: "Manrope", sans-serif;
     min-height: 100vh;
     padding: 116px 18px 54px;
+}
+
+.vm-tod-mobile-chrome,
+.vm-tod-mobile-bnav {
+    display: none;
 }
 
 .vm-tod-shell {
@@ -404,8 +409,35 @@
 }
 
 @media (max-width: 767.98px) {
+    body.vm-page-track-order-desktop .vm-copy-header,
+    body.vm-page-track-order-desktop .vm-copy-footer,
+    body.vm-page-track-order-desktop > footer,
+    body.vm-page-track-order-desktop .vm-tablet-alt-header,
+    body.vm-page-track-order-desktop .vm-tablet-alt-footer,
+    body.vm-page-track-order-desktop .vm-tab-bnav-shell {
+        display: none !important;
+    }
+
+    .vm-tod-mobile-chrome,
+    .vm-tod-mobile-bnav {
+        display: block;
+    }
+
+    .vm-tod-mobile-bnav .vm-mobile-bottom-nav {
+        display: flex !important;
+        position: fixed !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: var(--vm-tablet-nav-offset, 0px) !important;
+        z-index: 1100 !important;
+    }
+
+    body.vm-page-track-order-desktop {
+        padding-bottom: calc(88px + var(--vm-tablet-nav-offset, 0px)) !important;
+    }
+
     .vm-tod-page {
-        padding: 92px 12px 30px;
+        padding: 102px 12px 30px;
     }
 
     .vm-tod-stepper,
@@ -427,6 +459,10 @@
 {% endblock %}
 
 {% block content %}
+<div class="vm-tod-mobile-chrome">
+    {% include 'partials/vm_mobile_alt_header.html' %}
+</div>
+
 <section class="vm-tod-page">
     <div class="vm-tod-shell">
         <header class="vm-tod-head">
@@ -567,4 +603,12 @@
         </div>
     </div>
 </section>
+
+<div class="vm-tod-mobile-chrome">
+    {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='order-tracking-mobile-fallback' %}
+</div>
+
+<div class="vm-tod-mobile-bnav">
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
+</div>
 {% endblock %}

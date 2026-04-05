@@ -12,6 +12,10 @@
     font-family: 'Manrope', 'Segoe UI', Tahoma, sans-serif;
 }
 
+.vm-orderdetails-shared-bnav {
+    display: none;
+}
+
 .vm-odm-shell {
     display: block;
 }
@@ -706,6 +710,57 @@
         font-size: 38px;
     }
 }
+
+@media (max-width: 767.98px) {
+    body.vm-orderdetails-mobile-page .vm-copy-header,
+    body.vm-orderdetails-mobile-page .vm-copy-footer,
+    body.vm-orderdetails-mobile-page > footer,
+    body.vm-orderdetails-mobile-page .vm-tablet-alt-header,
+    body.vm-orderdetails-mobile-page .vm-tablet-alt-footer,
+    body.vm-orderdetails-mobile-page .vm-tab-bnav-shell {
+        display: none !important;
+    }
+
+    body.vm-orderdetails-mobile-page {
+        padding-bottom: calc(84px + var(--vm-tablet-nav-offset, 0px)) !important;
+    }
+
+    .vm-orderdetails-shared-bnav {
+        display: block;
+    }
+
+    .vm-orderdetails-shared-bnav .vm-mobile-bottom-nav {
+        display: flex !important;
+        position: fixed !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: var(--vm-tablet-nav-offset, 0px) !important;
+        z-index: 1100 !important;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1199.98px) {
+    body.vm-orderdetails-mobile-page .vm-copy-header,
+    body.vm-orderdetails-mobile-page .vm-copy-footer,
+    body.vm-orderdetails-mobile-page > footer {
+        display: none !important;
+    }
+
+    body.vm-orderdetails-mobile-page .vm-tablet-alt-header,
+    body.vm-orderdetails-mobile-page .vm-tablet-alt-footer,
+    body.vm-orderdetails-mobile-page .vm-tab-bnav-shell,
+    body.vm-orderdetails-mobile-page .vm-tab-bnav-shell .vm-mobile-bottom-nav {
+        display: block !important;
+    }
+
+    body.vm-orderdetails-mobile-page .vm-tab-bnav-shell .vm-mobile-bottom-nav {
+        display: flex !important;
+    }
+
+    .vm-orderdetails-shared-bnav {
+        display: none !important;
+    }
+}
 </style>
 {% endblock %}
 
@@ -852,13 +907,12 @@
         {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='order-details-mobile' %}
     </main>
 
-    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='home' %}
 </div>
 
 <div class="vm-odt-shell">
     <main class="vm-odt-main">
         <section class="vm-odt-header">
-            <h1>Track Your Order</h1>
+            <h1>Order Details</h1>
             <div class="vm-odt-header-meta">
                 <span class="vm-odt-meta">Order ID: #{{ order.order_number }}</span>
                 <span class="vm-odt-meta-dot" aria-hidden="true"></span>
@@ -1071,6 +1125,10 @@
             </aside>
         </section>
     </main>
+</div>
+
+<div class="vm-orderdetails-shared-bnav">
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
 </div>
 
 {% if not cancel_request and cancel_eligible %}

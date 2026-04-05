@@ -3,6 +3,7 @@
 
 {% block title %}Track Order #{{ order.order_number }} - VibeMall{% endblock %}
 {% block body_class %}vm-page-mobile-alt vm-page-mobile-ordertracking-detail{% endblock %}
+{% block ui_chrome %}mobile{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -10,6 +11,11 @@
     background: #fbf9f4;
     color: #1b1c19;
     font-family: "Manrope", sans-serif;
+}
+
+.vm-tom-tablet-chrome,
+.vm-tom-tablet-bnav {
+    display: none;
 }
 
 .vm-tom-main {
@@ -315,12 +321,54 @@
     font-size: 14px;
     line-height: 1.6;
 }
+
+@media (min-width: 768px) and (max-width: 1199.98px) {
+    .vm-tom-mobile-chrome,
+    .vm-tom-mobile-bnav {
+        display: none !important;
+    }
+
+    .vm-tom-tablet-chrome,
+    .vm-tom-tablet-bnav {
+        display: block;
+    }
+
+    .vm-tom-tablet-bnav .vm-mobile-bottom-nav {
+        display: flex !important;
+        position: fixed !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: var(--vm-tablet-nav-offset, 0px) !important;
+        z-index: 1100 !important;
+    }
+
+    .vm-tom-main {
+        max-width: 860px;
+        padding-left: 22px;
+        padding-right: 22px;
+        padding-bottom: 34px;
+    }
+
+    .vm-tom-main.vm-mobile-content-offset {
+        margin-top: 0 !important;
+        padding-top: 110px;
+    }
+
+    body.vm-page-mobile-alt {
+        padding-bottom: calc(88px + var(--vm-tablet-nav-offset, 0px)) !important;
+    }
+}
 </style>
 {% endblock %}
 
 {% block content %}
 <section class="vm-tom-page">
-    {% include 'partials/vm_mobile_alt_header.html' %}
+    <div class="vm-tom-mobile-chrome">
+        {% include 'partials/vm_mobile_alt_header.html' %}
+    </div>
+    <div class="vm-tom-tablet-chrome">
+        {% include 'partials/vm_tablet_alt_header.html' %}
+    </div>
 
     <main class="vm-tom-main vm-mobile-content-offset">
         <section class="vm-tom-head">
@@ -420,9 +468,19 @@
             </div>
         </section>
 
-        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='order-tracking-mobile' %}
+        <div class="vm-tom-mobile-chrome">
+            {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='order-tracking-mobile' %}
+        </div>
+        <div class="vm-tom-tablet-chrome">
+            {% include 'partials/vm_tablet_alt_footer.html' %}
+        </div>
     </main>
 
-    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
+    <div class="vm-tom-mobile-bnav">
+        {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
+    </div>
+    <div class="vm-tom-tablet-bnav">
+        {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
+    </div>
 </section>
 {% endblock %}
