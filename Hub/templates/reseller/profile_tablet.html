@@ -1,0 +1,568 @@
+{% extends 'base.html' %}
+
+{% block title %}Reseller Profile Settings - VibeMall{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-reseller-profile-mobile{% endblock %}
+{% block ui_chrome %}mobile{% endblock %}
+
+{% block extra_css %}
+<style>
+.vm-rpm-page {
+    min-height: 100vh;
+    background: #fbf9f4;
+    color: #1b1c19;
+    font-family: "Manrope", sans-serif;
+}
+
+body.vm-page-reseller-profile-mobile .vm-mobile-side-menu,
+body.vm-page-reseller-profile-mobile .vm-mobile-side-menu-overlay {
+    display: none !important;
+}
+
+.vm-rpm-main {
+    max-width: 430px;
+    margin: 0 auto;
+    padding: 14px 16px 22px;
+}
+
+.vm-rpm-alerts {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.vm-rpm-alert {
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 13px;
+}
+
+.vm-rpm-alert--error { background: #ffedea; color: #ba1a1a; }
+.vm-rpm-alert--success { background: #e8f3ea; color: #1f6a35; }
+
+.vm-rpm-hero {
+    margin-bottom: 14px;
+    border-radius: 22px;
+    background: linear-gradient(135deg, #171818 0%, #2c2c2c 100%);
+    color: #f8f5ee;
+    padding: 20px 18px;
+}
+
+.vm-rpm-hero small,
+.vm-rpm-label,
+.vm-rpm-card-head small {
+    display: block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 800;
+}
+
+.vm-rpm-hero small {
+    opacity: 0.7;
+    margin-bottom: 8px;
+}
+
+.vm-rpm-hero h1 {
+    margin: 0;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 38px;
+    line-height: 0.95;
+    letter-spacing: -0.05em;
+}
+
+.vm-rpm-hero p {
+    margin: 10px 0 0;
+    color: rgba(248, 245, 238, 0.78);
+    font-size: 13px;
+}
+
+.vm-rpm-card {
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0 10px 26px -20px rgba(27, 28, 25, 0.35);
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.vm-rpm-card-head {
+    margin-bottom: 10px;
+}
+
+.vm-rpm-card-head small {
+    color: #6f5c37;
+    margin-bottom: 6px;
+}
+
+.vm-rpm-card-head h2 {
+    margin: 0;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 29px;
+    line-height: 0.96;
+    letter-spacing: -0.04em;
+}
+
+.vm-rpm-card-head p {
+    margin: 8px 0 0;
+    color: rgba(68, 71, 72, 0.75);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.vm-rpm-field {
+    display: grid;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.vm-rpm-label {
+    color: #6f5c37;
+}
+
+.vm-rpm-input,
+.vm-rpm-readonly {
+    width: 100%;
+    min-height: 52px;
+    border-radius: 14px;
+    border: 1px solid rgba(196, 199, 199, 0.34);
+    background: #fff;
+    color: #171818;
+    padding: 0 14px;
+    font-size: 15px;
+    outline: none;
+}
+
+.vm-rpm-input:focus {
+    border-color: rgba(111, 92, 55, 0.66);
+    box-shadow: 0 0 0 3px rgba(250, 223, 177, 0.28);
+}
+
+.vm-rpm-readonly {
+    display: flex;
+    align-items: center;
+    background: #f5f3ee;
+}
+
+.vm-rpm-hint {
+    margin: 0;
+    min-height: 18px;
+    color: rgba(68, 71, 72, 0.72);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.vm-rpm-verify-row {
+    display: grid;
+    gap: 10px;
+}
+
+.vm-rpm-verify-row > div {
+    min-width: 0;
+}
+
+.vm-rpm-btn,
+.vm-rpm-btn-secondary,
+.vm-rpm-btn-ghost {
+    min-height: 48px;
+    border-radius: 14px;
+    padding: 0 14px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 800;
+}
+
+.vm-rpm-btn {
+    border: 0;
+    background: #171818;
+    color: #fff;
+    width: 100%;
+}
+
+.vm-rpm-btn-secondary {
+    border: 0;
+    background: #6f5c37;
+    color: #fff;
+}
+
+.vm-rpm-btn-ghost {
+    border: 1px solid rgba(116, 120, 120, 0.34);
+    background: transparent;
+    color: #171818;
+    width: 100%;
+    margin-top: 8px;
+}
+
+.vm-rpm-actions {
+    margin-top: 12px;
+}
+
+.vm-rpm-status {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 800;
+    margin-top: 8px;
+}
+
+.vm-rpm-status--active { background: #e7f3ea; color: #1f6a35; }
+.vm-rpm-status--inactive { background: #fff4e5; color: #9a5f00; }
+
+.vm-rpm-note {
+    margin-top: 10px;
+    border-radius: 14px;
+    background: #f5f3ee;
+    padding: 12px;
+}
+
+.vm-rpm-note strong {
+    display: block;
+    color: #6f5c37;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 800;
+    margin-bottom: 6px;
+}
+
+.vm-rpm-note p {
+    margin: 0;
+    font-size: 12px;
+    color: rgba(68, 71, 72, 0.8);
+    line-height: 1.6;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="vm-rpm-page">
+    {% include 'partials/vm_mobile_alt_header.html' %}
+
+    <main class="vm-rpm-main vm-mobile-content-offset">
+        {% if messages %}
+        <section class="vm-rpm-alerts">
+            {% for message in messages %}
+            <div class="vm-rpm-alert {% if message.tags == 'error' %}vm-rpm-alert--error{% else %}vm-rpm-alert--success{% endif %}">{{ message }}</div>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        <section class="vm-rpm-hero" aria-label="Reseller profile mobile header">
+            <small>Reseller Profile</small>
+            <h1>{{ request.user.get_full_name|default:request.user.username }}</h1>
+            <p>Manage payout settings with verified bank details and UPI details.</p>
+        </section>
+
+        <form method="post" id="resellerProfileForm" novalidate>
+            {% csrf_token %}
+
+            <article class="vm-rpm-card">
+                <div class="vm-rpm-card-head">
+                    <small>Business Identity</small>
+                    <h2>Profile basics</h2>
+                    <p>These values are stored in your reseller profile and shown in admin payment data records.</p>
+                </div>
+
+                <div class="vm-rpm-field">
+                    <label class="vm-rpm-label" for="business_name">Business Name</label>
+                    <input id="business_name" name="business_name" class="vm-rpm-input" type="text" value="{{ profile.business_name|default:'' }}" placeholder="Your business name">
+                </div>
+
+                <div class="vm-rpm-field">
+                    <label class="vm-rpm-label">Customer Name</label>
+                    <div class="vm-rpm-readonly">{{ request.user.get_full_name|default:request.user.username }}</div>
+                </div>
+
+                <div class="vm-rpm-field">
+                    <label class="vm-rpm-label" for="pan_number">PAN Number</label>
+                    <input id="pan_number" name="pan_number" class="vm-rpm-input" type="text" maxlength="10" value="{{ profile.pan_number|default:'' }}" placeholder="ABCDE1234F">
+                </div>
+            </article>
+
+            <article class="vm-rpm-card">
+                <div class="vm-rpm-card-head">
+                    <small>Bank Details</small>
+                    <h2>Bank details for payout</h2>
+                    <p>Add account holder name, account number, and IFSC. IFSC is verified before save.</p>
+                </div>
+
+                <div class="vm-rpm-field">
+                    <label class="vm-rpm-label" for="bank_account_name">Account Holder Name</label>
+                    <input id="bank_account_name" name="bank_account_name" class="vm-rpm-input" type="text" value="{{ profile.bank_account_name|default:'' }}" placeholder="Name as per bank records">
+                </div>
+
+                <div class="vm-rpm-field">
+                    <label class="vm-rpm-label" for="bank_account_number">Bank Account Number</label>
+                    <input id="bank_account_number" name="bank_account_number" class="vm-rpm-input" type="text" inputmode="numeric" value="{{ profile.bank_account_number|default:'' }}" placeholder="6 to 34 digits">
+                    <p id="bank_account_hint" class="vm-rpm-hint">Use 6 to 34 digits only.</p>
+                </div>
+
+                <div class="vm-rpm-field">
+                    <label class="vm-rpm-label" for="bank_ifsc_code">IFSC Code</label>
+                    <div class="vm-rpm-verify-row">
+                        <div>
+                            <input id="bank_ifsc_code" name="bank_ifsc_code" class="vm-rpm-input" type="text" value="{{ profile.bank_ifsc_code|default:'' }}" placeholder="HDFC0001234">
+                            <p id="bank_ifsc_hint" class="vm-rpm-hint">We verify IFSC and show bank details below.</p>
+                        </div>
+                        <button type="button" id="verifyIfscButton" class="vm-rpm-btn-ghost">Verify IFSC</button>
+                    </div>
+                </div>
+
+                <div class="vm-rpm-field">
+                    <label class="vm-rpm-label">Verified Bank Info</label>
+                    <div id="bank_ifsc_name_hint" class="vm-rpm-readonly">No IFSC verified yet.</div>
+                </div>
+            </article>
+
+            <article class="vm-rpm-card">
+                <div class="vm-rpm-card-head">
+                    <small>UPI Details</small>
+                    <h2>UPI details for payout</h2>
+                    <p>Add and verify UPI ID to receive payout via UPI.</p>
+                </div>
+
+                <div class="vm-rpm-field">
+                    <label class="vm-rpm-label" for="upi_id">Primary UPI ID</label>
+                    <div class="vm-rpm-verify-row">
+                        <div>
+                            <input id="upi_id" name="upi_id" class="vm-rpm-input" type="text" value="{{ profile.upi_id|default:'' }}" placeholder="name@bank">
+                            <p id="upi_hint" class="vm-rpm-hint">Add a valid UPI ID for faster payouts.</p>
+                        </div>
+                        <button type="button" id="verifyUpiButton" class="vm-rpm-btn-secondary">Verify UPI</button>
+                    </div>
+                </div>
+
+                <div class="vm-rpm-field">
+                    <label class="vm-rpm-label">UPI Verification Result</label>
+                    <div id="upi_name" class="vm-rpm-readonly">No UPI verification yet.</div>
+                </div>
+
+                {% if profile.is_reseller_enabled %}
+                <span class="vm-rpm-status vm-rpm-status--active">Active</span>
+                {% else %}
+                <span class="vm-rpm-status vm-rpm-status--inactive">Inactive</span>
+                {% endif %}
+
+                <div class="vm-rpm-note">
+                    <strong>Admin Payment Data</strong>
+                    <p>When you save this form, bank and UPI details are stored on your reseller profile and appear in Admin Panel / Resell Management / Payment Data with customer details.</p>
+                </div>
+
+                <div class="vm-rpm-actions">
+                    <button type="submit" class="vm-rpm-btn">Save Changes</button>
+                    <button type="reset" class="vm-rpm-btn-ghost">Reset</button>
+                </div>
+            </article>
+        </form>
+
+        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='reseller-profile-mobile' %}
+    </main>
+
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('resellerProfileForm');
+    const bankAccountNumber = document.getElementById('bank_account_number');
+    const bankIfscCode = document.getElementById('bank_ifsc_code');
+    const upiId = document.getElementById('upi_id');
+    const verifyIfscButton = document.getElementById('verifyIfscButton');
+    const verifyUpiButton = document.getElementById('verifyUpiButton');
+    const bankAccountHint = document.getElementById('bank_account_hint');
+    const bankIfscHint = document.getElementById('bank_ifsc_hint');
+    const bankIfscNameHint = document.getElementById('bank_ifsc_name_hint');
+    const upiHint = document.getElementById('upi_hint');
+    const upiName = document.getElementById('upi_name');
+
+    function setHint(node, ok, message) {
+        if (!node) return;
+        node.textContent = message;
+        node.style.color = ok ? '#1f6a35' : '#ba1a1a';
+    }
+
+    function resetHint(node, message) {
+        if (!node) return;
+        node.textContent = message;
+        node.style.color = 'rgba(68, 71, 72, 0.72)';
+    }
+
+    function setReadonly(node, ok, message) {
+        if (!node) return;
+        node.textContent = message;
+        node.style.color = ok ? '#1f6a35' : '#171818';
+    }
+
+    function getCsrfToken() {
+        const tokenInput = document.querySelector('input[name=csrfmiddlewaretoken]');
+        return tokenInput ? tokenInput.value : '';
+    }
+
+    function validateBankAccount() {
+        const value = (bankAccountNumber.value || '').replace(/\s+/g, '');
+        bankAccountNumber.value = value;
+
+        if (!value) {
+            resetHint(bankAccountHint, 'Use 6 to 34 digits only.');
+            return true;
+        }
+
+        const ok = /^[0-9]{6,34}$/.test(value);
+        setHint(bankAccountHint, ok, ok ? 'Bank account number format looks valid.' : 'Use 6 to 34 digits only.');
+        return ok;
+    }
+
+    function validateIfscFormat() {
+        const value = (bankIfscCode.value || '').trim().toUpperCase();
+        bankIfscCode.value = value;
+
+        if (!value) {
+            resetHint(bankIfscHint, 'We verify IFSC and show bank details below.');
+            setReadonly(bankIfscNameHint, false, 'No IFSC verified yet.');
+            return true;
+        }
+
+        const ok = /^[A-Z]{4}0[A-Z0-9]{6}$/.test(value);
+        setHint(bankIfscHint, ok, ok ? 'IFSC format looks valid.' : 'Format should be ABCD0XXXXXX.');
+        if (!ok) {
+            setReadonly(bankIfscNameHint, false, 'No IFSC verified yet.');
+        }
+        return ok;
+    }
+
+    function lookupIfsc() {
+        if (!bankIfscCode.value || !validateIfscFormat()) return;
+
+        resetHint(bankIfscHint, 'Checking IFSC details...');
+        setReadonly(bankIfscNameHint, false, 'Fetching bank details...');
+
+        fetch('{% url "lookup_ifsc" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: `ifsc=${encodeURIComponent(bankIfscCode.value)}`
+        })
+            .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+            .then(({ ok, data }) => {
+                if (!ok || !data.valid) {
+                    setHint(bankIfscHint, false, data.message || 'IFSC details not found.');
+                    setReadonly(bankIfscNameHint, false, 'No IFSC verified yet.');
+                    return;
+                }
+
+                setHint(bankIfscHint, true, 'IFSC verified successfully.');
+                setReadonly(bankIfscNameHint, true, `${data.bank || '-'} | ${data.branch || '-'}`);
+            })
+            .catch(() => {
+                setHint(bankIfscHint, false, 'Unable to verify IFSC right now.');
+                setReadonly(bankIfscNameHint, false, 'No IFSC verified yet.');
+            });
+    }
+
+    function validateUpiFormat() {
+        const value = (upiId.value || '').trim().toLowerCase();
+        upiId.value = value;
+
+        if (!value) {
+            resetHint(upiHint, 'Add a valid UPI ID for faster payouts.');
+            setReadonly(upiName, false, 'No UPI verification yet.');
+            return true;
+        }
+
+        const ok = /^[a-z0-9._-]{2,256}@[a-z]{2,64}$/.test(value);
+        setHint(upiHint, ok, ok ? 'UPI format looks valid.' : 'Format should be name@bank.');
+        if (!ok) {
+            setReadonly(upiName, false, 'No UPI verification yet.');
+        }
+        return ok;
+    }
+
+    function verifyUpi() {
+        if (!upiId.value || !validateUpiFormat()) return;
+
+        resetHint(upiHint, 'Checking UPI ID...');
+        setReadonly(upiName, false, 'Verifying UPI ID...');
+
+        fetch('{% url "validate_upi_id" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: `upi_id=${encodeURIComponent(upiId.value)}`
+        })
+            .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+            .then(({ ok, data }) => {
+                if (!ok || !data.valid) {
+                    setHint(upiHint, false, data.message || 'UPI ID could not be verified.');
+                    setReadonly(upiName, false, 'No UPI verification yet.');
+                    return;
+                }
+
+                setHint(upiHint, true, 'UPI ID verified successfully.');
+                setReadonly(upiName, true, data.name ? `Verified as ${data.name}` : 'UPI ID verified.');
+            })
+            .catch(() => {
+                setHint(upiHint, false, 'Unable to verify UPI right now.');
+                setReadonly(upiName, false, 'No UPI verification yet.');
+            });
+    }
+
+    bankAccountNumber.addEventListener('input', validateBankAccount);
+    bankIfscCode.addEventListener('input', validateIfscFormat);
+    bankIfscCode.addEventListener('blur', lookupIfsc);
+    upiId.addEventListener('input', validateUpiFormat);
+    upiId.addEventListener('blur', verifyUpi);
+
+    if (verifyIfscButton) {
+        verifyIfscButton.addEventListener('click', lookupIfsc);
+    }
+
+    if (verifyUpiButton) {
+        verifyUpiButton.addEventListener('click', verifyUpi);
+    }
+
+    form.addEventListener('reset', function () {
+        setTimeout(function () {
+            resetHint(bankAccountHint, 'Use 6 to 34 digits only.');
+            resetHint(bankIfscHint, 'We verify IFSC and show bank details below.');
+            resetHint(upiHint, 'Add a valid UPI ID for faster payouts.');
+            setReadonly(bankIfscNameHint, false, 'No IFSC verified yet.');
+            setReadonly(upiName, false, 'No UPI verification yet.');
+        }, 0);
+    });
+
+    form.addEventListener('submit', function (event) {
+        const hasBankDetails = !!(
+            (document.getElementById('bank_account_name').value || '').trim() ||
+            (bankAccountNumber.value || '').trim() ||
+            (bankIfscCode.value || '').trim()
+        );
+
+        let ok = true;
+
+        if (hasBankDetails) {
+            ok = validateBankAccount() && validateIfscFormat() && ok;
+        }
+
+        if ((upiId.value || '').trim()) {
+            ok = validateUpiFormat() && ok;
+        }
+
+        if (!ok) {
+            event.preventDefault();
+        }
+    });
+
+    validateBankAccount();
+    validateIfscFormat();
+    validateUpiFormat();
+});
+</script>
+{% endblock %}

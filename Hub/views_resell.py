@@ -42,6 +42,32 @@ from .view_helpers import (
 
 
 # ============================================
+# VIEWPORT DETECTION HELPER
+# ============================================
+
+def get_viewport_type(request):
+    """
+    Detect viewport type (mobile, tablet, or desktop) based on User-Agent
+    
+    Returns:
+        'mobile', 'tablet', or 'desktop'
+    """
+    user_agent = request.META.get('HTTP_USER_AGENT', '').lower()
+    
+    # Check for tablet
+    if any(keyword in user_agent for keyword in ['tablet', 'ipad', 'android', 'kindle']):
+        if 'mobile' not in user_agent:
+            return 'tablet'
+    
+    # Check for mobile
+    if any(keyword in user_agent for keyword in ['mobile', 'iphone', 'android', 'phone', 'blackberry', 'webos']):
+        return 'mobile'
+    
+    # Default to desktop
+    return 'desktop'
+
+
+# ============================================
 # RESELL LINK MANAGEMENT
 # ============================================
 
@@ -405,7 +431,11 @@ def earnings_history(request):
         'paid_earnings': paid_earnings,
     }
     
-    return render(request, 'reseller/earnings.html', context)
+    # Select template based on viewport
+    viewport = get_viewport_type(request)
+    template_name = f'reseller/earnings_{viewport}.html'
+    
+    return render(request, template_name, context)
 
 
 # ============================================
@@ -455,7 +485,11 @@ def payout_request_page(request):
         'paid_out_total': paid_out_total,
     }
     
-    return render(request, 'reseller/payout.html', context)
+    # Select template based on viewport
+    viewport = get_viewport_type(request)
+    template_name = f'reseller/payout_{viewport}.html'
+    
+    return render(request, template_name, context)
 
 
 @login_required
@@ -601,4 +635,8 @@ def reseller_profile_page(request):
         'profile': profile,
     }
     
-    return render(request, 'reseller/profile.html', context)
+    # Select template based on viewport
+    viewport = get_viewport_type(request)
+    template_name = f'reseller/profile_{viewport}.html'
+    
+    return render(request, template_name, context)

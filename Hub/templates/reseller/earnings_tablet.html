@@ -1,0 +1,449 @@
+{% extends 'base.html' %}
+
+{% block title %}Earnings History - VibeMall{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-reseller-earnings-mobile{% endblock %}
+{% block ui_chrome %}mobile{% endblock %}
+
+{% block extra_css %}
+<style>
+.vm-rem-page {
+    min-height: 100vh;
+    background: #fbf9f4;
+    color: #1b1c19;
+    font-family: "Manrope", sans-serif;
+}
+
+body.vm-page-reseller-earnings-mobile .vm-mobile-side-menu,
+body.vm-page-reseller-earnings-mobile .vm-mobile-side-menu-overlay {
+    display: none !important;
+}
+
+.vm-rem-main {
+    max-width: 430px;
+    margin: 0 auto;
+    padding: 14px 16px 22px;
+}
+
+.vm-rem-head {
+    margin-bottom: 12px;
+}
+
+.vm-rem-head p {
+    margin: 0 0 6px;
+    color: #6f5c37;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    font-weight: 800;
+}
+
+.vm-rem-head h1 {
+    margin: 0;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 40px;
+    line-height: 0.95;
+    letter-spacing: -0.04em;
+}
+
+.vm-rem-divider {
+    width: 48px;
+    height: 4px;
+    border-radius: 999px;
+    background: #6f5c37;
+    margin-top: 12px;
+}
+
+.vm-rem-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    background: #e4e2dd;
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.vm-rem-stat {
+    background: #fff;
+    padding: 14px 10px;
+    text-align: center;
+}
+
+.vm-rem-stat small {
+    display: block;
+    margin-bottom: 4px;
+    color: #747878;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 800;
+}
+
+.vm-rem-stat strong {
+    display: block;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 24px;
+    line-height: 1;
+}
+
+.vm-rem-filter {
+    margin-bottom: 12px;
+}
+
+.vm-rem-select-wrap {
+    position: relative;
+}
+
+.vm-rem-select {
+    appearance: none;
+    width: 100%;
+    min-height: 46px;
+    border: 0;
+    border-radius: 14px;
+    background: #f5f3ee;
+    padding: 0 42px 0 14px;
+    color: #171818;
+    font-size: 14px;
+    font-weight: 600;
+    outline: none;
+}
+
+.vm-rem-select-wrap::after {
+    content: "\f107";
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(27, 28, 25, 0.56);
+    pointer-events: none;
+}
+
+.vm-rem-clear {
+    margin-top: 8px;
+    display: inline-block;
+    color: #171818;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+.vm-rem-list {
+    display: grid;
+    gap: 10px;
+}
+
+.vm-rem-card {
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid rgba(196, 199, 199, 0.2);
+    padding: 14px;
+}
+
+.vm-rem-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.vm-rem-card-meta {
+    display: flex;
+    gap: 10px;
+    min-width: 0;
+}
+
+.vm-rem-thumb {
+    width: 54px;
+    height: 70px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #e4e2dd;
+    flex: 0 0 auto;
+}
+
+.vm-rem-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.vm-rem-copy {
+    min-width: 0;
+}
+
+.vm-rem-copy p {
+    margin: 0 0 4px;
+    color: #747878;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+
+.vm-rem-copy h3 {
+    margin: 0 0 4px;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 18px;
+    line-height: 1.15;
+}
+
+.vm-rem-copy small {
+    color: #747878;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+
+.vm-rem-amount {
+    flex: 0 0 auto;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 22px;
+    color: #6f5c37;
+    font-weight: 700;
+}
+
+.vm-rem-card-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(196, 199, 199, 0.2);
+}
+
+.vm-rem-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 800;
+}
+
+.vm-rem-status::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+}
+
+.vm-rem-status--pending::before { background: #747878; }
+.vm-rem-status--confirmed::before { background: #171818; }
+.vm-rem-status--paid::before { background: #6f5c37; }
+.vm-rem-status--cancelled::before { background: #ba1a1a; }
+
+.vm-rem-note {
+    margin: 0;
+    color: rgba(68, 71, 72, 0.72);
+    font-size: 11px;
+    font-style: italic;
+    text-align: right;
+}
+
+.vm-rem-note a {
+    color: #6f5c37;
+    text-decoration: none;
+    font-style: normal;
+    font-weight: 800;
+}
+
+.vm-rem-info {
+    margin-top: 16px;
+    border-radius: 18px;
+    background: #f0eee9;
+    padding: 16px;
+}
+
+.vm-rem-info h4 {
+    margin: 0 0 10px;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 22px;
+    line-height: 1.05;
+}
+
+.vm-rem-info-item {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.vm-rem-info-dot {
+    margin-top: 6px;
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    flex: 0 0 auto;
+}
+
+.vm-rem-info-copy strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 800;
+}
+
+.vm-rem-info-copy p {
+    margin: 0;
+    color: rgba(68, 71, 72, 0.8);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.vm-rem-empty {
+    margin: 0;
+    border-radius: 16px;
+    background: #fff;
+    padding: 18px;
+    text-align: center;
+    color: rgba(68, 71, 72, 0.78);
+    font-size: 14px;
+}
+
+.vm-rem-empty a {
+    display: inline-block;
+    margin-top: 10px;
+    text-decoration: none;
+    color: #6f5c37;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 800;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="vm-rem-page">
+    {% include 'partials/vm_mobile_alt_header.html' %}
+
+    <main class="vm-rem-main vm-mobile-content-offset">
+        <header class="vm-rem-head">
+            <p>Reseller Portfolio</p>
+            <h1>Earnings History</h1>
+            <div class="vm-rem-divider"></div>
+        </header>
+
+        <section class="vm-rem-stats" aria-label="Earnings summary">
+            <article class="vm-rem-stat">
+                <small>Total Earnings</small>
+                <strong>Rs {{ total_earnings|floatformat:2 }}</strong>
+            </article>
+            <article class="vm-rem-stat">
+                <small>Pending</small>
+                <strong>Rs {{ pending_earnings|floatformat:2 }}</strong>
+            </article>
+            <article class="vm-rem-stat">
+                <small>Confirmed</small>
+                <strong>Rs {{ confirmed_earnings|floatformat:2 }}</strong>
+            </article>
+            <article class="vm-rem-stat">
+                <small>Paid</small>
+                <strong>Rs {{ paid_earnings|floatformat:2 }}</strong>
+            </article>
+        </section>
+
+        <section class="vm-rem-filter" aria-label="Filter earnings">
+            <form method="get">
+                <div class="vm-rem-select-wrap">
+                    <select name="status" class="vm-rem-select" onchange="this.form.submit()">
+                        <option value="">All Transactions</option>
+                        <option value="PENDING" {% if status_filter == 'PENDING' %}selected{% endif %}>Pending Approval</option>
+                        <option value="CONFIRMED" {% if status_filter == 'CONFIRMED' %}selected{% endif %}>Confirmed Earnings</option>
+                        <option value="PAID" {% if status_filter == 'PAID' %}selected{% endif %}>Paid Out</option>
+                        <option value="CANCELLED" {% if status_filter == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                </div>
+                {% if status_filter %}
+                <a href="{% url 'earnings_history' %}" class="vm-rem-clear">Clear Filter</a>
+                {% endif %}
+            </form>
+        </section>
+
+        {% if earnings %}
+        <section class="vm-rem-list">
+            {% for earning in earnings %}
+            <article class="vm-rem-card">
+                <div class="vm-rem-card-top">
+                    <div class="vm-rem-card-meta">
+                        <div class="vm-rem-thumb">
+                            {% if earning.resell_link.product.image %}
+                            <img src="{{ earning.resell_link.product.image.url }}" alt="{{ earning.resell_link.product.name }}">
+                            {% endif %}
+                        </div>
+                        <div class="vm-rem-copy">
+                            <p>Order #{{ earning.order.order_number }}</p>
+                            <h3>{{ earning.resell_link.product.name }}</h3>
+                            <small>{{ earning.created_at|date:'d M, Y' }}</small>
+                        </div>
+                    </div>
+                    <span class="vm-rem-amount">+Rs {{ earning.margin_amount|floatformat:2 }}</span>
+                </div>
+
+                <div class="vm-rem-card-foot">
+                    <span class="vm-rem-status vm-rem-status--{{ earning.status|lower }}">{{ earning.get_status_display }}</span>
+                    {% if earning.payout_transaction %}
+                    <p class="vm-rem-note"><a href="{% url 'payout_request_page' %}">View Payout</a></p>
+                    {% elif earning.status == 'CONFIRMED' %}
+                    <p class="vm-rem-note"><a href="{% url 'payout_request_page' %}">Request Payout</a></p>
+                    {% elif earning.status == 'PENDING' %}
+                    <p class="vm-rem-note">Awaiting return period completion</p>
+                    {% elif earning.status == 'PAID' %}
+                    <p class="vm-rem-note">Transferred to bank</p>
+                    {% elif earning.status == 'CANCELLED' %}
+                    <p class="vm-rem-note">No earning due to cancellation</p>
+                    {% else %}
+                    <p class="vm-rem-note">Status updated</p>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </section>
+        {% else %}
+        <p class="vm-rem-empty">No earnings yet.<br><a href="{% url 'reseller_links' %}">Create Resell Links</a></p>
+        {% endif %}
+
+        <section class="vm-rem-info">
+            <h4>Earning Status Explained</h4>
+
+            <div class="vm-rem-info-item">
+                <span class="vm-rem-info-dot" style="background:#747878;"></span>
+                <div class="vm-rem-info-copy">
+                    <strong>Pending</strong>
+                    <p>Order is delivered, but earnings are held until return window completion.</p>
+                </div>
+            </div>
+
+            <div class="vm-rem-info-item">
+                <span class="vm-rem-info-dot" style="background:#171818;"></span>
+                <div class="vm-rem-info-copy">
+                    <strong>Confirmed</strong>
+                    <p>Return window is complete and your margin is now eligible for payout.</p>
+                </div>
+            </div>
+
+            <div class="vm-rem-info-item">
+                <span class="vm-rem-info-dot" style="background:#6f5c37;"></span>
+                <div class="vm-rem-info-copy">
+                    <strong>Paid</strong>
+                    <p>Earnings are transferred to your registered payout destination.</p>
+                </div>
+            </div>
+        </section>
+
+        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='reseller-earnings-mobile' %}
+    </main>
+
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
+</section>
+{% endblock %}
+
