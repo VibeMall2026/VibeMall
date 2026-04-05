@@ -1,546 +1,585 @@
 {% extends 'base.html' %}
 
-{% block title %}Request Payout - VibeMall{% endblock %}
-{% block body_class %}vm-page-mobile-alt vm-page-reseller-withdraw-tablet{% endblock %}
-{% block ui_chrome %}tablet{% endblock %}
+{% block title %}Payouts Dashboard - VibeMall{% endblock %}
+{% block body_class %}vm-page-reseller-withdraw-desktop{% endblock %}
+{% block ui_chrome %}default{% endblock %}
 
 {% block extra_css %}
 <style>
-.vm-rwt-page {
+.vm-rwd-page {
     min-height: 100vh;
     background: #fbf9f4;
     color: #1b1c19;
     font-family: "Manrope", sans-serif;
 }
 
-body.vm-page-reseller-withdraw-tablet .vm-mobile-side-menu,
-body.vm-page-reseller-withdraw-tablet .vm-mobile-side-menu-overlay {
+body.vm-page-reseller-withdraw-desktop .vm-mobile-side-menu,
+body.vm-page-reseller-withdraw-desktop .vm-mobile-side-menu-overlay {
     display: none !important;
 }
 
-.vm-rwt-shell {
-    width: min(100%, 1240px);
+.vm-rwd-top {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(251, 249, 244, 0.9);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(196, 199, 199, 0.2);
+}
+
+.vm-rwd-top-shell {
+    max-width: 1440px;
     margin: 0 auto;
-    padding: 124px 14px 128px;
-}
-
-.vm-rwt-head {
-    margin-bottom: 20px;
-}
-
-.vm-rwt-head h1 {
-    margin: 0 0 4px;
-    font-family: "Noto Serif", Georgia, serif;
-    font-size: clamp(40px, 5vw, 58px);
-    line-height: 0.95;
-    letter-spacing: -0.05em;
-}
-
-.vm-rwt-head p {
-    margin: 0;
-    color: rgba(27, 28, 25, 0.6);
-    font-size: 15px;
-}
-
-.vm-rwt-messages {
-    display: grid;
-    gap: 10px;
-    margin-bottom: 18px;
-}
-
-.vm-rwt-alert {
-    border-radius: 16px;
-    padding: 12px 14px;
-    font-size: 13px;
-}
-
-.vm-rwt-alert--success {
-    background: #e8f3ea;
-    color: #1f6a35;
-}
-
-.vm-rwt-alert--error,
-.vm-rwt-alert--danger {
-    background: #ffedea;
-    color: #ba1a1a;
-}
-
-.vm-rwt-alert--warning {
-    background: #fff4e5;
-    color: #9a5f00;
-}
-
-.vm-rwt-stats {
-    display: grid;
-    gap: 14px;
-    margin-bottom: 20px;
-}
-
-.vm-rwt-stat {
-    border-radius: 22px;
-    padding: 20px 18px;
-    transition: transform 0.25s ease;
-}
-
-.vm-rwt-stat:hover {
-    transform: translateY(-2px);
-}
-
-.vm-rwt-stat--balance {
-    background: #f5f3ee;
-    border-left: 4px solid #6f5c37;
-}
-
-.vm-rwt-stat--pending {
-    background: #f0eee9;
-}
-
-.vm-rwt-stat--paid {
-    background: #e4e2dd;
-}
-
-.vm-rwt-stat small {
-    display: block;
-    margin-bottom: 8px;
-    color: rgba(27, 28, 25, 0.5);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    font-weight: 800;
-}
-
-.vm-rwt-stat strong {
-    display: block;
-    margin-bottom: 4px;
-    font-family: "Noto Serif", Georgia, serif;
-    font-size: 34px;
-    line-height: 1;
-    letter-spacing: -0.04em;
-}
-
-.vm-rwt-stat span {
-    display: block;
-    color: rgba(27, 28, 25, 0.42);
-    font-size: 12px;
-}
-
-.vm-rwt-grid {
-    display: grid;
-    gap: 18px;
-}
-
-.vm-rwt-card {
-    border-radius: 24px;
-    background: rgba(255, 255, 255, 0.92);
-    border: 1px solid rgba(196, 199, 199, 0.16);
-    box-shadow: 0 22px 52px -36px rgba(27, 28, 25, 0.3);
-    padding: 20px;
-}
-
-.vm-rwt-card-head {
+    min-height: 72px;
+    padding: 0 20px;
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: space-between;
-    gap: 14px;
-    flex-wrap: wrap;
-    margin-bottom: 18px;
-}
-
-.vm-rwt-card-head h2 {
-    margin: 0;
-    font-family: "Noto Serif", Georgia, serif;
-    font-size: 30px;
-    line-height: 1;
-    letter-spacing: -0.04em;
-}
-
-.vm-rwt-card-head p {
-    margin: 6px 0 0;
-    color: rgba(27, 28, 25, 0.44);
-    font-size: 13px;
-}
-
-.vm-rwt-head-action {
-    min-height: 46px;
-    border: 0;
-    border-radius: 14px;
-    padding: 0 18px;
-    background: #171818;
-    color: #fff;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    font-weight: 800;
-}
-
-.vm-rwt-form {
-    display: grid;
     gap: 16px;
 }
 
-.vm-rwt-field {
-    display: grid;
-    gap: 7px;
-}
-
-.vm-rwt-field label,
-.vm-rwt-section-label {
-    color: #6f5c37;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.16em;
-    font-weight: 800;
-}
-
-.vm-rwt-input,
-.vm-rwt-select {
-    width: 100%;
-    min-height: 54px;
-    border: 1px solid rgba(196, 199, 199, 0.34);
-    border-radius: 16px;
-    background: #fff;
-    color: #171818;
-    padding: 0 16px;
-    font-size: 15px;
-    outline: none;
-}
-
-.vm-rwt-input:focus,
-.vm-rwt-select:focus {
-    border-color: rgba(111, 92, 55, 0.64);
-    box-shadow: 0 0 0 3px rgba(250, 223, 177, 0.22);
-}
-
-.vm-rwt-currency {
-    position: relative;
-}
-
-.vm-rwt-currency span {
-    position: absolute;
-    left: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: rgba(27, 28, 25, 0.56);
-    font-weight: 700;
-}
-
-.vm-rwt-currency .vm-rwt-input {
-    padding-left: 34px;
-}
-
-.vm-rwt-hint {
-    color: rgba(27, 28, 25, 0.42);
-    font-size: 12px;
-}
-
-.vm-rwt-methods {
-    display: grid;
-    gap: 10px;
-}
-
-.vm-rwt-method-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-}
-
-.vm-rwt-method {
-    min-height: 72px;
-    border: 1px solid rgba(196, 199, 199, 0.34);
-    border-radius: 18px;
-    background: #fff;
-    color: #171818;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    font-size: 12px;
-    font-weight: 800;
-}
-
-.vm-rwt-method.is-active {
-    background: #171818;
-    color: #fff;
-    border-color: #171818;
-}
-
-.vm-rwt-detail-grid {
-    display: grid;
-    gap: 12px;
-}
-
-.vm-rwt-section {
-    display: grid;
-    gap: 12px;
-}
-
-.vm-rwt-submit {
-    min-height: 52px;
-    border: 0;
-    border-radius: 16px;
-    background: #171818;
-    color: #fff;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    font-weight: 800;
-}
-
-.vm-rwt-history-wrap {
-    overflow-x: auto;
-}
-
-.vm-rwt-table {
-    width: 100%;
-    min-width: 760px;
-    border-collapse: collapse;
-}
-
-.vm-rwt-table thead th {
-    padding: 0 0 14px;
-    text-align: left;
-    color: rgba(27, 28, 25, 0.42);
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.16em;
-    font-weight: 800;
-    border-bottom: 1px solid #f0eee9;
-}
-
-.vm-rwt-table tbody td {
-    padding: 18px 0;
-    border-bottom: 1px solid #f5f3ee;
-    font-size: 14px;
-    vertical-align: middle;
-}
-
-.vm-rwt-money,
-.vm-rwt-transaction {
-    font-weight: 700;
-}
-
-.vm-rwt-muted {
-    color: rgba(27, 28, 25, 0.56);
-}
-
-.vm-rwt-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 28px;
-    padding: 0 12px;
-    border-radius: 999px;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-weight: 800;
-}
-
-.vm-rwt-badge--processing,
-.vm-rwt-badge--initiated {
-    background: #fadfb1;
-    color: #554422;
-}
-
-.vm-rwt-badge--completed {
-    background: #e4e2dd;
-    color: #444748;
-}
-
-.vm-rwt-badge--failed {
-    background: #ffdad6;
-    color: #93000a;
-}
-
-.vm-rwt-empty {
-    text-align: center;
-    padding: 34px 10px 10px;
-}
-
-.vm-rwt-empty h3 {
-    margin: 0 0 8px;
+.vm-rwd-brand {
+    margin: 0;
     font-family: "Noto Serif", Georgia, serif;
     font-size: 28px;
     letter-spacing: -0.03em;
 }
 
-.vm-rwt-empty p {
-    margin: 0;
-    color: rgba(27, 28, 25, 0.56);
-    font-size: 14px;
+.vm-rwd-search {
+    position: relative;
+    width: min(560px, 48vw);
 }
 
-@media (min-width: 768px) {
-    .vm-rwt-stats {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+.vm-rwd-search span {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(68, 71, 72, 0.58);
+    font-size: 18px;
+}
+
+.vm-rwd-search input {
+    width: 100%;
+    min-height: 40px;
+    border: 0;
+    border-radius: 999px;
+    background: #f5f3ee;
+    padding: 0 14px 0 38px;
+    font-size: 13px;
+    color: #171818;
+    outline: none;
+}
+
+.vm-rwd-top-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.vm-rwd-icon {
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #171818;
+}
+
+.vm-rwd-main {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 22px 20px 34px;
+}
+
+.vm-rwd-head {
+    margin-bottom: 16px;
+}
+
+.vm-rwd-head h1 {
+    margin: 0;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: clamp(34px, 5vw, 52px);
+    line-height: 0.95;
+    letter-spacing: -0.05em;
+}
+
+.vm-rwd-head p {
+    margin: 8px 0 0;
+    color: rgba(68, 71, 72, 0.78);
+    font-size: 15px;
+}
+
+.vm-rwd-messages {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.vm-rwd-alert {
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.vm-rwd-alert--success {
+    background: #e8f3ea;
+    color: #1f6a35;
+}
+
+.vm-rwd-alert--error,
+.vm-rwd-alert--danger {
+    background: #ffedea;
+    color: #ba1a1a;
+}
+
+.vm-rwd-alert--warning {
+    background: #fff4e5;
+    color: #9a5f00;
+}
+
+.vm-rwd-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.vm-rwd-stat {
+    border-radius: 14px;
+    padding: 16px;
+    background: #fff;
+}
+
+.vm-rwd-stat small {
+    display: block;
+    margin-bottom: 7px;
+    color: rgba(68, 71, 72, 0.72);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-weight: 800;
+}
+
+.vm-rwd-stat strong {
+    display: block;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 31px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+}
+
+.vm-rwd-stat p {
+    margin: 7px 0 0;
+    color: rgba(68, 71, 72, 0.72);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.vm-rwd-stat--highlight {
+    background: #171818;
+    color: #fff;
+}
+
+.vm-rwd-stat--highlight small,
+.vm-rwd-stat--highlight p {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.vm-rwd-grid {
+    display: grid;
+    grid-template-columns: minmax(340px, 1fr) minmax(0, 1.45fr);
+    gap: 12px;
+}
+
+.vm-rwd-card {
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid rgba(196, 199, 199, 0.24);
+    padding: 14px;
+}
+
+.vm-rwd-card h3 {
+    margin: 0;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 28px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+}
+
+.vm-rwd-card p.vm-rwd-sub {
+    margin: 8px 0 0;
+    color: rgba(68, 71, 72, 0.8);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.vm-rwd-form {
+    margin-top: 12px;
+    display: grid;
+    gap: 10px;
+}
+
+.vm-rwd-field {
+    display: grid;
+    gap: 6px;
+}
+
+.vm-rwd-field label,
+.vm-rwd-method-label {
+    color: #6f5c37;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 800;
+}
+
+.vm-rwd-input {
+    width: 100%;
+    min-height: 42px;
+    border: 1px solid rgba(196, 199, 199, 0.5);
+    border-radius: 11px;
+    padding: 0 11px;
+    background: #fff;
+    color: #171818;
+    font-size: 14px;
+    outline: none;
+}
+
+.vm-rwd-input:focus {
+    border-color: rgba(111, 92, 55, 0.7);
+    box-shadow: 0 0 0 3px rgba(250, 223, 177, 0.2);
+}
+
+.vm-rwd-currency {
+    position: relative;
+}
+
+.vm-rwd-currency span {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(68, 71, 72, 0.65);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.vm-rwd-currency .vm-rwd-input {
+    padding-left: 28px;
+}
+
+.vm-rwd-hint {
+    color: rgba(68, 71, 72, 0.76);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.vm-rwd-methods {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.vm-rwd-method {
+    min-height: 40px;
+    border: 1px solid rgba(196, 199, 199, 0.5);
+    border-radius: 11px;
+    background: #fff;
+    color: #171818;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 800;
+}
+
+.vm-rwd-method.is-active {
+    background: #171818;
+    color: #fff;
+    border-color: #171818;
+}
+
+.vm-rwd-bank,
+.vm-rwd-upi {
+    display: grid;
+    gap: 10px;
+}
+
+.vm-rwd-grid2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.vm-rwd-submit {
+    min-height: 44px;
+    border: 0;
+    border-radius: 11px;
+    background: #171818;
+    color: #fff;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 800;
+}
+
+.vm-rwd-tabs {
+    display: flex;
+    gap: 8px;
+    margin: 12px 0;
+    flex-wrap: wrap;
+}
+
+.vm-rwd-tab {
+    border: 1px solid rgba(196, 199, 199, 0.44);
+    border-radius: 999px;
+    background: #fff;
+    color: rgba(68, 71, 72, 0.74);
+    min-height: 32px;
+    padding: 0 12px;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 800;
+}
+
+.vm-rwd-tab.is-active {
+    border-color: #6f5c37;
+    color: #171818;
+}
+
+.vm-rwd-table-wrap {
+    overflow: auto;
+}
+
+.vm-rwd-table {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: collapse;
+}
+
+.vm-rwd-table thead th {
+    text-align: left;
+    padding: 0 0 10px;
+    color: rgba(68, 71, 72, 0.74);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-weight: 800;
+    border-bottom: 1px solid rgba(196, 199, 199, 0.25);
+}
+
+.vm-rwd-table tbody td {
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(196, 199, 199, 0.2);
+    font-size: 13px;
+}
+
+.vm-rwd-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 22px;
+    border-radius: 999px;
+    padding: 0 10px;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 800;
+}
+
+.vm-rwd-badge--initiated,
+.vm-rwd-badge--processing {
+    background: #f7dcae;
+    color: #554422;
+}
+
+.vm-rwd-badge--completed {
+    background: #e8f3ea;
+    color: #1f6a35;
+}
+
+.vm-rwd-badge--failed {
+    background: #ffdad6;
+    color: #93000a;
+}
+
+.vm-rwd-empty {
+    margin: 14px 0 0;
+    color: rgba(68, 71, 72, 0.78);
+    font-size: 13px;
+}
+
+@media (max-width: 1060px) {
+    .vm-rwd-search {
+        display: none;
     }
 
-    .vm-rwt-grid {
-        grid-template-columns: minmax(340px, 0.9fr) minmax(0, 1.4fr);
-        align-items: start;
+    .vm-rwd-grid {
+        grid-template-columns: minmax(0, 1fr);
     }
 
-    .vm-rwt-detail-grid {
+    .vm-rwd-stats {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
-@media (min-width: 1200px) {
-    .vm-rwt-shell {
-        padding-bottom: 72px;
+@media (max-width: 640px) {
+    .vm-rwd-main {
+        padding: 16px 12px 22px;
+    }
+
+    .vm-rwd-stats {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .vm-rwd-grid2 {
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<section class="vm-rwt-page">
-    <div class="vm-rwt-shell">
+<section class="vm-rwd-page">
+    <main class="vm-rwd-main">
+        <header class="vm-rwd-head">
+            <h1>Payouts</h1>
+            <p>Manage your earnings and submit withdrawal requests from this page.</p>
+        </header>
+
         {% if messages %}
-        <section class="vm-rwt-messages" aria-live="polite">
+        <section class="vm-rwd-messages" aria-live="polite">
             {% for message in messages %}
-            <div class="vm-rwt-alert vm-rwt-alert--{{ message.tags|default:'success' }}">{{ message }}</div>
+            <div class="vm-rwd-alert vm-rwd-alert--{{ message.tags|default:'success' }}">{{ message }}</div>
             {% endfor %}
         </section>
         {% endif %}
 
-        <header class="vm-rwt-head">
-            <h1>Payouts</h1>
-            <p>Manage your earnings and withdrawal requests from the atelier network.</p>
-        </header>
-
-        <section class="vm-rwt-stats" aria-label="Payout metrics">
-            <article class="vm-rwt-stat vm-rwt-stat--balance">
-                <small>Ready Balance</small>
-                <strong>Rs {{ profile.available_balance|floatformat:2 }}</strong>
-                <span>Available to request right now.</span>
-            </article>
-            <article class="vm-rwt-stat vm-rwt-stat--pending">
-                <small>In Process</small>
+        <section class="vm-rwd-stats" aria-label="Payout summary">
+            <article class="vm-rwd-stat">
+                <small>Upcoming Funds</small>
                 <strong>Rs {{ in_process_amount|floatformat:2 }}</strong>
-                <span>{{ pending_request_count }} request{{ pending_request_count|pluralize }} awaiting review.</span>
+                <p>{{ pending_request_count }} request{{ pending_request_count|pluralize }} currently processing.</p>
             </article>
-            <article class="vm-rwt-stat vm-rwt-stat--paid">
-                <small>Paid Out</small>
+
+            <article class="vm-rwd-stat vm-rwd-stat--highlight">
+                <small>Available for Withdrawal</small>
+                <strong>Rs {{ profile.available_balance|floatformat:2 }}</strong>
+                <p>Submit a request using the form below.</p>
+            </article>
+
+            <article class="vm-rwd-stat">
+                <small>Total Paid</small>
                 <strong>Rs {{ paid_out_total|floatformat:2 }}</strong>
-                <span>Completed reseller payout total.</span>
+                <p>Completed payout transfer total.</p>
             </article>
         </section>
 
-        <section class="vm-rwt-grid">
-            <article class="vm-rwt-card">
-                <div class="vm-rwt-card-head">
-                    <div>
-                        <h2>Request Payout</h2>
-                        <p>Choose your payout method and submit a new withdrawal request.</p>
-                    </div>
-                </div>
+        <section class="vm-rwd-grid">
+            <article class="vm-rwd-card" id="withdraw-form">
+                <h3>Request Withdrawal</h3>
+                <p class="vm-rwd-sub">Use this section to send a new withdrawal request. This directly submits to the payout API.</p>
 
-                <form class="vm-rwt-form" data-payout-form data-request-url="{% url 'request_payout' %}">
+                <form class="vm-rwd-form" data-payout-form data-request-url="{% url 'request_payout' %}">
                     {% csrf_token %}
 
-                    <div class="vm-rwt-field">
+                    <div class="vm-rwd-field">
                         <label for="payout_amount">Withdrawal Amount</label>
-                        <div class="vm-rwt-currency">
+                        <div class="vm-rwd-currency">
                             <span>Rs</span>
-                            <input id="payout_amount" class="vm-rwt-input" type="number" name="amount" step="0.01" min="1" max="{{ profile.available_balance }}" placeholder="0.00" required>
+                            <input id="payout_amount" class="vm-rwd-input" type="number" name="amount" step="0.01" min="1" max="{{ profile.available_balance }}" placeholder="0.00" required>
                         </div>
-                        <div class="vm-rwt-hint">Maximum available: Rs {{ profile.available_balance|floatformat:2 }}</div>
+                        <div class="vm-rwd-hint">Maximum available: Rs {{ profile.available_balance|floatformat:2 }}</div>
                     </div>
 
-                    <div class="vm-rwt-methods">
-                        <div class="vm-rwt-section-label">Payout Method</div>
-                        <div class="vm-rwt-method-grid">
-                            <button type="button" class="vm-rwt-method is-active" data-payout-method-choice data-value="BANK_TRANSFER">
-                                <i class="fas fa-university"></i>
-                                <span>Bank Transfer</span>
-                            </button>
-                            <button type="button" class="vm-rwt-method" data-payout-method-choice data-value="UPI">
-                                <i class="fas fa-qrcode"></i>
-                                <span>UPI</span>
-                            </button>
+                    <div class="vm-rwd-field">
+                        <div class="vm-rwd-method-label">Payout Method</div>
+                        <div class="vm-rwd-methods">
+                            <button type="button" class="vm-rwd-method is-active" data-payout-method-choice data-value="BANK_TRANSFER">Bank Transfer</button>
+                            <button type="button" class="vm-rwd-method" data-payout-method-choice data-value="UPI">UPI</button>
                         </div>
                         <input type="hidden" name="payout_method" value="BANK_TRANSFER" data-payout-method-input>
                     </div>
 
-                    <div class="vm-rwt-section" data-payout-bank-fields>
-                        <div class="vm-rwt-field">
+                    <div class="vm-rwd-bank" data-payout-bank-fields>
+                        <div class="vm-rwd-field">
                             <label for="bank_account_name">Account Holder Name</label>
-                            <input id="bank_account_name" class="vm-rwt-input" type="text" name="bank_account_name" value="{{ profile.bank_account_name|default:'' }}" placeholder="As per bank records">
+                            <input id="bank_account_name" class="vm-rwd-input" type="text" name="bank_account_name" value="{{ profile.bank_account_name|default:'' }}" placeholder="As per bank records">
                         </div>
-                        <div class="vm-rwt-detail-grid">
-                            <div class="vm-rwt-field">
+
+                        <div class="vm-rwd-grid2">
+                            <div class="vm-rwd-field">
                                 <label for="bank_ifsc_code">IFSC Code</label>
-                                <input id="bank_ifsc_code" class="vm-rwt-input" type="text" name="bank_ifsc_code" value="{{ profile.bank_ifsc_code|default:'' }}" placeholder="HDFC0001234">
+                                <input id="bank_ifsc_code" class="vm-rwd-input" type="text" name="bank_ifsc_code" value="{{ profile.bank_ifsc_code|default:'' }}" placeholder="HDFC0001234">
                             </div>
-                            <div class="vm-rwt-field">
+                            <div class="vm-rwd-field">
                                 <label for="bank_account_number">Account Number</label>
-                                <input id="bank_account_number" class="vm-rwt-input" type="text" name="bank_account_number" value="{{ profile.bank_account_number|default:'' }}" placeholder="XXXXXXXXXXXX">
+                                <input id="bank_account_number" class="vm-rwd-input" type="text" name="bank_account_number" value="{{ profile.bank_account_number|default:'' }}" placeholder="XXXXXXXXXXXX">
                             </div>
                         </div>
                     </div>
 
-                    <div class="vm-rwt-section" data-payout-upi-fields hidden>
-                        <div class="vm-rwt-field">
+                    <div class="vm-rwd-upi" data-payout-upi-fields hidden>
+                        <div class="vm-rwd-field">
                             <label for="upi_id">UPI ID</label>
-                            <input id="upi_id" class="vm-rwt-input" type="text" name="upi_id" value="{{ profile.upi_id|default:'' }}" placeholder="yourname@upi">
+                            <input id="upi_id" class="vm-rwd-input" type="text" name="upi_id" value="{{ profile.upi_id|default:'' }}" placeholder="yourname@upi">
                         </div>
                     </div>
 
-                    <div class="vm-rwt-alert vm-rwt-alert--success" data-payout-success hidden>
-                        Payout request submitted successfully. It will be processed by admin.
-                    </div>
-                    <div class="vm-rwt-alert vm-rwt-alert--error" data-payout-error hidden></div>
+                    <div class="vm-rwd-alert vm-rwd-alert--success" data-payout-success hidden>Payout request submitted successfully.</div>
+                    <div class="vm-rwd-alert vm-rwd-alert--error" data-payout-error hidden></div>
 
-                    <button type="submit" class="vm-rwt-submit" data-payout-submit data-default-label="Request New Payout">Request New Payout</button>
+                    <button type="submit" class="vm-rwd-submit" data-payout-submit data-default-label="Initiate Withdrawal">Initiate Withdrawal</button>
                 </form>
             </article>
 
-            <article class="vm-rwt-card">
-                <div class="vm-rwt-card-head">
-                    <div>
-                        <h2>Withdrawal History</h2>
-                        <p>Detailed log of your latest payout requests.</p>
-                    </div>
-                </div>
+            <article class="vm-rwd-card">
+                <h3>Recent Activity</h3>
+                <p class="vm-rwd-sub">Latest payout transactions for your account.</p>
+
+                <section class="vm-rwd-tabs" data-payout-tabs>
+                    <button type="button" class="vm-rwd-tab is-active" data-filter="ALL">All</button>
+                    <button type="button" class="vm-rwd-tab" data-filter="PENDING">Processing</button>
+                    <button type="button" class="vm-rwd-tab" data-filter="PAID">Completed</button>
+                    <button type="button" class="vm-rwd-tab" data-filter="FAILED">Failed</button>
+                </section>
 
                 {% if payouts %}
-                <div class="vm-rwt-history-wrap">
-                    <table class="vm-rwt-table">
+                <div class="vm-rwd-table-wrap">
+                    <table class="vm-rwd-table">
                         <thead>
                             <tr>
-                                <th>Transaction ID</th>
-                                <th>Date Requested</th>
-                                <th>Amount</th>
-                                <th>Destination</th>
+                                <th>Date</th>
+                                <th>Reference</th>
+                                <th>Recipient</th>
                                 <th>Status</th>
+                                <th style="text-align:right;">Amount</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for payout in payouts %}
-                            <tr>
-                                <td class="vm-rwt-transaction">{% if payout.transaction_id %}#{{ payout.transaction_id }}{% else %}Pending ID{% endif %}</td>
-                                <td class="vm-rwt-muted">{{ payout.initiated_at|date:'M d, Y' }}</td>
-                                <td class="vm-rwt-money">Rs {{ payout.amount|floatformat:2 }}</td>
-                                <td class="vm-rwt-muted">{% if payout.bank_account %}{{ payout.bank_account }}{% elif payout.upi_id %}{{ payout.upi_id }}{% else %}{{ payout.get_payout_method_display }}{% endif %}</td>
-                                <td>
-                                    <span class="vm-rwt-badge vm-rwt-badge--{{ payout.status|lower }}">{{ payout.get_status_display }}</span>
-                                </td>
+                            <tr data-row data-status="{% if payout.status == 'COMPLETED' %}PAID{% elif payout.status == 'FAILED' %}FAILED{% else %}PENDING{% endif %}">
+                                <td>{{ payout.initiated_at|date:'M d, Y' }}</td>
+                                <td>{% if payout.transaction_id %}{{ payout.transaction_id }}{% else %}Pending ID{% endif %}</td>
+                                <td>{% if payout.bank_account %}{{ payout.bank_account }}{% elif payout.upi_id %}{{ payout.upi_id }}{% else %}{{ payout.get_payout_method_display }}{% endif %}</td>
+                                <td><span class="vm-rwd-badge vm-rwd-badge--{{ payout.status|lower }}">{{ payout.get_status_display }}</span></td>
+                                <td style="text-align:right; font-weight:800;">Rs {{ payout.amount|floatformat:2 }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
                 {% else %}
-                <div class="vm-rwt-empty">
-                    <h3>No payout requests yet</h3>
-                    <p>Your withdrawal history will appear here after you submit your first payout request.</p>
-                </div>
+                <p class="vm-rwd-empty">No payout requests yet. Submit your first withdrawal request using the form.</p>
                 {% endif %}
             </article>
         </section>
-    </div>
+    </main>
 </section>
 
 <script>
@@ -551,34 +590,52 @@ body.vm-page-reseller-withdraw-tablet .vm-mobile-side-menu-overlay {
         element.style.display = visible ? '' : 'none';
     }
 
+    function initPayoutTabs() {
+        const tabsWrap = document.querySelector('[data-payout-tabs]');
+        if (!tabsWrap) return;
+
+        const tabs = tabsWrap.querySelectorAll('[data-filter]');
+        const rows = document.querySelectorAll('[data-row]');
+
+        function apply(filter) {
+            tabs.forEach(function (tab) {
+                tab.classList.toggle('is-active', tab.dataset.filter === filter);
+            });
+
+            rows.forEach(function (row) {
+                const rowStatus = row.getAttribute('data-status') || 'ALL';
+                const show = filter === 'ALL' || rowStatus === filter;
+                row.style.display = show ? '' : 'none';
+            });
+        }
+
+        tabs.forEach(function (tab) {
+            tab.addEventListener('click', function () {
+                apply(tab.dataset.filter || 'ALL');
+            });
+        });
+
+        apply('ALL');
+    }
+
     function initPayoutForm(form) {
         const requestUrl = form.dataset.requestUrl;
         const methodInput = form.querySelector('[data-payout-method-input]');
-        const methodSelect = form.querySelector('[data-payout-method-select]');
         const methodButtons = form.querySelectorAll('[data-payout-method-choice]');
         const bankFields = form.querySelector('[data-payout-bank-fields]');
         const upiFields = form.querySelector('[data-payout-upi-fields]');
         const successAlert = form.querySelector('[data-payout-success]');
         const errorAlert = form.querySelector('[data-payout-error]');
         const submitBtn = form.querySelector('[data-payout-submit]');
-        const defaultLabel = submitBtn?.dataset.defaultLabel || submitBtn?.textContent.trim() || 'Submit';
-
-        function currentMethod() {
-            if (methodInput) return methodInput.value || 'BANK_TRANSFER';
-            if (methodSelect) return methodSelect.value || '';
-            return 'BANK_TRANSFER';
-        }
+        const defaultLabel = submitBtn?.dataset.defaultLabel || 'Initiate Withdrawal';
 
         function applyMethod(value) {
             const method = value || 'BANK_TRANSFER';
             if (methodInput) {
                 methodInput.value = method;
             }
-            if (methodSelect) {
-                methodSelect.value = method;
-            }
 
-            methodButtons.forEach((button) => {
+            methodButtons.forEach(function (button) {
                 button.classList.toggle('is-active', button.dataset.value === method);
             });
 
@@ -586,22 +643,16 @@ body.vm-page-reseller-withdraw-tablet .vm-mobile-side-menu-overlay {
             setVisible(upiFields, method === 'UPI');
         }
 
-        methodButtons.forEach((button) => {
+        methodButtons.forEach(function (button) {
             button.addEventListener('click', function () {
                 applyMethod(this.dataset.value);
             });
         });
 
-        if (methodSelect) {
-            methodSelect.addEventListener('change', function () {
-                applyMethod(this.value);
-            });
-        }
+        applyMethod(methodInput ? methodInput.value : 'BANK_TRANSFER');
 
-        applyMethod(currentMethod());
-
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
 
             const formData = new FormData(form);
             if (submitBtn) {
@@ -616,8 +667,8 @@ body.vm-page-reseller-withdraw-tablet .vm-mobile-side-menu-overlay {
                     'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value
                 }
             })
-            .then((response) => response.json())
-            .then((data) => {
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
                 if (data.success) {
                     if (successAlert) {
                         successAlert.textContent = data.message || 'Payout request submitted successfully.';
@@ -626,7 +677,7 @@ body.vm-page-reseller-withdraw-tablet .vm-mobile-side-menu-overlay {
                     setVisible(errorAlert, false);
                     form.reset();
                     applyMethod('BANK_TRANSFER');
-                    setTimeout(() => location.reload(), 2000);
+                    setTimeout(function () { window.location.reload(); }, 1800);
                 } else {
                     if (errorAlert) {
                         errorAlert.textContent = data.error || 'Unable to submit payout request.';
@@ -635,14 +686,14 @@ body.vm-page-reseller-withdraw-tablet .vm-mobile-side-menu-overlay {
                     setVisible(successAlert, false);
                 }
             })
-            .catch(() => {
+            .catch(function () {
                 if (errorAlert) {
                     errorAlert.textContent = 'An error occurred. Please try again.';
                 }
                 setVisible(errorAlert, true);
                 setVisible(successAlert, false);
             })
-            .finally(() => {
+            .finally(function () {
                 if (submitBtn) {
                     submitBtn.disabled = false;
                     submitBtn.textContent = defaultLabel;
@@ -652,6 +703,7 @@ body.vm-page-reseller-withdraw-tablet .vm-mobile-side-menu-overlay {
     }
 
     document.querySelectorAll('[data-payout-form]').forEach(initPayoutForm);
+    initPayoutTabs();
 })();
 </script>
 {% endblock %}
