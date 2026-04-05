@@ -2,155 +2,132 @@
 {% load static %}
 
 {% block title %}Reseller Profile Settings - VibeMall{% endblock %}
-{% block body_class %}vm-page-mobile-alt vm-page-reseller-profile-tablet{% endblock %}
-{% block ui_chrome %}mobile{% endblock %}
+{% block body_class %}vm-page-reseller-profile{% endblock %}
 
 {% block extra_css %}
 <style>
-.vm-rpt-page {
-    min-height: 100vh;
+.vm-rp-page {
     background: #fbf9f4;
     color: #1b1c19;
     font-family: "Manrope", sans-serif;
+    min-height: 60vh;
 }
 
-.vm-rpt-topbar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 80;
-    min-height: 74px;
-    background: rgba(251, 249, 244, 0.88);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(27, 28, 25, 0.08);
+.vm-rp-shell {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 30px 18px 64px;
+}
+
+.vm-rp-breadcrumb {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 10px 14px;
-    gap: 10px;
-}
-
-.vm-rpt-brand {
-    margin: 0;
-    font-family: "Noto Serif", Georgia, serif;
-    font-size: 24px;
-    letter-spacing: -0.04em;
-    line-height: 1;
-}
-
-.vm-rpt-search {
-    display: none;
-    position: relative;
-    width: 100%;
-    max-width: 380px;
-}
-
-.vm-rpt-search input {
-    width: 100%;
-    min-height: 38px;
-    border: 1px solid rgba(196, 199, 199, 0.35);
-    border-radius: 999px;
-    background: #f0eee9;
-    color: #171818;
-    padding: 0 12px 0 34px;
-    font-size: 12px;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-}
-
-.vm-rpt-search i {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #747878;
-    font-size: 12px;
-}
-
-.vm-rpt-top-icons {
-    display: inline-flex;
-    align-items: center;
     gap: 8px;
-}
-
-.vm-rpt-icon-btn {
-    width: 30px;
-    height: 30px;
-    border: 0;
-    border-radius: 999px;
-    background: transparent;
-    color: #171818;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.vm-rpt-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 999px;
-    background: #e4e2dd;
-    color: #171818;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    font-weight: 700;
+    margin-bottom: 16px;
+    font-size: 11px;
     text-transform: uppercase;
+    letter-spacing: 0.09em;
+    font-weight: 800;
+    color: rgba(27, 28, 25, 0.56);
 }
 
-.vm-rpt-shell {
-    padding-top: 74px;
+.vm-rp-breadcrumb a {
+    text-decoration: none;
+    color: rgba(27, 28, 25, 0.56);
 }
 
-.vm-rpt-side {
-    display: none;
+.vm-rp-breadcrumb a:hover {
+    color: #6f5c37;
 }
 
-.vm-rpt-main {
-    padding: 14px;
+.vm-rp-breadcrumb span {
+    color: #171818;
 }
 
-.vm-rpt-title {
+.vm-rp-hero {
+    border-radius: 18px;
+    padding: 28px;
+    background: linear-gradient(145deg, #171818 0%, #2c2c2c 55%, #4a4030 100%);
+    color: #fff;
+    margin-bottom: 18px;
+}
+
+.vm-rp-hero-kicker {
     margin: 0;
-    font-family: "Noto Serif", Georgia, serif;
-    font-size: 34px;
-    line-height: 1.08;
-    letter-spacing: -0.04em;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 800;
+    color: #fadfb1;
 }
 
-.vm-rpt-subtitle {
+.vm-rp-hero h1 {
     margin: 8px 0 0;
-    color: rgba(68, 71, 72, 0.78);
-    font-size: 13px;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 40px;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
 }
 
-.vm-rpt-layout {
-    margin-top: 14px;
+.vm-rp-hero p {
+    margin: 10px 0 0;
+    max-width: 700px;
+    color: rgba(255, 255, 255, 0.86);
+    font-size: 14px;
+}
+
+.vm-rp-alerts {
     display: grid;
-    gap: 12px;
+    gap: 8px;
+    margin-bottom: 14px;
 }
 
-.vm-rpt-card {
-    border-radius: 14px;
+.vm-rp-alert {
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 12px;
+}
+
+.vm-rp-alert--error {
+    background: #ffedea;
+    color: #ba1a1a;
+}
+
+.vm-rp-alert--success {
+    background: #e8f3ea;
+    color: #1f6a35;
+}
+
+.vm-rp-layout {
+    display: grid;
+    gap: 14px;
+}
+
+.vm-rp-left,
+.vm-rp-right {
+    display: grid;
+    gap: 14px;
+}
+
+.vm-rp-card {
+    border-radius: 16px;
     background: #fff;
-    box-shadow: 0 16px 30px -24px rgba(27, 28, 25, 0.4);
-    padding: 14px;
+    box-shadow: 0 14px 32px -24px rgba(27, 28, 25, 0.4);
+    padding: 16px;
 }
 
-.vm-rpt-card h3 {
+.vm-rp-card h3 {
     margin: 0 0 10px;
     font-family: "Noto Serif", Georgia, serif;
-    font-size: 20px;
+    font-size: 25px;
     letter-spacing: -0.02em;
 }
 
-.vm-rpt-field {
+.vm-rp-field {
     margin-top: 10px;
 }
 
-.vm-rpt-field label {
+.vm-rp-field label {
     display: block;
     margin-bottom: 5px;
     color: #6f5c37;
@@ -160,8 +137,8 @@
     font-weight: 700;
 }
 
-.vm-rpt-input,
-.vm-rpt-textarea {
+.vm-rp-input,
+.vm-rp-textarea {
     width: 100%;
     border: 0;
     border-bottom: 1px solid rgba(116, 120, 120, 0.3);
@@ -173,18 +150,23 @@
     outline: none;
 }
 
-.vm-rpt-textarea {
-    min-height: 86px;
+.vm-rp-textarea {
+    min-height: 90px;
     resize: vertical;
 }
 
-.vm-rpt-hint {
+.vm-rp-hint {
     margin: 6px 0 0;
     color: rgba(68, 71, 72, 0.72);
     font-size: 11px;
 }
 
-.vm-rpt-status {
+.vm-rp-grid-2 {
+    display: grid;
+    gap: 10px;
+}
+
+.vm-rp-status {
     border-radius: 10px;
     padding: 10px 12px;
     font-size: 10px;
@@ -195,37 +177,37 @@
     align-items: center;
 }
 
-.vm-rpt-status--active {
+.vm-rp-status--active {
     background: #e7f3ea;
     color: #1f6a35;
 }
 
-.vm-rpt-status--inactive {
+.vm-rp-status--inactive {
     background: #fff4e5;
     color: #9a5f00;
 }
 
-.vm-rpt-metric {
+.vm-rp-metric {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 9px 0;
+    padding: 10px 0;
     border-bottom: 1px solid rgba(228, 226, 221, 0.9);
     font-size: 12px;
 }
 
-.vm-rpt-metric:last-child {
+.vm-rp-metric:last-child {
     border-bottom: 0;
 }
 
-.vm-rpt-actions {
+.vm-rp-actions {
     display: grid;
     gap: 8px;
-    margin-top: 12px;
+    margin-top: 10px;
 }
 
-.vm-rpt-save,
-.vm-rpt-discard {
+.vm-rp-save,
+.vm-rp-discard {
     min-height: 44px;
     border-radius: 10px;
     font-size: 10px;
@@ -234,254 +216,146 @@
     font-weight: 800;
 }
 
-.vm-rpt-save {
+.vm-rp-save {
     border: 0;
     background: #171818;
     color: #fff;
 }
 
-.vm-rpt-discard {
+.vm-rp-discard {
     border: 1px solid rgba(116, 120, 120, 0.45);
     background: transparent;
     color: #171818;
 }
 
-.vm-rpt-alerts {
-    display: grid;
-    gap: 8px;
-    margin-bottom: 12px;
+@media (min-width: 860px) {
+    .vm-rp-shell {
+        padding: 34px 24px 68px;
+    }
+
+    .vm-rp-grid-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
 }
 
-.vm-rpt-alert {
-    border-radius: 10px;
-    padding: 10px 12px;
-    font-size: 12px;
-}
-
-.vm-rpt-alert--error {
-    background: #ffedea;
-    color: #ba1a1a;
-}
-
-.vm-rpt-alert--success {
-    background: #e8f3ea;
-    color: #1f6a35;
-}
-
-@media (min-width: 768px) {
-    .vm-rpt-topbar {
-        padding: 10px 18px;
-        gap: 14px;
+@media (min-width: 1120px) {
+    .vm-rp-shell {
+        padding: 40px 30px 74px;
     }
 
-    .vm-rpt-search {
-        display: block;
-    }
-
-    .vm-rpt-shell {
-        display: grid;
-        grid-template-columns: 240px minmax(0, 1fr);
-    }
-
-    .vm-rpt-side {
-        display: flex;
-        position: fixed;
-        left: 0;
-        top: 74px;
-        width: 240px;
-        height: calc(100vh - 74px);
-        background: #f0eee9;
-        border-right: 1px solid rgba(27, 28, 25, 0.08);
-        padding: 16px 10px;
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .vm-rpt-side h2 {
-        margin: 0;
-        padding: 0 8px;
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.11em;
-        font-weight: 800;
-    }
-
-    .vm-rpt-side p {
-        margin: 3px 0 8px;
-        padding: 0 8px;
-        font-size: 9px;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: #6f5c37;
-        font-weight: 800;
-    }
-
-    .vm-rpt-side a {
-        text-decoration: none;
-        min-height: 38px;
-        border-radius: 10px;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 0 10px;
-        color: rgba(27, 28, 25, 0.56);
-        font-size: 10px;
-        letter-spacing: 0.11em;
-        text-transform: uppercase;
-        font-weight: 800;
-    }
-
-    .vm-rpt-side a.is-active {
-        background: #e4e2dd;
-        color: #171818;
-        border-left: 4px solid #6f5c37;
-    }
-
-    .vm-rpt-main {
-        margin-left: 240px;
-        padding: 18px;
-    }
-
-    .vm-rpt-layout {
+    .vm-rp-layout {
         grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
         align-items: start;
     }
 
-    .vm-rpt-left {
-        display: grid;
-        gap: 12px;
-    }
-
-    .vm-rpt-right {
-        display: grid;
-        gap: 12px;
+    .vm-rp-right {
         position: sticky;
-        top: 90px;
-    }
-}
-
-@media (min-width: 1200px) {
-    .vm-rpt-main {
-        padding: 24px;
+        top: 110px;
     }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<section class="vm-rpt-page">
-    <header class="vm-rpt-topbar">
-        <h1 class="vm-rpt-brand">VIBEMALL</h1>
-
-        <div class="vm-rpt-search">
-            <i class="fas fa-search"></i>
-            <input type="text" placeholder="Search curated artisanal collections..." aria-label="Search collections">
+<section class="vm-rp-page">
+    <div class="vm-rp-shell">
+        {% if messages %}
+        <div class="vm-rp-alerts">
+            {% for message in messages %}
+            <div class="vm-rp-alert {% if message.tags == 'error' %}vm-rp-alert--error{% else %}vm-rp-alert--success{% endif %}">{{ message }}</div>
+            {% endfor %}
         </div>
+        {% endif %}
 
-        <div class="vm-rpt-top-icons">
-            <a href="{% url 'cart' %}" class="vm-rpt-icon-btn" aria-label="Cart"><i class="far fa-shopping-bag"></i></a>
-            <a href="{% url 'reseller_profile' %}" class="vm-rpt-avatar" aria-label="Profile">{{ request.user.username|slice:':1' }}</a>
-        </div>
-    </header>
+        <nav class="vm-rp-breadcrumb" aria-label="Breadcrumb">
+            <a href="{% url 'index' %}">Home</a>
+            <i class="fas fa-chevron-right" style="font-size:8px;" aria-hidden="true"></i>
+            <a href="{% url 'reseller_dashboard' %}">Reseller</a>
+            <i class="fas fa-chevron-right" style="font-size:8px;" aria-hidden="true"></i>
+            <span>Profile Settings</span>
+        </nav>
 
-    <div class="vm-rpt-shell">
-        <aside class="vm-rpt-side" aria-label="Reseller navigation">
-            <h2>The Reseller Suite</h2>
-            <p>Verified Partner</p>
-            <a href="{% url 'reseller_dashboard' %}"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
-            <a href="{% url 'reseller_profile' %}" class="is-active"><i class="fas fa-store"></i><span>Business Profile</span></a>
-            <a href="{% url 'payout_request_page' %}"><i class="fas fa-wallet"></i><span>Payout Settings</span></a>
-            <a href="{% url 'order_list' %}"><i class="fas fa-history"></i><span>Order History</span></a>
-            <a href="{% url 'reseller_links' %}"><i class="fas fa-lock"></i><span>Privacy & Links</span></a>
-        </aside>
+        <header class="vm-rp-hero">
+            <p class="vm-rp-hero-kicker">Reseller Account</p>
+            <h1>Profile Settings</h1>
+            <p>Manage business identity, settlement bank details, and UPI payout details. We verify payout information so withdrawals can be processed safely.</p>
+        </header>
 
-        <main class="vm-rpt-main">
-            {% if messages %}
-            <div class="vm-rpt-alerts">
-                {% for message in messages %}
-                <div class="vm-rpt-alert {% if message.tags == 'error' %}vm-rpt-alert--error{% else %}vm-rpt-alert--success{% endif %}">{{ message }}</div>
-                {% endfor %}
+        <form method="post" id="resellerProfileForm" novalidate>
+            {% csrf_token %}
+            <div class="vm-rp-layout">
+                <section class="vm-rp-left">
+                    <article class="vm-rp-card">
+                        <h3>Business Credentials</h3>
+                        <div class="vm-rp-field">
+                            <label for="business_name">Legal Business Name</label>
+                            <input id="business_name" name="business_name" class="vm-rp-input" type="text" value="{{ profile.business_name|default:'' }}" placeholder="Your business name">
+                        </div>
+                        <div class="vm-rp-field">
+                            <label>Business Handle</label>
+                            <p class="vm-rp-hint">@{{ request.user.username }}</p>
+                        </div>
+                        <div class="vm-rp-field">
+                            <label>Brand Story (Bio)</label>
+                            <textarea class="vm-rp-textarea" disabled>{{ profile.business_name|default:request.user.get_full_name|default:request.user.username }} curates premium collections for VibeMall customers.</textarea>
+                        </div>
+                    </article>
+
+                    <article class="vm-rp-card">
+                        <h3>Bank Details For Payout</h3>
+                        <div class="vm-rp-field">
+                            <label for="bank_account_name">Account Holder Name</label>
+                            <input id="bank_account_name" name="bank_account_name" class="vm-rp-input" type="text" value="{{ profile.bank_account_name|default:'' }}" placeholder="As per bank records">
+                        </div>
+                        <div class="vm-rp-field">
+                            <label for="bank_account_number">Bank Account Number</label>
+                            <input id="bank_account_number" name="bank_account_number" class="vm-rp-input" type="password" value="{{ profile.bank_account_number|default:'' }}" placeholder="6 to 34 digits" inputmode="numeric">
+                            <p id="bank_account_hint" class="vm-rp-hint">Enter 6 to 34 digits only.</p>
+                        </div>
+                        <div class="vm-rp-field">
+                            <label for="bank_ifsc_code">IFSC Code</label>
+                            <input id="bank_ifsc_code" name="bank_ifsc_code" class="vm-rp-input" type="text" value="{{ profile.bank_ifsc_code|default:'' }}" placeholder="e.g., HDFC0001234">
+                            <p id="bank_ifsc_hint" class="vm-rp-hint">We verify IFSC and display bank/branch details.</p>
+                            <p id="bank_ifsc_name_hint" class="vm-rp-hint"></p>
+                        </div>
+                        <div class="vm-rp-field">
+                            <label for="upi_id">UPI ID For Payout</label>
+                            <input id="upi_id" name="upi_id" class="vm-rp-input" type="text" value="{{ profile.upi_id|default:'' }}" placeholder="username@bank">
+                            <p id="upi_hint" class="vm-rp-hint"></p>
+                            <p id="upi_name" class="vm-rp-hint"></p>
+                        </div>
+                        <div class="vm-rp-field">
+                            <label for="pan_number">PAN Number</label>
+                            <input id="pan_number" name="pan_number" class="vm-rp-input" type="text" maxlength="10" value="{{ profile.pan_number|default:'' }}" placeholder="ABCDE1234F">
+                        </div>
+                    </article>
+                </section>
+
+                <aside class="vm-rp-right">
+                    <article class="vm-rp-card" style="background:#171818;color:#fff;">
+                        <h3 style="color:#fff;">Partner Status</h3>
+                        {% if profile.is_reseller_enabled %}
+                        <span class="vm-rp-status vm-rp-status--active" style="background:rgba(231,243,234,0.16);color:#d7f0df;">Active & Verified</span>
+                        {% else %}
+                        <span class="vm-rp-status vm-rp-status--inactive" style="background:rgba(255,244,229,0.16);color:#ffe5be;">Inactive</span>
+                        {% endif %}
+                        <div class="vm-rp-metric" style="border-color:rgba(255,255,255,0.16);"><span style="opacity:0.76;">Revenue (Lifetime)</span><strong>Rs {{ profile.total_earnings|floatformat:2 }}</strong></div>
+                        <div class="vm-rp-metric" style="border-color:rgba(255,255,255,0.16);"><span style="opacity:0.76;">Total Orders</span><strong>{{ profile.total_orders }}</strong></div>
+                        <div class="vm-rp-metric"><span style="opacity:0.76;">Available Balance</span><strong>Rs {{ profile.available_balance|floatformat:2 }}</strong></div>
+                    </article>
+
+                    <article class="vm-rp-card">
+                        <h3>Actions</h3>
+                        <p class="vm-rp-hint">Save profile to keep payout bank and UPI details verified for withdraw requests.</p>
+                        <div class="vm-rp-actions">
+                            <button type="submit" class="vm-rp-save">Save Profile Changes</button>
+                            <button type="reset" class="vm-rp-discard">Discard Changes</button>
+                        </div>
+                    </article>
+                </aside>
             </div>
-            {% endif %}
-
-            <h2 class="vm-rpt-title">Profile Settings</h2>
-            <p class="vm-rpt-subtitle">Manage your digital atelier identity and secure financial configurations with precision.</p>
-
-            <form method="post" id="resellerProfileForm" novalidate>
-                {% csrf_token %}
-                <div class="vm-rpt-layout">
-                    <section class="vm-rpt-left">
-                        <article class="vm-rpt-card">
-                            <h3>Business Credentials</h3>
-                            <div class="vm-rpt-field">
-                                <label for="business_name">Legal Business Name</label>
-                                <input id="business_name" name="business_name" class="vm-rpt-input" type="text" value="{{ profile.business_name|default:'' }}" placeholder="Your business name">
-                            </div>
-                            <div class="vm-rpt-field">
-                                <label>Business Handle</label>
-                                <p class="vm-rpt-hint">@{{ request.user.username }}</p>
-                            </div>
-                            <div class="vm-rpt-field">
-                                <label>Brand Story (Bio)</label>
-                                <textarea class="vm-rpt-textarea" disabled>{{ profile.business_name|default:request.user.get_full_name|default:request.user.username }} curates premium collections for VibeMall customers.</textarea>
-                            </div>
-                        </article>
-
-                        <article class="vm-rpt-card">
-                            <h3>Settlement Account</h3>
-                            <div class="vm-rpt-field">
-                                <label for="bank_account_name">Account Holder Name</label>
-                                <input id="bank_account_name" name="bank_account_name" class="vm-rpt-input" type="text" value="{{ profile.bank_account_name|default:'' }}" placeholder="As per bank records">
-                            </div>
-                            <div class="vm-rpt-field">
-                                <label for="bank_account_number">Bank Account Number</label>
-                                <input id="bank_account_number" name="bank_account_number" class="vm-rpt-input" type="password" value="{{ profile.bank_account_number|default:'' }}" placeholder="6 to 34 digits" inputmode="numeric">
-                                <p id="bank_account_hint" class="vm-rpt-hint">Enter 6 to 34 digits only.</p>
-                            </div>
-                            <div class="vm-rpt-field">
-                                <label for="bank_ifsc_code">IFSC Code</label>
-                                <input id="bank_ifsc_code" name="bank_ifsc_code" class="vm-rpt-input" type="text" value="{{ profile.bank_ifsc_code|default:'' }}" placeholder="e.g., HDFC0001234">
-                                <p id="bank_ifsc_hint" class="vm-rpt-hint">We check IFSC and show bank details.</p>
-                                <p id="bank_ifsc_name_hint" class="vm-rpt-hint"></p>
-                            </div>
-                            <div class="vm-rpt-field">
-                                <label for="upi_id">Primary VPA / UPI ID</label>
-                                <input id="upi_id" name="upi_id" class="vm-rpt-input" type="text" value="{{ profile.upi_id|default:'' }}" placeholder="username@bank">
-                                <p id="upi_hint" class="vm-rpt-hint"></p>
-                                <p id="upi_name" class="vm-rpt-hint"></p>
-                            </div>
-                            <div class="vm-rpt-field">
-                                <label for="pan_number">PAN Number</label>
-                                <input id="pan_number" name="pan_number" class="vm-rpt-input" type="text" maxlength="10" value="{{ profile.pan_number|default:'' }}" placeholder="ABCDE1234F">
-                            </div>
-                        </article>
-                    </section>
-
-                    <aside class="vm-rpt-right">
-                        <article class="vm-rpt-card" style="background:#171818;color:#fff;">
-                            <h3 style="color:#fff;">Partner Status</h3>
-                            {% if profile.is_reseller_enabled %}
-                            <span class="vm-rpt-status vm-rpt-status--active" style="background:rgba(231,243,234,0.16);color:#d7f0df;">Active & Verified</span>
-                            {% else %}
-                            <span class="vm-rpt-status vm-rpt-status--inactive" style="background:rgba(255,244,229,0.16);color:#ffe5be;">Inactive</span>
-                            {% endif %}
-                            <div class="vm-rpt-metric" style="border-color:rgba(255,255,255,0.16);"><span style="opacity:0.76;">Revenue (Lifetime)</span><strong>Rs {{ profile.total_earnings|floatformat:2 }}</strong></div>
-                            <div class="vm-rpt-metric" style="border-color:rgba(255,255,255,0.16);"><span style="opacity:0.76;">Active Listings</span><strong>{{ profile.total_orders }}</strong></div>
-                            <div class="vm-rpt-metric"><span style="opacity:0.76;">Available Balance</span><strong>Rs {{ profile.available_balance|floatformat:2 }}</strong></div>
-                        </article>
-
-                        <article class="vm-rpt-card">
-                            <h3>Actions</h3>
-                            <p class="vm-rpt-hint">Save your updates to refresh payout and compliance details.</p>
-                            <div class="vm-rpt-actions">
-                                <button type="submit" class="vm-rpt-save">Save Profile Changes</button>
-                                <button type="reset" class="vm-rpt-discard">Discard Changes</button>
-                            </div>
-                        </article>
-                    </aside>
-                </div>
-            </form>
-        </main>
+        </form>
     </div>
 </section>
 
@@ -535,7 +409,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const value = (bankIfscCode.value || '').trim().toUpperCase();
         bankIfscCode.value = value;
         if (!value) {
-            resetHint(bankIfscHint, 'We check IFSC and show bank details.');
+            resetHint(bankIfscHint, 'We verify IFSC and display bank/branch details.');
             bankIfscNameHint.textContent = '';
             return true;
         }
@@ -619,11 +493,17 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
-    bankAccountNumber.addEventListener('input', validateBankAccount);
-    bankIfscCode.addEventListener('input', validateIfscFormat);
-    bankIfscCode.addEventListener('blur', lookupIfsc);
-    upiId.addEventListener('input', validateUpiFormat);
-    upiId.addEventListener('blur', verifyUpi);
+    if (bankAccountNumber) {
+        bankAccountNumber.addEventListener('input', validateBankAccount);
+    }
+    if (bankIfscCode) {
+        bankIfscCode.addEventListener('input', validateIfscFormat);
+        bankIfscCode.addEventListener('blur', lookupIfsc);
+    }
+    if (upiId) {
+        upiId.addEventListener('input', validateUpiFormat);
+        upiId.addEventListener('blur', verifyUpi);
+    }
 
     form.addEventListener('submit', function (event) {
         const hasBankDetails = !!(
