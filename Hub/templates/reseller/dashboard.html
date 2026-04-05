@@ -13,6 +13,302 @@
     font-family: "Manrope", sans-serif;
 }
 
+.vm-rdm-layout {
+    display: none;
+}
+
+.vm-rdt-tablet-layout {
+    display: block;
+}
+
+.vm-rdm-main {
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 14px 16px 26px;
+}
+
+.vm-rdm-head {
+    margin-bottom: 18px;
+}
+
+.vm-rdm-head p {
+    margin: 0 0 8px;
+    color: #6f5c37;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-weight: 800;
+}
+
+.vm-rdm-head h2 {
+    margin: 0;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 42px;
+    line-height: 0.96;
+    letter-spacing: -0.05em;
+}
+
+.vm-rdm-stack {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.vm-rdm-balance {
+    border-radius: 22px;
+    background: linear-gradient(135deg, #171818 0%, #2c2c2c 100%);
+    color: #fff;
+    padding: 22px 20px;
+    box-shadow: 0 20px 40px -15px rgba(27, 28, 25, 0.2);
+}
+
+.vm-rdm-balance-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.vm-rdm-balance-head p,
+.vm-rdm-card small,
+.vm-rdm-section-label,
+.vm-rdm-panel-head a,
+.vm-rdm-action {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 800;
+}
+
+.vm-rdm-balance-head p {
+    margin: 0;
+    opacity: 0.62;
+}
+
+.vm-rdm-balance strong {
+    display: block;
+    margin-bottom: 18px;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 40px;
+    line-height: 1;
+    letter-spacing: -0.05em;
+}
+
+.vm-rdm-balance a {
+    min-height: 48px;
+    border-radius: 14px;
+    background: #fadfb1;
+    color: #261900;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    text-decoration: none;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 800;
+}
+
+.vm-rdm-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.vm-rdm-metric {
+    border-radius: 18px;
+    background: #f5f3ee;
+    padding: 14px 12px;
+}
+
+.vm-rdm-metric small {
+    display: block;
+    margin-bottom: 5px;
+    color: rgba(68, 71, 72, 0.74);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 800;
+}
+
+.vm-rdm-metric strong {
+    display: block;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 20px;
+    line-height: 1.05;
+}
+
+.vm-rdm-quick {
+    margin-bottom: 18px;
+}
+
+.vm-rdm-section-label {
+    display: block;
+    margin: 0 0 12px;
+    color: #6f5c37;
+}
+
+.vm-rdm-actions {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+}
+
+.vm-rdm-actions::-webkit-scrollbar {
+    display: none;
+}
+
+.vm-rdm-action {
+    flex: 0 0 auto;
+    min-height: 56px;
+    border-radius: 18px;
+    background: #e4e2dd;
+    color: #171818;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 18px;
+    white-space: nowrap;
+}
+
+.vm-rdm-panel {
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 10px 30px rgba(27, 28, 25, 0.03);
+    overflow: hidden;
+    margin-bottom: 18px;
+}
+
+.vm-rdm-panel-head {
+    padding: 18px 18px 16px;
+    border-bottom: 1px solid rgba(196, 199, 199, 0.16);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.vm-rdm-panel-head h3 {
+    margin: 0;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+}
+
+.vm-rdm-panel-head a {
+    color: #6f5c37;
+    text-decoration: none;
+}
+
+.vm-rdm-orders,
+.vm-rdm-links {
+    display: grid;
+}
+
+.vm-rdm-order,
+.vm-rdm-link {
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-top: 1px solid rgba(196, 199, 199, 0.08);
+}
+
+.vm-rdm-order:first-child,
+.vm-rdm-link:first-child {
+    border-top: 0;
+}
+
+.vm-rdm-thumb {
+    width: 48px;
+    height: 64px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #e4e2dd;
+    flex: 0 0 auto;
+}
+
+.vm-rdm-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.vm-rdm-order-copy,
+.vm-rdm-link-copy {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.vm-rdm-order-copy p,
+.vm-rdm-link-copy p {
+    margin: 0 0 4px;
+    color: rgba(68, 71, 72, 0.74);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.vm-rdm-order-copy h4,
+.vm-rdm-link-copy h4 {
+    margin: 0 0 4px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #171818;
+}
+
+.vm-rdm-order-copy strong,
+.vm-rdm-link-copy strong {
+    display: block;
+    color: #6f5c37;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.vm-rdm-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 800;
+    flex: 0 0 auto;
+}
+
+.vm-rdm-badge--processing { background: #ffdad9; color: #6d3738; }
+.vm-rdm-badge--shipped { background: #fadfb1; color: #554422; }
+.vm-rdm-badge--delivered { background: #e4e2dd; color: #444748; }
+.vm-rdm-badge--cancelled { background: #ffdad6; color: #93000a; }
+.vm-rdm-badge--default { background: #f0eee9; color: #444748; }
+
+.vm-rdm-share {
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 12px;
+    background: #f0eee9;
+    color: #171818;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+}
+
+.vm-rdm-empty {
+    padding: 22px 18px;
+    text-align: center;
+    color: rgba(27, 28, 25, 0.58);
+    font-size: 13px;
+}
+
 body.vm-page-reseller-dashboard-tablet .vm-mobile-side-menu,
 body.vm-page-reseller-dashboard-tablet .vm-mobile-side-menu-overlay {
     display: none !important;
@@ -288,6 +584,23 @@ body.vm-page-reseller-dashboard-tablet .vm-mobile-side-menu-overlay {
 }
 
 @media (max-width: 767.98px) {
+    body.vm-page-reseller-dashboard-tablet .vm-copy-header,
+    body.vm-page-reseller-dashboard-tablet .vm-copy-footer,
+    body.vm-page-reseller-dashboard-tablet > footer,
+    body.vm-page-reseller-dashboard-tablet .vm-tablet-alt-header,
+    body.vm-page-reseller-dashboard-tablet .vm-tablet-alt-footer,
+    body.vm-page-reseller-dashboard-tablet .vm-tab-bnav-shell {
+        display: none !important;
+    }
+
+    .vm-rdm-layout {
+        display: block;
+    }
+
+    .vm-rdt-tablet-layout {
+        display: none;
+    }
+
     .vm-rdt-shell {
         display: block;
     }
@@ -355,6 +668,94 @@ body.vm-page-reseller-dashboard-tablet .vm-mobile-side-menu-overlay {
 
 {% block content %}
 <section class="vm-rdt-page">
+    <div class="vm-rdm-layout">
+        {% include 'partials/vm_mobile_alt_header.html' %}
+
+        <main class="vm-rdm-main vm-mobile-content-offset">
+            {% if messages %}
+            <section class="vm-rdt-alerts">
+                {% for message in messages %}
+                <div class="vm-rdt-alert {% if message.tags == 'error' %}vm-rdt-alert--error{% else %}vm-rdt-alert--success{% endif %}">{{ message }}</div>
+                {% endfor %}
+            </section>
+            {% endif %}
+
+            <header class="vm-rdm-head">
+                <p>Welcome back,</p>
+                <h2>{{ request.user.get_full_name|default:request.user.username }}</h2>
+            </header>
+
+            <section class="vm-rdm-stack" aria-label="Dashboard summary">
+                <article class="vm-rdm-balance">
+                    <div class="vm-rdm-balance-head">
+                        <p>Available Balance</p>
+                        <i class="fas fa-wallet" style="opacity:.45;"></i>
+                    </div>
+                    <strong>Rs {{ profile.available_balance|floatformat:2 }}</strong>
+                    <a href="{% url 'payout_request_page' %}">Request Payout</a>
+                </article>
+
+                <div class="vm-rdm-metrics" aria-label="Earnings metrics">
+                    <article class="vm-rdm-metric">
+                        <small>Total Earnings</small>
+                        <strong>Rs {{ profile.total_earnings|floatformat:2 }}</strong>
+                    </article>
+                    <article class="vm-rdm-metric">
+                        <small>Pending</small>
+                        <strong>Rs {{ pending_earnings|floatformat:2 }}</strong>
+                    </article>
+                    <article class="vm-rdm-metric">
+                        <small>Orders</small>
+                        <strong>{{ total_resell_orders }}</strong>
+                    </article>
+                </div>
+            </section>
+
+            <section class="vm-rdm-quick">
+                <span class="vm-rdm-section-label">Quick Actions</span>
+                <div class="vm-rdm-actions">
+                    <a href="{% url 'reseller_profile' %}" class="vm-rdm-action"><i class="fas fa-user-cog"></i><span>Profile</span></a>
+                    <a href="{% url 'earnings_history' %}" class="vm-rdm-action"><i class="fas fa-history"></i><span>Earnings</span></a>
+                    <a href="{% url 'payout_request_page' %}" class="vm-rdm-action"><i class="fas fa-wallet"></i><span>Withdraw</span></a>
+                </div>
+            </section>
+
+            <section class="vm-rdm-panel">
+                <div class="vm-rdm-panel-head">
+                    <h3>Recent Orders</h3>
+                    <a href="{% url 'order_list' %}">View All</a>
+                </div>
+                {% if recent_orders %}
+                <div class="vm-rdm-orders">
+                    {% for order in recent_orders|slice:':4' %}
+                    <article class="vm-rdm-order">
+                        {% with first_item=order.items.first %}
+                        <div class="vm-rdm-thumb">
+                            {% if first_item and first_item.product and first_item.product.image %}
+                            <img src="{{ first_item.product.image.url }}" alt="{{ first_item.product.name }}">
+                            {% endif %}
+                        </div>
+                        <div class="vm-rdm-order-copy">
+                            <p>Ord #{{ order.order_number|default:order.id }} • {{ order.created_at|date:'d M, Y' }}</p>
+                            <h4>{% if first_item and first_item.product %}{{ first_item.product.name }}{% else %}Reseller Order{% endif %}</h4>
+                            <strong>Rs {{ order.total_amount|floatformat:2 }}</strong>
+                        </div>
+                        {% endwith %}
+                        <span class="vm-rdm-badge {% if order.order_status == 'PENDING' or order.order_status == 'PROCESSING' %}vm-rdm-badge--processing{% elif order.order_status == 'SHIPPED' %}vm-rdm-badge--shipped{% elif order.order_status == 'DELIVERED' %}vm-rdm-badge--delivered{% elif order.order_status == 'CANCELLED' or order.order_status == 'REJECTED' %}vm-rdm-badge--cancelled{% else %}vm-rdm-badge--default{% endif %}">{{ order.get_order_status_display }}</span>
+                    </article>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="vm-rdm-empty">No reseller orders found yet.</p>
+                {% endif %}
+            </section>
+
+            {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='reseller-dashboard-mobile' %}
+        </main>
+        {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='home' %}
+    </div>
+
+    <div class="vm-rdt-tablet-layout">
     <div class="vm-rdt-shell">
         <main class="vm-rdt-main vm-mobile-content-offset">
             {% if messages %}
@@ -471,6 +872,7 @@ body.vm-page-reseller-dashboard-tablet .vm-mobile-side-menu-overlay {
                 </section>
             </div>
         </main>
+    </div>
     </div>
 </section>
 

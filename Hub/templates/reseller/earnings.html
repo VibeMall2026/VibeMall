@@ -1,549 +1,449 @@
 {% extends 'base.html' %}
 
 {% block title %}Earnings History - VibeMall{% endblock %}
-{% block body_class %}vm-page-mobile-alt vm-page-reseller-earnings-tablet{% endblock %}
-{% block ui_chrome %}tablet{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-reseller-earnings-mobile{% endblock %}
+{% block ui_chrome %}mobile{% endblock %}
 
 {% block extra_css %}
 <style>
-.vm-ret-page {
+.vm-rem-page {
     min-height: 100vh;
     background: #fbf9f4;
     color: #1b1c19;
     font-family: "Manrope", sans-serif;
 }
 
-body.vm-page-reseller-earnings-tablet .vm-mobile-side-menu,
-body.vm-page-reseller-earnings-tablet .vm-mobile-side-menu-overlay {
+body.vm-page-reseller-earnings-mobile .vm-mobile-side-menu,
+body.vm-page-reseller-earnings-mobile .vm-mobile-side-menu-overlay {
     display: none !important;
 }
 
-.vm-ret-shell {
-    width: min(100%, 1120px);
+.vm-rem-main {
+    max-width: 430px;
     margin: 0 auto;
-    padding: 26px 14px 128px;
+    padding: 14px 16px 22px;
 }
 
-.vm-ret-head {
-    margin-bottom: 20px;
+.vm-rem-head {
+    margin-bottom: 12px;
 }
 
-.vm-ret-head h1 {
-    margin: 0;
-    font-family: "Noto Serif", Georgia, serif;
-    font-size: clamp(40px, 5vw, 58px);
-    line-height: 0.95;
-    letter-spacing: -0.05em;
-}
-
-.vm-ret-head p {
-    margin: 8px 0 0;
-    color: rgba(68, 71, 72, 0.72);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.18em;
-    font-weight: 700;
-}
-
-.vm-ret-stats {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-    margin-bottom: 18px;
-}
-
-.vm-ret-stat {
-    border-radius: 22px;
-    padding: 20px 18px;
-    box-shadow: 0 -4px 40px rgba(27, 28, 25, 0.04);
-}
-
-.vm-ret-stat:nth-child(odd) {
-    background: #fff;
-}
-
-.vm-ret-stat:nth-child(even) {
-    background: #f0eee9;
-}
-
-.vm-ret-stat small {
-    display: block;
-    margin-bottom: 8px;
+.vm-rem-head p {
+    margin: 0 0 6px;
     color: #6f5c37;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    font-weight: 800;
-}
-
-.vm-ret-stat strong {
-    display: block;
-    font-family: "Noto Serif", Georgia, serif;
-    font-size: 34px;
-    line-height: 1;
-    letter-spacing: -0.04em;
-}
-
-.vm-ret-filterbar {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 18px;
-}
-
-.vm-ret-filter-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.vm-ret-select-wrap {
-    position: relative;
-}
-
-.vm-ret-select {
-    appearance: none;
-    min-height: 48px;
-    border: 0;
-    border-radius: 14px;
-    padding: 0 44px 0 18px;
-    background: #f5f3ee;
-    color: #171818;
-    font-size: 14px;
-    font-weight: 700;
-    outline: none;
-}
-
-.vm-ret-select-wrap::after {
-    content: "\f107";
-    font-family: "Font Awesome 5 Free";
-    font-weight: 900;
-    position: absolute;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: rgba(27, 28, 25, 0.56);
-    pointer-events: none;
-}
-
-.vm-ret-clear,
-.vm-ret-link,
-.vm-ret-footer-btn {
-    text-decoration: none;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    font-weight: 800;
-}
-
-.vm-ret-clear {
-    color: #171818;
-    text-decoration: underline;
-    text-underline-offset: 4px;
-}
-
-.vm-ret-count {
-    color: rgba(68, 71, 72, 0.72);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    font-weight: 700;
-}
-
-.vm-ret-table-card {
-    border-radius: 24px;
-    background: rgba(255, 255, 255, 0.92);
-    box-shadow: 0 20px 50px -36px rgba(27, 28, 25, 0.35);
-    padding: 8px;
-    overflow-x: auto;
-}
-
-.vm-ret-table {
-    width: 100%;
-    min-width: 900px;
-    border-collapse: separate;
-    border-spacing: 0 12px;
-}
-
-.vm-ret-table thead th {
-    padding: 0 14px 6px;
-    color: rgba(68, 71, 72, 0.78);
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.2em;
     font-weight: 800;
 }
 
-.vm-ret-table tbody td {
-    background: #fff;
-    padding: 18px 14px;
-    font-size: 14px;
-    vertical-align: middle;
-}
-
-.vm-ret-table tbody td:first-child {
-    border-top-left-radius: 18px;
-    border-bottom-left-radius: 18px;
-}
-
-.vm-ret-table tbody td:last-child {
-    border-top-right-radius: 18px;
-    border-bottom-right-radius: 18px;
-}
-
-.vm-ret-product {
+.vm-rem-head h1 {
+    margin: 0;
     font-family: "Noto Serif", Georgia, serif;
-    font-size: 16px;
+    font-size: 40px;
+    line-height: 0.95;
+    letter-spacing: -0.04em;
 }
 
-.vm-ret-order {
+.vm-rem-divider {
+    width: 48px;
+    height: 4px;
+    border-radius: 999px;
+    background: #6f5c37;
+    margin-top: 12px;
+}
+
+.vm-rem-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    background: #e4e2dd;
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.vm-rem-stat {
+    background: #fff;
+    padding: 14px 10px;
+    text-align: center;
+}
+
+.vm-rem-stat small {
+    display: block;
+    margin-bottom: 4px;
+    color: #747878;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 800;
+}
+
+.vm-rem-stat strong {
+    display: block;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 24px;
+    line-height: 1;
+}
+
+.vm-rem-filter {
+    margin-bottom: 12px;
+}
+
+.vm-rem-select-wrap {
+    position: relative;
+}
+
+.vm-rem-select {
+    appearance: none;
+    width: 100%;
+    min-height: 46px;
+    border: 0;
+    border-radius: 14px;
+    background: #f5f3ee;
+    padding: 0 42px 0 14px;
+    color: #171818;
+    font-size: 14px;
+    font-weight: 600;
+    outline: none;
+}
+
+.vm-rem-select-wrap::after {
+    content: "\f107";
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(27, 28, 25, 0.56);
+    pointer-events: none;
+}
+
+.vm-rem-clear {
+    margin-top: 8px;
+    display: inline-block;
+    color: #171818;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+.vm-rem-list {
+    display: grid;
+    gap: 10px;
+}
+
+.vm-rem-card {
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid rgba(196, 199, 199, 0.2);
+    padding: 14px;
+}
+
+.vm-rem-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.vm-rem-card-meta {
+    display: flex;
+    gap: 10px;
+    min-width: 0;
+}
+
+.vm-rem-thumb {
+    width: 54px;
+    height: 70px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #e4e2dd;
+    flex: 0 0 auto;
+}
+
+.vm-rem-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.vm-rem-copy {
+    min-width: 0;
+}
+
+.vm-rem-copy p {
+    margin: 0 0 4px;
+    color: #747878;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
     font-weight: 700;
 }
 
-.vm-ret-date,
-.vm-ret-muted {
-    color: rgba(68, 71, 72, 0.72);
-    font-size: 13px;
+.vm-rem-copy h3 {
+    margin: 0 0 4px;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 18px;
+    line-height: 1.15;
 }
 
-.vm-ret-amount {
-    font-weight: 800;
-    color: #171818;
+.vm-rem-copy small {
+    color: #747878;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
 }
 
-.vm-ret-badge {
+.vm-rem-amount {
+    flex: 0 0 auto;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 22px;
+    color: #6f5c37;
+    font-weight: 700;
+}
+
+.vm-rem-card-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(196, 199, 199, 0.2);
+}
+
+.vm-rem-status {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    min-height: 28px;
-    padding: 0 12px;
-    border-radius: 999px;
-    font-size: 9px;
+    gap: 6px;
+    font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.12em;
     font-weight: 800;
 }
 
-.vm-ret-badge--pending {
-    background: #fff4e5;
-    color: #9a5f00;
-}
-
-.vm-ret-badge--confirmed {
-    background: #f7dcae;
-    color: #73603b;
-}
-
-.vm-ret-badge--paid {
-    background: #e7f3ea;
-    color: #1f6a35;
-}
-
-.vm-ret-badge--cancelled {
-    background: #ffedea;
-    color: #ba1a1a;
-}
-
-.vm-ret-link {
-    color: #6f5c37;
-}
-
-.vm-ret-empty {
-    border-radius: 24px;
-    background: #fff;
-    padding: 44px 20px;
-    text-align: center;
-    box-shadow: 0 20px 50px -36px rgba(27, 28, 25, 0.35);
-}
-
-.vm-ret-empty i {
-    font-size: 40px;
-    color: rgba(111, 92, 55, 0.6);
-    margin-bottom: 14px;
-}
-
-.vm-ret-empty h3 {
-    margin: 0;
-    font-family: "Noto Serif", Georgia, serif;
-    font-size: 30px;
-    letter-spacing: -0.03em;
-}
-
-.vm-ret-empty p {
-    margin: 10px auto 18px;
-    max-width: 440px;
-    color: rgba(68, 71, 72, 0.74);
-    font-size: 14px;
-    line-height: 1.8;
-}
-
-.vm-ret-footer {
-    margin-top: 22px;
-    margin-bottom: 18px;
-}
-
-.vm-ret-footer-card {
-    position: relative;
-    overflow: hidden;
-    border-radius: 26px;
-    background: #32080c;
-    color: #fff;
-    padding: 24px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.vm-ret-footer-card::after {
+.vm-rem-status::before {
     content: "";
-    position: absolute;
-    top: -40px;
-    right: -40px;
-    width: 180px;
-    height: 180px;
+    width: 7px;
+    height: 7px;
     border-radius: 999px;
-    background: rgba(111, 92, 55, 0.16);
-    filter: blur(16px);
 }
 
-.vm-ret-footer-copy,
-.vm-ret-footer-btn-wrap {
-    position: relative;
-    z-index: 1;
-}
+.vm-rem-status--pending::before { background: #747878; }
+.vm-rem-status--confirmed::before { background: #171818; }
+.vm-rem-status--paid::before { background: #6f5c37; }
+.vm-rem-status--cancelled::before { background: #ba1a1a; }
 
-.vm-ret-footer-copy h3 {
-    margin: 0 0 12px;
-    font-family: "Noto Serif", Georgia, serif;
-    font-size: 30px;
-    letter-spacing: -0.03em;
-}
-
-.vm-ret-footer-grid {
-    display: grid;
-    gap: 16px;
-}
-
-.vm-ret-footer-copy p,
-.vm-ret-footer-item p {
+.vm-rem-note {
     margin: 0;
-    color: rgba(255, 255, 255, 0.76);
-    font-size: 13px;
-    line-height: 1.7;
-}
-
-.vm-ret-footer-item strong {
-    display: block;
-    margin-bottom: 6px;
-    color: #fadfb1;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    font-weight: 800;
-}
-
-.vm-ret-footer-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 48px;
-    padding: 0 18px;
-    border-radius: 14px;
-    background: #6f5c37;
-    color: #fff;
-}
-
-.vm-ret-copyright {
-    margin-top: 14px;
-    text-align: center;
     color: rgba(68, 71, 72, 0.72);
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.26em;
+    font-size: 11px;
+    font-style: italic;
+    text-align: right;
+}
+
+.vm-rem-note a {
+    color: #6f5c37;
+    text-decoration: none;
+    font-style: normal;
     font-weight: 800;
 }
 
-@media (min-width: 768px) {
-    .vm-ret-shell {
-        padding: 30px 18px 138px;
-    }
-
-    .vm-ret-stats {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 16px;
-    }
-
-    .vm-ret-filterbar {
-        flex-direction: row;
-        align-items: center;
-    }
-
-    .vm-ret-footer-card {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-        gap: 28px;
-        padding: 30px;
-    }
-
-    .vm-ret-footer-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+.vm-rem-info {
+    margin-top: 16px;
+    border-radius: 18px;
+    background: #f0eee9;
+    padding: 16px;
 }
 
-@media (min-width: 1200px) {
-    .vm-ret-shell {
-        padding-bottom: 72px;
-    }
+.vm-rem-info h4 {
+    margin: 0 0 10px;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 22px;
+    line-height: 1.05;
+}
+
+.vm-rem-info-item {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.vm-rem-info-dot {
+    margin-top: 6px;
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    flex: 0 0 auto;
+}
+
+.vm-rem-info-copy strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 800;
+}
+
+.vm-rem-info-copy p {
+    margin: 0;
+    color: rgba(68, 71, 72, 0.8);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.vm-rem-empty {
+    margin: 0;
+    border-radius: 16px;
+    background: #fff;
+    padding: 18px;
+    text-align: center;
+    color: rgba(68, 71, 72, 0.78);
+    font-size: 14px;
+}
+
+.vm-rem-empty a {
+    display: inline-block;
+    margin-top: 10px;
+    text-decoration: none;
+    color: #6f5c37;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 800;
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<section class="vm-ret-page">
-    <div class="vm-ret-shell">
-        <header class="vm-ret-head">
+<section class="vm-rem-page">
+    {% include 'partials/vm_mobile_alt_header.html' %}
+
+    <main class="vm-rem-main vm-mobile-content-offset">
+        <header class="vm-rem-head">
+            <p>Reseller Portfolio</p>
             <h1>Earnings History</h1>
-            <p>The Digital Atelier • Reseller Dashboard</p>
+            <div class="vm-rem-divider"></div>
         </header>
 
-        {% with earning_count=earnings|length %}
-        <section class="vm-ret-stats" aria-label="Earnings summary">
-            <article class="vm-ret-stat">
-                <small>Total Earned</small>
+        <section class="vm-rem-stats" aria-label="Earnings summary">
+            <article class="vm-rem-stat">
+                <small>Total Earnings</small>
                 <strong>Rs {{ total_earnings|floatformat:2 }}</strong>
             </article>
-            <article class="vm-ret-stat">
+            <article class="vm-rem-stat">
                 <small>Pending</small>
                 <strong>Rs {{ pending_earnings|floatformat:2 }}</strong>
             </article>
-            <article class="vm-ret-stat">
-                <small>Entries</small>
-                <strong>{{ earning_count }}</strong>
+            <article class="vm-rem-stat">
+                <small>Confirmed</small>
+                <strong>Rs {{ confirmed_earnings|floatformat:2 }}</strong>
             </article>
-            <article class="vm-ret-stat">
-                <small>Paid Out</small>
+            <article class="vm-rem-stat">
+                <small>Paid</small>
                 <strong>Rs {{ paid_earnings|floatformat:2 }}</strong>
             </article>
         </section>
 
-        <section class="vm-ret-filterbar" aria-label="Earnings filters">
-            <form method="get" class="vm-ret-filter-left">
-                <div class="vm-ret-select-wrap">
-                    <select name="status" class="vm-ret-select" onchange="this.form.submit()">
-                        <option value="">Filter by Status</option>
-                        <option value="PENDING" {% if status_filter == 'PENDING' %}selected{% endif %}>Pending</option>
-                        <option value="CONFIRMED" {% if status_filter == 'CONFIRMED' %}selected{% endif %}>Confirmed</option>
-                        <option value="PAID" {% if status_filter == 'PAID' %}selected{% endif %}>Paid</option>
+        <section class="vm-rem-filter" aria-label="Filter earnings">
+            <form method="get">
+                <div class="vm-rem-select-wrap">
+                    <select name="status" class="vm-rem-select" onchange="this.form.submit()">
+                        <option value="">All Transactions</option>
+                        <option value="PENDING" {% if status_filter == 'PENDING' %}selected{% endif %}>Pending Approval</option>
+                        <option value="CONFIRMED" {% if status_filter == 'CONFIRMED' %}selected{% endif %}>Confirmed Earnings</option>
+                        <option value="PAID" {% if status_filter == 'PAID' %}selected{% endif %}>Paid Out</option>
                         <option value="CANCELLED" {% if status_filter == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
                     </select>
                 </div>
                 {% if status_filter %}
-                <a href="{% url 'earnings_history' %}" class="vm-ret-clear">Clear Filter</a>
+                <a href="{% url 'earnings_history' %}" class="vm-rem-clear">Clear Filter</a>
                 {% endif %}
             </form>
-
-            <div class="vm-ret-count">Displaying {{ earning_count }} Entries</div>
         </section>
 
         {% if earnings %}
-        <section class="vm-ret-table-card">
-            <table class="vm-ret-table">
-                <thead>
-                    <tr>
-                        <th>Order #</th>
-                        <th>Product</th>
-                        <th>Date</th>
-                        <th>Margin</th>
-                        <th>Status</th>
-                        <th>Confirmed</th>
-                        <th>Paid</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for earning in earnings %}
-                    <tr>
-                        <td class="vm-ret-order">#{{ earning.order.order_number }}</td>
-                        <td class="vm-ret-product">{{ earning.resell_link.product.name }}</td>
-                        <td class="vm-ret-date">{{ earning.created_at|date:'d M, Y' }}</td>
-                        <td class="vm-ret-amount">Rs {{ earning.margin_amount|floatformat:2 }}</td>
-                        <td>
-                            {% if earning.status == 'PENDING' %}
-                            <span class="vm-ret-badge vm-ret-badge--pending">Pending</span>
-                            {% elif earning.status == 'CONFIRMED' %}
-                            <span class="vm-ret-badge vm-ret-badge--confirmed">Confirmed</span>
-                            {% elif earning.status == 'PAID' %}
-                            <span class="vm-ret-badge vm-ret-badge--paid">Paid</span>
-                            {% elif earning.status == 'CANCELLED' %}
-                            <span class="vm-ret-badge vm-ret-badge--cancelled">Cancelled</span>
-                            {% else %}
-                            <span class="vm-ret-badge">{{ earning.status }}</span>
+        <section class="vm-rem-list">
+            {% for earning in earnings %}
+            <article class="vm-rem-card">
+                <div class="vm-rem-card-top">
+                    <div class="vm-rem-card-meta">
+                        <div class="vm-rem-thumb">
+                            {% if earning.resell_link.product.image %}
+                            <img src="{{ earning.resell_link.product.image.url }}" alt="{{ earning.resell_link.product.name }}">
                             {% endif %}
-                        </td>
-                        <td class="vm-ret-muted">
-                            {% if earning.confirmed_at %}
-                            {{ earning.confirmed_at|date:'d M, Y' }}
-                            {% else %}
-                            -
-                            {% endif %}
-                        </td>
-                        <td class="vm-ret-muted">
-                            {% if earning.paid_at %}
-                            {{ earning.paid_at|date:'d M, Y' }}
-                            {% else %}
-                            -
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if earning.payout_transaction %}
-                            <a href="{% url 'payout_request_page' %}" class="vm-ret-link">View Payout</a>
-                            {% elif earning.status == 'CONFIRMED' %}
-                            <a href="{% url 'payout_request_page' %}" class="vm-ret-link">Request Payout</a>
-                            {% else %}
-                            <span class="vm-ret-muted">Pending</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </section>
-        {% else %}
-        <section class="vm-ret-empty">
-            <i class="fas fa-coins"></i>
-            <h3>No earnings yet</h3>
-            <p>You do not have any reseller earnings records yet. Create resell links and start sharing products to begin earning margin.</p>
-            <a href="{% url 'reseller_links' %}" class="vm-ret-footer-btn">Create Resell Links</a>
-        </section>
-        {% endif %}
-
-        <footer class="vm-ret-footer">
-            <div class="vm-ret-footer-card">
-                <div class="vm-ret-footer-copy">
-                    <h3>Earning Status Explained</h3>
-                    <div class="vm-ret-footer-grid">
-                        <div class="vm-ret-footer-item">
-                            <strong>Pending</strong>
-                            <p>Margin is calculated but remains pending until the order is delivered and clears the return window.</p>
                         </div>
-                        <div class="vm-ret-footer-item">
-                            <strong>Confirmed</strong>
-                            <p>Earnings are available for payout and can be transferred to your registered bank account or UPI details.</p>
+                        <div class="vm-rem-copy">
+                            <p>Order #{{ earning.order.order_number }}</p>
+                            <h3>{{ earning.resell_link.product.name }}</h3>
+                            <small>{{ earning.created_at|date:'d M, Y' }}</small>
                         </div>
                     </div>
+                    <span class="vm-rem-amount">+Rs {{ earning.margin_amount|floatformat:2 }}</span>
                 </div>
-                <div class="vm-ret-footer-btn-wrap">
-                    <a href="{% url 'payout_request_page' %}" class="vm-ret-footer-btn">View Payout Settings</a>
+
+                <div class="vm-rem-card-foot">
+                    <span class="vm-rem-status vm-rem-status--{{ earning.status|lower }}">{{ earning.get_status_display }}</span>
+                    {% if earning.payout_transaction %}
+                    <p class="vm-rem-note"><a href="{% url 'payout_request_page' %}">View Payout</a></p>
+                    {% elif earning.status == 'CONFIRMED' %}
+                    <p class="vm-rem-note"><a href="{% url 'payout_request_page' %}">Request Payout</a></p>
+                    {% elif earning.status == 'PENDING' %}
+                    <p class="vm-rem-note">Awaiting return period completion</p>
+                    {% elif earning.status == 'PAID' %}
+                    <p class="vm-rem-note">Transferred to bank</p>
+                    {% elif earning.status == 'CANCELLED' %}
+                    <p class="vm-rem-note">No earning due to cancellation</p>
+                    {% else %}
+                    <p class="vm-rem-note">Status updated</p>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </section>
+        {% else %}
+        <p class="vm-rem-empty">No earnings yet.<br><a href="{% url 'reseller_links' %}">Create Resell Links</a></p>
+        {% endif %}
+
+        <section class="vm-rem-info">
+            <h4>Earning Status Explained</h4>
+
+            <div class="vm-rem-info-item">
+                <span class="vm-rem-info-dot" style="background:#747878;"></span>
+                <div class="vm-rem-info-copy">
+                    <strong>Pending</strong>
+                    <p>Order is delivered, but earnings are held until return window completion.</p>
                 </div>
             </div>
-            <div class="vm-ret-copyright">Curated Commerce by VibeMall</div>
-        </footer>
-        {% endwith %}
-    </div>
+
+            <div class="vm-rem-info-item">
+                <span class="vm-rem-info-dot" style="background:#171818;"></span>
+                <div class="vm-rem-info-copy">
+                    <strong>Confirmed</strong>
+                    <p>Return window is complete and your margin is now eligible for payout.</p>
+                </div>
+            </div>
+
+            <div class="vm-rem-info-item">
+                <span class="vm-rem-info-dot" style="background:#6f5c37;"></span>
+                <div class="vm-rem-info-copy">
+                    <strong>Paid</strong>
+                    <p>Earnings are transferred to your registered payout destination.</p>
+                </div>
+            </div>
+        </section>
+
+        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='reseller-earnings-mobile' %}
+    </main>
+
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
 </section>
 {% endblock %}
 
