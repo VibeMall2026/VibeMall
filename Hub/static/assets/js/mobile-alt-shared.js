@@ -9,6 +9,32 @@ document.addEventListener('DOMContentLoaded', function () {
     if (sideMenu && menuOverlay && (menuToggleBtns.length > 0 || menuCloseBtn)) {
         const pageRoot = document.documentElement;
 
+        function getSavedScrollY() {
+            const fromDataset = Number(document.body.dataset.vmMenuScrollY || '');
+            if (Number.isFinite(fromDataset)) {
+                return fromDataset;
+            }
+
+            const bodyTop = document.body.style.top || '';
+            if (bodyTop) {
+                const parsedTop = parseInt(bodyTop, 10);
+                if (Number.isFinite(parsedTop) && parsedTop !== 0) {
+                    return Math.abs(parsedTop);
+                }
+            }
+
+            return window.scrollY || window.pageYOffset || 0;
+        }
+
+        function hasResidualScrollLock() {
+            return (
+                document.body.dataset.vmMenuScrollLocked === 'true' ||
+                document.body.style.position === 'fixed' ||
+                document.body.style.overflow === 'hidden' ||
+                pageRoot.style.overflow === 'hidden'
+            );
+        }
+
         function lockPageScroll() {
             if (document.body.dataset.vmMenuScrollLocked === 'true') {
                 return;
@@ -35,8 +61,13 @@ document.addEventListener('DOMContentLoaded', function () {
             document.body.style.touchAction = 'none';
         }
 
-        function unlockPageScroll() {
-            const lockedScrollY = Number(document.body.dataset.vmMenuScrollY || '0');
+        function unlockPageScroll(options) {
+            const shouldRestoreScroll = !(options && options.restoreScroll === false);
+            const lockedScrollY = getSavedScrollY();
+
+            if (!hasResidualScrollLock()) {
+                return;
+            }
 
             pageRoot.style.overflow = document.body.dataset.vmMenuHtmlOverflow || '';
             pageRoot.style.touchAction = document.body.dataset.vmMenuHtmlTouchAction || '';
@@ -56,7 +87,9 @@ document.addEventListener('DOMContentLoaded', function () {
             delete document.body.dataset.vmMenuHtmlOverflow;
             delete document.body.dataset.vmMenuHtmlTouchAction;
 
-            window.scrollTo(0, lockedScrollY);
+            if (shouldRestoreScroll) {
+                window.scrollTo(0, lockedScrollY);
+            }
         }
 
         function recoverMenuState() {
@@ -69,10 +102,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         // Close menu function
-        function closeMenu() {
+        function closeMenu(options) {
             sideMenu.classList.remove('is-open');
             menuOverlay.classList.remove('is-open');
-            unlockPageScroll();
+            unlockPageScroll(options);
             // Close all open submenus
             submenuToggles.forEach(function (toggle) {
                 toggle.setAttribute('aria-expanded', 'false');
@@ -126,21 +159,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Ensure stale scroll locks never survive browser navigation restore.
         window.addEventListener('pagehide', function () {
-            closeMenu();
+            closeMenu({ restoreScroll: false });
         });
 
         window.addEventListener('pageshow', function () {
+            closeMenu({ restoreScroll: false });
             recoverMenuState();
         });
 
         window.addEventListener('popstate', function () {
-            closeMenu();
+            closeMenu({ restoreScroll: false });
             recoverMenuState();
         });
 
         document.addEventListener('visibilitychange', function () {
             if (document.visibilityState === 'hidden') {
-                closeMenu();
+                closeMenu({ restoreScroll: false });
                 return;
             }
 
