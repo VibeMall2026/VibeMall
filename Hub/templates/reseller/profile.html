@@ -1,453 +1,368 @@
 {% extends 'base.html' %}
 
 {% block title %}Reseller Profile Settings - VibeMall{% endblock %}
-{% block body_class %}vm-page-reseller-profile-desktop-home{% endblock %}
-{% block ui_chrome %}default{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-reseller-profile-mobile{% endblock %}
+{% block ui_chrome %}mobile{% endblock %}
 
 {% block extra_css %}
 <style>
-.vm-rph-page {
+.vm-rpm-page {
     min-height: 100vh;
     background: #fbf9f4;
     color: #1b1c19;
     font-family: "Manrope", sans-serif;
-    padding: 34px 16px 46px;
 }
 
-body.vm-page-reseller-profile-desktop-home .vm-mobile-side-menu,
-body.vm-page-reseller-profile-desktop-home .vm-mobile-side-menu-overlay {
+body.vm-page-reseller-profile-mobile .vm-mobile-side-menu,
+body.vm-page-reseller-profile-mobile .vm-mobile-side-menu-overlay {
     display: none !important;
 }
 
-.vm-rph-shell {
-    max-width: 1180px;
+.vm-rpm-main {
+    max-width: 430px;
     margin: 0 auto;
+    padding: 14px 16px 22px;
 }
 
-.vm-rph-alerts {
+.vm-rpm-alerts {
     display: grid;
-    gap: 8px;
+    gap: 10px;
     margin-bottom: 12px;
 }
 
-.vm-rph-alert {
+.vm-rpm-alert {
     border-radius: 12px;
     padding: 10px 12px;
     font-size: 13px;
-    font-weight: 600;
 }
 
-.vm-rph-alert--error {
-    background: #ffedea;
-    color: #ba1a1a;
-}
+.vm-rpm-alert--error { background: #ffedea; color: #ba1a1a; }
+.vm-rpm-alert--success { background: #e8f3ea; color: #1f6a35; }
 
-.vm-rph-alert--success {
-    background: #e8f3ea;
-    color: #1f6a35;
-}
-
-.vm-rph-hero {
-    position: relative;
-    overflow: hidden;
-    border-radius: 16px;
-    min-height: 190px;
-    padding: 22px;
-    background: linear-gradient(180deg, rgba(23, 24, 24, 0.06) 0%, rgba(23, 24, 24, 0.78) 100%),
-                radial-gradient(circle at right top, rgba(250, 223, 177, 0.35), rgba(23, 24, 24, 0));
-    color: #fff;
-    display: flex;
-    align-items: flex-end;
+.vm-rpm-hero {
     margin-bottom: 14px;
+    border-radius: 22px;
+    background: linear-gradient(135deg, #171818 0%, #2c2c2c 100%);
+    color: #f8f5ee;
+    padding: 20px 18px;
 }
 
-.vm-rph-hero small {
+.vm-rpm-hero small,
+.vm-rpm-label,
+.vm-rpm-card-head small {
     display: block;
-    margin-bottom: 6px;
-    color: #fadfb1;
-    font-size: 9px;
+    font-size: 10px;
     text-transform: uppercase;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.14em;
     font-weight: 800;
 }
 
-.vm-rph-hero h1 {
+.vm-rpm-hero small {
+    opacity: 0.7;
+    margin-bottom: 8px;
+}
+
+.vm-rpm-hero h1 {
     margin: 0;
     font-family: "Noto Serif", Georgia, serif;
-    font-size: clamp(34px, 5.5vw, 56px);
-    letter-spacing: -0.05em;
+    font-size: 38px;
     line-height: 0.95;
+    letter-spacing: -0.05em;
 }
 
-.vm-rph-grid {
-    display: grid;
-    gap: 12px;
+.vm-rpm-hero p {
+    margin: 10px 0 0;
+    color: rgba(248, 245, 238, 0.78);
+    font-size: 13px;
 }
 
-.vm-rph-card {
-    border-radius: 14px;
+.vm-rpm-card {
+    border-radius: 20px;
     background: #fff;
-    border: 1px solid rgba(196, 199, 199, 0.24);
-    box-shadow: 0 22px 44px -36px rgba(27, 28, 25, 0.35);
-    padding: 14px;
+    box-shadow: 0 10px 26px -20px rgba(27, 28, 25, 0.35);
+    padding: 16px;
+    margin-bottom: 12px;
 }
 
-.vm-rph-card h3 {
+.vm-rpm-card-head {
+    margin-bottom: 10px;
+}
+
+.vm-rpm-card-head small {
+    color: #6f5c37;
+    margin-bottom: 6px;
+}
+
+.vm-rpm-card-head h2 {
     margin: 0;
     font-family: "Noto Serif", Georgia, serif;
-    font-size: 28px;
-    line-height: 1;
-    letter-spacing: -0.03em;
+    font-size: 29px;
+    line-height: 0.96;
+    letter-spacing: -0.04em;
 }
 
-.vm-rph-sub {
+.vm-rpm-card-head p {
     margin: 8px 0 0;
-    color: rgba(68, 71, 72, 0.8);
+    color: rgba(68, 71, 72, 0.75);
     font-size: 12px;
     line-height: 1.6;
 }
 
-.vm-rph-field {
+.vm-rpm-field {
     display: grid;
     gap: 6px;
     margin-top: 10px;
 }
 
-.vm-rph-label {
+.vm-rpm-label {
     color: #6f5c37;
-    font-size: 9px;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    font-weight: 800;
 }
 
-.vm-rph-input,
-.vm-rph-readonly {
+.vm-rpm-input,
+.vm-rpm-readonly {
     width: 100%;
-    min-height: 44px;
-    border-radius: 11px;
-    border: 1px solid rgba(196, 199, 199, 0.5);
+    min-height: 52px;
+    border-radius: 14px;
+    border: 1px solid rgba(196, 199, 199, 0.34);
     background: #fff;
     color: #171818;
-    padding: 0 11px;
-    font-size: 14px;
+    padding: 0 14px;
+    font-size: 15px;
     outline: none;
 }
 
-.vm-rph-readonly {
+.vm-rpm-input:focus {
+    border-color: rgba(111, 92, 55, 0.66);
+    box-shadow: 0 0 0 3px rgba(250, 223, 177, 0.28);
+}
+
+.vm-rpm-readonly {
     display: flex;
     align-items: center;
     background: #f5f3ee;
 }
 
-.vm-rph-input:focus {
-    border-color: rgba(111, 92, 55, 0.7);
-    box-shadow: 0 0 0 3px rgba(250, 223, 177, 0.24);
-}
-
-.vm-rph-grid2 {
-    display: grid;
-    gap: 8px;
-}
-
-.vm-rph-verify {
-    display: grid;
-    gap: 8px;
-}
-
-.vm-rph-hint {
+.vm-rpm-hint {
     margin: 0;
-    color: rgba(68, 71, 72, 0.78);
-    font-size: 11px;
+    min-height: 18px;
+    color: rgba(68, 71, 72, 0.72);
+    font-size: 12px;
     line-height: 1.5;
 }
 
-.vm-rph-actions {
+.vm-rpm-verify-row {
     display: grid;
-    gap: 8px;
-    margin-top: 10px;
+    gap: 10px;
 }
 
-.vm-rph-btn,
-.vm-rph-btn-secondary,
-.vm-rph-btn-ghost {
-    min-height: 40px;
-    border-radius: 11px;
-    border: 0;
-    padding: 0 12px;
-    font-size: 10px;
+.vm-rpm-verify-row > div {
+    min-width: 0;
+}
+
+.vm-rpm-btn,
+.vm-rpm-btn-secondary,
+.vm-rpm-btn-ghost {
+    min-height: 48px;
+    border-radius: 14px;
+    padding: 0 14px;
+    font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.14em;
     font-weight: 800;
-    cursor: pointer;
 }
 
-.vm-rph-btn {
+.vm-rpm-btn {
+    border: 0;
     background: #171818;
     color: #fff;
+    width: 100%;
 }
 
-.vm-rph-btn-secondary {
+.vm-rpm-btn-secondary {
+    border: 0;
     background: #6f5c37;
     color: #fff;
 }
 
-.vm-rph-btn-ghost {
+.vm-rpm-btn-ghost {
+    border: 1px solid rgba(116, 120, 120, 0.34);
     background: transparent;
     color: #171818;
-    border: 1px solid rgba(116, 120, 120, 0.4);
+    width: 100%;
+    margin-top: 8px;
 }
 
-.vm-rph-badge {
+.vm-rpm-actions {
+    margin-top: 12px;
+}
+
+.vm-rpm-status {
     display: inline-flex;
     align-items: center;
-    min-height: 24px;
+    min-height: 32px;
+    padding: 0 12px;
     border-radius: 999px;
-    padding: 0 10px;
-    margin-top: 8px;
-    font-size: 9px;
+    font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.12em;
     font-weight: 800;
+    margin-top: 8px;
 }
 
-.vm-rph-badge--active {
-    background: #e8f3ea;
-    color: #1f6a35;
-}
+.vm-rpm-status--active { background: #e7f3ea; color: #1f6a35; }
+.vm-rpm-status--inactive { background: #fff4e5; color: #9a5f00; }
 
-.vm-rph-badge--inactive {
-    background: #fff4e5;
-    color: #9a5f00;
-}
-
-.vm-rph-note {
+.vm-rpm-note {
     margin-top: 10px;
-    border-radius: 12px;
+    border-radius: 14px;
     background: #f5f3ee;
-    padding: 10px;
+    padding: 12px;
 }
 
-.vm-rph-note strong {
+.vm-rpm-note strong {
     display: block;
-    margin-bottom: 4px;
     color: #6f5c37;
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.12em;
+    font-weight: 800;
+    margin-bottom: 6px;
 }
 
-.vm-rph-note p {
+.vm-rpm-note p {
     margin: 0;
-    color: rgba(68, 71, 72, 0.82);
     font-size: 12px;
+    color: rgba(68, 71, 72, 0.8);
     line-height: 1.6;
-}
-
-.vm-rph-side {
-    display: grid;
-    gap: 12px;
-}
-
-.vm-rph-dark-card {
-    border-radius: 14px;
-    background: #171818;
-    color: #fff;
-    padding: 14px;
-}
-
-.vm-rph-dark-card h4 {
-    margin: 0 0 10px;
-    font-family: "Noto Serif", Georgia, serif;
-    font-size: 23px;
-    line-height: 1;
-}
-
-.vm-rph-stat {
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    font-size: 11px;
-    padding: 7px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.vm-rph-stat:last-child {
-    border-bottom: 0;
-}
-
-.vm-rph-stat span:last-child {
-    font-weight: 800;
-}
-
-.vm-rph-dark-card button {
-    margin-top: 10px;
-    width: 100%;
-    min-height: 36px;
-    border: 0;
-    border-radius: 10px;
-    background: #f7dcae;
-    color: #261900;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    font-weight: 800;
-}
-
-@media (min-width: 960px) {
-    .vm-rph-page {
-        padding: 42px 20px 52px;
-    }
-
-    .vm-rph-grid {
-        grid-template-columns: minmax(0, 1.85fr) minmax(280px, 1fr);
-        align-items: start;
-    }
-
-    .vm-rph-grid2 {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .vm-rph-verify {
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: end;
-    }
-
-    .vm-rph-actions {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<section class="vm-rph-page">
-    <div class="vm-rph-shell">
+<section class="vm-rpm-page">
+    {% include 'partials/vm_mobile_alt_header.html' %}
+
+    <main class="vm-rpm-main vm-mobile-content-offset">
         {% if messages %}
-        <section class="vm-rph-alerts" aria-live="polite">
+        <section class="vm-rpm-alerts">
             {% for message in messages %}
-            <div class="vm-rph-alert {% if message.tags == 'error' %}vm-rph-alert--error{% else %}vm-rph-alert--success{% endif %}">{{ message }}</div>
+            <div class="vm-rpm-alert {% if message.tags == 'error' %}vm-rpm-alert--error{% else %}vm-rpm-alert--success{% endif %}">{{ message }}</div>
             {% endfor %}
         </section>
         {% endif %}
 
-        <header class="vm-rph-hero">
-            <div>
-                <small>Reseller Account</small>
-                <h1>Profile Settings</h1>
-            </div>
-        </header>
+        <section class="vm-rpm-hero" aria-label="Reseller profile mobile header">
+            <small>Reseller Profile</small>
+            <h1>{{ request.user.get_full_name|default:request.user.username }}</h1>
+            <p>Manage payout settings with verified bank details and UPI details.</p>
+        </section>
 
-        <div class="vm-rph-grid">
-            <section>
-                <form method="post" id="resellerProfileForm" novalidate>
-                    {% csrf_token %}
+        <form method="post" id="resellerProfileForm" novalidate>
+            {% csrf_token %}
 
-                    <article class="vm-rph-card">
-                        <h3>Artisanal Identity</h3>
-                        <p class="vm-rph-sub">Update your reseller profile details used for customer-facing and admin payout records.</p>
+            <article class="vm-rpm-card">
+                <div class="vm-rpm-card-head">
+                    <small>Business Identity</small>
+                    <h2>Profile basics</h2>
+                    <p>These values are stored in your reseller profile and shown in admin payment data records.</p>
+                </div>
 
-                        <div class="vm-rph-field">
-                            <label class="vm-rph-label" for="business_name">Business Name</label>
-                            <input id="business_name" name="business_name" class="vm-rph-input" type="text" value="{{ profile.business_name|default:'' }}" placeholder="Your business brand">
+                <div class="vm-rpm-field">
+                    <label class="vm-rpm-label" for="business_name">Business Name</label>
+                    <input id="business_name" name="business_name" class="vm-rpm-input" type="text" value="{{ profile.business_name|default:'' }}" placeholder="Your business name">
+                </div>
+
+                <div class="vm-rpm-field">
+                    <label class="vm-rpm-label">Customer Name</label>
+                    <div class="vm-rpm-readonly">{{ request.user.get_full_name|default:request.user.username }}</div>
+                </div>
+
+                <div class="vm-rpm-field">
+                    <label class="vm-rpm-label" for="pan_number">PAN Number</label>
+                    <input id="pan_number" name="pan_number" class="vm-rpm-input" type="text" maxlength="10" value="{{ profile.pan_number|default:'' }}" placeholder="ABCDE1234F">
+                </div>
+            </article>
+
+            <article class="vm-rpm-card">
+                <div class="vm-rpm-card-head">
+                    <small>Bank Details</small>
+                    <h2>Bank details for payout</h2>
+                    <p>Add account holder name, account number, and IFSC. IFSC is verified before save.</p>
+                </div>
+
+                <div class="vm-rpm-field">
+                    <label class="vm-rpm-label" for="bank_account_name">Account Holder Name</label>
+                    <input id="bank_account_name" name="bank_account_name" class="vm-rpm-input" type="text" value="{{ profile.bank_account_name|default:'' }}" placeholder="Name as per bank records">
+                </div>
+
+                <div class="vm-rpm-field">
+                    <label class="vm-rpm-label" for="bank_account_number">Bank Account Number</label>
+                    <input id="bank_account_number" name="bank_account_number" class="vm-rpm-input" type="text" inputmode="numeric" value="{{ profile.bank_account_number|default:'' }}" placeholder="6 to 34 digits">
+                    <p id="bank_account_hint" class="vm-rpm-hint">Use 6 to 34 digits only.</p>
+                </div>
+
+                <div class="vm-rpm-field">
+                    <label class="vm-rpm-label" for="bank_ifsc_code">IFSC Code</label>
+                    <div class="vm-rpm-verify-row">
+                        <div>
+                            <input id="bank_ifsc_code" name="bank_ifsc_code" class="vm-rpm-input" type="text" value="{{ profile.bank_ifsc_code|default:'' }}" placeholder="HDFC0001234">
+                            <p id="bank_ifsc_hint" class="vm-rpm-hint">We verify IFSC and show bank details below.</p>
                         </div>
+                        <button type="button" id="verifyIfscButton" class="vm-rpm-btn-ghost">Verify IFSC</button>
+                    </div>
+                </div>
 
-                        <div class="vm-rph-grid2">
-                            <div class="vm-rph-field">
-                                <label class="vm-rph-label">Customer Name</label>
-                                <div class="vm-rph-readonly">{{ request.user.get_full_name|default:request.user.username }}</div>
-                            </div>
-                            <div class="vm-rph-field">
-                                <label class="vm-rph-label">Customer Email</label>
-                                <div class="vm-rph-readonly">{{ request.user.email|default:'Not provided' }}</div>
-                            </div>
+                <div class="vm-rpm-field">
+                    <label class="vm-rpm-label">Verified Bank Info</label>
+                    <div id="bank_ifsc_name_hint" class="vm-rpm-readonly">No IFSC verified yet.</div>
+                </div>
+            </article>
+
+            <article class="vm-rpm-card">
+                <div class="vm-rpm-card-head">
+                    <small>UPI Details</small>
+                    <h2>UPI details for payout</h2>
+                    <p>Add and verify UPI ID to receive payout via UPI.</p>
+                </div>
+
+                <div class="vm-rpm-field">
+                    <label class="vm-rpm-label" for="upi_id">Primary UPI ID</label>
+                    <div class="vm-rpm-verify-row">
+                        <div>
+                            <input id="upi_id" name="upi_id" class="vm-rpm-input" type="text" value="{{ profile.upi_id|default:'' }}" placeholder="name@bank">
+                            <p id="upi_hint" class="vm-rpm-hint">Add a valid UPI ID for faster payouts.</p>
                         </div>
+                        <button type="button" id="verifyUpiButton" class="vm-rpm-btn-secondary">Verify UPI</button>
+                    </div>
+                </div>
 
-                        <div class="vm-rph-field">
-                            <label class="vm-rph-label" for="pan_number">PAN Number</label>
-                            <input id="pan_number" name="pan_number" class="vm-rph-input" type="text" maxlength="10" value="{{ profile.pan_number|default:'' }}" placeholder="ABCDE1234F">
-                        </div>
-                    </article>
+                <div class="vm-rpm-field">
+                    <label class="vm-rpm-label">UPI Verification Result</label>
+                    <div id="upi_name" class="vm-rpm-readonly">No UPI verification yet.</div>
+                </div>
 
-                    <article class="vm-rph-card" style="margin-top:12px;">
-                        <h3>Financial Settlement</h3>
-                        <p class="vm-rph-sub">Add bank details and UPI details for payouts. Verification is required before reliable payouts.</p>
+                {% if profile.is_reseller_enabled %}
+                <span class="vm-rpm-status vm-rpm-status--active">Active</span>
+                {% else %}
+                <span class="vm-rpm-status vm-rpm-status--inactive">Inactive</span>
+                {% endif %}
 
-                        <div class="vm-rph-field">
-                            <label class="vm-rph-label" for="bank_account_name">Account Holder Name</label>
-                            <input id="bank_account_name" name="bank_account_name" class="vm-rph-input" type="text" value="{{ profile.bank_account_name|default:'' }}" placeholder="As per bank records">
-                        </div>
+                <div class="vm-rpm-note">
+                    <strong>Admin Payment Data</strong>
+                    <p>When you save this form, bank and UPI details are stored on your reseller profile and appear in Admin Panel / Resell Management / Payment Data with customer details.</p>
+                </div>
 
-                        <div class="vm-rph-grid2">
-                            <div class="vm-rph-field">
-                                <label class="vm-rph-label" for="bank_account_number">Bank Account Number</label>
-                                <input id="bank_account_number" name="bank_account_number" class="vm-rph-input" type="text" inputmode="numeric" value="{{ profile.bank_account_number|default:'' }}" placeholder="6 to 34 digits">
-                                <p id="bank_account_hint" class="vm-rph-hint">Use 6 to 34 digits only.</p>
-                            </div>
+                <div class="vm-rpm-actions">
+                    <button type="submit" class="vm-rpm-btn">Save Changes</button>
+                    <button type="reset" class="vm-rpm-btn-ghost">Reset</button>
+                </div>
+            </article>
+        </form>
 
-                            <div class="vm-rph-field">
-                                <label class="vm-rph-label" for="bank_ifsc_code">IFSC Code</label>
-                                <div class="vm-rph-verify">
-                                    <div>
-                                        <input id="bank_ifsc_code" name="bank_ifsc_code" class="vm-rph-input" type="text" value="{{ profile.bank_ifsc_code|default:'' }}" placeholder="HDFC0001234">
-                                        <p id="bank_ifsc_hint" class="vm-rph-hint">Verify IFSC to fetch bank details.</p>
-                                    </div>
-                                    <button type="button" id="verifyIfscButton" class="vm-rph-btn-ghost">Verify IFSC</button>
-                                </div>
-                            </div>
-                        </div>
+        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='reseller-profile-mobile' %}
+    </main>
 
-                        <div class="vm-rph-field">
-                            <label class="vm-rph-label">Verified Bank Info</label>
-                            <div id="bank_ifsc_name_hint" class="vm-rph-readonly">No IFSC verified yet.</div>
-                        </div>
-
-                        <div class="vm-rph-field">
-                            <label class="vm-rph-label" for="upi_id">UPI ID for Quick Payouts</label>
-                            <div class="vm-rph-verify">
-                                <div>
-                                    <input id="upi_id" name="upi_id" class="vm-rph-input" type="text" value="{{ profile.upi_id|default:'' }}" placeholder="name@bank">
-                                    <p id="upi_hint" class="vm-rph-hint">Add and verify your UPI ID.</p>
-                                </div>
-                                <button type="button" id="verifyUpiButton" class="vm-rph-btn-secondary">Verify UPI</button>
-                            </div>
-                        </div>
-
-                        <div class="vm-rph-field">
-                            <label class="vm-rph-label">UPI Verification Result</label>
-                            <div id="upi_name" class="vm-rph-readonly">No UPI verification yet.</div>
-                        </div>
-
-                        {% if profile.is_reseller_enabled %}
-                        <span class="vm-rph-badge vm-rph-badge--active">Active and Verified</span>
-                        {% else %}
-                        <span class="vm-rph-badge vm-rph-badge--inactive">Verification Pending</span>
-                        {% endif %}
-
-                        <div class="vm-rph-note">
-                            <strong>Admin Payment Data Integration</strong>
-                            <p>Saved bank details and UPI ID are stored in your reseller profile and shown in Custom Admin Panel / Resell Management / Payment Data with customer details.</p>
-                        </div>
-
-                        <div class="vm-rph-actions">
-                            <button type="submit" class="vm-rph-btn">Save Profile Changes</button>
-                            <button type="reset" class="vm-rph-btn-ghost">Discard Changes</button>
-                        </div>
-                    </article>
-                </form>
-            </section>
-
-            <aside class="vm-rph-side">
-                <article class="vm-rph-dark-card">
-                    <h4>Partner Status</h4>
-                    <div class="vm-rph-stat"><span>Status</span><span>{% if profile.is_reseller_enabled %}Active{% else %}Inactive{% endif %}</span></div>
-                    <div class="vm-rph-stat"><span>Payout Method</span><span>{% if profile.upi_id %}UPI + Bank{% elif profile.bank_account_number %}Bank{% else %}Not Set{% endif %}</span></div>
-                    <div class="vm-rph-stat"><span>Profile Owner</span><span>{{ request.user.get_full_name|default:request.user.username }}</span></div>
-                    <button type="button" onclick="window.location.href='{% url 'reseller_dashboard' %}'">View Dashboard</button>
-                </article>
-            </aside>
-        </div>
-    </div>
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
 </section>
 
 <script>
@@ -473,7 +388,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function resetHint(node, message) {
         if (!node) return;
         node.textContent = message;
-        node.style.color = 'rgba(68, 71, 72, 0.78)';
+        node.style.color = 'rgba(68, 71, 72, 0.72)';
     }
 
     function setReadonly(node, ok, message) {
@@ -506,7 +421,7 @@ document.addEventListener('DOMContentLoaded', function () {
         bankIfscCode.value = value;
 
         if (!value) {
-            resetHint(bankIfscHint, 'Verify IFSC to fetch bank details.');
+            resetHint(bankIfscHint, 'We verify IFSC and show bank details below.');
             setReadonly(bankIfscNameHint, false, 'No IFSC verified yet.');
             return true;
         }
@@ -555,7 +470,7 @@ document.addEventListener('DOMContentLoaded', function () {
         upiId.value = value;
 
         if (!value) {
-            resetHint(upiHint, 'Add and verify your UPI ID.');
+            resetHint(upiHint, 'Add a valid UPI ID for faster payouts.');
             setReadonly(upiName, false, 'No UPI verification yet.');
             return true;
         }
@@ -616,8 +531,8 @@ document.addEventListener('DOMContentLoaded', function () {
     form.addEventListener('reset', function () {
         setTimeout(function () {
             resetHint(bankAccountHint, 'Use 6 to 34 digits only.');
-            resetHint(bankIfscHint, 'Verify IFSC to fetch bank details.');
-            resetHint(upiHint, 'Add and verify your UPI ID.');
+            resetHint(bankIfscHint, 'We verify IFSC and show bank details below.');
+            resetHint(upiHint, 'Add a valid UPI ID for faster payouts.');
             setReadonly(bankIfscNameHint, false, 'No IFSC verified yet.');
             setReadonly(upiName, false, 'No UPI verification yet.');
         }, 0);
