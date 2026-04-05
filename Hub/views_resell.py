@@ -273,14 +273,9 @@ def reseller_dashboard(request):
     """
     try:
         profile = request.user.reseller_profile
-        
-        if not profile.is_reseller_enabled:
-            messages.warning(request, 'You do not have reseller permissions.')
-            return redirect('index')
-        
     except ResellerProfile.DoesNotExist:
-        messages.warning(request, 'You do not have a reseller profile.')
-        return redirect('index')
+        # Do not block dashboard access because of missing profile setup.
+        profile = ResellerProfile.objects.create(user=request.user)
     
     resell_orders_qs = Order.objects.filter(
         reseller=request.user,

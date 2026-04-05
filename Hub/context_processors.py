@@ -11,7 +11,7 @@ from django.conf import settings
 from django.urls import reverse
 from datetime import timedelta
 
-from .models import Cart, Wishlist, SiteSettings, LoyaltyPoints, CategoryIcon, Product, SubCategory, Coupon, Order, OrderItem, ProductReview, ResellerProfile
+from .models import Cart, Wishlist, SiteSettings, LoyaltyPoints, CategoryIcon, Product, SubCategory, Coupon, Order, OrderItem, ProductReview
 from django.db.models import F, Sum
 
 
@@ -235,16 +235,6 @@ def reseller_access_context(request):
     cached_value = cache.get(cache_key)
     if cached_value is not None:
         context['has_reseller_dashboard_access'] = bool(cached_value)
-        return context
-
-    try:
-        profile = user.reseller_profile
-    except ResellerProfile.DoesNotExist:
-        cache.set(cache_key, False, 120)
-        return context
-
-    if not profile.is_reseller_enabled:
-        cache.set(cache_key, False, 120)
         return context
 
     has_resell_order = Order.objects.filter(
