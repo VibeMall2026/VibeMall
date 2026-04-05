@@ -164,6 +164,7 @@ body.vm-page-reseller-profile-tablet .vm-mobile-side-menu-overlay {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
+    flex-wrap: wrap;
     gap: 12px;
     margin-bottom: 16px;
 }
@@ -271,6 +272,10 @@ body.vm-page-reseller-profile-tablet .vm-mobile-side-menu-overlay {
 .vm-rpt-verify-row {
     display: grid;
     gap: 10px;
+}
+
+.vm-rpt-verify-row > div {
+    min-width: 0;
 }
 
 .vm-rpt-btn,
@@ -397,7 +402,7 @@ body.vm-page-reseller-profile-tablet .vm-mobile-side-menu-overlay {
 
 @media (min-width: 768px) {
     .vm-rpt-shell {
-        padding: 26px 18px 138px;
+        padding: 124px 18px 138px;
     }
 
     .vm-rpt-hero {
@@ -434,6 +439,16 @@ body.vm-page-reseller-profile-tablet .vm-mobile-side-menu-overlay {
 
     .vm-rpt-actions {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+}
+
+@media (min-width: 768px) and (max-width: 960px) {
+    .vm-rpt-verify-row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    #verifyIfscButton {
+        width: 100%;
     }
 }
 
