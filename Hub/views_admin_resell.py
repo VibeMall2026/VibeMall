@@ -590,7 +590,7 @@ def admin_reseller_payment_data(request):
     }
     order_by = sort_fields.get(sort_by, '-updated_at')
 
-    profiles = ResellerProfile.objects.select_related('user').order_by(order_by)
+    profiles = ResellerProfile.objects.select_related('user', 'user__userprofile').order_by(order_by)
 
     if search_query:
         profiles = profiles.filter(
@@ -627,9 +627,24 @@ def admin_reseller_payment_data(request):
     upi_ready = ResellerProfile.objects.filter(has_upi_q).count()
     both_ready = ResellerProfile.objects.filter(has_bank_q & has_upi_q).count()
 
+    payment_rows = []
+    for profile in page_obj.object_list:
+        full_name = (profile.user.get_full_name() or '').strip() or '-'
+        mobile = '-'
+        user_profile = getattr(profile.user, 'userprofile', None)
+        if user_profile:
+            mobile = (getattr(user_profile, 'mobile_number', '') or getattr(user_profile, 'phone', '') or '-').strip() or '-'
+
+        payment_rows.append({
+            'profile': profile,
+            'full_name': full_name,
+            'mobile': mobile,
+        })
+
     context = {
         'page_obj': page_obj,
         'profiles': page_obj.object_list,
+        'payment_rows': payment_rows,
         'total_profiles': total_profiles,
         'bank_ready': bank_ready,
         'upi_ready': upi_ready,

@@ -81,6 +81,8 @@
                 <thead>
                     <tr>
                         <th>Reseller</th>
+                        <th>Customer Name</th>
+                        <th>Mobile</th>
                         <th>Business</th>
                         <th>Bank Holder</th>
                         <th>Bank Account</th>
@@ -91,31 +93,33 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for reseller in profiles %}
+                    {% for row in payment_rows %}
                     <tr>
                         <td>
                             <div>
-                                <strong>{{ reseller.user.username }}</strong>
-                                <div><small class="text-muted">{{ reseller.user.email }}</small></div>
+                                <strong>{{ row.profile.user.username }}</strong>
+                                <div><small class="text-muted">{{ row.profile.user.email }}</small></div>
                             </div>
                         </td>
-                        <td>{{ reseller.business_name|default:'-' }}</td>
-                        <td>{{ reseller.bank_account_name|default:'-' }}</td>
+                        <td>{{ row.full_name }}</td>
+                        <td>{{ row.mobile }}</td>
+                        <td>{{ row.profile.business_name|default:'-' }}</td>
+                        <td>{{ row.profile.bank_account_name|default:'-' }}</td>
                         <td>
-                            {% if reseller.bank_account_number %}
-                                ****{{ reseller.bank_account_number|slice:'-4:' }}
+                            {% if row.profile.bank_account_number %}
+                                ****{{ row.profile.bank_account_number|slice:'-4:' }}
                             {% else %}
                                 -
                             {% endif %}
                         </td>
-                        <td>{{ reseller.bank_ifsc_code|default:'-' }}</td>
-                        <td>{{ reseller.upi_id|default:'-' }}</td>
-                        <td>{{ reseller.pan_number|default:'-' }}</td>
-                        <td>{{ reseller.updated_at|date:'d M Y, h:i A' }}</td>
+                        <td>{{ row.profile.bank_ifsc_code|default:'-' }}</td>
+                        <td>{{ row.profile.upi_id|default:'-' }}</td>
+                        <td>{{ row.profile.pan_number|default:'-' }}</td>
+                        <td>{{ row.profile.updated_at|date:'d M Y, h:i A' }}</td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="text-center py-4">No reseller payment data found.</td>
+                        <td colspan="10" class="text-center py-4">No reseller payment data found.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

@@ -2,66 +2,132 @@
 {% load static %}
 
 {% block title %}Reseller Dashboard - VibeMall{% endblock %}
-{% block body_class %}vm-page-reseller-dashboard{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-reseller-dashboard-tablet{% endblock %}
 
 {% block extra_css %}
 <style>
-.vm-rdd-page {
+.vm-rdt-page {
+    min-height: 100vh;
     background: #fbf9f4;
     color: #1b1c19;
     font-family: "Manrope", sans-serif;
-    min-height: 50vh;
 }
 
-.vm-rdd-main {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 28px 18px 60px;
+body.vm-page-reseller-dashboard-tablet .vm-mobile-side-menu,
+body.vm-page-reseller-dashboard-tablet .vm-mobile-side-menu-overlay {
+    display: none !important;
 }
 
-.vm-rdd-header {
-    margin-bottom: 20px;
+.vm-rdt-shell {
+    padding-top: 0;
 }
 
-.vm-rdd-header h1 {
-    margin: 0;
-    font-family: "Noto Serif", Georgia, serif;
-    font-size: 34px;
-    line-height: 1.1;
-    letter-spacing: -0.04em;
-}
-
-.vm-rdd-header p {
-    margin: 8px 0 0;
-    color: rgba(27, 28, 25, 0.62);
-    font-size: 13px;
-}
-
-.vm-rdd-actions-row {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    margin-bottom: 14px;
-    scrollbar-width: none;
-}
-
-.vm-rdd-actions-row::-webkit-scrollbar {
+.vm-rdt-side {
     display: none;
 }
 
-.vm-rdd-actions-row .vm-rdd-action-btn {
-    min-height: 40px;
-    padding: 0 12px;
-    font-size: 10px;
+.vm-rdt-main {
+    width: min(100%, 920px);
+    margin: 0 auto;
+    padding: 14px;
 }
 
-.vm-rdd-chip-btn {
+.vm-rdt-header {
+    margin-bottom: 14px;
+}
+
+.vm-rdt-header h2 {
+    margin: 0;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 34px;
+    line-height: 1.04;
+    letter-spacing: -0.04em;
+}
+
+.vm-rdt-header p {
+    margin: 7px 0 0;
+    color: rgba(68, 71, 72, 0.76);
+    font-size: 13px;
+}
+
+.vm-rdt-alerts {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.vm-rdt-alert {
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 12px;
+}
+
+.vm-rdt-alert--error { background: #ffedea; color: #ba1a1a; }
+.vm-rdt-alert--success { background: #e8f3ea; color: #1f6a35; }
+
+.vm-rdt-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.vm-rdt-section-title {
+    margin: 0 0 8px;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 18px;
+    letter-spacing: -0.02em;
+    color: #1b1c19;
+}
+
+.vm-rdt-kpi {
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 12px 28px -24px rgba(27, 28, 25, 0.3);
+    padding: 12px;
+}
+
+.vm-rdt-kpi small {
+    display: block;
+    margin-bottom: 8px;
+    color: #747878;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 800;
+}
+
+.vm-rdt-kpi strong {
+    display: block;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 28px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+}
+
+.vm-rdt-kpi p {
+    margin: 5px 0 0;
+    color: #6f5c37;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.vm-rdt-actions {
+    margin-bottom: 12px;
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+}
+
+.vm-rdt-actions::-webkit-scrollbar { display: none; }
+
+.vm-rdt-actions a {
     flex: 0 0 auto;
-    border: 0;
     text-decoration: none;
-    border-radius: 12px;
     min-height: 40px;
+    border-radius: 10px;
     padding: 0 14px;
     display: inline-flex;
     align-items: center;
@@ -74,122 +140,73 @@
     font-weight: 800;
 }
 
-.vm-rdd-chip-btn.is-primary {
+.vm-rdt-actions a.is-primary {
     background: #6f5c37;
     color: #fff;
 }
 
-.vm-rdd-stats {
+.vm-rdt-panels {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-    margin-bottom: 16px;
+    gap: 12px;
 }
 
-.vm-rdd-stat {
-    border-radius: 14px;
-    background: #f0eee9;
-    padding: 14px;
-}
-
-.vm-rdd-stat small {
-    display: block;
-    margin-bottom: 8px;
-    color: #747878;
-    font-size: 9px;
-    text-transform: uppercase;
-    letter-spacing: 0.16em;
-    font-weight: 700;
-}
-
-.vm-rdd-stat strong {
-    display: block;
-    font-family: "Noto Serif", Georgia, serif;
-    font-size: 28px;
-    letter-spacing: -0.03em;
-    line-height: 1;
-}
-
-.vm-rdd-stat p {
-    margin: 6px 0 0;
-    color: #6f5c37;
-    font-size: 10px;
-    font-weight: 600;
-}
-
-.vm-rdd-panels {
-    display: grid;
-    gap: 14px;
-}
-
-.vm-rdd-panel {
+.vm-rdt-panel {
     border-radius: 16px;
     background: #fff;
     box-shadow: 0 14px 32px -24px rgba(27, 28, 25, 0.38);
     padding: 14px;
 }
 
-.vm-rdd-panel-head {
+.vm-rdt-panel-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
 }
 
-.vm-rdd-panel-head h2 {
+.vm-rdt-panel-head h3 {
     margin: 0;
     font-family: "Noto Serif", Georgia, serif;
     font-size: 21px;
     letter-spacing: -0.02em;
 }
 
-.vm-rdd-panel-head a {
+.vm-rdt-panel-head a {
     text-decoration: none;
     color: #6f5c37;
     font-size: 10px;
     text-transform: uppercase;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.14em;
     font-weight: 800;
-    border-bottom: 1px solid #6f5c37;
-    padding-bottom: 2px;
 }
 
-.vm-rdd-table-wrap {
-    overflow-x: auto;
-}
+.vm-rdt-table-wrap { overflow-x: auto; }
 
-.vm-rdd-table {
+.vm-rdt-table {
     width: 100%;
+    min-width: 600px;
     border-collapse: collapse;
-    min-width: 560px;
 }
 
-.vm-rdd-table th,
-.vm-rdd-table td {
-    padding: 13px 8px;
+.vm-rdt-table th,
+.vm-rdt-table td {
+    padding: 12px 8px;
     border-bottom: 1px solid #f0eee9;
     font-size: 12px;
 }
 
-.vm-rdd-table th {
+.vm-rdt-table th {
     color: #747878;
     font-size: 10px;
     text-transform: uppercase;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.14em;
     font-weight: 700;
 }
 
-.vm-rdd-table td.is-right,
-.vm-rdd-table th.is-right {
-    text-align: right;
-}
+.vm-rdt-right { text-align: right; }
+.vm-rdt-center { text-align: center; }
 
-.vm-rdd-table td.is-center,
-.vm-rdd-table th.is-center {
-    text-align: center;
-}
-
-.vm-rdd-badge {
+.vm-rdt-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -197,41 +214,22 @@
     padding: 5px 10px;
     font-size: 9px;
     text-transform: uppercase;
-    letter-spacing: 0.11em;
+    letter-spacing: 0.1em;
     font-weight: 800;
 }
 
-.vm-rdd-badge--processing {
-    background: #fdf1df;
-    color: #a66a00;
-}
+.vm-rdt-badge--processing { background: #fdf1df; color: #a66a00; }
+.vm-rdt-badge--shipped { background: #e8f1ff; color: #0b4ea2; }
+.vm-rdt-badge--delivered { background: #e6f4ea; color: #1b6e36; }
+.vm-rdt-badge--cancelled { background: #feeceb; color: #b42318; }
+.vm-rdt-badge--default { background: #ededed; color: #4f4f4f; }
 
-.vm-rdd-badge--shipped {
-    background: #e8f1ff;
-    color: #0b4ea2;
-}
-
-.vm-rdd-badge--delivered {
-    background: #e6f4ea;
-    color: #1b6e36;
-}
-
-.vm-rdd-badge--cancelled {
-    background: #feeceb;
-    color: #b42318;
-}
-
-.vm-rdd-badge--default {
-    background: #ededed;
-    color: #4f4f4f;
-}
-
-.vm-rdd-link-list {
+.vm-rdt-links {
     display: grid;
     gap: 10px;
 }
 
-.vm-rdd-link-item {
+.vm-rdt-link {
     display: grid;
     grid-template-columns: 54px minmax(0, 1fr) auto;
     align-items: center;
@@ -241,7 +239,7 @@
     padding: 10px;
 }
 
-.vm-rdd-link-img {
+.vm-rdt-link-thumb {
     width: 54px;
     height: 70px;
     border-radius: 8px;
@@ -249,13 +247,26 @@
     background: #e4e2dd;
 }
 
-.vm-rdd-link-img img {
+.vm-rdt-link-thumb img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.vm-rdd-link-copy {
+.vm-rdt-link h4 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.vm-rdt-link p {
+    margin: 4px 0 0;
+    font-size: 11px;
+    color: #747878;
+    word-break: break-all;
+}
+
+.vm-rdt-copy {
     border: 0;
     min-height: 34px;
     border-radius: 10px;
@@ -266,215 +277,216 @@
     text-transform: uppercase;
     letter-spacing: 0.1em;
     font-weight: 800;
-    cursor: pointer;
 }
 
-.vm-rdd-quick-actions {
-    display: grid;
-    gap: 10px;
-}
-
-.vm-rdd-action-btn {
-    text-decoration: none;
-    min-height: 46px;
-    border-radius: 12px;
-    padding: 0 14px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    background: #f5f3ee;
-    color: #171818;
-    border: 1px solid rgba(111, 92, 55, 0.16);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    font-weight: 800;
-}
-
-.vm-rdd-action-btn i {
-    font-size: 12px;
-    color: #6f5c37;
-}
-
-.vm-rdd-action-btn--primary {
-    background: #6f5c37;
-    color: #fff;
-    border-color: #6f5c37;
-}
-
-.vm-rdd-action-btn--primary i {
-    color: #fff;
-}
-
-.vm-rdd-breadcrumb {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 20px;
-    font-size: 11px;
-    color: rgba(27, 28, 25, 0.52);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    font-weight: 700;
-}
-
-.vm-rdd-breadcrumb a {
-    color: rgba(27, 28, 25, 0.52);
-    text-decoration: none;
-}
-
-.vm-rdd-breadcrumb a:hover { color: #6f5c37; }
-
-.vm-rdd-breadcrumb span { color: #171818; }
-
-.vm-rdd-empty {
+.vm-rdt-empty {
     margin: 0;
-    padding: 18px;
+    padding: 16px;
     text-align: center;
     color: rgba(27, 28, 25, 0.62);
     font-size: 13px;
 }
 
-@media (min-width: 1024px) {
-    .vm-rdd-main {
-        padding: 40px 40px 60px;
+@media (max-width: 767.98px) {
+    .vm-rdt-shell {
+        display: block;
     }
 
-    .vm-rdd-header {
-        display: flex;
-        align-items: flex-end;
-        justify-content: space-between;
-        gap: 20px;
+    .vm-rdt-main {
+        width: 100%;
+        padding: 14px 14px 22px;
+    }
+}
+
+@media (min-width: 768px) {
+    .vm-rdt-shell {
+        display: block;
+        min-height: 100vh;
     }
 
-    .vm-rdd-header h1 {
-        font-size: 48px;
+    .vm-rdt-main {
+        width: min(100%, 1120px);
+        margin: 0 auto;
+        padding: 16px 16px 40px;
     }
 
-    .vm-rdd-stats {
+    .vm-rdt-header h2 {
+        font-size: 42px;
+    }
+
+    .vm-rdt-kpi-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 14px;
-        margin-bottom: 18px;
     }
 
-    .vm-rdd-panels {
-        grid-template-columns: minmax(0, 1fr);
-        gap: 16px;
+    .vm-rdt-actions {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        overflow: visible;
     }
+
+    .vm-rdt-actions a {
+        justify-content: center;
+        width: 100%;
+    }
+
+    .vm-rdt-panel--links {
+        display: none;
+    }
+
+    .vm-rdt-panels {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .vm-rdt-panels .vm-rdt-panel:first-child {
+        grid-column: span 2;
+    }
+
+}
+
+@media (min-width: 1200px) {
+    .vm-rdt-main {
+        margin: 0 auto;
+        padding: 22px 24px 72px;
+    }
+
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<section class="vm-rdd-page">
-    <div class="vm-rdd-main">
+<section class="vm-rdt-page">
+    <div class="vm-rdt-shell">
+        <main class="vm-rdt-main vm-mobile-content-offset">
+            {% if messages %}
+            <section class="vm-rdt-alerts">
+                {% for message in messages %}
+                <div class="vm-rdt-alert {% if message.tags == 'error' %}vm-rdt-alert--error{% else %}vm-rdt-alert--success{% endif %}">{{ message }}</div>
+                {% endfor %}
+            </section>
+            {% endif %}
 
-        {% if messages %}
-        <section class="vm-rdd-panel" style="margin-bottom:14px;">
-            {% for message in messages %}
-            <p style="margin:0; font-size:12px; color:#b42318;">{{ message }}</p>
-            {% endfor %}
-        </section>
-        {% endif %}
+            <header class="vm-rdt-header">
+                <h2>Artisanal Heritage</h2>
+                <p>Managing your curated collection of hand-woven excellence and timeless craftsmanship.</p>
+            </header>
 
-        <nav class="vm-rdd-breadcrumb" aria-label="Breadcrumb">
-            <a href="{% url 'index' %}">Home</a>
-            <i class="fas fa-chevron-right" style="font-size:8px;" aria-hidden="true"></i>
-            <a href="{% url 'reseller_links' %}">Resell Hub</a>
-            <i class="fas fa-chevron-right" style="font-size:8px;" aria-hidden="true"></i>
-            <span>Dashboard</span>
-        </nav>
-
-        <header class="vm-rdd-header">
-            <div>
-                <h1>Performance Overview</h1>
-                <p>Welcome back, {{ request.user.first_name|default:request.user.username }}. Your reseller storefront is growing this season.</p>
-            </div>
-            <div class="vm-rdd-actions-row">
-                <a href="{% url 'reseller_profile' %}" class="vm-rdd-action-btn">
-                    <span>Profile</span>
-                    <i class="fas fa-user-cog" aria-hidden="true"></i>
-                </a>
-                <a href="{% url 'earnings_history' %}" class="vm-rdd-action-btn">
-                    <span>Earnings</span>
-                    <i class="fas fa-chart-line" aria-hidden="true"></i>
-                </a>
-                <a href="{% url 'payout_request_page' %}" class="vm-rdd-action-btn vm-rdd-action-btn--primary">
-                    <span>Withdraw</span>
-                    <i class="fas fa-wallet" aria-hidden="true"></i>
-                </a>
-            </div>
-        </header>
-
-        <section class="vm-rdd-stats" aria-label="Reseller KPI cards">
-            <article class="vm-rdd-stat">
-                <small>Net Revenue</small>
-                <strong>Rs {{ total_revenue|floatformat:2 }}</strong>
-                <p>From reseller orders</p>
-            </article>
-            <article class="vm-rdd-stat">
-                <small>Items Sold</small>
-                <strong>{{ total_resell_orders }}</strong>
-                <p>Total fulfilled reseller orders</p>
-            </article>
-            <article class="vm-rdd-stat">
-                <small>Margin</small>
-                <strong>Rs {{ pending_earnings|floatformat:2 }}</strong>
-                <p>Pending reseller margin</p>
-            </article>
-        </section>
-
-        <div class="vm-rdd-panels">
-            <section class="vm-rdd-panel">
-                <div class="vm-rdd-panel-head">
-                    <h2>Recent Orders</h2>
-                    <a href="{% url 'order_list' %}">View All Orders</a>
-                </div>
-
-                {% if recent_orders %}
-                <div class="vm-rdd-table-wrap">
-                    <table class="vm-rdd-table">
-                        <thead>
-                            <tr>
-                                <th>Order ID</th>
-                                <th>Item</th>
-                                <th class="is-right">Amount</th>
-                                <th class="is-center">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for order in recent_orders %}
-                            <tr>
-                                <td>#{{ order.order_number }}</td>
-                                <td>
-                                    {% with first_item=order.items.first %}
-                                        {% if first_item and first_item.product %}
-                                            {{ first_item.product.name }}
-                                        {% else %}
-                                            Reseller Order
-                                        {% endif %}
-                                    {% endwith %}
-                                </td>
-                                <td class="is-right">Rs {{ order.total_amount|floatformat:2 }}</td>
-                                <td class="is-center">
-                                    <span class="vm-rdd-badge {% if order.order_status == 'PENDING' or order.order_status == 'PROCESSING' %}vm-rdd-badge--processing{% elif order.order_status == 'SHIPPED' %}vm-rdd-badge--shipped{% elif order.order_status == 'DELIVERED' %}vm-rdd-badge--delivered{% elif order.order_status == 'CANCELLED' or order.order_status == 'REJECTED' %}vm-rdd-badge--cancelled{% else %}vm-rdd-badge--default{% endif %}">
-                                        {{ order.get_order_status_display }}
-                                    </span>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <p class="vm-rdd-empty">No reseller orders found yet.</p>
-                {% endif %}
+            <h3 class="vm-rdt-section-title">Performance Overview</h3>
+            <section class="vm-rdt-kpi-grid" aria-label="Reseller KPI cards">
+                <article class="vm-rdt-kpi">
+                    <small>Available Balance</small>
+                    <strong>Rs {{ profile.available_balance|floatformat:2 }}</strong>
+                    <p>Ready for payout</p>
+                </article>
+                <article class="vm-rdt-kpi">
+                    <small>Total Earnings</small>
+                    <strong>Rs {{ profile.total_earnings|floatformat:2 }}</strong>
+                    <p>Lifetime revenue</p>
+                </article>
+                <article class="vm-rdt-kpi">
+                    <small>Pending Earnings</small>
+                    <strong>Rs {{ pending_earnings|floatformat:2 }}</strong>
+                    <p>In settlement queue</p>
+                </article>
             </section>
 
-        </div>
+            <nav class="vm-rdt-actions" aria-label="Quick actions">
+                <a href="{% url 'reseller_profile' %}"><i class="fas fa-user-cog"></i><span>Profile</span></a>
+                <a href="{% url 'earnings_history' %}"><i class="fas fa-chart-line"></i><span>Earnings</span></a>
+                <a href="{% url 'payout_request_page' %}" class="is-primary"><i class="fas fa-wallet"></i><span>Withdraw</span></a>
+            </nav>
 
+            <div class="vm-rdt-panels">
+                <section class="vm-rdt-panel">
+                    <div class="vm-rdt-panel-head">
+                        <h3>Recent Orders</h3>
+                        <a href="{% url 'order_list' %}">View All</a>
+                    </div>
+
+                    {% if recent_orders %}
+                    <div class="vm-rdt-table-wrap">
+                        <table class="vm-rdt-table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th class="vm-rdt-center">Date</th>
+                                    <th class="vm-rdt-center">Amount</th>
+                                    <th class="vm-rdt-right">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in recent_orders %}
+                                <tr>
+                                    <td>
+                                        {% with first_item=order.items.first %}
+                                            {% if first_item and first_item.product %}
+                                                {{ first_item.product.name }}
+                                            {% else %}
+                                                Reseller Order
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td class="vm-rdt-center">{{ order.created_at|date:'d M, Y' }}</td>
+                                    <td class="vm-rdt-center">Rs {{ order.total_amount|floatformat:2 }}</td>
+                                    <td class="vm-rdt-right">
+                                        <span class="vm-rdt-badge {% if order.order_status == 'PENDING' or order.order_status == 'PROCESSING' %}vm-rdt-badge--processing{% elif order.order_status == 'SHIPPED' %}vm-rdt-badge--shipped{% elif order.order_status == 'DELIVERED' %}vm-rdt-badge--delivered{% elif order.order_status == 'CANCELLED' or order.order_status == 'REJECTED' %}vm-rdt-badge--cancelled{% else %}vm-rdt-badge--default{% endif %}">
+                                            {{ order.get_order_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="vm-rdt-empty">No reseller orders found yet.</p>
+                    {% endif %}
+                </section>
+
+                <section class="vm-rdt-panel vm-rdt-panel--links">
+                    <div class="vm-rdt-panel-head">
+                        <h3>Active Resell Links</h3>
+                        <a href="{% url 'reseller_links' %}">View All</a>
+                    </div>
+
+                    {% if active_links %}
+                    <div class="vm-rdt-links">
+                        {% for link in active_links %}
+                        <article class="vm-rdt-link">
+                            <div class="vm-rdt-link-thumb">
+                                {% if link.product.image %}
+                                <img src="{{ link.product.image.url }}" alt="{{ link.product.name }}">
+                                {% endif %}
+                            </div>
+                            <div>
+                                <h4>{{ link.product.name }}</h4>
+                                <p>{{ request.get_host }}/product/{{ link.product.slug }}/?resell={{ link.resell_code }}</p>
+                            </div>
+                            <button type="button" class="vm-rdt-copy js-copy-resell-link" data-link="{{ request.scheme }}://{{ request.get_host }}/product/{{ link.product.slug }}/?resell={{ link.resell_code }}">Copy</button>
+                        </article>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="vm-rdt-empty">No active resell links available.</p>
+                    {% endif %}
+                </section>
+            </div>
+        </main>
     </div>
 </section>
 
+<script>
+document.querySelectorAll('.js-copy-resell-link').forEach(function(button) {
+    button.addEventListener('click', function() {
+        var link = this.getAttribute('data-link');
+        var previous = this.textContent;
+
+        navigator.clipboard.writeText(link).then(() => {
+            this.textContent = 'Copied';
+            setTimeout(() => {
+                this.textContent = previous;
+            }, 1200);
+        });
+    });
+});
+</script>
 {% endblock %}
