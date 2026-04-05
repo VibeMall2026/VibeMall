@@ -435,10 +435,24 @@ def payout_request_page(request):
     payouts = PayoutTransaction.objects.filter(
         reseller=request.user
     ).order_by('-initiated_at')[:20]
+
+    all_payouts = PayoutTransaction.objects.filter(reseller=request.user)
+    in_process_amount = all_payouts.filter(
+        status__in=['INITIATED', 'PROCESSING']
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    pending_request_count = all_payouts.filter(
+        status__in=['INITIATED', 'PROCESSING']
+    ).count()
+    paid_out_total = all_payouts.filter(
+        status='COMPLETED'
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
     
     context = {
         'profile': profile,
         'payouts': payouts,
+        'in_process_amount': in_process_amount,
+        'pending_request_count': pending_request_count,
+        'paid_out_total': paid_out_total,
     }
     
     return render(request, 'reseller/payout.html', context)

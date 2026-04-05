@@ -1,296 +1,547 @@
 {% extends 'base.html' %}
-{% load static %}
 
 {% block title %}Request Payout - VibeMall{% endblock %}
-{% block body_class %}vm-page-mobile-alt vm-page-mobile-payouts{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-reseller-withdraw-tablet{% endblock %}
+{% block ui_chrome %}tablet{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'assets/css/payout-mobile-alt.css' %}?v=20260329-01">
+<style>
+.vm-rwt-page {
+    min-height: 100vh;
+    background: #fbf9f4;
+    color: #1b1c19;
+    font-family: "Manrope", sans-serif;
+}
+
+body.vm-page-reseller-withdraw-tablet .vm-mobile-side-menu,
+body.vm-page-reseller-withdraw-tablet .vm-mobile-side-menu-overlay {
+    display: none !important;
+}
+
+.vm-rwt-shell {
+    width: min(100%, 1240px);
+    margin: 0 auto;
+    padding: 124px 14px 128px;
+}
+
+.vm-rwt-head {
+    margin-bottom: 20px;
+}
+
+.vm-rwt-head h1 {
+    margin: 0 0 4px;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: clamp(40px, 5vw, 58px);
+    line-height: 0.95;
+    letter-spacing: -0.05em;
+}
+
+.vm-rwt-head p {
+    margin: 0;
+    color: rgba(27, 28, 25, 0.6);
+    font-size: 15px;
+}
+
+.vm-rwt-messages {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.vm-rwt-alert {
+    border-radius: 16px;
+    padding: 12px 14px;
+    font-size: 13px;
+}
+
+.vm-rwt-alert--success {
+    background: #e8f3ea;
+    color: #1f6a35;
+}
+
+.vm-rwt-alert--error,
+.vm-rwt-alert--danger {
+    background: #ffedea;
+    color: #ba1a1a;
+}
+
+.vm-rwt-alert--warning {
+    background: #fff4e5;
+    color: #9a5f00;
+}
+
+.vm-rwt-stats {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.vm-rwt-stat {
+    border-radius: 22px;
+    padding: 20px 18px;
+    transition: transform 0.25s ease;
+}
+
+.vm-rwt-stat:hover {
+    transform: translateY(-2px);
+}
+
+.vm-rwt-stat--balance {
+    background: #f5f3ee;
+    border-left: 4px solid #6f5c37;
+}
+
+.vm-rwt-stat--pending {
+    background: #f0eee9;
+}
+
+.vm-rwt-stat--paid {
+    background: #e4e2dd;
+}
+
+.vm-rwt-stat small {
+    display: block;
+    margin-bottom: 8px;
+    color: rgba(27, 28, 25, 0.5);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 800;
+}
+
+.vm-rwt-stat strong {
+    display: block;
+    margin-bottom: 4px;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 34px;
+    line-height: 1;
+    letter-spacing: -0.04em;
+}
+
+.vm-rwt-stat span {
+    display: block;
+    color: rgba(27, 28, 25, 0.42);
+    font-size: 12px;
+}
+
+.vm-rwt-grid {
+    display: grid;
+    gap: 18px;
+}
+
+.vm-rwt-card {
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(196, 199, 199, 0.16);
+    box-shadow: 0 22px 52px -36px rgba(27, 28, 25, 0.3);
+    padding: 20px;
+}
+
+.vm-rwt-card-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+.vm-rwt-card-head h2 {
+    margin: 0;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 30px;
+    line-height: 1;
+    letter-spacing: -0.04em;
+}
+
+.vm-rwt-card-head p {
+    margin: 6px 0 0;
+    color: rgba(27, 28, 25, 0.44);
+    font-size: 13px;
+}
+
+.vm-rwt-head-action {
+    min-height: 46px;
+    border: 0;
+    border-radius: 14px;
+    padding: 0 18px;
+    background: #171818;
+    color: #fff;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 800;
+}
+
+.vm-rwt-form {
+    display: grid;
+    gap: 16px;
+}
+
+.vm-rwt-field {
+    display: grid;
+    gap: 7px;
+}
+
+.vm-rwt-field label,
+.vm-rwt-section-label {
+    color: #6f5c37;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-weight: 800;
+}
+
+.vm-rwt-input,
+.vm-rwt-select {
+    width: 100%;
+    min-height: 54px;
+    border: 1px solid rgba(196, 199, 199, 0.34);
+    border-radius: 16px;
+    background: #fff;
+    color: #171818;
+    padding: 0 16px;
+    font-size: 15px;
+    outline: none;
+}
+
+.vm-rwt-input:focus,
+.vm-rwt-select:focus {
+    border-color: rgba(111, 92, 55, 0.64);
+    box-shadow: 0 0 0 3px rgba(250, 223, 177, 0.22);
+}
+
+.vm-rwt-currency {
+    position: relative;
+}
+
+.vm-rwt-currency span {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(27, 28, 25, 0.56);
+    font-weight: 700;
+}
+
+.vm-rwt-currency .vm-rwt-input {
+    padding-left: 34px;
+}
+
+.vm-rwt-hint {
+    color: rgba(27, 28, 25, 0.42);
+    font-size: 12px;
+}
+
+.vm-rwt-methods {
+    display: grid;
+    gap: 10px;
+}
+
+.vm-rwt-method-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.vm-rwt-method {
+    min-height: 72px;
+    border: 1px solid rgba(196, 199, 199, 0.34);
+    border-radius: 18px;
+    background: #fff;
+    color: #171818;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.vm-rwt-method.is-active {
+    background: #171818;
+    color: #fff;
+    border-color: #171818;
+}
+
+.vm-rwt-detail-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.vm-rwt-section {
+    display: grid;
+    gap: 12px;
+}
+
+.vm-rwt-submit {
+    min-height: 52px;
+    border: 0;
+    border-radius: 16px;
+    background: #171818;
+    color: #fff;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 800;
+}
+
+.vm-rwt-history-wrap {
+    overflow-x: auto;
+}
+
+.vm-rwt-table {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: collapse;
+}
+
+.vm-rwt-table thead th {
+    padding: 0 0 14px;
+    text-align: left;
+    color: rgba(27, 28, 25, 0.42);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-weight: 800;
+    border-bottom: 1px solid #f0eee9;
+}
+
+.vm-rwt-table tbody td {
+    padding: 18px 0;
+    border-bottom: 1px solid #f5f3ee;
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.vm-rwt-money,
+.vm-rwt-transaction {
+    font-weight: 700;
+}
+
+.vm-rwt-muted {
+    color: rgba(27, 28, 25, 0.56);
+}
+
+.vm-rwt-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 28px;
+    padding: 0 12px;
+    border-radius: 999px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 800;
+}
+
+.vm-rwt-badge--processing,
+.vm-rwt-badge--initiated {
+    background: #fadfb1;
+    color: #554422;
+}
+
+.vm-rwt-badge--completed {
+    background: #e4e2dd;
+    color: #444748;
+}
+
+.vm-rwt-badge--failed {
+    background: #ffdad6;
+    color: #93000a;
+}
+
+.vm-rwt-empty {
+    text-align: center;
+    padding: 34px 10px 10px;
+}
+
+.vm-rwt-empty h3 {
+    margin: 0 0 8px;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 28px;
+    letter-spacing: -0.03em;
+}
+
+.vm-rwt-empty p {
+    margin: 0;
+    color: rgba(27, 28, 25, 0.56);
+    font-size: 14px;
+}
+
+@media (min-width: 768px) {
+    .vm-rwt-stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .vm-rwt-grid {
+        grid-template-columns: minmax(340px, 0.9fr) minmax(0, 1.4fr);
+        align-items: start;
+    }
+
+    .vm-rwt-detail-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1200px) {
+    .vm-rwt-shell {
+        padding-bottom: 72px;
+    }
+}
+</style>
 {% endblock %}
 
 {% block content %}
-<section class="vm-payout-mobile-only" aria-label="Payout request mobile view">
-    {% include 'partials/vm_mobile_alt_header.html' %}
-
-    <main class="vm-payout-m-main vm-mobile-content-offset">
-        <section class="vm-payout-m-hero">
-            <span>Partner Atelier</span>
-            <h1>Payout Request</h1>
-            <p>Request a transfer of your reseller earnings to your preferred account with a clean mobile payout flow.</p>
-        </section>
-
+<section class="vm-rwt-page">
+    <div class="vm-rwt-shell">
         {% if messages %}
-        <section class="vm-payout-m-messages" aria-live="polite">
+        <section class="vm-rwt-messages" aria-live="polite">
             {% for message in messages %}
-            <div class="vm-payout-m-alert vm-payout-m-alert--{{ message.tags|default:'info' }}">{{ message }}</div>
+            <div class="vm-rwt-alert vm-rwt-alert--{{ message.tags|default:'success' }}">{{ message }}</div>
             {% endfor %}
         </section>
         {% endif %}
 
-        <section class="vm-payout-m-balance">
-            <span>Available Balance</span>
-            <strong>&#8377;{{ profile.available_balance }}</strong>
-            <p>Verified artisan account ready for payout processing.</p>
+        <header class="vm-rwt-head">
+            <h1>Payouts</h1>
+            <p>Manage your earnings and withdrawal requests from the atelier network.</p>
+        </header>
+
+        <section class="vm-rwt-stats" aria-label="Payout metrics">
+            <article class="vm-rwt-stat vm-rwt-stat--balance">
+                <small>Ready Balance</small>
+                <strong>Rs {{ profile.available_balance|floatformat:2 }}</strong>
+                <span>Available to request right now.</span>
+            </article>
+            <article class="vm-rwt-stat vm-rwt-stat--pending">
+                <small>In Process</small>
+                <strong>Rs {{ in_process_amount|floatformat:2 }}</strong>
+                <span>{{ pending_request_count }} request{{ pending_request_count|pluralize }} awaiting review.</span>
+            </article>
+            <article class="vm-rwt-stat vm-rwt-stat--paid">
+                <small>Paid Out</small>
+                <strong>Rs {{ paid_out_total|floatformat:2 }}</strong>
+                <span>Completed reseller payout total.</span>
+            </article>
         </section>
 
-        <section class="vm-payout-m-form-wrap">
-            <div class="vm-payout-m-section-head">
-                <span>Withdrawal</span>
-                <h2>Initiate Payout</h2>
-                <p>Choose your preferred payout method and confirm the destination details below.</p>
-            </div>
-
-            <form class="vm-payout-m-form" data-payout-form data-request-url="{% url 'request_payout' %}">
-                {% csrf_token %}
-
-                <label>
-                    <span>Withdrawal Amount</span>
-                    <div class="vm-payout-m-currency-field">
-                        <i>&#8377;</i>
-                        <input type="number" name="amount" step="0.01" min="1" max="{{ profile.available_balance }}" placeholder="0.00" required>
-                    </div>
-                    <small>Maximum: &#8377;{{ profile.available_balance }}</small>
-                </label>
-
-                <div class="vm-payout-m-methods">
-                    <span>Payout Method</span>
-                    <div class="vm-payout-m-method-grid">
-                        <button type="button" class="vm-payout-m-method is-active" data-payout-method-choice data-value="BANK_TRANSFER">
-                            <i class="fas fa-university"></i>
-                            <strong>Bank Transfer</strong>
-                        </button>
-                        <button type="button" class="vm-payout-m-method" data-payout-method-choice data-value="UPI">
-                            <i class="fas fa-qrcode"></i>
-                            <strong>UPI ID</strong>
-                        </button>
-                    </div>
-                    <input type="hidden" name="payout_method" value="BANK_TRANSFER" data-payout-method-input>
-                </div>
-
-                <div class="vm-payout-m-detail-group" data-payout-bank-fields>
-                    <label>
-                        <span>Account Holder Name</span>
-                        <input type="text" name="bank_account_name" value="{{ profile.bank_account_name }}" placeholder="As per bank records">
-                    </label>
-                    <div class="vm-payout-m-detail-grid">
-                        <label>
-                            <span>IFSC Code</span>
-                            <input type="text" name="bank_ifsc_code" value="{{ profile.bank_ifsc_code }}" placeholder="HDFC0001234">
-                        </label>
-                        <label>
-                            <span>Account Number</span>
-                            <input type="text" name="bank_account_number" value="{{ profile.bank_account_number }}" placeholder="XXXXXXXXXXXX">
-                        </label>
+        <section class="vm-rwt-grid">
+            <article class="vm-rwt-card">
+                <div class="vm-rwt-card-head">
+                    <div>
+                        <h2>Request Payout</h2>
+                        <p>Choose your payout method and submit a new withdrawal request.</p>
                     </div>
                 </div>
 
-                <div class="vm-payout-m-detail-group" data-payout-upi-fields hidden>
-                    <label>
-                        <span>UPI ID</span>
-                        <input type="text" name="upi_id" value="{{ profile.upi_id }}" placeholder="yourname@upi">
-                    </label>
-                </div>
+                <form class="vm-rwt-form" data-payout-form data-request-url="{% url 'request_payout' %}">
+                    {% csrf_token %}
 
-                <div class="vm-payout-m-alert vm-payout-m-alert--success" data-payout-success hidden>
-                    Payout request submitted successfully. It will be processed by admin.
-                </div>
-                <div class="vm-payout-m-alert vm-payout-m-alert--error" data-payout-error hidden></div>
-
-                <button type="submit" class="vm-payout-m-submit" data-payout-submit data-default-label="Initiate Payout">
-                    <span>Initiate Payout</span>
-                </button>
-            </form>
-        </section>
-
-        <section class="vm-payout-m-policy">
-            <i class="fas fa-info-circle"></i>
-            <div>
-                <strong>Settlement Policy</strong>
-                <p>Standard bank transfers take 2-3 business days. UPI requests are usually reviewed within 24 hours.</p>
-            </div>
-        </section>
-
-        <section class="vm-payout-m-history">
-            <div class="vm-payout-m-section-head">
-                <span>Timeline</span>
-                <h2>Recent Activity</h2>
-            </div>
-
-            {% if payouts %}
-            <div class="vm-payout-m-history-list">
-                {% for payout in payouts %}
-                <article class="vm-payout-m-history-card">
-                    <div class="vm-payout-m-history-card__left">
-                        <div class="vm-payout-m-history-card__icon">
-                            {% if payout.status == 'PROCESSING' or payout.status == 'INITIATED' %}
-                            <i class="fas fa-clock"></i>
-                            {% else %}
-                            <i class="fas fa-check-circle"></i>
-                            {% endif %}
+                    <div class="vm-rwt-field">
+                        <label for="payout_amount">Withdrawal Amount</label>
+                        <div class="vm-rwt-currency">
+                            <span>Rs</span>
+                            <input id="payout_amount" class="vm-rwt-input" type="number" name="amount" step="0.01" min="1" max="{{ profile.available_balance }}" placeholder="0.00" required>
                         </div>
-                        <div>
-                            <h3>&#8377;{{ payout.amount }}</h3>
-                            <p>{{ payout.initiated_at|date:"M d, Y" }} . {{ payout.get_payout_method_display }}</p>
-                            {% if payout.transaction_id %}
-                            <small>Transaction ID: {{ payout.transaction_id }}</small>
-                            {% elif payout.admin_notes %}
-                            <small>{{ payout.admin_notes }}</small>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <span class="vm-payout-m-status vm-payout-m-status--{{ payout.status|lower }}">
-                        {{ payout.get_status_display }}
-                    </span>
-                </article>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="vm-payout-m-empty">
-                <h3>No payout requests yet</h3>
-                <p>Your recent payout activity will appear here once you submit your first request.</p>
-            </div>
-            {% endif %}
-        </section>
-
-        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='payout-mobile' %}
-    </main>
-
-    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
-</section>
-
-<div class="vm-payout-legacy-content">
-<div class="container my-5">
-    <div class="row">
-        <div class="col-12">
-            <h2 class="mb-4">Request Payout</h2>
-        </div>
-    </div>
-
-    <div class="row">
-        <div class="col-md-6 mb-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">New Payout Request</h5>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-info">
-                        <strong>Available Balance:</strong> &#8377;{{ profile.available_balance }}
+                        <div class="vm-rwt-hint">Maximum available: Rs {{ profile.available_balance|floatformat:2 }}</div>
                     </div>
 
-                    <form id="payoutForm" data-payout-form data-request-url="{% url 'request_payout' %}">
-                        {% csrf_token %}
-                        <div class="form-group">
-                            <label for="amount">Payout Amount (&#8377;)</label>
-                            <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="1" max="{{ profile.available_balance }}" required>
-                            <small class="form-text text-muted">
-                                Maximum: &#8377;{{ profile.available_balance }}
-                            </small>
+                    <div class="vm-rwt-methods">
+                        <div class="vm-rwt-section-label">Payout Method</div>
+                        <div class="vm-rwt-method-grid">
+                            <button type="button" class="vm-rwt-method is-active" data-payout-method-choice data-value="BANK_TRANSFER">
+                                <i class="fas fa-university"></i>
+                                <span>Bank Transfer</span>
+                            </button>
+                            <button type="button" class="vm-rwt-method" data-payout-method-choice data-value="UPI">
+                                <i class="fas fa-qrcode"></i>
+                                <span>UPI</span>
+                            </button>
                         </div>
+                        <input type="hidden" name="payout_method" value="BANK_TRANSFER" data-payout-method-input>
+                    </div>
 
-                        <div class="form-group">
-                            <label for="payout_method">Payout Method</label>
-                            <select class="form-control" id="payout_method" name="payout_method" data-payout-method-select required>
-                                <option value="">Select method...</option>
-                                <option value="BANK_TRANSFER">Bank Transfer</option>
-                                <option value="UPI">UPI</option>
-                            </select>
+                    <div class="vm-rwt-section" data-payout-bank-fields>
+                        <div class="vm-rwt-field">
+                            <label for="bank_account_name">Account Holder Name</label>
+                            <input id="bank_account_name" class="vm-rwt-input" type="text" name="bank_account_name" value="{{ profile.bank_account_name|default:'' }}" placeholder="As per bank records">
                         </div>
-
-                        <div id="bankFields" data-payout-bank-fields style="display: none;">
-                            <div class="form-group">
-                                <label for="bank_account_number">Bank Account Number</label>
-                                <input type="text" class="form-control" id="bank_account_number" name="bank_account_number" value="{{ profile.bank_account_number }}">
-                            </div>
-                            <div class="form-group">
+                        <div class="vm-rwt-detail-grid">
+                            <div class="vm-rwt-field">
                                 <label for="bank_ifsc_code">IFSC Code</label>
-                                <input type="text" class="form-control" id="bank_ifsc_code" name="bank_ifsc_code" value="{{ profile.bank_ifsc_code }}">
+                                <input id="bank_ifsc_code" class="vm-rwt-input" type="text" name="bank_ifsc_code" value="{{ profile.bank_ifsc_code|default:'' }}" placeholder="HDFC0001234">
+                            </div>
+                            <div class="vm-rwt-field">
+                                <label for="bank_account_number">Account Number</label>
+                                <input id="bank_account_number" class="vm-rwt-input" type="text" name="bank_account_number" value="{{ profile.bank_account_number|default:'' }}" placeholder="XXXXXXXXXXXX">
                             </div>
                         </div>
+                    </div>
 
-                        <div id="upiFields" data-payout-upi-fields style="display: none;">
-                            <div class="form-group">
-                                <label for="upi_id">UPI ID</label>
-                                <input type="text" class="form-control" id="upi_id" name="upi_id" value="{{ profile.upi_id }}" placeholder="yourname@upi">
-                            </div>
+                    <div class="vm-rwt-section" data-payout-upi-fields hidden>
+                        <div class="vm-rwt-field">
+                            <label for="upi_id">UPI ID</label>
+                            <input id="upi_id" class="vm-rwt-input" type="text" name="upi_id" value="{{ profile.upi_id|default:'' }}" placeholder="yourname@upi">
                         </div>
+                    </div>
 
-                        <div id="payoutSuccess" class="alert alert-success" data-payout-success style="display: none;">
-                            Payout request submitted successfully! It will be processed by admin.
-                        </div>
-                        <div id="payoutError" class="alert alert-danger" data-payout-error style="display: none;"></div>
+                    <div class="vm-rwt-alert vm-rwt-alert--success" data-payout-success hidden>
+                        Payout request submitted successfully. It will be processed by admin.
+                    </div>
+                    <div class="vm-rwt-alert vm-rwt-alert--error" data-payout-error hidden></div>
 
-                        <button type="submit" class="btn btn-primary btn-block" id="submitBtn" data-payout-submit data-default-label="Submit Payout Request">
-                            Submit Payout Request
-                        </button>
-                    </form>
+                    <button type="submit" class="vm-rwt-submit" data-payout-submit data-default-label="Request New Payout">Request New Payout</button>
+                </form>
+            </article>
 
-                    <hr class="my-4">
-
-                    <div class="text-muted small">
-                        <p><strong>Note:</strong></p>
-                        <ul>
-                            <li>Payout requests are processed manually by admin</li>
-                            <li>Processing time: 2-3 business days</li>
-                            <li>Ensure your payment details are correct</li>
-                            <li>You can update payment details in <a href="{% url 'reseller_profile' %}">Profile Settings</a></li>
-                        </ul>
+            <article class="vm-rwt-card">
+                <div class="vm-rwt-card-head">
+                    <div>
+                        <h2>Withdrawal History</h2>
+                        <p>Detailed log of your latest payout requests.</p>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <div class="col-md-6 mb-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Payout History</h5>
+                {% if payouts %}
+                <div class="vm-rwt-history-wrap">
+                    <table class="vm-rwt-table">
+                        <thead>
+                            <tr>
+                                <th>Transaction ID</th>
+                                <th>Date Requested</th>
+                                <th>Amount</th>
+                                <th>Destination</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for payout in payouts %}
+                            <tr>
+                                <td class="vm-rwt-transaction">{% if payout.transaction_id %}#{{ payout.transaction_id }}{% else %}Pending ID{% endif %}</td>
+                                <td class="vm-rwt-muted">{{ payout.initiated_at|date:'M d, Y' }}</td>
+                                <td class="vm-rwt-money">Rs {{ payout.amount|floatformat:2 }}</td>
+                                <td class="vm-rwt-muted">{% if payout.bank_account %}{{ payout.bank_account }}{% elif payout.upi_id %}{{ payout.upi_id }}{% else %}{{ payout.get_payout_method_display }}{% endif %}</td>
+                                <td>
+                                    <span class="vm-rwt-badge vm-rwt-badge--{{ payout.status|lower }}">{{ payout.get_status_display }}</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-                <div class="card-body">
-                    {% if payouts %}
-                    <div class="list-group">
-                        {% for payout in payouts %}
-                        <div class="list-group-item">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-1">&#8377;{{ payout.amount }}</h6>
-                                    <small class="text-muted">
-                                        {{ payout.get_payout_method_display }} . 
-                                        {{ payout.initiated_at|date:"M d, Y" }}
-                                    </small>
-                                </div>
-                                <div>
-                                    {% if payout.status == 'INITIATED' %}
-                                    <span class="badge badge-warning">Pending</span>
-                                    {% elif payout.status == 'PROCESSING' %}
-                                    <span class="badge badge-info">Processing</span>
-                                    {% elif payout.status == 'COMPLETED' %}
-                                    <span class="badge badge-success">Completed</span>
-                                    {% elif payout.status == 'FAILED' %}
-                                    <span class="badge badge-danger">Failed</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            {% if payout.transaction_id %}
-                            <small class="text-muted d-block mt-1">
-                                Transaction ID: {{ payout.transaction_id }}
-                            </small>
-                            {% endif %}
-                            {% if payout.admin_notes %}
-                            <small class="text-muted d-block mt-1">
-                                Note: {{ payout.admin_notes }}
-                            </small>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <p class="text-muted text-center py-4">No payout requests yet.</p>
-                    {% endif %}
+                {% else %}
+                <div class="vm-rwt-empty">
+                    <h3>No payout requests yet</h3>
+                    <p>Your withdrawal history will appear here after you submit your first payout request.</p>
                 </div>
-            </div>
-        </div>
+                {% endif %}
+            </article>
+        </section>
     </div>
-</div>
-</div>
+</section>
 
 <script>
 (function () {
