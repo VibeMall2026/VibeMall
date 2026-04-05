@@ -54,6 +54,9 @@
                 <a href="{% url 'about' %}">About Us</a>
                 <a href="{% url 'blog' %}">Blog</a>
                 <a href="{% url 'order_list' %}">My Orders</a>
+                {% if has_reseller_dashboard_access %}
+                <a href="{% url 'reseller_dashboard' %}">Reseller Dashboard</a>
+                {% endif %}
                 <a href="{% url 'checkout' %}">Checkout</a>
                 {% if user.is_staff %}
                 <a class="vm-admin-nav-link" href="{% url 'admin_dashboard' %}">Admin</a>
