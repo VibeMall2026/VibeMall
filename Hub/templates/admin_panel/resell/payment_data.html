@@ -1,0 +1,154 @@
+{% extends 'admin_panel/base_admin.html' %}
+
+{% block title %}Reseller Payment Data - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="fw-bold py-3 mb-4">Reseller Payment Data</h4>
+
+    <div class="row mb-4">
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <span class="fw-semibold d-block mb-1">Total Resellers</span>
+                    <h3 class="card-title mb-0">{{ total_profiles }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <span class="fw-semibold d-block mb-1">Bank Ready</span>
+                    <h3 class="card-title text-primary mb-0">{{ bank_ready }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <span class="fw-semibold d-block mb-1">UPI Ready</span>
+                    <h3 class="card-title text-info mb-0">{{ upi_ready }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <span class="fw-semibold d-block mb-1">Both Configured</span>
+                    <h3 class="card-title text-success mb-0">{{ both_ready }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Search</label>
+                    <input type="text" name="search" class="form-control" value="{{ filter_search }}" placeholder="username, email, IFSC, UPI...">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Payment Setup</label>
+                    <select name="payment" class="form-select">
+                        <option value="" {% if not filter_payment %}selected{% endif %}>All</option>
+                        <option value="bank" {% if filter_payment == 'bank' %}selected{% endif %}>Bank Only/Has Bank</option>
+                        <option value="upi" {% if filter_payment == 'upi' %}selected{% endif %}>UPI Only/Has UPI</option>
+                        <option value="both" {% if filter_payment == 'both' %}selected{% endif %}>Both Bank + UPI</option>
+                        <option value="missing" {% if filter_payment == 'missing' %}selected{% endif %}>Missing Both</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Sort</label>
+                    <select name="sort" class="form-select">
+                        <option value="-updated_at" {% if filter_sort == '-updated_at' %}selected{% endif %}>Recently Updated</option>
+                        <option value="updated_at" {% if filter_sort == 'updated_at' %}selected{% endif %}>Oldest Updated</option>
+                        <option value="user__username" {% if filter_sort == 'user__username' %}selected{% endif %}>Username A-Z</option>
+                        <option value="-user__username" {% if filter_sort == '-user__username' %}selected{% endif %}>Username Z-A</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Apply</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <h5 class="card-header">Saved Bank & UPI Data</h5>
+        <div class="table-responsive text-nowrap">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Reseller</th>
+                        <th>Business</th>
+                        <th>Bank Holder</th>
+                        <th>Bank Account</th>
+                        <th>IFSC</th>
+                        <th>UPI ID</th>
+                        <th>PAN</th>
+                        <th>Updated</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reseller in profiles %}
+                    <tr>
+                        <td>
+                            <div>
+                                <strong>{{ reseller.user.username }}</strong>
+                                <div><small class="text-muted">{{ reseller.user.email }}</small></div>
+                            </div>
+                        </td>
+                        <td>{{ reseller.business_name|default:'-' }}</td>
+                        <td>{{ reseller.bank_account_name|default:'-' }}</td>
+                        <td>
+                            {% if reseller.bank_account_number %}
+                                ****{{ reseller.bank_account_number|slice:'-4:' }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>{{ reseller.bank_ifsc_code|default:'-' }}</td>
+                        <td>{{ reseller.upi_id|default:'-' }}</td>
+                        <td>{{ reseller.pan_number|default:'-' }}</td>
+                        <td>{{ reseller.updated_at|date:'d M Y, h:i A' }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4">No reseller payment data found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filter_search %}&search={{ filter_search }}{% endif %}{% if filter_payment %}&payment={{ filter_payment }}{% endif %}{% if filter_sort %}&sort={{ filter_sort }}{% endif %}">Previous</a>
+            </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% else %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ num }}{% if filter_search %}&search={{ filter_search }}{% endif %}{% if filter_payment %}&payment={{ filter_payment }}{% endif %}{% if filter_sort %}&sort={{ filter_sort }}{% endif %}">{{ num }}</a>
+            </li>
+            {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filter_search %}&search={{ filter_search }}{% endif %}{% if filter_payment %}&payment={{ filter_payment }}{% endif %}{% if filter_sort %}&sort={{ filter_sort }}{% endif %}">Next</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

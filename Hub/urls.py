@@ -98,6 +98,7 @@ urlpatterns = [
     path('admin-panel/resell/analytics/', views_admin_resell.admin_reseller_analytics, name='admin_reseller_analytics'),
     path('admin-panel/resell/reports/', views_admin_resell.admin_resell_reports, name='admin_resell_reports'),
     path('admin-panel/resell/resellers/', views_admin_resell.admin_reseller_management, name='admin_reseller_management'),
+    path('admin-panel/resell/payment-data/', views_admin_resell.admin_reseller_payment_data, name='admin_reseller_payment_data'),
     path('admin-panel/resell/resellers/<int:reseller_id>/toggle/', views_admin_resell.admin_toggle_reseller_status, name='admin_toggle_reseller_status'),
     path('admin-panel/resell/payouts/', views_admin_resell.admin_payout_management, name='admin_payout_management'),
     path('admin-panel/resell/payouts/process/', views_admin_resell.admin_process_payout, name='admin_process_payout'),

@@ -568,6 +568,82 @@ def admin_reseller_management(request):
 
 
 @staff_member_required
+def admin_reseller_payment_data(request):
+    """
+    Admin payment data view for reseller bank and UPI details
+    GET /admin-panel/resell/payment-data/
+    """
+    search_query = request.GET.get('search', '')
+    payment_filter = request.GET.get('payment', '')  # all, bank, upi, both, missing
+    sort_by = request.GET.get('sort', '-updated_at')
+    page_size = _get_safe_page_size(request)
+
+    sort_fields = {
+        'updated_at': 'updated_at',
+        '-updated_at': '-updated_at',
+        'created_at': 'created_at',
+        '-created_at': '-created_at',
+        'user__username': 'user__username',
+        '-user__username': '-user__username',
+        'business_name': 'business_name',
+        '-business_name': '-business_name',
+    }
+    order_by = sort_fields.get(sort_by, '-updated_at')
+
+    profiles = ResellerProfile.objects.select_related('user').order_by(order_by)
+
+    if search_query:
+        profiles = profiles.filter(
+            Q(user__username__icontains=search_query)
+            | Q(user__email__icontains=search_query)
+            | Q(business_name__icontains=search_query)
+            | Q(upi_id__icontains=search_query)
+            | Q(bank_account_name__icontains=search_query)
+            | Q(bank_ifsc_code__icontains=search_query)
+        )
+
+    has_bank_q = (
+        Q(bank_account_name__gt='')
+        & Q(bank_account_number__gt='')
+        & Q(bank_ifsc_code__gt='')
+    )
+    has_upi_q = Q(upi_id__gt='')
+
+    if payment_filter == 'bank':
+        profiles = profiles.filter(has_bank_q)
+    elif payment_filter == 'upi':
+        profiles = profiles.filter(has_upi_q)
+    elif payment_filter == 'both':
+        profiles = profiles.filter(has_bank_q & has_upi_q)
+    elif payment_filter == 'missing':
+        profiles = profiles.exclude(has_bank_q | has_upi_q)
+
+    paginator = Paginator(profiles, page_size)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    total_profiles = ResellerProfile.objects.count()
+    bank_ready = ResellerProfile.objects.filter(has_bank_q).count()
+    upi_ready = ResellerProfile.objects.filter(has_upi_q).count()
+    both_ready = ResellerProfile.objects.filter(has_bank_q & has_upi_q).count()
+
+    context = {
+        'page_obj': page_obj,
+        'profiles': page_obj.object_list,
+        'total_profiles': total_profiles,
+        'bank_ready': bank_ready,
+        'upi_ready': upi_ready,
+        'both_ready': both_ready,
+        'filter_search': search_query,
+        'filter_payment': payment_filter,
+        'filter_sort': sort_by,
+        'page_size': page_size,
+    }
+
+    return render(request, 'admin_panel/resell/payment_data.html', context)
+
+
+@staff_member_required
 def admin_toggle_reseller_status(request, reseller_id):
     """
     Toggle reseller enabled/disabled status
