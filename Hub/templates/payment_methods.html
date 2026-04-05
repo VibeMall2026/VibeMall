@@ -1,485 +1,577 @@
 {% extends "base.html" %}
 
-{% block body_class %}vm-page-payment-desktop{% endblock %}
+{% block body_class %}vm-page-mobile-alt{% endblock %}
 
 {% block title %}Payment Methods - VibeMall{% endblock %}
 
 {% block content %}
-<section class="vm-payment-desktop">
-    <div class="vm-payment-desktop__layout">
-        <aside class="vm-payment-side">
-            <div class="vm-payment-side__profile">
-                <div class="vm-payment-side__avatar">
-                    {{ request.user.first_name|default:request.user.username|slice:":1"|upper }}
-                </div>
-                <h2>{{ request.user.get_full_name|default:request.user.username }}</h2>
-                <p>Account member</p>
+<section class="vmpt">
+
+    <!-- ── TOP BAR ─────────────────────────────────────── -->
+    <div class="vmpt__topbar">
+        <a href="{% url 'profile' %}" class="vmpt__back" aria-label="Back to profile">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i>
+        </a>
+        <div class="vmpt__topbar-copy">
+            <p class="vmpt__kicker">Payment Center</p>
+            <h1>Payment Methods</h1>
+        </div>
+        <div class="vmpt__topbar-count">
+            <span>{{ methods|length }}</span>
+            <p>saved</p>
+        </div>
+    </div>
+
+    <!-- ── TABLET TWO-COLUMN BODY ──────────────────────── -->
+    <div class="vmpt__body">
+
+        <!-- LEFT: saved methods + add-new options -->
+        <div class="vmpt__left">
+
+            <div class="vmpt__section-head">
+                <h2>Saved Methods</h2>
             </div>
-
-            <nav class="vm-payment-side__nav" aria-label="Account navigation">
-                <a href="{% url 'profile' %}"><i class="fas fa-user"></i> Profile</a>
-                <a href="{% url 'address_book' %}"><i class="fas fa-map-marker-alt"></i> Addresses</a>
-                <a href="{% url 'my_orders' %}"><i class="fas fa-box"></i> Orders</a>
-                <a href="{% url 'payment_methods' %}" class="is-active"><i class="fas fa-credit-card"></i> Payment Methods</a>
-            </nav>
-
-            <div class="vm-payment-side__note">
-                <h3>Secure Vault</h3>
-                <p>Payment details are encrypted and processed by trusted gateways.</p>
-            </div>
-        </aside>
-
-        <div class="vm-payment-main">
-            <header class="vm-payment-main__hero">
-                <div>
-                    <p class="vm-payment-main__kicker">Payment Center</p>
-                    <h1>Payment Vault</h1>
-                    <p>Manage the methods you have already used on VibeMall checkout.</p>
-                </div>
-                <div class="vm-payment-main__count">{{ methods|length }} saved</div>
-            </header>
 
             {% if methods %}
-            <div class="vm-payment-grid">
+            <div class="vmpt__saved-grid">
                 {% for method in methods %}
-                <article class="vm-payment-card {% if method.key == 'CARD' or method.key == 'RAZORPAY' %}vm-payment-card--dark{% else %}vm-payment-card--light{% endif %}">
-                    <div class="vm-payment-card__head">
-                        <div class="vm-payment-card__badge">{{ method.key }}</div>
-                        <i class="{{ method.icon }}" aria-hidden="true" {% if method.key != 'CARD' and method.key != 'RAZORPAY' %}style="color: {{ method.color }};"{% endif %}></i>
+                {% if method.key == 'CARD' or method.key == 'RAZORPAY' %}
+                <article class="vmpt__card vmpt__card--dark">
+                    <div class="vmpt__card-top">
+                        <span class="vmpt__card-badge">{{ method.key }}</span>
+                        <i class="{{ method.icon }}" aria-hidden="true"></i>
                     </div>
-
-                    <h2>{{ method.label }}</h2>
+                    <h3>{{ method.label }}</h3>
                     <p>Used in your previous orders</p>
-
-                    <div class="vm-payment-card__meta">
+                    <div class="vmpt__card-foot">
                         <span>Status</span>
                         <strong>Active</strong>
                     </div>
                 </article>
+                {% else %}
+                <article class="vmpt__card vmpt__card--light">
+                    <div class="vmpt__card-top">
+                        <span class="vmpt__card-badge vmpt__card-badge--warm">{{ method.key }}</span>
+                        <i class="{{ method.icon }}" aria-hidden="true" style="color: {{ method.color }};"></i>
+                    </div>
+                    <h3>{{ method.label }}</h3>
+                    <p>Used in your previous orders</p>
+                    <div class="vmpt__card-foot vmpt__card-foot--warm">
+                        <span>Status</span>
+                        <strong>Active</strong>
+                    </div>
+                </article>
+                {% endif %}
                 {% endfor %}
             </div>
             {% else %}
-            <article class="vm-payment-empty">
+            <article class="vmpt__empty">
                 <i class="fas fa-wallet" aria-hidden="true"></i>
-                <h2>No payment methods yet</h2>
-                <p>Complete your first purchase and your used payment options will appear here.</p>
+                <h3>No payment methods yet</h3>
+                <p>Your methods will appear here after your first purchase.</p>
                 <a href="{% url 'shop' %}">Start Shopping</a>
             </article>
             {% endif %}
 
-            <section class="vm-payment-add">
-                <div class="vm-payment-add__title-wrap">
-                    <h2>Add New Payment</h2>
-                    <p>Choose your preferred mode during checkout.</p>
-                </div>
+            <div class="vmpt__section-head vmpt__section-head--spaced">
+                <h2>Add New Payment</h2>
+            </div>
 
-                <div class="vm-payment-add__options">
-                    <article>
-                        <div><i class="fas fa-credit-card" aria-hidden="true"></i></div>
-                        <h3>Credit or Debit Cards</h3>
-                        <p>Visa, Mastercard and RuPay supported.</p>
-                    </article>
-                    <article>
-                        <div><i class="fas fa-qrcode" aria-hidden="true"></i></div>
+            <div class="vmpt__options">
+                <article class="vmpt__option">
+                    <div class="vmpt__option-icon"><i class="fas fa-credit-card" aria-hidden="true"></i></div>
+                    <div class="vmpt__option-copy">
+                        <h3>Credit / Debit Card</h3>
+                        <p>Visa, Mastercard and RuPay</p>
+                    </div>
+                    <i class="fas fa-chevron-right vmpt__option-arrow" aria-hidden="true"></i>
+                </article>
+                <article class="vmpt__option">
+                    <div class="vmpt__option-icon"><i class="fas fa-qrcode" aria-hidden="true"></i></div>
+                    <div class="vmpt__option-copy">
                         <h3>UPI Payments</h3>
-                        <p>Pay using your preferred UPI app instantly.</p>
-                    </article>
-                    <article>
-                        <div><i class="fas fa-university" aria-hidden="true"></i></div>
+                        <p>GPay, PhonePe, Paytm and more</p>
+                    </div>
+                    <i class="fas fa-chevron-right vmpt__option-arrow" aria-hidden="true"></i>
+                </article>
+                <article class="vmpt__option">
+                    <div class="vmpt__option-icon"><i class="fas fa-university" aria-hidden="true"></i></div>
+                    <div class="vmpt__option-copy">
                         <h3>Net Banking</h3>
-                        <p>Available for all major Indian banks.</p>
-                    </article>
-                </div>
-            </section>
-
-            <footer class="vm-payment-main__footer">
-                <a href="{% url 'profile' %}"><i class="fas fa-arrow-left"></i> Back to Profile</a>
-            </footer>
+                        <p>All major Indian banks</p>
+                    </div>
+                    <i class="fas fa-chevron-right vmpt__option-arrow" aria-hidden="true"></i>
+                </article>
+                <article class="vmpt__option">
+                    <div class="vmpt__option-icon"><i class="fas fa-money-bill-wave" aria-hidden="true"></i></div>
+                    <div class="vmpt__option-copy">
+                        <h3>Cash on Delivery</h3>
+                        <p>Pay when your order arrives</p>
+                    </div>
+                    <i class="fas fa-chevron-right vmpt__option-arrow" aria-hidden="true"></i>
+                </article>
+            </div>
         </div>
+
+        <!-- RIGHT: account nav + security note -->
+        <aside class="vmpt__right">
+            <div class="vmpt__account-card">
+                <div class="vmpt__account-avatar">
+                    {{ request.user.first_name|default:request.user.username|slice:":1"|upper }}
+                </div>
+                <h3>{{ request.user.get_full_name|default:request.user.username }}</h3>
+                <p>Account member</p>
+            </div>
+
+            <nav class="vmpt__account-nav" aria-label="Account navigation">
+                <a href="{% url 'profile' %}">
+                    <i class="fas fa-user" aria-hidden="true"></i> Profile
+                </a>
+                <a href="{% url 'address_book' %}">
+                    <i class="fas fa-map-marker-alt" aria-hidden="true"></i> Addresses
+                </a>
+                <a href="{% url 'order_list' %}">
+                    <i class="fas fa-box" aria-hidden="true"></i> Orders
+                </a>
+                <a href="{% url 'payment_methods' %}" class="vmpt__account-nav--active">
+                    <i class="fas fa-credit-card" aria-hidden="true"></i> Payment Methods
+                </a>
+            </nav>
+
+            <div class="vmpt__security-note">
+                <div class="vmpt__security-note__icon">
+                    <i class="fas fa-shield-alt" aria-hidden="true"></i>
+                </div>
+                <div>
+                    <h4>100% Secure</h4>
+                    <p>All transactions are SSL-encrypted and processed via Razorpay. We never store card details.</p>
+                </div>
+            </div>
+
+            <div class="vmpt__editorial">
+                <h4>Artisanal Heritage</h4>
+                <p>Every purchase supports independent weavers and small-batch ateliers across the subcontinent. Your trust is our commitment.</p>
+            </div>
+        </aside>
     </div>
 </section>
 
 <style>
-.vm-payment-desktop {
-    --vm-ink: #171818;
-    --vm-muted: #5f635d;
-    --vm-accent: #6f5c37;
-    --vm-surface: #ffffff;
-    --vm-soft: #f6f3ec;
-    --vm-border: #e6e0d3;
-    --vm-dark: #1f1f1d;
-    color: var(--vm-ink);
-    padding: 22px 18px 86px;
+/* ── TABLET PAYMENT METHODS ───────────────────────────── */
+.vmpt {
+    --ink: #171818;
+    --muted: #5d615c;
+    --accent: #6f5c37;
+    --warm: #f5f1e6;
+    --border: #e4ddd0;
+    --surface: #ffffff;
+    --soft: #f6f2ea;
+    font-family: 'Manrope', sans-serif;
+    color: var(--ink);
+    padding: 16px 20px 90px;
 }
 
-.vm-payment-desktop__layout {
-    width: min(1180px, 100%);
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: 280px 1fr;
-    gap: 22px;
-    align-items: start;
+/* ── TOP BAR ───── */
+.vmpt__topbar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 14px 16px;
+    background: linear-gradient(150deg, #ede8db 0%, #f6f3ea 45%, #fdfcf8 100%);
+    margin-bottom: 16px;
 }
 
-.vm-payment-side {
-    position: sticky;
-    top: 106px;
-    border: 1px solid var(--vm-border);
-    border-radius: 22px;
-    background: linear-gradient(165deg, #f5f1e8 0%, #fbfaf6 100%);
-    padding: 18px;
-}
-
-.vm-payment-side__profile {
-    text-align: center;
-}
-
-.vm-payment-side__avatar {
-    width: 66px;
-    height: 66px;
+.vmpt__back {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
     border-radius: 50%;
-    background: #1f1f1d;
-    color: #ffffff;
-    font-size: 24px;
-    font-weight: 800;
-    margin: 0 auto 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: center;
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 13px;
+    transition: background 0.15s;
+}
+.vmpt__back:hover { background: #eeebe2; }
+
+.vmpt__topbar-copy { flex: 1; }
+
+.vmpt__kicker {
+    margin: 0 0 3px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-weight: 800;
+    color: var(--accent);
 }
 
-.vm-payment-side__profile h2 {
+.vmpt__topbar-copy h1 {
     margin: 0;
-    font-size: 18px;
+    font-size: 26px;
+    font-weight: 900;
+    line-height: 1.1;
+    font-family: 'Noto Serif', serif;
+}
+
+.vmpt__topbar-count {
+    flex-shrink: 0;
+    text-align: center;
+    border: 1px solid #d9cdb5;
+    background: #fffaee;
+    border-radius: 14px;
+    padding: 8px 14px;
+}
+
+.vmpt__topbar-count span {
+    display: block;
+    font-size: 22px;
+    font-weight: 900;
+    line-height: 1;
+    color: var(--accent);
+}
+
+.vmpt__topbar-count p {
+    margin: 2px 0 0;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    color: var(--muted);
+}
+
+/* ── BODY GRID ─── */
+.vmpt__body {
+    display: grid;
+    grid-template-columns: 1fr 260px;
+    gap: 14px;
+    align-items: start;
+}
+
+/* ── SECTION HEADS ── */
+.vmpt__section-head { margin: 0 0 10px 2px; }
+.vmpt__section-head--spaced { margin-top: 18px; }
+
+.vmpt__section-head h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+}
+
+/* ── SAVED GRID ─── */
+.vmpt__saved-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.vmpt__card {
+    border-radius: 16px;
+    padding: 14px;
+    border: 1px solid var(--border);
+}
+
+.vmpt__card--dark {
+    background: linear-gradient(155deg, #181816 0%, #2a2925 100%);
+    border-color: #302f2b;
+    color: #ffffff;
+}
+
+.vmpt__card--light {
+    background: var(--soft);
+}
+
+.vmpt__card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.vmpt__card-badge {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 800;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 999px;
+    padding: 3px 8px;
+}
+
+.vmpt__card-badge--warm {
+    border-color: #d8cdb3;
+    background: #fffaee;
+    color: #5d4a24;
+}
+
+.vmpt__card h3 {
+    margin: 0;
+    font-size: 16px;
     font-weight: 800;
 }
 
-.vm-payment-side__profile p {
+.vmpt__card p {
+    margin: 5px 0 14px;
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.vmpt__card-foot {
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid rgba(255,255,255,0.12);
+    padding-top: 10px;
+    font-size: 12px;
+}
+
+.vmpt__card-foot span { opacity: 0.65; }
+
+.vmpt__card-foot--warm {
+    border-top-color: #e0d7c6;
+}
+
+/* ── EMPTY STATE ─── */
+.vmpt__empty {
+    border: 1px dashed var(--border);
+    border-radius: 16px;
+    background: #fdfaf4;
+    padding: 32px 16px;
+    text-align: center;
+    margin-bottom: 4px;
+}
+
+.vmpt__empty i { font-size: 32px; color: #a0a49a; margin-bottom: 10px; }
+
+.vmpt__empty h3 {
+    margin: 0 0 6px;
+    font-size: 19px;
+    font-weight: 800;
+}
+
+.vmpt__empty p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.vmpt__empty a {
+    display: inline-block;
+    margin-top: 12px;
+    background: #1a1a18;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+/* ── ADD OPTIONS ─── */
+.vmpt__options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.vmpt__option {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: background 0.16s;
+}
+.vmpt__option:hover { background: #f9f6ef; }
+
+.vmpt__option-icon {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: #f3eedf;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+.vmpt__option-copy { flex: 1; }
+
+.vmpt__option-copy h3 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.vmpt__option-copy p {
+    margin: 2px 0 0;
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.vmpt__option-arrow { font-size: 11px; color: #b0b3aa; }
+
+/* ── RIGHT SIDEBAR ─── */
+.vmpt__right {
+    position: sticky;
+    top: 104px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.vmpt__account-card {
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: linear-gradient(155deg, #f2ede0 0%, #fdfbf6 100%);
+    padding: 16px;
+    text-align: center;
+}
+
+.vmpt__account-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #1a1a18;
+    color: #fff;
+    font-size: 22px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 10px;
+}
+
+.vmpt__account-card h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.vmpt__account-card p {
     margin: 4px 0 0;
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--vm-accent);
+    color: var(--accent);
     font-weight: 700;
 }
 
-.vm-payment-side__nav {
-    margin: 16px 0;
-    display: grid;
-    gap: 6px;
-}
-
-.vm-payment-side__nav a {
-    text-decoration: none;
-    color: #33352f;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    border-radius: 12px;
-    padding: 10px 12px;
-    font-size: 13px;
-    font-weight: 700;
-    border: 1px solid transparent;
-    transition: all 0.18s ease;
-}
-
-.vm-payment-side__nav a:hover {
-    background: #efeadd;
-}
-
-.vm-payment-side__nav a.is-active {
-    background: #1f1f1d;
-    color: #ffffff;
-    border-color: #1f1f1d;
-}
-
-.vm-payment-side__note {
-    border-radius: 14px;
-    border: 1px solid #e2d9c8;
-    background: #fefcf7;
-    padding: 12px;
-}
-
-.vm-payment-side__note h3 {
-    margin: 0 0 6px;
-    font-size: 13px;
-    font-weight: 800;
-}
-
-.vm-payment-side__note p {
-    margin: 0;
-    font-size: 12px;
-    color: var(--vm-muted);
-    line-height: 1.5;
-}
-
-.vm-payment-main {
-    border: 1px solid var(--vm-border);
-    border-radius: 24px;
-    background: var(--vm-surface);
-    padding: 18px;
-}
-
-.vm-payment-main__hero {
-    display: flex;
-    justify-content: space-between;
-    gap: 14px;
-    align-items: flex-start;
-    border-radius: 16px;
-    padding: 18px;
-    background: radial-gradient(circle at 100% 0%, #efe7d7 0%, #f8f4eb 43%, #fcfbf7 100%);
-    border: 1px solid #eadfca;
-}
-
-.vm-payment-main__kicker {
-    margin: 0 0 7px;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.17em;
-    color: var(--vm-accent);
-    font-weight: 800;
-}
-
-.vm-payment-main__hero h1 {
-    margin: 0 0 6px;
-    font-size: 34px;
-    line-height: 1.05;
-    font-weight: 900;
-}
-
-.vm-payment-main__hero p {
-    margin: 0;
-    color: var(--vm-muted);
-    font-size: 14px;
-}
-
-.vm-payment-main__count {
-    border: 1px solid #dbcda9;
-    background: #fffaf0;
-    color: #5d4d2f;
-    border-radius: 999px;
-    padding: 7px 12px;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    font-weight: 800;
-    white-space: nowrap;
-}
-
-.vm-payment-grid {
-    margin-top: 16px;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-}
-
-.vm-payment-card {
-    border-radius: 16px;
-    padding: 14px;
-    border: 1px solid var(--vm-border);
-}
-
-.vm-payment-card--dark {
-    background: linear-gradient(160deg, #181816 0%, #292824 100%);
-    border-color: #2e2d29;
-    color: #ffffff;
-}
-
-.vm-payment-card--light {
-    background: #fcfaf5;
-}
-
-.vm-payment-card__head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 18px;
-}
-
-.vm-payment-card__badge {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.11em;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    padding: 4px 8px;
-    border-radius: 999px;
-    font-weight: 700;
-}
-
-.vm-payment-card--light .vm-payment-card__badge {
-    border-color: #ded6c5;
-    background: #f6f0e4;
-    color: #6a5730;
-}
-
-.vm-payment-card h2 {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 800;
-}
-
-.vm-payment-card p {
-    margin: 6px 0 16px;
-    font-size: 13px;
-    opacity: 0.85;
-}
-
-.vm-payment-card__meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    border-top: 1px solid rgba(255, 255, 255, 0.14);
-    padding-top: 12px;
-    font-size: 12px;
-}
-
-.vm-payment-card--light .vm-payment-card__meta {
-    border-top-color: #e6dece;
-}
-
-.vm-payment-card__meta span {
-    opacity: 0.72;
-}
-
-.vm-payment-card__meta strong {
-    font-size: 13px;
-}
-
-.vm-payment-empty {
-    margin-top: 16px;
-    border: 1px dashed var(--vm-border);
+.vmpt__account-nav {
+    border: 1px solid var(--border);
     border-radius: 18px;
-    background: #fdfaf4;
-    padding: 40px 18px;
-    text-align: center;
+    background: var(--surface);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
-.vm-payment-empty i {
-    font-size: 36px;
-    color: #9ea097;
-}
-
-.vm-payment-empty h2 {
-    margin: 10px 0 8px;
-    font-size: 24px;
-    font-weight: 800;
-}
-
-.vm-payment-empty p {
-    margin: 0;
-    color: var(--vm-muted);
-}
-
-.vm-payment-empty a {
-    margin-top: 14px;
-    display: inline-block;
+.vmpt__account-nav a {
     text-decoration: none;
-    background: #1f1f1d;
-    color: #ffffff;
-    border-radius: 10px;
-    padding: 10px 14px;
-    font-weight: 700;
-}
-
-.vm-payment-add {
-    margin-top: 18px;
-    border-radius: 16px;
-    border: 1px solid var(--vm-border);
-    background: #fbfaf6;
-    padding: 16px;
-}
-
-.vm-payment-add__title-wrap h2 {
-    margin: 0;
-    font-size: 22px;
-    font-weight: 900;
-}
-
-.vm-payment-add__title-wrap p {
-    margin: 5px 0 0;
-    color: var(--vm-muted);
+    color: #2e302b;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    border-radius: 11px;
+    padding: 9px 11px;
     font-size: 13px;
+    font-weight: 700;
+    transition: background 0.15s;
+}
+.vmpt__account-nav a:hover { background: #f2ede0; }
+
+.vmpt__account-nav--active {
+    background: #1a1a18 !important;
+    color: #ffffff !important;
 }
 
-.vm-payment-add__options {
-    margin-top: 13px;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
+.vmpt__security-note {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+    padding: 13px;
+    display: flex;
+    gap: 11px;
+    align-items: flex-start;
 }
 
-.vm-payment-add__options article {
-    border: 1px solid #e7dfcf;
-    border-radius: 12px;
-    background: #ffffff;
-    padding: 11px;
-}
-
-.vm-payment-add__options article div {
+.vmpt__security-note__icon {
     width: 34px;
     height: 34px;
-    border-radius: 10px;
+    flex-shrink: 0;
+    border-radius: 50%;
     background: #f4efdf;
-    color: #6d5a35;
+    color: var(--accent);
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 9px;
-}
-
-.vm-payment-add__options article h3 {
-    margin: 0;
     font-size: 14px;
-    font-weight: 800;
 }
 
-.vm-payment-add__options article p {
-    margin: 4px 0 0;
-    font-size: 12px;
-    color: var(--vm-muted);
-    line-height: 1.45;
-}
-
-.vm-payment-main__footer {
-    margin-top: 16px;
-}
-
-.vm-payment-main__footer a {
-    text-decoration: none;
-    color: #22231f;
-    font-weight: 800;
+.vmpt__security-note h4 {
+    margin: 0 0 4px;
     font-size: 13px;
+    font-weight: 800;
 }
 
-@media (max-width: 991px) {
-    .vm-payment-desktop {
-        padding: 14px 12px 90px;
-    }
+.vmpt__security-note p {
+    margin: 0;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.5;
+}
 
-    .vm-payment-desktop__layout {
+.vmpt__editorial {
+    border: 1px solid #e4ddd0;
+    border-radius: 16px;
+    background: linear-gradient(145deg, #f4eedf 0%, #fdfcf7 100%);
+    padding: 14px;
+}
+
+.vmpt__editorial h4 {
+    margin: 0 0 6px;
+    font-size: 15px;
+    font-weight: 800;
+    font-family: 'Noto Serif', serif;
+}
+
+.vmpt__editorial p {
+    margin: 0;
+    font-size: 12px;
+    color: #4e5249;
+    line-height: 1.6;
+}
+
+/* ── MOBILE STACK BELOW 640px ─── */
+@media (max-width: 639px) {
+    .vmpt__body {
         grid-template-columns: 1fr;
-        gap: 12px;
     }
-
-    .vm-payment-side {
-        position: static;
-    }
-
-    .vm-payment-grid {
+    .vmpt__right { position: static; }
+    .vmpt__saved-grid,
+    .vmpt__options {
         grid-template-columns: 1fr;
     }
+    .vmpt__topbar-copy h1 { font-size: 22px; }
+}
 
-    .vm-payment-main__hero h1 {
-        font-size: 27px;
-    }
-
-    .vm-payment-main__hero {
-        flex-wrap: wrap;
-    }
-
-    .vm-payment-add__options {
-        grid-template-columns: 1fr;
-    }
+/* ── DESKTOP STRETCH ABOVE 1024px ─── */
+@media (min-width: 1024px) {
+    .vmpt { padding-left: 28px; padding-right: 28px; }
+    .vmpt__body { grid-template-columns: 1fr 280px; }
 }
 </style>
 {% endblock %}

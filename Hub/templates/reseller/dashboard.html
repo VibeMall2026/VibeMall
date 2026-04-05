@@ -2,141 +2,25 @@
 {% load static %}
 
 {% block title %}Reseller Dashboard - VibeMall{% endblock %}
-{% block body_class %}vm-page-mobile-alt vm-page-reseller-dashboard{% endblock %}
-{% block ui_chrome %}mobile{% endblock %}
+{% block body_class %}vm-page-reseller-dashboard{% endblock %}
 
 {% block extra_css %}
 <style>
 .vm-rdd-page {
-    min-height: 100vh;
     background: #fbf9f4;
     color: #1b1c19;
     font-family: "Manrope", sans-serif;
-}
-
-.vm-rdd-top {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 70;
-    height: 76px;
-    border-bottom: 1px solid rgba(27, 28, 25, 0.08);
-    background: rgba(251, 249, 244, 0.92);
-    backdrop-filter: blur(10px);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 0 22px;
-}
-
-.vm-rdd-top-left {
-    display: flex;
-    align-items: center;
-    gap: 28px;
-    min-width: 0;
-}
-
-.vm-rdd-brand {
-    margin: 0;
-    font-family: "Noto Serif", Georgia, serif;
-    font-size: 28px;
-    letter-spacing: -0.04em;
-    line-height: 1;
-}
-
-.vm-rdd-top-tabs {
-    display: none;
-    align-items: center;
-    gap: 18px;
-}
-
-.vm-rdd-top-tabs a {
-    text-decoration: none;
-    color: rgba(27, 28, 25, 0.52);
-    font-family: "Noto Serif", Georgia, serif;
-    font-size: 15px;
-    padding-bottom: 4px;
-}
-
-.vm-rdd-top-tabs a.is-active {
-    color: #171818;
-    border-bottom: 2px solid #6f5c37;
-}
-
-.vm-rdd-search {
-    display: none;
-    position: relative;
-    width: 100%;
-    max-width: 460px;
-}
-
-.vm-rdd-search input {
-    width: 100%;
-    border: 0;
-    border-radius: 12px;
-    min-height: 44px;
-    background: #f0eee9;
-    color: #171818;
-    font-size: 13px;
-    padding: 0 14px 0 38px;
-}
-
-.vm-rdd-search i {
-    position: absolute;
-    top: 50%;
-    left: 14px;
-    transform: translateY(-50%);
-    color: #747878;
-    font-size: 14px;
-}
-
-.vm-rdd-top-actions {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.vm-rdd-icon-btn {
-    border: 0;
-    background: transparent;
-    color: #171818;
-    width: 32px;
-    height: 32px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.vm-rdd-avatar {
-    width: 34px;
-    height: 34px;
-    border-radius: 999px;
-    background: #e4e2dd;
-    color: #171818;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    font-weight: 700;
-    text-transform: uppercase;
-}
-
-.vm-rdd-shell {
-    padding-top: 76px;
-}
-
-.vm-rdd-side {
-    display: none;
+    min-height: 50vh;
 }
 
 .vm-rdd-main {
-    padding: 18px 14px 92px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 28px 18px 60px;
 }
 
 .vm-rdd-header {
-    margin-bottom: 18px;
+    margin-bottom: 20px;
 }
 
 .vm-rdd-header h1 {
@@ -376,70 +260,29 @@
     text-transform: uppercase;
     letter-spacing: 0.1em;
     font-weight: 800;
+    cursor: pointer;
 }
 
-.vm-rdd-footer {
-    margin-top: 18px;
-    color: #747878;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
+.vm-rdd-breadcrumb {
     display: flex;
-    justify-content: space-between;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.vm-rdd-footer-links {
-    display: inline-flex;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.vm-rdd-footer-links a {
-    color: #747878;
-    text-decoration: none;
-}
-
-.vm-rdd-mobile-nav {
-    position: fixed;
-    left: 10px;
-    right: 10px;
-    bottom: 10px;
-    z-index: 60;
-    min-height: 62px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(10px);
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    padding: 6px;
-    box-shadow: 0 12px 30px -24px rgba(27, 28, 25, 0.5);
-}
-
-.vm-rdd-mobile-nav a {
-    text-decoration: none;
-    color: rgba(27, 28, 25, 0.56);
-    border-radius: 999px;
-    display: inline-flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 2px;
-    font-size: 8px;
+    gap: 6px;
+    margin-bottom: 20px;
+    font-size: 11px;
+    color: rgba(27, 28, 25, 0.52);
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-weight: 800;
+    letter-spacing: 0.1em;
+    font-weight: 700;
 }
 
-.vm-rdd-mobile-nav a i {
-    font-size: 14px;
+.vm-rdd-breadcrumb a {
+    color: rgba(27, 28, 25, 0.52);
+    text-decoration: none;
 }
 
-.vm-rdd-mobile-nav a.is-active {
-    background: #171818;
-    color: #fff;
-}
+.vm-rdd-breadcrumb a:hover { color: #6f5c37; }
+
+.vm-rdd-breadcrumb span { color: #171818; }
 
 .vm-rdd-empty {
     margin: 0;
@@ -450,114 +293,19 @@
 }
 
 @media (min-width: 1024px) {
-    .vm-rdd-top {
-        padding: 0 32px;
-    }
-
-    .vm-rdd-top-tabs,
-    .vm-rdd-search {
-        display: inline-flex;
-    }
-
-    .vm-rdd-shell {
-        display: grid;
-        grid-template-columns: 252px minmax(0, 1fr);
-        min-height: calc(100vh - 76px);
-    }
-
-    .vm-rdd-side {
-        display: flex;
-        position: fixed;
-        left: 0;
-        top: 76px;
-        width: 252px;
-        height: calc(100vh - 76px);
-        background: #fbf9f4;
-        border-right: 1px solid rgba(27, 28, 25, 0.08);
-        padding: 24px 18px;
-        flex-direction: column;
-        gap: 14px;
-    }
-
-    .vm-rdd-side-profile {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding-bottom: 8px;
-        border-bottom: 1px dashed rgba(27, 28, 25, 0.12);
-    }
-
-    .vm-rdd-side-profile .vm-rdd-avatar {
-        width: 38px;
-        height: 38px;
-    }
-
-    .vm-rdd-side-profile h3 {
-        margin: 0;
-        font-size: 12px;
-        font-weight: 700;
-    }
-
-    .vm-rdd-side-profile p {
-        margin: 3px 0 0;
-        font-size: 9px;
-        color: #747878;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-    }
-
-    .vm-rdd-side-nav {
-        display: grid;
-        gap: 6px;
-    }
-
-    .vm-rdd-side-nav a {
-        text-decoration: none;
-        min-height: 40px;
-        border-radius: 10px;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 0 10px;
-        color: rgba(27, 28, 25, 0.56);
-        font-size: 10px;
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-        font-weight: 800;
-    }
-
-    .vm-rdd-side-nav a.is-active {
-        color: #171818;
-        background: #e4e2dd;
-    }
-
-    .vm-rdd-side-footer {
-        margin-top: auto;
-    }
-
-    .vm-rdd-side-footer a {
-        width: 100%;
-    }
-
     .vm-rdd-main {
-        margin-left: 252px;
-        padding: 26px 32px 24px;
+        padding: 40px 40px 60px;
     }
 
     .vm-rdd-header {
-        margin-bottom: 20px;
         display: flex;
-        align-items: end;
+        align-items: flex-end;
         justify-content: space-between;
         gap: 20px;
     }
 
     .vm-rdd-header h1 {
         font-size: 48px;
-    }
-
-    .vm-rdd-actions-row {
-        margin-bottom: 18px;
     }
 
     .vm-rdd-stats {
@@ -567,28 +315,12 @@
     }
 
     .vm-rdd-panels {
-        grid-template-columns: minmax(0, 1fr);
+        grid-template-columns: 1fr 1fr;
         gap: 16px;
-    }
-
-    .vm-rdd-footer {
-        margin-top: 22px;
-    }
-
-    .vm-rdd-mobile-nav {
-        display: none;
     }
 }
 
 @media (min-width: 1440px) {
-    .vm-rdd-main {
-        padding: 30px 40px 24px;
-    }
-
-    .vm-rdd-panels {
-        grid-template-columns: 1fr 1fr;
-    }
-
     .vm-rdd-panels .vm-rdd-panel:first-child {
         grid-column: span 2;
     }
@@ -598,192 +330,139 @@
 
 {% block content %}
 <section class="vm-rdd-page">
-    <header class="vm-rdd-top">
-        <div class="vm-rdd-top-left">
-            <h1 class="vm-rdd-brand">VibeMall</h1>
-            <nav class="vm-rdd-top-tabs" aria-label="Top navigation">
-                <a href="{% url 'shop' %}">Collections</a>
-                <a href="{% url 'reseller_links' %}">Resell Hub</a>
-                <a href="{% url 'reseller_dashboard' %}" class="is-active">Analytics</a>
-                <a href="{% url 'reseller_links' %}">Inventory</a>
-            </nav>
-        </div>
+    <div class="vm-rdd-main">
 
-        <div class="vm-rdd-search">
-            <i class="fas fa-search"></i>
-            <input type="text" placeholder="Search Atelier listings..." aria-label="Search listings">
-        </div>
+        {% if messages %}
+        <section class="vm-rdd-panel" style="margin-bottom:14px;">
+            {% for message in messages %}
+            <p style="margin:0; font-size:12px; color:#b42318;">{{ message }}</p>
+            {% endfor %}
+        </section>
+        {% endif %}
 
-        <div class="vm-rdd-top-actions">
-            <a href="{% url 'cart' %}" class="vm-rdd-icon-btn" aria-label="Cart"><i class="far fa-shopping-bag"></i></a>
-            <a href="{% url 'reseller_profile' %}" class="vm-rdd-icon-btn" aria-label="Notifications"><i class="far fa-bell"></i></a>
-            <a href="{% url 'reseller_profile' %}" class="vm-rdd-avatar" aria-label="Profile">{{ request.user.username|slice:':1' }}</a>
-        </div>
-    </header>
+        <nav class="vm-rdd-breadcrumb" aria-label="Breadcrumb">
+            <a href="{% url 'index' %}">Home</a>
+            <i class="fas fa-chevron-right" style="font-size:8px;" aria-hidden="true"></i>
+            <a href="{% url 'reseller_links' %}">Resell Hub</a>
+            <i class="fas fa-chevron-right" style="font-size:8px;" aria-hidden="true"></i>
+            <span>Dashboard</span>
+        </nav>
 
-    <div class="vm-rdd-shell">
-        <aside class="vm-rdd-side" aria-label="Reseller sidebar">
-            <section class="vm-rdd-side-profile">
-                <div class="vm-rdd-avatar">{{ request.user.username|slice:':1' }}</div>
-                <div>
-                    <h3>Atelier Partner</h3>
-                    <p>Elite Merchant</p>
-                </div>
-            </section>
-
-            <nav class="vm-rdd-side-nav">
-                <a href="{% url 'reseller_dashboard' %}" class="is-active"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
-                <a href="{% url 'reseller_links' %}"><i class="fas fa-tags"></i><span>Active Listings</span></a>
-                <a href="{% url 'order_list' %}"><i class="fas fa-receipt"></i><span>Order History</span></a>
-                <a href="{% url 'payout_request_page' %}"><i class="fas fa-wallet"></i><span>Payouts</span></a>
-                <a href="{% url 'reseller_profile' %}"><i class="fas fa-cog"></i><span>Settings</span></a>
-            </nav>
-
-            <div class="vm-rdd-side-footer">
-                <a href="{% url 'reseller_links' %}" class="vm-rdd-chip-btn is-primary"><i class="fas fa-link"></i><span>Manage Listings</span></a>
+        <header class="vm-rdd-header">
+            <div>
+                <h1>Performance Overview</h1>
+                <p>Welcome back, {{ request.user.first_name|default:request.user.username }}. Your reseller storefront is growing this season.</p>
             </div>
-        </aside>
-
-        <main class="vm-rdd-main">
-            {% if messages %}
-            <section class="vm-rdd-panel" style="margin-bottom:12px;">
-                {% for message in messages %}
-                <p style="margin:0; font-size:12px; color:#b42318;">{{ message }}</p>
-                {% endfor %}
-            </section>
-            {% endif %}
-
-            <header class="vm-rdd-header">
-                <div>
-                    <h1>Performance Overview</h1>
-                    <p>Welcome back, {{ request.user.first_name|default:request.user.username }}. Your reseller storefront is growing this season.</p>
-                </div>
-                <div class="vm-rdd-actions-row">
-                    <a href="{% url 'earnings_history' %}" class="vm-rdd-chip-btn"><i class="fas fa-file-download"></i><span>Export Report</span></a>
-                    <a href="{% url 'earnings_history' %}" class="vm-rdd-chip-btn is-primary"><i class="fas fa-chart-line"></i><span>View Insights</span></a>
-                </div>
-            </header>
-
-            <section class="vm-rdd-stats" aria-label="Reseller KPI cards">
-                <article class="vm-rdd-stat">
-                    <small>Net Revenue</small>
-                    <strong>Rs {{ total_revenue|floatformat:2 }}</strong>
-                    <p>From reseller orders</p>
-                </article>
-                <article class="vm-rdd-stat">
-                    <small>Items Sold</small>
-                    <strong>{{ total_resell_orders }}</strong>
-                    <p>Total fulfilled reseller orders</p>
-                </article>
-                <article class="vm-rdd-stat">
-                    <small>Avg. Order Value</small>
-                    <strong>Rs {{ avg_order_value|floatformat:2 }}</strong>
-                    <p>Average ticket size</p>
-                </article>
-                <article class="vm-rdd-stat">
-                    <small>Profile Views</small>
-                    <strong>{{ total_clicks }}</strong>
-                    <p>Active link engagement</p>
-                </article>
-            </section>
-
-            <div class="vm-rdd-panels">
-                <section class="vm-rdd-panel">
-                    <div class="vm-rdd-panel-head">
-                        <h2>Recent Orders</h2>
-                        <a href="{% url 'order_list' %}">View All Orders</a>
-                    </div>
-
-                    {% if recent_orders %}
-                    <div class="vm-rdd-table-wrap">
-                        <table class="vm-rdd-table">
-                            <thead>
-                                <tr>
-                                    <th>Order ID</th>
-                                    <th>Item</th>
-                                    <th class="is-right">Amount</th>
-                                    <th class="is-center">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for order in recent_orders %}
-                                <tr>
-                                    <td>#{{ order.order_number }}</td>
-                                    <td>
-                                        {% with first_item=order.items.first %}
-                                            {% if first_item and first_item.product %}
-                                                {{ first_item.product.name }}
-                                            {% else %}
-                                                Reseller Order
-                                            {% endif %}
-                                        {% endwith %}
-                                    </td>
-                                    <td class="is-right">Rs {{ order.total_amount|floatformat:2 }}</td>
-                                    <td class="is-center">
-                                        <span class="vm-rdd-badge {% if order.order_status == 'PENDING' or order.order_status == 'PROCESSING' %}vm-rdd-badge--processing{% elif order.order_status == 'SHIPPED' %}vm-rdd-badge--shipped{% elif order.order_status == 'DELIVERED' %}vm-rdd-badge--delivered{% elif order.order_status == 'CANCELLED' or order.order_status == 'REJECTED' %}vm-rdd-badge--cancelled{% else %}vm-rdd-badge--default{% endif %}">
-                                            {{ order.get_order_status_display }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <p class="vm-rdd-empty">No reseller orders found yet.</p>
-                    {% endif %}
-                </section>
-
-                <section class="vm-rdd-panel">
-                    <div class="vm-rdd-panel-head">
-                        <h2>Active Resell Links</h2>
-                        <a href="{% url 'reseller_links' %}">Manage Links</a>
-                    </div>
-
-                    {% if active_links %}
-                    <div class="vm-rdd-link-list">
-                        {% for link in active_links %}
-                        <article class="vm-rdd-link-item">
-                            <div class="vm-rdd-link-img">
-                                {% if link.product.image %}
-                                <img src="{{ link.product.image.url }}" alt="{{ link.product.name }}">
-                                {% endif %}
-                            </div>
-                            <div>
-                                <h3 style="margin:0; font-size:13px; font-weight:700;">{{ link.product.name }}</h3>
-                                <p style="margin:4px 0 0; font-size:11px; color:#747878; word-break:break-all;">{{ request.get_host }}/product/{{ link.product.slug }}/?resell={{ link.resell_code }}</p>
-                                <p style="margin:5px 0 0; font-size:10px; color:#6f5c37; font-weight:700;">
-                                    {{ link.views_count }} clicks •
-                                    {% if link.views_count %}{% widthratio link.orders_count link.views_count 100 %}{% else %}0{% endif %}% conv.
-                                </p>
-                            </div>
-                            <button type="button" class="vm-rdd-link-copy js-copy-resell-link" data-link="{{ request.scheme }}://{{ request.get_host }}/product/{{ link.product.slug }}/?resell={{ link.resell_code }}">Copy</button>
-                        </article>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <p class="vm-rdd-empty">No active resell links available.</p>
-                    {% endif %}
-                </section>
+            <div class="vm-rdd-actions-row">
+                <a href="{% url 'earnings_history' %}" class="vm-rdd-chip-btn"><i class="fas fa-file-download"></i><span>Export Report</span></a>
+                <a href="{% url 'earnings_history' %}" class="vm-rdd-chip-btn is-primary"><i class="fas fa-chart-line"></i><span>View Insights</span></a>
             </div>
+        </header>
 
-            <footer class="vm-rdd-footer" aria-label="Dashboard footer links">
-                <div>© {% now "Y" %} VibeMall. All Rights Reserved.</div>
-                <nav class="vm-rdd-footer-links">
-                    <a href="#">Privacy Policy</a>
-                    <a href="#">Terms of Service</a>
-                    <a href="#">Support</a>
-                </nav>
-            </footer>
-        </main>
+        <section class="vm-rdd-stats" aria-label="Reseller KPI cards">
+            <article class="vm-rdd-stat">
+                <small>Net Revenue</small>
+                <strong>Rs {{ total_revenue|floatformat:2 }}</strong>
+                <p>From reseller orders</p>
+            </article>
+            <article class="vm-rdd-stat">
+                <small>Items Sold</small>
+                <strong>{{ total_resell_orders }}</strong>
+                <p>Total fulfilled reseller orders</p>
+            </article>
+            <article class="vm-rdd-stat">
+                <small>Avg. Order Value</small>
+                <strong>Rs {{ avg_order_value|floatformat:2 }}</strong>
+                <p>Average ticket size</p>
+            </article>
+            <article class="vm-rdd-stat">
+                <small>Profile Views</small>
+                <strong>{{ total_clicks }}</strong>
+                <p>Active link engagement</p>
+            </article>
+        </section>
+
+        <div class="vm-rdd-panels">
+            <section class="vm-rdd-panel">
+                <div class="vm-rdd-panel-head">
+                    <h2>Recent Orders</h2>
+                    <a href="{% url 'order_list' %}">View All Orders</a>
+                </div>
+
+                {% if recent_orders %}
+                <div class="vm-rdd-table-wrap">
+                    <table class="vm-rdd-table">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Item</th>
+                                <th class="is-right">Amount</th>
+                                <th class="is-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in recent_orders %}
+                            <tr>
+                                <td>#{{ order.order_number }}</td>
+                                <td>
+                                    {% with first_item=order.items.first %}
+                                        {% if first_item and first_item.product %}
+                                            {{ first_item.product.name }}
+                                        {% else %}
+                                            Reseller Order
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td class="is-right">Rs {{ order.total_amount|floatformat:2 }}</td>
+                                <td class="is-center">
+                                    <span class="vm-rdd-badge {% if order.order_status == 'PENDING' or order.order_status == 'PROCESSING' %}vm-rdd-badge--processing{% elif order.order_status == 'SHIPPED' %}vm-rdd-badge--shipped{% elif order.order_status == 'DELIVERED' %}vm-rdd-badge--delivered{% elif order.order_status == 'CANCELLED' or order.order_status == 'REJECTED' %}vm-rdd-badge--cancelled{% else %}vm-rdd-badge--default{% endif %}">
+                                        {{ order.get_order_status_display }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="vm-rdd-empty">No reseller orders found yet.</p>
+                {% endif %}
+            </section>
+
+            <section class="vm-rdd-panel">
+                <div class="vm-rdd-panel-head">
+                    <h2>Active Resell Links</h2>
+                    <a href="{% url 'reseller_links' %}">Manage Links</a>
+                </div>
+
+                {% if active_links %}
+                <div class="vm-rdd-link-list">
+                    {% for link in active_links %}
+                    <article class="vm-rdd-link-item">
+                        <div class="vm-rdd-link-img">
+                            {% if link.product.image %}
+                            <img src="{{ link.product.image.url }}" alt="{{ link.product.name }}">
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h3 style="margin:0; font-size:13px; font-weight:700;">{{ link.product.name }}</h3>
+                            <p style="margin:4px 0 0; font-size:11px; color:#747878; word-break:break-all;">{{ request.get_host }}/product/{{ link.product.slug }}/?resell={{ link.resell_code }}</p>
+                            <p style="margin:5px 0 0; font-size:10px; color:#6f5c37; font-weight:700;">
+                                {{ link.views_count }} clicks •
+                                {% if link.views_count %}{% widthratio link.orders_count link.views_count 100 %}{% else %}0{% endif %}% conv.
+                            </p>
+                        </div>
+                        <button type="button" class="vm-rdd-link-copy js-copy-resell-link" data-link="{{ request.scheme }}://{{ request.get_host }}/product/{{ link.product.slug }}/?resell={{ link.resell_code }}">Copy</button>
+                    </article>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="vm-rdd-empty">No active resell links available.</p>
+                {% endif %}
+            </section>
+        </div>
+
     </div>
-
-    <nav class="vm-rdd-mobile-nav" aria-label="Reseller mobile navigation">
-        <a href="{% url 'reseller_dashboard' %}" class="is-active" aria-current="page"><i class="fas fa-home"></i><span>Home</span></a>
-        <a href="{% url 'earnings_history' %}"><i class="fas fa-chart-line"></i><span>Analytics</span></a>
-        <a href="{% url 'payout_request_page' %}"><i class="fas fa-wallet"></i><span>Wallet</span></a>
-        <a href="{% url 'reseller_profile' %}"><i class="far fa-user"></i><span>Profile</span></a>
-    </nav>
 </section>
 
 <script>
