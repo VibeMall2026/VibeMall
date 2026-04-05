@@ -1,143 +1,490 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block body_class %}vm-page-mobile-alt{% endblock %}
+{% block title %}Reseller Profile Settings - VibeMall{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-reseller-profile-tablet{% endblock %}
+{% block ui_chrome %}mobile{% endblock %}
 
+{% block extra_css %}
+<style>
+.vm-rpt-page {
+    min-height: 100vh;
+    background: #fbf9f4;
+    color: #1b1c19;
+    font-family: "Manrope", sans-serif;
+}
 
-{% block title %}Reseller Profile - VibeMall{% endblock %}
+.vm-rpt-topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 80;
+    min-height: 74px;
+    background: rgba(251, 249, 244, 0.88);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(27, 28, 25, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    gap: 10px;
+}
+
+.vm-rpt-brand {
+    margin: 0;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 24px;
+    letter-spacing: -0.04em;
+    line-height: 1;
+}
+
+.vm-rpt-search {
+    display: none;
+    position: relative;
+    width: 100%;
+    max-width: 380px;
+}
+
+.vm-rpt-search input {
+    width: 100%;
+    min-height: 38px;
+    border: 1px solid rgba(196, 199, 199, 0.35);
+    border-radius: 999px;
+    background: #f0eee9;
+    color: #171818;
+    padding: 0 12px 0 34px;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.vm-rpt-search i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #747878;
+    font-size: 12px;
+}
+
+.vm-rpt-top-icons {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.vm-rpt-icon-btn {
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #171818;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.vm-rpt-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    background: #e4e2dd;
+    color: #171818;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.vm-rpt-shell {
+    padding-top: 74px;
+}
+
+.vm-rpt-side {
+    display: none;
+}
+
+.vm-rpt-main {
+    padding: 14px;
+}
+
+.vm-rpt-title {
+    margin: 0;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 34px;
+    line-height: 1.08;
+    letter-spacing: -0.04em;
+}
+
+.vm-rpt-subtitle {
+    margin: 8px 0 0;
+    color: rgba(68, 71, 72, 0.78);
+    font-size: 13px;
+}
+
+.vm-rpt-layout {
+    margin-top: 14px;
+    display: grid;
+    gap: 12px;
+}
+
+.vm-rpt-card {
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 16px 30px -24px rgba(27, 28, 25, 0.4);
+    padding: 14px;
+}
+
+.vm-rpt-card h3 {
+    margin: 0 0 10px;
+    font-family: "Noto Serif", Georgia, serif;
+    font-size: 20px;
+    letter-spacing: -0.02em;
+}
+
+.vm-rpt-field {
+    margin-top: 10px;
+}
+
+.vm-rpt-field label {
+    display: block;
+    margin-bottom: 5px;
+    color: #6f5c37;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    font-weight: 700;
+}
+
+.vm-rpt-input,
+.vm-rpt-textarea {
+    width: 100%;
+    border: 0;
+    border-bottom: 1px solid rgba(116, 120, 120, 0.3);
+    border-radius: 0;
+    background: transparent;
+    color: #171818;
+    font-size: 16px;
+    padding: 8px 0 10px;
+    outline: none;
+}
+
+.vm-rpt-textarea {
+    min-height: 86px;
+    resize: vertical;
+}
+
+.vm-rpt-hint {
+    margin: 6px 0 0;
+    color: rgba(68, 71, 72, 0.72);
+    font-size: 11px;
+}
+
+.vm-rpt-status {
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+}
+
+.vm-rpt-status--active {
+    background: #e7f3ea;
+    color: #1f6a35;
+}
+
+.vm-rpt-status--inactive {
+    background: #fff4e5;
+    color: #9a5f00;
+}
+
+.vm-rpt-metric {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 0;
+    border-bottom: 1px solid rgba(228, 226, 221, 0.9);
+    font-size: 12px;
+}
+
+.vm-rpt-metric:last-child {
+    border-bottom: 0;
+}
+
+.vm-rpt-actions {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.vm-rpt-save,
+.vm-rpt-discard {
+    min-height: 44px;
+    border-radius: 10px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-weight: 800;
+}
+
+.vm-rpt-save {
+    border: 0;
+    background: #171818;
+    color: #fff;
+}
+
+.vm-rpt-discard {
+    border: 1px solid rgba(116, 120, 120, 0.45);
+    background: transparent;
+    color: #171818;
+}
+
+.vm-rpt-alerts {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.vm-rpt-alert {
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 12px;
+}
+
+.vm-rpt-alert--error {
+    background: #ffedea;
+    color: #ba1a1a;
+}
+
+.vm-rpt-alert--success {
+    background: #e8f3ea;
+    color: #1f6a35;
+}
+
+@media (min-width: 768px) {
+    .vm-rpt-topbar {
+        padding: 10px 18px;
+        gap: 14px;
+    }
+
+    .vm-rpt-search {
+        display: block;
+    }
+
+    .vm-rpt-shell {
+        display: grid;
+        grid-template-columns: 240px minmax(0, 1fr);
+    }
+
+    .vm-rpt-side {
+        display: flex;
+        position: fixed;
+        left: 0;
+        top: 74px;
+        width: 240px;
+        height: calc(100vh - 74px);
+        background: #f0eee9;
+        border-right: 1px solid rgba(27, 28, 25, 0.08);
+        padding: 16px 10px;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .vm-rpt-side h2 {
+        margin: 0;
+        padding: 0 8px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.11em;
+        font-weight: 800;
+    }
+
+    .vm-rpt-side p {
+        margin: 3px 0 8px;
+        padding: 0 8px;
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #6f5c37;
+        font-weight: 800;
+    }
+
+    .vm-rpt-side a {
+        text-decoration: none;
+        min-height: 38px;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 10px;
+        color: rgba(27, 28, 25, 0.56);
+        font-size: 10px;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+        font-weight: 800;
+    }
+
+    .vm-rpt-side a.is-active {
+        background: #e4e2dd;
+        color: #171818;
+        border-left: 4px solid #6f5c37;
+    }
+
+    .vm-rpt-main {
+        margin-left: 240px;
+        padding: 18px;
+    }
+
+    .vm-rpt-layout {
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+        align-items: start;
+    }
+
+    .vm-rpt-left {
+        display: grid;
+        gap: 12px;
+    }
+
+    .vm-rpt-right {
+        display: grid;
+        gap: 12px;
+        position: sticky;
+        top: 90px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .vm-rpt-main {
+        padding: 24px;
+    }
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-    <div class="row">
-        <div class="col-12">
-            <h2 class="mb-4">Reseller Profile Settings</h2>
+<section class="vm-rpt-page">
+    <header class="vm-rpt-topbar">
+        <h1 class="vm-rpt-brand">VIBEMALL</h1>
+
+        <div class="vm-rpt-search">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search curated artisanal collections..." aria-label="Search collections">
         </div>
-    </div>
 
-    <div class="row">
-        <div class="col-md-8 mx-auto">
-            <div class="card">
-                <div class="card-body">
-                    {% if messages %}
-                    {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="close" data-dismiss="alert">
-                            <span>&times;</span>
-                        </button>
-                    </div>
-                    {% endfor %}
-                    {% endif %}
+        <div class="vm-rpt-top-icons">
+            <a href="{% url 'cart' %}" class="vm-rpt-icon-btn" aria-label="Cart"><i class="far fa-shopping-bag"></i></a>
+            <a href="{% url 'reseller_profile' %}" class="vm-rpt-avatar" aria-label="Profile">{{ request.user.username|slice:':1' }}</a>
+        </div>
+    </header>
 
-                    <form method="post" id="resellerProfileForm">
-                        {% csrf_token %}
+    <div class="vm-rpt-shell">
+        <aside class="vm-rpt-side" aria-label="Reseller navigation">
+            <h2>The Reseller Suite</h2>
+            <p>Verified Partner</p>
+            <a href="{% url 'reseller_dashboard' %}"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
+            <a href="{% url 'reseller_profile' %}" class="is-active"><i class="fas fa-store"></i><span>Business Profile</span></a>
+            <a href="{% url 'payout_request_page' %}"><i class="fas fa-wallet"></i><span>Payout Settings</span></a>
+            <a href="{% url 'order_list' %}"><i class="fas fa-history"></i><span>Order History</span></a>
+            <a href="{% url 'reseller_links' %}"><i class="fas fa-lock"></i><span>Privacy & Links</span></a>
+        </aside>
 
-                        <!-- Business Information -->
-                        <h5 class="mb-3">Business Information</h5>
-                        <div class="form-group">
-                            <label for="business_name">Business Name (Optional)</label>
-                            <input type="text" class="form-control" id="business_name" name="business_name" 
-                                   value="{{ profile.business_name }}" placeholder="Your business name">
-                            <small class="form-text text-muted">
-                                This will be displayed on invoices and communications
-                            </small>
-                        </div>
-
-                        <hr class="my-4">
-
-                        <!-- Bank Account Details -->
-                        <h5 class="mb-3">Bank Account Details</h5>
-                        <div class="form-group">
-                            <label for="bank_account_name">Account Holder Name</label>
-                            <input type="text" class="form-control" id="bank_account_name" name="bank_account_name" 
-                                   value="{{ profile.bank_account_name }}" placeholder="As per bank records">
-                        </div>
-                        <div class="form-group">
-                            <label for="bank_account_number">Bank Account Number</label>
-                            <input type="text" class="form-control" id="bank_account_number" name="bank_account_number" 
-                                   value="{{ profile.bank_account_number }}" placeholder="Enter account number" inputmode="numeric">
-                            <small id="bank_account_hint" class="form-text text-muted">
-                                Enter 6 to 34 digits only.
-                            </small>
-                        </div>
-                        <div class="form-group">
-                            <label for="bank_ifsc_code">IFSC Code</label>
-                            <input type="text" class="form-control" id="bank_ifsc_code" name="bank_ifsc_code" 
-                                   value="{{ profile.bank_ifsc_code }}" placeholder="e.g., SBIN0001234">
-                            <small id="bank_ifsc_hint" class="form-text text-muted">
-                                We check whether the IFSC exists and fetch its bank and branch.
-                            </small>
-                            <small id="bank_ifsc_name_hint" class="form-text text-muted"></small>
-                        </div>
-
-                        <hr class="my-4">
-
-                        <!-- UPI Details -->
-                        <h5 class="mb-3">UPI Details</h5>
-                        <div class="form-group">
-                            <label for="upi_id">UPI ID</label>
-                            <input type="text" class="form-control" id="upi_id" name="upi_id" 
-                                   value="{{ profile.upi_id }}" placeholder="yourname@upi">
-                            <small class="form-text text-muted">
-                                For faster payouts via UPI
-                            </small>
-                            <small id="upi_hint" class="form-text text-muted"></small>
-                            <small id="upi_name" class="form-text text-muted"></small>
-                        </div>
-
-                        <hr class="my-4">
-
-                        <!-- Tax Information -->
-                        <h5 class="mb-3">Tax Information</h5>
-                        <div class="form-group">
-                            <label for="pan_number">PAN Number (Optional)</label>
-                            <input type="text" class="form-control" id="pan_number" name="pan_number" 
-                                   value="{{ profile.pan_number }}" placeholder="ABCDE1234F" maxlength="10">
-                            <small class="form-text text-muted">
-                                Required for payouts above ₹50,000
-                            </small>
-                        </div>
-
-                        <hr class="my-4">
-
-                        <!-- Account Status -->
-                        <h5 class="mb-3">Account Status</h5>
-                        <div class="alert {% if profile.is_reseller_enabled %}alert-success{% else %}alert-warning{% endif %}">
-                            <strong>Status:</strong> 
-                            {% if profile.is_reseller_enabled %}
-                            <span class="badge badge-success">Active</span>
-                            Your reseller account is active and you can create resell links.
-                            {% else %}
-                            <span class="badge badge-warning">Inactive</span>
-                            Your reseller account is currently inactive. Contact admin to activate.
-                            {% endif %}
-                        </div>
-
-                        <div class="form-group">
-                            <button type="submit" class="btn btn-primary btn-lg btn-block">
-                                <i class="fas fa-save"></i> Save Profile
-                            </button>
-                        </div>
-                    </form>
-
-                    <hr class="my-4">
-
-                    <!-- Important Notes -->
-                    <div class="alert alert-info">
-                        <h6><i class="fas fa-info-circle"></i> Important Notes</h6>
-                        <ul class="mb-0">
-                            <li>Ensure all payment details are accurate to avoid payout delays</li>
-                            <li>You can update these details anytime</li>
-                            <li>Bank account and UPI details are encrypted and secure</li>
-                            <li>Bank account number is format checked here. Exact account ownership needs a penny-drop API from your payout provider.</li>
-                            <li>PAN is required for tax compliance on large payouts</li>
-                        </ul>
-                    </div>
-                </div>
+        <main class="vm-rpt-main">
+            {% if messages %}
+            <div class="vm-rpt-alerts">
+                {% for message in messages %}
+                <div class="vm-rpt-alert {% if message.tags == 'error' %}vm-rpt-alert--error{% else %}vm-rpt-alert--success{% endif %}">{{ message }}</div>
+                {% endfor %}
             </div>
-        </div>
+            {% endif %}
+
+            <h2 class="vm-rpt-title">Profile Settings</h2>
+            <p class="vm-rpt-subtitle">Manage your digital atelier identity and secure financial configurations with precision.</p>
+
+            <form method="post" id="resellerProfileForm" novalidate>
+                {% csrf_token %}
+                <div class="vm-rpt-layout">
+                    <section class="vm-rpt-left">
+                        <article class="vm-rpt-card">
+                            <h3>Business Credentials</h3>
+                            <div class="vm-rpt-field">
+                                <label for="business_name">Legal Business Name</label>
+                                <input id="business_name" name="business_name" class="vm-rpt-input" type="text" value="{{ profile.business_name|default:'' }}" placeholder="Your business name">
+                            </div>
+                            <div class="vm-rpt-field">
+                                <label>Business Handle</label>
+                                <p class="vm-rpt-hint">@{{ request.user.username }}</p>
+                            </div>
+                            <div class="vm-rpt-field">
+                                <label>Brand Story (Bio)</label>
+                                <textarea class="vm-rpt-textarea" disabled>{{ profile.business_name|default:request.user.get_full_name|default:request.user.username }} curates premium collections for VibeMall customers.</textarea>
+                            </div>
+                        </article>
+
+                        <article class="vm-rpt-card">
+                            <h3>Settlement Account</h3>
+                            <div class="vm-rpt-field">
+                                <label for="bank_account_name">Account Holder Name</label>
+                                <input id="bank_account_name" name="bank_account_name" class="vm-rpt-input" type="text" value="{{ profile.bank_account_name|default:'' }}" placeholder="As per bank records">
+                            </div>
+                            <div class="vm-rpt-field">
+                                <label for="bank_account_number">Bank Account Number</label>
+                                <input id="bank_account_number" name="bank_account_number" class="vm-rpt-input" type="password" value="{{ profile.bank_account_number|default:'' }}" placeholder="6 to 34 digits" inputmode="numeric">
+                                <p id="bank_account_hint" class="vm-rpt-hint">Enter 6 to 34 digits only.</p>
+                            </div>
+                            <div class="vm-rpt-field">
+                                <label for="bank_ifsc_code">IFSC Code</label>
+                                <input id="bank_ifsc_code" name="bank_ifsc_code" class="vm-rpt-input" type="text" value="{{ profile.bank_ifsc_code|default:'' }}" placeholder="e.g., HDFC0001234">
+                                <p id="bank_ifsc_hint" class="vm-rpt-hint">We check IFSC and show bank details.</p>
+                                <p id="bank_ifsc_name_hint" class="vm-rpt-hint"></p>
+                            </div>
+                            <div class="vm-rpt-field">
+                                <label for="upi_id">Primary VPA / UPI ID</label>
+                                <input id="upi_id" name="upi_id" class="vm-rpt-input" type="text" value="{{ profile.upi_id|default:'' }}" placeholder="username@bank">
+                                <p id="upi_hint" class="vm-rpt-hint"></p>
+                                <p id="upi_name" class="vm-rpt-hint"></p>
+                            </div>
+                            <div class="vm-rpt-field">
+                                <label for="pan_number">PAN Number</label>
+                                <input id="pan_number" name="pan_number" class="vm-rpt-input" type="text" maxlength="10" value="{{ profile.pan_number|default:'' }}" placeholder="ABCDE1234F">
+                            </div>
+                        </article>
+                    </section>
+
+                    <aside class="vm-rpt-right">
+                        <article class="vm-rpt-card" style="background:#171818;color:#fff;">
+                            <h3 style="color:#fff;">Partner Status</h3>
+                            {% if profile.is_reseller_enabled %}
+                            <span class="vm-rpt-status vm-rpt-status--active" style="background:rgba(231,243,234,0.16);color:#d7f0df;">Active & Verified</span>
+                            {% else %}
+                            <span class="vm-rpt-status vm-rpt-status--inactive" style="background:rgba(255,244,229,0.16);color:#ffe5be;">Inactive</span>
+                            {% endif %}
+                            <div class="vm-rpt-metric" style="border-color:rgba(255,255,255,0.16);"><span style="opacity:0.76;">Revenue (Lifetime)</span><strong>Rs {{ profile.total_earnings|floatformat:2 }}</strong></div>
+                            <div class="vm-rpt-metric" style="border-color:rgba(255,255,255,0.16);"><span style="opacity:0.76;">Active Listings</span><strong>{{ profile.total_orders }}</strong></div>
+                            <div class="vm-rpt-metric"><span style="opacity:0.76;">Available Balance</span><strong>Rs {{ profile.available_balance|floatformat:2 }}</strong></div>
+                        </article>
+
+                        <article class="vm-rpt-card">
+                            <h3>Actions</h3>
+                            <p class="vm-rpt-hint">Save your updates to refresh payout and compliance details.</p>
+                            <div class="vm-rpt-actions">
+                                <button type="submit" class="vm-rpt-save">Save Profile Changes</button>
+                                <button type="reset" class="vm-rpt-discard">Discard Changes</button>
+                            </div>
+                        </article>
+                    </aside>
+                </div>
+            </form>
+        </main>
     </div>
-</div>
+</section>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('resellerProfileForm');
@@ -156,7 +503,15 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
         node.textContent = message;
-        node.className = ok ? 'form-text text-success' : 'form-text text-danger';
+        node.style.color = ok ? '#1f6a35' : '#ba1a1a';
+    }
+
+    function resetHint(node, message) {
+        if (!node) {
+            return;
+        }
+        node.textContent = message;
+        node.style.color = 'rgba(68, 71, 72, 0.72)';
     }
 
     function getCsrfToken() {
@@ -168,12 +523,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const value = (bankAccountNumber.value || '').replace(/\s+/g, '');
         bankAccountNumber.value = value;
         if (!value) {
-            bankAccountHint.className = 'form-text text-muted';
-            bankAccountHint.textContent = 'Enter 6 to 34 digits only.';
+            resetHint(bankAccountHint, 'Enter 6 to 34 digits only.');
             return true;
         }
         const ok = /^[0-9]{6,34}$/.test(value);
-        setHint(bankAccountHint, ok, ok ? 'Bank account number looks valid.' : 'Use 6 to 34 digits only.');
+        setHint(bankAccountHint, ok, ok ? 'Bank account number format looks valid.' : 'Use 6 to 34 digits only.');
         return ok;
     }
 
@@ -181,8 +535,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const value = (bankIfscCode.value || '').trim().toUpperCase();
         bankIfscCode.value = value;
         if (!value) {
-            bankIfscHint.className = 'form-text text-muted';
-            bankIfscHint.textContent = 'We check whether the IFSC exists and fetch its bank and branch.';
+            resetHint(bankIfscHint, 'We check IFSC and show bank details.');
             bankIfscNameHint.textContent = '';
             return true;
         }
@@ -198,8 +551,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!bankIfscCode.value || !validateIfscFormat()) {
             return;
         }
-        bankIfscNameHint.className = 'form-text text-muted';
-        bankIfscNameHint.textContent = 'Fetching bank details...';
+        resetHint(bankIfscNameHint, 'Fetching bank details...');
         fetch('{% url "lookup_ifsc" %}', {
             method: 'POST',
             headers: {
@@ -214,8 +566,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     setHint(bankIfscNameHint, false, data.message || 'IFSC details not found.');
                     return;
                 }
-                bankIfscNameHint.className = 'form-text text-success';
-                bankIfscNameHint.textContent = `Bank: ${data.bank || '-'} | Branch: ${data.branch || '-'}`;
+                setHint(bankIfscNameHint, true, `Bank: ${data.bank || '-'} | Branch: ${data.branch || '-'}`);
             })
             .catch(() => {
                 setHint(bankIfscNameHint, false, 'Unable to fetch IFSC details.');
@@ -226,7 +577,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const value = (upiId.value || '').trim().toLowerCase();
         upiId.value = value;
         if (!value) {
-            upiHint.className = 'form-text text-muted';
             upiHint.textContent = '';
             upiName.textContent = '';
             return true;
@@ -243,9 +593,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!upiId.value || !validateUpiFormat()) {
             return;
         }
-        upiHint.className = 'form-text text-muted';
-        upiHint.textContent = 'Verifying UPI ID...';
+        resetHint(upiHint, 'Verifying UPI ID...');
         upiName.textContent = '';
+
         fetch('{% url "validate_upi_id" %}', {
             method: 'POST',
             headers: {
@@ -261,7 +611,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     return;
                 }
                 setHint(upiHint, true, 'UPI ID verified.');
-                upiName.className = 'form-text text-success';
+                upiName.style.color = '#1f6a35';
                 upiName.textContent = data.name ? `UPI Name: ${data.name}` : 'UPI verified.';
             })
             .catch(() => {
@@ -274,19 +624,23 @@ document.addEventListener('DOMContentLoaded', function () {
     bankIfscCode.addEventListener('blur', lookupIfsc);
     upiId.addEventListener('input', validateUpiFormat);
     upiId.addEventListener('blur', verifyUpi);
+
     form.addEventListener('submit', function (event) {
         const hasBankDetails = !!(
             (bankAccountName.value || '').trim() ||
             (bankAccountNumber.value || '').trim() ||
             (bankIfscCode.value || '').trim()
         );
+
         let ok = true;
         if (hasBankDetails) {
             ok = validateBankAccount() && validateIfscFormat() && ok;
         }
+
         if ((upiId.value || '').trim()) {
             ok = validateUpiFormat() && ok;
         }
+
         if (!ok) {
             event.preventDefault();
         }
