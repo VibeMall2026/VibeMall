@@ -9463,13 +9463,18 @@ def track_order_page(request):
     if request.method == 'GET':
         order_number = request.GET.get('order_number', '').strip()
 
+    def normalize_order_number(value: str) -> str:
+        normalized = re.sub(r'[^A-Za-z0-9]', '', (value or '').strip())
+        return normalized.upper()
+
     if order_number:
         if not request.user.is_authenticated:
             login_query = urlencode({'next': request.get_full_path()})
             return redirect(f"{reverse('login')}?{login_query}")
 
         try:
-            order = Order.objects.get(order_number=order_number, user=request.user)
+            normalized_order_number = normalize_order_number(order_number)
+            order = Order.objects.get(order_number__iexact=normalized_order_number, user=request.user)
             order_items = OrderItem.objects.filter(order=order)
             return_request_obj = order.return_requests.order_by('-requested_at').first()
             return_history = None
@@ -9492,9 +9497,11 @@ def order_details(request, order_number):
     """Display detailed view of a specific order"""
     if not request.user.is_authenticated:
         return redirect('login')
+
+    normalized_order_number = re.sub(r'[^A-Za-z0-9]', '', (order_number or '').strip()).upper()
     
     try:
-        order = Order.objects.get(order_number=order_number, user=request.user)
+        order = Order.objects.get(order_number__iexact=normalized_order_number, user=request.user)
         order_items = OrderItem.objects.filter(order=order)
         is_return_eligible, return_reason, return_deadline, eligible_items = _return_eligibility(order)
         active_return = order.return_requests.order_by('-requested_at').first()
@@ -9522,9 +9529,11 @@ def order_tracking(request, order_number):
     """Display beautiful timeline tracking for a specific order"""
     if not request.user.is_authenticated:
         return redirect('login')
+
+    normalized_order_number = re.sub(r'[^A-Za-z0-9]', '', (order_number or '').strip()).upper()
     
     try:
-        order = Order.objects.get(order_number=order_number, user=request.user)
+        order = Order.objects.get(order_number__iexact=normalized_order_number, user=request.user)
         order_items = OrderItem.objects.filter(order=order)
         return_request_obj = order.return_requests.order_by('-requested_at').first()
         return_history = None

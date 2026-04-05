@@ -4,150 +4,239 @@
     <meta charset="UTF-8">
     <title>Terms and Conditions - VibeMall</title>
     <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
-        h1 { color: #696cff; text-align: center; border-bottom: 3px solid #696cff; padding-bottom: 10px; }
-        h2 { color: #696cff; margin-top: 25px; }
-        h3 { color: #555; margin-top: 20px; }
-        p { margin: 10px 0; text-align: justify; }
-        ul { margin: 10px 0 10px 20px; }
-        .header { text-align: center; margin-bottom: 30px; }
-        .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid #ddd; text-align: center; font-size: 12px; color: #666; }
-        .important { background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0; }
+        @page {
+            margin: 24mm 18mm;
+            size: A4;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.65;
+            color: #1b1c19;
+            background: #fbf9f4;
+            margin: 0;
+            font-size: 11px;
+        }
+        .page {
+            background: #fbf9f4;
+        }
+        .eyebrow {
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.32em;
+            font-size: 9px;
+            color: #6f5c37;
+            margin-bottom: 12px;
+        }
+        .brand {
+            text-align: center;
+            font-family: Georgia, 'Times New Roman', serif;
+            font-style: italic;
+            font-size: 28px;
+            color: #171818;
+            margin-bottom: 24px;
+        }
+        .hero {
+            text-align: center;
+            margin-bottom: 26px;
+            padding-bottom: 18px;
+            border-bottom: 1px solid #d9d3c8;
+        }
+        .hero h1 {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            margin: 0 0 8px;
+            color: #171818;
+        }
+        .hero p {
+            margin: 3px 0;
+            color: #5c6161;
+            text-align: center;
+        }
+        .important {
+            background: #f0eee9;
+            border-left: 4px solid #6f5c37;
+            padding: 16px 18px;
+            margin: 0 0 24px;
+        }
+        h2 {
+            font-family: Georgia, 'Times New Roman', serif;
+            color: #171818;
+            font-size: 16px;
+            margin: 24px 0 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #e4e2dd;
+        }
+        p {
+            margin: 8px 0;
+            text-align: justify;
+            color: #30312e;
+        }
+        ul {
+            margin: 8px 0 8px 18px;
+            padding: 0;
+        }
+        li {
+            margin: 6px 0;
+        }
+        .closing-note {
+            margin-top: 28px;
+            padding: 16px 18px;
+            background: #f5f3ee;
+            border: 1px solid #e4e2dd;
+        }
+        .footer {
+            margin-top: 36px;
+            padding-top: 18px;
+            border-top: 1px solid #d9d3c8;
+            text-align: center;
+            font-size: 10px;
+            color: #747878;
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>TERMS AND CONDITIONS</h1>
-        <p><strong>VibeMall E-Commerce Platform</strong></p>
-        <p>Effective Date: {{ current_date }}</p>
-        <p>Last Updated: {{ current_date }}</p>
-    </div>
+    <div class="page">
+        <div class="eyebrow">Member Documentation</div>
+        <div class="brand">VIBEMALL ATELIER</div>
 
-    <div class="important">
-        <strong>IMPORTANT:</strong> Please read these Terms and Conditions carefully before using VibeMall. By registering or using our services, you agree to be bound by these terms.
-    </div>
+        <div class="hero">
+            <h1>Terms and Conditions</h1>
+            <p><strong>VibeMall E-Commerce Platform</strong></p>
+            <p>Effective Date: {{ current_date }}</p>
+            <p>Last Updated: {{ current_date }}</p>
+        </div>
 
-    <h2>1. ACCEPTANCE OF TERMS</h2>
-    <p>By accessing and using VibeMall ("Platform", "Website", "Service"), you accept and agree to be bound by the terms and provisions of this agreement. This agreement is in accordance with the Information Technology Act, 2000 and rules made thereunder, as applicable in India.</p>
+        <div class="important">
+            <strong>Important:</strong> Please read these Terms and Conditions carefully before using VibeMall. By registering or using our services, you agree to be bound by these terms.
+        </div>
 
-    <h2>2. DEFINITIONS</h2>
-    <ul>
-        <li><strong>"User"</strong> means any person who accesses or uses the Platform</li>
-        <li><strong>"Seller"</strong> means any person or entity selling products on the Platform</li>
-        <li><strong>"Buyer"</strong> means any person purchasing products from the Platform</li>
-        <li><strong>"Product"</strong> means any goods or services listed on the Platform</li>
-        <li><strong>"Order"</strong> means a purchase request placed by a Buyer</li>
-    </ul>
+        <h2>1. Acceptance of Terms</h2>
+        <p>By accessing and using VibeMall ("Platform", "Website", "Service"), you accept and agree to be bound by the terms and provisions of this agreement. This agreement is in accordance with the Information Technology Act, 2000 and rules made thereunder, as applicable in India.</p>
 
-    <h2>3. ELIGIBILITY</h2>
-    <p>3.1. You must be at least 18 years of age to use this Platform.</p>
-    <p>3.2. By using the Platform, you represent that you have the legal capacity to enter into a binding contract.</p>
-    <p>3.3. Users from outside India may use the Platform subject to compliance with local laws.</p>
+        <h2>2. Definitions</h2>
+        <ul>
+            <li><strong>"User"</strong> means any person who accesses or uses the Platform.</li>
+            <li><strong>"Seller"</strong> means any person or entity selling products on the Platform.</li>
+            <li><strong>"Buyer"</strong> means any person purchasing products from the Platform.</li>
+            <li><strong>"Product"</strong> means any goods or services listed on the Platform.</li>
+            <li><strong>"Order"</strong> means a purchase request placed by a Buyer.</li>
+        </ul>
 
-    <h2>4. USER ACCOUNT</h2>
-    <p>4.1. You must create an account to access certain features of the Platform.</p>
-    <p>4.2. You are responsible for maintaining the confidentiality of your account credentials.</p>
-    <p>4.3. You agree to provide accurate, current, and complete information during registration.</p>
-    <p>4.4. VibeMall reserves the right to suspend or terminate accounts that violate these terms.</p>
+        <h2>3. Eligibility</h2>
+        <p>3.1. You must be at least 18 years of age to use this Platform.</p>
+        <p>3.2. By using the Platform, you represent that you have the legal capacity to enter into a binding contract.</p>
+        <p>3.3. Users from outside India may use the Platform subject to compliance with local laws.</p>
 
-    <h2>5. PRODUCT LISTINGS AND PRICING</h2>
-    <p>5.1. All product descriptions, images, and prices are provided by Sellers.</p>
-    <p>5.2. VibeMall strives to ensure accuracy but does not guarantee that product descriptions are error-free.</p>
-    <p>5.3. Prices are subject to change without notice.</p>
-    <p>5.4. All prices are in Indian Rupees (INR) unless otherwise stated.</p>
+        <h2>4. User Account</h2>
+        <p>4.1. You must create an account to access certain features of the Platform.</p>
+        <p>4.2. You are responsible for maintaining the confidentiality of your account credentials.</p>
+        <p>4.3. You agree to provide accurate, current, and complete information during registration.</p>
+        <p>4.4. VibeMall reserves the right to suspend or terminate accounts that violate these terms.</p>
 
-    <h2>6. ORDERS AND PAYMENTS</h2>
-    <p>6.1. Placing an order constitutes an offer to purchase the product.</p>
-    <p>6.2. VibeMall reserves the right to accept or reject any order.</p>
-    <p>6.3. Payment must be made through approved payment methods.</p>
-    <p>6.4. All transactions are processed securely through third-party payment gateways.</p>
+        <h2>5. Product Listings and Pricing</h2>
+        <p>5.1. All product descriptions, images, and prices are provided by Sellers.</p>
+        <p>5.2. VibeMall strives to ensure accuracy but does not guarantee that product descriptions are error-free.</p>
+        <p>5.3. Prices are subject to change without notice.</p>
+        <p>5.4. All prices are in Indian Rupees (INR) unless otherwise stated.</p>
 
-    <h2>7. SHIPPING AND DELIVERY</h2>
-    <p>7.1. Delivery timelines are estimates and not guaranteed.</p>
-    <p>7.2. Risk of loss passes to the Buyer upon delivery.</p>
-    <p>7.3. Shipping charges are additional unless specified otherwise.</p>
-    <p>7.4. VibeMall is not responsible for delays caused by courier services or force majeure events.</p>
+        <h2>6. Orders and Payments</h2>
+        <p>6.1. Placing an order constitutes an offer to purchase the product.</p>
+        <p>6.2. VibeMall reserves the right to accept or reject any order.</p>
+        <p>6.3. Payment must be made through approved payment methods.</p>
+        <p>6.4. All transactions are processed securely through third-party payment gateways.</p>
 
-    <h2>8. RETURNS AND REFUNDS</h2>
-    <p>8.1. Return policy varies by product and is specified on the product page.</p>
-    <p>8.2. Products marked as "No Return" cannot be returned or exchanged.</p>
-    <p>8.3. Refunds will be processed within 7-14 business days of return approval.</p>
-    <p>8.4. Products must be returned in original condition with tags and packaging intact.</p>
+        <h2>7. Shipping and Delivery</h2>
+        <p>7.1. Delivery timelines are estimates and not guaranteed.</p>
+        <p>7.2. Risk of loss passes to the Buyer upon delivery.</p>
+        <p>7.3. Shipping charges are additional unless specified otherwise.</p>
+        <p>7.4. VibeMall is not responsible for delays caused by courier services or force majeure events.</p>
 
-    <h2>9. CANCELLATION POLICY</h2>
-    <p>9.1. Orders can be cancelled before shipment.</p>
-    <p>9.2. Cancellation after shipment may incur charges.</p>
-    <p>9.3. VibeMall reserves the right to cancel orders in case of pricing errors or product unavailability.</p>
+        <h2>8. Returns and Refunds</h2>
+        <p>8.1. Return policy varies by product and is specified on the product page.</p>
+        <p>8.2. Products marked as "No Return" cannot be returned or exchanged.</p>
+        <p>8.3. Refunds will be processed within 7-14 business days of return approval.</p>
+        <p>8.4. Products must be returned in original condition with tags and packaging intact.</p>
 
-    <h2>10. INTELLECTUAL PROPERTY</h2>
-    <p>10.1. All content on the Platform, including text, graphics, logos, and software, is the property of VibeMall or its licensors.</p>
-    <p>10.2. Users may not reproduce, distribute, or create derivative works without written permission.</p>
-    <p>10.3. Product images and descriptions are property of respective Sellers.</p>
+        <h2>9. Cancellation Policy</h2>
+        <p>9.1. Orders can be cancelled before shipment.</p>
+        <p>9.2. Cancellation after shipment may incur charges.</p>
+        <p>9.3. VibeMall reserves the right to cancel orders in case of pricing errors or product unavailability.</p>
 
-    <h2>11. USER CONDUCT</h2>
-    <p>Users agree NOT to:</p>
-    <ul>
-        <li>Use the Platform for any illegal purpose</li>
-        <li>Post false, misleading, or fraudulent content</li>
-        <li>Harass, abuse, or harm other users</li>
-        <li>Attempt to gain unauthorized access to the Platform</li>
-        <li>Upload viruses or malicious code</li>
-        <li>Engage in price manipulation or unfair practices</li>
-    </ul>
+        <h2>10. Intellectual Property</h2>
+        <p>10.1. All content on the Platform, including text, graphics, logos, and software, is the property of VibeMall or its licensors.</p>
+        <p>10.2. Users may not reproduce, distribute, or create derivative works without written permission.</p>
+        <p>10.3. Product images and descriptions are property of respective Sellers.</p>
 
-    <h2>12. PRIVACY POLICY</h2>
-    <p>12.1. Your use of the Platform is also governed by our Privacy Policy.</p>
-    <p>12.2. We collect and process personal data in accordance with the Information Technology Act, 2000.</p>
-    <p>12.3. User data is protected and not shared with third parties without consent.</p>
+        <h2>11. User Conduct</h2>
+        <p>Users agree not to:</p>
+        <ul>
+            <li>Use the Platform for any illegal purpose.</li>
+            <li>Post false, misleading, or fraudulent content.</li>
+            <li>Harass, abuse, or harm other users.</li>
+            <li>Attempt to gain unauthorized access to the Platform.</li>
+            <li>Upload viruses or malicious code.</li>
+            <li>Engage in price manipulation or unfair practices.</li>
+        </ul>
 
-    <h2>13. LIMITATION OF LIABILITY</h2>
-    <p>13.1. VibeMall acts as an intermediary between Buyers and Sellers.</p>
-    <p>13.2. We are not liable for product quality, delivery delays, or disputes between parties.</p>
-    <p>13.3. Our liability is limited to the amount paid for the specific transaction.</p>
-    <p>13.4. We are not responsible for indirect, incidental, or consequential damages.</p>
+        <h2>12. Privacy Policy</h2>
+        <p>12.1. Your use of the Platform is also governed by our Privacy Policy.</p>
+        <p>12.2. We collect and process personal data in accordance with the Information Technology Act, 2000.</p>
+        <p>12.3. User data is protected and not shared with third parties without consent.</p>
 
-    <h2>14. INDEMNIFICATION</h2>
-    <p>You agree to indemnify and hold VibeMall harmless from any claims, damages, or expenses arising from your use of the Platform or violation of these terms.</p>
+        <h2>13. Limitation of Liability</h2>
+        <p>13.1. VibeMall acts as an intermediary between Buyers and Sellers.</p>
+        <p>13.2. We are not liable for product quality, delivery delays, or disputes between parties.</p>
+        <p>13.3. Our liability is limited to the amount paid for the specific transaction.</p>
+        <p>13.4. We are not responsible for indirect, incidental, or consequential damages.</p>
 
-    <h2>15. DISPUTE RESOLUTION</h2>
-    <p>15.1. Any disputes shall be resolved through arbitration in accordance with the Arbitration and Conciliation Act, 1996.</p>
-    <p>15.2. The arbitration shall be conducted in English language.</p>
-    <p>15.3. The seat of arbitration shall be [Your City], India.</p>
-    <p>15.4. Courts in [Your City] shall have exclusive jurisdiction.</p>
+        <h2>14. Indemnification</h2>
+        <p>You agree to indemnify and hold VibeMall harmless from any claims, damages, or expenses arising from your use of the Platform or violation of these terms.</p>
 
-    <h2>16. GOVERNING LAW</h2>
-    <p>These Terms and Conditions are governed by the laws of India, including but not limited to:</p>
-    <ul>
-        <li>Information Technology Act, 2000</li>
-        <li>Consumer Protection Act, 2019</li>
-        <li>Indian Contract Act, 1872</li>
-        <li>Sale of Goods Act, 1930</li>
-    </ul>
+        <h2>15. Dispute Resolution</h2>
+        <p>15.1. Any disputes shall be resolved through arbitration in accordance with the Arbitration and Conciliation Act, 1996.</p>
+        <p>15.2. The arbitration shall be conducted in English language.</p>
+        <p>15.3. The seat of arbitration shall be Surat, India unless otherwise required by law.</p>
+        <p>15.4. Courts in Surat, Gujarat shall have exclusive jurisdiction.</p>
 
-    <h2>17. MODIFICATIONS</h2>
-    <p>17.1. VibeMall reserves the right to modify these terms at any time.</p>
-    <p>17.2. Changes will be effective immediately upon posting.</p>
-    <p>17.3. Continued use of the Platform constitutes acceptance of modified terms.</p>
+        <h2>16. Governing Law</h2>
+        <p>These Terms and Conditions are governed by the laws of India, including but not limited to:</p>
+        <ul>
+            <li>Information Technology Act, 2000</li>
+            <li>Consumer Protection Act, 2019</li>
+            <li>Indian Contract Act, 1872</li>
+            <li>Sale of Goods Act, 1930</li>
+        </ul>
 
-    <h2>18. TERMINATION</h2>
-    <p>18.1. VibeMall may terminate or suspend access to the Platform immediately, without prior notice.</p>
-    <p>18.2. Upon termination, your right to use the Platform will cease immediately.</p>
+        <h2>17. Modifications</h2>
+        <p>17.1. VibeMall reserves the right to modify these terms at any time.</p>
+        <p>17.2. Changes will be effective immediately upon posting.</p>
+        <p>17.3. Continued use of the Platform constitutes acceptance of modified terms.</p>
 
-    <h2>19. CONTACT INFORMATION</h2>
-    <p>For questions about these Terms and Conditions, please contact:</p>
-    <p><strong>VibeMall Customer Support</strong><br>
-    Email: info.vibemall@gmail.com</p>
+        <h2>18. Termination</h2>
+        <p>18.1. VibeMall may terminate or suspend access to the Platform immediately, without prior notice.</p>
+        <p>18.2. Upon termination, your right to use the Platform will cease immediately.</p>
 
-    <h2>20. SEVERABILITY</h2>
-    <p>If any provision of these terms is found to be unenforceable, the remaining provisions will continue in full force and effect.</p>
+        <h2>19. Contact Information</h2>
+        <p>For questions about these Terms and Conditions, please contact:</p>
+        <p><strong>VibeMall Customer Support</strong><br>
+        Email: info.vibemall@gmail.com</p>
 
-    <h2>21. ENTIRE AGREEMENT</h2>
-    <p>These Terms and Conditions constitute the entire agreement between you and VibeMall regarding the use of the Platform.</p>
+        <h2>20. Severability</h2>
+        <p>If any provision of these terms is found to be unenforceable, the remaining provisions will continue in full force and effect.</p>
 
-    <div class="footer">
-        <p><strong>© {{ current_year }} VibeMall. All Rights Reserved.</strong></p>
-        <p>This document is legally binding and enforceable under Indian law.</p>
-        <p>By registering on VibeMall, you acknowledge that you have read, understood, and agree to these Terms and Conditions.</p>
+        <h2>21. Entire Agreement</h2>
+        <p>These Terms and Conditions constitute the entire agreement between you and VibeMall regarding the use of the Platform.</p>
+
+        <div class="closing-note">
+            <p><strong>Member Acknowledgement:</strong> By registering on VibeMall, you acknowledge that you have read, understood, and agree to these Terms and Conditions.</p>
+        </div>
+
+        <div class="footer">
+            <p><strong>© {{ current_year }} VibeMall. All Rights Reserved.</strong></p>
+            <p>This document is legally binding and enforceable under Indian law.</p>
+        </div>
     </div>
 </body>
 </html>

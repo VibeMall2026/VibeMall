@@ -330,7 +330,7 @@
             {% endif %}
             <form method="POST" action="{% url 'track_order' %}">
                 {% csrf_token %}
-                <input type="text" name="order_number" placeholder="e.g., ORD-20260202-1234567" required>
+                <input type="text" name="order_number" placeholder="e.g., ORD20260405001 or #ORD20260405001" required>
                 <button type="submit">Track Order</button>
             </form>
             <a href="{% url 'contact' %}">Contact Concierge</a>
@@ -361,7 +361,7 @@
 
             <form class="otd-search" method="POST" action="{% url 'track_order' %}">
                 {% csrf_token %}
-                <input type="text" id="order_number" name="order_number" placeholder="Enter order number e.g. VM12345" required>
+                <input type="text" id="order_number" name="order_number" placeholder="Enter order number e.g. ORD20260405001" required>
                 <button type="submit">Load Order</button>
             </form>
         </header>
@@ -402,7 +402,7 @@
                         </div>
                         <div>
                             <strong>Accepted Input</strong>
-                            <span>Exact order number</span>
+                            <span>Exact order number, with or without #</span>
                         </div>
                         <div>
                             <strong>Best Match</strong>

@@ -7,6 +7,9 @@ from django.core.mail import send_mail, EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.urls import reverse
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 from .models import EmailLog, Notification, SiteSettings
 import logging
 from urllib.parse import urlparse
@@ -20,6 +23,22 @@ def _get_from_email() -> str:
         getattr(settings, 'EMAIL_HOST_USER', '').strip() or
         'info.vibemall@gmail.com'
     )
+
+
+def _resolve_site_url(request=None) -> str:
+    configured = getattr(settings, 'SITE_URL', '').strip().rstrip('/')
+    if request is not None:
+        try:
+            return request.build_absolute_uri('/').rstrip('/')
+        except Exception:
+            pass
+    return configured or 'http://127.0.0.1:8000'
+
+
+def _build_verification_url(user, site_url: str) -> str:
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    return f"{site_url}{reverse('verify_email', args=[uid, token])}"
 
 
 def build_invoice_context(order):
@@ -764,295 +783,224 @@ VibeMall Team
 
 
 
-def send_welcome_email_with_terms(user, request):
-    """
-    Send welcome email with Terms & Conditions PDF attachment
+def _generate_terms_pdf_bytes(context):
+    from io import BytesIO
 
-    Args:
-        user: User instance
-        request: Django request object for building absolute URLs
+    try:
+        import importlib
 
-    Returns:
-        bool: True if email sent successfully, False otherwise
-    """
+        module_name = 'weasy' + 'print'
+        HTML = importlib.import_module(module_name).HTML
+
+        terms_html = render_to_string('terms_and_conditions_pdf.html', context)
+        pdf_file = BytesIO()
+        HTML(string=terms_html).write_pdf(pdf_file)
+        return pdf_file.getvalue()
+    except (ImportError, OSError) as exc:
+        logger.warning("WeasyPrint unavailable for welcome terms PDF, using ReportLab fallback: %s", exc)
+    except Exception as exc:
+        logger.warning("WeasyPrint failed for welcome terms PDF, using ReportLab fallback: %s", exc)
+
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.units import mm
+        from reportlab.lib.utils import simpleSplit
+        from reportlab.pdfgen import canvas
+
+        pdf_file = BytesIO()
+        pdf = canvas.Canvas(pdf_file, pagesize=A4)
+        width, height = A4
+        left_margin = 18 * mm
+        right_margin = width - (18 * mm)
+        usable_width = right_margin - left_margin
+        cursor_y = height - (20 * mm)
+
+        def new_page():
+            nonlocal cursor_y
+            pdf.showPage()
+            cursor_y = height - (20 * mm)
+
+        def ensure_space(required_height):
+            if cursor_y - required_height < 18 * mm:
+                new_page()
+
+        def draw_wrapped(text, font_name='Helvetica', font_size=10, leading=14):
+            nonlocal cursor_y
+            lines = simpleSplit(str(text), font_name, font_size, usable_width)
+            ensure_space(max(len(lines), 1) * leading)
+            pdf.setFont(font_name, font_size)
+            for line in lines:
+                pdf.drawString(left_margin, cursor_y, line)
+                cursor_y -= leading
+
+        pdf.setTitle('VibeMall Terms and Conditions')
+        pdf.setAuthor('VibeMall')
+
+        pdf.setFont('Helvetica-Bold', 20)
+        pdf.drawString(left_margin, cursor_y, 'VIBEMALL TERMS AND CONDITIONS')
+        cursor_y -= 20
+
+        draw_wrapped(f"Effective Date: {context['current_date']}", 'Helvetica', 10, 14)
+        draw_wrapped(f"Last Updated: {context['current_date']}", 'Helvetica', 10, 14)
+        cursor_y -= 8
+
+        sections = [
+            (
+                '1. Acceptance of Terms',
+                [
+                    'By registering or using VibeMall, you agree to be bound by our Terms and Conditions in accordance with applicable Indian law.',
+                ],
+            ),
+            (
+                '2. User Account',
+                [
+                    'You must provide accurate registration details and keep your account credentials secure.',
+                    'VibeMall may suspend accounts that violate platform policies or applicable law.',
+                ],
+            ),
+            (
+                '3. Orders and Payments',
+                [
+                    'Orders placed on VibeMall are subject to acceptance, availability, and payment verification.',
+                    'Payments are processed through approved third-party gateways.',
+                ],
+            ),
+            (
+                '4. Shipping, Returns, and Refunds',
+                [
+                    'Delivery timelines are estimates and may vary.',
+                    'Return and refund eligibility depends on product category, item condition, and the published return window.',
+                ],
+            ),
+            (
+                '5. Acceptable Use',
+                [
+                    'You may not use the platform for illegal, fraudulent, abusive, or unauthorized activities.',
+                ],
+            ),
+            (
+                '6. Liability and Governing Law',
+                [
+                    'VibeMall liability is limited to the amount paid for the relevant transaction, subject to applicable law.',
+                    'These terms are governed by the laws of India.',
+                ],
+            ),
+            (
+                '7. Contact',
+                [
+                    'For questions about these Terms and Conditions, contact info.vibemall@gmail.com.',
+                ],
+            ),
+        ]
+
+        for heading, paragraphs in sections:
+            ensure_space(28)
+            pdf.setFont('Helvetica-Bold', 13)
+            pdf.drawString(left_margin, cursor_y, heading)
+            cursor_y -= 16
+            for paragraph in paragraphs:
+                draw_wrapped(paragraph, 'Helvetica', 10, 14)
+            cursor_y -= 6
+
+        ensure_space(30)
+        pdf.setFont('Helvetica-Oblique', 9)
+        pdf.drawString(left_margin, cursor_y, f"© {context['current_year']} VibeMall. All rights reserved.")
+        cursor_y -= 12
+        pdf.drawString(left_margin, cursor_y, 'By registering on VibeMall, you acknowledge and accept these Terms and Conditions.')
+
+        pdf.save()
+        return pdf_file.getvalue()
+    except Exception as exc:
+        logger.error("ReportLab fallback failed for welcome terms PDF: %s", exc)
+        return None
+
+
+def send_welcome_email_with_terms(user, request=None):
+    """Send the first-time registration welcome email with a Terms & Conditions PDF attachment."""
     try:
         from datetime import datetime
-        from io import BytesIO
 
-        # Try to import weasyprint for PDF generation
-        try:
-            from weasyprint import HTML, CSS
-            pdf_generation_available = True
-        except (ImportError, OSError) as exc:
-            logger.warning("WeasyPrint PDF dependencies unavailable. PDF will not be attached: %s", exc)
-            pdf_generation_available = False
-
-        # Get site URL
-        site_url = request.build_absolute_uri('/').rstrip('/')
+        site_url = _resolve_site_url(request)
         shop_url = f"{site_url}/shop/"
+        verify_url = _build_verification_url(user, site_url)
 
-        # Prepare context for templates
         context = {
             'user_name': user.first_name or user.username,
             'username': user.username,
             'email': user.email,
             'registration_date': datetime.now().strftime('%B %d, %Y'),
             'shop_url': shop_url,
+            'verify_url': verify_url,
+            'verification_required': not bool(getattr(user, 'is_active', False)),
             'current_year': datetime.now().year,
             'current_date': datetime.now().strftime('%B %d, %Y'),
+            'hero_image_url': 'https://lh3.googleusercontent.com/aida-public/AB6AXuCgUw0ejqeYxn8X2-6Til8hHby6JZ50mLnAH4lhKfMmHz3CuPMYTU8Po_r2AhYT1KtVGP09Ri7uDyNQpnfTqCvNpgT6roo4uIEWK9yOcaPRZSe0r2l9yA3fIVGs_HX4tnDn0TC5t44-lbvfjY3zMcIGtLOfvV4J8vCFmquLXQfsZlawsk7nsqGZ0lo9OjuIvWrUOIoKb1KHjeuF-VtAcDy-3HeH2s1zSDuasM6PKaT9ySZtiJctIsM9SA4iijoMkxJ6bsgbzZJEt-I',
         }
 
-        # Render welcome email HTML
         html_content = render_to_string('emails/welcome_email.html', context)
+        text_content = (
+            f"Welcome to the Atelier, {context['user_name']}!\n\n"
+            "Thank you for registering with VibeMall. Your account has been created successfully.\n\n"
+            f"Username: {user.username}\n"
+            f"Email: {user.email}\n"
+            f"Registration Date: {context['registration_date']}\n\n"
+            "You have entered a curated shopping space focused on artisanal heritage and contemporary silhouettes.\n\n"
+            f"Verify your email: {verify_url}\n\n"
+            f"Explore the collection: {shop_url}\n\n"
+            "Our Terms & Conditions PDF is attached to this email for your records.\n\n"
+            "With gratitude,\n"
+            "The Curators of VIBEMALL ATELIER\n"
+            f"© {context['current_year']} VibeMall. All rights reserved."
+        )
 
-        # Plain text fallback
-        text_content = f"""
-Welcome to VibeMall!
-
-Hello {context['user_name']}!
-
-Thank you for joining VibeMall! We're excited to have you as part of our community.
-
-Your Account Details:
-- Username: {user.username}
-- Email: {user.email}
-- Registration Date: {context['registration_date']}
-
-Start shopping now: {shop_url}
-
-What You Can Do:
-✓ Browse thousands of products
-✓ Add items to wishlist
-✓ Track your orders
-✓ Get exclusive deals and offers
-
-Need help? Contact us:
-Email: info.vibemall@gmail.com
-
-© {context['current_year']} VibeMall. All rights reserved.
-        """
-
-        # Create email
-        subject = 'Welcome to VibeMall - Registration Successful! 🎉'
-        from_email = _get_from_email()
+        subject = 'Welcome to the Atelier | VibeMall'
         to_email = user.email
 
         email = EmailMultiAlternatives(
             subject=subject,
             body=text_content,
-            from_email=from_email,
-            to=[to_email]
+            from_email=_get_from_email(),
+            to=[to_email],
         )
-        email.attach_alternative(html_content, "text/html")
+        email.attach_alternative(html_content, 'text/html')
 
-        # Generate and attach Terms & Conditions PDF if weasyprint is available
-        if pdf_generation_available:
-            try:
-                # Render Terms & Conditions HTML
-                terms_html = render_to_string('terms_and_conditions_pdf.html', context)
+        terms_pdf = _generate_terms_pdf_bytes(context)
+        if terms_pdf:
+            email.attach('VibeMall_Terms_and_Conditions.pdf', terms_pdf, 'application/pdf')
 
-                # Generate PDF from HTML
-                pdf_file = BytesIO()
-                HTML(string=terms_html).write_pdf(pdf_file)
-                pdf_file.seek(0)
-
-                # Attach PDF to email
-                email.attach(
-                    'VibeMall_Terms_and_Conditions.pdf',
-                    pdf_file.read(),
-                    'application/pdf'
-                )
-
-                logger.info(f"Terms & Conditions PDF generated and attached for {user.email}")
-            except Exception as pdf_error:
-                logger.error(f"Failed to generate/attach PDF for {user.email}: {str(pdf_error)}")
-                # Continue sending email without PDF
-
-        # Send email
         email.send(fail_silently=False)
 
-        # Log successful email
         EmailLog.objects.create(
             user=user,
             email_to=to_email,
             email_type='WELCOME_EMAIL',
             subject=subject,
-            sent_successfully=True
+            sent_successfully=True,
         )
 
-        # Create in-app notification
         Notification.objects.create(
             user=user,
             notification_type='WELCOME',
             title='Welcome to VibeMall! 🎉',
-            message='Thank you for registering. Start exploring amazing products now!',
-            link='/shop/'
+            message='Thank you for registering. Start exploring the atelier collection now!',
+            link='/shop/',
         )
 
-        logger.info(f"Welcome email sent successfully to {to_email}")
+        logger.info("Welcome email sent successfully to %s", to_email)
         return True
-
-    except Exception as e:
-        logger.error(f"Failed to send welcome email to {user.email}: {str(e)}")
+    except Exception as exc:
+        logger.error("Failed to send welcome email to %s: %s", user.email, exc, exc_info=True)
 
         try:
             EmailLog.objects.create(
                 user=user,
                 email_to=user.email,
                 email_type='WELCOME_EMAIL',
-                subject='Welcome to VibeMall',
+                subject='Welcome to the Atelier | VibeMall',
                 sent_successfully=False,
-                error_message=str(e)
+                error_message=str(exc)[:500],
             )
-        except:
+        except Exception:
             pass
 
-        return False
-
-
-
-
-def send_welcome_email_with_terms(user, request):
-    """
-    Send welcome email with Terms & Conditions PDF attachment
-    
-    Args:
-        user: User instance
-        request: Django request object for building absolute URLs
-    
-    Returns:
-        bool: True if email sent successfully, False otherwise
-    """
-    try:
-        from datetime import datetime
-        from io import BytesIO
-        
-        # Try to import weasyprint for PDF generation
-        try:
-            from weasyprint import HTML, CSS
-            pdf_generation_available = True
-        except (ImportError, OSError) as exc:
-            logger.warning("WeasyPrint PDF dependencies unavailable. PDF will not be attached: %s", exc)
-            pdf_generation_available = False
-        
-        # Get site URL
-        site_url = request.build_absolute_uri('/').rstrip('/')
-        shop_url = f"{site_url}/shop/"
-        
-        # Prepare context for templates
-        context = {
-            'user_name': user.first_name or user.username,
-            'username': user.username,
-            'email': user.email,
-            'registration_date': datetime.now().strftime('%B %d, %Y'),
-            'shop_url': shop_url,
-            'current_year': datetime.now().year,
-            'current_date': datetime.now().strftime('%B %d, %Y'),
-        }
-        
-        # Render welcome email HTML
-        html_content = render_to_string('emails/welcome_email.html', context)
-        
-        # Plain text fallback
-        text_content = f"""
-Welcome to VibeMall!
-
-Hello {context['user_name']}!
-
-Thank you for joining VibeMall! We're excited to have you as part of our community.
-
-Your Account Details:
-- Username: {user.username}
-- Email: {user.email}
-- Registration Date: {context['registration_date']}
-
-Start shopping now: {shop_url}
-
-What You Can Do:
-✓ Browse thousands of products
-✓ Add items to wishlist
-✓ Track your orders
-✓ Get exclusive deals and offers
-
-Need help? Contact us:
-Email: info.vibemall@gmail.com
-
-© {context['current_year']} VibeMall. All rights reserved.
-        """
-        
-        # Create email
-        subject = 'Welcome to VibeMall - Registration Successful! 🎉'
-        from_email = _get_from_email()
-        to_email = user.email
-        
-        email = EmailMultiAlternatives(
-            subject=subject,
-            body=text_content,
-            from_email=from_email,
-            to=[to_email]
-        )
-        email.attach_alternative(html_content, "text/html")
-        
-        # Generate and attach Terms & Conditions PDF if weasyprint is available
-        if pdf_generation_available:
-            try:
-                # Render Terms & Conditions HTML
-                terms_html = render_to_string('terms_and_conditions_pdf.html', context)
-                
-                # Generate PDF from HTML
-                pdf_file = BytesIO()
-                HTML(string=terms_html).write_pdf(pdf_file)
-                pdf_file.seek(0)
-                
-                # Attach PDF to email
-                email.attach(
-                    'VibeMall_Terms_and_Conditions.pdf',
-                    pdf_file.read(),
-                    'application/pdf'
-                )
-                
-                logger.info(f"Terms & Conditions PDF generated and attached for {user.email}")
-            except Exception as pdf_error:
-                logger.error(f"Failed to generate/attach PDF for {user.email}: {str(pdf_error)}")
-                # Continue sending email without PDF
-        
-        # Send email
-        email.send(fail_silently=False)
-        
-        # Log successful email
-        EmailLog.objects.create(
-            user=user,
-            email_to=to_email,
-            email_type='WELCOME_EMAIL',
-            subject=subject,
-            sent_successfully=True
-        )
-        
-        # Create in-app notification
-        Notification.objects.create(
-            user=user,
-            notification_type='WELCOME',
-            title='Welcome to VibeMall! 🎉',
-            message='Thank you for registering. Start exploring amazing products now!',
-            link='/shop/'
-        )
-        
-        logger.info(f"Welcome email sent successfully to {to_email}")
-        return True
-        
-    except Exception as e:
-        logger.error(f"Failed to send welcome email to {user.email}: {str(e)}")
-        
-        try:
-            EmailLog.objects.create(
-                user=user,
-                email_to=user.email,
-                email_type='WELCOME_EMAIL',
-                subject='Welcome to VibeMall',
-                sent_successfully=False,
-                error_message=str(e)
-            )
-        except:
-            pass
-        
         return False
