@@ -238,6 +238,13 @@
                     </div>
                     
                     <div class="mb-3">
+                        <label class="form-label">Color Variant Images</label>
+                        <div id="colorVariantContainer"></div>
+                        <button type="button" class="btn btn-outline-primary btn-sm mb-2" onclick="addColorVariantRow()">Add Color Variant Image</button>
+                        <small class="text-muted">Upload separate images for each color variant and label them by color.</small>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label" for="gallery_images">Gallery Images (Multiple)</label>
                         <input class="form-control" type="file" id="gallery_images" name="gallery_images" accept="image/*" multiple onchange="previewGalleryImages()" />
                         <small class="text-muted">You can select multiple images</small>
@@ -407,7 +414,35 @@ function toggleReturnOptions() {
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     toggleReturnOptions();
+    addColorVariantRow();
 });
+
+function addColorVariantRow() {
+    const container = document.getElementById('colorVariantContainer');
+    if (!container) return;
+
+    const row = document.createElement('div');
+    row.className = 'row mb-2 color-variant-row';
+    row.innerHTML = `
+        <div class="col-md-5">
+            <input type="text" class="form-control" name="variant_colors" placeholder="Variant Color (e.g. Red, Blue)" />
+        </div>
+        <div class="col-md-5">
+            <input type="file" class="form-control" name="variant_images" accept="image/*" />
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="removeColorVariantRow(this)">Remove</button>
+        </div>
+    `;
+    container.appendChild(row);
+}
+
+function removeColorVariantRow(button) {
+    const row = button.closest('.color-variant-row');
+    if (row) {
+        row.remove();
+    }
+}
 
 function previewGalleryImages() {
     const input = document.getElementById('gallery_images');

@@ -159,7 +159,14 @@
                             <div class="form-group">
                                 <label for="image">Main Product Image *</label>
                                 <input type="file" name="image" id="image" accept="image/*" required>
-                                <div class="field-hint">Required - Recommended size: 400×400px, Max 5MB</div>
+                                <div class="field-hint">Required - Recommended size: 400Ã—400px, Max 5MB</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Color Variant Images</label>
+                                <div id="colorVariantContainer" class="variant-container"></div>
+                                <button type="button" class="secondary-btn" onclick="addColorVariantRow()">+ Add Color Variant Image</button>
+                                <div class="field-hint">Upload one image per color and label each variant.</div>
                             </div>
 
                             <div class="form-group">
@@ -277,6 +284,46 @@
                             </button>
                         </div>
                     </form>
+                    <script>
+                        function addColorVariantRow() {
+                            const container = document.getElementById('colorVariantContainer');
+                            if (!container) return;
+
+                            const row = document.createElement('div');
+                            row.className = 'variant-row';
+                            row.style.display = 'grid';
+                            row.style.gridTemplateColumns = '1fr 1fr auto';
+                            row.style.gap = '12px';
+                            row.style.marginBottom = '12px';
+
+                            row.innerHTML = `
+                                <div>
+                                    <label class="variant-label">Color Name</label>
+                                    <input type="text" name="variant_colors" placeholder="e.g. Navy Blue, Sage Green" style="width:100%; padding: 10px; border: 1px solid #dcdcdc; border-radius: 8px;" />
+                                </div>
+                                <div>
+                                    <label class="variant-label">Variant Image</label>
+                                    <input type="file" name="variant_images" accept="image/*" style="width:100%; padding: 8px;" />
+                                </div>
+                                <button type="button" onclick="removeColorVariantRow(this)" style="background:#f8d7da; color:#842029; border:none; border-radius:8px; padding: 0 14px; min-height: 46px;">Remove</button>
+                            `;
+
+                            container.appendChild(row);
+                        }
+
+                        function removeColorVariantRow(button) {
+                            const row = button.closest('.variant-row');
+                            if (row) {
+                                row.remove();
+                            }
+                        }
+
+                        document.addEventListener('DOMContentLoaded', function() {
+                            if (document.getElementById('colorVariantContainer').children.length === 0) {
+                                addColorVariantRow();
+                            }
+                        });
+                    </script>
                 </div>
             </div>
             

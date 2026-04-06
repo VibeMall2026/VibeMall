@@ -260,12 +260,12 @@ class ProductAdmin(admin.ModelAdmin):
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
     extra = 3
-    fields = ('image', 'order', 'is_active')
+    fields = ('image', 'color', 'order', 'is_active')
 
 
 @admin.register(ProductImage)
 class ProductImageAdmin(admin.ModelAdmin):
-    list_display = ('product', 'order', 'is_active', 'image_thumbnail')
+    list_display = ('product', 'color', 'order', 'is_active', 'image_thumbnail')
     list_filter = ('is_active',)
     list_editable = ('order', 'is_active')
     

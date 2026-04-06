@@ -7,6 +7,7 @@ from . import backup_views
 from . import views_new_features
 
 urlpatterns = [
+    path('launch-animation/', views.launch_animation, name='launch_animation'),
     path('coming-soon/', views.coming_soon, name='coming_soon'),
 
     # Admin Panel URLs

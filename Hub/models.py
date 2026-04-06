@@ -412,6 +412,7 @@ class ProductImage(models.Model):
     """Additional images for product gallery"""
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='additional_images')
     image = models.ImageField(upload_to='products/gallery/')
+    color = models.CharField(max_length=100, blank=True, help_text='Color variant for this image')
     order = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
 

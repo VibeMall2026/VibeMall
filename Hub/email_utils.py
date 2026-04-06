@@ -25,6 +25,22 @@ def _get_from_email() -> str:
     )
 
 
+def _validate_email_settings() -> str:
+    configured_host_user = getattr(settings, 'EMAIL_HOST_USER', '').strip()
+    configured_host_password = getattr(settings, 'EMAIL_HOST_PASSWORD', '').strip()
+    default_from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', '').strip()
+
+    if not configured_host_user and not default_from_email:
+        raise ValueError('Email sender is not configured. Set EMAIL_HOST_USER or DEFAULT_FROM_EMAIL in environment settings.')
+
+    if configured_host_user.startswith('replace_with_') or configured_host_password.startswith('replace_with_'):
+        raise ValueError('Email SMTP is using placeholder values. Please set EMAIL_HOST_USER and EMAIL_HOST_PASSWORD in .env.')
+
+    # Prefer a clean DEFAULT_FROM_EMAIL if available for better deliverability;
+    # otherwise, fall back to the SMTP login address.
+    return default_from_email or configured_host_user
+
+
 def _resolve_site_url(request=None) -> str:
     configured = getattr(settings, 'SITE_URL', '').strip().rstrip('/')
     if request is not None:
@@ -173,6 +189,12 @@ def send_order_confirmation_email(order):
             logger.warning("WeasyPrint PDF dependencies unavailable. Invoice PDF will not be attached: %s", exc)
             pdf_generation_available = False
         
+        if not order.user.email:
+            raise ValueError(f"Order #{order.order_number} cannot send confirmation email because the customer account has no email address.")
+
+        # Validate email configuration before sending
+        from_email = _validate_email_settings()
+
         # Get site URL from settings or use default
         site_url = getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000').rstrip('/')
 
@@ -303,7 +325,6 @@ def send_order_confirmation_email(order):
         
         # Create email
         subject = f'Order Confirmation - #{order.order_number} - VibeMall'
-        from_email = _get_from_email()
         to_email = order.user.email
         
         # Send email with both HTML and plain text versions
@@ -417,10 +438,11 @@ def send_order_status_update_email(order, old_status, new_status):
 
         configured_host_user = getattr(settings, 'EMAIL_HOST_USER', '')
         configured_host_password = getattr(settings, 'EMAIL_HOST_PASSWORD', '')
+        default_from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', '').strip()
         if str(configured_host_user).startswith('replace_with_') or str(configured_host_password).startswith('replace_with_'):
             raise ValueError("Email SMTP is using placeholder values. Please set EMAIL_HOST_USER and EMAIL_HOST_PASSWORD in .env")
 
-        from_email = configured_host_user or getattr(settings, 'DEFAULT_FROM_EMAIL', '')
+        from_email = default_from_email or configured_host_user
         if not from_email:
             raise ValueError("Email sender is not configured. Set EMAIL_HOST_USER or DEFAULT_FROM_EMAIL.")
 
@@ -755,6 +777,9 @@ def send_admin_order_notification(order, request):
         bool: True if email sent successfully
     """
     try:
+        # Validate email configuration before sending
+        from_email = _validate_email_settings()
+
         # Send to VibeMall admin email only
         admin_emails = ['info.vibemall@gmail.com']
         
@@ -799,7 +824,7 @@ VibeMall System
         email = EmailMultiAlternatives(
             subject=subject,
             body=text_content,
-            from_email=_get_from_email(),
+            from_email=from_email,
             to=admin_emails
         )
         email.attach_alternative(html_content, "text/html")

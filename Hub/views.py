@@ -1438,6 +1438,23 @@ def admin_add_product(request):
                     messages.warning(request, f'Error processing gallery image {idx}: {str(e)}. Skipping this image.')
                     continue
 
+            # Process color variant images with optional color labels
+            variant_images = []
+            variant_colors = request.POST.getlist('variant_colors')
+            variant_files = request.FILES.getlist('variant_images')
+            for idx, variant_file in enumerate(variant_files, 1):
+                try:
+                    processed_image = crop_image_height(variant_file)
+                    color_value = (variant_colors[idx - 1].strip() if idx - 1 < len(variant_colors) else '').strip()
+                    if processed_image:
+                        variant_images.append({'image': processed_image, 'color': color_value})
+                    else:
+                        messages.warning(request, f'Failed to process color variant image {idx}. Using original file.')
+                        variant_images.append({'image': variant_file, 'color': color_value})
+                except Exception as e:
+                    messages.warning(request, f'Error processing color variant image {idx}: {str(e)}. Skipping this image.')
+                    continue
+
             # Optional direct reel upload
             reel_video_file = request.FILES.get('reel_video_file')
             reel_thumbnail = request.FILES.get('reel_thumbnail')
@@ -1541,10 +1558,22 @@ def admin_add_product(request):
             )
             
             # Add gallery images if provided
+            current_order = 0
             for idx, gallery_image in enumerate(gallery_images, start=1):
+                current_order = idx
                 ProductImage.objects.create(
                     product=product,
                     image=gallery_image,
+                    order=idx,
+                    is_active=True
+                )
+
+            # Add color variant images if provided
+            for idx, variant in enumerate(variant_images, start=current_order + 1):
+                ProductImage.objects.create(
+                    product=product,
+                    image=variant['image'],
+                    color=variant['color'],
                     order=idx,
                     is_active=True
                 )
@@ -5870,8 +5899,10 @@ def checkout_confirm(request):
                 email_sent = send_order_confirmation_email(order)
                 if not email_sent:
                     logger.warning(f"Order confirmation email failed silently for order {order.order_number}")
+                    messages.warning(request, 'Order placed successfully, but confirmation email could not be delivered. Please check your email address or contact support.')
             except Exception as email_exc:
                 logger.error(f"Order confirmation email exception for order {order.order_number}: {email_exc}", exc_info=True)
+                messages.warning(request, 'Order placed successfully, but confirmation email failed to send. Please contact support.')
 
             try:
                 send_admin_order_notification(order, request)
@@ -6205,6 +6236,11 @@ def coming_soon(request):
         'launch_date_display': launch_date.strftime('%d %b %Y'),
     }
     return render(request, 'coming_soon.html', context)
+
+
+def launch_animation(request):
+    redirect_url = '/' if not getattr(settings, 'COMING_SOON_MODE', True) else '/coming-soon/'
+    return render(request, 'launch_animation.html', {'redirect_url': redirect_url})
 
 
 def login_view(request: HttpRequest) -> HttpResponse:
@@ -7660,6 +7696,17 @@ def add_product(request):
             image = request.FILES.get('image')
             descriptionImage = request.FILES.get('descriptionImage')
             gallery_images = request.FILES.getlist('gallery_images')
+
+            # Process color variant images with optional color labels
+            variant_images = []
+            variant_colors = request.POST.getlist('variant_colors')
+            variant_files = request.FILES.getlist('variant_images')
+            for idx, variant_file in enumerate(variant_files, 1):
+                color_value = (variant_colors[idx - 1].strip() if idx - 1 < len(variant_colors) else '').strip()
+                variant_images.append({
+                    'image': variant_file,
+                    'color': color_value,
+                })
             
             # Create product
             product = Product.objects.create(
@@ -7684,15 +7731,30 @@ def add_product(request):
             )
             
             # Add gallery images if provided
+            current_order = 0
             for idx, gallery_image in enumerate(gallery_images, start=1):
+                current_order = idx
                 ProductImage.objects.create(
                     product=product,
                     image=gallery_image,
                     order=idx,
                     is_active=True
                 )
+
+            # Add color variant images if provided
+            for idx, variant in enumerate(variant_images, start=current_order + 1):
+                ProductImage.objects.create(
+                    product=product,
+                    image=variant['image'],
+                    color=variant['color'],
+                    order=idx,
+                    is_active=True
+                )
             
-            messages.success(request, f'Product "{product.name}" added successfully with {len(gallery_images)} gallery images!')
+            success_message = f'Product "{product.name}" added successfully with {len(gallery_images)} gallery images.'
+            if variant_images:
+                success_message += f' {len(variant_images)} color variant image(s) saved.'
+            messages.success(request, success_message)
             return redirect('add_product')
             
         except Exception as e:
@@ -8419,8 +8481,10 @@ def razorpay_payment_success(request):
                 email_sent = send_order_confirmation_email(order)
                 if not email_sent:
                     logger.warning(f"Razorpay order confirmation email failed silently for order {order.order_number}")
+                    messages.warning(request, 'Order placed successfully, but confirmation email could not be delivered. Please check your email address or contact support.')
             except Exception as email_exc:
                 logger.error(f"Razorpay order confirmation email exception for order {order.order_number}: {email_exc}", exc_info=True)
+                messages.warning(request, 'Order placed successfully, but confirmation email failed to send. Please contact support.')
             
             if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 return JsonResponse({'success': True, 'redirect': reverse('order_confirmation', args=[order.id])})

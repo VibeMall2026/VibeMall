@@ -12,6 +12,36 @@
 <link rel="stylesheet" href="{% static 'assets/css/product-details-responsive.css' %}">
 <link rel="stylesheet" href="{% static 'assets/css/product-details-mobile-alt.css' %}?v=20260329-02">
 <link rel="stylesheet" href="{% static 'assets/css/product-details-desktop-view.css' %}?v=20260401-02">
+<style>
+.vm-pd-m-thumb,
+.pddx-thumb {
+  position: relative;
+}
+
+.vm-pd-m-thumb-label,
+.pddx-thumb__color-label {
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-size: 0.7rem;
+  line-height: 1.2;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.65rem;
+  text-align: center;
+  text-transform: capitalize;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pddx-thumb__color-label {
+  left: 0.5rem;
+  right: 0.5rem;
+}
+</style>
 {% endblock %}
 
 <!-- JSON-LD Schema for Product -->
@@ -73,8 +103,11 @@
                 </button>
                 {% for additional_image in product.additional_images.all %}
                     {% if additional_image.image and additional_image.image.name %}
-                    <button type="button" class="vm-pd-m-thumb" data-image-src="{{ additional_image.image.url }}" aria-label="Product image {{ forloop.counter }}">
+                    <button type="button" class="vm-pd-m-thumb" data-image-src="{{ additional_image.image.url }}" aria-label="Product image {{ forloop.counter }}" title="{% if additional_image.color %}{{ additional_image.color }}{% else %}Product image {{ forloop.counter }}{% endif %}">
                         <img src="{{ additional_image.image.url }}" alt="{{ product.name }} thumbnail {{ forloop.counter }}">
+                        {% if additional_image.color %}
+                        <span class="vm-pd-m-thumb-label">{{ additional_image.color }}</span>
+                        {% endif %}
                     </button>
                     {% endif %}
                 {% endfor %}
@@ -176,8 +209,11 @@
             </button>
             {% for additional_image in product.additional_images.all %}
                 {% if additional_image.image and additional_image.image.name %}
-                <button type="button" class="pddx-thumb" data-image-src="{{ additional_image.image.url }}" aria-label="Product image {{ forloop.counter }}">
+                <button type="button" class="pddx-thumb" data-image-src="{{ additional_image.image.url }}" aria-label="Product image {{ forloop.counter }}" title="{% if additional_image.color %}{{ additional_image.color }}{% else %}Product image {{ forloop.counter }}{% endif %}">
                     <img src="{{ additional_image.image.url }}" alt="{{ product.name }} thumbnail {{ forloop.counter }}">
+                    {% if additional_image.color %}
+                    <span class="pddx-thumb__color-label">{{ additional_image.color }}</span>
+                    {% endif %}
                 </button>
                 {% endif %}
             {% endfor %}
@@ -846,6 +882,7 @@ function openDesktopProductImage() {
                                                 type="button"
                                                 data-large-src="{{ additional_image.image.url }}"
                                                 aria-label="View product image {{ forloop.counter }}"
+                                                title="{% if additional_image.color %}{{ additional_image.color }}{% else %}Product image {{ forloop.counter }}{% endif %}"
                                                 style="width: 100px; height: 100px; padding: 5px !important; display: flex; align-items: center; justify-content: center;">
                                             <img src="{{ additional_image.image.url }}" alt="{{ product.name }}" 
                                                  style="width: 90px; height: 90px; object-fit: cover; display: block;">
