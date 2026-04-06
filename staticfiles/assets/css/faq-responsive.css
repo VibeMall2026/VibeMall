@@ -144,3 +144,246 @@
         line-height: 1.58;
     }
 }
+
+@media (min-width: 992px) {
+    .vm-faq-desktop-content {
+        display: block;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 72px 32px 90px;
+        background: #fbf9f4;
+        color: #1b1c19;
+    }
+
+    .vm-faq-d-hero {
+        text-align: center;
+        margin-bottom: 72px;
+    }
+
+    .vm-faq-d-kicker {
+        display: block;
+        margin-bottom: 16px;
+        color: #6f5c37;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+    }
+
+    .vm-faq-d-hero h1 {
+        margin: 0;
+        font-family: 'Noto Serif', Georgia, serif;
+        font-size: clamp(42px, 4.8vw, 66px);
+        line-height: 1.1;
+        color: #171818;
+    }
+
+    .vm-faq-d-hero p {
+        margin: 18px auto 0;
+        max-width: 620px;
+        color: #444748;
+        font-size: 18px;
+        line-height: 1.72;
+    }
+
+    .vm-faq-d-layout {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr);
+        gap: 72px;
+        align-items: start;
+    }
+
+    .vm-faq-d-sidebar-inner {
+        position: sticky;
+        top: 128px;
+    }
+
+    .vm-faq-d-sidebar h3 {
+        margin: 0 0 20px;
+        font-family: 'Noto Serif', Georgia, serif;
+        font-size: 32px;
+        color: #171818;
+    }
+
+    .vm-faq-d-sidebar nav {
+        display: grid;
+        gap: 10px;
+    }
+
+    .vm-faq-d-sidebar nav a {
+        display: block;
+        padding: 4px 0 4px 16px;
+        border-left: 2px solid transparent;
+        color: #444748;
+        text-decoration: none;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+    }
+
+    .vm-faq-d-sidebar nav a:hover,
+    .vm-faq-d-sidebar nav a.is-active {
+        border-left-color: #6f5c37;
+        color: #171818;
+    }
+
+    .vm-faq-d-concierge {
+        margin-top: 36px;
+        padding: 24px;
+        background: #f0eee9;
+        border: 1px solid #e4e2dd;
+        border-radius: 8px;
+    }
+
+    .vm-faq-d-concierge p {
+        margin: 0 0 10px;
+        font-family: 'Noto Serif', Georgia, serif;
+        font-size: 22px;
+        line-height: 1.3;
+    }
+
+    .vm-faq-d-concierge a {
+        color: #171818;
+        text-decoration: none;
+        border-bottom: 2px solid #6f5c37;
+        padding-bottom: 2px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+    }
+
+    .vm-faq-d-content {
+        display: grid;
+        gap: 56px;
+    }
+
+    .vm-faq-d-group {
+        scroll-margin-top: 120px;
+    }
+
+    .vm-faq-d-group h2 {
+        margin: 0;
+        padding-bottom: 14px;
+        border-bottom: 1px solid rgba(196, 199, 199, 0.45);
+        font-family: 'Noto Serif', Georgia, serif;
+        font-size: 40px;
+        color: #171818;
+    }
+
+    .vm-faq-d-group-intro {
+        margin: 14px 0 0;
+        color: #444748;
+        font-size: 16px;
+        line-height: 1.7;
+    }
+
+    .vm-faq-d-accordion {
+        margin-top: 10px;
+    }
+
+    .vm-faq-d-accordion details {
+        border-bottom: 1px solid rgba(196, 199, 199, 0.45);
+        padding: 20px 0;
+    }
+
+    .vm-faq-d-accordion summary {
+        list-style: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        color: #171818;
+        font-size: 24px;
+        font-weight: 500;
+        line-height: 1.4;
+    }
+
+    .vm-faq-d-accordion summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .vm-faq-d-accordion summary i {
+        font-size: 22px;
+        transition: transform 0.25s ease;
+        color: #6f5c37;
+    }
+
+    .vm-faq-d-accordion details[open] summary i {
+        transform: rotate(180deg);
+    }
+
+    .vm-faq-d-accordion details div {
+        margin-top: 14px;
+    }
+
+    .vm-faq-d-accordion details p {
+        margin: 0;
+        max-width: 880px;
+        color: #444748;
+        font-size: 16px;
+        line-height: 1.85;
+    }
+
+    .vm-faq-d-editorial {
+        margin-top: 86px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 48px;
+        align-items: center;
+    }
+
+    .vm-faq-d-editorial-media {
+        min-height: 420px;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid #e4e2dd;
+    }
+
+    .vm-faq-d-editorial-media img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .vm-faq-d-editorial-copy h3 {
+        margin: 0;
+        font-family: 'Noto Serif', Georgia, serif;
+        font-size: 46px;
+        line-height: 1.1;
+        color: #171818;
+    }
+
+    .vm-faq-d-editorial-copy p {
+        margin: 16px 0 0;
+        color: #444748;
+        font-size: 16px;
+        line-height: 1.85;
+    }
+
+    .vm-faq-d-editorial-copy .vm-faq-d-meta {
+        color: #6f5c37;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-weight: 700;
+    }
+
+    .vm-faq-d-editorial-copy a {
+        margin-top: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #171818;
+        text-decoration: none;
+        border-bottom: 2px solid #6f5c37;
+        padding-bottom: 3px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+    }
+}

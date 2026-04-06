@@ -210,7 +210,13 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = Path(os.getenv('STATIC_ROOT', str(BASE_DIR / 'staticfiles')))
 PROJECT_STATIC_DIR = BASE_DIR / 'static'
-STATICFILES_DIRS = [PROJECT_STATIC_DIR] if PROJECT_STATIC_DIR.exists() else []
+HUB_STATIC_DIR = BASE_DIR / 'Hub' / 'static'
+
+# Collect static files from both project root and Hub app
+STATICFILES_DIRS = [
+    dir for dir in [PROJECT_STATIC_DIR, HUB_STATIC_DIR] 
+    if dir.exists()
+]
 
 STORAGES = {
     'default': {
