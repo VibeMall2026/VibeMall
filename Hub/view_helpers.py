@@ -539,25 +539,40 @@ def create_upi_collect_request(upi_id: str, user=None):
             # Build proper Razorpay checkout URL using their standard format
             from urllib.parse import urlencode
             
-            checkout_params = {
-                'key_id': settings.RAZORPAY_KEY_ID,
-                'order_id': order_id,
-                'amount': 100,
-                'currency': 'INR',
-                'name': 'VibeMall',
-                'description': f'UPI Verification',
-                'prefill_email': user.email if user and user.email else 'customer@example.com',
-                'prefill_contact': (getattr(user, 'phone_number', '') or '+919999999999').replace('+', '') if user else '9999999999',
-                'notes[upi_id]': upi_id,
-                'notes[verification_type]': 'upi_collect'
-            }
-            
-            # Generate Razorpay checkout link
-            # Format uses their hosted checkout page
-            checkout_url = f"https://checkout.razorpay.com/?{urlencode(checkout_params)}"
-            
-            logger.info(f'✓ Generated Razorpay Checkout URL for Order: {order_id}')
-            return True, order_id, checkout_url, f'Checkout link ready for {upi_id}'
+            # Use Razorpay's Invoice API for better payment collection
+            # Create Short URL that redirects to payment page
+            try:
+                invoice_response = client.invoice.create({
+                    'customer': {
+                        'email': user.email if user and user.email else 'customer@example.com',
+                        'contact': (getattr(user, 'phone_number', '') or '+919999999999').replace('+', '') if user else '9999999999'
+                    },
+                    'items': [{
+                        'item_id': None,
+                        'description': f'UPI Verification - {upi_id}',
+                        'amount': 100,
+                        'quantity': 1
+                    }],
+                    'amount': 100,
+                    'currency': 'INR',
+                    'expire_by': int(time.time()) + 900,  # 15 minutes
+                    'notes': {
+                        'upi_id': upi_id,
+                        'verification_type': 'upi_collect'
+                    },
+                    'sms_notify': 1,
+                    'email_notify': 1,
+                    'short_url': True
+                })
+                checkout_url = invoice_response.get('short_url') or invoice_response.get('url_short') or f"https://rzp.io/{invoice_response.get('id')}"
+                logger.info(f'✓ Generated Razorpay Invoice Short URL for Order: {order_id}')
+                return True, order_id, checkout_url, f'Payment link ready. Click to verify {upi_id}'
+            except Exception as invoice_err:
+                logger.warning(f'Invoice creation failed, using checkout URL: {str(invoice_err)}')
+                # Fallback to standard checkout URL
+                checkout_url = f"https://rzp.io/?order_id={order_id}"
+                logger.info(f'✓ Using fallback Razorpay URL for Order: {order_id}')
+                return True, order_id, checkout_url, f'Checkout link ready for {upi_id}'
             
         except Exception as e:
             logger.error(f'❌ Checkout URL generation failed: {str(e)}')

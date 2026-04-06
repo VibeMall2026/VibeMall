@@ -8631,21 +8631,42 @@ def razorpay_webhook(request):
         data = json.loads(webhook_body)
         event = data.get('event')
         
-        if event == 'payment.captured':
+        if event == 'payment.captured' or event == 'payment.authorized':
             # Payment successful
             payment = data['payload']['payment']['entity']
-            order_id = payment['notes'].get('order_id')
+            payment_id = payment['id']
+            notes = payment.get('notes', {})
             
-            if order_id:
-                order = Order.objects.get(id=order_id)
-                order.payment_status = 'PAID'
-                order.order_status = 'PROCESSING'
-                order.razorpay_payment_id = payment['id']
-                order.save()
-                
-                # Clear user's cart
-                Cart.objects.filter(user=order.user).delete()
-                
+            # Check if this is UPI verification payment (₹1)
+            if notes.get('verification_type') == 'upi_collect':
+                # Auto-refund the ₹1 UPI verification payment
+                try:
+                    client = razorpay.Client(
+                        auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
+                    )
+                    refund_response = client.payment.refund(payment_id, {
+                        'amount': 100,  # ₹1 in paise
+                        'notes': {
+                            'reason': 'UPI verification auto-refund',
+                            'verification_type': 'upi_collect'
+                        }
+                    })
+                    logger.info(f'✓ Auto-refunded ₹1 for UPI verification: {refund_response.get("id")}')
+                except Exception as refund_err:
+                    logger.error(f'❌ Auto-refund failed: {str(refund_err)}')
+            else:
+                # Regular order payment
+                order_id = notes.get('order_id')
+                if order_id:
+                    order = Order.objects.get(id=order_id)
+                    order.payment_status = 'PAID'
+                    order.order_status = 'PROCESSING'
+                    order.razorpay_payment_id = payment['id']
+                    order.save()
+                    
+                    # Clear user's cart
+                    Cart.objects.filter(user=order.user).delete()
+            
         elif event == 'payment.failed':
             # Payment failed
             payment = data['payload']['payment']['entity']
