@@ -214,22 +214,73 @@ def send_order_confirmation_email(order):
 
         shipping_cost_display = 'Complimentary' if float(order.shipping_cost or 0) == 0 else f"₹{order.shipping_cost:.2f}"
 
+        try:
+            order_details_path = reverse('order_details', args=[order.order_number])
+        except Exception:
+            order_details_path = f"/orders/{order.order_number}/"
+
+        try:
+            track_order_path = reverse('order_tracking', args=[order.order_number])
+        except Exception:
+            track_order_path = '/track-order/'
+
+        try:
+            contact_path = reverse('contact')
+        except Exception:
+            contact_path = '/contact/'
+
+        try:
+            returns_policy_path = reverse('faq')
+        except Exception:
+            returns_policy_path = '/faq/'
+
+        payment_status_display = order.get_payment_status_display()
+        if order.delivery_date:
+            estimated_delivery = order.delivery_date.strftime('%B %d, %Y')
+        elif order.order_status == 'DELIVERED':
+            estimated_delivery = 'Delivered'
+        elif order.order_status == 'SHIPPED':
+            estimated_delivery = 'On the Way'
+        else:
+            estimated_delivery = 'To Be Confirmed'
+
+        # Confirmation timestamp (approved_at if set, else order_date, else now)
+        confirmed_dt = getattr(order, 'approved_at', None) or order.order_date
+        confirmation_date = confirmed_dt.strftime('%B %d, %Y') if confirmed_dt else datetime.now().strftime('%B %d, %Y')
+
+        # Estimated dispatch: 1 business day after order date
+        from datetime import timedelta
+        dispatch_base = order.order_date or datetime.now().date() if not hasattr(datetime.now(), 'date') else datetime.now()
+        if hasattr(dispatch_base, 'date'):
+            dispatch_base = dispatch_base.date()
+        estimated_dispatch_date = (dispatch_base + timedelta(days=1)).strftime('%B %d, %Y')
+
+        # Route to correct template: pending/processing → order_received, else → order_confirmation
+        email_template = 'emails/order_received.html' if is_review_state else 'emails/order_confirmation.html'
+
         # Render HTML email template
-        html_content = render_to_string('emails/order_confirmation.html', {
+        html_content = render_to_string(email_template, {
             'order': order,
             'site_url': site_url,
             'order_items': order_items,
             'hero_title': hero_title,
             'hero_message': hero_message,
             'shipping_cost_display': shipping_cost_display,
+            'order_date': order.order_date.strftime('%B %d, %Y') if order.order_date else '',
+            'confirmation_date': confirmation_date,
+            'estimated_dispatch_date': estimated_dispatch_date,
+            'payment_status_display': payment_status_display,
+            'estimated_delivery': estimated_delivery,
+            'track_order_url': f"{site_url}{track_order_path}",
+            'order_details_url': f"{site_url}{order_details_path}",
+            'contact_url': f"{site_url}{contact_path}",
+            'returns_policy_url': f"{site_url}{returns_policy_path}",
+            'invoice_download_url': f"{site_url}{order_details_path}",
             'current_year': datetime.now().year,
         })
         
         # Plain text fallback
-        try:
-            order_path = reverse('order_details', args=[order.order_number])
-        except Exception:
-            order_path = f"/orders/{order.order_number}/"
+        order_path = order_details_path
 
         text_content = f"""
         {hero_title} - #{order.order_number}
@@ -403,105 +454,211 @@ def send_order_status_update_email(order, old_status, new_status):
                 'variant_text': ' / '.join([part for part in [item.color, item.size] if part]) or '',
             })
         
+        # ── Status config for all 7 states ──────────────────────────────────
         status_config = {
+            # Existing statuses
             'PROCESSING': {
                 'title': 'Order is Being Processed',
-                'message': 'Your order is now being prepared for shipment.',
-                'type': 'PROCESSING'
+                'message': 'The artisanal pieces you selected are being prepared with care in our studio.',
+                'type': 'PROCESSING',
+                'badge': 'ORDER IN ATELIER',
+                'hero_title': 'Your Order is Being Prepared',
+                'cta_label': 'View My Order',
             },
             'SHIPPED': {
-                'title': 'Order Shipped!',
-                'message': f'Your order has been shipped via {order.courier_name or "our delivery partner"}.',
-                'type': 'SHIPPED'
+                'title': 'Your Order is En Route',
+                'message': 'Each piece has been carefully inspected and is now being transported with the utmost care to your doorstep.',
+                'type': 'SHIPPED',
+                'badge': 'SHIPPING UPDATE',
+                'hero_title': 'Your Curations Are on the Way',
+                'cta_label': 'Track Your Journey',
+            },
+            'OUT_FOR_DELIVERY': {
+                'title': 'Out for Delivery Today',
+                'message': 'Your order is with our delivery partner and will arrive at your doorstep today.',
+                'type': 'OUT_FOR_DELIVERY',
+                'badge': 'OUT FOR DELIVERY',
+                'hero_title': 'Arriving Today',
+                'cta_label': 'Track Your Journey',
             },
             'DELIVERED': {
                 'title': 'Order Delivered Successfully',
-                'message': 'Your order has been delivered. We hope you enjoy your purchase!',
-                'type': 'DELIVERED'
+                'message': 'Your curated order has reached its destination. We hope every piece feels special when unboxed.',
+                'type': 'DELIVERED',
+                'badge': 'DELIVERY CONFIRMED',
+                'hero_title': 'Your Order Has Arrived',
+                'cta_label': 'View My Order',
             },
             'CANCELLED': {
                 'title': 'Order Cancelled',
-                'message': 'Your order has been cancelled.',
-                'type': 'CANCELLED'
+                'message': 'Your order has been cancelled. If you need help, our concierge team is here for you.',
+                'type': 'CANCELLED',
+                'badge': 'ORDER UPDATE',
+                'hero_title': 'Your Order Was Cancelled',
+                'cta_label': 'View Order History',
+            },
+            # Return flow statuses
+            'RETURN_SUBMITTED': {
+                'title': 'Return Request Submitted',
+                'message': 'We have received your return request and our team is reviewing it. You will hear from us shortly.',
+                'type': 'RETURN_SUBMITTED',
+                'badge': 'RETURN REQUEST',
+                'hero_title': 'Return Request Received',
+                'cta_label': 'View Return Status',
+            },
+            'RETURN_ACCEPTED': {
+                'title': 'Return Request Accepted',
+                'message': 'Your return has been approved. We will schedule a pickup at your convenience.',
+                'type': 'RETURN_ACCEPTED',
+                'badge': 'RETURN ACCEPTED',
+                'hero_title': 'Your Return is Approved',
+                'cta_label': 'View Return Details',
+            },
+            'PICKUP_SCHEDULED': {
+                'title': 'Pickup Scheduled',
+                'message': 'A pickup has been scheduled for your return. Please keep the items ready.',
+                'type': 'PICKUP_SCHEDULED',
+                'badge': 'PICKUP DATE CONFIRMED',
+                'hero_title': 'Pickup is Scheduled',
+                'cta_label': 'View Pickup Details',
+            },
+            'PICKUP_DONE': {
+                'title': 'Pickup Successful',
+                'message': 'Your items have been picked up successfully. Refund will be processed after quality check.',
+                'type': 'PICKUP_DONE',
+                'badge': 'PICKUP COMPLETE',
+                'hero_title': 'Items Picked Up Successfully',
+                'cta_label': 'Track Refund Status',
+            },
+            'PROCEED_TO_PAYMENT': {
+                'title': 'Payment Required',
+                'message': 'There is a pending balance on your order. Please complete the payment to proceed.',
+                'type': 'PROCEED_TO_PAYMENT',
+                'badge': 'ACTION REQUIRED',
+                'hero_title': 'Complete Your Payment',
+                'cta_label': 'Pay Now',
             },
         }
-        
+
         if new_status not in status_config:
             return False
-        
+
         status_info = status_config[new_status]
 
-        tracking_url = f"{site_url}{reverse('order_tracking', args=[order.order_number])}" if order.tracking_number else f'{site_url}/orders/{order.id}/'
-        order_details_url = f"{site_url}{reverse('order_details', args=[order.order_number])}"
-        past_orders_url = f"{site_url}{reverse('order_list')}"
-        first_review_product = next((item.product for item in order.items.select_related('product').all() if item.product_id), None)
-        review_url = f"{site_url}{reverse('product-details', args=[first_review_product.id])}" if first_review_product else order_details_url
-        shipping_address_lines = [
-            line.strip()
-            for line in str(order.shipping_address or '').replace('\r', '').split('\n')
-            if line.strip()
-        ]
-        if not shipping_address_lines and order.shipping_address:
-            shipping_address_lines = [part.strip() for part in str(order.shipping_address).split(',') if part.strip()]
+        # ── URLs ─────────────────────────────────────────────────────────────
+        try:
+            tracking_url = f"{site_url}{reverse('order_tracking', args=[order.order_number])}"
+        except Exception:
+            tracking_url = f'{site_url}/orders/{order.id}/'
 
-        status_badge = {
-            'PROCESSING': 'ORDER IN ATELIER',
-            'SHIPPED': 'SHIPPING UPDATE',
-            'DELIVERED': 'DELIVERY CONFIRMED',
-            'CANCELLED': 'ORDER UPDATE',
-        }.get(new_status, 'ORDER UPDATE')
+        try:
+            order_details_url = f"{site_url}{reverse('order_details', args=[order.order_number])}"
+        except Exception:
+            order_details_url = f'{site_url}/orders/{order.order_number}/'
 
-        hero_title = {
-            'PROCESSING': 'Your Order is Being Prepared',
-            'SHIPPED': 'Your Order is En Route',
-            'DELIVERED': 'Your Order Has Arrived',
-            'CANCELLED': 'Your Order Was Cancelled',
-        }.get(new_status, status_info['title'])
+        try:
+            past_orders_url = f"{site_url}{reverse('order_list')}"
+        except Exception:
+            past_orders_url = f'{site_url}/orders/'
 
-        hero_body = {
-            'PROCESSING': 'The artisanal pieces you selected are being prepared with care in our studio.',
-            'SHIPPED': 'The artisanal pieces you selected have been carefully packed and are now making their way to your sanctuary.',
-            'DELIVERED': 'Your curated order has reached its destination. We hope every piece feels special when unboxed.',
-            'CANCELLED': 'Your latest order update is below. If you need help, our concierge team is here for you.',
-        }.get(new_status, status_info['message'])
+        try:
+            contact_url = f"{site_url}{reverse('contact')}"
+        except Exception:
+            contact_url = f'{site_url}/contact/'
 
-        cta_label = 'Track My Package' if order.tracking_number else 'View My Order'
-        timeline_label = 'Estimated Arrival'
-        timeline_value = 'We will update you shortly'
-        if new_status == 'DELIVERED':
-            timeline_label = 'Delivered On'
-            timeline_value = order.delivery_date.strftime('%B %d, %Y').upper() if order.delivery_date else 'Delivered'
-        elif new_status == 'SHIPPED':
-            timeline_value = order.delivery_date.strftime('%B %d, %Y').upper() if order.delivery_date else 'Carrier update pending'
-        elif new_status == 'PROCESSING':
-            timeline_label = 'Current Stage'
-            timeline_value = 'Preparing for Dispatch'
-        elif new_status == 'CANCELLED':
-            timeline_label = 'Current Stage'
-            timeline_value = 'Cancelled'
+        try:
+            returns_url = f"{site_url}{reverse('faq')}"
+        except Exception:
+            returns_url = f'{site_url}/faq/'
 
-        carrier_label = order.courier_name or 'VibeMall Logistics'
-        
-        # Render HTML email template
+        payment_url = order_details_url  # override if dedicated payment URL exists
+
+        # ── Delivery timeline ─────────────────────────────────────────────────
+        if order.delivery_date:
+            timeline_value = order.delivery_date.strftime('%B %d, %Y')
+        elif new_status in ('SHIPPED', 'OUT_FOR_DELIVERY'):
+            timeline_value = 'Carrier update pending'
+        elif new_status == 'DELIVERED':
+            timeline_value = 'Delivered'
+        else:
+            timeline_value = 'To Be Confirmed'
+
+        # ── Primary CTA URL ───────────────────────────────────────────────────
+        primary_cta_url = tracking_url if new_status in ('SHIPPED', 'OUT_FOR_DELIVERY') else order_details_url
+        if new_status == 'PROCEED_TO_PAYMENT':
+            primary_cta_url = payment_url
+
+        # ── Return / pickup context ───────────────────────────────────────────
+        return_obj = getattr(order, 'return_request', None)
+        return_request_id = getattr(return_obj, 'id', '') or ''
+        return_reason     = getattr(return_obj, 'reason', '') or ''
+        return_status_display = getattr(return_obj, 'get_status_display', lambda: '')() if return_obj else ''
+        pickup_date    = getattr(return_obj, 'pickup_date', None)
+        pickup_date    = pickup_date.strftime('%B %d, %Y') if pickup_date else ''
+        pickup_window  = getattr(return_obj, 'pickup_window', '') or ''
+        pickup_partner = getattr(return_obj, 'pickup_partner', '') or order.courier_name or 'VibeMall Logistics'
+
+        # ── Payment context ───────────────────────────────────────────────────
+        payment_amount   = order.total_amount
+        payment_due_date = ''
+        if hasattr(order, 'payment_due_date') and order.payment_due_date:
+            payment_due_date = order.payment_due_date.strftime('%B %d, %Y')
+
+        # ── Shipping cost display ─────────────────────────────────────────────
+        shipping_cost_display = (
+            'Complimentary' if float(order.shipping_cost or 0) == 0
+            else f"₹{order.shipping_cost:.2f}"
+        )
+
+        # ── Block visibility flags ────────────────────────────────────────────
+        show_tracking = new_status in ('SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED')
+        show_return   = new_status in ('RETURN_SUBMITTED', 'RETURN_ACCEPTED', 'PICKUP_SCHEDULED', 'PICKUP_DONE')
+        show_pickup   = new_status in ('PICKUP_SCHEDULED', 'PICKUP_DONE')
+        show_payment  = new_status == 'PROCEED_TO_PAYMENT'
+
+        from datetime import datetime as _dt
+        event_date = _dt.now().strftime('%b %d, %Y').upper()
+
+        # ── Render ────────────────────────────────────────────────────────────
         html_content = render_to_string('emails/order_status_update.html', {
             'order': order,
             'order_items': order_items,
             'status_type': status_info['type'],
             'status_title': status_info['title'],
-            'status_message': status_info['message'],
-            'order_url': order_details_url,
+            'status_badge': status_info['badge'],
+            'hero_title': status_info['hero_title'],
+            'hero_body': status_info['message'],
+            'primary_cta_label': status_info['cta_label'],
+            'primary_cta_url': primary_cta_url,
+            'order_url': past_orders_url,
             'tracking_url': tracking_url,
-            'past_orders_url': past_orders_url,
-            'review_url': review_url,
-            'shipping_address_lines': shipping_address_lines,
-            'status_badge': status_badge,
-            'hero_title': hero_title,
-            'hero_body': hero_body,
-            'cta_label': cta_label,
-            'timeline_label': timeline_label,
+            'returns_url': returns_url,
+            'contact_url': contact_url,
+            'show_contact_link': True,
+            'event_date': event_date,
+            # Tracking block
+            'show_tracking': show_tracking,
+            'courier_name': order.courier_name or 'VibeMall Logistics',
+            'tracking_number': order.tracking_number or '',
             'timeline_value': timeline_value,
-            'carrier_label': carrier_label,
-            'item_count': sum(int(item['quantity'] or 0) for item in order_items),
+            # Return block
+            'show_return': show_return,
+            'return_request_id': return_request_id,
+            'return_reason': return_reason,
+            'return_status_display': return_status_display,
+            # Pickup block
+            'show_pickup': show_pickup,
+            'pickup_date': pickup_date,
+            'pickup_window': pickup_window,
+            'pickup_partner': pickup_partner,
+            # Payment block
+            'show_payment': show_payment,
+            'payment_amount': payment_amount,
+            'payment_due_date': payment_due_date,
+            'payment_url': payment_url,
+            # Totals
+            'shipping_cost_display': shipping_cost_display,
+            'current_year': _dt.now().year,
         })
         
         # Plain text fallback

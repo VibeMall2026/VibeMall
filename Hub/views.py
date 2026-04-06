@@ -5866,8 +5866,17 @@ def checkout_confirm(request):
             if not buy_now_item:
                 Cart.objects.filter(user=request.user).delete()
 
-            send_order_confirmation_email(order)
-            send_admin_order_notification(order, request)
+            try:
+                email_sent = send_order_confirmation_email(order)
+                if not email_sent:
+                    logger.warning(f"Order confirmation email failed silently for order {order.order_number}")
+            except Exception as email_exc:
+                logger.error(f"Order confirmation email exception for order {order.order_number}: {email_exc}", exc_info=True)
+
+            try:
+                send_admin_order_notification(order, request)
+            except Exception as admin_email_exc:
+                logger.error(f"Admin notification email exception for order {order.order_number}: {admin_email_exc}", exc_info=True)
 
             if order.approval_status == 'PENDING_APPROVAL':
                 messages.warning(request, f'Order placed successfully! Order #: {order.order_number}. Your order is pending approval due to security checks.')
@@ -8406,7 +8415,12 @@ def razorpay_payment_success(request):
             Cart.objects.filter(user=request.user).delete()
             
             # Send order confirmation email
-            send_order_confirmation_email(order)
+            try:
+                email_sent = send_order_confirmation_email(order)
+                if not email_sent:
+                    logger.warning(f"Razorpay order confirmation email failed silently for order {order.order_number}")
+            except Exception as email_exc:
+                logger.error(f"Razorpay order confirmation email exception for order {order.order_number}: {email_exc}", exc_info=True)
             
             if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 return JsonResponse({'success': True, 'redirect': reverse('order_confirmation', args=[order.id])})

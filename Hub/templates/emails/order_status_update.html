@@ -1,417 +1,394 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ status_title }} - VibeMall</title>
+    <title>{{ status_title }} | VibeMall</title>
+    <style>
+        /* ── Reset ── */
+        body, table, td, p, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; border-collapse: collapse; }
+        img { -ms-interpolation-mode: bicubic; border: 0; display: block; outline: none; }
+
+        /* ── Base ── */
+        body {
+            margin: 0; padding: 0;
+            background: #fbf9f4; color: #1b1c19;
+            font-family: 'Manrope', Arial, 'Helvetica Neue', Helvetica, sans-serif;
+            line-height: 1.5;
+        }
+
+        /* ── Shell ── */
+        .wrapper { width: 100%; background: #fbf9f4; padding: 32px 10px; }
+        .shell   { width: 100%; max-width: 720px; background: #ffffff; }
+
+        /* ── Header ── */
+        .head-brand {
+            margin: 0;
+            font-family: 'Noto Serif', Georgia, serif;
+            font-size: 26px; font-style: italic; font-weight: 700;
+            letter-spacing: 2px; color: #171818;
+        }
+        .help-text { margin: 8px 0 0; font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #444748; }
+        .help-text a { color: #6f5c37 !important; text-decoration: underline; }
+
+        /* ── Status badge ── */
+        .status-badge {
+            display: inline-block; margin-bottom: 12px;
+            font-size: 10px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 2px; color: #6f5c37;
+        }
+
+        /* ── Hero ── */
+        .hero { background: #f5f3ee; padding: 40px 32px; text-align: center; }
+        .hero-title {
+            margin: 0;
+            font-family: 'Noto Serif', Georgia, serif;
+            font-size: 38px; font-weight: 700; font-style: italic;
+            line-height: 1.1; color: #171818;
+        }
+        .hero-copy {
+            margin: 16px auto 0; max-width: 480px;
+            font-size: 15px; line-height: 1.75; color: #444748;
+        }
+        .hero-meta {
+            margin-top: 20px;
+            font-size: 11px; text-transform: uppercase;
+            letter-spacing: 1.5px; color: #747878;
+        }
+        .hero-meta span { margin: 0 6px; }
+        .hero-meta .dot {
+            display: inline-block; width: 4px; height: 4px;
+            border-radius: 50%; background: #c4c7c7;
+            vertical-align: middle; margin: 0 4px;
+        }
+
+        /* ── Actions ── */
+        .actions { text-align: center; padding: 28px 16px 20px; background: #ffffff; }
+        .btn {
+            display: inline-block; text-decoration: none;
+            text-transform: uppercase; letter-spacing: 1.3px;
+            font-size: 11px; font-weight: 700;
+            padding: 14px 28px; margin: 0 5px 10px;
+        }
+        .btn-primary   { background: #171818; border: 1px solid #171818; color: #ffffff !important; }
+        .btn-ghost     { background: transparent; border: 1px solid #c4c7c7; color: #171818 !important; }
+        .contact-link  {
+            display: inline-block; margin-top: 8px;
+            color: #171818 !important; font-size: 10px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1.2px;
+            text-decoration: underline; text-decoration-color: #6f5c37;
+        }
+
+        /* ── Info blocks ── */
+        .block-wrap  { padding: 0 0 6px; }
+        .info-block  { background: #f5f3ee; padding: 20px 24px; margin-bottom: 6px; }
+        .info-block-dark { background: #e4e2dd; padding: 20px 24px; margin-bottom: 6px; }
+        .block-label {
+            font-size: 9px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 2px; color: #6f5c37;
+            margin: 0 0 10px;
+        }
+        .block-title {
+            font-family: 'Noto Serif', Georgia, serif;
+            font-size: 18px; font-style: italic; color: #171818;
+            margin: 0 0 4px;
+        }
+        .block-text  { font-size: 13px; color: #444748; margin: 3px 0; }
+        .block-text strong { color: #171818; }
+        .block-mono  { font-family: 'Courier New', monospace; font-size: 12px; color: #171818; }
+
+        /* ── Payment block ── */
+        .pay-block {
+            background: #e4e2dd; padding: 20px 24px; margin-bottom: 6px;
+        }
+        .pay-amount {
+            font-family: 'Noto Serif', Georgia, serif;
+            font-size: 26px; font-weight: 700; color: #171818; margin: 0;
+        }
+        .pay-due { font-size: 11px; color: #444748; margin: 4px 0 0; }
+        .btn-pay {
+            display: inline-block; text-decoration: none;
+            background: #6f5c37; color: #ffffff !important;
+            font-size: 10px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1.5px;
+            padding: 10px 20px; margin-top: 12px;
+        }
+
+        /* ── Summary ── */
+        .summary-wrap { padding: 24px; background: #ffffff; }
+        .summary-title {
+            font-family: 'Noto Serif', Georgia, serif;
+            font-size: 20px; font-style: italic; font-weight: 700;
+            color: #171818; margin: 0 0 16px;
+            border-bottom: 1px solid #c4c7c7; padding-bottom: 10px;
+        }
+        .item-image {
+            width: 80px; height: 96px; object-fit: cover;
+            display: block; border: 1px solid #d4d2ce; background: #e4e2dd;
+        }
+        .item-name  { margin: 0; color: #171818; font-size: 13px; font-weight: 700; }
+        .item-meta  { margin: 4px 0 0; color: #444748; font-size: 11px; }
+        .item-price {
+            color: #171818; font-size: 13px; font-weight: 600;
+            font-family: 'Noto Serif', Georgia, serif;
+            text-align: right; white-space: nowrap;
+        }
+        .totals-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #444748; }
+        .totals-value { font-size: 12px; color: #171818; font-weight: 700; text-align: right; white-space: nowrap; }
+        .total-row { border-top: 1px solid #c4c7c7; }
+        .total-row .totals-label,
+        .total-row .totals-value {
+            font-size: 20px; color: #171818; font-weight: 700;
+            font-family: 'Noto Serif', Georgia, serif;
+            font-style: italic; text-transform: none; letter-spacing: 0; padding-top: 12px;
+        }
+        .discount-val { color: #32080c !important; }
+
+        /* ── Address ── */
+        .addr-wrap { background: #f0eee9; padding: 24px; text-align: center; }
+        .addr-label {
+            font-size: 9px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 2px; color: #6f5c37; margin: 0 0 12px;
+        }
+        .addr-text { font-size: 13px; color: #444748; line-height: 1.7; }
+        .addr-text strong { color: #171818; }
+
+        /* ── Footer ── */
+        .footer { text-align: center; padding: 28px 16px; background: #f0eee9; border-top: 1px solid #ddd9cf; }
+        .footer-brand {
+            font-family: 'Noto Serif', Georgia, serif;
+            font-style: italic; font-size: 16px; color: #171818;
+            margin: 0 0 12px; opacity: 0.6;
+        }
+        .footer a {
+            color: #171818 !important; text-decoration: none;
+            font-size: 10px; text-transform: uppercase;
+            letter-spacing: 1.1px; margin: 0 8px; opacity: 0.65;
+        }
+        .copyright { margin-top: 12px; color: #444748; opacity: 0.45; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* ── Mobile ── */
+        @media only screen and (max-width: 600px) {
+            .wrapper { padding: 0 !important; }
+            .hero-title { font-size: 28px !important; }
+            .stack, .stack td { display: block !important; width: 100% !important; }
+            .item-price { text-align: left !important; padding-top: 6px; }
+            .btn { display: block !important; margin: 0 0 10px !important; }
+            .total-row .totals-label,
+            .total-row .totals-value { font-size: 18px !important; }
+            .pay-block table td { display: block !important; width: 100% !important; }
+        }
+    </style>
 </head>
-<body style="margin:0;padding:0;background:#fbf9f4;color:#1b1c19;font-family:Manrope,Arial,sans-serif;">
-    {% if status_type == 'DELIVERED' %}
-    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#fbf9f4;">
-        <tr>
-            <td align="center" style="padding:0 16px 40px;">
-                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width:880px;background:#fbf9f4;">
-                    <tr>
-                        <td style="padding:24px 0 18px;border-bottom:1px solid rgba(196,199,199,0.25);">
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                                <tr>
-                                    <td width="72" style="font-size:12px;color:#171818;">Menu</td>
-                                    <td align="center" style="font-family:'Noto Serif',Georgia,serif;font-size:28px;font-weight:700;letter-spacing:3px;color:#171818;">
-                                        VIBEMALL
-                                    </td>
-                                    <td width="72" align="right" style="font-size:12px;color:#171818;">Bag</td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
+<body>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="wrapper">
+<tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="shell" style="max-width:720px;">
 
-                    <tr>
-                        <td style="padding:44px 0 34px;">
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                                <tr>
-                                    <td valign="bottom" width="55%" style="padding-right:26px;">
-                                        <div style="width:100%;background:#e4e2dd;overflow:hidden;">
-                                            {% if order_items and order_items.0.image_url %}
-                                            <img src="{{ order_items.0.image_url }}" alt="{{ order_items.0.name }}" style="display:block;width:100%;height:auto;border:0;">
-                                            {% else %}
-                                            <div style="height:420px;background:#e4e2dd;"></div>
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                    <td valign="bottom" width="45%" style="padding-bottom:8px;">
-                                        <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#6f5c37;font-weight:700;padding:0 0 14px;">
-                                            Final Chapter
-                                        </div>
-                                        <div style="font-family:'Noto Serif',Georgia,serif;font-size:64px;line-height:0.9;font-weight:700;color:#171818;letter-spacing:-3px;padding:0 0 22px;">
-                                            DELIVERED.
-                                        </div>
-                                        <div style="font-size:18px;line-height:1.85;color:#444748;padding:0 0 26px;">
-                                            The wait is over. Your curated selection from the Atelier has arrived at your door. We hope it transforms your space as much as it did our workshop.
-                                        </div>
-                                        <div style="padding:0 0 14px;">
-                                            <a href="{{ review_url }}" style="display:inline-block;background:#171818;color:#ffffff;text-decoration:none;padding:15px 26px;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border-radius:4px;">
-                                                Write a Review
-                                            </a>
-                                        </div>
-                                        <div>
-                                            <a href="{{ past_orders_url }}" style="display:inline-block;color:#171818;text-decoration:none;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid rgba(111,92,55,0.45);padding-bottom:4px;">
-                                                Track Past Orders
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
+    <!-- ── HEADER ── -->
+    <tr>
+        <td align="center" style="padding:32px 16px 20px; background:#fbf9f4;">
+            <h1 class="head-brand">VibeMall</h1>
+            <p class="help-text">Need help? <a href="mailto:info.vibemall@gmail.com">info.vibemall@gmail.com</a></p>
+        </td>
+    </tr>
 
-                    <tr>
-                        <td style="padding:0 0 20px;border-bottom:1px solid rgba(196,199,199,0.32);">
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                                <tr>
-                                    <td style="font-family:'Noto Serif',Georgia,serif;font-size:30px;line-height:1.1;font-weight:700;color:#171818;">
-                                        Your Atelier Summary
-                                    </td>
-                                    <td align="right" style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#747878;font-weight:700;">
-                                        Order #{{ order.order_number }}
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
+    <!-- ── HERO ── -->
+    <tr>
+        <td class="hero">
+            <div class="status-badge">{{ status_badge }}</div>
+            <h2 class="hero-title">{{ hero_title }}</h2>
+            <p class="hero-copy">{{ hero_body }}</p>
+            <p class="hero-meta">
+                <span>Order #{{ order.order_number }}</span>
+                <span class="dot"></span>
+                <span>{{ event_date }}</span>
+            </p>
+        </td>
+    </tr>
 
-                    <tr>
-                        <td style="padding:28px 0 0;">
-                            <table role="presentation" cellspacing="8" cellpadding="0" border="0" width="100%">
-                                <tr>
-                                    {% if order_items %}
-                                    <td valign="top" width="66.66%" style="background:#f5f3ee;padding:24px;">
-                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                                            <tr>
-                                                <td valign="top" width="220" style="padding-right:24px;">
-                                                    <div style="width:200px;background:#e4e2dd;overflow:hidden;">
-                                                        {% if order_items.0.image_url %}
-                                                        <img src="{{ order_items.0.image_url }}" alt="{{ order_items.0.name }}" style="display:block;width:200px;height:auto;border:0;">
-                                                        {% else %}
-                                                        <div style="height:240px;background:#e4e2dd;"></div>
-                                                        {% endif %}
-                                                    </div>
-                                                </td>
-                                                <td valign="top">
-                                                    <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#6f5c37;font-weight:700;padding:0 0 10px;">
-                                                        Signature Collection
-                                                    </div>
-                                                    <div style="font-family:'Noto Serif',Georgia,serif;font-size:28px;line-height:1.25;font-weight:700;color:#171818;padding:0 0 12px;">
-                                                        {{ order_items.0.name }}
-                                                    </div>
-                                                    <div style="font-size:14px;line-height:1.8;color:#444748;padding:0 0 18px;">
-                                                        {% if order_items.0.variant_text %}{{ order_items.0.variant_text }}{% else %}Curated selection from the Atelier.{% endif %}
-                                                    </div>
-                                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-top:1px solid rgba(196,199,199,0.28);">
-                                                        <tr>
-                                                            <td style="padding-top:14px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#747878;">
-                                                                Qty: {{ order_items.0.quantity }}
-                                                            </td>
-                                                            <td align="right" style="padding-top:14px;font-size:18px;font-weight:700;color:#171818;">
-                                                                &#8377;{{ order_items.0.line_total|floatformat:2 }}
-                                                            </td>
-                                                        </tr>
-                                                    </table>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                    {% endif %}
+    <!-- ── PRIMARY CTA ── -->
+    <tr>
+        <td class="actions">
+            <a href="{{ primary_cta_url }}" class="btn btn-primary">{{ primary_cta_label }}</a>
+            <a href="{{ order_url }}" class="btn btn-ghost">View Order History</a>
+            <br>
+            {% if show_contact_link %}
+            <a href="{{ contact_url }}" class="contact-link">Contact Concierge</a>
+            {% endif %}
+        </td>
+    </tr>
 
-                                    <td valign="top" width="33.33%" style="background:#f0eee9;padding:20px;">
-                                        {% if order_items|length > 1 %}
-                                        <div style="width:100%;background:#e4e2dd;overflow:hidden;">
-                                            {% if order_items.1.image_url %}
-                                            <img src="{{ order_items.1.image_url }}" alt="{{ order_items.1.name }}" style="display:block;width:100%;height:auto;border:0;">
-                                            {% else %}
-                                            <div style="height:220px;background:#e4e2dd;"></div>
-                                            {% endif %}
-                                        </div>
-                                        <div style="padding-top:18px;">
-                                            <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#6f5c37;font-weight:700;padding:0 0 8px;">
-                                                Lifestyle
-                                            </div>
-                                            <div style="font-family:'Noto Serif',Georgia,serif;font-size:24px;line-height:1.25;font-weight:700;color:#171818;padding:0 0 12px;">
-                                                {{ order_items.1.name }}
-                                            </div>
-                                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-top:1px solid rgba(196,199,199,0.28);">
-                                                <tr>
-                                                    <td style="padding-top:14px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#747878;">
-                                                        Qty: {{ order_items.1.quantity }}
-                                                    </td>
-                                                    <td align="right" style="padding-top:14px;font-size:17px;font-weight:700;color:#171818;">
-                                                        &#8377;{{ order_items.1.line_total|floatformat:2 }}
-                                                    </td>
-                                                </tr>
-                                            </table>
-                                        </div>
-                                        {% else %}
-                                        <div style="font-family:'Noto Serif',Georgia,serif;font-size:22px;line-height:1.35;font-style:italic;color:#171818;padding:12px 0 18px;">
-                                            Delivered with care.
-                                        </div>
-                                        <div style="font-size:14px;line-height:1.9;color:#444748;">
-                                            Your curated selection has reached its destination. Visit your order history any time to review every detail.
-                                        </div>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
+    <!-- ── DYNAMIC BLOCKS ── -->
+    <tr>
+        <td class="block-wrap" style="padding:0 0 6px;">
 
+            <!-- TRACKING BLOCK: shown for SHIPPED / OUT_FOR_DELIVERY -->
+            {% if show_tracking %}
+            <div class="info-block">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                     <tr>
-                        <td style="padding:8px 0 0;">
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                                <tr>
-                                    <td align="right">
-                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="320" style="background:#e4e2dd;">
-                                            <tr>
-                                                <td style="padding:24px 28px;">
-                                                    <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#747878;font-weight:700;padding:0 0 10px;">
-                                                        Subtotal
-                                                    </div>
-                                                    <div style="font-size:15px;font-weight:700;color:#171818;padding:0 0 10px;">
-                                                        &#8377;{{ order.subtotal|floatformat:2 }}
-                                                    </div>
-                                                    <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#747878;font-weight:700;padding:8px 0 10px;">
-                                                        Shipping
-                                                    </div>
-                                                    <div style="font-size:15px;font-weight:700;color:#171818;padding:0 0 12px;">
-                                                        {% if order.shipping_cost %}&#8377;{{ order.shipping_cost|floatformat:2 }}{% else %}Complimentary{% endif %}
-                                                    </div>
-                                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-top:1px solid rgba(23,24,24,0.08);">
-                                                        <tr>
-                                                            <td style="padding-top:14px;font-family:'Noto Serif',Georgia,serif;font-size:20px;font-style:italic;color:#171818;">
-                                                                Total
-                                                            </td>
-                                                            <td align="right" style="padding-top:14px;font-size:24px;font-weight:800;color:#171818;">
-                                                                &#8377;{{ order.total_amount|floatformat:2 }}
-                                                            </td>
-                                                        </tr>
-                                                    </table>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td style="padding:56px 0 0;text-align:center;">
-                            <div style="font-family:'Noto Serif',Georgia,serif;font-size:38px;line-height:1.2;font-weight:700;color:#171818;padding:0 0 16px;">
-                                How was the experience?
-                            </div>
-                            <div style="max-width:620px;margin:0 auto;font-size:16px;line-height:1.9;color:#444748;padding:0 0 24px;">
-                                Your feedback fuels our atelier. Share your thoughts and help us refine our craft. Every review is read by our team.
-                            </div>
-                            <div style="font-size:22px;letter-spacing:6px;color:#6f5c37;padding:0 0 20px;">
-                                ☆ ☆ ☆ ☆ ☆
-                            </div>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td style="padding:0;">
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#f5f3ee;">
-                                <tr>
-                                    <td valign="top" width="55%" style="padding:34px 32px;">
-                                        <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#6f5c37;font-weight:700;padding:0 0 16px;">
-                                            Delivery Address
-                                        </div>
-                                        <div style="font-size:16px;line-height:2;color:#171818;">
-                                            {% for line in shipping_address_lines %}
-                                            {% if forloop.first %}<strong>{{ line }}</strong>{% else %}{{ line }}{% endif %}{% if not forloop.last %}<br>{% endif %}
-                                            {% empty %}
-                                            Address details unavailable
-                                            {% endfor %}
-                                        </div>
-                                    </td>
-                                    <td valign="top" width="45%" style="padding:34px 32px;">
-                                        <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#6f5c37;font-weight:700;padding:0 0 16px;">
-                                            Need Assistance?
-                                        </div>
-                                        <div style="font-size:14px;line-height:1.9;color:#444748;padding:0 0 18px;">
-                                            Our concierge is available 24/7 for shipping inquiries or collection advice.
-                                        </div>
-                                        <a href="{{ order_url }}" style="color:#171818;text-decoration:none;font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #6f5c37;padding-bottom:4px;">
-                                            Contact Concierge
-                                        </a>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td style="padding:24px 0 0;font-size:12px;line-height:1.8;color:#747878;text-align:center;">
-                            Order #{{ order.order_number }} · Total Amount &#8377;{{ order.total_amount|floatformat:2 }}<br>
-                            This is an automated email from VibeMall. Please do not reply directly to this message.
+                        <td width="36" style="vertical-align:top; padding-right:14px; font-size:22px; color:#6f5c37;">&#128666;</td>
+                        <td style="vertical-align:top;">
+                            <p class="block-label">Shipping Logistics</p>
+                            <p class="block-text">Handled by <strong>{{ courier_name }}</strong></p>
+                            <p class="block-text">Tracking ID: <span class="block-mono">{{ tracking_number }}</span></p>
+                            <p class="block-text" style="margin-top:8px; font-size:10px; text-transform:uppercase; letter-spacing:1px; color:#747878;">Estimated Delivery</p>
+                            <p class="block-title">{{ timeline_value }}</p>
                         </td>
                     </tr>
                 </table>
-            </td>
-        </tr>
-    </table>
-    {% else %}
-    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#fbf9f4;">
-        <tr>
-            <td align="center" style="padding:32px 16px;">
-                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width:880px;background:#fbf9f4;">
-                    <tr>
-                        <td style="padding:0 0 40px;">
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                                <tr>
-                                    <td style="padding:0 0 18px;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#6f5c37;font-weight:700;">
-                                        {{ status_badge }}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="font-family:'Noto Serif',Georgia,serif;font-size:48px;line-height:0.95;font-weight:700;letter-spacing:-2px;color:#171818;padding:0 0 22px;">
-                                        {{ hero_title }}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="max-width:520px;font-size:17px;line-height:1.8;color:#444748;padding:0 0 28px;">
-                                        {{ hero_body }}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <a href="{% if order.tracking_number %}{{ tracking_url }}{% else %}{{ order_url }}{% endif %}" style="display:inline-block;background:#171818;color:#ffffff;text-decoration:none;padding:16px 28px;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border-radius:4px;">
-                                            {{ cta_label }}
-                                        </a>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
+            </div>
+            {% endif %}
 
+            <!-- RETURN REQUEST BLOCK: shown for RETURN_SUBMITTED / RETURN_ACCEPTED / PICKUP_SCHEDULED / PICKUP_DONE -->
+            {% if show_return %}
+            <div class="info-block">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                     <tr>
-                        <td style="padding:0 0 44px;">
-                            <table role="presentation" cellspacing="1" cellpadding="0" border="0" width="100%" style="background:#e4e2dd;">
-                                <tr>
-                                    <td width="33.33%" valign="top" style="background:#ffffff;padding:28px 24px;">
-                                        <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#747878;font-weight:700;padding:0 0 10px;">Tracking Number</div>
-                                        <div style="font-size:22px;line-height:1.3;font-weight:800;color:#171818;">
-                                            {% if order.tracking_number %}{{ order.tracking_number }}{% else %}Pending{% endif %}
-                                        </div>
-                                    </td>
-                                    <td width="33.33%" valign="top" style="background:#ffffff;padding:28px 24px;">
-                                        <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#747878;font-weight:700;padding:0 0 10px;">{{ timeline_label }}</div>
-                                        <div style="font-size:22px;line-height:1.3;font-weight:800;color:#171818;">{{ timeline_value }}</div>
-                                    </td>
-                                    <td width="33.33%" valign="top" style="background:#ffffff;padding:28px 24px;">
-                                        <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#747878;font-weight:700;padding:0 0 10px;">Carrier</div>
-                                        <div style="font-size:22px;line-height:1.3;font-weight:800;color:#171818;">{{ carrier_label|upper }}</div>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td style="padding:0 0 20px;border-bottom:1px solid rgba(196,199,199,0.45);">
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                                <tr>
-                                    <td style="font-family:'Noto Serif',Georgia,serif;font-size:32px;line-height:1.1;font-weight:700;color:#171818;">
-                                        Items Shipped
-                                    </td>
-                                    <td align="right" style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#747878;font-weight:700;">
-                                        {{ item_count }} Object{{ item_count|pluralize }} Total
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-
-                    {% for item in order_items %}
-                    <tr>
-                        <td style="padding:28px 0;border-bottom:1px solid rgba(196,199,199,0.22);">
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                                <tr>
-                                    <td valign="top" width="140" style="padding-right:24px;">
-                                        <div style="width:120px;height:120px;background:#f0eee9;overflow:hidden;">
-                                            {% if item.image_url %}
-                                            <img src="{{ item.image_url }}" alt="{{ item.name }}" width="120" height="120" style="display:block;width:120px;height:120px;object-fit:cover;border:0;">
-                                            {% else %}
-                                            <div style="width:120px;height:120px;line-height:120px;text-align:center;color:#747878;font-size:12px;">VibeMall</div>
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                    <td valign="top">
-                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                                            <tr>
-                                                <td style="font-family:'Noto Serif',Georgia,serif;font-size:24px;line-height:1.3;font-weight:700;color:#171818;padding:0 0 8px;">
-                                                    {{ item.name }}
-                                                </td>
-                                                <td align="right" style="font-size:18px;line-height:1.3;font-weight:800;color:#171818;padding:0 0 8px;">
-                                                    &#8377;{{ item.line_total|floatformat:2 }}
-                                                </td>
-                                            </tr>
-                                        </table>
-                                        <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#747878;font-weight:700;padding:0 0 14px;">
-                                            {% if item.variant_text %}{{ item.variant_text }}{% else %}Quantity: {{ item.quantity }}{% endif %}
-                                        </div>
-                                        <div style="font-size:14px;line-height:1.8;color:#444748;">
-                                            Quantity: {{ item.quantity }}
-                                            {% if item.size %} | Size: {{ item.size }}{% endif %}
-                                            {% if item.color %} | Color: {{ item.color }}{% endif %}
-                                        </div>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-                    {% endfor %}
-
-                    <tr>
-                        <td style="padding:34px 0 0;">
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#f5f3ee;">
-                                <tr>
-                                    <td valign="top" width="55%" style="padding:34px 32px;">
-                                        <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#6f5c37;font-weight:700;padding:0 0 16px;">
-                                            Delivery Address
-                                        </div>
-                                        <div style="font-size:16px;line-height:2;color:#171818;">
-                                            {% for line in shipping_address_lines %}
-                                            {% if forloop.first %}<strong>{{ line }}</strong>{% else %}{{ line }}{% endif %}{% if not forloop.last %}<br>{% endif %}
-                                            {% empty %}
-                                            Address details unavailable
-                                            {% endfor %}
-                                        </div>
-                                    </td>
-                                    <td valign="top" width="45%" style="padding:34px 32px;">
-                                        <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#6f5c37;font-weight:700;padding:0 0 16px;">
-                                            Need Assistance?
-                                        </div>
-                                        <div style="font-size:14px;line-height:1.9;color:#444748;padding:0 0 18px;">
-                                            Our concierge is available for tracking updates, delivery help, and order questions.
-                                        </div>
-                                        <a href="{{ order_url }}" style="color:#171818;text-decoration:none;font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #6f5c37;padding-bottom:4px;">
-                                            Contact Concierge
-                                        </a>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td style="padding:24px 0 0;font-size:12px;line-height:1.8;color:#747878;text-align:center;">
-                            Order #{{ order.order_number }} · Total Amount &#8377;{{ order.total_amount|floatformat:2 }}<br>
-                            This is an automated email from VibeMall. Please do not reply directly to this message.
+                        <td width="36" style="vertical-align:top; padding-right:14px; font-size:22px; color:#6f5c37;">&#8635;</td>
+                        <td style="vertical-align:top;">
+                            <p class="block-label">Return Request</p>
+                            <p class="block-text">Reference: <strong>{{ return_request_id }}</strong></p>
+                            <p class="block-text">Reason: {{ return_reason }}</p>
+                            {% if return_status_display %}
+                            <p class="block-text" style="margin-top:6px;">Status: <strong>{{ return_status_display }}</strong></p>
+                            {% endif %}
                         </td>
                     </tr>
                 </table>
-            </td>
-        </tr>
-    </table>
-    {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- PICKUP BLOCK: shown for PICKUP_SCHEDULED / PICKUP_DONE -->
+            {% if show_pickup %}
+            <div class="info-block-dark">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td width="36" style="vertical-align:top; padding-right:14px; font-size:22px; color:#6f5c37;">&#128197;</td>
+                        <td style="vertical-align:top;">
+                            <p class="block-label">
+                                {% if status_type == 'PICKUP_DONE' %}Pickup Completed{% else %}Scheduled Pickup{% endif %}
+                            </p>
+                            <p class="block-title">{{ pickup_date }}</p>
+                            {% if pickup_window %}
+                            <p class="block-text">Window: {{ pickup_window }}</p>
+                            {% endif %}
+                            {% if pickup_partner %}
+                            <p class="block-text">Partner: {{ pickup_partner }}</p>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- PAYMENT BLOCK: shown for PROCEED_TO_PAYMENT -->
+            {% if show_payment %}
+            <div class="pay-block">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td style="vertical-align:middle;">
+                            <p class="block-label">Balance Due</p>
+                            <p class="pay-amount">&#8377; {{ payment_amount }}</p>
+                            <p class="pay-due">Due by {{ payment_due_date }}</p>
+                        </td>
+                        <td style="vertical-align:middle; text-align:right;">
+                            <a href="{{ payment_url }}" class="btn-pay">Pay Now</a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            {% endif %}
+
+        </td>
+    </tr>
+
+    <!-- ── ORDER ITEMS ── -->
+    <tr>
+        <td class="summary-wrap">
+            <h3 class="summary-title">Your Curations</h3>
+
+            {% for item in order_items %}
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="stack"
+                   style="margin-bottom:16px; border-bottom:1px solid #d4d2ce; padding-bottom:14px;">
+                <tr>
+                    <td width="92" style="padding-right:12px; vertical-align:top;">
+                        {% if item.image_url %}
+                        <img src="{{ item.image_url }}" alt="{{ item.name }}" class="item-image">
+                        {% else %}
+                        <div class="item-image" style="line-height:96px; text-align:center; color:#8d918f; font-size:22px;">&#9632;</div>
+                        {% endif %}
+                    </td>
+                    <td style="vertical-align:top;">
+                        <p class="item-name">{{ item.name }}</p>
+                        {% if item.variant_text %}
+                        <p class="item-meta">{{ item.variant_text }}</p>
+                        {% endif %}
+                        <p class="item-meta">Qty: {{ item.quantity }}</p>
+                    </td>
+                    <td class="item-price" style="padding-left:8px; vertical-align:top;">&#8377;{{ item.line_total|floatformat:2 }}</td>
+                </tr>
+            </table>
+            {% endfor %}
+
+            <!-- Totals -->
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                   style="margin-top:12px; max-width:380px; margin-left:auto;">
+                <tr>
+                    <td class="totals-label" style="padding:4px 0;">Subtotal</td>
+                    <td class="totals-value" style="padding:4px 0;">&#8377;{{ order.subtotal|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td class="totals-label" style="padding:4px 0;">Shipping</td>
+                    <td class="totals-value" style="padding:4px 0;">{{ shipping_cost_display }}</td>
+                </tr>
+                <tr>
+                    <td class="totals-label" style="padding:4px 0;">Tax (GST)</td>
+                    <td class="totals-value" style="padding:4px 0;">&#8377;{{ order.tax|default_if_none:0|floatformat:2 }}</td>
+                </tr>
+                {% if order.coupon_discount and order.coupon_discount > 0 %}
+                <tr>
+                    <td class="totals-label discount-val" style="padding:4px 0;">Discount</td>
+                    <td class="totals-value discount-val" style="padding:4px 0;">-&#8377;{{ order.coupon_discount|floatformat:2 }}</td>
+                </tr>
+                {% endif %}
+                <tr class="total-row">
+                    <td class="totals-label" style="padding-top:12px;">Total</td>
+                    <td class="totals-value" style="padding-top:12px;">&#8377;{{ order.total_amount|floatformat:2 }}</td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+
+    <!-- ── DELIVERY ADDRESS ── -->
+    <tr>
+        <td class="addr-wrap">
+            <p class="addr-label">Delivery Destination</p>
+            <p class="addr-text">
+                <strong>{{ order.user.get_full_name|default:order.user.username }}</strong><br>
+                {{ order.shipping_address|linebreaksbr }}
+            </p>
+        </td>
+    </tr>
+
+    <!-- ── FOOTER ── -->
+    <tr>
+        <td class="footer">
+            <p class="footer-brand">VibeMall Atelier</p>
+            <a href="{{ tracking_url }}">Track Order</a>
+            <a href="{{ returns_url }}">Returns</a>
+            <a href="{{ contact_url }}">Contact Concierge</a>
+            <p class="copyright">&copy; {{ current_year }} VibeMall Atelier. All rights reserved.</p>
+            <p style="margin-top:8px; font-size:9px; color:#444748; opacity:0.4; font-style:italic;">
+                This is an automated update regarding your recent order.
+            </p>
+        </td>
+    </tr>
+
+</table>
+</td></tr>
+</table>
 </body>
 </html>
