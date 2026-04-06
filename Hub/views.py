@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.contrib import messages 
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import JsonResponse, HttpResponse, HttpRequest
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
 from django.db.models import Count, Q, Avg, Sum, F, DecimalField, ExpressionWrapper, Case, When, Value, IntegerField, QuerySet, Min, Max, Prefetch
@@ -9668,7 +9668,7 @@ def return_request(request, order_id):
     refund_options = [
         ('WALLET', 'VibeMall Wallet'),
         ('BANK', 'Direct Bank Transfer'),
-        ('RAZORPAY', 'RazorPay'),
+        ('UPI', 'UPI ID'),
     ]
 
     if request.method == 'POST':
@@ -11667,3 +11667,311 @@ def admin_delete_main_page_banner(request, banner_id):
 
 
 # ===== SLIDER MANAGEMENT VIEWS =====
+
+
+# ===== UPI VERIFICATION ENDPOINT =====
+@login_required(login_url='login')
+@require_POST
+def verify_upi(request):
+    """
+    Real UPI verification using ₹1 collect request.
+    Creates a Razorpay Order to send collect payment to the UPI ID.
+    NOTE: Does not immediately write to database (avoids SQLite locking).
+    """
+    from .view_helpers import create_upi_collect_request
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    
+    try:
+        data = json.loads(request.body)
+        upi_id = data.get('upi_id', '').strip().lower()
+        
+        if not upi_id:
+            return JsonResponse({'valid': False, 'error': 'UPI ID is required'})
+        
+        # Validate UPI format first
+        if '@' not in upi_id or len(upi_id) < 5:
+            return JsonResponse({'valid': False, 'error': 'Invalid UPI ID format. Use: name@bank'})
+        
+        # Call helper function to create ₹1 payment link for verification
+        success, order_id, payment_link_url, message = create_upi_collect_request(
+            upi_id=upi_id,
+            user=request.user if request.user.is_authenticated else None
+        )
+        
+        if success:
+            # Return order ID and payment link for frontend
+            logger.info(f'UPI verification link created: {order_id} for {upi_id}')
+            return JsonResponse({
+                'valid': True,
+                'name': 'Verification Ready',  # Will be updated after payment
+                'order_id': order_id,
+                'payment_link_url': payment_link_url,
+                'message': '📱 ' + message,
+                'next_status': 'ready_for_payment'
+            })
+        else:
+            logger.warning(f'UPI verification failed: {message}')
+            return JsonResponse({
+                'valid': False,
+                'error': message or 'Failed to create verification link'
+            })
+    
+    except json.JSONDecodeError:
+        return JsonResponse({'valid': False, 'error': 'Invalid request'}, status=400)
+    except Exception as e:
+        logger.error(f'UPI verification error: {str(e)}')
+        return JsonResponse({'valid': False, 'error': f'Error: {str(e)}'}, status=500)
+
+
+# ============================================================================
+# REFUND SYSTEM - Process online payment refunds
+# ============================================================================
+
+@login_required
+@require_http_methods(["POST"])
+def process_refund_endpoint(request):
+    """
+    Process refund for an order.
+    
+    POST /api/refund/
+    Body: {
+        "order_id": 123,
+        "refund_amount": 1000.50,  // optional, defaults to full amount
+        "reason": "Customer requested refund"
+    }
+    """
+    from .view_helpers import process_refund
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    
+    try:
+        data = json.loads(request.body)
+        order_id = data.get('order_id')
+        refund_amount = data.get('refund_amount')
+        reason = data.get('reason', 'Refund requested')
+        
+        if not order_id:
+            return JsonResponse({'status': 'failed', 'message': 'Order ID required'}, status=400)
+        
+        # Call helper function
+        success, refund_id, message = process_refund(
+            order_id=order_id,
+            refund_amount=refund_amount,
+            reason=reason,
+            user=request.user
+        )
+        
+        if success:
+            return JsonResponse({
+                'status': 'success',
+                'refund_id': refund_id,
+                'message': message
+            })
+        else:
+            return JsonResponse({
+                'status': 'failed',
+                'message': message
+            }, status=400)
+    
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'failed', 'message': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        logger.error(f'Refund endpoint error: {str(e)}')
+        return JsonResponse({'status': 'failed', 'message': str(e)}, status=500)
+
+
+# ============================================================================
+# BANK VERIFICATION - Real bank account verification via penny drop
+# ============================================================================
+
+@login_required
+@require_http_methods(["POST"])
+def verify_bank_endpoint(request):
+    """
+    Verify bank account using ₹1 penny drop test.
+    
+    POST /api/verify-bank/
+    Body: {
+        "account_number": "12345678901234",
+        "ifsc": "HDFC0000001",
+        "account_name": "John Doe"  // optional
+    }
+    
+    Response: {
+        "status": "verified" or "failed",
+        "account_name": "Name from bank",
+        "message": "..."
+    }
+    """
+    from .view_helpers import verify_bank_account
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    
+    try:
+        data = json.loads(request.body)
+        account_number = data.get('account_number', '').strip()
+        ifsc = data.get('ifsc', '').strip()
+        account_name = data.get('account_name', '').strip()
+        
+        if not account_number or not ifsc:
+            return JsonResponse({
+                'status': 'failed',
+                'message': 'Account number and IFSC required'
+            }, status=400)
+        
+        # Call helper function
+        success, verified_name, message = verify_bank_account(
+            account_number=account_number,
+            ifsc=ifsc,
+            account_name=account_name,
+            user=request.user
+        )
+        
+        if success:
+            return JsonResponse({
+                'status': 'verified',
+                'account_name': verified_name,
+                'message': message
+            })
+        else:
+            return JsonResponse({
+                'status': 'failed',
+                'message': message
+            }, status=400)
+    
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'failed', 'message': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        logger.error(f'Bank verification endpoint error: {str(e)}')
+        return JsonResponse({'status': 'failed', 'message': str(e)}, status=500)
+
+
+# ============================================================================
+# UPI VERIFICATION - Real ₹1 collect request verification
+# ============================================================================
+
+@login_required
+@require_http_methods(["POST"])
+def create_upi_collect_endpoint(request):
+    """
+    Create a ₹1 collect request for UPI verification.
+    User will receive payment request in their UPI app.
+    
+    POST /api/verify-upi-collect/
+    Body: {
+        "upi_id": "john.doe@okhdfcbank"
+    }
+    
+    Response: {
+        "status": "success" or "failed",
+        "order_id": "order_xxxxx",
+        "message": "Collect request created...",
+        "next_action": "user_payment"  // User needs to complete payment in UPI app
+    }
+    """
+    from .view_helpers import create_upi_collect_request
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    
+    try:
+        data = json.loads(request.body)
+        upi_id = data.get('upi_id', '').strip().lower()
+        
+        if not upi_id:
+            return JsonResponse({
+                'status': 'failed',
+                'message': 'UPI ID required'
+            }, status=400)
+        
+        # Call helper function to create collect request
+        success, order_id, payment_id, message = create_upi_collect_request(
+            upi_id=upi_id,
+            user=request.user
+        )
+        
+        if success:
+            return JsonResponse({
+                'status': 'success',
+                'order_id': order_id,
+                'payment_id': payment_id,
+                'message': message,
+                'next_action': 'user_payment'
+            })
+        else:
+            return JsonResponse({
+                'status': 'failed',
+                'message': message
+            }, status=400)
+    
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'failed', 'message': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        logger.error(f'UPI collect endpoint error: {str(e)}')
+        return JsonResponse({'status': 'failed', 'message': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def verify_upi_collect_status_endpoint(request):
+    """
+    Verify and confirm UPI collect request payment.
+    Called after user completes payment in UPI app.
+    
+    POST /api/verify-upi-collect-status/
+    Body: {
+        "order_id": "order_xxxxx",
+        "payment_id": "pay_xxxxx",
+        "signature": "signature_from_razorpay"
+    }
+    
+    Response: {
+        "status": "verified" or "failed",
+        "message": "UPI verified successfully!"
+    }
+    """
+    from .view_helpers import verify_upi_collect_payment
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    
+    try:
+        data = json.loads(request.body)
+        order_id = data.get('order_id', '').strip()
+        payment_id = data.get('payment_id', '').strip()
+        signature = data.get('signature', '').strip()
+        
+        if not all([order_id, payment_id, signature]):
+            return JsonResponse({
+                'status': 'failed',
+                'message': 'order_id, payment_id, and signature required'
+            }, status=400)
+        
+        # Call helper function to verify payment
+        success, message = verify_upi_collect_payment(
+            order_id=order_id,
+            payment_id=payment_id,
+            signature=signature,
+            user=request.user
+        )
+        
+        if success:
+            return JsonResponse({
+                'status': 'verified',
+                'message': message
+            })
+        else:
+            return JsonResponse({
+                'status': 'failed',
+                'message': message
+            }, status=400)
+    
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'failed', 'message': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        logger.error(f'UPI collect status endpoint error: {str(e)}')
+        return JsonResponse({'status': 'failed', 'message': str(e)}, status=500)

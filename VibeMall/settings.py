@@ -152,6 +152,10 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+        'CONN_MAX_AGE': 0,  # Don't persist connections
+        'OPTIONS': {
+            'timeout': 30,  # Increase SQLite timeout to 30 seconds to handle locks
+        }
     }
 }
 
@@ -235,3 +239,7 @@ FILE_UPLOAD_MAX_NUMBER_FILES = 20  # Maximum 20 files per upload
 RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID', '').strip()
 RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET', '').strip()
 RAZORPAY_WEBHOOK_SECRET = os.getenv('RAZORPAY_WEBHOOK_SECRET', '').strip()
+RAZORPAY_UPI_DEBUG = os.getenv('RAZORPAY_UPI_DEBUG', False) == 'True'
+
+# UPI Verification Settings
+UPI_TEST_MODE = os.getenv('UPI_TEST_MODE', 'True') == 'True'  # Enable test mode for development

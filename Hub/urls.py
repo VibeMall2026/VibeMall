@@ -169,6 +169,14 @@ urlpatterns = [
     path('order/download-invoice/<str:order_number>/', views.download_invoice, name='download_invoice'),
     path('order/<str:order_number>/', views.order_details, name='order_details'),
     path('order/<int:order_id>/return/', views.return_request, name='return_request'),
+    path('verify-upi/', views.verify_upi, name='verify_upi'),
+    
+    # New Verification and Refund Endpoints
+    path('api/refund/', views.process_refund_endpoint, name='process_refund'),
+    path('api/verify-bank/', views.verify_bank_endpoint, name='verify_bank'),
+    path('api/verify-upi-collect/', views.create_upi_collect_endpoint, name='verify_upi_collect'),
+    path('api/verify-upi-collect-status/', views.verify_upi_collect_status_endpoint, name='verify_upi_collect_status'),
+    
     path('returns/<int:return_id>/', views.return_status, name='return_status'),
     path('order/track/<str:order_number>/', views.order_tracking, name='order_tracking'),
     path('order/cancel/<int:order_id>/', views.customer_cancel_order, name='customer_cancel_order'),
