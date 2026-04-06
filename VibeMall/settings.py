@@ -247,5 +247,34 @@ RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET', '').strip()
 RAZORPAY_WEBHOOK_SECRET = os.getenv('RAZORPAY_WEBHOOK_SECRET', '').strip()
 RAZORPAY_UPI_DEBUG = os.getenv('RAZORPAY_UPI_DEBUG', False) == 'True'
 
+# Razorpay Webhook Configuration (Construct from domain)
+def _build_webhook_url():
+    webhook_url = os.getenv('RAZORPAY_WEBHOOK_URL', '').strip()
+    if webhook_url:
+        return webhook_url
+    
+    # Auto-construct from ALLOWED_HOSTS
+    for host in ALLOWED_HOSTS:
+        if 'vibemall.in' in host or 'vibemall.cloud' in host:
+            protocol = 'https' if IS_PRODUCTION else 'http'
+            return f'{protocol}://{host}/api/razorpay-webhook/'
+    
+    # Fallback
+    return f"https://vibemall.in/api/razorpay-webhook/"
+
+RAZORPAY_WEBHOOK_URL = _build_webhook_url()
+
 # UPI Verification Settings
-UPI_TEST_MODE = os.getenv('UPI_TEST_MODE', 'True') == 'True'  # Enable test mode for development
+UPI_TEST_MODE = os.getenv('UPI_TEST_MODE', 'False' if IS_PRODUCTION else 'True') == 'True'
+UPI_PROVIDER_VALIDATION = _env_bool('UPI_PROVIDER_VALIDATION', True)
+UPI_AUTO_REFUND_ENABLED = _env_bool('UPI_AUTO_REFUND_ENABLED', True)
+
+# Direct Bank Transfer Settings
+BANK_TRANSFER_ENABLED = _env_bool('BANK_TRANSFER_ENABLED', True)
+BANK_VERIFICATION_AUTO_APPROVE = _env_bool('BANK_VERIFICATION_AUTO_APPROVE', False)
+BANK_VERIFICATION_TIMEOUT_HOURS = _env_int('BANK_VERIFICATION_TIMEOUT_HOURS', 24)
+
+# Verification Webhook Logging
+WEBHOOK_LOG_ENABLED = _env_bool('WEBHOOK_LOG_ENABLED', True)
+WEBHOOK_LOG_RETENTION_DAYS = _env_int('WEBHOOK_LOG_RETENTION_DAYS', 30)
+WEBHOOK_LOG_LEVEL = os.getenv('WEBHOOK_LOG_LEVEL', 'INFO')

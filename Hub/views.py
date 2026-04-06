@@ -8596,42 +8596,66 @@ def razorpay_webhook(request):
     1. Webhook signature is verified using RAZORPAY_WEBHOOK_SECRET
     2. External payment gateway cannot send CSRF tokens
     3. Signature verification provides the protection needed
+    
+    Webhook Logging: All incoming webhooks are logged for debugging and audit purposes
     """
     import razorpay
     import json
+    import hmac
+    import hashlib
     from django.views.decorators.csrf import csrf_exempt
+    from Hub.models import WebhookLog, UPIVerification
     
     webhook_secret = getattr(settings, 'RAZORPAY_WEBHOOK_SECRET', '')
     webhook_signature = request.headers.get('X-Razorpay-Signature', '')
     webhook_body = request.body
     
+    # Initialize WebhookLog entry
+    webhook_log_entry = None
+    
     if not webhook_secret:
         return JsonResponse({'status': 'webhook not configured'}, status=400)
     
-    # Verify webhook signature
     try:
-        # Verify signature
-        import hmac
-        import hashlib
+        # Parse JSON to get event type and IDs for logging
+        data = json.loads(webhook_body)
+        event_type = data.get('event', 'unknown')
+        payment_id = data.get('payload', {}).get('payment', {}).get('entity', {}).get('id', '')
+        order_id = data.get('payload', {}).get('payment', {}).get('entity', {}).get('notes', {}).get('order_id', '')
         
+        # Verify webhook signature
         expected_signature = hmac.new(
             webhook_secret.encode('utf-8'),
             webhook_body,
             hashlib.sha256
         ).hexdigest()
         
-        if expected_signature != webhook_signature:
-            return JsonResponse({'status': 'invalid signature'}, status=400)
-            
-    except Exception as e:
-        return JsonResponse({'status': 'verification failed'}, status=400)
-    
-    # Process webhook data
-    try:
-        data = json.loads(webhook_body)
-        event = data.get('event')
+        signature_valid = (expected_signature == webhook_signature)
         
-        if event == 'payment.captured' or event == 'payment.authorized':
+        # Create WebhookLog entry for this webhook
+        webhook_log_entry = WebhookLog.objects.create(
+            event_type=event_type,
+            payment_id=payment_id,
+            order_id=order_id,
+            raw_body=data,
+            signature=webhook_signature,
+            signature_valid=signature_valid,
+            status='received'
+        )
+        
+        if not signature_valid:
+            webhook_log_entry.status = 'failed'
+            webhook_log_entry.error_message = 'Webhook signature verification failed'
+            webhook_log_entry.save()
+            logger.warning(f'⚠️ Webhook signature invalid for event: {event_type}')
+            return JsonResponse({'status': 'invalid signature'}, status=400)
+        
+        # Update log status to processing
+        webhook_log_entry.status = 'processing'
+        webhook_log_entry.save()
+        
+        # Process webhook data
+        if event_type == 'payment.captured' or event_type == 'payment.authorized':
             # Payment successful
             payment = data['payload']['payment']['entity']
             payment_id = payment['id']
@@ -8641,8 +8665,6 @@ def razorpay_webhook(request):
             if notes.get('verification_type') == 'upi_collect':
                 # Auto-refund the ₹1 UPI verification payment + mark as verified ✓ FIX
                 try:
-                    from Hub.models import UPIVerification
-                    
                     # Get the UPIVerification record and mark it as verified
                     order_id = notes.get('order_id')  # This is razorpay_order_id
                     upi_id = notes.get('upi_id')
@@ -8661,6 +8683,7 @@ def razorpay_webhook(request):
                             upi_verification.verified_at = __import__('django.utils.timezone', fromlist=['now']).now()
                             upi_verification.save()
                             logger.info(f'✓ Marked UPI {upi_id} as VERIFIED via webhook')
+                            webhook_log_entry.response_message = f'UPI verification marked as verified for {upi_id}'
                     
                     # Auto-refund the ₹1
                     client = razorpay.Client(
@@ -8674,34 +8697,62 @@ def razorpay_webhook(request):
                         }
                     })
                     logger.info(f'✓ Auto-refunded ₹1 for UPI verification: {refund_response.get("id")}')
+                    webhook_log_entry.response_message += f' | ₹1 auto-refunded: {refund_response.get("id")}'
                 except Exception as refund_err:
                     logger.error(f'❌ Webhook UPI verification handler error: {str(refund_err)}')
+                    webhook_log_entry.error_message = str(refund_err)
             else:
                 # Regular order payment
                 order_id = notes.get('order_id')
                 if order_id:
-                    order = Order.objects.get(id=order_id)
-                    order.payment_status = 'PAID'
-                    order.order_status = 'PROCESSING'
-                    order.razorpay_payment_id = payment['id']
-                    order.save()
-                    
-                    # Clear user's cart
-                    Cart.objects.filter(user=order.user).delete()
+                    try:
+                        order = Order.objects.get(id=order_id)
+                        order.payment_status = 'PAID'
+                        order.order_status = 'PROCESSING'
+                        order.razorpay_payment_id = payment['id']
+                        order.save()
+                        
+                        # Clear user's cart
+                        Cart.objects.filter(user=order.user).delete()
+                        webhook_log_entry.response_message = f'Order {order.order_number} marked as PAID'
+                    except Order.DoesNotExist:
+                        webhook_log_entry.error_message = f'Order {order_id} not found'
             
-        elif event == 'payment.failed':
+        elif event_type == 'payment.failed':
             # Payment failed
             payment = data['payload']['payment']['entity']
             order_id = payment['notes'].get('order_id')
             
             if order_id:
-                order = Order.objects.get(id=order_id)
-                order.payment_status = 'FAILED'
-                order.save()
+                try:
+                    order = Order.objects.get(id=order_id)
+                    order.payment_status = 'FAILED'
+                    order.save()
+                    webhook_log_entry.response_message = f'Order {order.order_number} marked as FAILED'
+                except Order.DoesNotExist:
+                    webhook_log_entry.error_message = f'Order {order_id} not found'
+        
+        # Finalize webhook log
+        webhook_log_entry.status = 'processed'
+        webhook_log_entry.processed_at = __import__('django.utils.timezone', fromlist=['now']).now()
+        webhook_log_entry.save()
         
         return JsonResponse({'status': 'ok'})
         
+    except json.JSONDecodeError as e:
+        if webhook_log_entry:
+            webhook_log_entry.status = 'error'
+            webhook_log_entry.error_message = f'JSON parse error: {str(e)}'
+            webhook_log_entry.save()
+        logger.error(f'❌ Webhook JSON parsing error: {str(e)}')
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=500)
+    
     except Exception as e:
+        if webhook_log_entry:
+            webhook_log_entry.status = 'error'
+            webhook_log_entry.error_message = str(e)
+            webhook_log_entry.save()
+        logger.error(f'❌ Webhook processing error: {str(e)}')
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
