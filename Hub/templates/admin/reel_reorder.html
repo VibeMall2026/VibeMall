@@ -1,0 +1,567 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Reorder Reels - Admin Panel{% endblock %}
+
+{% block extrahead %}
+<style>
+    .reel-reorder-container {
+        max-width: 1200px;
+        margin: 20px auto;
+        padding: 20px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .reel-list {
+        list-style: none;
+        padding: 0;
+        margin: 20px 0;
+    }
+
+    .reel-item {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        margin: 10px 0;
+        background: #f8f9fa;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        cursor: move;
+        transition: all 0.3s ease;
+        gap: 15px;
+    }
+
+    .reel-item:hover {
+        background: #ffffff;
+        border-color: #696cff;
+        box-shadow: 0 2px 8px rgba(105, 108, 255, 0.2);
+        transform: translateX(5px);
+    }
+
+    .reel-item.dragging {
+        opacity: 0.5;
+        background: #e9ecef;
+    }
+
+    .reel-item.drag-over {
+        border: 2px dashed #696cff;
+        background: #f0f1ff;
+    }
+
+    .drag-handle {
+        font-size: 24px;
+        color: #696cff;
+        cursor: grab;
+        user-select: none;
+        flex-shrink: 0;
+    }
+
+    .drag-handle:active {
+        cursor: grabbing;
+    }
+
+    .order-number {
+        background: #696cff;
+        color: white;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 14px;
+        flex-shrink: 0;
+    }
+
+    .reel-thumbnail {
+        width: 80px;
+        height: 120px;
+        border-radius: 6px;
+        object-fit: cover;
+        border: 1px solid #ddd;
+        flex-shrink: 0;
+    }
+
+    .reel-info {
+        flex-grow: 1;
+        min-width: 0;
+    }
+
+    .reel-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #2f3349;
+        margin: 0 0 5px 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .reel-meta {
+        display: flex;
+        gap: 20px;
+        font-size: 12px;
+        color: #6c757d;
+        flex-wrap: wrap;
+    }
+
+    .reel-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .status-published {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .status-draft {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .button-group {
+        display: flex;
+        gap: 10px;
+        flex-shrink: 0;
+    }
+
+    .btn-small {
+        padding: 6px 12px;
+        font-size: 12px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+        font-weight: 500;
+    }
+
+    .btn-edit {
+        background: #696cff;
+        color: white;
+    }
+
+    .btn-edit:hover {
+        background: #5a5ddb;
+        box-shadow: 0 2px 6px rgba(105, 108, 255, 0.3);
+    }
+
+    .btn-view {
+        background: #17a2b8;
+        color: white;
+    }
+
+    .btn-view:hover {
+        background: #138496;
+        box-shadow: 0 2px 6px rgba(23, 162, 184, 0.3);
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        display: inline-block;
+        text-align: center;
+        text-decoration: none;
+        font-size: 14px;
+    }
+
+    .btn-primary {
+        background: #696cff;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #5a5ddb;
+        box-shadow: 0 2px 8px rgba(105, 108, 255, 0.3);
+    }
+
+    .btn-success {
+        background: #28a745;
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: #218838;
+        box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+        box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #f0f0f0;
+        padding-bottom: 15px;
+    }
+
+    .header h1 {
+        margin: 0;
+        font-size: 28px;
+        color: #2f3349;
+    }
+
+    .header-subtitle {
+        color: #6c757d;
+        font-size: 14px;
+        margin-top: 5px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+    }
+
+    .empty-state-icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+    }
+
+    .success-message {
+        background: #d4edda;
+        color: #155724;
+        padding: 12px 15px;
+        border-radius: 6px;
+        border: 1px solid #c3e6cb;
+        margin-bottom: 20px;
+        display: none;
+    }
+
+    .error-message {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 12px 15px;
+        border-radius: 6px;
+        border: 1px solid #f5c6cb;
+        margin-bottom: 20px;
+        display: none;
+    }
+
+    .loading-indicator {
+        display: none;
+        text-align: center;
+        padding: 20px;
+        color: #696cff;
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 768px) {
+        .reel-item {
+            flex-wrap: wrap;
+            padding: 12px;
+        }
+
+        .reel-meta {
+            width: 100%;
+            order: 3;
+        }
+
+        .button-group {
+            width: 100%;
+            order: 4;
+            justify-content: flex-start;
+        }
+
+        .reel-title {
+            font-size: 14px;
+        }
+
+        .reel-reorder-container {
+            margin: 10px;
+            padding: 15px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="reel-reorder-container">
+    <div class="header">
+        <div>
+            <h1>🎬 Manage Reel Display Order</h1>
+            <p class="header-subtitle">Drag and drop to reorder reels. Lower position numbers appear first on the homepage.</p>
+        </div>
+    </div>
+
+    <div class="success-message" id="successMessage"></div>
+    <div class="error-message" id="errorMessage"></div>
+
+    <div class="action-buttons">
+        <button class="btn btn-success" onclick="saveOrder()">
+            <i class="fas fa-check"></i> Save Changes
+        </button>
+        <button class="btn btn-secondary" onclick="resetOrder()">
+            <i class="fas fa-redo"></i> Reset Order
+        </button>
+        <a href="{% url 'admin:Hub_reel_changelist' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Reels
+        </a>
+    </div>
+
+    <div class="loading-indicator" id="loadingIndicator">
+        <span class="loading-spinner">⏳</span> Saving changes...
+    </div>
+
+    {% if reels %}
+    <ul class="reel-list" id="reelList">
+        {% for reel in reels %}
+        <li class="reel-item" draggable="true" data-reel-id="{{ reel.id }}" data-order="{{ reel.order }}">
+            <div class="drag-handle">☰</div>
+            <div class="order-number" data-position>{{ forloop.counter }}</div>
+            
+            {% if reel.thumbnail %}
+                <img src="{{ reel.thumbnail.url }}" alt="{{ reel.title }}" class="reel-thumbnail">
+            {% elif reel.video_file %}
+                <video class="reel-thumbnail" muted>
+                    <source src="{{ reel.video_file.url }}" type="video/mp4">
+                </video>
+            {% else %}
+                <div class="reel-thumbnail" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white;">
+                    <i class="fas fa-image" style="font-size: 24px;"></i>
+                </div>
+            {% endif %}
+            
+            <div class="reel-info">
+                <h3 class="reel-title">{{ reel.title }}</h3>
+                <div class="reel-meta">
+                    <span>⏱️ {{ reel.duration }}s</span>
+                    <span>📸 {{ reel.images.count }} images</span>
+                    <span>{{ reel.created_at|date:"M d, Y" }}</span>
+                    {% if reel.is_processing %}
+                        <span class="reel-status status-draft">⏳ Generating...</span>
+                    {% elif reel.is_published %}
+                        <span class="reel-status status-published">✅ Published</span>
+                    {% else %}
+                        <span class="reel-status status-draft">📋 Draft</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <a href="{% url 'admin:Hub_reel_change' reel.id %}" class="btn-small btn-edit" title="Edit reel">
+                    ✏️ Edit
+                </a>
+                {% if reel.video_file %}
+                <a href="{{ reel.video_file.url }}" class="btn-small btn-view" target="_blank" title="View video">
+                    👁️ View
+                </a>
+                {% endif %}
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">🎬</div>
+        <h3>No Reels Found</h3>
+        <p>Create your first reel to get started with video content</p>
+        <a href="{% url 'admin:Hub_reel_add' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Create New Reel
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+let draggedElement = null;
+let originalOrder = [];
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    saveOriginalOrder();
+    setupDragAndDrop();
+    updatePositionNumbers();
+});
+
+function saveOriginalOrder() {
+    const items = document.querySelectorAll('.reel-item');
+    originalOrder = Array.from(items).map(item => item.dataset.reelId);
+}
+
+function setupDragAndDrop() {
+    const items = document.querySelectorAll('.reel-item');
+    
+    items.forEach(item => {
+        item.addEventListener('dragstart', handleDragStart);
+        item.addEventListener('dragend', handleDragEnd);
+        item.addEventListener('dragover', handleDragOver);
+        item.addEventListener('drop', handleDrop);
+        item.addEventListener('dragenter', handleDragEnter);
+        item.addEventListener('dragleave', handleDragLeave);
+    });
+}
+
+function handleDragStart(e) {
+    draggedElement = this;
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleDragEnd(e) {
+    this.classList.remove('dragging');
+    document.querySelectorAll('.reel-item').forEach(item => {
+        item.classList.remove('drag-over');
+    });
+    updatePositionNumbers();
+}
+
+function handleDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    return false;
+}
+
+function handleDragEnter(e) {
+    if (this !== draggedElement) {
+        this.classList.add('drag-over');
+    }
+}
+
+function handleDragLeave(e) {
+    this.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+
+    if (draggedElement !== this) {
+        const allItems = Array.from(document.querySelectorAll('.reel-item'));
+        const draggedIndex = allItems.indexOf(draggedElement);
+        const targetIndex = allItems.indexOf(this);
+
+        const list = document.getElementById('reelList');
+        if (draggedIndex < targetIndex) {
+            this.parentNode.insertBefore(draggedElement, this.nextSibling);
+        } else {
+            this.parentNode.insertBefore(draggedElement, this);
+        }
+    }
+
+    return false;
+}
+
+function updatePositionNumbers() {
+    const items = document.querySelectorAll('.reel-item');
+    items.forEach((item, index) => {
+        const positionEl = item.querySelector('[data-position]');
+        if (positionEl) {
+            positionEl.textContent = index + 1;
+        }
+    });
+}
+
+function saveOrder() {
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const successMessage = document.getElementById('successMessage');
+    const errorMessage = document.getElementById('errorMessage');
+    
+    loadingIndicator.style.display = 'block';
+    successMessage.style.display = 'none';
+    errorMessage.style.display = 'none';
+    
+    const reelOrder = [];
+    document.querySelectorAll('.reel-item').forEach((item, index) => {
+        reelOrder.push({
+            id: item.dataset.reelId,
+            order: index
+        });
+    });
+
+    fetch('{% url "admin:Hub_reel_changelist" %}update_order/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ orders: reelOrder.map(r => r.id) })
+    })
+    .then(response => response.json())
+    .then(data => {
+        loadingIndicator.style.display = 'none';
+        if (data.success) {
+            successMessage.textContent = '✅ ' + data.message;
+            successMessage.style.display = 'block';
+            saveOriginalOrder();
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            errorMessage.textContent = '❌ Error: ' + data.error;
+            errorMessage.style.display = 'block';
+        }
+    })
+    .catch(error => {
+        loadingIndicator.style.display = 'none';
+        errorMessage.textContent = '❌ Error saving order: ' + error;
+        errorMessage.style.display = 'block';
+    });
+}
+
+function resetOrder() {
+    if (confirm('Reset reels to original order?')) {
+        window.location.reload();
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

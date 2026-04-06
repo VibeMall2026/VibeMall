@@ -749,6 +749,9 @@ class Order(models.Model):
     courier_name = models.CharField(max_length=100, blank=True, help_text="Courier/Shipping company name")
     invoice_number = models.CharField(max_length=50, blank=True, null=True, unique=True)
     
+    # Loyalty Points System
+    delivery_points_awarded = models.BooleanField(default=False, help_text="Whether delivery bonus loyalty points were awarded")
+    
     # Payment related fields
     razorpay_order_id = models.CharField(max_length=100, blank=True, help_text="Razorpay Order ID")
     razorpay_payment_id = models.CharField(max_length=100, blank=True, help_text="Razorpay Payment ID")
@@ -1365,11 +1368,11 @@ class BrandPartner(models.Model):
 # ============================================
 
 class LoyaltyPoints(models.Model):
-    """Customer loyalty points system"""
+    """Customer loyalty points system - FIXED VERSION"""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='loyalty_points')
-    total_points = models.IntegerField(default=0, help_text="Total points earned")
-    points_used = models.IntegerField(default=0, help_text="Points redeemed")
-    points_available = models.IntegerField(default=0, help_text="Available points to use")
+    total_points = models.IntegerField(default=0, help_text="Total points earned (NEVER decrements)")
+    points_used = models.IntegerField(default=0, help_text="Total points redeemed")
+    points_available = models.IntegerField(default=0, help_text="Available points = total_points - points_used")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -1377,38 +1380,34 @@ class LoyaltyPoints(models.Model):
         verbose_name_plural = "Loyalty Points"
     
     def __str__(self):
-        return f"{self.user.username} - {self.points_available} points"
+        return f"{self.user.username} - {self.points_available} points available"
+    
+    def save(self, *args, **kwargs):
+        """Ensure points_available is correctly calculated"""
+        self.points_available = self.total_points - self.points_used
+        if self.points_available < 0:
+            self.points_available = 0
+        super().save(*args, **kwargs)
     
     def add_points(self, points, description=""):
-        """Add points to user account"""
-        self.total_points += points
-        self.points_available += points
-        self.save()
-        
-        # Create transaction record
-        PointsTransaction.objects.create(
+        """Add points to user account - FIXED"""
+        from .loyalty_manager import LoyaltyPointsManager
+        return LoyaltyPointsManager.add_points(
             user=self.user,
             points=points,
             transaction_type='EARNED',
             description=description
         )
     
-    def redeem_points(self, points, description=""):
-        """Redeem points from user account"""
-        if self.points_available >= points:
-            self.points_used += points
-            self.points_available -= points
-            self.save()
-            
-            # Create transaction record
-            PointsTransaction.objects.create(
-                user=self.user,
-                points=points,
-                transaction_type='REDEEMED',
-                description=description
-            )
-            return True
-        return False
+    def redeem_points(self, points, order=None, description=""):
+        """Redeem points from user account - FIXED"""
+        from .loyalty_manager import LoyaltyPointsManager
+        return LoyaltyPointsManager.redeem_points(
+            user=self.user,
+            points=points,
+            order=order,
+            description=description
+        )
 
 
 class PointsTransaction(models.Model):

@@ -5652,9 +5652,12 @@ def checkout_confirm(request):
     redeem_points = checkout_form.get('redeem_points') is True
     if redeem_points and points_to_redeem > 0:
         try:
+            from .loyalty_manager import LoyaltyPointsManager
+            # Verify user has enough points (non-atomic check for display)
             loyalty_account = LoyaltyPoints.objects.get(user=request.user)
             if points_to_redeem <= loyalty_account.points_available:
-                points_discount = Decimal(str(points_to_redeem)) * Decimal('0.03')
+                # Calculate rupee value (1 point = ₹0.03)
+                points_discount = LoyaltyPointsManager.calculate_rupee_value(points_to_redeem)
         except LoyaltyPoints.DoesNotExist:
             redeem_points = False
 
@@ -5857,8 +5860,25 @@ def checkout_confirm(request):
                     )
 
             if redeem_points and points_to_redeem > 0:
-                loyalty_account = LoyaltyPoints.objects.get(user=request.user)
-                loyalty_account.redeem_points(points_to_redeem, f"Order #{order.order_number} - ₹{points_discount} discount")
+                from .loyalty_manager import LoyaltyPointsManager
+                # Use atomic transaction to redeem points
+                try:
+                    success = LoyaltyPointsManager.redeem_points(
+                        user=request.user,
+                        points=points_to_redeem,
+                        order=order,
+                        description=f"Redemption on Order #{order.order_number}"
+                    )
+                    if success:
+                        order.admin_notes += f"\nLoyalty Points Redeemed: {points_to_redeem} points (₹{points_discount} discount)"
+                        order.save()
+                    else:
+                        # Fallback: points couldn't be redeemed (insufficient balance)
+                        logger.warning(f"Loyalty points redemption failed for user {request.user.id} on order {order.id}")
+                        messages.warning(request, 'Note: Your loyalty points could not be redeemed (insufficient balance). Order placed without points discount.')
+                except Exception as e:
+                    logger.error(f"Error redeeming loyalty points for order {order.id}: {str(e)}", exc_info=True)
+                    messages.warning(request, 'Order placed successfully, but loyalty points redemption failed. Our team will review this.')
 
             if set_default_address:
                 Address.objects.create(

@@ -495,18 +495,20 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
             <div class="vm-copy-dept-grid">
                 {% for category in categories|slice:":6" %}
-                <article>
-                    {% if category.card_image %}
-                        <img src="{{ category.card_image.url }}" alt="{{ category.name }}">
-                    {% elif category.icon_image %}
-                        <img src="{{ category.icon_image.url }}" alt="{{ category.name }}">
-                    {% elif category_fallback_images|get_item:category.category_key %}
-                        <img src="{{ category_fallback_images|get_item:category.category_key }}" alt="{{ category.name }}">
-                    {% else %}
-                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ category.name }}">
-                    {% endif %}
-                    <span>{{ category.name }}</span>
-                </article>
+                <a href="{% url 'shop' %}?category={{ category.category_key|urlencode }}">
+                    <article>
+                        {% if category.card_image %}
+                            <img src="{{ category.card_image.url }}" alt="{{ category.name }}">
+                        {% elif category.icon_image %}
+                            <img src="{{ category.icon_image.url }}" alt="{{ category.name }}">
+                        {% elif category_fallback_images|get_item:category.category_key %}
+                            <img src="{{ category_fallback_images|get_item:category.category_key }}" alt="{{ category.name }}">
+                        {% else %}
+                            <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ category.name }}">
+                        {% endif %}
+                        <span>{{ category.name }}</span>
+                    </article>
+                </a>
                 {% endfor %}
             </div>
         </div>

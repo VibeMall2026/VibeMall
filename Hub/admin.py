@@ -1,6 +1,7 @@
 # admin.py
 from django.contrib import admin
 from django.utils.html import format_html
+from django.db import models as django_models
 from .email_utils import send_order_status_update_email
 from .models import (
     CategoryIcon,
@@ -38,6 +39,9 @@ from .models import (
     ResellerEarning,
     PayoutTransaction,
 )
+
+# Import improved Reel admin classes
+from .admin_reel_reorder import ReelAdminImproved, ReelImageAdminImproved
 
 admin.site.register(Slider)
 
@@ -781,104 +785,21 @@ class ReelImageInline(admin.TabularInline):
     ordering = ['order']
 
 
-@admin.register(Reel)
-class ReelAdmin(admin.ModelAdmin):
-    """Reel Management in Admin Panel"""
-    list_display = ('title', 'order', 'duration', 'is_published', 'is_processing', 'video_preview', 'thumbnail_preview', 'created_at', 'generate_button')
-    list_filter = ('is_published', 'is_processing', 'created_at')
-    list_editable = ('order', 'is_published')
-    search_fields = ('title', 'description')
-    readonly_fields = ('duration', 'is_processing', 'created_by', 'created_at', 'updated_at', 'video_preview_large', 'thumbnail_preview_large')
-    inlines = [ReelImageInline]
-    
-    fieldsets = (
-        ('📋 BASIC INFO', {
-            'fields': ('title', 'description', 'order', 'created_by', 'created_at', 'updated_at')
-        }),
-        ('🎬 VIDEO SETTINGS', {
-            'fields': ('duration_per_image', 'transition_type', 'background_music'),
-            'description': 'Configure video generation settings'
-        }),
-        ('📹 GENERATED VIDEO', {
-            'fields': ('video_file', 'video_preview_large', 'thumbnail', 'thumbnail_preview_large', 'duration'),
-            'description': 'Generated video and thumbnail'
-        }),
-        ('⚙️ STATUS', {
-            'fields': ('is_published', 'is_processing'),
-            'description': 'Publishing and processing status'
-        }),
-    )
-    
-    def save_model(self, request, obj, form, change):
-        """Auto-set created_by to current user"""
-        if not obj.pk:
-            obj.created_by = request.user
-        super().save_model(request, obj, form, change)
-    
-    def video_preview(self, obj):
-        if obj.video_file:
-            return format_html(
-                '<video width="120" height="80" style="border-radius: 5px; object-fit: cover;"><source src="{}" type="video/mp4"></video>',
-                obj.video_file.url
-            )
-        return '—'
-    video_preview.short_description = 'Video'
-    
-    def video_preview_large(self, obj):
-        if obj.video_file:
-            return format_html(
-                '<video width="300" controls style="border-radius: 8px; border: 1px solid #ddd;"><source src="{}" type="video/mp4"></video>',
-                obj.video_file.url
-            )
-        return 'No video generated yet. Add images and click "Generate Reel" button.'
-    video_preview_large.short_description = 'Video Preview'
-    
-    def thumbnail_preview(self, obj):
-        if obj.thumbnail:
-            return format_html(
-                '<img src="{}" style="width: 60px; height: 80px; border-radius: 5px; object-fit: cover;" />',
-                obj.thumbnail.url
-            )
-        return '—'
-    thumbnail_preview.short_description = 'Thumbnail'
-    
-    def thumbnail_preview_large(self, obj):
-        if obj.thumbnail:
-            return format_html(
-                '<img src="{}" style="max-width: 200px; height: auto; border-radius: 8px; border: 1px solid #ddd; padding: 10px;" />',
-                obj.thumbnail.url
-            )
-        return 'No thumbnail yet'
-    thumbnail_preview_large.short_description = 'Thumbnail Preview'
-    
-    def generate_button(self, obj):
-        if obj.pk and not obj.is_processing:
-            return format_html(
-                '<a class="button" href="/admin-panel/reels/{}/generate/" style="background-color: #4caf50; color: white; padding: 8px 15px; border-radius: 4px; text-decoration: none;">🎬 Generate Reel</a>',
-                obj.pk
-            )
-        elif obj.is_processing:
-            return format_html('<span style="color: #ff9800;">⏳ Processing...</span>')
-        return '—'
-    generate_button.short_description = 'Actions'
+# Reel Admin - Use improved admin module with better UX
+# First unregister if already registered (to avoid "already registered" errors)
+try:
+    admin.site.unregister(Reel)
+except admin.sites.NotRegistered:
+    pass
 
+try:
+    admin.site.unregister(ReelImage)
+except admin.sites.NotRegistered:
+    pass
 
-@admin.register(ReelImage)
-class ReelImageAdmin(admin.ModelAdmin):
-    """Reel Image Management"""
-    list_display = ('reel', 'order', 'text_overlay', 'image_preview')
-    list_filter = ('reel',)
-    list_editable = ('order',)
-    ordering = ['reel', 'order']
-    
-    def image_preview(self, obj):
-        if obj.image:
-            return format_html(
-                '<img src="{}" style="width: 60px; height: 80px; border-radius: 5px; object-fit: cover;" />',
-                obj.image.url
-            )
-        return '—'
-    image_preview.short_description = 'Preview'
+# Register with improved admin classes
+admin.site.register(Reel, ReelAdminImproved)
+admin.site.register(ReelImage, ReelImageAdminImproved)
 
 
 # ============================================

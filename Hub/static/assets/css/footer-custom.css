@@ -228,6 +228,38 @@ footer * {
     }
 }
 
+/* Desktop: enforce a single row for the footer top sections */
+@media (min-width: 992px) {
+    .footer__top .container > .row {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: flex-start;
+    }
+
+    .footer-sections-left,
+    .footer-sections-right,
+    .footer-sections-left > .row,
+    .footer-sections-account-quick > .row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+    }
+
+    .footer-col-categories,
+    .footer-col-pages,
+    .footer-col-account,
+    .footer-col-quick {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+
+    .footer-col-support {
+        flex: 0 0 41.666667%;
+        max-width: 41.666667%;
+        margin-top: 0;
+    }
+}
+
 .footer-mobile-shell {
     display: none !important;
 }
