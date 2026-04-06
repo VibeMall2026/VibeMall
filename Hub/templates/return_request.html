@@ -1039,6 +1039,13 @@ document.addEventListener('DOMContentLoaded', function () {
     
         // Initialize all sections
     sections.forEach(bindSection);
+    
+    // Calculate initial refund summary for all sections based on selected items
+    sections.forEach(config => {
+        const subtotalEl = document.getElementById(config.subtotalId);
+        const netEl = document.getElementById(config.netId);
+        updateSummary(subtotalEl, netEl);
+    });
 })();
 </script>
 
