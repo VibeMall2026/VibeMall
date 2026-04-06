@@ -470,17 +470,68 @@ def verify_bank_account(account_number: str, ifsc: str, account_name: str = "", 
 # 3. UPI VERIFICATION - Real verification using ₹1 Collect Request
 # ============================================================================
 
+def _validate_upi_provider(upi_id: str) -> tuple:
+    """
+    Validate UPI ID against known UPI providers.
+    Returns: (is_valid: bool, error: str)
+    """
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    
+    # Valid NPCI-registered UPI providers
+    known_providers = {
+        'ybl': 'Paytm',
+        'okhdfcbank': 'HDFC Bank',
+        'okaxis': 'Axis Bank',
+        'okicici': 'ICICI Bank',
+        'okbi': 'Bank of India',
+        'okboi': 'Bank of Baroda',
+        'oksbi': 'SBI',
+        'upi': 'Generic UPI',
+        'airtel': 'Airtel Payments',
+        'apl': 'Amazon Pay',
+        'ibl': 'IDBI Bank',
+        'aubank': 'AU Bank',
+        'dbs': 'DBS Bank',
+        'hsbc': 'HSBC',
+        'deutsche': 'Deutsche Bank',
+        'federal': 'Federal Bank',
+        'indus': 'Indusind Bank',
+        'kotak': 'Kotak Bank',
+        'rmhbank': 'RBL Bank',
+        'scbl': 'Standard Chartered',
+        'yes': 'YES Bank',
+        'barodampay': 'BOB WorldWide',
+        'googleplay': 'Google Pay',
+        'googlepay': 'Google Pay',
+    }
+    
+    if '@' not in upi_id:
+        return False, 'Invalid UPI format'
+    
+    provider = upi_id.split('@')[1].lower()
+    
+    if provider not in known_providers:
+        logger.warning(f'Unknown UPI provider: {provider}')
+        return False, f'Invalid UPI provider: {provider}. Use format: name@{list(known_providers.keys())[0]}'
+    
+    return True, ''
+
+
 def create_upi_collect_request(upi_id: str, user=None):
     """
     Create a ₹1 verification payment using Razorpay Checkout link.
     Generates a direct link to Razorpay payment page for UPI verification.
     
     Flow:
-    1. Create Order for ₹1
-    2. Generate Razorpay checkout URL with order details
-    3. Return link to frontend
-    4. User clicks link → Razorpay page → Completes payment via UPI
-    5. Auto-refund ₹1
+    1. Validate UPI format and provider ✓ NEW
+    2. Create Order for ₹1
+    3. Create UPIVerification record ✓ NEW
+    4. Generate Razorpay checkout URL
+    5. Return link to frontend
+    6. User clicks link → Razorpay page → Completes payment via UPI
+    7. Auto-refund ₹1
     
     Args:
         upi_id: UPI ID in format name@bank
@@ -500,14 +551,21 @@ def create_upi_collect_request(upi_id: str, user=None):
     logger = logging.getLogger(__name__)
     
     try:
-        # Validate UPI format
-        upi_pattern = r'^[a-zA-Z0-9._-]+@[a-zA-Z0-9]+$'
+        # Normalize UPI ID
         upi_id = str(upi_id).strip().lower()
         
+        # Step 1: Validate UPI format and provider ✓ NEW
+        upi_pattern = r'^[a-zA-Z0-9._-]+@[a-zA-Z0-9]+$'
         if not re.match(upi_pattern, upi_id):
             return False, '', '', 'Invalid UPI format. Use: name@bank'
         
-        # Initialize Razorpay client
+        # Validate against known providers
+        is_valid, error = _validate_upi_provider(upi_id)
+        if not is_valid:
+            logger.warning(f'Invalid UPI provider for: {upi_id}')
+            return False, '', '', error
+        
+        # Step 2: Initialize Razorpay client
         client = razorpay.Client(
             auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
         )
@@ -515,7 +573,7 @@ def create_upi_collect_request(upi_id: str, user=None):
         # Generate unique receipt ID
         receipt_id = f'upi-verify-{user.id if user else "guest"}-{int(time.time())}'
         
-        # Create order for ₹1 verification
+        # Step 3: Create order for ₹1 verification
         try:
             order_response = client.order.create({
                 'amount': 100,  # ₹1 in paise
@@ -533,7 +591,34 @@ def create_upi_collect_request(upi_id: str, user=None):
             logger.error(f'❌ Order creation failed: {str(e)}')
             return False, '', '', f'Failed to create order: {str(e)}'
         
-        # Generate Razorpay checkout URL
+        # Step 4: Create UPIVerification DB record ✓ CRITICAL FIX
+        try:
+            from Hub.models import UPIVerification
+            
+            # Use get_or_create since user is OneToOne
+            upi_verification, created = UPIVerification.objects.get_or_create(
+                user=user,
+                defaults={
+                    'upi_id': upi_id,
+                    'razorpay_order_id': order_id,
+                    'status': 'WAITING_PAYMENT'
+                }
+            )
+            
+            # If already exists, update it with new order
+            if not created:
+                upi_verification.upi_id = upi_id
+                upi_verification.razorpay_order_id = order_id
+                upi_verification.status = 'WAITING_PAYMENT'
+                upi_verification.save()
+            
+            logger.info(f'✓ Created/Updated UPIVerification record for {user.username} - Order: {order_id}')
+        except Exception as e:
+            logger.error(f'❌ Failed to create UPIVerification record: {str(e)}')
+            # Don't fail here - still try to generate checkout URL
+            # But this is important for verification flow
+        
+        # Step 5: Generate Razorpay checkout URL
         # This is a direct link to the Razorpay payment page for this order
         try:
             # Build proper Razorpay checkout URL using their standard format
@@ -558,7 +643,8 @@ def create_upi_collect_request(upi_id: str, user=None):
                     'expire_by': int(time.time()) + 900,  # 15 minutes
                     'notes': {
                         'upi_id': upi_id,
-                        'verification_type': 'upi_collect'
+                        'verification_type': 'upi_collect',
+                        'order_id': order_id
                     },
                     'sms_notify': 1,
                     'email_notify': 1,

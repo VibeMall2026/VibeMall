@@ -8639,8 +8639,30 @@ def razorpay_webhook(request):
             
             # Check if this is UPI verification payment (₹1)
             if notes.get('verification_type') == 'upi_collect':
-                # Auto-refund the ₹1 UPI verification payment
+                # Auto-refund the ₹1 UPI verification payment + mark as verified ✓ FIX
                 try:
+                    from Hub.models import UPIVerification
+                    
+                    # Get the UPIVerification record and mark it as verified
+                    order_id = notes.get('order_id')  # This is razorpay_order_id
+                    upi_id = notes.get('upi_id')
+                    
+                    if order_id:
+                        # Find the UPIVerification record
+                        upi_verification = UPIVerification.objects.filter(
+                            razorpay_order_id=order_id
+                        ).first()
+                        
+                        if upi_verification:
+                            # Mark as verified ✓ CRITICAL FIX
+                            upi_verification.razorpay_payment_id = payment_id
+                            upi_verification.status = 'VERIFIED'
+                            upi_verification.is_verified = True
+                            upi_verification.verified_at = __import__('django.utils.timezone', fromlist=['now']).now()
+                            upi_verification.save()
+                            logger.info(f'✓ Marked UPI {upi_id} as VERIFIED via webhook')
+                    
+                    # Auto-refund the ₹1
                     client = razorpay.Client(
                         auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
                     )
@@ -8653,7 +8675,7 @@ def razorpay_webhook(request):
                     })
                     logger.info(f'✓ Auto-refunded ₹1 for UPI verification: {refund_response.get("id")}')
                 except Exception as refund_err:
-                    logger.error(f'❌ Auto-refund failed: {str(refund_err)}')
+                    logger.error(f'❌ Webhook UPI verification handler error: {str(refund_err)}')
             else:
                 # Regular order payment
                 order_id = notes.get('order_id')
