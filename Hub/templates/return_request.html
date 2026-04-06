@@ -368,37 +368,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <!-- ========== DESKTOP VIEW ========== -->
 <section class="vm-copy-rp-desktop">
-    <!-- Desktop Header -->
-    <header class="vm-copy-rp-header">
-        <div class="vm-copy-container">
-            <div class="vm-copy-rp-header-content">
-                <div class="vm-copy-rp-logo">
-                    <a href="{% url 'index' %}">VIBEMALL</a>
-                </div>
-                <nav class="vm-copy-rp-nav">
-                    <a href="{% url 'index' %}">Home</a>
-                    <a href="{% url 'shop' %}">Shop</a>
-                    <a href="{% url 'faq' %}">FAQs</a>
-                    <a href="{% url 'contact' %}">Contact</a>
-                </nav>
-                <div class="vm-copy-rp-header-actions">
-                    <a href="{% url 'cart' %}" title="Shopping Cart">
-                        <i class="fas fa-shopping-cart"></i>
-                    </a>
-                    {% if user.is_authenticated %}
-                    <a href="{% url 'profile' %}" title="Account">
-                        <i class="fas fa-user-circle"></i>
-                    </a>
-                    {% else %}
-                    <a href="{% url 'login' %}" title="Login">
-                        <i class="fas fa-sign-in-alt"></i>
-                    </a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </header>
-
     <!-- Hero Section -->
     <section class="vm-copy-rp-hero">
         <div class="vm-copy-container">
