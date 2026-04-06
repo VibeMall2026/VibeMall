@@ -24,6 +24,7 @@ class ComingSoonModeMiddleware:
             '/media/',
             '/favicon.ico',
             '/newsletter/subscribe/',
+            '/return-request/',
         )
         self.local_hosts = {
             'localhost',
