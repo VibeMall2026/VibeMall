@@ -176,6 +176,7 @@ urlpatterns = [
     path('api/verify-bank/', views.verify_bank_endpoint, name='verify_bank'),
     path('api/verify-upi-collect/', views.create_upi_collect_endpoint, name='verify_upi_collect'),
     path('api/verify-upi-collect-status/', views.verify_upi_collect_status_endpoint, name='verify_upi_collect_status'),
+    path('api/verify-bank-transfer/', views.verify_bank_transfer_endpoint, name='verify_bank_transfer'),
     
     path('returns/<int:return_id>/', views.return_status, name='return_status'),
     path('order/track/<str:order_number>/', views.order_tracking, name='order_tracking'),

@@ -12069,3 +12069,156 @@ def verify_upi_collect_status_endpoint(request):
     except Exception as e:
         logger.error(f'UPI collect status endpoint error: {str(e)}')
         return JsonResponse({'status': 'failed', 'message': str(e)}, status=500)
+
+
+@login_required(login_url='login')
+def verify_bank_transfer_endpoint(request):
+    """
+    Verify bank account using Razorpay Fund Account API and initiate ₹1 verification payout.
+    
+    POST /api/verify-bank-transfer/
+    Body: {
+        "account_name": "Account Holder Name",
+        "account_number": "11214156789",
+        "ifsc": "SBIN0001234"
+    }
+    
+    Response: {
+        "status": "pending" or "failed",
+        "message": "Bank verification initiated...",
+        "payout_id": "pout_xxxxx",
+        "razorpay_fund_account_id": "fa_xxxxx"
+    }
+    """
+    import razorpay
+    import bleach  # For input sanitization
+    import logging
+    from Hub.models import BankVerification
+    
+    logger = logging.getLogger(__name__)
+    
+    try:
+        if request.method != 'POST':
+            return JsonResponse({'status': 'failed', 'message': 'POST required'}, status=405)
+        
+        data = json.loads(request.body)
+        
+        # Extract and validate inputs
+        account_name = bleach.clean(data.get('account_name', '').strip(), tags=[], attributes={})
+        account_number = bleach.clean(data.get('account_number', '').strip(), tags=[], attributes={})
+        ifsc = bleach.clean(data.get('ifsc', '').strip().upper(), tags=[], attributes={})
+        
+        # Validate inputs
+        if not all([account_name, account_number, ifsc]):
+            return JsonResponse({
+                'status': 'failed',
+                'message': 'account_name, account_number, and ifsc are required'
+            }, status=400)
+        
+        # Validate IFSC format (11 characters: 4 letters + 0 + 6 alphanumeric)
+        if len(ifsc) != 11:
+            return JsonResponse({
+                'status': 'failed',
+                'message': 'IFSC should be 11 characters (e.g., SBIN0001234)'
+            }, status=400)
+        
+        # Initialize Razorpay client
+        razorpay_client = razorpay.Client(
+            auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
+        )
+        
+        # Get or create BankVerification record
+        bank_verification, created = BankVerification.objects.get_or_create(
+            user=request.user,
+            defaults={
+                'account_number': f"****{account_number[-4:]}",  # Mask for security
+                'ifsc': ifsc,
+                'account_name': account_name,
+                'status': 'PENDING'
+            }
+        )
+        
+        # If updating existing, refresh values
+        if not created:
+            bank_verification.account_number = f"****{account_number[-4:]}"
+            bank_verification.ifsc = ifsc
+            bank_verification.account_name = account_name
+            bank_verification.status = 'VERIFYING'
+            bank_verification.save()
+        
+        # Create or update Razorpay Contact
+        try:
+            if not bank_verification.razorpay_contact_id:
+                contact_response = razorpay_client.contact.create({
+                    'name': account_name,
+                    'email': request.user.email,
+                    'type': 'customer',
+                    'reference_id': f"user_{request.user.id}",
+                    'notes': {
+                        'user_id': str(request.user.id),
+                        'username': request.user.username
+                    }
+                })
+                bank_verification.razorpay_contact_id = contact_response['id']
+                bank_verification.save()
+            
+            # Create Fund Account for bank transfer
+            fund_account_response = razorpay_client.fund_account.create({
+                'contact_id': bank_verification.razorpay_contact_id,
+                'account_type': 'bank_account',
+                'bank_account': {
+                    'name': account_name,
+                    'notes': {
+                        'project_name': 'VibeMall Verification'
+                    },
+                    'ifsc': ifsc,
+                    'account_number': account_number
+                }
+            })
+            
+            bank_verification.razorpay_fund_account_id = fund_account_response['id']
+            bank_verification.save()
+            
+            # Initiate ₹1 verification payout
+            payout_response = razorpay_client.payout.create({
+                'account_number': fund_account_response['id'],
+                'amount': 100,  # ₹1 in paise
+                'currency': 'INR',
+                'mode': 'NEFT',
+                'purpose': 'verification',
+                'notes': {
+                    'purpose': 'bank_account_verification',
+                    'user_id': str(request.user.id),
+                    'verification_type': 'bank_penny_drop'
+                }
+            })
+            
+            bank_verification.razorpay_payout_id = payout_response['id']
+            bank_verification.status = 'VERIFYING'
+            bank_verification.save()
+            
+            logger.info(f'✓ Bank verification initiated for {request.user.username}: {payout_response["id"]}')
+            
+            return JsonResponse({
+                'status': 'pending',
+                'message': f'Bank verification initiated. We\'ll send ₹1 to your account. Please watch for it and verify in the app within 48 hours.',
+                'payout_id': payout_response['id'],
+                'razorpay_fund_account_id': fund_account_response['id']
+            })
+        
+        except razorpay.errors.BadRequestError as e:
+            error_msg = str(e)
+            bank_verification.status = 'FAILED'
+            bank_verification.verification_error = error_msg
+            bank_verification.save()
+            logger.error(f'❌ Razorpay error creating fund account: {error_msg}')
+            return JsonResponse({
+                'status': 'failed',
+                'message': f'Bank details invalid: {error_msg}'
+            }, status=400)
+    
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'failed', 'message': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        logger.error(f'Bank transfer verification error: {str(e)}')
+        return JsonResponse({'status': 'failed', 'message': str(e)}, status=500)
