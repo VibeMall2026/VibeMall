@@ -6238,11 +6238,6 @@ def coming_soon(request):
     return render(request, 'coming_soon.html', context)
 
 
-def launch_animation(request):
-    redirect_url = '/' if not getattr(settings, 'COMING_SOON_MODE', True) else '/coming-soon/'
-    return render(request, 'launch_animation.html', {'redirect_url': redirect_url})
-
-
 def login_view(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         username = (request.POST.get("username") or "").strip()

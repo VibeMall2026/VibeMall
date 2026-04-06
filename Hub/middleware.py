@@ -16,7 +16,6 @@ class ComingSoonModeMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
         self.allowed_prefixes = (
-            '/launch-animation/',
             '/coming-soon/',
             '/admin-panel/',
             '/admin/',
