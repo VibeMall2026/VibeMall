@@ -354,7 +354,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <div class="vm-rp-policy-box">
                             <i class="fas fa-badge-check"></i>
                             <div>
-                                <strong>30-Day Return Policy</strong>
+                                <strong>7-Day Return Policy</strong>
                                 <p>All items in original, resaleable condition are eligible for return.</p>
                             </div>
                         </div>
@@ -363,9 +363,6 @@ document.addEventListener('DOMContentLoaded', function () {
             </form>
             {% endif %}
         </div>
-
-        <!-- Footer -->
-        {% include 'partials/vm_tablet_alt_footer.html' with newsletter_source='return-request-tablet' %}
     </main>
 </section>
 
@@ -615,8 +612,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             <div class="vm-rp-policy-box">
                                 <i class="fas fa-shield-check"></i>
                                 <div>
-                                    <h5>Hassle-Free Returns</h5>
-                                    <p>30-day return policy on all items in premium collections.</p>
+                                    <p>7-day return policy on all items in premium collections.</p>
                                 </div>
                             </div>
                         </div>
@@ -627,40 +623,6 @@ document.addEventListener('DOMContentLoaded', function () {
     </form>
     {% endif %}
 
-    <!-- Desktop Footer -->
-    <footer class="vm-copy-rp-footer">
-        <div class="vm-copy-container">
-            <div class="vm-copy-rp-footer-grid">
-                <div class="vm-copy-rp-footer-col">
-                    <h4>Support</h4>
-                    <ul>
-                        <li><a href="{% url 'track_order' %}">Track Orders</a></li>
-                        <li><a href="{% url 'faq' %}">FAQs</a></li>
-                        <li><a href="{% url 'contact' %}">Contact Us</a></li>
-                    </ul>
-                </div>
-                <div class="vm-copy-rp-footer-col">
-                    <h4>Account</h4>
-                    <ul>
-                        <li><a href="{% url 'profile' %}">My Account</a></li>
-                        <li><a href="{% url 'wishlist' %}">Wishlist</a></li>
-                        <li><a href="{% url 'cart' %}">Cart</a></li>
-                    </ul>
-                </div>
-                <div class="vm-copy-rp-footer-col">
-                    <h4>Legal</h4>
-                    <ul>
-                        <li><a href="{% url 'privacy-policy' %}">Privacy Policy</a></li>
-                        <li><a href="{% url 'terms-and-conditions' %}">Terms of Service</a></li>
-                    </ul>
-                </div>
-                <div class="vm-copy-rp-footer-col">
-                    <h4>VibeMall</h4>
-                    <p>© 2024 VibeMall. All rights reserved.</p>
-                </div>
-            </div>
-        </div>
-    </footer>
 </section>
 
 <!-- ========== SHARED SCRIPTS ========== -->
@@ -1182,8 +1144,6 @@ document.addEventListener('DOMContentLoaded', function () {
             <button type="submit" class="vm-rp-m-submit">Submit Return Request</button>
         </form>
         {% endif %}
-
-        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='return-request-mobile' %}
     </main>
 
     {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
@@ -1197,7 +1157,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <div>
                     <span>Service Center</span>
                     <h1>Return Request</h1>
-                    <p>Hassle-free returns with step-by-step guidance and transparent refund calculations.</p>
+                    <p>Easy returns with step-by-step guidance and transparent refund calculations.</p>
                 </div>
                 <div class="vm-rp-tablet-hero-actions">
                     <a class="vm-home-tablet-link" href="{% url 'order_details' order.order_number %}">← Back to Order</a>
