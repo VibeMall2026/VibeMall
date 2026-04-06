@@ -1036,16 +1036,39 @@ document.addEventListener('DOMContentLoaded', function () {
     // Also run after a small delay to catch race conditions
     setTimeout(initializeRefundToggle, 500);
 
+    // Global event listeners for all checkboxes and quantity inputs
+    document.addEventListener('change', (e) => {
+        if (e.target.matches('[data-rp-select]')) {
+            sections.forEach(config => {
+                const subtotalEl = document.getElementById(config.subtotalId);
+                const netEl = document.getElementById(config.netId);
+                updateSummary(subtotalEl, netEl);
+            });
+        }
+    });
+    
+    document.addEventListener('input', (e) => {
+        if (e.target.matches('[data-rp-qty]')) {
+            sections.forEach(config => {
+                const subtotalEl = document.getElementById(config.subtotalId);
+                const netEl = document.getElementById(config.netId);
+                updateSummary(subtotalEl, netEl);
+            });
+        }
+    });
+
     
         // Initialize all sections
     sections.forEach(bindSection);
     
     // Calculate initial refund summary for all sections based on selected items
-    sections.forEach(config => {
-        const subtotalEl = document.getElementById(config.subtotalId);
-        const netEl = document.getElementById(config.netId);
-        updateSummary(subtotalEl, netEl);
-    });
+    setTimeout(() => {
+        sections.forEach(config => {
+            const subtotalEl = document.getElementById(config.subtotalId);
+            const netEl = document.getElementById(config.netId);
+            updateSummary(subtotalEl, netEl);
+        });
+    }, 100);
 })();
 </script>
 
