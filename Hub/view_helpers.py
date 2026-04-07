@@ -618,48 +618,48 @@ def create_upi_collect_request(upi_id: str, user=None):
             # Don't fail here - still try to generate checkout URL
             # But this is important for verification flow
         
-        # Step 5: Generate Razorpay checkout URL
-        # This is a direct link to the Razorpay payment page for this order
+        # Step 5: Generate Razorpay payment URL
         try:
-            # Build proper Razorpay checkout URL using their standard format
-            from urllib.parse import urlencode
-            
-            # Use Razorpay's Invoice API for better payment collection
-            # Create Short URL that redirects to payment page
+            customer_email = user.email if user and user.email else 'customer@example.com'
+            customer_contact = (getattr(user, 'phone_number', '') or '+919999999999').replace('+', '') if user else '9999999999'
+
+            # Preferred flow: Payment Link API returns a ready-to-pay short URL.
             try:
-                invoice_response = client.invoice.create({
-                    'customer': {
-                        'email': user.email if user and user.email else 'customer@example.com',
-                        'contact': (getattr(user, 'phone_number', '') or '+919999999999').replace('+', '') if user else '9999999999'
-                    },
-                    'items': [{
-                        'item_id': None,
-                        'description': f'UPI Verification - {upi_id}',
-                        'amount': 100,
-                        'quantity': 1
-                    }],
+                payment_link = client.payment_link.create({
                     'amount': 100,
                     'currency': 'INR',
+                    'accept_partial': False,
+                    'description': f'UPI Verification - {upi_id}',
+                    'customer': {
+                        'name': user.username if user else 'Customer',
+                        'email': customer_email,
+                        'contact': customer_contact,
+                    },
+                    'notify': {
+                        'sms': True,
+                        'email': False,
+                    },
+                    'reference_id': receipt_id,
                     'expire_by': int(time.time()) + 900,  # 15 minutes
                     'notes': {
                         'upi_id': upi_id,
                         'verification_type': 'upi_collect',
-                        'order_id': order_id
+                        'order_id': order_id,
                     },
-                    'sms_notify': 1,
-                    'email_notify': 1,
-                    'short_url': True
                 })
-                checkout_url = invoice_response.get('short_url') or invoice_response.get('url_short') or f"https://rzp.io/{invoice_response.get('id')}"
-                logger.info(f'✓ Generated Razorpay Invoice Short URL for Order: {order_id}')
-                return True, order_id, checkout_url, f'Payment link ready. Click to verify {upi_id}'
-            except Exception as invoice_err:
-                logger.warning(f'Invoice creation failed, using checkout URL: {str(invoice_err)}')
-                # Fallback to standard checkout URL
-                checkout_url = f"https://rzp.io/?order_id={order_id}"
-                logger.info(f'✓ Using fallback Razorpay URL for Order: {order_id}')
-                return True, order_id, checkout_url, f'Checkout link ready for {upi_id}'
-            
+
+                checkout_url = payment_link.get('short_url') or payment_link.get('url')
+                if checkout_url:
+                    logger.info(f'✓ Generated Razorpay Payment Link URL for Order: {order_id}')
+                    return True, order_id, checkout_url, f'Payment link ready. Click to verify {upi_id}'
+            except Exception as link_err:
+                logger.warning(f'Payment link creation failed, using fallback checkout URL: {str(link_err)}')
+
+            # Final fallback: order-based checkout URL for frontend integrations.
+            checkout_url = f"https://api.razorpay.com/v1/checkout/embedded?order_id={order_id}"
+            logger.info(f'✓ Using fallback order checkout URL for Order: {order_id}')
+            return True, order_id, checkout_url, f'Checkout link ready for {upi_id}'
+
         except Exception as e:
             logger.error(f'❌ Checkout URL generation failed: {str(e)}')
             # Order created but checkout generation failed - still return order ID
