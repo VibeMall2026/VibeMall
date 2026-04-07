@@ -594,7 +594,14 @@
                                 </td>
                                 <td>
                                     <div class="d-flex gap-1">
-                                        {% if item.order.approval_status == 'PENDING_APPROVAL' %}
+                                        {% if item.order.cancellation_request and item.order.cancellation_request.status == 'REQUESTED' %}
+                                        <button type="button" class="btn btn-sm btn-success" title="Approve Cancellation" data-bs-toggle="modal" data-bs-target="#approveModal{{ item.id }}">
+                                            <i class='bx bx-check'></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-danger" title="Reject Cancellation" data-bs-toggle="modal" data-bs-target="#rejectModal{{ item.id }}">
+                                            <i class='bx bx-x'></i>
+                                        </button>
+                                        {% elif item.order.approval_status == 'PENDING_APPROVAL' %}
                                         <button type="button" class="btn btn-sm btn-success" title="Approve Order" data-bs-toggle="modal" data-bs-target="#approveModal{{ item.id }}">
                                             <i class='bx bx-check'></i>
                                         </button>
@@ -658,6 +665,45 @@
         <div class="modal fade" id="approveModal{{ item.id }}" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
+                    {% if item.order.cancellation_request and item.order.cancellation_request.status == 'REQUESTED' %}
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title">Approve Cancellation #{{ item.order.order_number }}</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="POST" action="{% url 'admin_order_details' item.order.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="approve_cancel">
+                        <div class="modal-body">
+                            <div class="alert alert-success">
+                                <i class='bx bx-check-circle'></i> Confirm this cancellation request. The order will be cancelled after approval.
+                            </div>
+
+                            <div class="card bg-light-success p-3 mb-3">
+                                <h6 class="mb-2">Cancellation Details:</h6>
+                                <p class="mb-1"><strong>Customer:</strong> {{ item.order.user.get_full_name|default:item.order.user.username }}</p>
+                                <p class="mb-1"><strong>Email:</strong> {{ item.order.user.email }}</p>
+                                <p class="mb-1"><strong>Total Amount:</strong> ₹{{ item.order.total_amount }}</p>
+                                <p class="mb-1"><strong>Reason:</strong> {{ item.order.cancellation_request.reason|default:"Customer requested cancellation" }}</p>
+                                {% if item.order.cancellation_request.refund_method %}
+                                <p class="mb-0"><strong>Refund Method:</strong> {{ item.order.cancellation_request.get_refund_method_display }}</p>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Approval Notes (Optional):</label>
+                                <textarea name="cancel_notes" class="form-control" rows="2" placeholder="Add any notes about this cancellation approval..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class='bx bx-x'></i> Close
+                            </button>
+                            <button type="submit" class="btn btn-success">
+                                <i class='bx bx-check-circle'></i> Approve Cancellation
+                            </button>
+                        </div>
+                    </form>
+                    {% else %}
                     <div class="modal-header bg-success text-white">
                         <h5 class="modal-title">✅ Approve Order #{{ item.order.order_number }}</h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -694,6 +740,7 @@
                             </button>
                         </div>
                     </form>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -702,6 +749,42 @@
         <div class="modal fade" id="rejectModal{{ item.id }}" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
+                    {% if item.order.cancellation_request and item.order.cancellation_request.status == 'REQUESTED' %}
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">Reject Cancellation #{{ item.order.order_number }}</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="POST" action="{% url 'admin_order_details' item.order.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="reject_cancel">
+                        <div class="modal-body">
+                            <div class="alert alert-warning">
+                                <i class='bx bx-error-circle'></i> Reject this cancellation request and keep the order active.
+                            </div>
+
+                            <div class="card bg-light-danger p-3 mb-3">
+                                <h6 class="mb-2">Cancellation Details:</h6>
+                                <p class="mb-1"><strong>Customer:</strong> {{ item.order.user.get_full_name|default:item.order.user.username }}</p>
+                                <p class="mb-1"><strong>Total Amount:</strong> ₹{{ item.order.total_amount }}</p>
+                                <p class="mb-1"><strong>Reason:</strong> {{ item.order.cancellation_request.reason|default:"Customer requested cancellation" }}</p>
+                                <p class="mb-0"><strong>Requested At:</strong> {{ item.order.cancellation_request.requested_at|date:"d M, Y h:i A" }}</p>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Rejection Notes (Optional):</label>
+                                <textarea name="cancel_notes" class="form-control" rows="3" placeholder="Add a reason for rejecting this cancellation..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class='bx bx-x'></i> Close
+                            </button>
+                            <button type="submit" class="btn btn-danger">
+                                <i class='bx bx-error-circle'></i> Reject Cancellation
+                            </button>
+                        </div>
+                    </form>
+                    {% else %}
                     <div class="modal-header bg-danger text-white">
                         <h5 class="modal-title">❌ Reject Order #{{ item.order.order_number }}</h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -749,6 +832,7 @@
                             </button>
                         </div>
                     </form>
+                    {% endif %}
                 </div>
             </div>
         </div>
