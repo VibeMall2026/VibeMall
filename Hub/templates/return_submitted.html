@@ -87,6 +87,39 @@
     padding-bottom: 0.15rem;
 }
 
+.vm-rsub-history {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.vm-rsub-history-item {
+    padding: 0.9rem 1rem;
+    background: #f7f9fb;
+    border: 1px solid #eceef0;
+}
+
+.vm-rsub-history-item strong {
+    display: block;
+    color: #111827;
+    font-size: 0.9rem;
+    font-weight: 800;
+    line-height: 1.4;
+}
+
+.vm-rsub-history-item span {
+    display: block;
+    margin-top: 0.25rem;
+    color: #54647a;
+    font-size: 0.8rem;
+}
+
+.vm-rsub-history-item p {
+    margin: 0.35rem 0 0;
+    color: #54647a;
+    font-size: 0.82rem;
+    line-height: 1.6;
+}
+
 @media (max-width: 767.98px) {
     body.vm-page-return-submitted .vm-copy-header,
     body.vm-page-return-submitted .vm-copy-footer,
@@ -767,8 +800,26 @@
         <section class="vm-rsub-mobile-hero" style="background-image:url('{% if hero_item and hero_item.order_item.display_image_url %}{{ hero_item.order_item.display_image_url }}{% else %}https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=1200{% endif %}');">
             <div class="vm-rsub-mobile-hero__content">
                 <span class="vm-rsub-mobile-kicker">Confirmation</span>
-                <h1>Your return request is in review</h1>
-                <p>We received {{ return_request.return_number }} for order #{{ return_request.order.order_number }}. Our team is now validating the details for a smooth refund process.</p>
+                <h1>
+                    {% if return_request.status == 'APPROVED' %}Your return request is approved
+                    {% elif return_request.status == 'REFUND_PENDING' %}Your refund is being prepared
+                    {% elif return_request.status == 'REFUNDED' %}Your refund is complete
+                    {% elif return_request.status == 'REJECTED' %}Your return request was updated
+                    {% else %}Your return request is in review{% endif %}
+                </h1>
+                <p>
+                    {% if return_request.status == 'APPROVED' %}
+                    {{ return_request.return_number }} for order #{{ return_request.order.order_number }} is approved. We are preparing the pickup and label details now.
+                    {% elif return_request.status == 'REFUND_PENDING' %}
+                    {{ return_request.return_number }} passed the return review. Your refund is now moving through the payout process.
+                    {% elif return_request.status == 'REFUNDED' %}
+                    {{ return_request.return_number }} is complete. Your refund has been processed to the selected destination.
+                    {% elif return_request.status == 'REJECTED' %}
+                    {{ return_request.return_number }} has a status update. Please review the latest notes and history below.
+                    {% else %}
+                    We received {{ return_request.return_number }} for order #{{ return_request.order.order_number }}. Our team is now validating the details for a smooth refund process.
+                    {% endif %}
+                </p>
             </div>
         </section>
 
@@ -817,9 +868,44 @@
             </div>
         </article>
 
+        <section class="vm-rsub-mobile-sidebar-card">
+            <span class="vm-rsub-mobile-label">Latest Updates</span>
+            <div class="vm-rsub-history">
+                {% for entry in return_request.history.all|slice:":4" %}
+                <div class="vm-rsub-history-item">
+                    <strong>{% if entry.notes %}{{ entry.notes }}{% else %}{{ entry.new_status|title }}{% endif %}</strong>
+                    <span>{{ entry.created_at|date:"d M Y, h:i A" }}</span>
+                </div>
+                {% empty %}
+                <div class="vm-rsub-history-item">
+                    <strong>No new updates yet</strong>
+                    <span>We will add timeline updates here as soon as the return moves forward.</span>
+                </div>
+                {% endfor %}
+                {% if return_request.admin_notes %}
+                <div class="vm-rsub-history-item">
+                    <strong>Admin Note</strong>
+                    <p>{{ return_request.admin_notes }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </section>
+
         <section class="vm-rsub-mobile-sidebar-card vm-rsub-mobile-sidebar-card--dark">
             <h3>Next Steps</h3>
-            <p>After approval, a reverse-pickup label will be generated and our courier partner will contact you within 24 to 48 hours.</p>
+            <p>
+                {% if return_request.status == 'APPROVED' %}
+                Your reverse-pickup flow is approved. The courier and shipping label details will be shared shortly.
+                {% elif return_request.status == 'REFUND_PENDING' %}
+                The return has passed review and your refund is waiting to be released to the selected method.
+                {% elif return_request.status == 'REFUNDED' %}
+                The refund has been completed. You can still review the order and return details from this page anytime.
+                {% elif return_request.status == 'REJECTED' %}
+                Please review the latest update below. If needed, contact support for clarification on the request outcome.
+                {% else %}
+                After approval, a reverse-pickup label will be generated and our courier partner will contact you within 24 to 48 hours.
+                {% endif %}
+            </p>
             <div class="vm-rsub-tablet-actions">
                 {% if label_url %}
                 <a href="{{ label_url }}" class="vm-rsub-action-link" target="_blank" rel="noopener">
@@ -889,8 +975,26 @@
             <section class="vm-rsub-tablet-hero" style="background-image:url('{% if hero_item and hero_item.order_item.display_image_url %}{{ hero_item.order_item.display_image_url }}{% else %}https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=1400{% endif %}');">
                 <div class="vm-rsub-tablet-hero__content">
                     <span class="vm-rsub-mobile-kicker">Confirmation</span>
-                    <h1>Your return request is in review</h1>
-                    <p>Request {{ return_request.return_number }} has been submitted for order #{{ return_request.order.order_number }}. We are reviewing the information before arranging pickup and payout.</p>
+                    <h1>
+                        {% if return_request.status == 'APPROVED' %}Your return request is approved
+                        {% elif return_request.status == 'REFUND_PENDING' %}Your refund is being prepared
+                        {% elif return_request.status == 'REFUNDED' %}Your refund is complete
+                        {% elif return_request.status == 'REJECTED' %}Your return request was updated
+                        {% else %}Your return request is in review{% endif %}
+                    </h1>
+                    <p>
+                        {% if return_request.status == 'APPROVED' %}
+                        Request {{ return_request.return_number }} is approved for order #{{ return_request.order.order_number }}. Pickup and payout are now moving into the next stage.
+                        {% elif return_request.status == 'REFUND_PENDING' %}
+                        Request {{ return_request.return_number }} is now in the refund pipeline after return review.
+                        {% elif return_request.status == 'REFUNDED' %}
+                        Request {{ return_request.return_number }} is finished and the refund has already been processed.
+                        {% elif return_request.status == 'REJECTED' %}
+                        Request {{ return_request.return_number }} has a new update. Review the latest status notes in the timeline below.
+                        {% else %}
+                        Request {{ return_request.return_number }} has been submitted for order #{{ return_request.order.order_number }}. We are reviewing the information before arranging pickup and payout.
+                        {% endif %}
+                    </p>
                 </div>
             </section>
 
@@ -938,12 +1042,45 @@
                             <p>Includes collection fee of &#8377;{{ fee|floatformat:2 }}</p>
                         </div>
                     </div>
+
+                    <h3 class="vm-rsub-mobile-section-title">Latest Updates</h3>
+                    <div class="vm-rsub-history">
+                        {% for entry in return_request.history.all|slice:":4" %}
+                        <div class="vm-rsub-history-item">
+                            <strong>{% if entry.notes %}{{ entry.notes }}{% else %}{{ entry.new_status|title }}{% endif %}</strong>
+                            <span>{{ entry.created_at|date:"d M Y, h:i A" }}</span>
+                        </div>
+                        {% empty %}
+                        <div class="vm-rsub-history-item">
+                            <strong>No new updates yet</strong>
+                            <span>We will add timeline updates here as soon as the return moves forward.</span>
+                        </div>
+                        {% endfor %}
+                        {% if return_request.admin_notes %}
+                        <div class="vm-rsub-history-item">
+                            <strong>Admin Note</strong>
+                            <p>{{ return_request.admin_notes }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
                 </section>
 
                 <div class="vm-rsub-tablet-shell">
                     <aside class="vm-rsub-tablet-sidebar vm-rsub-tablet-sidebar--dark">
                         <h3>Next Steps</h3>
-                        <p>After approval, a return label will be issued and the courier will reach out within 24 to 48 hours to complete pickup.</p>
+                        <p>
+                            {% if return_request.status == 'APPROVED' %}
+                            Your return is approved and label generation is next. The courier will be assigned shortly.
+                            {% elif return_request.status == 'REFUND_PENDING' %}
+                            The item review is complete and your refund is waiting to be released.
+                            {% elif return_request.status == 'REFUNDED' %}
+                            The refund is complete and no further customer action is needed unless you need support.
+                            {% elif return_request.status == 'REJECTED' %}
+                            Please review the latest update and contact support if you need help with the request outcome.
+                            {% else %}
+                            After approval, a return label will be issued and the courier will reach out within 24 to 48 hours to complete pickup.
+                            {% endif %}
+                        </p>
                         <div class="vm-rsub-tablet-actions">
                             {% if label_url %}
                             <a href="{{ label_url }}" class="vm-rsub-action-link" target="_blank" rel="noopener">
@@ -986,8 +1123,26 @@
     <section class="vm-rsub-desktop-hero" style="background-image:url('{% if hero_item and hero_item.order_item.display_image_url %}{{ hero_item.order_item.display_image_url }}{% else %}https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=2070{% endif %}');">
         <div class="vm-rsub-desktop-hero__content">
             <span class="vm-rsub-desktop-badge">Confirmation</span>
-            <h1>Your return request<br>is in review</h1>
-            <p>We received {{ return_request.return_number }} for order #{{ return_request.order.order_number }}. Our concierge team is validating the request before pickup and refund processing begin.</p>
+            <h1>
+                {% if return_request.status == 'APPROVED' %}Your return request<br>is approved
+                {% elif return_request.status == 'REFUND_PENDING' %}Your refund is<br>being prepared
+                {% elif return_request.status == 'REFUNDED' %}Your refund is<br>complete
+                {% elif return_request.status == 'REJECTED' %}Your return request<br>was updated
+                {% else %}Your return request<br>is in review{% endif %}
+            </h1>
+            <p>
+                {% if return_request.status == 'APPROVED' %}
+                {{ return_request.return_number }} for order #{{ return_request.order.order_number }} is approved. Pickup planning and the next logistics steps are now underway.
+                {% elif return_request.status == 'REFUND_PENDING' %}
+                {{ return_request.return_number }} is now in the refund stage after return validation and inspection.
+                {% elif return_request.status == 'REFUNDED' %}
+                {{ return_request.return_number }} is complete. Your refund has already been processed to the selected destination.
+                {% elif return_request.status == 'REJECTED' %}
+                {{ return_request.return_number }} has a status update. Review the latest update cards below for more detail.
+                {% else %}
+                We received {{ return_request.return_number }} for order #{{ return_request.order.order_number }}. Our concierge team is validating the request before pickup and refund processing begin.
+                {% endif %}
+            </p>
         </div>
     </section>
 
@@ -1037,13 +1192,46 @@
                             <p>Includes collection fee of &#8377;{{ fee|floatformat:2 }}</p>
                         </div>
                     </div>
+
+                    <h3 class="vm-rsub-desktop-finance-title"><i class="far fa-clock"></i> Latest Updates</h3>
+                    <div class="vm-rsub-history">
+                        {% for entry in return_request.history.all|slice:":5" %}
+                        <div class="vm-rsub-history-item">
+                            <strong>{% if entry.notes %}{{ entry.notes }}{% else %}{{ entry.new_status|title }}{% endif %}</strong>
+                            <span>{{ entry.created_at|date:"d M Y, h:i A" }}</span>
+                        </div>
+                        {% empty %}
+                        <div class="vm-rsub-history-item">
+                            <strong>No new updates yet</strong>
+                            <span>We will add timeline updates here as soon as the return moves forward.</span>
+                        </div>
+                        {% endfor %}
+                        {% if return_request.admin_notes %}
+                        <div class="vm-rsub-history-item">
+                            <strong>Admin Note</strong>
+                            <p>{{ return_request.admin_notes }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
 
             <aside class="vm-rsub-desktop-sidebar">
                 <div class="vm-rsub-desktop-sidebar-card vm-rsub-desktop-sidebar-card--dark">
                     <h3>Next Steps</h3>
-                    <p>Once the request is approved, your shipping label becomes available and our courier partner will contact you within 24 to 48 hours.</p>
+                    <p>
+                        {% if return_request.status == 'APPROVED' %}
+                        Your return is approved. Shipping-label and courier assignment are the next steps in the flow.
+                        {% elif return_request.status == 'REFUND_PENDING' %}
+                        The return is complete from the logistics side and your refund is waiting to be released.
+                        {% elif return_request.status == 'REFUNDED' %}
+                        The refund is complete. You can still revisit this page anytime to review the request details.
+                        {% elif return_request.status == 'REJECTED' %}
+                        Review the latest status update and contact support if you need help understanding the outcome.
+                        {% else %}
+                        Once the request is approved, your shipping label becomes available and our courier partner will contact you within 24 to 48 hours.
+                        {% endif %}
+                    </p>
                     <div class="vm-rsub-desktop-actions">
                         {% if label_url %}
                         <a href="{{ label_url }}" class="vm-rsub-action-link" target="_blank" rel="noopener">

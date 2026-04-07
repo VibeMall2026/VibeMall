@@ -183,7 +183,7 @@ urlpatterns = [
     path('api/verify-bank-transfer/', views.verify_bank_transfer_endpoint, name='verify_bank_transfer'),
     
     path('returns/<int:return_id>/submitted/', views.return_submitted, name='return_submitted'),
-    path('returns/<int:return_id>/', views.return_status, name='return_status'),
+    path('returns/<int:return_id>/', views.return_submitted, name='return_status'),
     path('order/track/<str:order_number>/', views.order_tracking, name='order_tracking'),
     path('order/cancel/<int:order_id>/', views.customer_cancel_order, name='customer_cancel_order'),
     
