@@ -1523,5 +1523,58 @@ class DataAccessLogAdmin(admin.ModelAdmin):
 admin.site.register(DataAccessLog, DataAccessLogAdmin)
 
 
+# Webhook Logging Admin
+class WebhookLogAdmin(admin.ModelAdmin):
+    list_display = ['id', 'event_type', 'payment_id', 'order_id', 'signature_valid', 'status', 'received_at']
+    list_filter = ['event_type', 'signature_valid', 'status', 'received_at']
+    search_fields = ['payment_id', 'order_id', 'event_type', 'raw_body']
+    readonly_fields = ['raw_body', 'signature', 'signature_valid', 'created_at', 'updated_at', 'received_at']
+    ordering = ['-received_at']
+    
+    fieldsets = (
+        ('Event Info', {
+            'fields': ('event_type', 'payment_id', 'order_id', 'received_at')
+        }),
+        ('Signature', {
+            'fields': ('signature', 'signature_valid')
+        }),
+        ('Raw Content', {
+            'fields': ('raw_body',),
+            'classes': ('collapse',)
+        }),
+        ('Processing Status', {
+            'fields': ('status', 'error_message')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+admin.site.register(WebhookLog, WebhookLogAdmin)
+
+
+class VerificationTestLogAdmin(admin.ModelAdmin):
+    list_display = ['id', 'user', 'test_type', 'razorpay_order_id', 'webhook_received', 'created_at']
+    list_filter = ['test_type', 'webhook_received', 'created_at']
+    search_fields = ['user__username', 'razorpay_order_id', 'razorpay_payment_id']
+    readonly_fields = ['created_at', 'updated_at']
+    ordering = ['-created_at']
+    
+    fieldsets = (
+        ('Test Info', {
+            'fields': ('user', 'test_type', 'created_at', 'updated_at')
+        }),
+        ('Razorpay IDs', {
+            'fields': ('razorpay_order_id', 'razorpay_payment_id')
+        }),
+        ('Results', {
+            'fields': ('webhook_received', 'verification_status')
+        }),
+    )
+
+admin.site.register(VerificationTestLog, VerificationTestLogAdmin)
+
+
 # Load backup model admin registrations
 from . import backup_admin  # noqa: E402,F401
