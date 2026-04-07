@@ -49,6 +49,12 @@
     object-fit: cover;
 }
 
+.vm-rsub-mobile-item > div,
+.vm-rsub-tablet-item > div,
+.vm-rsub-desktop-item > div {
+    min-width: 0;
+}
+
 .vm-rsub-action-link,
 .vm-rsub-action-btn {
     display: flex;
@@ -545,6 +551,51 @@
     }
 }
 
+@media (min-width: 768px) and (max-width: 959.98px) {
+    .vm-rsub-tablet-main {
+        padding-bottom: 7rem;
+    }
+
+    .vm-rsub-tablet-hero {
+        min-height: 300px;
+        padding: 1.5rem;
+    }
+
+    .vm-rsub-tablet-hero__content h1 {
+        font-size: 2.5rem;
+    }
+
+    .vm-rsub-tablet-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1.5rem;
+    }
+
+    .vm-rsub-tablet-panel,
+    .vm-rsub-tablet-sidebar {
+        box-shadow: 0 16px 30px rgba(25, 28, 30, 0.05);
+    }
+
+    .vm-rsub-tablet-panel,
+    .vm-rsub-tablet-sidebar {
+        padding: 1.4rem;
+    }
+
+    .vm-rsub-tablet-panel-head {
+        flex-direction: column;
+        align-items: start;
+        gap: 0.9rem;
+    }
+
+    .vm-rsub-tablet-items,
+    .vm-rsub-tablet-finance {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .vm-rsub-tablet-item h3 {
+        font-size: 0.96rem;
+    }
+}
+
 @media (min-width: 1200px) {
     .vm-rsub-desktop-only {
         display: block;
@@ -786,6 +837,50 @@
         display: grid;
         gap: 0.9rem;
         margin-top: 1.5rem;
+    }
+}
+
+@media (min-width: 1200px) and (max-width: 1450px) {
+    .vm-rsub-desktop-hero {
+        min-height: 520px;
+        padding: 11rem 2rem 8rem;
+    }
+
+    .vm-rsub-desktop-hero__content {
+        max-width: 54rem;
+    }
+
+    .vm-rsub-desktop-hero__content h1 {
+        font-size: clamp(2.85rem, 4.2vw, 3.7rem);
+    }
+
+    .vm-rsub-desktop-canvas {
+        margin: 1.5rem auto 0;
+    }
+
+    .vm-rsub-desktop-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .vm-rsub-desktop-panel,
+    .vm-rsub-desktop-sidebar {
+        grid-column: auto;
+    }
+
+    .vm-rsub-desktop-inner {
+        padding: 2.2rem;
+    }
+
+    .vm-rsub-desktop-head {
+        align-items: start;
+    }
+
+    .vm-rsub-desktop-items {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .vm-rsub-desktop-finance {
+        gap: 1rem;
     }
 }
 </style>
