@@ -9923,10 +9923,6 @@ def return_request(request, order_id):
 
     if existing_return:
         _clear_return_draft_for_order(request, order.id)
-        messages.info(
-            request,
-            f'A return request for order {order.order_number} has already been submitted.'
-        )
         return redirect('return_status', return_id=existing_return.id)
 
     if request.method == 'POST':
@@ -10037,10 +10033,6 @@ def confirm_return_request(request, order_id):
 
     if existing_return:
         _clear_return_draft_for_order(request, order.id)
-        messages.info(
-            request,
-            f'A return request for order {order.order_number} already exists.'
-        )
         return redirect('return_status', return_id=existing_return.id)
 
     if not draft or draft.get('order_id') != order.id:
@@ -10058,10 +10050,6 @@ def confirm_return_request(request, order_id):
         existing_return = _latest_order_return(order, request.user)
         if existing_return:
             _clear_return_draft_for_order(request, order.id)
-            messages.info(
-                request,
-                f'A return request for order {order.order_number} already exists.'
-            )
             return redirect('return_status', return_id=existing_return.id)
 
         # Finalise — save to DB
