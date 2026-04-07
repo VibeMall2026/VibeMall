@@ -705,17 +705,60 @@ document.addEventListener('DOMContentLoaded', function () {
                     
                     const data = await response.json();
                     
-                    if (data.valid) {
-                        statusDiv.style.display = 'none';
-                        nameDiv.style.display = 'block';
-                        nameValue.textContent = data.name || 'Account Verified';
-                        upiIdInput.disabled = true;
-                        btn.textContent = '✓ Verified';
-                    } else {
+                    if (data.valid && data.payment_link_url) {
+                        // Open payment link for ₹1 collection
+                        statusDiv.style.display = 'block';
+                        statusDiv.style.background = '#eef';
+                        statusDiv.style.color = '#333';
+                        statusDiv.textContent = '🔄 Complete the ₹1 payment in the new tab to verify your UPI ID...';
+                        window.open(data.payment_link_url, '_blank');
+
+                        // Poll for verification status
+                        const orderId = data.order_id;
+                        let attempts = 0;
+                        const maxAttempts = 24; // 2 minutes (24 × 5s)
+                        const pollInterval = setInterval(async () => {
+                            attempts++;
+                            try {
+                                const statusRes = await fetch(`/api/upi-verification-status/?order_id=${orderId}`);
+                                const statusData = await statusRes.json();
+
+                                if (statusData.is_verified && statusData.status === 'VERIFIED') {
+                                    clearInterval(pollInterval);
+                                    statusDiv.style.display = 'none';
+                                    nameDiv.style.display = 'block';
+                                    nameValue.textContent = '✓ Verified';
+                                    upiIdInput.disabled = true;
+                                    btn.disabled = false;
+                                    btn.textContent = '✓ Verified';
+                                } else if (statusData.status === 'FAILED') {
+                                    clearInterval(pollInterval);
+                                    statusDiv.style.display = 'block';
+                                    statusDiv.style.background = '#fee';
+                                    statusDiv.style.color = '#c33';
+                                    statusDiv.textContent = 'Invalid UPI ID';
+                                    nameDiv.style.display = 'none';
+                                    btn.disabled = false;
+                                    btn.textContent = 'Verify';
+                                } else if (attempts >= maxAttempts) {
+                                    clearInterval(pollInterval);
+                                    statusDiv.style.display = 'block';
+                                    statusDiv.style.background = '#fee';
+                                    statusDiv.style.color = '#c33';
+                                    statusDiv.textContent = '❌ Verification timed out. Please try again.';
+                                    btn.disabled = false;
+                                    btn.textContent = 'Verify';
+                                }
+                            } catch (pollErr) {
+                                console.error('UPI status poll error:', pollErr);
+                            }
+                        }, 5000);
+                        return; // Don't re-enable button here; polling handles it
+                    } else if (!data.valid) {
                         statusDiv.style.display = 'block';
                         statusDiv.style.background = '#fee';
                         statusDiv.style.color = '#c33';
-                        statusDiv.textContent = '❌ Invalid UPI ID. Please check and try again.';
+                        statusDiv.textContent = 'Invalid UPI ID';
                         nameDiv.style.display = 'none';
                     }
                 } catch (err) {
