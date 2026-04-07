@@ -2,12 +2,14 @@
 {% load static custom_filters %}
 
 {% block title %}Confirm Return Request - VibeMall{% endblock %}
-{% block body_class %}vm-page-tablet-alt vm-page-confirm-return{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-confirm-return{% endblock %}
+{% block ui_chrome %}mobile{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'assets/css/vm-home-editorial.css' %}?v=20260328-03">
 <link rel="stylesheet" href="{% static 'assets/css/home-mobile-alt.css' %}?v=20260329-01">
 <link rel="stylesheet" href="{% static 'assets/css/home-tablet-alt.css' %}?v=20260329-01">
+<link rel="stylesheet" href="{% static 'assets/css/returnrequest-desktop-alt.css' %}?v=20260407-02">
 <link rel="stylesheet" href="{% static 'assets/css/confirm-return-desktop.css' %}?v=20260407-01">
 {% endblock %}
 
