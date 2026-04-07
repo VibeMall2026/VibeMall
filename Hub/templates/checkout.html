@@ -1211,7 +1211,17 @@
     }
 
     function applyDefaultAddress() {
-        if (!useDefaultAddress || !useDefaultAddress.checked) {
+        if (!useDefaultAddress) return;
+
+        if (!useDefaultAddress.checked) {
+            // Clear fields when unchecked
+            if (fullNameField) fullNameField.value = '';
+            if (phoneField) phoneField.value = '';
+            if (addressField) addressField.value = '';
+            if (cityField) cityField.value = '';
+            if (stateField) stateField.value = '';
+            if (postcodeField) postcodeField.value = '';
+            syncSplitName();
             return;
         }
 
@@ -1305,6 +1315,10 @@
     }
     if (useDefaultAddress) {
         useDefaultAddress.addEventListener('change', applyDefaultAddress);
+        // Auto-fill on page load if already checked
+        if (useDefaultAddress.checked) {
+            applyDefaultAddress();
+        }
     }
     if (postcodeField) {
         postcodeField.addEventListener('input', function () {
@@ -1610,7 +1624,19 @@ if (redeemCheckbox) {
     };
 
     const applyDefaultAddress = () => {
-        if (!useDefaultAddress || !useDefaultAddress.checked) return;
+        if (!useDefaultAddress) return;
+
+        if (!useDefaultAddress.checked) {
+            // Clear fields when unchecked
+            if (firstNameField) firstNameField.value = '';
+            if (lastNameField) lastNameField.value = '';
+            if (phoneField) phoneField.value = '';
+            if (addressField) addressField.value = '';
+            if (cityField) cityField.value = '';
+            if (stateField) stateField.value = '';
+            if (postcodeField) postcodeField.value = '';
+            return;
+        }
 
         // Using an existing saved address should not auto-mark a new default.
         if (setDefaultAddress) {
