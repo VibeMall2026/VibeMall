@@ -741,3 +741,449 @@
     color: #6b7280;
     font-size: 0.95rem;
 }
+
+
+/* ============================================================
+   EDITORIAL DESKTOP REDESIGN — vm-rp-d-* classes
+   ============================================================ */
+
+/* Layout */
+.vm-rp-d-editorial-header {
+    padding: 5rem 0 3rem;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f7f9fb;
+}
+
+.vm-rp-d-eyebrow {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #9ca3af;
+    margin-bottom: 1rem;
+}
+
+.vm-rp-d-headline {
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 3.5rem;
+    font-weight: 400;
+    line-height: 1.15;
+    color: #000;
+    margin: 0 0 1.5rem;
+}
+
+.vm-rp-d-header-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.875rem;
+}
+
+.vm-rp-d-back-link {
+    color: #6b7280;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.vm-rp-d-back-link:hover { color: #000; }
+
+.vm-rp-d-divider { color: #d1d5db; }
+
+/* Main layout */
+.vm-rp-d-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 3rem;
+    padding: 3rem 0 5rem;
+    align-items: start;
+}
+
+/* Cards */
+.vm-rp-d-card {
+    background: #fff;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid #e5e7eb;
+}
+
+.vm-rp-d-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.vm-rp-d-card-head h2 {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #111827;
+    margin: 0;
+}
+
+/* Info grid */
+.vm-rp-d-info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
+
+.vm-rp-d-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #9ca3af;
+    margin-bottom: 0.4rem;
+}
+
+.vm-rp-d-serif-val {
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 1.1rem;
+    color: #111827;
+    margin: 0;
+}
+
+/* Items */
+.vm-rp-d-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.25rem;
+    padding: 1.25rem 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+.vm-rp-d-item:last-child { border-bottom: none; }
+
+.vm-rp-d-item-check input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    margin-top: 4px;
+}
+
+.vm-rp-d-item-img {
+    width: 80px;
+    height: 100px;
+    flex-shrink: 0;
+    overflow: hidden;
+    background: #f3f4f6;
+}
+.vm-rp-d-item-img img { width: 100%; height: 100%; object-fit: cover; }
+.vm-rp-d-item-img--empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: #9ca3af;
+}
+
+.vm-rp-d-item-info { flex: 1; }
+.vm-rp-d-item-info h3 {
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 1rem;
+    font-weight: 400;
+    color: #111827;
+    margin: 0 0 0.4rem;
+}
+.vm-rp-d-item-info p { font-size: 0.8rem; color: #6b7280; margin: 0 0 0.25rem; }
+.vm-rp-d-item-price { font-weight: 700; font-size: 0.9rem; color: #111827; }
+
+.vm-rp-d-item-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 160px;
+}
+
+/* Form groups */
+.vm-rp-d-form-group label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #6b7280;
+    margin-bottom: 0.4rem;
+}
+
+.vm-rp-d-form-group input[type="text"],
+.vm-rp-d-form-group input[type="password"],
+.vm-rp-d-form-group input[type="number"],
+.vm-rp-d-form-group select,
+.vm-rp-d-form-group textarea {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 2px;
+    font-size: 0.875rem;
+    color: #111827;
+    background: #fff;
+    transition: border-color 0.2s;
+    font-family: inherit;
+}
+.vm-rp-d-form-group input:focus,
+.vm-rp-d-form-group select:focus,
+.vm-rp-d-form-group textarea:focus {
+    outline: none;
+    border-color: #000;
+}
+
+/* Qty control */
+.vm-rp-d-qty {
+    display: flex;
+    align-items: center;
+    border: 1px solid #d1d5db;
+    border-radius: 2px;
+    overflow: hidden;
+}
+.vm-rp-d-qty input[type="number"] {
+    border: none;
+    text-align: center;
+    width: 50px;
+    padding: 0.5rem 0;
+    font-size: 0.875rem;
+}
+.vm-rp-d-qty-btn {
+    background: #f9fafb;
+    border: none;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    font-size: 1rem;
+    color: #374151;
+    transition: background 0.2s;
+}
+.vm-rp-d-qty-btn:hover { background: #e5e7eb; }
+
+/* Refund options */
+.vm-rp-d-refund-options {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.vm-rp-d-refund-option { cursor: pointer; }
+.vm-rp-d-refund-option input[type="radio"] { display: none; }
+
+.vm-rp-d-refund-card {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.875rem 1.25rem;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 2px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    transition: border-color 0.2s, background 0.2s;
+    min-width: 140px;
+}
+.vm-rp-d-refund-option input:checked + .vm-rp-d-refund-card {
+    border-color: #000;
+    background: #f9fafb;
+    color: #000;
+}
+.vm-rp-d-refund-card i { font-size: 1rem; }
+
+/* Bank grid */
+.vm-rp-d-bank-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: #f9fafb;
+    border-left: 3px solid #000;
+}
+
+/* UPI row */
+.vm-rp-d-upi-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+.vm-rp-d-upi-row input { flex: 1; }
+
+.vm-rp-d-verify-btn {
+    padding: 0.6rem 1.25rem;
+    background: #000;
+    color: #fff;
+    border: none;
+    border-radius: 2px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s;
+}
+.vm-rp-d-verify-btn:hover { background: #374151; }
+
+/* Alert */
+.vm-rp-d-alert {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    background: #fef3c7;
+    border-left: 4px solid #f59e0b;
+    border-radius: 2px;
+    font-size: 0.9rem;
+    color: #92400e;
+}
+
+/* Sidebar */
+.vm-rp-d-sidebar { position: sticky; top: 100px; }
+
+.vm-rp-d-summary {
+    background: #111827;
+    color: #fff;
+    padding: 2.5rem;
+}
+
+.vm-rp-d-summary h2 {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin: 0 0 2rem;
+    color: #fff;
+}
+
+.vm-rp-d-summary-rows {
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.vm-rp-d-summary-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 0.75rem;
+}
+
+.vm-rp-d-fee { color: #f87171; }
+
+.vm-rp-d-summary-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 2rem;
+}
+.vm-rp-d-summary-total span:first-child {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.5);
+}
+.vm-rp-d-total-val {
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 2.5rem;
+    color: #fff;
+}
+
+.vm-rp-d-submit-btn {
+    width: 100%;
+    padding: 1rem;
+    background: #fff;
+    color: #000;
+    border: none;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    margin-bottom: 1rem;
+}
+.vm-rp-d-submit-btn:hover { opacity: 0.85; }
+
+.vm-rp-d-summary-note {
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.4);
+    text-align: center;
+    line-height: 1.6;
+    padding: 0 0.5rem;
+}
+
+.vm-rp-d-sidebar-quote {
+    margin-top: 1.5rem;
+    padding: 1.25rem 1.5rem;
+    background: #f3f4f6;
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 0.8rem;
+    font-style: italic;
+    color: #6b7280;
+    line-height: 1.7;
+}
+
+/* Footer */
+.vm-rp-d-footer {
+    background: #f3f4f6;
+    padding: 4rem 0 2rem;
+    border-top: 1px solid #e5e7eb;
+    margin-top: 2rem;
+}
+
+.vm-rp-d-footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 3rem;
+    margin-bottom: 3rem;
+}
+
+.vm-rp-d-footer-logo {
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #111827;
+    text-decoration: none;
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.vm-rp-d-footer-brand p {
+    font-size: 0.8rem;
+    color: #6b7280;
+    line-height: 1.7;
+    max-width: 260px;
+}
+
+.vm-rp-d-footer-grid h4 {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #111827;
+    margin: 0 0 1.25rem;
+}
+
+.vm-rp-d-footer-grid ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.vm-rp-d-footer-grid ul li { margin-bottom: 0.75rem; }
+
+.vm-rp-d-footer-grid ul a {
+    font-size: 0.8rem;
+    color: #6b7280;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.vm-rp-d-footer-grid ul a:hover,
+.vm-rp-d-footer-grid ul a.active { color: #111827; }
+
+.vm-rp-d-footer-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #9ca3af;
+}

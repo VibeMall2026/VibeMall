@@ -9916,51 +9916,32 @@ def return_request(request, order_id):
                 messages.error(request, error_msg or 'UPI ID not found.')
                 return redirect('return_request', order_id=order.id)
 
-        return_request_obj = ReturnRequest.objects.create(
-            order=order,
-            user=request.user,
-            reason=reason,
-            reason_notes=reason_notes,
-            refund_method=refund_method,
-            bank_account_name=bank_account_name if refund_method == 'BANK' else '',
-            bank_account_number=bank_account_number if refund_method == 'BANK' else '',
-            bank_ifsc=bank_ifsc if refund_method == 'BANK' else '',
-            bank_name=bank_name if refund_method == 'BANK' else '',
-            upi_id=upi_id if refund_method == 'RAZORPAY' else '',
-            upi_name=upi_name if refund_method == 'RAZORPAY' else '',
-            request_ip=request.META.get('REMOTE_ADDR'),
-            request_user_agent=(request.META.get('HTTP_USER_AGENT') or '')[:255]
-        )
-
+        # Store validated data in session for confirm step
+        session_items = []
         for item, qty, condition, notes in selected_items:
-            ReturnItem.objects.create(
-                return_request=return_request_obj,
-                order_item=item,
-                product=item.product,
-                quantity=qty,
-                condition=condition,
-                notes=notes
-            )
+            session_items.append({
+                'id': item.id,
+                'product_name': item.product_name,
+                'product_image': item.product_image if hasattr(item, 'product_image') else '',
+                'product_price': str(item.product_price),
+                'qty': qty,
+                'condition': condition,
+                'notes': notes,
+            })
 
-        for attachment in request.FILES.getlist('attachments'):
-            ReturnAttachment.objects.create(
-                return_request=return_request_obj,
-                file=attachment,
-                original_name=attachment.name,
-                content_type=getattr(attachment, 'content_type', ''),
-                size_bytes=getattr(attachment, 'size', 0)
-            )
-
-        _log_return_history(return_request_obj, '', 'REQUESTED', request.user, 'Return requested by customer')
-        _send_return_notification(
-            return_request_obj,
-            f'Return Request Received - {order.order_number}',
-            f'We received your return request for order {order.order_number}. We will update you soon.'
-        )
-        _send_admin_return_notification(return_request_obj, request)
-
-        messages.success(request, 'Return request submitted successfully.')
-        return redirect('return_status', return_id=return_request_obj.id)
+        request.session['return_draft'] = {
+            'order_id': order.id,
+            'reason': reason,
+            'reason_notes': reason_notes,
+            'refund_method': refund_method,
+            'bank_account_name': bank_account_name,
+            'bank_account_number': bank_account_number,
+            'bank_ifsc': bank_ifsc,
+            'bank_name': bank_name,
+            'upi_id': upi_id,
+            'items': session_items,
+        }
+        return redirect('confirm_return_request', order_id=order.id)
 
     return render(request, 'return_request.html', {
         'order': order,
@@ -9972,6 +9953,90 @@ def return_request(request, order_id):
         'reason_choices': ReturnRequest.RETURN_REASON_CHOICES,
         'condition_choices': ReturnItem.CONDITION_CHOICES,
         'refund_options': refund_options,
+    })
+
+
+@login_required(login_url='login')
+def confirm_return_request(request, order_id):
+    """Show confirm/review page before finalising a return request."""
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    draft = request.session.get('return_draft')
+
+    if not draft or draft.get('order_id') != order.id:
+        messages.error(request, 'No pending return draft found. Please start again.')
+        return redirect('return_request', order_id=order.id)
+
+    if request.method == 'POST':
+        # Finalise — save to DB
+        reason = draft['reason']
+        reason_notes = draft['reason_notes']
+        refund_method = draft['refund_method']
+        bank_account_name = draft['bank_account_name']
+        bank_account_number = draft['bank_account_number']
+        bank_ifsc = draft['bank_ifsc']
+        bank_name = draft['bank_name']
+        upi_id = draft['upi_id']
+
+        return_request_obj = ReturnRequest.objects.create(
+            order=order,
+            user=request.user,
+            reason=reason,
+            reason_notes=reason_notes,
+            refund_method=refund_method,
+            bank_account_name=bank_account_name if refund_method == 'BANK' else '',
+            bank_account_number=bank_account_number if refund_method == 'BANK' else '',
+            bank_ifsc=bank_ifsc if refund_method == 'BANK' else '',
+            bank_name=bank_name if refund_method == 'BANK' else '',
+            upi_id=upi_id if refund_method in ('UPI', 'RAZORPAY') else '',
+            request_ip=request.META.get('REMOTE_ADDR'),
+            request_user_agent=(request.META.get('HTTP_USER_AGENT') or '')[:255],
+        )
+
+        for item_data in draft['items']:
+            try:
+                order_item = OrderItem.objects.get(id=item_data['id'])
+                ReturnItem.objects.create(
+                    return_request=return_request_obj,
+                    order_item=order_item,
+                    product=order_item.product,
+                    quantity=item_data['qty'],
+                    condition=item_data['condition'],
+                    notes=item_data['notes'],
+                )
+            except OrderItem.DoesNotExist:
+                pass
+
+        _log_return_history(return_request_obj, '', 'REQUESTED', request.user, 'Return requested by customer')
+        _send_return_notification(
+            return_request_obj,
+            f'Return Request Received - {order.order_number}',
+            f'We received your return request for order {order.order_number}. We will update you soon.'
+        )
+        _send_admin_return_notification(return_request_obj, request)
+
+        # Clear draft
+        request.session.pop('return_draft', None)
+
+        messages.success(request, 'Return request submitted successfully.')
+        return redirect('return_status', return_id=return_request_obj.id)
+
+    # Build summary numbers
+    subtotal = sum(
+        Decimal(str(i['product_price'])) * i['qty']
+        for i in draft['items']
+    )
+    fee = Decimal('20.00')
+    net = max(subtotal - fee, Decimal('0.00'))
+
+    reason_display = dict(ReturnRequest.RETURN_REASON_CHOICES).get(draft['reason'], draft['reason'])
+
+    return render(request, 'confirm_return_request.html', {
+        'order': order,
+        'draft': draft,
+        'reason_display': reason_display,
+        'subtotal': subtotal,
+        'fee': fee,
+        'net': net,
     })
 
 

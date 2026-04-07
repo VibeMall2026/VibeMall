@@ -171,6 +171,7 @@ urlpatterns = [
     path('order/download-invoice/<str:order_number>/', views.download_invoice, name='download_invoice'),
     path('order/<str:order_number>/', views.order_details, name='order_details'),
     path('order/<int:order_id>/return/', views.return_request, name='return_request'),
+    path('order/<int:order_id>/return/confirm/', views.confirm_return_request, name='confirm_return_request'),
     path('verify-upi/', views.verify_upi, name='verify_upi'),
     path('api/upi-verification-status/', views.upi_verification_status, name='upi_verification_status'),
     

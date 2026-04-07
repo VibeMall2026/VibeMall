@@ -1,0 +1,303 @@
+{% extends 'base.html' %}
+{% load static custom_filters %}
+
+{% block title %}Confirm Return Request - VibeMall{% endblock %}
+{% block body_class %}vm-page-tablet-alt vm-page-confirm-return{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'assets/css/vm-home-editorial.css' %}?v=20260328-03">
+<link rel="stylesheet" href="{% static 'assets/css/home-mobile-alt.css' %}?v=20260329-01">
+<link rel="stylesheet" href="{% static 'assets/css/home-tablet-alt.css' %}?v=20260329-01">
+<link rel="stylesheet" href="{% static 'assets/css/confirm-return-desktop.css' %}?v=20260407-01">
+{% endblock %}
+
+{% block content %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const isDesktop = window.matchMedia('(min-width: 1200px)').matches;
+    const isTablet = window.matchMedia('(min-width: 768px) and (max-width: 1199.98px)').matches;
+    if (isDesktop) {
+        document.querySelectorAll('.vm-cr-mobile-only, .vm-cr-tablet-only').forEach(n => n.remove());
+    } else if (isTablet) {
+        document.querySelectorAll('.vm-cr-mobile-only, .vm-cr-desktop-only').forEach(n => n.remove());
+    } else {
+        document.querySelectorAll('.vm-cr-tablet-only, .vm-cr-desktop-only').forEach(n => n.remove());
+    }
+});
+</script>
+
+<!-- ========== MOBILE VIEW ========== -->
+<section class="vm-cr-mobile-only">
+    {% include 'partials/vm_mobile_alt_header.html' %}
+    <main class="vm-mobile-content-offset" style="padding: 1.5rem 1rem 5rem;">
+        <p style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#9ca3af; margin-bottom:.75rem;">Step 03 — Final Confirmation</p>
+        <h1 style="font-family:'Noto Serif',serif; font-size:1.75rem; font-weight:400; color:#000; margin:0 0 1.5rem; line-height:1.2;">Review your return<br>request details</h1>
+
+        {% include 'partials/confirm_return_sections.html' %}
+
+        <form method="post" style="margin-top:1.5rem;">
+            {% csrf_token %}
+            <button type="submit" style="width:100%; padding:1rem; background:#000; color:#fff; border:none; font-size:.8rem; font-weight:700; text-transform:uppercase; letter-spacing:.12em; cursor:pointer;">Finalize Return Request</button>
+        </form>
+        <a href="{% url 'return_request' order.id %}" style="display:block; text-align:center; margin-top:1rem; font-size:.8rem; color:#6b7280; text-decoration:underline;">← Edit Return Details</a>
+
+        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='confirm-return-mobile' %}
+    </main>
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
+</section>
+
+<!-- ========== TABLET VIEW ========== -->
+<section class="vm-cr-tablet-only">
+    {% include 'partials/vm_tablet_alt_header.html' %}
+    <main style="padding: 2rem 1.5rem 5rem; max-width:900px; margin:0 auto;">
+        <p style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#9ca3af; margin-bottom:.75rem;">Step 03 — Final Confirmation</p>
+        <h1 style="font-family:'Noto Serif',serif; font-size:2.5rem; font-weight:400; color:#000; margin:0 0 2rem; line-height:1.2;">Review your return<br>request details</h1>
+
+        {% include 'partials/confirm_return_sections.html' %}
+
+        <form method="post" style="margin-top:2rem;">
+            {% csrf_token %}
+            <button type="submit" style="width:100%; padding:1.1rem; background:#000; color:#fff; border:none; font-size:.8rem; font-weight:700; text-transform:uppercase; letter-spacing:.12em; cursor:pointer;">Finalize Return Request</button>
+        </form>
+        <a href="{% url 'return_request' order.id %}" style="display:block; text-align:center; margin-top:1rem; font-size:.8rem; color:#6b7280; text-decoration:underline;">← Edit Return Details</a>
+    </main>
+</section>
+
+<!-- ========== DESKTOP VIEW ========== -->
+<section class="vm-cr-desktop-only">
+    <!-- Desktop Header -->
+    <header class="vm-copy-rp-header">
+        <div class="vm-copy-container">
+            <div class="vm-copy-rp-header-content">
+                <div class="vm-copy-rp-logo"><a href="{% url 'index' %}">VibeMall</a></div>
+                <nav class="vm-copy-rp-nav">
+                    <a href="{% url 'shop' %}">Shop</a>
+                    <a href="#" class="active">Returns</a>
+                    <a href="{% url 'faq' %}">Help</a>
+                </nav>
+                <div class="vm-copy-rp-header-actions">
+                    <a href="{% url 'wishlist' %}" aria-label="Wishlist"><i class="far fa-heart"></i></a>
+                    <a href="{% url 'cart' %}" aria-label="Cart"><i class="far fa-shopping-bag"></i></a>
+                    {% if request.user.is_authenticated %}
+                    <a href="{% url 'profile' %}" aria-label="Account"><i class="far fa-user"></i></a>
+                    {% else %}
+                    <a href="{% url 'login' %}" aria-label="Login"><i class="far fa-user"></i></a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="vm-cr-d-main">
+        <div class="vm-copy-container">
+
+            <!-- Editorial Header -->
+            <div class="vm-cr-d-header">
+                <p class="vm-cr-d-eyebrow">Step 03 — Final Confirmation</p>
+                <h1 class="vm-cr-d-headline">Review your return<br>request details</h1>
+            </div>
+
+            <div class="vm-cr-d-layout">
+
+                <!-- LEFT: Review Sections -->
+                <div class="vm-cr-d-content">
+
+                    <!-- Order Information -->
+                    <section class="vm-cr-d-card">
+                        <div class="vm-cr-d-card-head">
+                            <h2>Order Information</h2>
+                            <a href="{% url 'return_request' order.id %}" class="vm-cr-d-edit-btn">EDIT <i class="fas fa-pen" style="font-size:11px;"></i></a>
+                        </div>
+                        <div class="vm-cr-d-info-grid">
+                            <div>
+                                <p class="vm-cr-d-label">Order Number</p>
+                                <p class="vm-cr-d-serif-val">#{{ order.order_number }}</p>
+                            </div>
+                            <div>
+                                <p class="vm-cr-d-label">Placed On</p>
+                                <p class="vm-cr-d-serif-val">{{ order.created_at|date:"d M, Y" }}</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Items for Return -->
+                    <section class="vm-cr-d-card">
+                        <div class="vm-cr-d-card-head">
+                            <h2>Items for Return ({{ draft.items|length }})</h2>
+                            <a href="{% url 'return_request' order.id %}" class="vm-cr-d-edit-btn">EDIT <i class="fas fa-pen" style="font-size:11px;"></i></a>
+                        </div>
+                        <div class="vm-cr-d-items-grid">
+                            {% for item in draft.items %}
+                            <div class="vm-cr-d-item">
+                                <div class="vm-cr-d-item-img">
+                                    {% if item.product_image %}
+                                    <img src="{{ item.product_image }}" alt="{{ item.product_name }}">
+                                    {% else %}
+                                    <span style="font-size:1.5rem;">📦</span>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <h3 class="vm-cr-d-item-name">{{ item.product_name }}</h3>
+                                    <p class="vm-cr-d-item-meta">Qty: {{ item.qty }} | Condition: {{ item.condition }}</p>
+                                    <p class="vm-cr-d-item-price">₹{{ item.product_price }}</p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </section>
+
+                    <!-- Reason for Return -->
+                    <section class="vm-cr-d-card">
+                        <div class="vm-cr-d-card-head">
+                            <h2>Reason for Return</h2>
+                            <a href="{% url 'return_request' order.id %}" class="vm-cr-d-edit-btn">EDIT <i class="fas fa-pen" style="font-size:11px;"></i></a>
+                        </div>
+                        <p class="vm-cr-d-reason-text">"{{ reason_display }}{% if draft.reason_notes %} — {{ draft.reason_notes }}{% endif %}"</p>
+                    </section>
+
+                    <!-- Pickup Address -->
+                    <section class="vm-cr-d-card">
+                        <div class="vm-cr-d-card-head">
+                            <h2>Pickup Address</h2>
+                        </div>
+                        <div class="vm-cr-d-address">
+                            {% with addr=order.shipping_address %}
+                            {% if addr %}
+                            <p>{{ addr.full_name|default:request.user.get_full_name }}</p>
+                            <p>{{ addr.address_line1 }}{% if addr.address_line2 %}, {{ addr.address_line2 }}{% endif %}</p>
+                            <p>{{ addr.city }}, {{ addr.state }}</p>
+                            <p>{{ addr.pincode }}, India</p>
+                            {% else %}
+                            <p>{{ request.user.get_full_name|default:request.user.username }}</p>
+                            <p>Address on file</p>
+                            {% endif %}
+                            {% endwith %}
+                        </div>
+                    </section>
+
+                    <!-- Refund Method -->
+                    <section class="vm-cr-d-card">
+                        <div class="vm-cr-d-card-head">
+                            <h2>Refund Method</h2>
+                            <a href="{% url 'return_request' order.id %}" class="vm-cr-d-edit-btn">EDIT <i class="fas fa-pen" style="font-size:11px;"></i></a>
+                        </div>
+                        <div class="vm-cr-d-refund-box">
+                            <div class="vm-cr-d-refund-method-label">
+                                {% if draft.refund_method == 'BANK' %}
+                                <i class="fas fa-university"></i> <span>Bank Transfer</span>
+                                {% elif draft.refund_method == 'UPI' %}
+                                <i class="fas fa-mobile-alt"></i> <span>UPI ID</span>
+                                {% else %}
+                                <i class="fas fa-wallet"></i> <span>VibeMall Wallet</span>
+                                {% endif %}
+                            </div>
+                            {% if draft.refund_method == 'BANK' %}
+                            <div class="vm-cr-d-refund-details">
+                                <div>
+                                    <label>Beneficiary Name</label>
+                                    <p>{{ draft.bank_account_name|upper }}</p>
+                                </div>
+                                <div>
+                                    <label>Account Number</label>
+                                    <p>**** **** {{ draft.bank_account_number|slice:"-4:" }}</p>
+                                </div>
+                                <div>
+                                    <label>Bank Name</label>
+                                    <p>{{ draft.bank_name|upper }}</p>
+                                </div>
+                                <div>
+                                    <label>IFSC Code</label>
+                                    <p>{{ draft.bank_ifsc }}</p>
+                                </div>
+                            </div>
+                            {% elif draft.refund_method == 'UPI' %}
+                            <div class="vm-cr-d-refund-details">
+                                <div>
+                                    <label>UPI ID</label>
+                                    <p>{{ draft.upi_id }}</p>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </section>
+
+                </div>
+
+                <!-- RIGHT: Sticky Summary -->
+                <aside class="vm-cr-d-sidebar">
+                    <div class="vm-cr-d-summary">
+                        <h2>Return Summary</h2>
+                        <div class="vm-cr-d-summary-rows">
+                            <div class="vm-cr-d-summary-row">
+                                <span>Subtotal Refund</span>
+                                <span>₹{{ subtotal|floatformat:2 }}</span>
+                            </div>
+                            <div class="vm-cr-d-summary-row">
+                                <span>Collection Fee</span>
+                                <span style="color:#f87171;">- ₹{{ fee|floatformat:2 }}</span>
+                            </div>
+                        </div>
+                        <div class="vm-cr-d-summary-total">
+                            <div>
+                                <span class="vm-cr-d-total-label">Total Estimated Refund</span>
+                                <span class="vm-cr-d-total-val">₹{{ net|floatformat:2 }}</span>
+                            </div>
+                        </div>
+                        <form method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="vm-cr-d-finalize-btn">Finalize Return Request</button>
+                        </form>
+                        <p class="vm-cr-d-summary-note">By clicking finalize, you agree to our Return Policy. A courier will be assigned within 24–48 hours.</p>
+                    </div>
+                    <div class="vm-cr-d-sidebar-quote">
+                        "Our goal is to ensure your VibeMall experience is exceptional. This return will be processed with the same care as your purchase."
+                    </div>
+                </aside>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Desktop Footer -->
+    <footer class="vm-rp-d-footer">
+        <div class="vm-copy-container">
+            <div class="vm-rp-d-footer-grid">
+                <div class="vm-rp-d-footer-brand">
+                    <a href="{% url 'index' %}" class="vm-rp-d-footer-logo">VibeMall</a>
+                    <p>A curated exhibition of modern life. Redefining the digital shopping experience through architectural clarity and quiet authority.</p>
+                </div>
+                <div>
+                    <h4>Collection</h4>
+                    <ul>
+                        <li><a href="{% url 'shop' %}">New Arrivals</a></li>
+                        <li><a href="{% url 'shop' %}">Men's Archive</a></li>
+                        <li><a href="{% url 'shop' %}">Women's Series</a></li>
+                        <li><a href="{% url 'shop' %}">Accessories</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Assistance</h4>
+                    <ul>
+                        <li><a href="#">Shipping Info</a></li>
+                        <li><a href="#" class="active">Returns &amp; Exchanges</a></li>
+                        <li><a href="#">Care Guide</a></li>
+                        <li><a href="{% url 'contact' %}">Contact</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="{% url 'privacy_policy' %}">Privacy Policy</a></li>
+                        <li><a href="{% url 'terms_conditions' %}">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="vm-rp-d-footer-bottom">
+                <span>© {% now "Y" %} VibeMall. All Rights Reserved.</span>
+                <span>Designed with precision.</span>
+            </div>
+        </div>
+    </footer>
+
+</section>
+{% endblock %}
