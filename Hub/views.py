@@ -8612,6 +8612,36 @@ def razorpay_webhook(request):
     
     # Initialize WebhookLog entry
     webhook_log_entry = None
+
+    def _attempt_upi_refund(client, upi_verification_obj):
+        """Attempt ₹1 refund for a verified UPI record and persist retry state."""
+        if not upi_verification_obj or not upi_verification_obj.razorpay_payment_id:
+            return False, 'missing razorpay payment id'
+
+        try:
+            refund_response = client.payment.refund(upi_verification_obj.razorpay_payment_id, {
+                'amount': 100,
+                'notes': {
+                    'reason': 'UPI verification auto-refund',
+                    'verification_type': 'upi_collect'
+                }
+            })
+            refund_id = refund_response.get('id', '')
+            upi_verification_obj.refund_attempted = True
+            # Clear pending/failure text once refund succeeds.
+            if upi_verification_obj.verification_error.startswith('REFUND_'):
+                upi_verification_obj.verification_error = ''
+            upi_verification_obj.save(update_fields=['refund_attempted', 'verification_error'])
+            return True, refund_id
+        except Exception as refund_exc:
+            error_text = str(refund_exc)
+            upi_verification_obj.refund_attempted = False
+            if ('not have enough balance' in error_text.lower()) or ('insufficient' in error_text.lower()):
+                upi_verification_obj.verification_error = f'REFUND_PENDING: {error_text[:240]}'
+            else:
+                upi_verification_obj.verification_error = f'REFUND_FAILED: {error_text[:240]}'
+            upi_verification_obj.save(update_fields=['refund_attempted', 'verification_error'])
+            return False, error_text
     
     if not webhook_secret:
         return JsonResponse({'status': 'webhook not configured'}, status=400)
@@ -8678,6 +8708,7 @@ def razorpay_webhook(request):
                     # Get the UPIVerification record and mark it as verified
                     order_id = verification_order_id  # Prefer notes, fallback to Razorpay order id
                     upi_id = notes.get('upi_id')
+                    upi_verification = None
                     
                     if order_id:
                         # Find the UPIVerification record
@@ -8690,24 +8721,45 @@ def razorpay_webhook(request):
                             upi_verification.razorpay_payment_id = payment_id
                             upi_verification.status = 'VERIFIED'
                             upi_verification.is_verified = True
+                            upi_verification.refund_attempted = False
                             upi_verification.verified_at = __import__('django.utils.timezone', fromlist=['now']).now()
-                            upi_verification.save()
+                            upi_verification.save(update_fields=['razorpay_payment_id', 'status', 'is_verified', 'refund_attempted', 'verified_at'])
                             logger.info(f'✓ Marked UPI {upi_id} as VERIFIED via webhook')
                             webhook_log_entry.response_message = f'UPI verification marked as verified for {upi_id}'
                     
-                    # Auto-refund the ₹1
+                    # Auto-refund the ₹1 for this verification first.
                     client = razorpay.Client(
                         auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
                     )
-                    refund_response = client.payment.refund(payment_id, {
-                        'amount': 100,  # ₹1 in paise
-                        'notes': {
-                            'reason': 'UPI verification auto-refund',
-                            'verification_type': 'upi_collect'
-                        }
-                    })
-                    logger.info(f'✓ Auto-refunded ₹1 for UPI verification: {refund_response.get("id")}')
-                    webhook_log_entry.response_message += f' | ₹1 auto-refunded: {refund_response.get("id")}'
+                    refunded, refund_info = _attempt_upi_refund(client, upi_verification)
+                    if refunded:
+                        logger.info(f'✓ Auto-refunded ₹1 for UPI verification: {refund_info}')
+                        webhook_log_entry.response_message += f' | ₹1 auto-refunded: {refund_info}'
+                    else:
+                        logger.warning(f'₹1 auto-refund queued for retry: {refund_info}')
+                        webhook_log_entry.response_message += ' | ₹1 refund queued for automatic retry'
+                        webhook_log_entry.error_message = refund_info
+
+                    # Fully automatic: retry older pending UPI refunds whenever a capture webhook arrives.
+                    pending_refunds = UPIVerification.objects.filter(
+                        is_verified=True,
+                        refund_attempted=False
+                    ).exclude(razorpay_payment_id='')[:10]
+
+                    retry_success = 0
+                    retry_fail = 0
+                    for pending in pending_refunds:
+                        # Skip the current verification record; it was just attempted above.
+                        if upi_verification and pending.id == upi_verification.id:
+                            continue
+                        ok_retry, _ = _attempt_upi_refund(client, pending)
+                        if ok_retry:
+                            retry_success += 1
+                        else:
+                            retry_fail += 1
+
+                    if retry_success or retry_fail:
+                        webhook_log_entry.response_message += f' | Retry refunds: success={retry_success}, failed={retry_fail}'
                 except Exception as refund_err:
                     logger.error(f'❌ Webhook UPI verification handler error: {str(refund_err)}')
                     webhook_log_entry.error_message = str(refund_err)
