@@ -159,7 +159,7 @@ urlpatterns = [
     path('razorpay-payment/<int:order_id>/', views.razorpay_payment, name='razorpay_payment'),
     path('razorpay-payment-success/', views.razorpay_payment_success, name='razorpay_payment_success'),
     path('razorpay-payment-cancel/<int:order_id>/', views.razorpay_payment_cancel, name='razorpay_payment_cancel'),
-    path('razorpay-webhook/', views.razorpay_webhook, name='razorpay_webhook'),
+    path('api/razorpay-webhook/', views.razorpay_webhook, name='razorpay_webhook'),
     path('admin-panel/orders/<int:order_id>/refund/', views.razorpay_refund, name='razorpay_refund'),
     path('resell-order/<int:order_id>/', views.resell_order, name='resell_order'),
     
