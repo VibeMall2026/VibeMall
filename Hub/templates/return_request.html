@@ -82,6 +82,8 @@ body.vm-page-return-request{background:#f7f9fb}
 .vm-rr-summary__divider{height:1px;background:#d9dde3}
 .vm-rr-summary__total{color:#111827;font-size:1.05rem;font-weight:800}
 .vm-rr-summary__amount{font-size:2rem}
+.vm-rr-fee-note{padding:.95rem 1rem;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:.82rem;line-height:1.65}
+.vm-rr-fee-note strong{display:block;margin-bottom:.25rem;color:#7c2d12;font-size:.78rem;letter-spacing:.12em;text-transform:uppercase}
 .vm-rr-terms{display:flex;gap:.8rem;align-items:flex-start;color:#54647a;font-size:.92rem;line-height:1.6}
 .vm-rr-terms input{width:1rem;height:1rem;margin-top:.2rem;accent-color:#111827}
 .vm-rr-terms a,.vm-rr-note a{color:#111827;text-decoration:underline}
@@ -91,10 +93,15 @@ body.vm-page-return-request .vm-copy-header,body.vm-page-return-request .vm-copy
 .vm-rr-mobile-chrome,.vm-rr-mobile-footer,.vm-rr-mobile-nav{display:block}
 .vm-rr-page{padding:1rem 1rem 0}
 .vm-rr-page.vm-mobile-content-offset{padding-top:1rem}
+.vm-rr-hero{padding:1.15rem 1.15rem 1.25rem;background:#fff;border:1px solid #e5e7eb;box-shadow:0 18px 32px rgba(25,28,30,.05)}
+.vm-rr-title{font-size:2.15rem}
+.vm-rr-copy{font-size:.9rem;line-height:1.65}
 .vm-rr-layout,.vm-rr-split,.vm-rr-meta-grid,.vm-rr-fields.two,.vm-rr-stepper{grid-template-columns:1fr}
+.vm-rr-step{padding:.9rem 1rem}
 .vm-rr-item{grid-template-columns:auto 84px minmax(0,1fr)}
 .vm-rr-controls{grid-column:1/-1;min-width:0}
 .vm-rr-side{position:static}
+.vm-rr-card__body{padding:1.1rem}
 }
 @media (min-width:768px) and (max-width:1199.98px){
 body.vm-page-return-request .vm-copy-header,body.vm-page-return-request .vm-copy-footer,body.vm-page-return-request>footer{display:none!important}
@@ -269,12 +276,13 @@ body.vm-page-return-request .vm-copy-header,body.vm-page-return-request .vm-copy
                 <aside class="vm-rr-side">
                     <section class="vm-rr-card soft">
                         <div class="vm-rr-card__body">
-                            <div class="vm-rr-summary">
-                                <div class="vm-rr-summary__row"><span>Selected items</span><strong><span data-rp-count>0</span> item(s)</strong></div>
-                                <div class="vm-rr-summary__row"><span>Subtotal</span><strong>&#8377;<span data-rp-subtotal>0.00</span></strong></div>
-                                <div class="vm-rr-summary__row"><span>Collection fee</span><strong class="vm-rr-summary__fee">- &#8377;{{ fee|floatformat:2 }}</strong></div>
+                                <div class="vm-rr-summary">
+                                    <div class="vm-rr-summary__row"><span>Selected items</span><strong><span data-rp-count>0</span> item(s)</strong></div>
+                                    <div class="vm-rr-summary__row"><span>Subtotal</span><strong>&#8377;<span data-rp-subtotal>0.00</span></strong></div>
+                                <div class="vm-rr-summary__row"><span>Return fee debit</span><strong class="vm-rr-summary__fee">- &#8377;{{ fee|floatformat:2 }}</strong></div>
                                 <div class="vm-rr-summary__divider"></div>
                                 <div class="vm-rr-summary__total"><span>Estimated refund</span><strong class="vm-rr-summary__amount">&#8377;<span data-rp-net>0.00</span></strong></div>
+                                <div class="vm-rr-fee-note"><strong>Refund Adjustment</strong>&#8377;{{ fee|floatformat:2 }} will be debited from the subtotal as the return handling fee.</div>
                                 <p class="vm-rr-note">This is step 1 of 2. You will review everything once more before the final return request is submitted.</p>
                             </div>
                         </div>
