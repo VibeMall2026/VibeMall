@@ -8662,13 +8662,21 @@ def razorpay_webhook(request):
             payment = data['payload']['payment']['entity']
             payment_id = payment['id']
             notes = payment.get('notes', {})
+            verification_order_id = notes.get('order_id') or payment.get('order_id')
+            is_upi_verification = (notes.get('verification_type') == 'upi_collect')
+
+            # Fallback: infer verification flow if order maps to a UPIVerification record.
+            if (not is_upi_verification) and verification_order_id:
+                is_upi_verification = UPIVerification.objects.filter(
+                    razorpay_order_id=verification_order_id
+                ).exists()
             
             # Check if this is UPI verification payment (₹1)
-            if notes.get('verification_type') == 'upi_collect':
+            if is_upi_verification:
                 # Auto-refund the ₹1 UPI verification payment + mark as verified ✓ FIX
                 try:
                     # Get the UPIVerification record and mark it as verified
-                    order_id = notes.get('order_id') or payment.get('order_id')  # Prefer notes, fallback to Razorpay order id
+                    order_id = verification_order_id  # Prefer notes, fallback to Razorpay order id
                     upi_id = notes.get('upi_id')
                     
                     if order_id:
@@ -8723,7 +8731,34 @@ def razorpay_webhook(request):
         elif event_type == 'payment.failed':
             # Payment failed
             payment = data['payload']['payment']['entity']
-            order_id = payment['notes'].get('order_id')
+            notes = payment.get('notes', {})
+            order_id = notes.get('order_id') or payment.get('order_id')
+            is_upi_verification = (notes.get('verification_type') == 'upi_collect')
+
+            # Fallback: infer verification flow by matching Razorpay order id.
+            if (not is_upi_verification) and order_id:
+                is_upi_verification = UPIVerification.objects.filter(
+                    razorpay_order_id=order_id
+                ).exists()
+
+            if is_upi_verification and order_id:
+                upi_verification = UPIVerification.objects.filter(
+                    razorpay_order_id=order_id
+                ).first()
+                if upi_verification:
+                    upi_verification.status = 'FAILED'
+                    upi_verification.verification_error = payment.get('error_description', 'UPI verification payment failed')
+                    upi_verification.razorpay_payment_id = payment.get('id', '')
+                    upi_verification.save()
+                    webhook_log_entry.response_message = f'UPI verification marked FAILED for {upi_verification.upi_id}'
+                else:
+                    webhook_log_entry.error_message = f'UPI verification record not found for order {order_id}'
+                
+                # Finalize early for UPI verification failure branch.
+                webhook_log_entry.status = 'processed'
+                webhook_log_entry.processed_at = __import__('django.utils.timezone', fromlist=['now']).now()
+                webhook_log_entry.save()
+                return JsonResponse({'status': 'ok'})
             
             if order_id:
                 try:
