@@ -508,13 +508,6 @@ document.addEventListener('DOMContentLoaded', function () {
                                 {% endfor %}
                             </div>
                             
-                            <!-- DEBUG INFO -->
-                            <div style="margin-top: 15px; padding: 10px; background: #fffacd; border: 1px solid #daa520; border-radius: 4px; font-size: 12px; color: #000;">
-                                <strong>📍 Selected:</strong> <span id="vmDebugSelected">None</span> | 
-                                <strong>Bank Block:</strong> <span id="vmDebugBank" style="color: red;">Hidden</span> | 
-                                <strong>UPI Block:</strong> <span id="vmDebugUPI" style="color: red;">Hidden</span>
-                            </div>
-                            
                             <!-- Bank Details Section -->
                             <!-- Bank Details Section -->
                             <div id="vmRpBankBlockDesktop" style="display: none; margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 8px; border-left: 4px solid #667eea;">
@@ -752,29 +745,15 @@ document.addEventListener('DOMContentLoaded', function () {
         
         const method = refundMethod.value.toLowerCase();
         
-        // Update debug display
-        const debugSelected = document.getElementById('vmDebugSelected');
-        const debugBank = document.getElementById('vmDebugBank');
-        const debugUPI = document.getElementById('vmDebugUPI');
-        if (debugSelected) debugSelected.textContent = method.toUpperCase();
-        
         // RESET: Hide all blocks
         if (bankBlock) bankBlock.style.display = 'none';
         if (upiBlock) upiBlock.style.display = 'none';
         
-        // Update debug display
-        if (debugBank) debugBank.textContent = 'Hidden';
-        if (debugUPI) debugUPI.textContent = 'Hidden';
-        
         // SHOW: Display selected block
         if (method === 'bank' && bankBlock) {
             bankBlock.style.display = 'block';
-            if (debugBank) debugBank.textContent = 'VISIBLE';
-            if (debugBank) debugBank.style.color = '#008000';
         } else if (method === 'upi' && upiBlock) {
             upiBlock.style.display = 'block';
-            if (debugUPI) debugUPI.textContent = 'VISIBLE';
-            if (debugUPI) debugUPI.style.color = '#008000';
         }
     };
     
