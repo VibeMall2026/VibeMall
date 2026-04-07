@@ -11979,6 +11979,7 @@ def admin_add_main_page_banner(request):
             image = request.FILES.get('image')
             
             if not image:
+                
                 messages.error(request, 'Banner image is required.')
                 return render(request, 'admin_panel/add_main_page_banner.html')
             

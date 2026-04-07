@@ -929,67 +929,60 @@
                 <article class="vm-odt-card vm-odt-card--timeline">
                     <h2 class="vm-odt-label">Journey Status</h2>
                     <div class="vm-odt-timeline">
-                        {% for status in order.status_history.all|slice:":4" %}
-                        <div class="vm-odt-step {% if forloop.first %}vm-odt-step-current{% else %}vm-odt-step-complete{% endif %}">
+                        {% with active_return=order.return_requests.first %}
+                        {% if active_return %}
+                        <div class="vm-odt-step vm-odt-step-current">
                             <div class="vm-odt-step-point">
-                                {% if forloop.first %}
+                                <i class="fas fa-undo-alt" aria-hidden="true"></i>
+                            </div>
+                            <h3 class="vm-odt-step-title">Return {{ active_return.get_status_display }}</h3>
+                            <p class="vm-odt-step-copy">Return #{{ active_return.return_number }} — {{ active_return.get_reason_display }}</p>
+                            <div class="vm-odt-step-meta">{{ active_return.requested_at|date:"M d, h:i A" }}</div>
+                        </div>
+                        {% endif %}
+                        {% endwith %}
+                        {% for status in order.status_history.all|slice:":4" %}
+                        <div class="vm-odt-step {% if forloop.first and not order.return_requests.exists %}vm-odt-step-current{% else %}vm-odt-step-complete{% endif %}">
+                            <div class="vm-odt-step-point">
+                                {% if forloop.first and not order.return_requests.exists %}
                                 <i class="fas fa-shipping-fast" aria-hidden="true"></i>
                                 {% else %}
                                 <i class="fas fa-check-circle" aria-hidden="true"></i>
                                 {% endif %}
                             </div>
                             <h3 class="vm-odt-step-title">
-                                {% if status.new_status == 'PENDING' %}
-                                Order Confirmed
-                                {% elif status.new_status == 'PROCESSING' %}
-                                Processed for Shipping
-                                {% elif status.new_status == 'SHIPPED' %}
-                                In Transit
-                                {% elif status.new_status == 'DELIVERED' %}
-                                Delivered
-                                {% elif status.new_status == 'CANCELLED' %}
-                                Order Cancelled
-                                {% else %}
-                                {{ status.new_status|title }}
-                                {% endif %}
+                                {% if status.new_status == 'PENDING' %}Order Confirmed
+                                {% elif status.new_status == 'PROCESSING' %}Processed for Shipping
+                                {% elif status.new_status == 'SHIPPED' %}In Transit
+                                {% elif status.new_status == 'DELIVERED' %}Delivered
+                                {% elif status.new_status == 'CANCELLED' %}Order Cancelled
+                                {% else %}{{ status.new_status|title }}{% endif %}
                             </h3>
                             <p class="vm-odt-step-copy">
-                                {% if status.notes %}
-                                {{ status.notes }}
-                                {% elif status.changed_by %}
-                                Updated by {{ status.changed_by.get_full_name|default:status.changed_by.username }}.
-                                {% else %}
-                                Order milestone updated successfully.
-                                {% endif %}
+                                {% if status.notes %}{{ status.notes }}
+                                {% elif status.changed_by %}Updated by {{ status.changed_by.get_full_name|default:status.changed_by.username }}.
+                                {% else %}Order milestone updated successfully.{% endif %}
                             </p>
-                            <div class="vm-odt-step-meta">
-                                {{ status.created_at|date:"M d, h:i A" }}
-                            </div>
+                            <div class="vm-odt-step-meta">{{ status.created_at|date:"M d, h:i A" }}</div>
                         </div>
                         {% empty %}
+                        {% if not order.return_requests.exists %}
                         <div class="vm-odt-step vm-odt-step-current">
-                            <div class="vm-odt-step-point">
-                                <i class="fas fa-box" aria-hidden="true"></i>
-                            </div>
+                            <div class="vm-odt-step-point"><i class="fas fa-box" aria-hidden="true"></i></div>
                             <h3 class="vm-odt-step-title">{{ order.get_order_status_display }}</h3>
                             <p class="vm-odt-step-copy">Your order has been placed and is now in progress.</p>
                             <div class="vm-odt-step-meta">{{ order.created_at|date:"M d, h:i A" }}</div>
                         </div>
+                        {% endif %}
                         {% endfor %}
 
-                        {% if order.order_status != 'DELIVERED' and order.order_status != 'CANCELLED' %}
+                        {% if order.order_status != 'DELIVERED' and order.order_status != 'CANCELLED' and not order.return_requests.exists %}
                         <div class="vm-odt-step vm-odt-step-future">
-                            <div class="vm-odt-step-point">
-                                <i class="fas fa-circle" aria-hidden="true"></i>
-                            </div>
+                            <div class="vm-odt-step-point"><i class="fas fa-circle" aria-hidden="true"></i></div>
                             <h3 class="vm-odt-step-title">
-                                {% if order.order_status == 'PENDING' %}
-                                Processed for Shipping
-                                {% elif order.order_status == 'PROCESSING' %}
-                                In Transit
-                                {% else %}
-                                Out for Delivery
-                                {% endif %}
+                                {% if order.order_status == 'PENDING' %}Processed for Shipping
+                                {% elif order.order_status == 'PROCESSING' %}In Transit
+                                {% else %}Out for Delivery{% endif %}
                             </h3>
                             <p class="vm-odt-step-copy">Your package will proceed to the next milestone soon.</p>
                         </div>
