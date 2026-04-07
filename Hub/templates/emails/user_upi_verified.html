@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UPI ID Verified</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: #f5f7fa; padding: 20px; }
+  .wrap { max-width: 600px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+  .header { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: #fff; padding: 40px 24px; text-align: center; }
+  .header .icon { font-size: 48px; margin-bottom: 12px; }
+  .header h1 { font-size: 24px; margin-bottom: 6px; }
+  .header p { opacity: 0.9; font-size: 15px; }
+  .body { padding: 36px 24px; }
+  .greeting { font-size: 16px; color: #374151; margin-bottom: 16px; }
+  .upi-box { background: #f0fdf4; border: 2px solid #16a34a; border-radius: 10px; padding: 20px; text-align: center; margin: 24px 0; }
+  .upi-box .label { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .upi-box .upi-id { font-size: 20px; font-weight: 700; color: #14532d; }
+  .upi-box .badge { display: inline-block; background: #16a34a; color: #fff; padding: 4px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; margin-top: 10px; }
+  .info-text { font-size: 14px; color: #6b7280; line-height: 1.7; margin-bottom: 20px; }
+  .btn-row { margin: 28px 0 8px; text-align: center; }
+  .btn { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 15px; }
+  .divider { border: none; border-top: 1px solid #e5e7eb; margin: 24px 0; }
+  .footer { background: #1f2937; padding: 24px; text-align: center; font-size: 12px; color: #9ca3af; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="icon">✅</div>
+    <h1>UPI ID Verified!</h1>
+    <p>Your UPI ID has been successfully verified</p>
+  </div>
+  <div class="body">
+    <p class="greeting">Hi {{ customer_name }},</p>
+    <p class="info-text">Great news! Your UPI ID has been reviewed and verified by our team. You can now proceed with your return request and receive your refund directly to this UPI ID.</p>
+
+    <div class="upi-box">
+      <div class="label">Verified UPI ID</div>
+      <div class="upi-id">{{ upi_id }}</div>
+      <div class="badge">✓ Verified</div>
+    </div>
+
+    <p class="info-text">Verified on: <strong>{{ verified_at|date:"d M Y, H:i" }}</strong></p>
+
+    <hr class="divider">
+    <p class="info-text">If you have any questions about your return, please contact our support team.</p>
+
+    <div class="btn-row">
+      <a href="{{ site_url }}" class="btn">Go to VibeMall</a>
+    </div>
+  </div>
+  <div class="footer">
+    <p>© VibeMall — This is an automated notification. Please do not reply to this email.</p>
+  </div>
+</div>
+</body>
+</html>

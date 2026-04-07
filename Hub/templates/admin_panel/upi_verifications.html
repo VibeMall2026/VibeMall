@@ -1,0 +1,146 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}UPI Verifications - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h4 class="fw-bold mb-1"><span class="text-muted fw-light">Returns /</span> UPI Payment Verifications</h4>
+      <p class="text-muted mb-0">Review and verify customer UPI IDs submitted for return refunds.</p>
+    </div>
+    <a href="{% url 'admin_returns' %}" class="btn btn-outline-secondary">
+      <i class="bx bx-arrow-back"></i> Back to Returns
+    </a>
+  </div>
+
+  <!-- Stats -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card text-center p-3">
+        <div class="fs-2 fw-bold text-primary">{{ counts.total }}</div>
+        <div class="text-muted small">Total</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center p-3">
+        <div class="fs-2 fw-bold text-warning">{{ counts.pending }}</div>
+        <div class="text-muted small">Pending Review</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center p-3">
+        <div class="fs-2 fw-bold text-success">{{ counts.verified }}</div>
+        <div class="text-muted small">Verified</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center p-3">
+        <div class="fs-2 fw-bold text-danger">{{ counts.failed }}</div>
+        <div class="text-muted small">Invalid</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold">Search</label>
+          <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="UPI ID, username, email...">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold">Status</label>
+          <select name="status" class="form-select">
+            <option value="">All Statuses</option>
+            {% for val, label in status_choices %}
+            <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-primary w-100">Filter</button>
+        </div>
+        {% if search or status_filter %}
+        <div class="col-md-2">
+          <a href="{% url 'admin_upi_verifications' %}" class="btn btn-outline-secondary w-100">Clear</a>
+        </div>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>#ID</th>
+            <th>Customer</th>
+            <th>UPI ID</th>
+            <th>Submitted</th>
+            <th>Status</th>
+            <th>Reviewed By</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for v in verifications %}
+          <tr>
+            <td class="text-muted small">#{{ v.id }}</td>
+            <td>
+              <div class="fw-semibold">{{ v.user.get_full_name|default:v.user.username }}</div>
+              <div class="text-muted small">{{ v.user.email }}</div>
+            </td>
+            <td><code>{{ v.upi_id }}</code></td>
+            <td class="text-muted small">{{ v.created_at|date:"d M Y, H:i" }}</td>
+            <td>
+              {% if v.status == 'VERIFIED' %}
+                <span class="badge bg-success">✓ Verified</span>
+              {% elif v.status == 'FAILED' %}
+                <span class="badge bg-danger">✗ Invalid</span>
+              {% elif v.status == 'ADMIN_REVIEW' %}
+                <span class="badge bg-warning text-dark">Pending Review</span>
+              {% else %}
+                <span class="badge bg-secondary">{{ v.get_status_display }}</span>
+              {% endif %}
+            </td>
+            <td class="text-muted small">{{ v.reviewed_by.username|default:"—" }}</td>
+            <td>
+              {% if v.status == 'ADMIN_REVIEW' %}
+              <a href="{% url 'admin_upi_verification_review' v.id %}" class="btn btn-sm btn-primary">Review</a>
+              {% else %}
+              <a href="{% url 'admin_upi_verification_review' v.id %}" class="btn btn-sm btn-outline-secondary">View</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center text-muted py-4">No UPI verification requests found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if verifications.has_other_pages %}
+    <div class="card-footer d-flex justify-content-center">
+      <nav>
+        <ul class="pagination mb-0">
+          {% if verifications.has_previous %}
+          <li class="page-item"><a class="page-link" href="?page={{ verifications.previous_page_number }}&status={{ status_filter }}&search={{ search }}">«</a></li>
+          {% endif %}
+          <li class="page-item active"><a class="page-link" href="#">{{ verifications.number }} / {{ verifications.paginator.num_pages }}</a></li>
+          {% if verifications.has_next %}
+          <li class="page-item"><a class="page-link" href="?page={{ verifications.next_page_number }}&status={{ status_filter }}&search={{ search }}">»</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

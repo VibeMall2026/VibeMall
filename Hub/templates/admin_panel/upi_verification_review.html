@@ -1,0 +1,131 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Review UPI Verification #{{ upi_verification.id }}{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h4 class="fw-bold mb-1"><span class="text-muted fw-light">Returns / UPI Verifications /</span> Review #{{ upi_verification.id }}</h4>
+      <p class="text-muted mb-0">Verify this UPI ID and notify the customer.</p>
+    </div>
+    <a href="{% url 'admin_upi_verifications' %}" class="btn btn-outline-secondary">
+      <i class="bx bx-arrow-back"></i> Back to List
+    </a>
+  </div>
+
+  <div class="row g-4">
+    <!-- Left: Details -->
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-header"><h6 class="mb-0 fw-bold">Verification Details</h6></div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-5 text-muted small">Verification ID</dt>
+            <dd class="col-7 fw-semibold">#{{ upi_verification.id }}</dd>
+
+            <dt class="col-5 text-muted small">UPI ID</dt>
+            <dd class="col-7"><code class="fs-6">{{ upi_verification.upi_id }}</code></dd>
+
+            <dt class="col-5 text-muted small">Customer</dt>
+            <dd class="col-7">{{ upi_verification.user.get_full_name|default:upi_verification.user.username }}</dd>
+
+            <dt class="col-5 text-muted small">Email</dt>
+            <dd class="col-7">{{ upi_verification.user.email }}</dd>
+
+            <dt class="col-5 text-muted small">Submitted</dt>
+            <dd class="col-7">{{ upi_verification.created_at|date:"d M Y, H:i" }}</dd>
+
+            <dt class="col-5 text-muted small">Current Status</dt>
+            <dd class="col-7">
+              {% if upi_verification.status == 'VERIFIED' %}
+                <span class="badge bg-success">✓ Verified</span>
+              {% elif upi_verification.status == 'FAILED' %}
+                <span class="badge bg-danger">✗ Invalid</span>
+              {% elif upi_verification.status == 'ADMIN_REVIEW' %}
+                <span class="badge bg-warning text-dark">Pending Review</span>
+              {% else %}
+                <span class="badge bg-secondary">{{ upi_verification.get_status_display }}</span>
+              {% endif %}
+            </dd>
+
+            {% if upi_verification.reviewed_by %}
+            <dt class="col-5 text-muted small">Reviewed By</dt>
+            <dd class="col-7">{{ upi_verification.reviewed_by.username }}</dd>
+            {% endif %}
+
+            {% if upi_verification.verified_at %}
+            <dt class="col-5 text-muted small">Verified At</dt>
+            <dd class="col-7">{{ upi_verification.verified_at|date:"d M Y, H:i" }}</dd>
+            {% endif %}
+
+            {% if upi_verification.admin_notes %}
+            <dt class="col-5 text-muted small">Admin Notes</dt>
+            <dd class="col-7">{{ upi_verification.admin_notes }}</dd>
+            {% endif %}
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Action -->
+    <div class="col-md-6">
+      {% if upi_verification.status == 'ADMIN_REVIEW' %}
+      <div class="card">
+        <div class="card-header"><h6 class="mb-0 fw-bold">Take Action</h6></div>
+        <div class="card-body">
+          <p class="text-muted small mb-3">After clicking Valid or Invalid, an email will be sent to the customer automatically.</p>
+
+          <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Admin Notes <span class="text-muted fw-normal">(optional)</span></label>
+              <textarea name="admin_notes" class="form-control" rows="3" placeholder="Add a note about this verification..."></textarea>
+            </div>
+
+            <div class="d-grid gap-2">
+              <button type="submit" name="action" value="valid"
+                class="btn btn-success btn-lg"
+                onclick="return confirm('Mark UPI ID {{ upi_verification.upi_id }} as VALID and notify customer?')">
+                ✓ Valid — UPI ID is Correct
+              </button>
+              <button type="submit" name="action" value="invalid"
+                class="btn btn-danger btn-lg"
+                onclick="return confirm('Mark UPI ID {{ upi_verification.upi_id }} as INVALID and notify customer?')">
+                ✗ Invalid — UPI ID is Incorrect
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card mt-3">
+        <div class="card-body">
+          <h6 class="fw-bold mb-2">What happens next?</h6>
+          <ul class="text-muted small mb-0" style="padding-left:18px;">
+            <li class="mb-1"><strong>Valid:</strong> Customer receives a "UPI Verified" email and can proceed with their return.</li>
+            <li><strong>Invalid:</strong> Customer receives an email asking them to re-enter a correct UPI ID.</li>
+          </ul>
+        </div>
+      </div>
+
+      {% else %}
+      <div class="card">
+        <div class="card-body text-center py-5">
+          {% if upi_verification.status == 'VERIFIED' %}
+          <div class="text-success fs-1 mb-3">✓</div>
+          <h5 class="text-success">Already Verified</h5>
+          <p class="text-muted">This UPI ID was marked as valid and the customer was notified.</p>
+          {% else %}
+          <div class="text-danger fs-1 mb-3">✗</div>
+          <h5 class="text-danger">Marked as Invalid</h5>
+          <p class="text-muted">This UPI ID was marked as invalid and the customer was notified.</p>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

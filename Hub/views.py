@@ -11857,50 +11857,65 @@ def admin_delete_main_page_banner(request, banner_id):
 @require_POST
 def verify_upi(request):
     """
-    Real UPI verification using ₹1 collect request.
-    Creates a Razorpay Order to send collect payment to the UPI ID.
-    NOTE: Does not immediately write to database (avoids SQLite locking).
+    UPI verification via admin review.
+    Saves the UPI ID, sends it to admin email, and waits for admin to mark valid/invalid.
     """
-    from .view_helpers import create_upi_collect_request
     import logging
-    
     logger = logging.getLogger(__name__)
-    
+
     try:
         data = json.loads(request.body)
         upi_id = data.get('upi_id', '').strip().lower()
-        
+
         if not upi_id:
             return JsonResponse({'valid': False, 'error': 'UPI ID is required'})
-        
-        # Validate UPI format first
+
         if '@' not in upi_id or len(upi_id) < 5:
             return JsonResponse({'valid': False, 'error': 'Invalid UPI ID format. Use: name@bank'})
-        
-        # Call helper function to create ₹1 payment link for verification
-        success, order_id, payment_link_url, message = create_upi_collect_request(
+
+        user = request.user if request.user.is_authenticated else None
+
+        from Hub.models import UPIVerification
+        upi_verification = UPIVerification.objects.create(
+            user=user,
             upi_id=upi_id,
-            user=request.user if request.user.is_authenticated else None
+            status='ADMIN_REVIEW',
         )
-        
-        if success:
-            # Return order ID and payment link for frontend
-            logger.info(f'UPI verification link created: {order_id} for {upi_id}')
-            return JsonResponse({
-                'valid': True,
-                'name': 'Verification Ready',  # Will be updated after payment
-                'order_id': order_id,
-                'payment_link_url': payment_link_url,
-                'message': '📱 ' + message,
-                'next_status': 'ready_for_payment'
+
+        # Send email to admin
+        try:
+            admin_email = _get_admin_chat_email()
+            site_url = request.build_absolute_uri('/').rstrip('/')
+            admin_review_url = f"{site_url}/admin-panel/returns/upi-verification/{upi_verification.id}/review/"
+            customer_name = user.get_full_name() or user.username if user else 'Guest'
+            customer_email = user.email if user else 'N/A'
+
+            html_body = render_to_string('emails/admin_upi_verification_request.html', {
+                'upi_id': upi_id,
+                'customer_name': customer_name,
+                'customer_email': customer_email,
+                'verification_id': upi_verification.id,
+                'admin_review_url': admin_review_url,
+                'submitted_at': upi_verification.created_at,
             })
-        else:
-            logger.warning(f'UPI verification failed: {message}')
-            return JsonResponse({
-                'valid': False,
-                'error': message or 'Failed to create verification link'
-            })
-    
+            msg = EmailMultiAlternatives(
+                subject=f'UPI Verification Request - {upi_id}',
+                body=f'Customer {customer_name} submitted UPI ID {upi_id} for verification. Review at: {admin_review_url}',
+                from_email=_get_from_email(),
+                to=[admin_email],
+            )
+            msg.attach_alternative(html_body, 'text/html')
+            msg.send(fail_silently=True)
+            logger.info(f'UPI verification request email sent to admin for {upi_id}')
+        except Exception as e:
+            logger.warning(f'Failed to send admin UPI verification email: {str(e)}')
+
+        return JsonResponse({
+            'submitted': True,
+            'verification_id': upi_verification.id,
+            'message': 'Your UPI ID has been submitted for verification. You will receive an email once reviewed.',
+        })
+
     except json.JSONDecodeError:
         return JsonResponse({'valid': False, 'error': 'Invalid request'}, status=400)
     except Exception as e:
@@ -11911,47 +11926,158 @@ def verify_upi(request):
 @login_required(login_url='login')
 @require_http_methods(["GET"])
 def upi_verification_status(request):
-    """Return current UPI verification state for the logged-in user.
-
-    Query params:
-    - order_id (optional): specific Razorpay order id to check.
-    """
+    """Return current UPI verification state for the logged-in user."""
     try:
         from Hub.models import UPIVerification
-        order_id = (request.GET.get('order_id') or '').strip()
+        verification_id = (request.GET.get('verification_id') or '').strip()
 
         qs = UPIVerification.objects.filter(user=request.user)
-        if order_id:
-            qs = qs.filter(razorpay_order_id=order_id)
+        if verification_id:
+            qs = qs.filter(id=verification_id)
 
         upi_verification = qs.order_by('-id').first()
         if not upi_verification:
-            return JsonResponse({
-                'status': 'not_found',
-                'message': 'No UPI verification record found.'
-            }, status=404)
+            return JsonResponse({'status': 'not_found', 'message': 'No UPI verification record found.'}, status=404)
 
-        if upi_verification.status == 'VERIFIED' and upi_verification.is_verified:
-            message = f'UPI {upi_verification.upi_id} verified successfully.'
-        elif upi_verification.status == 'FAILED':
-            message = upi_verification.verification_error or 'UPI verification failed.'
-        elif upi_verification.status == 'WAITING_PAYMENT':
-            message = 'Waiting for payment confirmation from Razorpay...'
-        else:
-            message = 'UPI verification is in progress.'
+        status_messages = {
+            'ADMIN_REVIEW': 'Your UPI ID is under review. You will be notified by email.',
+            'VERIFIED': f'UPI {upi_verification.upi_id} verified successfully.',
+            'FAILED': upi_verification.verification_error or 'UPI verification failed. Please enter a valid UPI ID.',
+        }
 
         return JsonResponse({
             'status': upi_verification.status,
             'is_verified': upi_verification.is_verified,
             'upi_id': upi_verification.upi_id,
-            'order_id': upi_verification.razorpay_order_id,
-            'payment_id': upi_verification.razorpay_payment_id,
             'verified_at': upi_verification.verified_at.isoformat() if upi_verification.verified_at else None,
-            'message': message,
+            'message': status_messages.get(upi_verification.status, 'Verification in progress.'),
         })
     except Exception as e:
         logger.error(f'UPI status check error: {str(e)}')
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@staff_member_required
+@require_http_methods(["GET", "POST"])
+def admin_upi_verification_review(request, verification_id):
+    """Admin reviews a UPI verification request and marks it valid or invalid."""
+    from Hub.models import UPIVerification
+    upi_verification = get_object_or_404(UPIVerification, id=verification_id)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')  # 'valid' or 'invalid'
+        admin_notes = request.POST.get('admin_notes', '').strip()
+
+        if action not in ('valid', 'invalid'):
+            messages.error(request, 'Invalid action.')
+            return redirect('admin_upi_verification_review', verification_id=verification_id)
+
+        site_url = request.build_absolute_uri('/').rstrip('/')
+        user = upi_verification.user
+        customer_email = user.email
+        customer_name = user.get_full_name() or user.username
+
+        if action == 'valid':
+            upi_verification.status = 'VERIFIED'
+            upi_verification.is_verified = True
+            upi_verification.verified_at = timezone.now()
+            upi_verification.reviewed_by = request.user
+            upi_verification.admin_notes = admin_notes
+            upi_verification.save()
+
+            try:
+                html_body = render_to_string('emails/user_upi_verified.html', {
+                    'customer_name': customer_name,
+                    'upi_id': upi_verification.upi_id,
+                    'verified_at': upi_verification.verified_at,
+                    'site_url': site_url,
+                })
+                msg = EmailMultiAlternatives(
+                    subject='Your UPI ID has been Verified ✓',
+                    body=f'Hi {customer_name}, your UPI ID {upi_verification.upi_id} has been verified successfully.',
+                    from_email=_get_from_email(),
+                    to=[customer_email],
+                )
+                msg.attach_alternative(html_body, 'text/html')
+                msg.send(fail_silently=True)
+            except Exception as e:
+                logger.warning(f'Failed to send UPI verified email to user: {str(e)}')
+
+            messages.success(request, f'UPI ID {upi_verification.upi_id} marked as Valid. User notified.')
+
+        else:
+            upi_verification.status = 'FAILED'
+            upi_verification.is_verified = False
+            upi_verification.verification_error = admin_notes or 'UPI ID could not be verified.'
+            upi_verification.reviewed_by = request.user
+            upi_verification.admin_notes = admin_notes
+            upi_verification.save()
+
+            try:
+                html_body = render_to_string('emails/user_upi_invalid.html', {
+                    'customer_name': customer_name,
+                    'upi_id': upi_verification.upi_id,
+                    'site_url': site_url,
+                })
+                msg = EmailMultiAlternatives(
+                    subject='UPI ID Verification Failed',
+                    body=f'Hi {customer_name}, your UPI ID {upi_verification.upi_id} could not be verified. Please enter a valid UPI ID.',
+                    from_email=_get_from_email(),
+                    to=[customer_email],
+                )
+                msg.attach_alternative(html_body, 'text/html')
+                msg.send(fail_silently=True)
+            except Exception as e:
+                logger.warning(f'Failed to send UPI invalid email to user: {str(e)}')
+
+            messages.warning(request, f'UPI ID {upi_verification.upi_id} marked as Invalid. User notified.')
+
+        return redirect('admin_upi_verifications')
+
+    return render(request, 'admin_panel/upi_verification_review.html', {
+        'upi_verification': upi_verification,
+    })
+
+
+@staff_member_required
+def admin_upi_verifications(request):
+    """Admin panel page listing all UPI verification requests."""
+    from Hub.models import UPIVerification
+
+    status_filter = request.GET.get('status', '').strip()
+    search = request.GET.get('search', '').strip()
+
+    qs = UPIVerification.objects.select_related('user', 'reviewed_by').order_by('-created_at')
+    if status_filter:
+        qs = qs.filter(status=status_filter)
+    if search:
+        qs = qs.filter(
+            Q(upi_id__icontains=search) |
+            Q(user__username__icontains=search) |
+            Q(user__email__icontains=search)
+        )
+
+    paginator = Paginator(qs, 25)
+    page = request.GET.get('page', 1)
+    try:
+        verifications = paginator.page(page)
+    except (EmptyPage, PageNotAnInteger):
+        verifications = paginator.page(1)
+
+    counts = {
+        'total': UPIVerification.objects.count(),
+        'pending': UPIVerification.objects.filter(status='ADMIN_REVIEW').count(),
+        'verified': UPIVerification.objects.filter(status='VERIFIED').count(),
+        'failed': UPIVerification.objects.filter(status='FAILED').count(),
+    }
+
+    return render(request, 'admin_panel/upi_verifications.html', {
+        'verifications': verifications,
+        'status_filter': status_filter,
+        'search': search,
+        'counts': counts,
+        'status_choices': UPIVerification.VERIFICATION_STATUS_CHOICES,
+    })
 
 
 # ============================================================================

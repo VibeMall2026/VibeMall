@@ -2585,30 +2585,34 @@ class BankVerification(models.Model):
 
 
 class UPIVerification(models.Model):
-    """Track UPI verification using ₹1 collect request"""
+    """Track UPI verification via admin review"""
     VERIFICATION_STATUS_CHOICES = [
         ('PENDING', 'Pending'),
-        ('WAITING_PAYMENT', 'Waiting for Payment'),
+        ('ADMIN_REVIEW', 'Pending Admin Review'),
         ('VERIFIED', 'Verified'),
         ('FAILED', 'Failed'),
         ('CANCELLED', 'Cancelled'),
     ]
     
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='upi_verification')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='upi_verifications')
     upi_id = models.CharField(max_length=255, help_text="UPI ID (e.g., name@bank)")
     
-    # Razorpay payment details
-    razorpay_payment_id = models.CharField(max_length=100, blank=True, help_text="Razorpay Payment ID for ₹1 verification")
-    razorpay_order_id = models.CharField(max_length=100, blank=True, help_text="Razorpay Order ID for ₹1 verification")
-    
+    # Optional link to a return request
+    return_request = models.ForeignKey(
+        'ReturnRequest', null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='upi_verifications'
+    )
+
     # Verification status
     status = models.CharField(max_length=20, choices=VERIFICATION_STATUS_CHOICES, default='PENDING')
     is_verified = models.BooleanField(default=False)
     verification_error = models.TextField(blank=True, help_text="Error message if verification failed")
-    
-    # For refund tracking
-    refund_attempted = models.BooleanField(default=False, help_text="Whether ₹1 refund was attempted after verification")
-    
+    admin_notes = models.TextField(blank=True, help_text="Admin notes on this verification")
+    reviewed_by = models.ForeignKey(
+        User, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='upi_verifications_reviewed'
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     verified_at = models.DateTimeField(null=True, blank=True)
     
@@ -2616,7 +2620,7 @@ class UPIVerification(models.Model):
         ordering = ['-created_at']
     
     def __str__(self):
-        return f"UPIVerification - {self.user.username} - {self.upi_id}"
+        return f"UPIVerification - {self.user.username} - {self.upi_id} - {self.status}"
 
 
 # ==================== WEBHOOK LOGGING & VERIFICATION MODELS ====================
