@@ -9882,7 +9882,7 @@ def return_request(request, order_id):
 
         reason = request.POST.get('reason', 'OTHER')
         reason_notes = request.POST.get('reason_notes', '').strip()
-        refund_method = request.POST.get('refund_method', '').strip()
+        refund_method = request.POST.get('refund_method', '').strip().upper()
         bank_account_name = request.POST.get('bank_account_name', '').strip()
         bank_account_number = request.POST.get('bank_account_number', '').strip()
         bank_ifsc = request.POST.get('bank_ifsc', '').strip()
@@ -9903,17 +9903,13 @@ def return_request(request, order_id):
             if not re.fullmatch(r"[A-Z]{4}0[A-Z0-9]{6}", bank_ifsc):
                 messages.error(request, 'Please enter a valid IFSC code.')
                 return redirect('return_request', order_id=order.id)
-        if refund_method == 'RAZORPAY':
+        if refund_method == 'UPI':
             if not upi_id:
                 messages.error(request, 'Please enter a valid UPI ID.')
                 return redirect('return_request', order_id=order.id)
             upi_id = upi_id.lower()
             if not re.fullmatch(r"[a-z0-9._-]{2,256}@[a-z]{2,64}", upi_id):
                 messages.error(request, 'Please enter a valid UPI ID.')
-                return redirect('return_request', order_id=order.id)
-            valid_upi, upi_name, error_msg = _verify_upi_with_razorpay(upi_id, logger=logger)
-            if not valid_upi:
-                messages.error(request, error_msg or 'UPI ID not found.')
                 return redirect('return_request', order_id=order.id)
 
         # Store validated data in session for confirm step
