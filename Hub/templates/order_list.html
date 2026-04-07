@@ -310,30 +310,20 @@
                         </td>
                         <td data-label="Status">
                             <div class="vm-myorders-desktop__status-stack">
-                                <span class="vm-myorders-desktop__badge vm-myorders-desktop__badge--{{ order.order_status|lower }}">{{ order.get_order_status_display }}</span>
-                                <p class="vm-myorders-desktop__payment-note">
-                                    {% if order.payment_method == 'COD' and order.order_status == 'DELIVERED' %}
-                                    Paid (COD)
-                                    {% elif order.payment_status == 'PAID' %}
-                                    Paid
-                                    {% elif order.payment_status == 'PENDING' %}
-                                    Payment Pending
-                                    {% elif order.payment_status == 'REFUNDED' %}
-                                    Refunded
-                                    {% else %}
-                                    Payment Failed
-                                    {% endif %}
-                                </p>
+                                <span class="vm-myorders-desktop__badge vm-myorders-desktop__badge--{{ order.customer_display_status_tone }}">{{ order.customer_display_status_label }}</span>
+                                <p class="vm-myorders-desktop__payment-note">{{ order.customer_status_note }}</p>
                             </div>
                         </td>
                         <td data-label="Actions" class="vm-myorders-desktop__actions">
                             <a href="{% url 'order_details' order.order_number %}" class="vm-myorders-desktop__action is-primary">View Details</a>
-                            {% if order.order_status == 'PROCESSING' or order.order_status == 'SHIPPED' %}
+                            {% if order.customer_return_status_url %}
+                            <a href="{{ order.customer_return_status_url }}" class="vm-myorders-desktop__action">Return Status</a>
+                            {% elif order.order_status == 'PROCESSING' or order.order_status == 'SHIPPED' %}
                             <a href="{% url 'order_tracking' order.order_number %}" class="vm-myorders-desktop__action">Track Shipment</a>
                             {% else %}
                             <a href="{% url 'download_invoice' order.order_number %}" class="vm-myorders-desktop__action">Download Invoice</a>
                             {% endif %}
-                            {% if order.order_status == 'DELIVERED' %}
+                            {% if order.customer_show_return_request %}
                             <a href="{% url 'return_request' order.id %}" class="vm-myorders-desktop__action vm-myorders-desktop__action--muted">Request Return</a>
                             {% endif %}
                         </td>

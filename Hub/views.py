@@ -9107,10 +9107,34 @@ def order_list(request: HttpRequest) -> HttpResponse:
             'url': build_orders_url(status=status_item['value'], page=None),
         })
 
+    def get_return_status_meta(return_request):
+        if not return_request:
+            return {
+                'label': '',
+                'tone': 'processing',
+            }
+
+        label = 'R-Pending' if return_request.status == 'REQUESTED' else return_request.get_status_display()
+
+        if return_request.status in ['REJECTED', 'CANCELLED', 'QC_FAILED', 'WRONG_RETURN']:
+            tone = 'cancelled'
+        elif return_request.status in ['REFUNDED', 'REPLACED']:
+            tone = 'delivered'
+        elif return_request.status in ['PICKUP_SCHEDULED', 'RECEIVED', 'UNABLE_TO_REACH', 'RESCHEDULED']:
+            tone = 'shipped'
+        else:
+            tone = 'processing'
+
+        return {
+            'label': label,
+            'tone': tone,
+        }
+
     order_cards = []
     for order in page_obj.object_list:
         order_items = list(order.items.all())
         latest_return = next(iter(order.return_requests.all()), None)
+        return_status_meta = get_return_status_meta(latest_return)
         primary_item = order_items[0] if order_items else None
         image_items = order_items[:3]
         return_in_progress = bool(latest_return and latest_return.status not in ['REJECTED', 'CANCELLED'])
@@ -9128,6 +9152,13 @@ def order_list(request: HttpRequest) -> HttpResponse:
         mobile_badge_tone = order.order_status.lower()
         mobile_primary_action_label = 'View Details'
         mobile_primary_action_url = reverse('order_details', args=[order.order_number])
+        status_note = (
+            'Paid (COD)' if order.payment_method == 'COD' and order.order_status == 'DELIVERED'
+            else 'Paid' if order.payment_status == 'PAID'
+            else 'Payment Pending' if order.payment_status == 'PENDING'
+            else 'Refunded' if order.payment_status == 'REFUNDED'
+            else 'Payment Failed'
+        )
         actions = [{
             'label': 'View Details',
             'url': reverse('order_details', args=[order.order_number]),
@@ -9145,30 +9176,45 @@ def order_list(request: HttpRequest) -> HttpResponse:
                 or getattr(latest_return, 'refund_amount', None)
                 or order.total_amount
             )
-            mobile_badge_label = 'Cancelled' if order.order_status == 'CANCELLED' else 'Returned'
-            mobile_badge_tone = 'cancelled'
-            mobile_primary_action_label = 'Details'
+            mobile_badge_label = return_status_meta['label'] or 'Returned'
+            mobile_badge_tone = return_status_meta['tone']
+            mobile_primary_action_label = 'Return Status'
+            mobile_primary_action_url = reverse('return_status', args=[latest_return.id]) if latest_return else reverse('order_details', args=[order.order_number])
+            status_note = 'Refunded' if order.payment_status == 'REFUNDED' else (return_status_meta['label'] or 'Return Completed')
             reorder_url = reverse('shop')
             if primary_item and primary_item.product and getattr(primary_item.product, 'slug', ''):
                 reorder_url = reverse('product_detail', args=[primary_item.product.slug])
-            actions = [{
+            actions = []
+            if latest_return:
+                actions.append({
+                    'label': 'Return Status',
+                    'url': reverse('return_status', args=[latest_return.id]),
+                    'style': 'primary',
+                })
+            actions.append({
                 'label': 'Reorder Items',
                 'url': reorder_url,
-                'style': 'primary',
-            }]
+                'style': 'secondary' if latest_return else 'primary',
+            })
         elif return_in_progress:
             state_key = 'returned'
             headline_label = 'Return in Review'
-            tag_label = latest_return.get_status_display()
+            tag_label = return_status_meta['label']
             tag_tone = 'soft'
-            mobile_badge_label = 'Cancelled'
-            mobile_badge_tone = 'cancelled'
-            mobile_primary_action_label = 'Details'
-            actions.append({
+            mobile_badge_label = return_status_meta['label']
+            mobile_badge_tone = return_status_meta['tone']
+            mobile_primary_action_label = 'Return Status'
+            mobile_primary_action_url = reverse('return_status', args=[latest_return.id])
+            status_note = 'Return Request Active'
+            actions = [{
                 'label': 'Return Status',
                 'url': reverse('return_status', args=[latest_return.id]),
+                'style': 'primary',
+            }, {
+                'label': 'View Details',
+                'url': reverse('order_details', args=[order.order_number]),
                 'style': 'secondary',
-            })
+            }]
         elif order.order_status == 'SHIPPED':
             state_key = 'in-transit'
             headline_label = 'In Transit'
@@ -9232,6 +9278,12 @@ def order_list(request: HttpRequest) -> HttpResponse:
                 'url': reverse('shop'),
                 'style': 'secondary',
             })
+
+        order.customer_display_status_label = mobile_badge_label
+        order.customer_display_status_tone = mobile_badge_tone
+        order.customer_status_note = status_note
+        order.customer_return_status_url = reverse('return_status', args=[latest_return.id]) if latest_return else ''
+        order.customer_show_return_request = bool(order.order_status == 'DELIVERED' and not latest_return)
 
         order_cards.append({
             'order': order,
