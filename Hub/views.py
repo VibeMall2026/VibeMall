@@ -9968,6 +9968,7 @@ def return_request(request, order_id):
         'is_eligible': is_eligible,
         'ineligible_reason': ineligible_reason,
         'return_deadline': deadline,
+        'collection_fee': Decimal('20.00'),
         'existing_return': existing_return,
         'reason_choices': ReturnRequest.RETURN_REASON_CHOICES,
         'condition_choices': ReturnItem.CONDITION_CHOICES,

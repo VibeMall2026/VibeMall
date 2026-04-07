@@ -1,1651 +1,384 @@
 {% extends 'base.html' %}
-{% load static custom_filters %}
+{% load static %}
 
 {% block title %}Return Request - VibeMall{% endblock %}
-{% block body_class %}vm-page-tablet-alt vm-page-tablet-returnrequest{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-return-request{% endblock %}
+{% block ui_chrome %}default{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'assets/css/vm-home-editorial.css' %}?v=20260328-03">
+<link rel="stylesheet" href="{% static 'assets/css/vm-home-editorial.css' %}?v=20260329-03">
 <link rel="stylesheet" href="{% static 'assets/css/home-mobile-alt.css' %}?v=20260329-01">
 <link rel="stylesheet" href="{% static 'assets/css/home-tablet-alt.css' %}?v=20260329-01">
-<link rel="stylesheet" href="{% static 'assets/css/returnrequest-mobile-alt.css' %}?v=20260407-02">
-<link rel="stylesheet" href="{% static 'assets/css/returnrequest-tablet-alt.css' %}?v=20260407-02">
-<link rel="stylesheet" href="{% static 'assets/css/returnrequest-desktop-alt.css' %}?v=20260407-02">
+<style>
+body.vm-page-return-request{background:#f7f9fb}
+.vm-rr-mobile-chrome,.vm-rr-mobile-footer,.vm-rr-mobile-nav{display:none}
+.vm-rr-page{padding:6.8rem 1rem 3rem}
+.vm-rr-shell{max-width:1320px;margin:0 auto}
+.vm-rr-kicker{display:block;margin-bottom:.55rem;color:#76777d;font-size:.72rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase}
+.vm-rr-hero{padding:0 0 1.75rem;border-bottom:1px solid #dde2e8}
+.vm-rr-title{margin:0;color:#111827;font-family:'Noto Serif',Georgia,serif;font-size:clamp(2rem,4vw,4rem);line-height:1.03}
+.vm-rr-copy{margin:1rem 0 0;max-width:48rem;color:#54647a;font-size:.96rem;line-height:1.75}
+.vm-rr-stepper{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin-top:1.5rem}
+.vm-rr-step{display:grid;grid-template-columns:auto 1fr;gap:1rem;padding:1rem 1.1rem;border:1px solid #d9dde3;background:#f7f9fb}
+.vm-rr-step.is-active{background:#000;border-color:#000;color:#fff}
+.vm-rr-step__num{width:2.7rem;height:2.7rem;border-radius:999px;display:flex;align-items:center;justify-content:center;background:#e5e7eb;color:#4b5563;font-size:1.15rem;font-weight:700}
+.vm-rr-step.is-active .vm-rr-step__num{background:#fff;color:#111827}
+.vm-rr-step h3{margin:0 0 .25rem;font-size:1rem;font-weight:800}
+.vm-rr-step p{margin:0;font-size:.9rem;line-height:1.45;opacity:.8}
+.vm-rr-alert{display:flex;gap:.9rem;align-items:flex-start;padding:1rem 1.1rem;margin-top:1.5rem;background:#fff4df;border:1px solid #f3ddae;color:#8a5a00}
+.vm-rr-form{display:grid;gap:1.5rem;margin-top:1.5rem}
+.vm-rr-layout{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);gap:1.5rem;align-items:start}
+.vm-rr-main{display:grid;gap:1.5rem}
+.vm-rr-side{display:grid;gap:1rem;position:sticky;top:108px}
+.vm-rr-card{background:#fff;border:1px solid #e5e7eb;box-shadow:0 20px 40px rgba(25,28,30,.05)}
+.vm-rr-card.soft{background:#f2f4f6}
+.vm-rr-card__body{padding:1.5rem}
+.vm-rr-card__title{margin:0 0 1.2rem;color:#111827;font-size:1.12rem;font-weight:800}
+.vm-rr-meta-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+.vm-rr-label{display:block;margin-bottom:.35rem;color:#76777d;font-size:.68rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.vm-rr-value{color:#111827;font-size:1rem;font-weight:700}
+.vm-rr-items{display:grid;gap:1rem}
+.vm-rr-item{display:grid;grid-template-columns:auto 84px minmax(0,1fr) auto;gap:1rem;align-items:start;padding:1rem;background:#fff;border:1px solid #e5e7eb}
+.vm-rr-item input[type=checkbox]{width:1.1rem;height:1.1rem;accent-color:#111827;margin-top:.2rem}
+.vm-rr-thumb{width:84px;height:96px;overflow:hidden;background:#eceef0}
+.vm-rr-thumb img{width:100%;height:100%;object-fit:cover}
+.vm-rr-item h3{margin:0 0 .3rem;color:#111827;font-size:1rem;font-weight:800;line-height:1.3}
+.vm-rr-item p{margin:.2rem 0;color:#54647a;font-size:.84rem;line-height:1.5}
+.vm-rr-item .price{margin-top:.45rem;color:#111827;font-size:.95rem;font-weight:800}
+.vm-rr-controls{display:grid;gap:.75rem;min-width:200px}
+.vm-rr-fields{display:grid;gap:1rem}
+.vm-rr-fields.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.vm-rr-field{display:grid;gap:.45rem}
+.vm-rr-field label{color:#76777d;font-size:.68rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.vm-rr-field input,.vm-rr-field select,.vm-rr-field textarea{width:100%;border:1px solid #d9dde3;background:#fff;color:#111827;padding:.9rem 1rem;font-size:.95rem;font-family:inherit}
+.vm-rr-field textarea{min-height:120px;resize:vertical}
+.vm-rr-qty{display:grid;grid-template-columns:2.2rem 3.2rem 2.2rem;align-items:center;border:1px solid #d9dde3;background:#fff}
+.vm-rr-qty button{border:0;background:#f2f4f6;color:#111827;font-size:1rem;font-weight:700;height:2.4rem}
+.vm-rr-qty input{border:0;border-left:1px solid #d9dde3;border-right:1px solid #d9dde3;text-align:center;height:2.4rem;color:#111827;font-weight:700;background:#fff}
+.vm-rr-split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.5rem}
+.vm-rr-upload{position:relative;display:grid;place-items:center;min-height:210px;padding:1.5rem;border:1.5px dashed #c7ccd3;background:#f7f9fb;text-align:center}
+.vm-rr-upload input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.vm-rr-upload i{display:block;margin-bottom:.9rem;color:#76777d;font-size:1.8rem}
+.vm-rr-upload strong{display:block;color:#111827;font-size:1rem;font-weight:800}
+.vm-rr-upload span{display:block;margin-top:.35rem;color:#54647a;font-size:.84rem}
+.vm-rr-ship{display:flex;gap:.85rem;align-items:flex-start;padding:1rem;border:1px solid #d9dde3;background:#f7f9fb}
+.vm-rr-ship input{margin-top:.2rem;accent-color:#111827}
+.vm-rr-ship strong{display:block;color:#111827;font-size:.95rem}
+.vm-rr-ship span,.vm-rr-address,.vm-rr-note{color:#54647a;font-size:.84rem;line-height:1.75}
+.vm-rr-methods{display:grid;gap:.75rem}
+.vm-rr-method{position:relative}
+.vm-rr-method input{position:absolute;inset:0;opacity:0}
+.vm-rr-method__card{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.95rem 1rem;border:1px solid #d9dde3;background:#f2f4f6;color:#111827;font-size:.82rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.vm-rr-method input:checked + .vm-rr-method__card{background:#000;border-color:#000;color:#fff}
+.vm-rr-method__card i{opacity:0}
+.vm-rr-method input:checked + .vm-rr-method__card i{opacity:1}
+.vm-rr-method-fields{display:grid;gap:1rem}
+.vm-rr-method-fields[hidden]{display:none}
+.vm-rr-summary{display:grid;gap:.95rem}
+.vm-rr-summary__row,.vm-rr-summary__total{display:flex;justify-content:space-between;align-items:center;gap:1rem}
+.vm-rr-summary__row{color:#54647a;font-size:.92rem}
+.vm-rr-summary__row strong{color:#111827}
+.vm-rr-summary__fee{color:#c2410c}
+.vm-rr-summary__divider{height:1px;background:#d9dde3}
+.vm-rr-summary__total{color:#111827;font-size:1.05rem;font-weight:800}
+.vm-rr-summary__amount{font-size:2rem}
+.vm-rr-terms{display:flex;gap:.8rem;align-items:flex-start;color:#54647a;font-size:.92rem;line-height:1.6}
+.vm-rr-terms input{width:1rem;height:1rem;margin-top:.2rem;accent-color:#111827}
+.vm-rr-terms a,.vm-rr-note a{color:#111827;text-decoration:underline}
+.vm-rr-submit{width:100%;border:0;padding:1rem 1.2rem;background:#111827;color:#fff;font-size:.84rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase}
+@media (max-width:767.98px){
+body.vm-page-return-request .vm-copy-header,body.vm-page-return-request .vm-copy-footer,body.vm-page-return-request .vm-tablet-alt-header,body.vm-page-return-request .vm-tablet-alt-footer,body.vm-page-return-request .vm-tab-bnav-shell{display:none!important}
+.vm-rr-mobile-chrome,.vm-rr-mobile-footer,.vm-rr-mobile-nav{display:block}
+.vm-rr-page{padding:1rem 1rem 0}
+.vm-rr-page.vm-mobile-content-offset{padding-top:1rem}
+.vm-rr-layout,.vm-rr-split,.vm-rr-meta-grid,.vm-rr-fields.two,.vm-rr-stepper{grid-template-columns:1fr}
+.vm-rr-item{grid-template-columns:auto 84px minmax(0,1fr)}
+.vm-rr-controls{grid-column:1/-1;min-width:0}
+.vm-rr-side{position:static}
+}
+@media (min-width:768px) and (max-width:1199.98px){
+body.vm-page-return-request .vm-copy-header,body.vm-page-return-request .vm-copy-footer,body.vm-page-return-request>footer{display:none!important}
+.vm-rr-page{padding:6.8rem 1.5rem 3rem}
+.vm-rr-layout{grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr)}
+.vm-rr-item{grid-template-columns:auto 84px minmax(0,1fr) auto}
+.vm-rr-controls{min-width:180px}
+}
+@media (min-width:1200px){
+.vm-rr-page{padding:2.2rem 2rem 5rem}
+}
+</style>
 {% endblock %}
 
 {% block content %}
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const isDesktop = window.matchMedia('(min-width: 1200px)').matches;
-    const isTablet = window.matchMedia('(min-width: 768px) and (max-width: 1199.98px)').matches;
-
-    if (isDesktop) {
-        document.querySelectorAll('.vm-rp-mobile-only, .vm-rp-tablet-only').forEach((node) => node.remove());
-    } else if (isTablet) {
-        document.querySelectorAll('.vm-rp-mobile-only, .vm-copy-rp-desktop').forEach((node) => node.remove());
-    } else {
-        document.querySelectorAll('.vm-rp-tablet-only, .vm-copy-rp-desktop').forEach((node) => node.remove());
-    }
-});
-</script>
-
-<!-- ========== MOBILE VIEW ========== -->
-<section class="vm-rp-mobile-only">
+{% with fee=collection_fee|default:20 %}
+<div class="vm-rr-mobile-chrome">
     {% include 'partials/vm_mobile_alt_header.html' %}
+</div>
 
-    <main class="vm-rp-m-main vm-mobile-content-offset">
-        <!-- Hero Section -->
-        <section class="vm-rp-m-title">
-            <p>Service Center</p>
-            <h2>Return Request</h2>
-            <div class="vm-rp-m-line"></div>
+<section class="vm-rr-page vm-mobile-content-offset">
+    <div class="vm-rr-shell">
+        <section class="vm-rr-hero">
+            <span class="vm-rr-kicker">Return Request</span>
+            <h1 class="vm-rr-title">Reason, logistics, and refund mode</h1>
+            <p class="vm-rr-copy">This view keeps the Home-page chrome across mobile, tablet, and desktop while making the return request step fully dynamic for the selected order.</p>
+            <div class="vm-rr-stepper" aria-label="Return request progress">
+                <article class="vm-rr-step is-active">
+                    <span class="vm-rr-step__num">1</span>
+                    <div><h3>Reason & Refund</h3><p>Return details and payout method</p></div>
+                </article>
+                <article class="vm-rr-step">
+                    <span class="vm-rr-step__num">2</span>
+                    <div><h3>Review & Submit</h3><p>Confirm everything</p></div>
+                </article>
+            </div>
         </section>
 
-        <!-- Error/Eligibility Check -->
         {% if not is_eligible %}
-        <section class="vm-rp-m-alert">
-            <i class="fas fa-info-circle"></i>
-            <p>{{ ineligible_reason }}</p>
-        </section>
+        <section class="vm-rr-alert"><i class="fas fa-info-circle"></i><div>{{ ineligible_reason }}</div></section>
         {% else %}
-        
-        <!-- Return Request Form -->
-        <form method="post" enctype="multipart/form-data" class="vm-rp-m-form" id="vmRpMobileForm">
+        <form method="post" enctype="multipart/form-data" class="vm-rr-form" data-rp-scope data-fee="{{ fee|floatformat:2 }}">
             {% csrf_token %}
-
-            <!-- Order Information -->
-            <section class="vm-rp-m-block">
-                <label>Order Number</label>
-                <input type="text" value="{{ order.order_number }}" readonly>
-            </section>
-
-            <!-- Item Selection -->
-            <section class="vm-rp-m-block">
-                <label>Select Items to Return</label>
-                <div class="vm-rp-m-items">
-                    {% for item in eligible_items %}
-                    <article class="vm-rp-m-item" data-rp-item>
-                        <div class="vm-rp-m-item-head">
-                            <label class="vm-rp-m-check">
-                                <input type="checkbox" name="item_{{ item.id }}_selected" data-rp-select checked>
-                                <span></span>
-                            </label>
-                            <div class="vm-rp-m-item-copy">
-                                <h4>{{ item.product_name }}</h4>
-                                <p>Ordered: {{ item.quantity }}</p>
+            <div class="vm-rr-layout">
+                <div class="vm-rr-main">
+                    <section class="vm-rr-card">
+                        <div class="vm-rr-card__body">
+                            <h2 class="vm-rr-card__title">Order Overview</h2>
+                            <div class="vm-rr-meta-grid">
+                                <div><span class="vm-rr-label">Order Number</span><div class="vm-rr-value">#{{ order.order_number }}</div></div>
+                                <div><span class="vm-rr-label">Placed On</span><div class="vm-rr-value">{{ order.created_at|date:"d M, Y" }}</div></div>
+                                <div><span class="vm-rr-label">Return Window</span><div class="vm-rr-value">{% if return_deadline %}Until {{ return_deadline|date:"d M, Y" }}{% else %}Eligible now{% endif %}</div></div>
                             </div>
                         </div>
-                        <div class="vm-rp-m-item-body">
-                            {% if item.product_image %}
-                            <img src="{{ item.product_image }}" alt="{{ item.product_name }}">
-                            {% endif %}
-                            <div class="vm-rp-m-fields">
-                                <input type="number" name="item_{{ item.id }}_qty" min="1" max="{{ item.quantity }}" value="{{ item.quantity }}" data-rp-qty data-item-price="{{ item.product_price }}">
-                                <select name="item_{{ item.id }}_condition">
-                                    {% for value,label in condition_choices %}
-                                    <option value="{{ value }}">{{ label }}</option>
-                                    {% endfor %}
-                                </select>
-                                <input type="text" name="item_{{ item.id }}_notes" placeholder="Optional notes">
-                            </div>
-                        </div>
-                    </article>
-                    {% endfor %}
-                </div>
-            </section>
+                    </section>
 
-            <!-- Summary -->
-            <section class="vm-rp-m-summary" id="vmRpSummary" style="display:none;">
-                <h5>Return Summary</h5>
-                <div class="vm-rp-m-summary-line"><span>Subtotal</span><strong>₹<span id="vmRpSubtotalMobile">0.00</span></strong></div>
-                <div class="vm-rp-m-summary-line"><span>Return fee</span><strong>- ₹20.00</strong></div>
-                <div class="vm-rp-m-summary-line vm-rp-m-summary-total"><span>Net refund</span><strong>₹<span id="vmRpNetMobile">0.00</span></strong></div>
-            </section>
-
-            <!-- Reason for Return -->
-            <section class="vm-rp-m-block">
-                <label>Reason for Return</label>
-                <select name="reason" required>
-                    {% for value,label in reason_choices %}
-                    <option value="{{ value }}">{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </section>
-
-            <!-- Additional Details -->
-            <section class="vm-rp-m-block">
-                <label>Additional Details</label>
-                <textarea rows="4" name="reason_notes" placeholder="Tell us more about the issue..."></textarea>
-            </section>
-
-            <!-- Refund Method -->
-            <section class="vm-rp-m-block">
-                <label>Refund Method</label>
-                <select name="refund_method" id="vmRpRefundMethodMobile" required>
-                    <option value="" disabled selected>Select refund method</option>
-                    {% for value,label in refund_options %}
-                    <option value="{{ value }}">{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </section>
-
-            <!-- Bank Transfer Fields -->
-            <section class="vm-rp-m-block" id="vmRpBankBlockMobile" style="display:none;">
-                <label>Bank Transfer Details</label>
-                <input type="text" name="bank_account_name" placeholder="Account holder name">
-                <input type="text" name="bank_name" placeholder="Bank name">
-                <input type="text" name="bank_account_number" placeholder="Account number" inputmode="numeric">
-                <input type="text" name="bank_ifsc" placeholder="IFSC code" style="text-transform: uppercase;">
-            </section>
-
-            <!-- UPI Field -->
-            <section class="vm-rp-m-block" id="vmRpUpiBlockMobile" style="display:none;">
-                <label>UPI ID</label>
-                <input type="text" name="upi_id" placeholder="yourname@bank">
-            </section>
-
-            <!-- Documentation -->
-            <section class="vm-rp-m-block">
-                <label>Upload Documentation (Optional)</label>
-                <input type="file" name="attachments" multiple accept="image/*">
-            </section>
-
-            <!-- Submit -->
-            <button type="submit" class="vm-rp-m-submit">Submit Return Request</button>
-        </form>
-        {% endif %}
-
-        {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='return-request-mobile' %}
-    </main>
-
-    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
-</section>
-
-<!-- ========== TABLET VIEW (PRIMARY) ========== -->
-<section class="vm-rp-tablet-only">
-    {% include 'partials/vm_tablet_alt_header.html' %}
-
-    <main class="vm-rp-tablet-main">
-        <div class="vm-rp-tablet-shell">
-            <!-- Hero Section -->
-            <section class="vm-rp-tablet-hero">
-                <div>
-                    <span>Service Center</span>
-                    <h1>Return Request Form</h1>
-                    <p>Initiate your return with complete transparency. Process your refund within 3–5 business days with our streamlined service.</p>
-                </div>
-                <div class="vm-rp-tablet-hero-actions">
-                    <a class="vm-home-tablet-link" href="{% url 'order_details' order.order_number %}">← Back to Order</a>
-                    <a class="vm-home-tablet-link" href="{% url 'faq' %}">? Help & FAQs</a>
-                </div>
-            </section>
-
-            <!-- Step Indicator -->
-            <div class="vm-rp-tablet-stepper" aria-label="Return request progress">
-                <div class="vm-rp-tablet-step is-active">
-                    <div class="vm-rp-step-number">1</div>
-                    <h3>Reason & Refund</h3>
-                    <p>Return details & payment method</p>
-                </div>
-                <div class="vm-rp-tablet-step">
-                    <div class="vm-rp-step-number">2</div>
-                    <h3>Review & Submit</h3>
-                    <p>Confirm everything</p>
-                </div>
-            </div>
-
-            <!-- Eligibility Alert -->
-            {% if not is_eligible %}
-            <section class="vm-rp-tablet-alert">
-                <div class="vm-rp-alert-icon">⚠</div>
-                <p>{{ ineligible_reason }}</p>
-            </section>
-            {% else %}
-
-            <!-- Main Form -->
-            <form method="post" enctype="multipart/form-data" class="vm-rp-tablet-form-shell">
-                {% csrf_token %}
-                
-                <div class="vm-rp-tablet-cards">
-                    <!-- Left Column - Main Form -->
-                    <div class="vm-rp-tablet-form">
-
-                        <!-- Order Information Card -->
-                        <section class="vm-rp-tablet-card">
-                            <h3>Order Information</h3>
-                            <div class="vm-rp-row vm-rp-form-group">
-                                <div>
-                                    <label>Order #</label>
-                                    <input type="text" value="{{ order.order_number }}" readonly>
-                                </div>
-                                <div>
-                                    <label>Placed</label>
-                                    <input type="text" value="{{ order.created_at|date:'d M, Y' }}" readonly>
-                                </div>
-                                <div>
-                                    <label>Total</label>
-                                    <input type="text" value="₹{{ order.total_amount|floatformat:2 }}" readonly>
-                                </div>
-                            </div>
-                        </section>
-
-                        <!-- Item Selection Card -->
-                        <section class="vm-rp-tablet-card">
-                            <h3>Select Items to Return</h3>
-                            {% for item in eligible_items %}
-                            <article class="vm-rp-item" data-rp-item>
-                                <label class="vm-rp-item-checkbox">
-                                    <input type="checkbox" name="item_{{ item.id }}_selected" data-rp-select checked>
-                                </label>
-                                {% if item.product_image %}
-                                <img src="{{ item.product_image }}" alt="{{ item.product_name }}" class="vm-rp-item-image">
-                                {% endif %}
-                                <div class="vm-rp-item-info">
-                                    <h4>{{ item.product_name }}</h4>
-                                    <p>Qty: {{ item.quantity }}</p>
-                                    <p class="vm-rp-item-price">₹{{ item.product_price|floatformat:2 }}</p>
-                                </div>
-                                <div class="vm-rp-item-controls">
-                                    <select name="item_{{ item.id }}_condition" class="vm-rp-item-condition">
-                                        {% for value,label in condition_choices %}
-                                        <option value="{{ value }}">{{ label }}</option>
-                                        {% endfor %}
-                                    </select>
-                                    <div class="vm-rp-qty-selector">
-                                        <button type="button" class="vm-rp-qty-btn vm-rp-qty-minus" data-action="minus">−</button>
-                                        <input type="number" name="item_{{ item.id }}_qty" min="1" max="{{ item.quantity }}" value="{{ item.quantity }}" data-rp-qty data-item-price="{{ item.product_price }}">
-                                        <button type="button" class="vm-rp-qty-btn vm-rp-qty-plus" data-action="plus">+</button>
-                                    </div>
-                                </div>
-                            </article>
-                            {% endfor %}
-                        </section>
-
-                        <!-- Return Reason Card -->
-                        <section class="vm-rp-tablet-card">
-                            <h3>Return Reason</h3>
-                            <div class="vm-rp-row">
-                                <label>Primary Reason</label>
-                                <select name="reason" required>
-                                    {% for value,label in reason_choices %}
-                                    <option value="{{ value }}">{{ label }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="vm-rp-row">
-                                <label>Additional Context</label>
-                                <textarea name="reason_notes" placeholder="Please provide specific details..." rows="3"></textarea>
-                            </div>
-                        </section>
-
-                        <!-- Refund Method Card -->
-                        <section class="vm-rp-tablet-card">
-                            <h3>Refund Method</h3>
-                            <div class="vm-rp-row">
-                                <label>Choose Refund Method</label>
-                                <select name="refund_method" id="vmRpRefundMethodTablet" required>
-                                    <option value="" disabled selected>Select refund method</option>
-                                    {% for value,label in refund_options %}
-                                    <option value="{{ value }}">{{ label }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-
-                            <!-- Bank Details (Hidden by Default) -->
-                            <div class="vm-rp-row" id="vmRpBankBlockTablet" style="display:none;">
-                                <label>Account Holder Name</label>
-                                <input type="text" name="bank_account_name" placeholder="Full name as per bank account">
-                                <label style="margin-top: 0.75rem;">Bank Name</label>
-                                <input type="text" name="bank_name" placeholder="e.g., HDFC Bank">
-                                <label style="margin-top: 0.75rem;">Account Number</label>
-                                <input type="text" name="bank_account_number" placeholder="Account number" inputmode="numeric">
-                                <label style="margin-top: 0.75rem;">IFSC Code</label>
-                                <input type="text" name="bank_ifsc" placeholder="IFSC code" style="text-transform: uppercase;">
-                            </div>
-
-                            <!-- UPI Details (Hidden by Default) -->
-                            <div class="vm-rp-row" id="vmRpUpiBlockTablet" style="display:none;">
-                                <label>UPI ID</label>
-                                <input type="text" name="upi_id" placeholder="username@bank">
-                            </div>
-                        </section>
-
-                        <!-- Documentation Card -->
-                        <section class="vm-rp-tablet-card">
-                            <h3>Supporting Evidence</h3>
-                            <div class="vm-rp-upload-area">
-                                <label for="tablet-attachments" class="vm-rp-upload-label">
-                                    <i class="fas fa-cloud-upload-alt"></i>
-                                    <p>Drag & drop images or click to upload</p>
-                                    <span>PNG, JPG up to 10MB (Maximum 5 photos)</span>
-                                </label>
-                                <input type="file" id="tablet-attachments" name="attachments" multiple accept="image/*" style="display:none;">
-                            </div>
-                        </section>
-
-                        <!-- Submit Button -->
-                        <button type="submit" class="vm-rp-tablet-submit">Proceed to Review</button>
-                    </div>
-
-                    <!-- Right Sidebar - Summary -->
-                    <aside class="vm-rp-tablet-summary">
-                        <h3>Return Summary</h3>
-                        <div class="vm-rp-summary-item">
-                            <span>Subtotal</span>
-                            <strong>₹<span id="vmRpSubtotalTablet">0.00</span></strong>
-                        </div>
-                        <div class="vm-rp-summary-item">
-                            <span>Return Fee</span>
-                            <strong class="vm-rp-fee">₹20.00</strong>
-                        </div>
-                        <div class="vm-rp-summary-divider"></div>
-                        <div class="vm-rp-summary-total">
-                            <span>Net Refund</span>
-                            <strong>₹<span id="vmRpNetTablet">0.00</span></strong>
-                        </div>
-                        <p class="vm-rp-summary-note">Processed in 3–5 business days after inspection</p>
-                        
-                        <!-- Policy Box -->
-                        <div class="vm-rp-policy-box">
-                            <i class="fas fa-badge-check"></i>
-                            <div>
-                                <strong>7-Day Return Policy</strong>
-                                <p>All items in original, resaleable condition are eligible for return.</p>
-                            </div>
-                        </div>
-                    </aside>
-                </div>
-            </form>
-            {% endif %}
-        </div>
-    </main>
-</section>
-
-<!-- ========== DESKTOP VIEW ========== -->
-<section class="vm-copy-rp-desktop">
-    <!-- Hero Section -->
-    <section class="vm-copy-rp-hero">
-        <div class="vm-copy-container">
-            <div class="vm-copy-rp-hero-content">
-                <span class="vm-copy-rp-eyebrow">Service Center</span>
-                <h1>Return Request</h1>
-                <p>Initiate your return with confidence. We handle the details—you get your refund processed within 3–5 business days.</p>
-                <div class="vm-copy-rp-hero-actions">
-                    <a href="{% url 'order_details' order.order_number %}" class="vm-rp-btn">← Back to Order</a>
-                    <a href="{% url 'faq' %}" class="vm-rp-btn vm-rp-btn--ghost">? Need Help?</a>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Main Content -->
-    {% if not is_eligible %}
-    <section class="vm-copy-rp-section vm-rp-alert-section">
-        <div class="vm-copy-container">
-            <div class="vm-rp-alert">
-                <i class="fas fa-exclamation-circle"></i>
-                <p>{{ ineligible_reason }}</p>
-            </div>
-        </div>
-    </section>
-    {% else %}
-    <form method="post" enctype="multipart/form-data" class="vm-copy-rp-form">
-        {% csrf_token %}
-        <section class="vm-copy-rp-section">
-            <div class="vm-copy-container">
-                <div class="vm-copy-rp-grid">
-                    <!-- Left Column -->
-                    <div class="vm-copy-rp-main">
-                        <!-- Step Indicator -->
-                        <div class="vm-copy-rp-stepper">
-                            <div class="vm-copy-rp-step vm-copy-rp-step--active">
-                                <span class="vm-copy-rp-step-num">1</span>
-                                <div>
-                                    <h4>Reason & Refund</h4>
-                                    <p>Return details & payment method</p>
-                                </div>
-                            </div>
-                            <div class="vm-copy-rp-step">
-                                <span class="vm-copy-rp-step-num">2</span>
-                                <div>
-                                    <h4>Review & Submit</h4>
-                                    <p>Confirm everything</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Order Information -->
-                        <div class="vm-rp-card">
-                            <div class="vm-rp-card-head">
-                                <h3>Order #{{ order.order_number }}</h3>
-                                <p>Placed {{ order.created_at|date:'d M, Y' }} • ₹{{ order.total_amount|floatformat:2 }}</p>
-                            </div>
-                        </div>
-
-                        <!-- Item Selection -->
-                        <div class="vm-rp-card">
-                            <h3 style="margin: 0 0 1rem; font-size: 1.1rem;">Items for Return</h3>
-                            <div class="vm-rp-items">
+                    <section class="vm-rr-card">
+                        <div class="vm-rr-card__body">
+                            <h2 class="vm-rr-card__title">Items in order #{{ order.order_number }}</h2>
+                            <div class="vm-rr-items">
                                 {% for item in eligible_items %}
-                                <div class="vm-rp-item-card" data-rp-item>
-                                    <div class="vm-rp-item-select">
-                                        <label>
-                                            <input type="checkbox" name="item_{{ item.id }}_selected" data-rp-select checked>
-                                        </label>
+                                <article class="vm-rr-item" data-rp-item>
+                                    <input type="checkbox" name="item_{{ item.id }}_selected" data-rp-select checked>
+                                    <div class="vm-rr-thumb">
+                                        {% if item.product_image %}
+                                        <img src="{{ item.product_image }}" alt="{{ item.product_name }}">
+                                        {% else %}
+                                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.product_name }}">
+                                        {% endif %}
                                     </div>
-                                    {% if item.product_image %}
-                                    <img src="{{ item.product_image }}" alt="{{ item.product_name }}" class="vm-rp-item-img">
-                                    {% endif %}
-                                    <div class="vm-rp-item-details">
-                                        <h4>{{ item.product_name }}</h4>
-                                        <p>SKU: {{ item.sku|default:"N/A" }}</p>
-                                        <p class="vm-rp-item-qty">Ordered: {{ item.quantity }}</p>
+                                    <div>
+                                        <h3>{{ item.product_name }}</h3>
+                                        <p>Ordered quantity: {{ item.quantity }}</p>
+                                        <p class="price">&#8377;{{ item.product_price|floatformat:2 }}</p>
                                     </div>
-                                    <div class="vm-rp-item-price">
-                                        <p class="vm-rp-price-label">₹{{ item.product_price|floatformat:2 }}</p>
-                                    </div>
-                                    <div class="vm-rp-item-form">
-                                        <div class="vm-rp-form-group">
+                                    <div class="vm-rr-controls">
+                                        <div class="vm-rr-field">
+                                            <label>Quantity</label>
+                                            <div class="vm-rr-qty">
+                                                <button type="button" data-rp-qty-btn data-direction="-1">-</button>
+                                                <input type="number" name="item_{{ item.id }}_qty" min="1" max="{{ item.quantity }}" value="{{ item.quantity }}" data-rp-qty data-item-price="{{ item.product_price }}">
+                                                <button type="button" data-rp-qty-btn data-direction="1">+</button>
+                                            </div>
+                                        </div>
+                                        <div class="vm-rr-field">
                                             <label>Condition</label>
                                             <select name="item_{{ item.id }}_condition">
-                                                {% for value,label in condition_choices %}
-                                                <option value="{{ value }}">{{ label }}</option>
+                                                {% for value, label in condition_choices %}
+                                                <option value="{{ value }}"{% if value == 'OPENED' %} selected{% endif %}>{{ label }}</option>
                                                 {% endfor %}
                                             </select>
                                         </div>
-                                        <div class="vm-rp-form-group">
-                                            <label>Quantity</label>
-                                            <div class="vm-rp-qty-control">
-                                                <button type="button" class="vm-rp-qty-btn vm-rp-qty-desktop-minus">−</button>
-                                                <input type="number" name="item_{{ item.id }}_qty" min="1" max="{{ item.quantity }}" value="{{ item.quantity }}" data-rp-qty data-item-price="{{ item.product_price }}">
-                                                <button type="button" class="vm-rp-qty-btn vm-rp-qty-desktop-plus">+</button>
-                                            </div>
+                                        <div class="vm-rr-field">
+                                            <label>Notes</label>
+                                            <input type="text" name="item_{{ item.id }}_notes" placeholder="Optional notes">
                                         </div>
                                     </div>
-                                </div>
+                                </article>
                                 {% endfor %}
                             </div>
                         </div>
+                    </section>
 
-                        <!-- Return Reason -->
-                        <div class="vm-rp-card">
-                            <h3>Return Reason</h3>
-                            <div class="vm-rp-form-group">
-                                <label>Why are you returning this?</label>
-                                <select name="reason" required>
-                                    {% for value,label in reason_choices %}
-                                    <option value="{{ value }}">{{ label }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="vm-rp-form-group">
-                                <label>Additional Context</label>
-                                <textarea name="reason_notes" placeholder="Tell us more (optional)" rows="4"></textarea>
-                            </div>
-                        </div>
-
-                        <!-- Refund Method -->
-                        <div class="vm-rp-card">
-                            <h3>Refund Method</h3>
-                            <div class="vm-rp-refund-methods" id="vmRpRefundMethodsDesktop">
-                                {% for value,label in refund_options %}
-                                <label class="vm-rp-refund-option">
-                                    <input type="radio" name="refund_method" value="{{ value|lower }}" required>
-                                    <span>{{ label }}</span>
-                                </label>
-                                {% endfor %}
-                            </div>
-
-                            <!-- Bank Details -->
-                            <div id="vmRpBankBlockDesktop" style="display:none; margin-top:20px; padding:15px; background:#f9f9f9; border-radius:8px; border-left:4px solid #667eea;">
-                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:15px;">
-                                    <div class="vm-rp-form-group">
-                                        <label>Account Holder Name</label>
-                                        <input type="text" name="bank_account_name" placeholder="ANANYA SHARMA" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:4px; font-size:14px;">
-                                    </div>
-                                    <div class="vm-rp-form-group">
-                                        <label>Bank Name</label>
-                                        <input type="text" name="bank_name" placeholder="HDFC BANK" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:4px; font-size:14px;">
-                                    </div>
-                                    <div class="vm-rp-form-group">
-                                        <label>Account Number</label>
-                                        <input type="password" name="bank_account_number" placeholder="••••••••9012" inputmode="numeric" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:4px; font-size:14px;">
-                                    </div>
-                                    <div class="vm-rp-form-group">
-                                        <label>IFSC Code</label>
-                                        <input type="text" name="bank_ifsc" placeholder="HDFC0000123" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:4px; font-size:14px; text-transform:uppercase;">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- UPI Details -->
-                            <div id="vmRpUpiBlockDesktop" style="display:none; margin-top:20px; padding:15px; background:#f9f9f9; border-radius:8px; border-left:4px solid #667eea;">
-                                <div class="vm-rp-form-group" style="margin-top:0;">
-                                    <label style="font-weight:600; margin-bottom:10px; display:block;">UPI ID</label>
-                                    <div style="display:flex; gap:12px; align-items:flex-start;">
-                                        <input type="text" name="upi_id" id="vmRpUpiIdDesktop" placeholder="yourname@bank" style="flex:1; padding:10px; border:1px solid #ddd; border-radius:4px; font-size:14px;">
-                                        <button type="button" id="vmRpUpiVerifyBtnDesktop" data-action="verify-upi-desktop" style="padding:10px 20px; background:#667eea; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px; font-weight:500; white-space:nowrap; transition:background 0.3s;">Verify</button>
-                                    </div>
-                                    <div id="vmRpUpiVerifyStatusDesktop" style="display:none; margin-top:10px; padding:12px; border-radius:4px; font-size:13px;"></div>
-                                    <div id="vmRpUpiNameDesktop" style="display:none; margin-top:12px; padding:12px; background:#f0f9ff; border-radius:4px; border-left:4px solid #667eea;">
-                                        <label style="display:block; margin-bottom:5px; font-weight:600; color:#333;">✓ Submitted for Verification</label>
-                                        <p id="vmRpUpiNameValueDesktop" style="margin:0; font-size:14px; color:#1a202c; font-weight:500;"></p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="vm-rp-submit-btn">Proceed to Review</button>
-                    </div>
-
-                    <!-- Right Sidebar -->
-                    <aside class="vm-copy-rp-sidebar">
-                        <div class="vm-rp-summary-box">
-                            <h3>Refund Summary</h3>
-                            <div class="vm-rp-summary-row">
-                                <span>Items Subtotal</span>
-                                <strong>₹<span id="vmRpSubtotalDesktop">0.00</span></strong>
-                            </div>
-                            <div class="vm-rp-summary-row">
-                                <span>Taxes & GST (Reversed)</span>
-                                <strong>₹0.00</strong>
-                            </div>
-                            <div class="vm-rp-summary-row">
-                                <span>Collection Fee</span>
-                                <strong class="vm-rp-fee">- ₹20.00</strong>
-                            </div>
-                            <div class="vm-rp-summary-divider"></div>
-                            <div class="vm-rp-summary-total">
-                                <span>Estimated Refund</span>
-                                <strong class="vm-rp-total-amount">₹<span id="vmRpNetDesktop">0.00</span></strong>
-                            </div>
-                            <p class="vm-rp-summary-notice">Processed within 3–5 business days after quality check.</p>
-                            <div class="vm-rp-policy-box">
-                                <i class="fas fa-shield-check"></i>
-                                <div>
-                                    <p>7-day return policy on all items in premium collections.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </aside>
-                </div>
-            </div>
-        </section>
-    </form>
-    {% endif %}
-
-</section>
-
-<!-- ========== SHARED SCRIPTS ========== -->
-<script>
-(function () {
-    // Configuration for all breakpoints
-    const sections = [
-        { subtotalId: 'vmRpSubtotalMobile', netId: 'vmRpNetMobile', refundSelect: 'vmRpRefundMethodMobile', bankBlock: 'vmRpBankBlockMobile', upiBlock: 'vmRpUpiBlockMobile' },
-        { subtotalId: 'vmRpSubtotalTablet', netId: 'vmRpNetTablet', refundSelect: 'vmRpRefundMethodTablet', bankBlock: 'vmRpBankBlockTablet', upiBlock: 'vmRpUpiBlockTablet' },
-        { subtotalId: 'vmRpSubtotalDesktop', netId: 'vmRpNetDesktop', refundSelect: 'vmRpRefundMethodDesktop', bankBlock: 'vmRpBankBlockDesktop', upiBlock: 'vmRpUpiBlockDesktop' }
-    ];
-
-    const formatMoney = (value) => Number(value).toFixed(2);
-
-    // Update refund summary
-    function updateSummary(subtotalEl, netEl) {
-        let subtotal = 0;
-        document.querySelectorAll('[data-rp-item]').forEach((card) => {
-            const selected = card.querySelector('[data-rp-select]');
-            if (!selected || !selected.checked) return;
-            const qtyInput = card.querySelector('[data-rp-qty]');
-            if (!qtyInput) return;
-            const qty = parseInt(qtyInput.value || '0', 10);
-            const price = parseFloat(qtyInput.getAttribute('data-item-price') || '0');
-            subtotal += Math.max(0, qty) * Math.max(0, price);
-        });
-        const fee = 20;
-        const net = Math.max(0, subtotal - fee);
-        if (subtotalEl) subtotalEl.textContent = formatMoney(subtotal);
-        if (netEl) netEl.textContent = formatMoney(net);
-    }
-
-    // Bind functionality for each section
-    function bindSection(config) {
-        const subtotalEl = document.getElementById(config.subtotalId);
-        const netEl = document.getElementById(config.netId);
-        const refundSelect = document.getElementById(config.refundSelect);
-        const bankBlock = document.getElementById(config.bankBlock);
-        const upiBlock = document.getElementById(config.upiBlock);
-
-        // Handle refund method field visibility
-        const toggleRefundFields = () => {
-            if (!refundSelect) return;
-            const method = refundSelect.value;
-            if (bankBlock) bankBlock.style.display = (method === 'bank' || method === 'bank_transfer') ? 'grid' : 'none';
-            if (upiBlock) upiBlock.style.display = method === 'upi' ? 'grid' : 'none';
-        };
-
-        if (refundSelect) {
-            refundSelect.addEventListener('change', toggleRefundFields);
-        }
-
-        // Update summary on item changes
-        document.querySelectorAll('[data-rp-item]').forEach((item) => {
-            const checkbox = item.querySelector('[data-rp-select]');
-            const qtyInput = item.querySelector('[data-rp-qty]');
-            if (checkbox) checkbox.addEventListener('change', () => updateSummary(subtotalEl, netEl));
-            if (qtyInput) qtyInput.addEventListener('input', () => updateSummary(subtotalEl, netEl));
-        });
-
-        // Handle quantity button clicks
-        document.querySelectorAll('[data-rp-item] .vm-rp-qty-btn').forEach((btn) => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                const item = btn.closest('[data-rp-item]');
-                const input = item.querySelector('[data-rp-qty]');
-                const action = btn.classList.contains('vm-rp-qty-minus') || btn.classList.contains('vm-rp-qty-desktop-minus') ? 'minus' : 'plus';
-                let val = parseInt(input.value || '0', 10);
-                const max = parseInt(input.getAttribute('max') || '999', 10);
-                val = action === 'minus' ? Math.max(1, val - 1) : Math.min(max, val + 1);
-                input.value = val;
-                input.dispatchEvent(new Event('input'));
-            });
-        });
-
-
-        // Handle UPI verification button
-        const verifyButtons = document.querySelectorAll('[data-action^="verify-upi"]');
-        verifyButtons.forEach((btn) => {
-            btn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                const deviceType = btn.dataset.action.replace('verify-upi-', '').toLowerCase();
-                const upiIdInput = document.getElementById(`vmRpUpiId${deviceType.charAt(0).toUpperCase() + deviceType.slice(1)}`);
-                const statusDiv = document.getElementById(`vmRpUpiVerifyStatus${deviceType.charAt(0).toUpperCase() + deviceType.slice(1)}`);
-                const nameDiv = document.getElementById(`vmRpUpiName${deviceType.charAt(0).toUpperCase() + deviceType.slice(1)}`);
-                const nameValue = document.getElementById(`vmRpUpiNameValue${deviceType.charAt(0).toUpperCase() + deviceType.slice(1)}`);
-                
-                if (!upiIdInput || !upiIdInput.value.trim()) {
-                    statusDiv.style.display = 'block';
-                    statusDiv.style.background = '#fee';
-                    statusDiv.style.color = '#c33';
-                    statusDiv.textContent = '⚠ Please enter a UPI ID';
-                    return;
-                }
-                
-                btn.disabled = true;
-                btn.textContent = 'Verifying...';
-                statusDiv.style.display = 'block';
-                statusDiv.style.background = '#eef';
-                statusDiv.textContent = '🔄 Verifying UPI ID...';
-                
-                try {
-                    const response = await fetch('/verify-upi/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                        },
-                        body: JSON.stringify({ upi_id: upiIdInput.value.trim() })
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.submitted) {
-                        statusDiv.style.display = 'block';
-                        statusDiv.style.background = '#f0f9ff';
-                        statusDiv.style.color = '#0369a1';
-                        statusDiv.textContent = '📧 UPI ID submitted for verification. You will receive an email once reviewed by our team.';
-                        upiIdInput.disabled = true;
-                        btn.textContent = 'Submitted';
-                        btn.disabled = true;
-                    } else {
-                        statusDiv.style.display = 'block';
-                        statusDiv.style.background = '#fee';
-                        statusDiv.style.color = '#c33';
-                        statusDiv.textContent = data.error || 'Invalid UPI ID';
-                        nameDiv.style.display = 'none';
-                    }
-                } catch (err) {
-                    statusDiv.style.display = 'block';
-                    statusDiv.style.background = '#fee';
-                    statusDiv.style.color = '#c33';
-                    statusDiv.textContent = '❌ Verification failed. Please try again later.';
-                    console.error('UPI verification error:', err);
-                }
-                
-                if (!btn.disabled) {
-                    btn.disabled = false;
-                    btn.textContent = 'Verify';
-                }
-            });
-        });
-
-                // Initial summary calculation
-        updateSummary(subtotalEl, netEl);
-    }
-
-
-    // ===== DESKTOP SPECIFIC FUNCTIONS =====
-    
-    // Toggle refund fields based on selection
-    window.toggleRefundFieldsDesktop = function() {
-        const refundMethod = document.querySelector('input[name="refund_method"]:checked');
-        const bankBlock = document.getElementById('vmRpBankBlockDesktop');
-        const upiBlock = document.getElementById('vmRpUpiBlockDesktop');
-        
-        if (!refundMethod) return;
-        
-        const method = refundMethod.value.toLowerCase();
-        
-        // RESET: Hide all blocks
-        if (bankBlock) bankBlock.style.display = 'none';
-        if (upiBlock) upiBlock.style.display = 'none';
-        
-        // SHOW: Display selected block
-        if (method === 'bank' && bankBlock) {
-            bankBlock.style.display = 'block';
-        } else if (method === 'upi' && upiBlock) {
-            upiBlock.style.display = 'block';
-        }
-    };
-    
-    // Initialize desktop refund method listeners
-    const desktopRefundRadios = document.querySelectorAll('#vmRpRefundMethodsDesktop input[type="radio"]');
-    console.log('Found', desktopRefundRadios.length, 'refund radio buttons');
-    
-    desktopRefundRadios.forEach((radio) => {
-        radio.addEventListener('change', function() {
-            console.log('Radio changed:', this.value);
-            toggleRefundFieldsDesktop();
-        });
-    });
-    
-    // Attach UPI verify button listener
-    const upiVerifyBtn = document.getElementById('vmRpUpiVerifyBtnDesktop');
-    if (upiVerifyBtn) {
-        upiVerifyBtn.addEventListener('click', verifyUPIDesktop);
-    }
-    
-    // UPI verification function
-    // Flag to prevent multiple simultaneous UPI verification requests
-    let vmUpiVerificationInProgress = false;
-    let vmUpiVerificationPollTimer = null;
-
-    function stopUpiVerificationPolling() {
-        if (vmUpiVerificationPollTimer) {
-            clearInterval(vmUpiVerificationPollTimer);
-            vmUpiVerificationPollTimer = null;
-        }
-    }
-
-    function startUpiVerificationPolling(orderId) {
-        if (!orderId) return;
-
-        const statusDiv = document.getElementById('vmRpUpiVerifyStatusDesktop');
-        const nameDiv = document.getElementById('vmRpUpiNameDesktop');
-        const nameValue = document.getElementById('vmRpUpiNameValueDesktop');
-        const verifyBtn = document.getElementById('vmRpUpiVerifyBtnDesktop');
-
-        stopUpiVerificationPolling();
-
-        const pollOnce = async () => {
-            try {
-                const response = await fetch(`/api/upi-verification-status/?order_id=${encodeURIComponent(orderId)}`, {
-                    method: 'GET',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-
-                if (!response.ok) {
-                    return;
-                }
-
-                const data = await response.json();
-
-                if (data.status === 'VERIFIED' && data.is_verified === true) {
-                    stopUpiVerificationPolling();
-                    sessionStorage.removeItem('upi_payment_pending');
-
-                    if (statusDiv) {
-                        statusDiv.style.display = 'block';
-                        statusDiv.style.background = '#dff0d8';
-                        statusDiv.style.color = '#1f7a1f';
-                        statusDiv.textContent = `✅ UPI verified successfully for ${data.upi_id}.`; 
-                    }
-
-                    if (nameDiv && nameValue) {
-                        nameDiv.style.display = 'block';
-                        nameValue.textContent = data.upi_id || 'Verified';
-                    }
-
-                    if (verifyBtn) {
-                        verifyBtn.disabled = true;
-                        verifyBtn.textContent = 'Verified ✓';
-                        verifyBtn.style.background = '#ddd';
-                    }
-                    return;
-                }
-
-                if (data.status === 'FAILED') {
-                    stopUpiVerificationPolling();
-                    sessionStorage.removeItem('upi_payment_pending');
-
-                    if (statusDiv) {
-                        statusDiv.style.display = 'block';
-                        statusDiv.style.background = '#fee';
-                        statusDiv.style.color = '#c33';
-                        statusDiv.textContent = `❌ ${data.message || 'UPI verification failed.'}`;
-                    }
-
-                    if (verifyBtn) {
-                        verifyBtn.disabled = false;
-                        verifyBtn.textContent = 'Verify';
-                        verifyBtn.style.background = '';
-                    }
-                }
-            } catch (err) {
-                console.warn('UPI verification polling error:', err);
-            }
-        };
-
-        // Immediate check, then periodic polling.
-        pollOnce();
-        vmUpiVerificationPollTimer = setInterval(pollOnce, 5000);
-        setTimeout(() => {
-            stopUpiVerificationPolling();
-            sessionStorage.removeItem('upi_payment_pending');
-        }, 300000); // 5 minutes max polling window
-    }
-    
-    async function verifyUPIDesktop(e) {
-        e.preventDefault();
-        const upiInput = document.getElementById('vmRpUpiIdDesktop');
-        const statusDiv = document.getElementById('vmRpUpiVerifyStatusDesktop');
-        const nameDiv = document.getElementById('vmRpUpiNameDesktop');
-        const nameValue = document.getElementById('vmRpUpiNameValueDesktop');
-        const btn = e.target;
-        
-        // Prevent multiple simultaneous requests
-        if (vmUpiVerificationInProgress) {
-            statusDiv.style.display = 'block';
-            statusDiv.style.background = '#fee';
-            statusDiv.style.color = '#c33';
-            statusDiv.textContent = '⚠ Request in progress... Please wait.';
-            return;
-        }
-        
-        // Validate input
-        if (!upiInput.value.trim()) {
-            statusDiv.style.display = 'block';
-            statusDiv.style.background = '#fee';
-            statusDiv.style.color = '#c33';
-            statusDiv.textContent = '⚠ Please enter a UPI ID';
-            nameDiv.style.display = 'none';
-            return;
-        }
-        
-        // Set flag to prevent concurrent requests
-        vmUpiVerificationInProgress = true;
-        btn.disabled = true;
-        btn.textContent = 'Creating collect request...';
-        statusDiv.style.display = 'block';
-        statusDiv.style.background = '#eef';
-        statusDiv.style.color = '#333';
-        statusDiv.textContent = '🔄 Sending ₹1 collect request to your UPI...';
-        nameDiv.style.display = 'none';
-        
-        try {
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
-            if (!csrfToken) {
-                throw new Error('CSRF token not found');
-            }
-            
-            const response = await fetch('/verify-upi/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken.value
-                },
-                body: JSON.stringify({ upi_id: upiInput.value.trim() })
-            });
-            
-            // Check HTTP status
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const data = await response.json();
-            console.log('UPI Verification Response:', data);
-            
-            // Check if checkout link was created successfully
-            if (data.valid === true && data.order_id) {
-                // ✅ Order and checkout link created - ready for payment
-                statusDiv.style.display = 'block';
-                statusDiv.style.background = '#dff';
-                statusDiv.style.color = '#0a0';
-                
-                if (data.payment_link_url) {
-                    // Show clickable payment link / button
-                    statusDiv.innerHTML = `
-                        <strong>📱 Ready to Verify UPI ID!</strong><br>
-                        Click the button below to proceed with ₹1 verification payment.<br>
-                        <strong>You'll be taken to Razorpay to complete the payment via UPI.</strong><br>
-                        <br>
-                        <a href="${data.payment_link_url}" target="_blank" rel="noopener" style="display: inline-block; padding: 12px 30px; background: #3c95dc; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
-                            💳 Open Payment Page
-                        </a>
-                        <br><br>
-                        <em style="color: #666;">Step 1: Click "Open Payment Page" button<br>
-                        Step 2: Select UPI payment method<br>
-                        Step 3: Enter your UPI ID or select an app and authorize the ₹1 payment<br>
-                        Step 4: ₹1 will be automatically refunded</em><br>
-                        <small style="color: #999;">Order ID: ${data.order_id}</small>
-                    `;
-                } else {
-                    // Order was created but checkout generation failed
-                    statusDiv.innerHTML = `
-                        <strong>⚠️ Order Created but Link Failed</strong><br>
-                        Your order was created (ID: ${data.order_id})<br>
-                        But the payment page link couldn't be generated.<br>
-                        <br>
-                        <button onclick="location.reload();" style="padding: 10px 20px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                            🔄 Retry
-                        </button><br><br>
-                        If the issue persists, please contact support.
-                    `;
-                }
-                
-                nameDiv.style.display = 'none';
-                btn.textContent = 'Verification Initiated ✓';
-                btn.style.background = '#ddd';
-                btn.style.cursor = 'default';
-                btn.disabled = true;
-                upiInput.disabled = true;
-                
-                // Store order ID for verification tracking
-                sessionStorage.setItem('upi_order_id', data.order_id);
-                sessionStorage.setItem('upi_payment_link', data.payment_link_url || '');
-                sessionStorage.setItem('upi_payment_pending', 'true');
-                startUpiVerificationPolling(data.order_id);
-
-                if (data.payment_link_url) {
-                    window.open(data.payment_link_url, '_blank', 'noopener');
-                }
-                
-                console.log('UPI verification ready:', {order_id: data.order_id, checkout_link: data.payment_link_url});
-                
-                // Reset flag - allow another request
-                vmUpiVerificationInProgress = false;
-                // Notify user with clear instructions about payment link
-                if (data.payment_link_url) {
-                    alert('✅ Payment Page Ready!\n\n👆 Click the blue "Open Payment Page" button above.\n\nOn the next page:\n1. Select UPI as payment method\n2. Enter/Select your UPI ID\n3. Authorize the ₹1 payment\n4. It will be auto-refunded\n\nOrder ID: ' + data.order_id);
-                } else {
-                    alert('⚠️ Order Created\n\nThe order has been created (ID: ' + data.order_id + ') but the payment page link couldn\'t be generated.\n\nPlease try again or contact support.');
-                }
-                
-                console.log('UPI verification initiated:', {order_id: data.order_id, payment_link: data.payment_link_url});
-                
-                // Reset flag - allow another request after successful one
-                vmUpiVerificationInProgress = false;
-            } else {
-                // ❌ Verification failed
-                statusDiv.style.display = 'block';
-                statusDiv.style.background = '#fee';
-                statusDiv.style.color = '#c33';
-                const errorMsg = data.error || data.message || 'Verification failed. Please check the UPI ID format.';
-                statusDiv.textContent = '❌ ' + errorMsg;
-                nameDiv.style.display = 'none';
-                btn.disabled = false;
-                btn.textContent = 'Verify';
-                vmUpiVerificationInProgress = false;
-                console.error('UPI verification failed:', data);
-            }
-        } catch (err) {
-            console.error('UPI verification error:', err);
-            statusDiv.style.display = 'block';
-            statusDiv.style.background = '#fee';
-            statusDiv.style.color = '#c33';
-            statusDiv.textContent = `❌ Error: ${err.message}`;
-            nameDiv.style.display = 'none';
-            btn.disabled = false;
-            btn.textContent = 'Verify';
-            vmUpiVerificationInProgress = false;
-        }
-    }
-    
-    // Initialize on page load with better error handling
-    function initializeRefundToggle() {
-        const desktopRefundRadios = document.querySelectorAll('#vmRpRefundMethodsDesktop input[type="radio"]');
-        
-        desktopRefundRadios.forEach((radio) => {
-            radio.addEventListener('change', toggleRefundFieldsDesktop);
-        });
-        
-        // Trigger initial state
-        toggleRefundFieldsDesktop();
-    }
-    
-    // Run initialization
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeRefundToggle);
-    } else {
-        initializeRefundToggle();
-    }
-    // Also run after a small delay to catch race conditions
-    setTimeout(initializeRefundToggle, 500);
-
-    // Resume polling automatically if a payment is pending after page refresh/back navigation.
-    const pendingOrderId = sessionStorage.getItem('upi_order_id');
-    const pendingFlag = sessionStorage.getItem('upi_payment_pending');
-    if (pendingOrderId && pendingFlag === 'true') {
-        startUpiVerificationPolling(pendingOrderId);
-    }
-
-    // Global event listeners for all checkboxes and quantity inputs
-    document.addEventListener('change', (e) => {
-        if (e.target.matches('[data-rp-select]')) {
-            sections.forEach(config => {
-                const subtotalEl = document.getElementById(config.subtotalId);
-                const netEl = document.getElementById(config.netId);
-                updateSummary(subtotalEl, netEl);
-            });
-        }
-    });
-    
-    document.addEventListener('input', (e) => {
-        if (e.target.matches('[data-rp-qty]')) {
-            sections.forEach(config => {
-                const subtotalEl = document.getElementById(config.subtotalId);
-                const netEl = document.getElementById(config.netId);
-                updateSummary(subtotalEl, netEl);
-            });
-        }
-    });
-
-    
-        // Initialize all sections
-    sections.forEach(bindSection);
-    
-    // Calculate initial refund summary for all sections based on selected items
-    setTimeout(() => {
-        sections.forEach(config => {
-            const subtotalEl = document.getElementById(config.subtotalId);
-            const netEl = document.getElementById(config.netId);
-            updateSummary(subtotalEl, netEl);
-        });
-    }, 100);
-})();
-</script>
-
-<!-- MOBILE VIEW -->
-<section class="vm-rp-mobile-only">
-    {% include 'partials/vm_mobile_alt_header.html' %}
-
-    <main class="vm-rp-m-main vm-mobile-content-offset">
-        <section class="vm-rp-m-title">
-            <p>Service Center</p>
-            <h2>Return Request</h2>
-            <div class="vm-rp-m-line"></div>
-        </section>
-
-        {% if not is_eligible %}
-        <section class="vm-rp-m-alert">
-            <i class="fas fa-info-circle"></i>
-            <p>{{ ineligible_reason }}</p>
-        </section>
-        {% else %}
-        <form method="post" enctype="multipart/form-data" class="vm-rp-m-form" id="vmRpMobileForm">
-            {% csrf_token %}
-            <section class="vm-rp-m-block">
-                <label>Order Number</label>
-                <input type="text" value="{{ order.order_number }}" readonly>
-            </section>
-
-            <section class="vm-rp-m-block">
-                <label>Select Items to Return</label>
-                <div class="vm-rp-m-items">
-                    {% for item in eligible_items %}
-                    <article class="vm-rp-m-item" data-rp-item>
-                        <div class="vm-rp-m-item-head">
-                            <label class="vm-rp-m-check">
-                                <input type="checkbox" name="item_{{ item.id }}_selected" data-rp-select checked>
-                                <span></span>
-                            </label>
-                            <div class="vm-rp-m-item-copy">
-                                <h4>{{ item.product_name }}</h4>
-                                <p>Ordered: {{ item.quantity }}</p>
-                            </div>
-                        </div>
-                        <div class="vm-rp-m-item-body">
-                            {% if item.product_image %}
-                            <img src="{{ item.product_image }}" alt="{{ item.product_name }}">
-                            {% endif %}
-                            <div class="vm-rp-m-fields">
-                                <input type="number" name="item_{{ item.id }}_qty" min="1" max="{{ item.quantity }}" value="{{ item.quantity }}" data-rp-qty data-item-price="{{ item.product_price }}">
-                                <select name="item_{{ item.id }}_condition">
-                                    {% for value,label in condition_choices %}
-                                    <option value="{{ value }}">{{ label }}</option>
-                                    {% endfor %}
-                                </select>
-                                <input type="text" name="item_{{ item.id }}_notes" placeholder="Optional notes">
-                            </div>
-                        </div>
-                    </article>
-                    {% endfor %}
-                </div>
-            </section>
-
-            <section class="vm-rp-m-summary" id="vmRpSummary" style="display:none;">
-                <h5>Return Summary</h5>
-                <div class="vm-rp-m-summary-line"><span>Subtotal</span><strong>₹<span id="vmRpSubtotalMobile">0.00</span></strong></div>
-                <div class="vm-rp-m-summary-line"><span>Return fee</span><strong>- ₹20.00</strong></div>
-                <div class="vm-rp-m-summary-line vm-rp-m-summary-total"><span>Net refund</span><strong>₹<span id="vmRpNetMobile">0.00</span></strong></div>
-            </section>
-
-            <section class="vm-rp-m-block">
-                <label>Reason for Return</label>
-                <select name="reason" required>
-                    {% for value,label in reason_choices %}
-                    <option value="{{ value }}">{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </section>
-
-            <section class="vm-rp-m-block">
-                <label>Additional Details</label>
-                <textarea rows="4" name="reason_notes" placeholder="Tell us more about the issue..."></textarea>
-            </section>
-
-            <section class="vm-rp-m-block">
-                <label>Refund Method</label>
-                <select name="refund_method" id="vmRpRefundMethodMobile" required>
-                    <option value="" disabled selected>Select refund method</option>
-                    {% for value,label in refund_options %}
-                    <option value="{{ value }}">{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </section>
-
-            <section class="vm-rp-m-block" id="vmRpBankBlockMobile" style="display:none;">
-                <label>Bank Transfer Details</label>
-                <input type="text" name="bank_account_name" placeholder="Account holder name">
-                <input type="text" name="bank_name" placeholder="Bank name">
-                <input type="text" name="bank_account_number" placeholder="Account number" inputmode="numeric">
-                <input type="text" name="bank_ifsc" placeholder="IFSC code" style="text-transform: uppercase;">
-            </section>
-
-            <section class="vm-rp-m-block" id="vmRpUpiBlockMobile" style="display:none;">
-                <label>UPI ID</label>
-                <input type="text" name="upi_id" placeholder="yourname@bank">
-            </section>
-
-            <section class="vm-rp-m-block">
-                <label>Upload Documentation (Optional)</label>
-                <input type="file" name="attachments" multiple accept="image/*">
-            </section>
-
-            <button type="submit" class="vm-rp-m-submit">Submit Return Request</button>
-        </form>
-        {% endif %}
-    </main>
-
-    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
-</section>
-
-<!-- TABLET VIEW -->
-<section class="vm-rp-tablet-only">
-    <main class="vm-rp-tablet-main">
-        <div class="vm-rp-tablet-shell">
-            <section class="vm-rp-tablet-hero">
-                <div>
-                    <span>Service Center</span>
-                    <h1>Return Request</h1>
-                    <p>Easy returns with step-by-step guidance and transparent refund calculations.</p>
-                </div>
-                <div class="vm-rp-tablet-hero-actions">
-                    <a class="vm-home-tablet-link" href="{% url 'order_details' order.order_number %}">← Back to Order</a>
-                    <a class="vm-home-tablet-link" href="{% url 'faq' %}">? Need Help</a>
-                </div>
-            </section>
-
-            <div class="vm-rp-tablet-stepper" aria-label="Return request progress">
-                <div class="vm-rp-tablet-step is-active">
-                    <div class="vm-rp-step-number">1</div>
-                    <h3>Reason & Refund</h3>
-                    <p>Return details & payment method</p>
-                </div>
-                <div class="vm-rp-tablet-step">
-                    <div class="vm-rp-step-number">2</div>
-                    <h3>Review & Submit</h3>
-                    <p>Confirm everything</p>
-                </div>
-            </div>
-
-            {% if not is_eligible %}
-            <section class="vm-rp-tablet-alert">
-                <div class="vm-rp-alert-icon">⚠</div>
-                <p>{{ ineligible_reason }}</p>
-            </section>
-            {% else %}
-            <form method="post" enctype="multipart/form-data" class="vm-rp-tablet-form-shell">
-                {% csrf_token %}
-                <div class="vm-rp-tablet-cards">
-                    <div class="vm-rp-tablet-form">
-                        <section class="vm-rp-tablet-card">
-                            <h3>Order Information</h3>
-                            <div class="vm-rp-row vm-rp-form-group">
-                                <div>
-                                    <label>Order #</label>
-                                    <input type="text" value="{{ order.order_number }}" readonly>
-                                </div>
-                                <div>
-                                    <label>Placed</label>
-                                    <input type="text" value="{{ order.created_at|date:'d M, Y' }}" readonly>
-                                </div>
-                                <div>
-                                    <label>Total</label>
-                                    <input type="text" value="₹{{ order.total_amount|floatformat:2 }}" readonly>
-                                </div>
-                            </div>
-                        </section>
-
-                        <section class="vm-rp-tablet-card">
-                            <h3>Select Items</h3>
-                            {% for item in eligible_items %}
-                            <article class="vm-rp-item" data-rp-item>
-                                <label class="vm-rp-item-checkbox">
-                                    <input type="checkbox" name="item_{{ item.id }}_selected" data-rp-select checked>
-                                </label>
-                                {% if item.product_image %}
-                                <img src="{{ item.product_image }}" alt="{{ item.product_name }}" class="vm-rp-item-image">
-                                {% endif %}
-                                <div class="vm-rp-item-info">
-                                    <h4>{{ item.product_name }}</h4>
-                                    <p>Qty: {{ item.quantity }}</p>
-                                    <p class="vm-rp-item-price">₹{{ item.product_price|floatformat:2 }}</p>
-                                </div>
-                                <div class="vm-rp-item-controls">
-                                    <select name="item_{{ item.id }}_condition">
-                                        {% for value,label in condition_choices %}
+                    <div class="vm-rr-split">
+                        <section class="vm-rr-card">
+                            <div class="vm-rr-card__body vm-rr-fields">
+                                <h2 class="vm-rr-card__title">Reason for Return</h2>
+                                <div class="vm-rr-field">
+                                    <label>Primary Reason</label>
+                                    <select name="reason" required>
+                                        {% for value, label in reason_choices %}
                                         <option value="{{ value }}">{{ label }}</option>
                                         {% endfor %}
                                     </select>
-                                    <div class="vm-rp-qty-selector">
-                                        <button type="button" class="vm-rp-qty-btn">−</button>
-                                        <input type="number" name="item_{{ item.id }}_qty" min="1" max="{{ item.quantity }}" value="{{ item.quantity }}" data-rp-qty data-item-price="{{ item.product_price }}">
-                                        <button type="button" class="vm-rp-qty-btn">+</button>
-                                    </div>
                                 </div>
-                            </article>
-                            {% endfor %}
+                                <div class="vm-rr-field">
+                                    <label>Additional Context</label>
+                                    <textarea name="reason_notes" placeholder="Please provide specific details about the issue."></textarea>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="vm-rr-card">
+                            <div class="vm-rr-card__body vm-rr-fields">
+                                <h2 class="vm-rr-card__title">Supporting Evidence</h2>
+                                <label class="vm-rr-upload">
+                                    <input type="file" name="attachments" multiple accept="image/*">
+                                    <div><i class="fas fa-cloud-upload-alt"></i><strong>Drag images or click to upload</strong><span>PNG or JPG up to 10MB. Up to 5 photos.</span></div>
+                                </label>
+                                <label class="vm-rr-ship">
+                                    <input type="radio" name="pickup_method" checked>
+                                    <div><strong>Complimentary courier pickup</strong><span>Pickup is scheduled after the request is approved.</span></div>
+                                </label>
+                                <div class="vm-rr-address">
+                                    <span class="vm-rr-label">Pickup Address</span>
+                                    {{ order.shipping_address|linebreaksbr }}
+                                </div>
+                            </div>
                         </section>
                     </div>
 
-                    <aside class="vm-rp-tablet-summary">
-                        <h3>Summary</h3>
-                        <div class="vm-rp-summary-item">
-                            <span>Subtotal</span>
-                            <strong>₹<span id="vmRpSubtotalTablet">0.00</span></strong>
+                    <section class="vm-rr-card">
+                        <div class="vm-rr-card__body vm-rr-split">
+                            <div>
+                                <h2 class="vm-rr-card__title">Refund Mode</h2>
+                                <div class="vm-rr-methods">
+                                    {% for value, label in refund_options %}
+                                    <label class="vm-rr-method">
+                                        <input type="radio" name="refund_method" value="{{ value }}"{% if forloop.first %} checked required{% endif %}>
+                                        <span class="vm-rr-method__card"><span>{{ label }}</span><i class="fas fa-check-circle"></i></span>
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="vm-rr-fields">
+                                <div class="vm-rr-method-fields" data-rp-bank-fields>
+                                    <div class="vm-rr-field"><label>Account Holder Name</label><input type="text" name="bank_account_name" placeholder="Full name as per bank account"></div>
+                                    <div class="vm-rr-field"><label>Bank Name</label><input type="text" name="bank_name" placeholder="Your bank name"></div>
+                                    <div class="vm-rr-fields two">
+                                        <div class="vm-rr-field"><label>Account Number</label><input type="text" name="bank_account_number" placeholder="Account number" inputmode="numeric"></div>
+                                        <div class="vm-rr-field"><label>IFSC Code</label><input type="text" name="bank_ifsc" placeholder="IFSC code" style="text-transform: uppercase;"></div>
+                                    </div>
+                                </div>
+                                <div class="vm-rr-method-fields" data-rp-upi-fields hidden>
+                                    <div class="vm-rr-field"><label>UPI ID</label><input type="text" name="upi_id" placeholder="yourname@bank"></div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="vm-rp-summary-item">
-                            <span>Return Fee</span>
-                            <strong>- ₹20.00</strong>
-                        </div>
-                        <div class="vm-rp-summary-total">
-                            <span>Refund</span>
-                            <strong>₹<span id="vmRpNetTablet">0.00</span></strong>
-                        </div>
-                        <p class="vm-rp-summary-note">Processed in 3–5 business days</p>
-                    </aside>
+                    </section>
                 </div>
 
-                <section class="vm-rp-tablet-card">
-                    <h3>Return Details</h3>
-                    <div class="vm-rp-row">
-                        <label>Reason</label>
-                        <select name="reason" required>
-                            {% for value,label in reason_choices %}
-                            <option value="{{ value }}">{{ label }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="vm-rp-row">
-                        <label>Additional Notes</label>
-                        <textarea name="reason_notes" placeholder="Optional"></textarea>
-                    </div>
-                    <div class="vm-rp-row">
-                        <label>Refund Method</label>
-                        <select name="refund_method" id="vmRpRefundMethodTablet" required>
-                            <option value="" disabled selected>Choose method</option>
-                            {% for value,label in refund_options %}
-                            <option value="{{ value }}">{{ label }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="vm-rp-row" id="vmRpBankBlockTablet" style="display:none;">
-                        <label>Bank Details</label>
-                        <input type="text" name="bank_account_name" placeholder="Account holder name">
-                        <input type="text" name="bank_account_number" placeholder="Account number" inputmode="numeric">
-                    </div>
-                    <div class="vm-rp-row" id="vmRpUpiBlockTablet" style="display:none;">
-                        <label>UPI ID</label>
-                        <input type="text" name="upi_id" placeholder="yourname@bank">
-                    </div>
-                    <button type="submit" class="vm-rp-tablet-submit">Continue to Review</button>
-                </section>
-            </form>
-            {% endif %}
-        </div>
-    </main>
+                <aside class="vm-rr-side">
+                    <section class="vm-rr-card soft">
+                        <div class="vm-rr-card__body">
+                            <div class="vm-rr-summary">
+                                <div class="vm-rr-summary__row"><span>Selected items</span><strong><span data-rp-count>0</span> item(s)</strong></div>
+                                <div class="vm-rr-summary__row"><span>Subtotal</span><strong>&#8377;<span data-rp-subtotal>0.00</span></strong></div>
+                                <div class="vm-rr-summary__row"><span>Collection fee</span><strong class="vm-rr-summary__fee">- &#8377;{{ fee|floatformat:2 }}</strong></div>
+                                <div class="vm-rr-summary__divider"></div>
+                                <div class="vm-rr-summary__total"><span>Estimated refund</span><strong class="vm-rr-summary__amount">&#8377;<span data-rp-net>0.00</span></strong></div>
+                                <p class="vm-rr-note">This is step 1 of 2. You will review everything once more before the final return request is submitted.</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="vm-rr-card">
+                        <div class="vm-rr-card__body vm-rr-fields">
+                            <label class="vm-rr-terms">
+                                <input type="checkbox" required>
+                                <span>I confirm the items are in their original packaging and agree to the <a href="{% url 'terms-and-conditions' %}">Return Policy</a>.</span>
+                            </label>
+                            <button type="submit" class="vm-rr-submit">Continue to Review</button>
+                            <p class="vm-rr-note">Refund destination details above are used on the confirm screen and for the actual return request.</p>
+                        </div>
+                    </section>
+                </aside>
+            </div>
+        </form>
+        {% endif %}
+    </div>
 </section>
 
+<div class="vm-rr-mobile-footer">
+    {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='return-request-mobile' %}
+</div>
+<div class="vm-rr-mobile-nav">
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
+</div>
 
 <script>
-(function () {
-    const sections = [
-        { subtotalId: 'vmRpSubtotalMobile', netId: 'vmRpNetMobile', refundSelect: 'vmRpRefundMethodMobile', bankBlock: 'vmRpBankBlockMobile', upiBlock: 'vmRpUpiBlockMobile' },
-        { subtotalId: 'vmRpSubtotalTablet', netId: 'vmRpNetTablet', refundSelect: 'vmRpRefundMethodTablet', bankBlock: 'vmRpBankBlockTablet', upiBlock: 'vmRpUpiBlockTablet' },
-        { subtotalId: 'vmRpSubtotalDesktop', netId: 'vmRpNetDesktop', refundSelect: 'vmRpRefundMethodDesktop', bankBlock: 'vmRpBankBlockDesktop', upiBlock: 'vmRpUpiBlockDesktop' }
-    ];
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-rp-scope]').forEach(function (scope) {
+        const fee = parseFloat(scope.dataset.fee || '20') || 20;
+        const items = scope.querySelectorAll('[data-rp-item]');
+        const bankWrap = scope.querySelector('[data-rp-bank-fields]');
+        const upiWrap = scope.querySelector('[data-rp-upi-fields]');
+        const bankInputs = bankWrap ? bankWrap.querySelectorAll('input') : [];
+        const upiInputs = upiWrap ? upiWrap.querySelectorAll('input') : [];
 
-    const formatMoney = (value) => Number(value).toFixed(2);
-
-    function updateSummary(subtotalEl, netEl) {
-        let subtotal = 0;
-        document.querySelectorAll('[data-rp-item]').forEach((card) => {
-            const selected = card.querySelector('[data-rp-select]');
-            if (!selected || !selected.checked) return;
-            const qtyInput = card.querySelector('[data-rp-qty]');
-            if (!qtyInput) return;
-            const qty = parseInt(qtyInput.value || '0', 10);
-            const price = parseFloat(qtyInput.getAttribute('data-item-price') || '0');
-            subtotal += Math.max(0, qty) * Math.max(0, price);
-        });
-        const fee = 20;
-        const net = Math.max(0, subtotal - fee);
-        if (subtotalEl) subtotalEl.textContent = formatMoney(subtotal);
-        if (netEl) netEl.textContent = formatMoney(net);
-    }
-
-    function bindSection(config) {
-        const subtotalEl = document.getElementById(config.subtotalId);
-        const netEl = document.getElementById(config.netId);
-        const refundSelect = document.getElementById(config.refundSelect);
-        const bankBlock = document.getElementById(config.bankBlock);
-        const upiBlock = document.getElementById(config.upiBlock);
-
-        const toggleRefundFields = () => {
-            if (!refundSelect) return;
-            const method = refundSelect.value;
-            if (bankBlock) bankBlock.style.display = (method === 'BANK' || method === 'bank') ? 'block' : 'none';
-            if (upiBlock) upiBlock.style.display = (method === 'RAZORPAY' || method === 'razorpay') ? 'block' : 'none';
-        };
-
-        document.querySelectorAll('[data-rp-select]').forEach((cb) => {
-            cb.addEventListener('change', () => updateSummary(subtotalEl, netEl));
-        });
-        document.querySelectorAll('[data-rp-qty]').forEach((input) => {
-            input.addEventListener('input', () => updateSummary(subtotalEl, netEl));
-        });
-        if (refundSelect) {
-            refundSelect.addEventListener('change', toggleRefundFields);
-            toggleRefundFields();
+        function setRequired(nodes, on) {
+            nodes.forEach(function (node) { on ? node.setAttribute('required', 'required') : node.removeAttribute('required'); });
         }
-        updateSummary(subtotalEl, netEl);
-    }
 
-    sections.forEach(bindSection);
+        function updateRefundFields() {
+            const checked = scope.querySelector('input[name="refund_method"]:checked');
+            const method = checked ? checked.value : '';
+            const isBank = method === 'BANK';
+            const isUpi = method === 'UPI';
+            if (bankWrap) bankWrap.hidden = !isBank;
+            if (upiWrap) upiWrap.hidden = !isUpi;
+            setRequired(bankInputs, isBank);
+            setRequired(upiInputs, isUpi);
+        }
 
-    // Quantity control buttons
-    document.querySelectorAll('.vm-rp-qty-btn').forEach((btn) => {
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            const container = btn.closest('[class*="vm-rp-qty"]') || btn.parentElement;
-            const input = container.querySelector('input[type="number"]');
-            if (input) {
-                const delta = btn.textContent.trim() === '+' ? 1 : -1;
-                const newVal = Math.max(1, Math.min(parseInt(input.max || 999), parseInt(input.value) + delta));
-                input.value = newVal;
-                input.dispatchEvent(new Event('input'));
+        function updateSummary() {
+            let subtotal = 0;
+            let count = 0;
+            items.forEach(function (item) {
+                const checkbox = item.querySelector('[data-rp-select]');
+                const qtyInput = item.querySelector('[data-rp-qty]');
+                if (!checkbox || !qtyInput || !checkbox.checked) return;
+                const min = parseInt(qtyInput.min || '1', 10);
+                const max = parseInt(qtyInput.max || '1', 10);
+                let qty = parseInt(qtyInput.value || min, 10);
+                if (Number.isNaN(qty)) qty = min;
+                qty = Math.max(min, Math.min(max, qty));
+                qtyInput.value = qty;
+                subtotal += qty * parseFloat(qtyInput.dataset.itemPrice || '0');
+                count += qty;
+            });
+            const net = Math.max(subtotal - fee, 0);
+            scope.querySelectorAll('[data-rp-subtotal]').forEach(function (node) { node.textContent = subtotal.toFixed(2); });
+            scope.querySelectorAll('[data-rp-net]').forEach(function (node) { node.textContent = net.toFixed(2); });
+            scope.querySelectorAll('[data-rp-count]').forEach(function (node) { node.textContent = count; });
+        }
+
+        scope.querySelectorAll('input[name="refund_method"]').forEach(function (node) { node.addEventListener('change', updateRefundFields); });
+        items.forEach(function (item) {
+            const checkbox = item.querySelector('[data-rp-select]');
+            const qtyInput = item.querySelector('[data-rp-qty]');
+            if (checkbox) checkbox.addEventListener('change', updateSummary);
+            if (qtyInput) {
+                qtyInput.addEventListener('input', updateSummary);
+                qtyInput.addEventListener('change', updateSummary);
             }
+            item.querySelectorAll('[data-rp-qty-btn]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    if (!qtyInput) return;
+                    const delta = parseInt(btn.dataset.direction || '0', 10);
+                    const min = parseInt(qtyInput.min || '1', 10);
+                    const max = parseInt(qtyInput.max || '1', 10);
+                    let value = parseInt(qtyInput.value || min, 10);
+                    if (Number.isNaN(value)) value = min;
+                    value = Math.max(min, Math.min(max, value + delta));
+                    qtyInput.value = value;
+                    updateSummary();
+                });
+            });
         });
+
+        updateRefundFields();
+        updateSummary();
     });
-})();
-
-
-    // ===================================================================
-    // BANK VERIFICATION HANDLERS - Penny Drop Verification
-    // ===================================================================
-    
-    async function verifyBankAccount(e) {
-        e.preventDefault();
-        
-        const accountNum = document.getElementById('bankAccountNumber')?.value || '';
-        const ifscCode = document.getElementById('bankIFSC')?.value || '';
-        const accountName = document.getElementById('bankAccountName')?.value || '';
-        const statusDiv = document.getElementById('bankVerifyStatus');
-        const btn = e.target;
-        
-        if (!accountNum || !ifscCode) {
-            if (statusDiv) {
-                statusDiv.style.display = 'block';
-                statusDiv.style.background = '#fee';
-                statusDiv.style.color = '#c33';
-                statusDiv.textContent = '⚠ Account number and IFSC are required';
-            }
-            return;
-        }
-        
-        btn.disabled = true;
-        btn.textContent = 'Verifying...';
-        if (statusDiv) {
-            statusDiv.style.display = 'block';
-            statusDiv.style.background = '#eef';
-            statusDiv.style.color = '#333';
-            statusDiv.textContent = '🔄 Verifying bank account (₹1 test transfer initiated)...';
-        }
-        
-        try {
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-            if (!csrfToken) throw new Error('CSRF token not found');
-            
-            const response = await fetch('/api/verify-bank/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
-                },
-                body: JSON.stringify({
-                    account_number: accountNum,
-                    ifsc: ifscCode,
-                    account_name: accountName
-                })
-            });
-            
-            const data = await response.json();
-            console.log('Bank Verification Response:', data);
-            
-            if (data.status === 'verified') {
-                if (statusDiv) {
-                    statusDiv.style.background = '#efe';
-                    statusDiv.style.color = '#3c3';
-                    statusDiv.textContent = `✅ Verified! Name: ${data.account_name}`;
-                }
-                document.getElementById('bankAccountNumber').disabled = true;
-                document.getElementById('bankIFSC').disabled = true;
-                btn.textContent = '✓ Verified';
-                btn.style.background = '#10b981';
-            } else {
-                if (statusDiv) {
-                    statusDiv.style.background = '#fee';
-                    statusDiv.style.color = '#c33';
-                    statusDiv.textContent = `❌ ${data.message || 'Verification failed'}`;
-                }
-            }
-        } catch (err) {
-            console.error('Bank verification error:', err);
-            if (statusDiv) {
-                statusDiv.style.background = '#fee';
-                statusDiv.style.color = '#c33';
-                statusDiv.textContent = `❌ Error: ${err.message}`;
-            }
-        }
-        
-        btn.disabled = false;
-    }
-    
-    // ===================================================================
-    // UPI COLLECT REQUEST HANDLERS - ₹1 Verification Flow
-    // ===================================================================
-    
-    async function initiateUPICollect(e) {
-        e.preventDefault();
-        
-        const upiId = document.getElementById('upiIdCollect')?.value || '';
-        const statusDiv = document.getElementById('upiCollectStatus');
-        const btn = e.target;
-        
-        if (!upiId) {
-            if (statusDiv) {
-                statusDiv.style.display = 'block';
-                statusDiv.style.background = '#fee';
-                statusDiv.style.color = '#c33';
-                statusDiv.textContent = '⚠ Please enter UPI ID';
-            }
-            return;
-        }
-        
-        btn.disabled = true;
-        btn.textContent = 'Creating collect request...';
-        if (statusDiv) {
-            statusDiv.style.display = 'block';
-            statusDiv.style.background = '#eef';
-            statusDiv.style.color = '#333';
-            statusDiv.textContent = '🔄 Creating ₹1 collect request...';
-        }
-        
-        try {
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-            if (!csrfToken) throw new Error('CSRF token not found');
-            
-            const response = await fetch('/api/verify-upi-collect/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
-                },
-                body: JSON.stringify({ upi_id: upiId })
-            });
-            
-            const data = await response.json();
-            console.log('UPI Collect Response:', data);
-            
-            if (data.status === 'success') {
-                // Store order and payment IDs for later verification
-                sessionStorage.setItem('upi_order_id', data.order_id);
-                sessionStorage.setItem('upi_collect_initiated', 'true');
-                
-                if (statusDiv) {
-                    statusDiv.style.background = '#eef';
-                    statusDiv.style.color = '#333';
-                    statusDiv.textContent = `📱 ${data.message}<br><strong>Check your UPI app - a ₹1 collect request was sent!</strong><br>Amount will be auto-refunded after verification.`;
-                }
-                
-                btn.textContent = 'Waiting for payment...';
-                document.getElementById('upiIdCollect').disabled = true;
-                
-                // Poll for payment status
-                setTimeout(() => checkUPICollectStatus(data.order_id), 3000);
-            } else {
-                if (statusDiv) {
-                    statusDiv.style.background = '#fee';
-                    statusDiv.style.color = '#c33';
-                    statusDiv.textContent = `❌ ${data.message || 'Failed to create collect request'}`;
-                }
-            }
-        } catch (err) {
-            console.error('UPI collect error:', err);
-            if (statusDiv) {
-                statusDiv.style.background = '#fee';
-                statusDiv.style.color = '#c33';
-                statusDiv.textContent = `❌ Error: ${err.message}`;
-            }
-        }
-        
-        btn.disabled = false;
-    }
-    
-    async function checkUPICollectStatus(orderId) {
-        // This would poll Razorpay for payment status
-        // In production, implement webhook or polling logic
-        console.log('Checking UPI payment status for order:', orderId);
-    }
-    
-    // ===================================================================
-    // REFUND PROCESSING HANDLERS
-    // ===================================================================
-    
-    async function processRefund(e, orderId) {
-        e.preventDefault();
-        
-        const reason = document.getElementById('refundReason')?.value || 'Refund requested';
-        const amount = document.getElementById('refundAmount')?.value || null;
-        const statusDiv = document.getElementById('refundStatus');
-        const btn = e.target;
-        
-        btn.disabled = true;
-        btn.textContent = 'Processing...';
-        if (statusDiv) {
-            statusDiv.style.display = 'block';
-            statusDiv.style.background = '#eef';
-            statusDiv.style.color = '#333';
-            statusDiv.textContent = '🔄 Processing refund...';
-        }
-        
-        try {
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-            if (!csrfToken) throw new Error('CSRF token not found');
-            
-            const response = await fetch('/api/refund/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
-                },
-                body: JSON.stringify({
-                    order_id: orderId,
-                    refund_amount: amount ? parseFloat(amount) : null,
-                    reason: reason
-                })
-            });
-            
-            const data = await response.json();
-            console.log('Refund Response:', data);
-            
-            if (data.status === 'success') {
-                if (statusDiv) {
-                    statusDiv.style.background = '#efe';
-                    statusDiv.style.color = '#3c3';
-                    statusDiv.textContent = `✅ Refund successful! ID: ${data.refund_id}`;
-                }
-                btn.textContent = '✓ Processed';
-                btn.style.background = '#10b981';
-            } else {
-                if (statusDiv) {
-                    statusDiv.style.background = '#fee';
-                    statusDiv.style.color = '#c33';
-                    statusDiv.textContent = `❌ ${data.message || 'Refund failed'}`;
-                }
-            }
-        } catch (err) {
-            console.error('Refund error:', err);
-            if (statusDiv) {
-                statusDiv.style.background = '#fee';
-                statusDiv.style.color = '#c33';
-                statusDiv.textContent = `❌ Error: ${err.message}`;
-            }
-        }
-        
-        btn.disabled = false;
-    }
-
-    </script>
+});
+</script>
+{% endwith %}
 {% endblock %}
