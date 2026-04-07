@@ -3,7 +3,7 @@
 
 {% block title %}Confirm Return Request - VibeMall{% endblock %}
 {% block body_class %}vm-page-mobile-alt vm-page-confirm-return{% endblock %}
-{% block ui_chrome %}mobile{% endblock %}
+{% block ui_chrome %}default{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'assets/css/vm-home-editorial.css' %}?v=20260328-03">
@@ -19,12 +19,22 @@
 }
 
 @media (max-width: 767.98px) {
+    body.vm-page-confirm-return .vm-copy-header,
+    body.vm-page-confirm-return .vm-copy-footer {
+        display: none !important;
+    }
+
     .vm-cr-mobile-only {
         display: block;
     }
 }
 
 @media (min-width: 768px) and (max-width: 1199.98px) {
+    body.vm-page-confirm-return .vm-copy-header,
+    body.vm-page-confirm-return .vm-copy-footer {
+        display: none !important;
+    }
+
     .vm-cr-tablet-only {
         display: block;
     }
@@ -33,6 +43,40 @@
 @media (min-width: 1200px) {
     .vm-cr-desktop-only {
         display: block;
+    }
+
+    .vm-cr-d-stepper {
+        margin-bottom: 3rem;
+    }
+
+    .vm-cr-d-stepper .vm-copy-rp-stepper {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-bottom: 0;
+    }
+
+    .vm-cr-d-stepper .vm-copy-rp-step {
+        min-height: 136px;
+        padding: 1.5rem;
+        border-radius: 1rem;
+        align-items: flex-start;
+    }
+
+    .vm-cr-d-stepper .vm-copy-rp-step-num {
+        min-width: 3rem;
+        width: 3rem;
+        height: 3rem;
+        font-size: 1.15rem;
+    }
+
+    .vm-cr-d-stepper .vm-copy-rp-step h4 {
+        margin-top: 0.15rem;
+        margin-bottom: 0.55rem;
+        font-size: 1.05rem;
+    }
+
+    .vm-cr-d-stepper .vm-copy-rp-step p {
+        font-size: 0.95rem;
+        line-height: 1.6;
     }
 
     .vm-cr-d-main {
@@ -380,31 +424,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <!-- ========== DESKTOP VIEW ========== -->
 <section class="vm-cr-desktop-only">
-    <!-- Desktop Header -->
-    <header class="vm-copy-rp-header">
-        <div class="vm-copy-container">
-            <div class="vm-copy-rp-header-content">
-                <div class="vm-copy-rp-logo"><a href="{% url 'index' %}">VibeMall</a></div>
-                <nav class="vm-copy-rp-nav">
-                    <a href="{% url 'shop' %}">Shop</a>
-                    <a href="#" class="active">Returns</a>
-                    <a href="{% url 'faq' %}">Help</a>
-                </nav>
-                <div class="vm-copy-rp-header-actions">
-                    <a href="{% url 'wishlist' %}" aria-label="Wishlist"><i class="far fa-heart"></i></a>
-                    <a href="{% url 'cart' %}" aria-label="Cart"><i class="far fa-shopping-bag"></i></a>
-                    {% if request.user.is_authenticated %}
-                    <a href="{% url 'profile' %}" aria-label="Account"><i class="far fa-user"></i></a>
-                    {% else %}
-                    <a href="{% url 'login' %}" aria-label="Login"><i class="far fa-user"></i></a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </header>
-
     <main class="vm-cr-d-main">
         <div class="vm-copy-container">
+            <div class="vm-cr-d-stepper">
+                <div class="vm-copy-rp-stepper" aria-label="Return request progress">
+                    <div class="vm-copy-rp-step vm-copy-rp-step--active">
+                        <span class="vm-copy-rp-step-num">1</span>
+                        <div>
+                            <h4>Return details &amp; payment method</h4>
+                            <p>Completed in the previous step</p>
+                        </div>
+                    </div>
+                    <div class="vm-copy-rp-step">
+                        <span class="vm-copy-rp-step-num">2</span>
+                        <div>
+                            <h4>Review &amp; Submit</h4>
+                            <p>Confirm everything</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Editorial Header -->
             <div class="vm-cr-d-header">
@@ -573,8 +612,7 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
     </main>
 
-    <!-- Desktop Footer -->
-    <footer class="vm-rp-d-footer">
+    <footer class="vm-rp-d-footer" style="display:none;">
         <div class="vm-copy-container">
             <div class="vm-rp-d-footer-grid">
                 <div class="vm-rp-d-footer-brand">
