@@ -9962,6 +9962,13 @@ def confirm_return_request(request, order_id):
         messages.error(request, 'No pending return draft found. Please start again.')
         return redirect('return_request', order_id=order.id)
 
+    subtotal = sum(
+        Decimal(str(i['product_price'])) * i['qty']
+        for i in draft['items']
+    )
+    fee = Decimal('20.00')
+    net = max(subtotal - fee, Decimal('0.00'))
+
     if request.method == 'POST':
         # Finalise — save to DB
         reason = draft['reason']
@@ -9984,6 +9991,9 @@ def confirm_return_request(request, order_id):
             bank_ifsc=bank_ifsc if refund_method == 'BANK' else '',
             bank_name=bank_name if refund_method == 'BANK' else '',
             upi_id=upi_id if refund_method in ('UPI', 'RAZORPAY') else '',
+            refund_amount=subtotal,
+            refund_fee=fee,
+            refund_amount_net=net,
             request_ip=request.META.get('REMOTE_ADDR'),
             request_user_agent=(request.META.get('HTTP_USER_AGENT') or '')[:255],
         )
@@ -10014,15 +10024,7 @@ def confirm_return_request(request, order_id):
         request.session.pop('return_draft', None)
 
         messages.success(request, 'Return request submitted successfully.')
-        return redirect('return_status', return_id=return_request_obj.id)
-
-    # Build summary numbers
-    subtotal = sum(
-        Decimal(str(i['product_price'])) * i['qty']
-        for i in draft['items']
-    )
-    fee = Decimal('20.00')
-    net = max(subtotal - fee, Decimal('0.00'))
+        return redirect('return_submitted', return_id=return_request_obj.id)
 
     reason_display = dict(ReturnRequest.RETURN_REASON_CHOICES).get(draft['reason'], draft['reason'])
 
@@ -10033,6 +10035,85 @@ def confirm_return_request(request, order_id):
         'subtotal': subtotal,
         'fee': fee,
         'net': net,
+    })
+
+
+@login_required(login_url='login')
+def return_submitted(request, return_id):
+    """Confirmation page shown immediately after a return request is submitted."""
+    return_request_obj = get_object_or_404(
+        ReturnRequest.objects.select_related('order', 'user').prefetch_related('items__order_item__product'),
+        id=return_id,
+        user=request.user,
+    )
+
+    submitted_items = list(return_request_obj.items.select_related('order_item', 'product'))
+
+    subtotal = return_request_obj.refund_amount
+    if subtotal is None:
+        subtotal = sum(
+            (item.order_item.product_price or Decimal('0.00')) * item.quantity
+            for item in submitted_items
+        )
+
+    fee = return_request_obj.refund_fee or Decimal('20.00')
+    estimated_refund = return_request_obj.refund_amount_net
+    if estimated_refund is None:
+        estimated_refund = max(subtotal - fee, Decimal('0.00'))
+
+    refund_method_map = {
+        'BANK': {
+            'label': 'Bank Transfer',
+            'hint': f"Ending in {return_request_obj.bank_account_number[-4:]}" if return_request_obj.bank_account_number else (return_request_obj.bank_name or 'Direct bank refund'),
+            'icon': 'fa-building-columns',
+        },
+        'UPI': {
+            'label': 'UPI Refund',
+            'hint': return_request_obj.upi_id or 'UPI handle on file',
+            'icon': 'fa-qrcode',
+        },
+        'RAZORPAY': {
+            'label': 'Original Payment Method',
+            'hint': return_request_obj.upi_id or 'Processed back to your paid method',
+            'icon': 'fa-credit-card',
+        },
+        'WALLET': {
+            'label': 'VibeMall Wallet',
+            'hint': 'Credited to your VibeMall wallet balance',
+            'icon': 'fa-wallet',
+        },
+    }
+    refund_method_meta = refund_method_map.get(
+        return_request_obj.refund_method,
+        {
+            'label': return_request_obj.refund_method or 'Refund to original method',
+            'hint': 'Our team will confirm the payout destination after review.',
+            'icon': 'fa-money-bill-wave',
+        }
+    )
+
+    label_obj = getattr(return_request_obj, 'label', None)
+    label_url = ''
+    if label_obj:
+        if label_obj.label_url:
+            label_url = label_obj.label_url
+        elif label_obj.label_file:
+            try:
+                label_url = label_obj.label_file.url
+            except Exception:
+                label_url = ''
+
+    status_label = 'Pending Review' if return_request_obj.status == 'REQUESTED' else return_request_obj.get_status_display()
+
+    return render(request, 'return_submitted.html', {
+        'return_request': return_request_obj,
+        'submitted_items': submitted_items,
+        'status_label': status_label,
+        'subtotal': subtotal,
+        'fee': fee,
+        'estimated_refund': estimated_refund,
+        'refund_method_meta': refund_method_meta,
+        'label_url': label_url,
     })
 
 

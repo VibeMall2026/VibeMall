@@ -1,0 +1,339 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Return Request Submitted - VibeMall{% endblock %}
+{% block body_class %}vm-page-mobile-alt vm-page-return-submitted{% endblock %}
+{% block ui_chrome %}default{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'assets/css/vm-home-editorial.css' %}?v=20260328-03">
+<link rel="stylesheet" href="{% static 'assets/css/home-mobile-alt.css' %}?v=20260329-01">
+<link rel="stylesheet" href="{% static 'assets/css/home-tablet-alt.css' %}?v=20260329-01">
+<link rel="stylesheet" href="{% static 'assets/css/return-submitted.css' %}?v=20260407-01">
+{% endblock %}
+
+{% block content %}
+{% with hero_item=submitted_items|first %}
+<section class="vm-rsub-mobile-only">
+    {% include 'partials/vm_mobile_alt_header.html' %}
+
+    <main class="vm-mobile-content-offset vm-rsub-mobile-main">
+        <section class="vm-rsub-mobile-hero" style="background-image:url('{% if hero_item and hero_item.order_item.display_image_url %}{{ hero_item.order_item.display_image_url }}{% else %}https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=1200{% endif %}');">
+            <div class="vm-rsub-mobile-hero__content">
+                <span class="vm-rsub-mobile-kicker">Confirmation</span>
+                <h1>Your return request is in review</h1>
+                <p>We received {{ return_request.return_number }} for order #{{ return_request.order.order_number }}. Our team is now validating the details for a smooth refund process.</p>
+            </div>
+        </section>
+
+        <article class="vm-rsub-mobile-card">
+            <div class="vm-rsub-mobile-card-head">
+                <div>
+                    <span class="vm-rsub-mobile-label">Return Reference</span>
+                    <p class="vm-rsub-mobile-ref">{{ return_request.return_number }}</p>
+                    <p class="vm-rsub-mobile-order">Submitted on {{ return_request.requested_at|date:"d M Y, h:i A" }}</p>
+                </div>
+                <span class="vm-rsub-status"><i class="far fa-hourglass-half"></i>{{ status_label }}</span>
+            </div>
+
+            <h3 class="vm-rsub-mobile-section-title">Items to Return</h3>
+            <div class="vm-rsub-mobile-items">
+                {% for item in submitted_items %}
+                <article class="vm-rsub-mobile-item">
+                    <div class="vm-rsub-item-thumb">
+                        {% if item.order_item.display_image_url %}
+                        <img src="{{ item.order_item.display_image_url }}" alt="{{ item.order_item.product_name }}">
+                        {% else %}
+                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.order_item.product_name }}">
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h3>{{ item.order_item.product_name }}</h3>
+                        <p>Qty: {{ item.quantity }}</p>
+                        <p>Condition: {{ item.get_condition_display }}</p>
+                        <p>Reason: {{ return_request.get_reason_display }}</p>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+
+            <div class="vm-rsub-mobile-finance">
+                <div class="vm-rsub-mobile-finance-card">
+                    <span class="vm-rsub-mobile-label">Refund Method</span>
+                    <h4>{{ refund_method_meta.label }}</h4>
+                    <p>{{ refund_method_meta.hint }}</p>
+                </div>
+                <div class="vm-rsub-mobile-finance-card">
+                    <span class="vm-rsub-mobile-label">Estimated Refund</span>
+                    <strong>&#8377;{{ estimated_refund|floatformat:2 }}</strong>
+                    <p class="vm-rsub-mobile-note">Includes collection fee of &#8377;{{ fee|floatformat:2 }}</p>
+                </div>
+            </div>
+        </article>
+
+        <section class="vm-rsub-mobile-sidebar-card vm-rsub-mobile-sidebar-card--dark">
+            <h3>Next Steps</h3>
+            <p>After approval, a reverse-pickup label will be generated and our courier partner will contact you within 24 to 48 hours.</p>
+            <div class="vm-rsub-tablet-actions">
+                {% if label_url %}
+                <a href="{{ label_url }}" class="vm-rsub-action-link" target="_blank" rel="noopener">
+                    <span>Print Shipping Label</span>
+                    <i class="far fa-print"></i>
+                </a>
+                {% else %}
+                <div class="vm-rsub-action-btn" aria-disabled="true">
+                    <span>Print Shipping Label</span>
+                    <i class="far fa-print"></i>
+                </div>
+                {% endif %}
+                <a href="{% url 'contact' %}" class="vm-rsub-action-link">
+                    <span>Contact Concierge</span>
+                    <i class="far fa-headset"></i>
+                </a>
+                <a href="{% url 'order_details' return_request.order.order_number %}" class="vm-rsub-action-link">
+                    <span>View Order Details</span>
+                    <i class="far fa-eye"></i>
+                </a>
+            </div>
+            <a href="{% url 'return_status' return_request.id %}" class="vm-rsub-mobile-track">
+                <i class="far fa-arrow-right"></i> Track full return timeline
+            </a>
+        </section>
+
+        <section class="vm-rsub-mobile-sidebar-card">
+            <span class="vm-rsub-mobile-label">Our Policy</span>
+            <p>Returns stay under review until the request is approved and pickup is arranged. Refunds are released after verification and reverse-logistics checks are complete.</p>
+            <a href="{% url 'terms-and-conditions' %}" class="vm-rsub-policy-link">Read Full Terms <i class="far fa-arrow-right"></i></a>
+        </section>
+
+        <footer class="vm-home-mobile-footer vm-mobile-page-footer">
+            <details>
+                <summary>Collections</summary>
+                <a href="{% url 'shop' %}">Shop All</a>
+                <a href="{% url 'shop' %}?sort=latest">New Arrivals</a>
+            </details>
+            <details>
+                <summary>Experience</summary>
+                <a href="{% url 'blog' %}">Editorial</a>
+                <a href="{% url 'about' %}">About VibeMall</a>
+            </details>
+            <details>
+                <summary>Concierge</summary>
+                <a href="{% url 'cart' %}">Cart</a>
+                <a href="{% url 'wishlist' %}">Wishlist</a>
+            </details>
+            <details>
+                <summary>Legal</summary>
+                <a href="{% url 'faq' %}">FAQ</a>
+                <a href="{% url 'profile' %}">My Account</a>
+            </details>
+            <div class="vm-home-mobile-footer__brand">
+                <h2>VIBEMALL</h2>
+                <p>© {% now "Y" %} VibeMall Atelier. All Rights Reserved.</p>
+            </div>
+        </footer>
+    </main>
+
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
+</section>
+
+<section class="vm-rsub-tablet-only">
+    <main class="vm-rsub-tablet-main">
+        <div class="vm-home-tablet-shell">
+            <section class="vm-rsub-tablet-hero" style="background-image:url('{% if hero_item and hero_item.order_item.display_image_url %}{{ hero_item.order_item.display_image_url }}{% else %}https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=1400{% endif %}');">
+                <div class="vm-rsub-tablet-hero__content">
+                    <span class="vm-rsub-mobile-kicker">Confirmation</span>
+                    <h1>Your return request is in review</h1>
+                    <p>Request {{ return_request.return_number }} has been submitted for order #{{ return_request.order.order_number }}. We are reviewing the information before arranging pickup and payout.</p>
+                </div>
+            </section>
+
+            <div class="vm-rsub-tablet-grid">
+                <section class="vm-rsub-tablet-panel">
+                    <div class="vm-rsub-tablet-panel-head">
+                        <div>
+                            <span class="vm-rsub-mobile-label">Return Reference</span>
+                            <p class="vm-rsub-tablet-ref">{{ return_request.return_number }}</p>
+                            <p class="vm-rsub-tablet-order">Submitted on {{ return_request.requested_at|date:"d M Y, h:i A" }}</p>
+                        </div>
+                        <span class="vm-rsub-status"><i class="far fa-hourglass-half"></i>{{ status_label }}</span>
+                    </div>
+
+                    <h3 class="vm-rsub-mobile-section-title">Items to Return</h3>
+                    <div class="vm-rsub-tablet-items">
+                        {% for item in submitted_items %}
+                        <article class="vm-rsub-tablet-item">
+                            <div class="vm-rsub-item-thumb">
+                                {% if item.order_item.display_image_url %}
+                                <img src="{{ item.order_item.display_image_url }}" alt="{{ item.order_item.product_name }}">
+                                {% else %}
+                                <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.order_item.product_name }}">
+                                {% endif %}
+                            </div>
+                            <div>
+                                <h3>{{ item.order_item.product_name }}</h3>
+                                <p>Qty: {{ item.quantity }}</p>
+                                <p>Condition: {{ item.get_condition_display }}</p>
+                                <p>Reason: {{ return_request.get_reason_display }}</p>
+                            </div>
+                        </article>
+                        {% endfor %}
+                    </div>
+
+                    <div class="vm-rsub-tablet-finance">
+                        <div class="vm-rsub-tablet-finance-card">
+                            <span class="vm-rsub-mobile-label">Refund Method</span>
+                            <h4>{{ refund_method_meta.label }}</h4>
+                            <p>{{ refund_method_meta.hint }}</p>
+                        </div>
+                        <div class="vm-rsub-tablet-finance-card">
+                            <span class="vm-rsub-mobile-label">Estimated Refund</span>
+                            <strong>&#8377;{{ estimated_refund|floatformat:2 }}</strong>
+                            <p>Includes collection fee of &#8377;{{ fee|floatformat:2 }}</p>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="vm-rsub-tablet-shell">
+                    <aside class="vm-rsub-tablet-sidebar vm-rsub-tablet-sidebar--dark">
+                        <h3>Next Steps</h3>
+                        <p>After approval, a return label will be issued and the courier will reach out within 24 to 48 hours to complete pickup.</p>
+                        <div class="vm-rsub-tablet-actions">
+                            {% if label_url %}
+                            <a href="{{ label_url }}" class="vm-rsub-action-link" target="_blank" rel="noopener">
+                                <span>Print Shipping Label</span>
+                                <i class="far fa-print"></i>
+                            </a>
+                            {% else %}
+                            <div class="vm-rsub-action-btn" aria-disabled="true">
+                                <span>Print Shipping Label</span>
+                                <i class="far fa-print"></i>
+                            </div>
+                            {% endif %}
+                            <a href="{% url 'contact' %}" class="vm-rsub-action-link">
+                                <span>Contact Concierge</span>
+                                <i class="far fa-headset"></i>
+                            </a>
+                            <a href="{% url 'order_details' return_request.order.order_number %}" class="vm-rsub-action-link">
+                                <span>View Order Details</span>
+                                <i class="far fa-eye"></i>
+                            </a>
+                            <a href="{% url 'return_status' return_request.id %}" class="vm-rsub-action-link">
+                                <span>Track Return Status</span>
+                                <i class="far fa-arrow-right"></i>
+                            </a>
+                        </div>
+                    </aside>
+
+                    <aside class="vm-rsub-tablet-sidebar">
+                        <span class="vm-rsub-mobile-label">Our Policy</span>
+                        <p>Returns remain pending until validation is completed. Refund release timing depends on inspection, logistics scans, and the selected payout method.</p>
+                        <a href="{% url 'terms-and-conditions' %}" class="vm-rsub-policy-link">Read Full Terms <i class="far fa-arrow-right"></i></a>
+                    </aside>
+                </div>
+            </div>
+        </div>
+    </main>
+</section>
+
+<section class="vm-rsub-desktop-only">
+    <section class="vm-rsub-desktop-hero" style="background-image:url('{% if hero_item and hero_item.order_item.display_image_url %}{{ hero_item.order_item.display_image_url }}{% else %}https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=2070{% endif %}');">
+        <div class="vm-rsub-desktop-hero__content">
+            <span class="vm-rsub-desktop-badge">Confirmation</span>
+            <h1>Your return request<br>is in review</h1>
+            <p>We received {{ return_request.return_number }} for order #{{ return_request.order.order_number }}. Our concierge team is validating the request before pickup and refund processing begin.</p>
+        </div>
+    </section>
+
+    <div class="vm-rsub-desktop-canvas">
+        <div class="vm-rsub-desktop-grid">
+            <div class="vm-rsub-desktop-panel">
+                <div class="vm-rsub-desktop-inner">
+                    <div class="vm-rsub-desktop-head">
+                        <div>
+                            <span class="vm-rsub-desktop-subtle">Return Reference</span>
+                            <h2>{{ return_request.return_number }}</h2>
+                        </div>
+                        <span class="vm-rsub-status"><i class="far fa-hourglass-half"></i>{{ status_label }}</span>
+                    </div>
+
+                    <h3 class="vm-rsub-desktop-items-title"><i class="far fa-box-open"></i> Items to Return</h3>
+                    <div class="vm-rsub-desktop-items">
+                        {% for item in submitted_items %}
+                        <article class="vm-rsub-desktop-item">
+                            <div class="vm-rsub-item-thumb">
+                                {% if item.order_item.display_image_url %}
+                                <img src="{{ item.order_item.display_image_url }}" alt="{{ item.order_item.product_name }}">
+                                {% else %}
+                                <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.order_item.product_name }}">
+                                {% endif %}
+                            </div>
+                            <div>
+                                <h3>{{ item.order_item.product_name }}</h3>
+                                <p>Qty: {{ item.quantity }}</p>
+                                <p>Condition: {{ item.get_condition_display }}</p>
+                                <p>Reason: {{ return_request.get_reason_display }}</p>
+                            </div>
+                        </article>
+                        {% endfor %}
+                    </div>
+
+                    <h3 class="vm-rsub-desktop-finance-title"><i class="far fa-wallet"></i> Refund Overview</h3>
+                    <div class="vm-rsub-desktop-finance">
+                        <div class="vm-rsub-desktop-finance-card">
+                            <span class="vm-rsub-desktop-subtle">Refund Method</span>
+                            <h4>{{ refund_method_meta.label }}</h4>
+                            <p>{{ refund_method_meta.hint }}</p>
+                        </div>
+                        <div class="vm-rsub-desktop-finance-card vm-rsub-desktop-finance-card--accent">
+                            <span class="vm-rsub-desktop-subtle">Estimated Refund</span>
+                            <strong>&#8377;{{ estimated_refund|floatformat:2 }}</strong>
+                            <p>Includes collection fee of &#8377;{{ fee|floatformat:2 }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <aside class="vm-rsub-desktop-sidebar">
+                <div class="vm-rsub-desktop-sidebar-card vm-rsub-desktop-sidebar-card--dark">
+                    <h3>Next Steps</h3>
+                    <p>Once the request is approved, your shipping label becomes available and our courier partner will contact you within 24 to 48 hours.</p>
+                    <div class="vm-rsub-desktop-actions">
+                        {% if label_url %}
+                        <a href="{{ label_url }}" class="vm-rsub-action-link" target="_blank" rel="noopener">
+                            <span>Print Shipping Label</span>
+                            <i class="far fa-print"></i>
+                        </a>
+                        {% else %}
+                        <div class="vm-rsub-action-btn" aria-disabled="true">
+                            <span>Print Shipping Label</span>
+                            <i class="far fa-print"></i>
+                        </div>
+                        {% endif %}
+                        <a href="{% url 'contact' %}" class="vm-rsub-action-link">
+                            <span>Contact Concierge</span>
+                            <i class="far fa-headset"></i>
+                        </a>
+                        <a href="{% url 'order_details' return_request.order.order_number %}" class="vm-rsub-action-link">
+                            <span>View Order Details</span>
+                            <i class="far fa-eye"></i>
+                        </a>
+                        <a href="{% url 'return_status' return_request.id %}" class="vm-rsub-action-link">
+                            <span>Track Return Status</span>
+                            <i class="far fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="vm-rsub-desktop-sidebar-card">
+                    <span class="vm-rsub-desktop-subtle">Our Policy</span>
+                    <h3>Review Before Refund</h3>
+                    <p>Return requests move through validation, pickup coordination, and reverse-logistics verification before payout is released to the selected refund method.</p>
+                    <a href="{% url 'terms-and-conditions' %}" class="vm-rsub-policy-link">Read Full Terms <i class="far fa-arrow-right"></i></a>
+                </div>
+            </aside>
+        </div>
+    </div>
+</section>
+{% endwith %}
+{% endblock %}
