@@ -1558,12 +1558,12 @@ if (redeemCheckbox) {
     const firstNameField = document.getElementById('firstNameField');
     const lastNameField = document.getElementById('lastNameField');
     const phoneField = document.getElementById('phoneField');
+    const checkoutForm = document.getElementById('checkoutForm');
     const useDefaultAddress = document.getElementById('useDefaultAddress');
     const setDefaultAddress = checkoutForm ? checkoutForm.querySelector('input[name="set_default_address"]') : null;
     const countryField = document.querySelector('select[name="country"]');
     const pincodeValidField = document.getElementById('pincodeValid');
     const placeOrderButton = document.getElementById('placeOrderButton');
-    const checkoutForm = document.getElementById('checkoutForm');
     if (!postcodeField || !cityField) return;
 
     let lookupTimer = null;
