@@ -640,7 +640,8 @@ def create_upi_collect_request(upi_id: str, user=None):
                         'email': False,
                     },
                     'reference_id': receipt_id,
-                    'expire_by': int(time.time()) + 900,  # 15 minutes
+                    # Keep enough safety margin for server clock drift and API validation.
+                    'expire_by': int(time.time()) + 3600,  # 60 minutes
                     'notes': {
                         'upi_id': upi_id,
                         'verification_type': 'upi_collect',
