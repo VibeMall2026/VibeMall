@@ -9455,6 +9455,21 @@ Open: {admin_return_url}
         pass
 
 
+def _latest_order_return(order, user):
+    return (
+        ReturnRequest.objects
+        .filter(order=order, user=user)
+        .order_by('-requested_at')
+        .first()
+    )
+
+
+def _clear_return_draft_for_order(request, order_id):
+    draft = request.session.get('return_draft')
+    if draft and draft.get('order_id') == order_id:
+        request.session.pop('return_draft', None)
+
+
 def _process_refund(return_request, amount, refund_method=''):
     order = return_request.order
     refund_method = refund_method or return_request.refund_method or order.payment_method
@@ -9847,12 +9862,20 @@ def return_request(request, order_id):
     """Create a return request for a delivered order"""
     order = get_object_or_404(Order, id=order_id, user=request.user)
     is_eligible, ineligible_reason, deadline, eligible_items = _return_eligibility(order)
-    existing_return = order.return_requests.order_by('-requested_at').first()
+    existing_return = _latest_order_return(order, request.user)
     refund_options = [
         ('WALLET', 'VibeMall Wallet'),
         ('BANK', 'Direct Bank Transfer'),
         ('UPI', 'UPI ID'),
     ]
+
+    if existing_return:
+        _clear_return_draft_for_order(request, order.id)
+        messages.info(
+            request,
+            f'A return request for order {order.order_number} has already been submitted.'
+        )
+        return redirect('return_status', return_id=existing_return.id)
 
     if request.method == 'POST':
         if not is_eligible:
@@ -9957,6 +9980,15 @@ def confirm_return_request(request, order_id):
     """Show confirm/review page before finalising a return request."""
     order = get_object_or_404(Order, id=order_id, user=request.user)
     draft = request.session.get('return_draft')
+    existing_return = _latest_order_return(order, request.user)
+
+    if existing_return:
+        _clear_return_draft_for_order(request, order.id)
+        messages.info(
+            request,
+            f'A return request for order {order.order_number} already exists.'
+        )
+        return redirect('return_status', return_id=existing_return.id)
 
     if not draft or draft.get('order_id') != order.id:
         messages.error(request, 'No pending return draft found. Please start again.')
@@ -9970,6 +10002,15 @@ def confirm_return_request(request, order_id):
     net = max(subtotal - fee, Decimal('0.00'))
 
     if request.method == 'POST':
+        existing_return = _latest_order_return(order, request.user)
+        if existing_return:
+            _clear_return_draft_for_order(request, order.id)
+            messages.info(
+                request,
+                f'A return request for order {order.order_number} already exists.'
+            )
+            return redirect('return_status', return_id=existing_return.id)
+
         # Finalise — save to DB
         reason = draft['reason']
         reason_notes = draft['reason_notes']
