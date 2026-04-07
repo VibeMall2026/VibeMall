@@ -8620,8 +8620,10 @@ def razorpay_webhook(request):
         # Parse JSON to get event type and IDs for logging
         data = json.loads(webhook_body)
         event_type = data.get('event', 'unknown')
-        payment_id = data.get('payload', {}).get('payment', {}).get('entity', {}).get('id', '')
-        order_id = data.get('payload', {}).get('payment', {}).get('entity', {}).get('notes', {}).get('order_id', '')
+        payment_entity = data.get('payload', {}).get('payment', {}).get('entity', {})
+        payment_id = payment_entity.get('id', '')
+        # Prefer business order id from notes, fallback to Razorpay order id for verification flows.
+        order_id = payment_entity.get('notes', {}).get('order_id', '') or payment_entity.get('order_id', '')
         
         # Verify webhook signature
         expected_signature = hmac.new(
@@ -8666,7 +8668,7 @@ def razorpay_webhook(request):
                 # Auto-refund the ₹1 UPI verification payment + mark as verified ✓ FIX
                 try:
                     # Get the UPIVerification record and mark it as verified
-                    order_id = notes.get('order_id')  # This is razorpay_order_id
+                    order_id = notes.get('order_id') or payment.get('order_id')  # Prefer notes, fallback to Razorpay order id
                     upi_id = notes.get('upi_id')
                     
                     if order_id:
