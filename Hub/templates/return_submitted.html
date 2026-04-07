@@ -10,6 +10,752 @@
 <link rel="stylesheet" href="{% static 'assets/css/home-mobile-alt.css' %}?v=20260329-01">
 <link rel="stylesheet" href="{% static 'assets/css/home-tablet-alt.css' %}?v=20260329-01">
 <link rel="stylesheet" href="{% static 'assets/css/return-submitted.css' %}?v=20260407-01">
+<style>
+/* Inline critical styles so this view still renders correctly if the page-only CSS asset misses cache/static resolution. */
+.vm-rsub-mobile-only,
+.vm-rsub-tablet-only,
+.vm-rsub-desktop-only {
+    display: none;
+}
+
+.vm-rsub-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1rem;
+    border-radius: 999px;
+    background: #dfe8f4;
+    color: #38485d;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.vm-rsub-status i {
+    font-size: 0.9rem;
+}
+
+.vm-rsub-item-thumb img,
+.vm-rsub-item-thumb span {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.vm-rsub-item-thumb img {
+    object-fit: cover;
+}
+
+.vm-rsub-action-link,
+.vm-rsub-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    width: 100%;
+    padding: 1rem 1.1rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: inherit;
+    text-decoration: none;
+    background: rgba(255, 255, 255, 0.08);
+    transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.vm-rsub-action-link:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.14);
+    color: inherit;
+}
+
+.vm-rsub-action-btn[aria-disabled="true"] {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.vm-rsub-policy-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: #111827;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-decoration: none;
+    border-bottom: 1px solid currentColor;
+    padding-bottom: 0.15rem;
+}
+
+@media (max-width: 767.98px) {
+    body.vm-page-return-submitted .vm-copy-header,
+    body.vm-page-return-submitted .vm-copy-footer,
+    body.vm-page-return-submitted .vm-tablet-alt-header,
+    body.vm-page-return-submitted .vm-tablet-alt-footer,
+    body.vm-page-return-submitted .vm-tab-bnav-shell {
+        display: none !important;
+    }
+
+    .vm-rsub-mobile-only {
+        display: block;
+    }
+
+    .vm-rsub-mobile-main {
+        padding: 1rem 1rem 5.75rem;
+        background: #f7f9fb;
+    }
+
+    .vm-rsub-mobile-hero {
+        position: relative;
+        overflow: hidden;
+        min-height: 250px;
+        padding: 1.35rem;
+        display: flex;
+        align-items: end;
+        background-position: center;
+        background-size: cover;
+        color: #fff;
+        margin-bottom: 1rem;
+    }
+
+    .vm-rsub-mobile-hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(17, 24, 39, 0.18), rgba(17, 24, 39, 0.82));
+    }
+
+    .vm-rsub-mobile-hero__content {
+        position: relative;
+        z-index: 1;
+    }
+
+    .vm-rsub-mobile-kicker {
+        display: inline-flex;
+        padding: 0.35rem 0.6rem;
+        background: #000;
+        color: #fff;
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 0.9rem;
+    }
+
+    .vm-rsub-mobile-hero h1 {
+        margin: 0;
+        font-family: 'Noto Serif', Georgia, serif;
+        font-size: 2rem;
+        line-height: 1.05;
+    }
+
+    .vm-rsub-mobile-hero p {
+        margin: 0.85rem 0 0;
+        color: rgba(255, 255, 255, 0.86);
+        font-size: 0.92rem;
+        line-height: 1.6;
+    }
+
+    .vm-rsub-mobile-card,
+    .vm-rsub-mobile-sidebar-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        padding: 1.1rem;
+        margin-bottom: 1rem;
+    }
+
+    .vm-rsub-mobile-card-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: start;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #eceef0;
+    }
+
+    .vm-rsub-mobile-label {
+        display: block;
+        margin-bottom: 0.25rem;
+        color: #76777d;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+
+    .vm-rsub-mobile-ref {
+        margin: 0;
+        color: #111827;
+        font-size: 1.3rem;
+        font-weight: 800;
+    }
+
+    .vm-rsub-mobile-order {
+        margin: 0.35rem 0 0;
+        color: #54647a;
+        font-size: 0.88rem;
+    }
+
+    .vm-rsub-mobile-section-title {
+        margin: 0 0 0.85rem;
+        color: #111827;
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+    }
+
+    .vm-rsub-mobile-items {
+        display: grid;
+        gap: 0.85rem;
+        margin-bottom: 1rem;
+    }
+
+    .vm-rsub-mobile-item {
+        display: grid;
+        grid-template-columns: 78px minmax(0, 1fr);
+        gap: 0.9rem;
+        padding: 0.85rem;
+        background: #f2f4f6;
+    }
+
+    .vm-rsub-item-thumb {
+        width: 78px;
+        height: 78px;
+        overflow: hidden;
+        background: #e6e8ea;
+    }
+
+    .vm-rsub-mobile-item h3 {
+        margin: 0 0 0.25rem;
+        font-size: 0.98rem;
+        font-weight: 800;
+        color: #111827;
+        line-height: 1.35;
+    }
+
+    .vm-rsub-mobile-item p {
+        margin: 0.18rem 0;
+        color: #54647a;
+        font-size: 0.82rem;
+    }
+
+    .vm-rsub-mobile-finance {
+        display: grid;
+        gap: 0.9rem;
+    }
+
+    .vm-rsub-mobile-finance-card {
+        padding: 0.9rem;
+        background: #f7f9fb;
+        border: 1px solid #eceef0;
+    }
+
+    .vm-rsub-mobile-finance-card h4 {
+        margin: 0 0 0.2rem;
+        font-size: 0.98rem;
+        font-weight: 800;
+        color: #111827;
+    }
+
+    .vm-rsub-mobile-finance-card p {
+        margin: 0;
+        color: #54647a;
+        font-size: 0.82rem;
+    }
+
+    .vm-rsub-mobile-finance-card strong {
+        display: block;
+        margin-top: 0.35rem;
+        color: #111827;
+        font-size: 1.45rem;
+        line-height: 1;
+    }
+
+    .vm-rsub-mobile-note {
+        margin-top: 0.3rem;
+        color: #76777d;
+        font-size: 0.74rem;
+        font-style: italic;
+    }
+
+    .vm-rsub-mobile-sidebar-card--dark {
+        background: #111827;
+        color: #fff;
+        border-color: #111827;
+    }
+
+    .vm-rsub-mobile-sidebar-card--dark h3,
+    .vm-rsub-mobile-sidebar-card--dark p {
+        color: inherit;
+    }
+
+    .vm-rsub-mobile-sidebar-card--dark .vm-rsub-policy-link {
+        color: #fff;
+    }
+
+    .vm-rsub-mobile-track {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-top: 1rem;
+        color: #111827;
+        font-size: 0.82rem;
+        font-weight: 700;
+        text-decoration: none;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1199.98px) {
+    body.vm-page-return-submitted .vm-copy-header,
+    body.vm-page-return-submitted .vm-copy-footer,
+    body.vm-page-return-submitted > footer {
+        display: none !important;
+    }
+
+    .vm-rsub-tablet-only {
+        display: block;
+    }
+
+    .vm-rsub-tablet-main {
+        padding: 6.5rem 0 5rem;
+        background: #f7f9fb;
+    }
+
+    .vm-rsub-tablet-hero {
+        position: relative;
+        overflow: hidden;
+        min-height: 330px;
+        display: flex;
+        align-items: end;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        background-position: center;
+        background-size: cover;
+        color: #fff;
+    }
+
+    .vm-rsub-tablet-hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(17, 24, 39, 0.2), rgba(17, 24, 39, 0.84));
+    }
+
+    .vm-rsub-tablet-hero__content {
+        position: relative;
+        z-index: 1;
+        max-width: 34rem;
+    }
+
+    .vm-rsub-tablet-hero__content h1 {
+        margin: 0;
+        font-family: 'Noto Serif', Georgia, serif;
+        font-size: 3.15rem;
+        line-height: 1.02;
+    }
+
+    .vm-rsub-tablet-hero__content p {
+        margin: 1rem 0 0;
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 0.98rem;
+        line-height: 1.7;
+    }
+
+    .vm-rsub-tablet-shell {
+        display: grid;
+        gap: 2rem;
+    }
+
+    .vm-rsub-tablet-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+        gap: 2rem;
+        align-items: start;
+    }
+
+    .vm-rsub-tablet-panel,
+    .vm-rsub-tablet-sidebar {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 20px 40px rgba(25, 28, 30, 0.06);
+    }
+
+    .vm-rsub-tablet-panel {
+        padding: 2rem;
+    }
+
+    .vm-rsub-tablet-panel-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: start;
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid #eceef0;
+    }
+
+    .vm-rsub-tablet-ref {
+        margin: 0;
+        color: #111827;
+        font-size: 1.9rem;
+        font-weight: 800;
+    }
+
+    .vm-rsub-tablet-order {
+        margin: 0.45rem 0 0;
+        color: #54647a;
+        font-size: 0.92rem;
+    }
+
+    .vm-rsub-tablet-items {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .vm-rsub-tablet-item {
+        display: flex;
+        gap: 1rem;
+        padding: 1rem;
+        background: #f2f4f6;
+    }
+
+    .vm-rsub-tablet-item .vm-rsub-item-thumb {
+        width: 88px;
+        height: 88px;
+        flex: 0 0 88px;
+    }
+
+    .vm-rsub-tablet-item h3 {
+        margin: 0 0 0.25rem;
+        color: #111827;
+        font-size: 1rem;
+        font-weight: 800;
+        line-height: 1.35;
+    }
+
+    .vm-rsub-tablet-item p {
+        margin: 0.18rem 0;
+        color: #54647a;
+        font-size: 0.84rem;
+    }
+
+    .vm-rsub-tablet-finance {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #eceef0;
+    }
+
+    .vm-rsub-tablet-finance-card {
+        padding: 1rem;
+        border: 1px solid #eceef0;
+        background: #f7f9fb;
+    }
+
+    .vm-rsub-tablet-finance-card h4 {
+        margin: 0 0 0.3rem;
+        color: #111827;
+        font-size: 1rem;
+        font-weight: 800;
+    }
+
+    .vm-rsub-tablet-finance-card p {
+        margin: 0;
+        color: #54647a;
+        font-size: 0.86rem;
+    }
+
+    .vm-rsub-tablet-finance-card strong {
+        display: block;
+        margin-top: 0.45rem;
+        color: #111827;
+        font-size: 1.65rem;
+        line-height: 1;
+    }
+
+    .vm-rsub-tablet-sidebar {
+        padding: 2rem;
+    }
+
+    .vm-rsub-tablet-sidebar--dark {
+        background: #111827;
+        color: #fff;
+        border-color: #111827;
+    }
+
+    .vm-rsub-tablet-sidebar--dark .vm-rsub-policy-link {
+        color: #fff;
+    }
+
+    .vm-rsub-tablet-sidebar h3 {
+        margin: 0 0 0.75rem;
+        font-size: 1.2rem;
+        font-weight: 800;
+    }
+
+    .vm-rsub-tablet-sidebar p {
+        margin: 0;
+        color: inherit;
+        font-size: 0.9rem;
+        line-height: 1.7;
+    }
+
+    .vm-rsub-tablet-actions {
+        display: grid;
+        gap: 0.9rem;
+        margin-top: 1.25rem;
+    }
+}
+
+@media (min-width: 1200px) {
+    .vm-rsub-desktop-only {
+        display: block;
+    }
+
+    .vm-rsub-desktop-hero {
+        position: relative;
+        height: 400px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 2rem;
+        background-position: center;
+        background-size: cover;
+        text-align: center;
+        color: #fff;
+    }
+
+    .vm-rsub-desktop-hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(247, 249, 251, 0.62), rgba(17, 24, 39, 0.58));
+    }
+
+    .vm-rsub-desktop-hero__content {
+        position: relative;
+        z-index: 1;
+        max-width: 62rem;
+    }
+
+    .vm-rsub-desktop-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.45rem 0.85rem;
+        background: #000;
+        color: #fff;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        margin-bottom: 1rem;
+    }
+
+    .vm-rsub-desktop-hero__content h1 {
+        margin: 0;
+        color: #fff;
+        font-family: 'Noto Serif', Georgia, serif;
+        font-size: 4.4rem;
+        line-height: 0.98;
+        text-transform: uppercase;
+    }
+
+    .vm-rsub-desktop-hero__content p {
+        max-width: 44rem;
+        margin: 1.1rem auto 0;
+        color: rgba(255, 255, 255, 0.86);
+        font-size: 1rem;
+        line-height: 1.8;
+    }
+
+    .vm-rsub-desktop-canvas {
+        position: relative;
+        z-index: 2;
+        max-width: 1320px;
+        margin: -5rem auto 0;
+        padding: 0 2rem 6rem;
+    }
+
+    .vm-rsub-desktop-grid {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 2rem;
+        align-items: start;
+    }
+
+    .vm-rsub-desktop-panel {
+        grid-column: span 8;
+        background: #fff;
+        box-shadow: 0 20px 40px rgba(25, 28, 30, 0.06);
+        overflow: hidden;
+    }
+
+    .vm-rsub-desktop-inner {
+        padding: 3rem;
+    }
+
+    .vm-rsub-desktop-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 2rem;
+        align-items: center;
+        margin-bottom: 2.5rem;
+        padding-bottom: 2rem;
+        border-bottom: 1px solid #eceef0;
+    }
+
+    .vm-rsub-desktop-head h2 {
+        margin: 0.15rem 0 0;
+        color: #000;
+        font-size: 2rem;
+        font-weight: 800;
+    }
+
+    .vm-rsub-desktop-subtle {
+        color: #76777d;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+    }
+
+    .vm-rsub-desktop-items-title,
+    .vm-rsub-desktop-finance-title {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin: 0 0 1.25rem;
+        color: #000;
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+    }
+
+    .vm-rsub-desktop-items {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+        margin-bottom: 2.5rem;
+    }
+
+    .vm-rsub-desktop-item {
+        display: flex;
+        gap: 1rem;
+        padding: 1rem;
+        background: #f2f4f6;
+        transition: background 0.25s ease;
+    }
+
+    .vm-rsub-desktop-item:hover {
+        background: #eceef0;
+    }
+
+    .vm-rsub-desktop-item .vm-rsub-item-thumb {
+        width: 88px;
+        height: 88px;
+        flex: 0 0 88px;
+    }
+
+    .vm-rsub-desktop-item h3 {
+        margin: 0 0 0.25rem;
+        color: #000;
+        font-size: 1rem;
+        font-weight: 800;
+    }
+
+    .vm-rsub-desktop-item p {
+        margin: 0.18rem 0;
+        color: #54647a;
+        font-size: 0.82rem;
+    }
+
+    .vm-rsub-desktop-finance {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 2rem;
+        padding-top: 2rem;
+        border-top: 1px solid #eceef0;
+    }
+
+    .vm-rsub-desktop-finance-card {
+        padding: 1.15rem;
+        background: #f2f4f6;
+        border: 1px solid #eceef0;
+    }
+
+    .vm-rsub-desktop-finance-card--accent {
+        background: #e6e8ea;
+    }
+
+    .vm-rsub-desktop-finance-card h4 {
+        margin: 0 0 0.25rem;
+        color: #000;
+        font-size: 1rem;
+        font-weight: 800;
+    }
+
+    .vm-rsub-desktop-finance-card p {
+        margin: 0;
+        color: #54647a;
+        font-size: 0.84rem;
+    }
+
+    .vm-rsub-desktop-finance-card strong {
+        display: block;
+        margin-top: 0.45rem;
+        color: #000;
+        font-size: 2rem;
+        line-height: 1;
+    }
+
+    .vm-rsub-desktop-sidebar {
+        grid-column: span 4;
+        display: grid;
+        gap: 1.5rem;
+    }
+
+    .vm-rsub-desktop-sidebar-card {
+        padding: 2rem;
+        background: #eceef0;
+    }
+
+    .vm-rsub-desktop-sidebar-card--dark {
+        background: #000;
+        color: #fff;
+    }
+
+    .vm-rsub-desktop-sidebar-card--dark .vm-rsub-policy-link {
+        color: #fff;
+    }
+
+    .vm-rsub-desktop-sidebar-card h3 {
+        margin: 0 0 0.9rem;
+        font-size: 1.3rem;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+    }
+
+    .vm-rsub-desktop-sidebar-card p {
+        margin: 0;
+        font-size: 0.88rem;
+        line-height: 1.8;
+        color: inherit;
+    }
+
+    .vm-rsub-desktop-actions {
+        display: grid;
+        gap: 0.9rem;
+        margin-top: 1.5rem;
+    }
+}
+</style>
 {% endblock %}
 
 {% block content %}
