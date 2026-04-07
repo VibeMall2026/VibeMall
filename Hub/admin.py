@@ -1531,7 +1531,7 @@ class WebhookLogAdmin(admin.ModelAdmin):
     list_display = ['id', 'event_type', 'payment_id', 'order_id', 'signature_valid', 'status', 'received_at']
     list_filter = ['event_type', 'signature_valid', 'status', 'received_at']
     search_fields = ['payment_id', 'order_id', 'event_type', 'raw_body']
-    readonly_fields = ['raw_body', 'signature', 'signature_valid', 'created_at', 'updated_at', 'received_at']
+    readonly_fields = ['raw_body', 'signature', 'signature_valid', 'received_at', 'processed_at']
     ordering = ['-received_at']
     
     fieldsets = (
@@ -1546,11 +1546,7 @@ class WebhookLogAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
         ('Processing Status', {
-            'fields': ('status', 'error_message')
-        }),
-        ('Timestamps', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
+            'fields': ('status', 'error_message', 'response_message', 'processed_at', 'processed_by_user')
         }),
     )
 
@@ -1561,18 +1557,21 @@ class VerificationTestLogAdmin(admin.ModelAdmin):
     list_display = ['id', 'user', 'test_type', 'razorpay_order_id', 'webhook_received', 'created_at']
     list_filter = ['test_type', 'webhook_received', 'created_at']
     search_fields = ['user__username', 'razorpay_order_id', 'razorpay_payment_id']
-    readonly_fields = ['created_at', 'updated_at']
+    readonly_fields = ['created_at', 'webhook_received_at']
     ordering = ['-created_at']
     
     fieldsets = (
         ('Test Info', {
-            'fields': ('user', 'test_type', 'created_at', 'updated_at')
+            'fields': ('user', 'test_type', 'created_at')
+        }),
+        ('Test Details', {
+            'fields': ('upi_id', 'bank_account', 'test_amount', 'test_status')
         }),
         ('Razorpay IDs', {
-            'fields': ('razorpay_order_id', 'razorpay_payment_id')
+            'fields': ('razorpay_order_id', 'razorpay_payment_id', 'razorpay_response')
         }),
         ('Results', {
-            'fields': ('webhook_received', 'verification_status')
+            'fields': ('webhook_received', 'webhook_received_at', 'notes')
         }),
     )
 
