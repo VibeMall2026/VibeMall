@@ -794,6 +794,94 @@ document.addEventListener('DOMContentLoaded', function () {
     // UPI verification function
     // Flag to prevent multiple simultaneous UPI verification requests
     let vmUpiVerificationInProgress = false;
+    let vmUpiVerificationPollTimer = null;
+
+    function stopUpiVerificationPolling() {
+        if (vmUpiVerificationPollTimer) {
+            clearInterval(vmUpiVerificationPollTimer);
+            vmUpiVerificationPollTimer = null;
+        }
+    }
+
+    function startUpiVerificationPolling(orderId) {
+        if (!orderId) return;
+
+        const statusDiv = document.getElementById('vmRpUpiVerifyStatusDesktop');
+        const nameDiv = document.getElementById('vmRpUpiNameDesktop');
+        const nameValue = document.getElementById('vmRpUpiNameValueDesktop');
+        const verifyBtn = document.getElementById('vmRpUpiVerifyBtnDesktop');
+
+        stopUpiVerificationPolling();
+
+        const pollOnce = async () => {
+            try {
+                const response = await fetch(`/api/upi-verification-status/?order_id=${encodeURIComponent(orderId)}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (!response.ok) {
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (data.status === 'VERIFIED' && data.is_verified === true) {
+                    stopUpiVerificationPolling();
+                    sessionStorage.removeItem('upi_payment_pending');
+
+                    if (statusDiv) {
+                        statusDiv.style.display = 'block';
+                        statusDiv.style.background = '#dff0d8';
+                        statusDiv.style.color = '#1f7a1f';
+                        statusDiv.textContent = `✅ UPI verified successfully for ${data.upi_id}.`; 
+                    }
+
+                    if (nameDiv && nameValue) {
+                        nameDiv.style.display = 'block';
+                        nameValue.textContent = data.upi_id || 'Verified';
+                    }
+
+                    if (verifyBtn) {
+                        verifyBtn.disabled = true;
+                        verifyBtn.textContent = 'Verified ✓';
+                        verifyBtn.style.background = '#ddd';
+                    }
+                    return;
+                }
+
+                if (data.status === 'FAILED') {
+                    stopUpiVerificationPolling();
+                    sessionStorage.removeItem('upi_payment_pending');
+
+                    if (statusDiv) {
+                        statusDiv.style.display = 'block';
+                        statusDiv.style.background = '#fee';
+                        statusDiv.style.color = '#c33';
+                        statusDiv.textContent = `❌ ${data.message || 'UPI verification failed.'}`;
+                    }
+
+                    if (verifyBtn) {
+                        verifyBtn.disabled = false;
+                        verifyBtn.textContent = 'Verify';
+                        verifyBtn.style.background = '';
+                    }
+                }
+            } catch (err) {
+                console.warn('UPI verification polling error:', err);
+            }
+        };
+
+        // Immediate check, then periodic polling.
+        pollOnce();
+        vmUpiVerificationPollTimer = setInterval(pollOnce, 5000);
+        setTimeout(() => {
+            stopUpiVerificationPolling();
+            sessionStorage.removeItem('upi_payment_pending');
+        }, 300000); // 5 minutes max polling window
+    }
     
     async function verifyUPIDesktop(e) {
         e.preventDefault();
@@ -869,7 +957,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         Click the button below to proceed with ₹1 verification payment.<br>
                         <strong>You'll be taken to Razorpay to complete the payment via UPI.</strong><br>
                         <br>
-                        <a href="${data.payment_link_url}" style="display: inline-block; padding: 12px 30px; background: #3c95dc; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+                        <a href="${data.payment_link_url}" target="_blank" rel="noopener" style="display: inline-block; padding: 12px 30px; background: #3c95dc; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
                             💳 Open Payment Page
                         </a>
                         <br><br>
@@ -904,6 +992,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 sessionStorage.setItem('upi_order_id', data.order_id);
                 sessionStorage.setItem('upi_payment_link', data.payment_link_url || '');
                 sessionStorage.setItem('upi_payment_pending', 'true');
+                startUpiVerificationPolling(data.order_id);
+
+                if (data.payment_link_url) {
+                    window.open(data.payment_link_url, '_blank', 'noopener');
+                }
                 
                 console.log('UPI verification ready:', {order_id: data.order_id, checkout_link: data.payment_link_url});
                 
@@ -966,6 +1059,13 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     // Also run after a small delay to catch race conditions
     setTimeout(initializeRefundToggle, 500);
+
+    // Resume polling automatically if a payment is pending after page refresh/back navigation.
+    const pendingOrderId = sessionStorage.getItem('upi_order_id');
+    const pendingFlag = sessionStorage.getItem('upi_payment_pending');
+    if (pendingOrderId && pendingFlag === 'true') {
+        startUpiVerificationPolling(pendingOrderId);
+    }
 
     // Global event listeners for all checkboxes and quantity inputs
     document.addEventListener('change', (e) => {

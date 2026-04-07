@@ -11908,6 +11908,52 @@ def verify_upi(request):
         return JsonResponse({'valid': False, 'error': f'Error: {str(e)}'}, status=500)
 
 
+@login_required(login_url='login')
+@require_http_methods(["GET"])
+def upi_verification_status(request):
+    """Return current UPI verification state for the logged-in user.
+
+    Query params:
+    - order_id (optional): specific Razorpay order id to check.
+    """
+    try:
+        from Hub.models import UPIVerification
+        order_id = (request.GET.get('order_id') or '').strip()
+
+        qs = UPIVerification.objects.filter(user=request.user)
+        if order_id:
+            qs = qs.filter(razorpay_order_id=order_id)
+
+        upi_verification = qs.order_by('-id').first()
+        if not upi_verification:
+            return JsonResponse({
+                'status': 'not_found',
+                'message': 'No UPI verification record found.'
+            }, status=404)
+
+        if upi_verification.status == 'VERIFIED' and upi_verification.is_verified:
+            message = f'UPI {upi_verification.upi_id} verified successfully.'
+        elif upi_verification.status == 'FAILED':
+            message = upi_verification.verification_error or 'UPI verification failed.'
+        elif upi_verification.status == 'WAITING_PAYMENT':
+            message = 'Waiting for payment confirmation from Razorpay...'
+        else:
+            message = 'UPI verification is in progress.'
+
+        return JsonResponse({
+            'status': upi_verification.status,
+            'is_verified': upi_verification.is_verified,
+            'upi_id': upi_verification.upi_id,
+            'order_id': upi_verification.razorpay_order_id,
+            'payment_id': upi_verification.razorpay_payment_id,
+            'verified_at': upi_verification.verified_at.isoformat() if upi_verification.verified_at else None,
+            'message': message,
+        })
+    except Exception as e:
+        logger.error(f'UPI status check error: {str(e)}')
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
 # ============================================================================
 # REFUND SYSTEM - Process online payment refunds
 # ============================================================================
