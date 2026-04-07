@@ -38,6 +38,9 @@ from .models import (
     ResellerProfile,
     ResellerEarning,
     PayoutTransaction,
+    # Webhook logging models
+    WebhookLog,
+    VerificationTestLog,
 )
 
 # Import improved Reel admin classes
