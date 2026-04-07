@@ -20,6 +20,7 @@ class ComingSoonModeMiddleware:
             '/admin-panel/',
             '/admin/',
             '/api/products/search/',
+            '/api/razorpay-webhook/',
             '/static/',
             '/media/',
             '/favicon.ico',
