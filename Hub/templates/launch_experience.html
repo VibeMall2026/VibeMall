@@ -74,7 +74,7 @@
 
         .launch-stage {
             position: relative;
-            min-height: min(76vh, 820px);
+            min-height: min(72vh, 760px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -82,18 +82,18 @@
 
         .hero-copy {
             width: 100%;
-            max-width: 980px;
+            max-width: 920px;
             margin: 0 auto;
             text-align: center;
         }
 
         .hero-title {
-            font-size: clamp(3.3rem, 7vw, 6.6rem);
-            line-height: 0.92;
+            font-size: clamp(3rem, 6vw, 5.8rem);
+            line-height: 0.9;
         }
 
         .hero-summary {
-            max-width: 760px;
+            max-width: 700px;
             margin-left: auto;
             margin-right: auto;
         }
@@ -107,13 +107,13 @@
 
         .hero-metrics {
             width: 100%;
-            max-width: 980px;
-            margin: 2.5rem auto 0;
+            max-width: 900px;
+            margin: 2rem auto 0;
         }
 
         .countdown-ring {
             position: relative;
-            width: min(60vw, 320px);
+            width: min(54vw, 286px);
             aspect-ratio: 1;
             border-radius: 999px;
             display: grid;
@@ -190,7 +190,7 @@
         }
 
         .launch-state-panel {
-            width: min(100%, 640px);
+            width: min(100%, 560px);
         }
 
         @keyframes slowZoom {
@@ -224,7 +224,7 @@
 
         @media (max-width: 1280px) {
             .launch-stage {
-                min-height: min(78vh, 760px);
+                min-height: min(72vh, 700px);
             }
         }
 
@@ -240,15 +240,15 @@
 
         @media (max-width: 768px) {
             .hero-title {
-                font-size: clamp(2.9rem, 15vw, 4.4rem);
+                font-size: clamp(2.6rem, 14vw, 4rem);
             }
 
             .hero-metrics {
-                margin-top: 1.75rem;
+                margin-top: 1.35rem;
             }
 
             .countdown-ring {
-                width: min(78vw, 280px);
+                width: min(76vw, 250px);
             }
         }
     </style>
@@ -266,11 +266,11 @@
 
     <div class="light-burst" id="lightBurst"></div>
 
-    <main class="relative z-10 flex min-h-screen items-center justify-center px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-        <section class="launch-shell shadow-panel relative w-full max-w-[92rem] overflow-hidden rounded-[2rem] border border-white/60 px-5 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10">
+    <main class="relative z-10 flex min-h-screen items-center justify-center px-4 py-4 sm:px-5 sm:py-5 lg:px-7 lg:py-6">
+        <section class="launch-shell shadow-panel relative w-full max-w-[88rem] overflow-hidden rounded-[2rem] border border-white/60 px-5 py-5 sm:px-7 sm:py-7 lg:px-10 lg:py-8">
             <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-black/20 to-transparent"></div>
 
-            <div class="mb-6 flex items-center justify-between gap-4">
+            <div class="mb-5 flex items-center justify-between gap-4">
                 <div>
                     <p class="font-headline text-sm font-semibold uppercase tracking-[0.38em] text-ink-soft">VibeMall</p>
                     <div class="mt-2 h-px w-16 bg-black/70"></div>
@@ -283,20 +283,20 @@
 
             <div class="launch-stage">
                 <div class="hero-copy launch-visible" id="heroCopy">
-                    <p class="mb-5 inline-flex items-center gap-3 rounded-full border border-black/10 bg-white/50 px-4 py-2 text-[11px] uppercase tracking-[0.34em] text-ink-soft">
+                    <p class="mb-4 inline-flex items-center gap-3 rounded-full border border-black/10 bg-white/50 px-4 py-2 text-[10px] uppercase tracking-[0.34em] text-ink-soft">
                         <span class="h-2 w-2 rounded-full bg-black"></span>
                         The Atelier Awakens
                     </p>
                     <h1 class="hero-title font-serif mx-auto max-w-5xl italic tracking-[-0.05em] text-black">
                         Enter The Private Opening Sequence
                     </h1>
-                    <p class="hero-summary mt-5 text-base leading-7 text-ink-soft sm:text-lg">
+                    <p class="hero-summary mt-4 text-[15px] leading-7 text-ink-soft sm:text-[17px]">
                         This route keeps your current coming soon page exactly as it is. Only this private launch path unlocks a cinematic 15-second reverse countdown and opens the real VibeMall home experience.
                     </p>
 
-                    <div class="launch-actions mt-8">
+                    <div class="launch-actions mt-7">
                         <button
-                            class="shimmer group inline-flex items-center gap-3 rounded-full bg-black px-7 py-4 text-sm font-semibold uppercase tracking-[0.28em] text-white transition duration-300 hover:-translate-y-0.5 hover:shadow-halo"
+                            class="shimmer group inline-flex items-center gap-3 rounded-full bg-black px-7 py-3.5 text-[13px] font-semibold uppercase tracking-[0.28em] text-white transition duration-300 hover:-translate-y-0.5 hover:shadow-halo"
                             id="launchButton"
                             type="button"
                         >
@@ -307,17 +307,17 @@
                     </div>
 
                     <div class="hero-metrics grid gap-4 md:grid-cols-3">
-                        <article class="rounded-3xl border border-black/8 bg-white/45 p-5">
+                        <article class="rounded-3xl border border-black/8 bg-white/45 p-4">
                             <p class="text-[11px] uppercase tracking-[0.28em] text-ink-soft">Mode</p>
                             <h2 class="mt-3 font-headline text-lg font-bold text-black">Private Route Only</h2>
                             <p class="mt-2 text-sm leading-6 text-ink-soft">Your public coming-soon page stays untouched.</p>
                         </article>
-                        <article class="rounded-3xl border border-black/8 bg-white/45 p-5">
+                        <article class="rounded-3xl border border-black/8 bg-white/45 p-4">
                             <p class="text-[11px] uppercase tracking-[0.28em] text-ink-soft">Countdown</p>
                             <h2 class="mt-3 font-headline text-lg font-bold text-black">15 Second Reverse</h2>
                             <p class="mt-2 text-sm leading-6 text-ink-soft">The button disappears and the launch takes over the screen.</p>
                         </article>
-                        <article class="rounded-3xl border border-black/8 bg-white/45 p-5">
+                        <article class="rounded-3xl border border-black/8 bg-white/45 p-4">
                             <p class="text-[11px] uppercase tracking-[0.28em] text-ink-soft">Destination</p>
                             <h2 class="mt-3 font-headline text-lg font-bold text-black">Real Home Page</h2>
                             <p class="mt-2 text-sm leading-6 text-ink-soft">After the finale, visitors land on your actual homepage.</p>
@@ -326,11 +326,11 @@
                 </div>
 
                 <div class="launch-state launch-hidden" id="launchState">
-                    <div class="launch-state-panel rounded-[2rem] border border-black/10 bg-white/60 p-6 text-center shadow-halo sm:p-8">
+                    <div class="launch-state-panel rounded-[2rem] border border-black/10 bg-white/60 p-5 text-center shadow-halo sm:p-7">
                         <p class="text-[11px] uppercase tracking-[0.42em] text-ink-soft">Accessing The Vault</p>
                         <div class="countdown-ring countdown-pulse mt-8 mx-auto" id="countdownRing" style="--progress: 0deg;">
                             <div class="relative z-10 flex flex-col items-center">
-                                <span class="font-headline text-[5rem] font-extrabold leading-none tracking-[-0.08em] text-black sm:text-[6.5rem]" id="countdownValue">15</span>
+                                <span class="font-headline text-[4.4rem] font-extrabold leading-none tracking-[-0.08em] text-black sm:text-[5.8rem]" id="countdownValue">15</span>
                                 <span class="mt-3 text-[11px] uppercase tracking-[0.36em] text-ink-soft">Seconds Remaining</span>
                             </div>
                         </div>
