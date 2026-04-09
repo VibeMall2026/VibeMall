@@ -4,6 +4,7 @@ from django.contrib.auth import logout
 from django.urls import reverse
 from django.utils import timezone
 from django.conf import settings
+from django.core import signing
 from datetime import timedelta
 
 
@@ -17,6 +18,7 @@ class ComingSoonModeMiddleware:
         self.get_response = get_response
         self.allowed_prefixes = (
             '/coming-soon/',
+            '/launch/',
             '/admin-panel/',
             '/admin/',
             '/api/products/search/',
@@ -47,6 +49,16 @@ class ComingSoonModeMiddleware:
 
         if any(path.startswith(prefix) for prefix in self.allowed_prefixes):
             return self.get_response(request)
+
+        if path == '/':
+            launch_token = request.GET.get('launch_token')
+            if launch_token:
+                signer = signing.TimestampSigner(salt='launch-home')
+                try:
+                    if signer.unsign(launch_token, max_age=300) == 'unlock':
+                        return self.get_response(request)
+                except (signing.BadSignature, signing.SignatureExpired):
+                    pass
 
         # Check for bypass parameter (for development access)
         if request.GET.get('bypass') == 'true':

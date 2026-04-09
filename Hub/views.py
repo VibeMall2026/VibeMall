@@ -23,6 +23,7 @@ from django.template.loader import render_to_string
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
+from django.core import signing
 from django.conf import settings
 from django.core.cache import cache
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -6256,6 +6257,20 @@ def coming_soon(request):
         'launch_date_display': launch_date.strftime('%d %b %Y'),
     }
     return render(request, 'coming_soon.html', context)
+
+
+def launch_experience(request):
+    token = signing.TimestampSigner(salt='launch-home').sign('unlock')
+    home_url = f"{reverse('index')}?launch_token={token}"
+
+    return HttpResponse(
+        render_to_string(
+            'launch_experience.html',
+            {
+                'home_url': home_url,
+            },
+        )
+    )
 
 
 def login_view(request: HttpRequest) -> HttpResponse:

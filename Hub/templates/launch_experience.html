@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>VibeMall | The Atelier Awakens</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;500;700&family=Noto+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        background: "#f7f9fb",
+                        surface: "#f7f9fb",
+                        "surface-soft": "#eceef0",
+                        ink: "#16181a",
+                        "ink-soft": "#5b6066",
+                        accent: "#000000",
+                        gold: "#fcdeb5",
+                        line: "rgba(22, 24, 26, 0.14)"
+                    },
+                    fontFamily: {
+                        headline: ["Plus Jakarta Sans", "sans-serif"],
+                        body: ["Inter", "sans-serif"],
+                        serif: ["Noto Serif", "serif"]
+                    },
+                    boxShadow: {
+                        halo: "0 30px 80px rgba(16, 18, 20, 0.18)",
+                        panel: "0 24px 60px rgba(16, 18, 20, 0.08)"
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        body {
+            overflow: hidden;
+            background:
+                radial-gradient(circle at top left, rgba(252, 222, 181, 0.45), transparent 32%),
+                radial-gradient(circle at 80% 20%, rgba(0, 0, 0, 0.08), transparent 28%),
+                linear-gradient(135deg, rgba(247, 249, 251, 0.96), rgba(233, 237, 240, 0.94));
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: "FILL" 0, "wght" 300, "GRAD" 0, "opsz" 24;
+        }
+
+        .hero-image {
+            animation: slowZoom 18s ease-in-out infinite alternate;
+        }
+
+        .grain::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+            background-size: 120px 120px;
+            mix-blend-mode: soft-light;
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        .launch-shell {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0.72));
+            backdrop-filter: blur(16px);
+        }
+
+        .countdown-ring {
+            position: relative;
+            width: min(54vw, 320px);
+            aspect-ratio: 1;
+            border-radius: 999px;
+            display: grid;
+            place-items: center;
+            background:
+                radial-gradient(circle at center, rgba(255, 255, 255, 0.86) 0 40%, rgba(255, 255, 255, 0) 41%),
+                conic-gradient(from -90deg, rgba(0, 0, 0, 0.92) var(--progress), rgba(0, 0, 0, 0.08) 0);
+            box-shadow: 0 30px 80px rgba(12, 14, 16, 0.16);
+            transition: transform 0.45s ease, opacity 0.45s ease;
+        }
+
+        .countdown-ring::after {
+            content: "";
+            position: absolute;
+            inset: 16px;
+            border-radius: inherit;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .countdown-ring::before {
+            content: "";
+            position: absolute;
+            inset: -18px;
+            border-radius: inherit;
+            border: 1px solid rgba(255, 255, 255, 0.42);
+            opacity: 0.55;
+        }
+
+        .countdown-pulse {
+            animation: vaultPulse 1.15s ease-in-out infinite;
+        }
+
+        .launch-hidden {
+            opacity: 0;
+            transform: translateY(18px) scale(0.98);
+            pointer-events: none;
+        }
+
+        .launch-visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        .light-burst {
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(circle at center, rgba(255, 255, 255, 0.98) 0 12%, rgba(255, 255, 255, 0.7) 26%, rgba(255, 255, 255, 0) 72%);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s ease, transform 1s ease;
+            transform: scale(0.85);
+            z-index: 40;
+        }
+
+        .light-burst.active {
+            opacity: 1;
+            transform: scale(1.25);
+        }
+
+        .hero-copy,
+        .launch-state {
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        @keyframes slowZoom {
+            from { transform: scale(1); }
+            to { transform: scale(1.08); }
+        }
+
+        @keyframes vaultPulse {
+            0% { transform: scale(0.98); }
+            50% { transform: scale(1); }
+            100% { transform: scale(0.98); }
+        }
+
+        @keyframes shimmer {
+            from { transform: translateX(-120%); }
+            to { transform: translateX(120%); }
+        }
+
+        .shimmer {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .shimmer::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(110deg, transparent 0%, rgba(255, 255, 255, 0.75) 50%, transparent 100%);
+            animation: shimmer 2.2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="bg-background text-ink font-body">
+    <div class="fixed inset-0 overflow-hidden">
+        <img
+            alt="VibeMall cinematic interior"
+            class="hero-image h-full w-full object-cover brightness-[0.82] saturate-[0.88]"
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDX6kW09hmF6FEAdAZt4VRMCvxBJrOBDdPcdnSI3qdYMtK-FbgK8CkFYfAPDyhac7a15jwPfS2_N93DVpvg9WcnPnsAK9pQjQjxFW8ZA_TVj0CCNyCGEVJUvfoZsL4B5s8EKNWE8VJawzFqDH2bgsgZG4Q8M06ykMYlVZ5oWgsxvES8RayucgsjaJMyPgZ6MqMpQQXhILCgJCNWExv5LTbsN6V8bLvcUtv_PONeHRmXAyRDNizb6yHvlNMbj17d9ub_aVjZzlbNvQs"
+        >
+        <div class="grain absolute inset-0 bg-[linear-gradient(to_bottom,rgba(247,249,251,0.22),rgba(247,249,251,0.84))]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(247,249,251,0.16)_44%,rgba(247,249,251,0.8)_100%)]"></div>
+    </div>
+
+    <div class="light-burst" id="lightBurst"></div>
+
+    <main class="relative z-10 flex min-h-screen items-center justify-center px-6 py-10">
+        <section class="launch-shell shadow-panel relative w-full max-w-6xl rounded-[2rem] border border-white/60 px-6 py-8 sm:px-10 sm:py-10 lg:px-16 lg:py-14">
+            <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-black/20 to-transparent"></div>
+
+            <div class="mb-8 flex items-center justify-between gap-4">
+                <div>
+                    <p class="font-headline text-sm font-semibold uppercase tracking-[0.38em] text-ink-soft">VibeMall</p>
+                    <div class="mt-2 h-px w-16 bg-black/70"></div>
+                </div>
+                <div class="hidden items-center gap-3 text-xs uppercase tracking-[0.3em] text-ink-soft sm:flex">
+                    <span class="material-symbols-outlined text-[18px]">diamond</span>
+                    Private Launch Route
+                </div>
+            </div>
+
+            <div class="grid items-center gap-10 lg:grid-cols-[1.08fr_0.92fr]">
+                <div class="hero-copy launch-visible" id="heroCopy">
+                    <p class="mb-5 inline-flex items-center gap-3 rounded-full border border-black/10 bg-white/50 px-4 py-2 text-[11px] uppercase tracking-[0.34em] text-ink-soft">
+                        <span class="h-2 w-2 rounded-full bg-black"></span>
+                        The Atelier Awakens
+                    </p>
+                    <h1 class="font-serif max-w-3xl text-5xl italic leading-[0.95] tracking-[-0.04em] text-black sm:text-6xl lg:text-8xl">
+                        Enter The Private Opening Sequence
+                    </h1>
+                    <p class="mt-6 max-w-2xl text-base leading-7 text-ink-soft sm:text-lg">
+                        This route keeps your current coming soon page exactly as it is. Only this private launch path unlocks a cinematic 15-second reverse countdown and opens the real VibeMall home experience.
+                    </p>
+
+                    <div class="mt-10 flex flex-wrap items-center gap-4">
+                        <button
+                            class="shimmer group inline-flex items-center gap-3 rounded-full bg-black px-7 py-4 text-sm font-semibold uppercase tracking-[0.28em] text-white transition duration-300 hover:-translate-y-0.5 hover:shadow-halo"
+                            id="launchButton"
+                            type="button"
+                        >
+                            Begin Launch
+                            <span class="material-symbols-outlined text-[18px] transition duration-300 group-hover:translate-x-1">arrow_forward</span>
+                        </button>
+                        <p class="text-sm text-ink-soft">Once started, the vault sequence runs automatically.</p>
+                    </div>
+
+                    <div class="mt-12 grid gap-4 sm:grid-cols-3">
+                        <article class="rounded-3xl border border-black/8 bg-white/45 p-5">
+                            <p class="text-[11px] uppercase tracking-[0.28em] text-ink-soft">Mode</p>
+                            <h2 class="mt-3 font-headline text-lg font-bold text-black">Private Route Only</h2>
+                            <p class="mt-2 text-sm leading-6 text-ink-soft">Your public coming-soon page stays untouched.</p>
+                        </article>
+                        <article class="rounded-3xl border border-black/8 bg-white/45 p-5">
+                            <p class="text-[11px] uppercase tracking-[0.28em] text-ink-soft">Countdown</p>
+                            <h2 class="mt-3 font-headline text-lg font-bold text-black">15 Second Reverse</h2>
+                            <p class="mt-2 text-sm leading-6 text-ink-soft">The button disappears and the launch takes over the screen.</p>
+                        </article>
+                        <article class="rounded-3xl border border-black/8 bg-white/45 p-5">
+                            <p class="text-[11px] uppercase tracking-[0.28em] text-ink-soft">Destination</p>
+                            <h2 class="mt-3 font-headline text-lg font-bold text-black">Real Home Page</h2>
+                            <p class="mt-2 text-sm leading-6 text-ink-soft">After the finale, visitors land on your actual homepage.</p>
+                        </article>
+                    </div>
+                </div>
+
+                <div class="launch-state launch-hidden flex flex-col items-center justify-center rounded-[2rem] border border-black/10 bg-white/55 p-6 text-center sm:p-8 lg:min-h-[34rem]" id="launchState">
+                    <p class="text-[11px] uppercase tracking-[0.42em] text-ink-soft">Accessing The Vault</p>
+                    <div class="countdown-ring countdown-pulse mt-8" id="countdownRing" style="--progress: 0deg;">
+                        <div class="relative z-10 flex flex-col items-center">
+                            <span class="font-headline text-[5rem] font-extrabold leading-none tracking-[-0.08em] text-black sm:text-[6.5rem]" id="countdownValue">15</span>
+                            <span class="mt-3 text-[11px] uppercase tracking-[0.36em] text-ink-soft">Seconds Remaining</span>
+                        </div>
+                    </div>
+                    <p class="mt-8 max-w-sm text-sm leading-7 text-ink-soft sm:text-base" id="countdownLabel">
+                        Preparing the live VibeMall gallery for its reveal.
+                    </p>
+                    <div class="mt-8 h-px w-full max-w-xs bg-gradient-to-r from-transparent via-black/20 to-transparent"></div>
+                    <div class="mt-8 flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] text-ink-soft">
+                        <span class="material-symbols-outlined text-[16px]">auto_awesome</span>
+                        Launch sequence in motion
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const launchButton = document.getElementById("launchButton");
+        const heroCopy = document.getElementById("heroCopy");
+        const launchState = document.getElementById("launchState");
+        const countdownValue = document.getElementById("countdownValue");
+        const countdownRing = document.getElementById("countdownRing");
+        const countdownLabel = document.getElementById("countdownLabel");
+        const lightBurst = document.getElementById("lightBurst");
+        const initialHomeUrl = "{{ home_url|escapejs }}";
+
+        let timerId = null;
+
+        function setProgress(secondsRemaining, totalSeconds) {
+            const completed = totalSeconds - secondsRemaining;
+            const percent = completed / totalSeconds;
+            countdownRing.style.setProperty("--progress", `${Math.max(percent * 360, 0)}deg`);
+        }
+
+        function revealLaunchState() {
+            heroCopy.classList.remove("launch-visible");
+            heroCopy.classList.add("launch-hidden");
+            launchState.classList.remove("launch-hidden");
+            launchState.classList.add("launch-visible");
+        }
+
+        function finishSequence() {
+            countdownValue.textContent = "OPEN";
+            countdownValue.classList.remove("text-[5rem]", "sm:text-[6.5rem]");
+            countdownValue.classList.add("text-[2.7rem]", "sm:text-[4rem]", "tracking-[0.26em]");
+            countdownLabel.textContent = "The showroom is live. Redirecting you to the VibeMall home page now.";
+            countdownRing.classList.remove("countdown-pulse");
+            countdownRing.style.transform = "scale(1.06)";
+            lightBurst.classList.add("active");
+
+            window.setTimeout(() => {
+                window.location.href = initialHomeUrl;
+            }, 1400);
+        }
+
+        function startLaunchCountdown() {
+            if (timerId) {
+                return;
+            }
+
+            launchButton.classList.add("hidden");
+            revealLaunchState();
+
+            const totalSeconds = 15;
+            let secondsRemaining = totalSeconds;
+            countdownValue.textContent = String(secondsRemaining);
+            setProgress(secondsRemaining, totalSeconds);
+
+            timerId = window.setInterval(() => {
+                secondsRemaining -= 1;
+
+                if (secondsRemaining <= 0) {
+                    window.clearInterval(timerId);
+                    timerId = null;
+                    setProgress(0, totalSeconds);
+                    finishSequence();
+                    return;
+                }
+
+                countdownValue.textContent = String(secondsRemaining);
+                setProgress(secondsRemaining, totalSeconds);
+
+                if (secondsRemaining <= 5) {
+                    countdownLabel.textContent = "Final reveal in progress. Hold the frame.";
+                }
+            }, 1000);
+        }
+
+        launchButton.addEventListener("click", startLaunchCountdown);
+    </script>
+</body>
+</html>

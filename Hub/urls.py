@@ -8,6 +8,7 @@ from . import views_new_features
 
 urlpatterns = [
     path('coming-soon/', views.coming_soon, name='coming_soon'),
+    path('launch/the-atelier-awakens/', views.launch_experience, name='launch_experience'),
 
     # Admin Panel URLs
     path('admin-panel/', views.admin_dashboard, name='admin_dashboard'),
