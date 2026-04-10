@@ -1136,6 +1136,48 @@ def _register_heif_opener():
         pass
 
 
+def _register_avif_opener():
+    try:
+        import pillow_avif  # noqa: F401
+    except Exception:
+        pass
+
+
+def _load_image_from_content(content, content_type=''):
+    _register_avif_opener()
+    _register_heif_opener()
+
+    pil_error = None
+    try:
+        image = PILImage.open(BytesIO(content))
+        image.load()
+        return image
+    except Exception as exc:
+        pil_error = exc
+
+    try:
+        import pillow_heif
+        heif = pillow_heif.read_heif(content)
+        return heif.to_pillow()
+    except Exception:
+        pass
+
+    try:
+        import pillow_avif  # noqa: F401
+        image = PILImage.open(BytesIO(content))
+        image.load()
+        return image
+    except Exception:
+        pass
+
+    if 'avif' in (content_type or '').lower():
+        raise ValueError(
+            'Unsupported AVIF image format. Install pillow-avif-plugin and restart the app.'
+        ) from pil_error
+
+    raise ValueError(f'Unsupported image format. Error: {pil_error}. Try JPG, PNG, or AVIF.')
+
+
 def _safe_edit_photo_path_from_url(url):
     media_root = getattr(settings, 'MEDIA_ROOT', None) or os.path.join(settings.BASE_DIR, 'media')
     media_url = getattr(settings, 'MEDIA_URL', '/media/')
@@ -1252,25 +1294,10 @@ def convert_url_to_png(image_url, crop_box=None, crop_ratio=None):
     if content_type and 'image/' not in content_type and 'avif' not in content_type:
         raise ValueError('URL did not return an image.')
 
-    # Register AVIF plugin
     try:
-        import pillow_avif
-    except ImportError:
-        pass  # Plugin not available, continue anyway
-    
-    _register_heif_opener()
-
-    image = None
-    first_error = None
-    
-    # Try PIL first (with AVIF plugin if available)
-    try:
-        image = PILImage.open(BytesIO(response.content))
-        image.load()
-    except Exception as e:
-        first_error = str(e)
-        # If PIL failed, raise error with details
-        raise ValueError(f'Unsupported image format. Error: {first_error}. Try JPG or PNG.')
+        image = _load_image_from_content(response.content, content_type=content_type)
+    except ValueError as exc:
+        raise ValueError(str(exc)) from exc
 
     if crop_box is None and crop_ratio:
         try:
@@ -2559,10 +2586,8 @@ def admin_edit_photo_preview(request):
         return HttpResponse('URL did not return an image', status=400)
 
     content = response.content
-    _register_heif_opener()
     try:
-        image = PILImage.open(BytesIO(content))
-        image.load()
+        image = _load_image_from_content(content, content_type=content_type)
         image = image.convert('RGBA')
         output = BytesIO()
         image.save(output, format='PNG')
