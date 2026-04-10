@@ -2541,14 +2541,24 @@ def admin_edit_photo(request):
                     errors.append(f"{url}: {exc}")
 
     folder_index = build_folder_index(product_image_root)
+    total_subcategories = sum(len(sub_index) for sub_index in folder_index.values())
+    total_product_folders = sum(
+        len(folder_numbers)
+        for sub_index in folder_index.values()
+        for folder_numbers in sub_index.values()
+    )
     return render(request, 'admin_panel/edit_photo.html', {
         'results': results,
         'errors': errors,
         'show_downloads': show_downloads,
         'saved_message': saved_message,
         'resize_result': resize_result,
+        'folder_index': folder_index,
         'folder_index_json': json.dumps(folder_index),
         'category_options': sorted(folder_index.keys()),
+        'total_categories': len(folder_index),
+        'total_subcategories': total_subcategories,
+        'total_product_folders': total_product_folders,
         'product_image_root': product_image_root,
     })
 
