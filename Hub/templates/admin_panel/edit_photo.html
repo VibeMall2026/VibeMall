@@ -179,7 +179,29 @@
                 <div class="alert alert-info" role="alert">
                     Base path: {{ product_image_root }}
                 </div>
-                <form method="POST" id="save-images-form" class="mb-4">
+
+                <form method="POST" class="row g-2 align-items-end mb-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="detect_from_web">
+                    {% for item in results %}
+                        <input type="hidden" name="converted_urls" value="{{ item.url }}">
+                    {% endfor %}
+                    <div class="col-md-9">
+                        <label class="form-label" for="source_page_url">Product/Page URL</label>
+                        <input type="url" class="form-control" id="source_page_url" name="source_page_url" value="{{ source_page_url|default:'' }}" placeholder="https://example.com/product-page">
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-outline-primary w-100">Catch From Web</button>
+                    </div>
+                </form>
+
+                {% if detected_message %}
+                <div class="alert alert-success" role="alert">
+                    {{ detected_message }}
+                </div>
+                {% endif %}
+
+                <form method="POST" id="save-images-form" class="mb-4" data-detected-category="{{ detected_category|default:'' }}" data-detected-subcategory="{{ detected_subcategory|default:'' }}" data-detected-folder="{{ detected_next_folder|default:'' }}">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="save_to_folder">
                     <input type="hidden" name="main_category" id="main_category_value">
@@ -398,6 +420,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const mainValueField = document.getElementById('main_category_value');
     const subValueField = document.getElementById('sub_category_value');
     const hint = document.getElementById('product_folder_hint');
+    const form = document.getElementById('save-images-form');
 
     if (!mainSelect || !subSelect || !productSelect || !productInput) return;
 
@@ -472,8 +495,30 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    const form = document.getElementById('save-images-form');
     if (form) {
+        const detectedCategory = (form.dataset.detectedCategory || '').trim();
+        const detectedSubcategory = (form.dataset.detectedSubcategory || '').trim();
+        const detectedFolder = (form.dataset.detectedFolder || '').trim();
+
+        if (detectedCategory && folderIndex[detectedCategory]) {
+            mainSelect.value = detectedCategory;
+            mainCustom.value = '';
+            updateSubcategories();
+            if (detectedSubcategory && folderIndex[detectedCategory][detectedSubcategory]) {
+                subSelect.value = detectedSubcategory;
+                subCustom.value = '';
+                updateProductFolders();
+            } else {
+                updateProductFolders();
+            }
+            if (detectedFolder) {
+                productInput.value = detectedFolder;
+                if ([...productSelect.options].some((option) => option.value === detectedFolder)) {
+                    productSelect.value = detectedFolder;
+                }
+            }
+        }
+
         form.addEventListener('submit', () => {
             const mainValue = (mainCustom.value || mainSelect.value || '').trim();
             const subValue = (subCustom.value || subSelect.value || '').trim();

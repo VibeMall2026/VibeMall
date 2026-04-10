@@ -30,6 +30,8 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.files import File
 from decimal import Decimal, InvalidOperation
 from datetime import timedelta, datetime, time
+from difflib import SequenceMatcher
+from html import unescape
 from urllib.parse import urlencode, urlparse
 from typing import Dict, List, Optional, Tuple, Any, Union, Callable
 import ipaddress
@@ -2359,6 +2361,11 @@ def admin_edit_photo(request):
     show_downloads = False
     saved_message = ''
     resize_result = None
+    detected_category = ''
+    detected_subcategory = ''
+    detected_next_folder = ''
+    detected_message = ''
+    source_page_url = ''
 
     product_image_root = r"D:\VibeMallProduct\ProductImage"
 
@@ -2386,6 +2393,137 @@ def admin_edit_photo(request):
                 sub_index[sub_name] = sorted(numbers)
             folder_index[category_name] = sub_index
         return folder_index
+
+    def is_safe_public_url(raw_url):
+        parsed = urlparse(raw_url)
+        if parsed.scheme not in ('http', 'https'):
+            return False, 'Please enter a valid public http/https URL.'
+
+        host = (parsed.hostname or '').lower()
+        if not host:
+            return False, 'URL host is missing.'
+        if host in ('localhost', '127.0.0.1', '::1') or host.endswith('.local'):
+            return False, 'Local URLs are not allowed.'
+
+        try:
+            ip = ipaddress.ip_address(host)
+            if ip.is_private or ip.is_loopback or ip.is_link_local:
+                return False, 'Private network URLs are not allowed.'
+        except ValueError:
+            pass
+
+        return True, ''
+
+    def normalize_match_text(value):
+        value = unescape(value or '')
+        value = re.sub(r'<[^>]+>', ' ', value)
+        value = re.sub(r'[^a-z0-9]+', ' ', value.lower())
+        return re.sub(r'\s+', ' ', value).strip()
+
+    def score_folder_label(label, source_text):
+        label_text = normalize_match_text(label)
+        if not label_text or not source_text:
+            return 0.0
+
+        source_tokens = source_text.split()
+        label_tokens = label_text.split()
+        score = 0.0
+
+        if label_text in source_text:
+            score += 8.0
+
+        for label_token in label_tokens:
+            if label_token in source_tokens:
+                score += 3.0
+                continue
+
+            best_ratio = 0.0
+            for source_token in source_tokens:
+                ratio = SequenceMatcher(None, label_token, source_token).ratio()
+                if ratio > best_ratio:
+                    best_ratio = ratio
+            if best_ratio >= 0.9:
+                score += 2.5
+            elif best_ratio >= 0.8:
+                score += 1.5
+
+        return score
+
+    def extract_web_match_text(page_url):
+        is_safe, error_message = is_safe_public_url(page_url)
+        if not is_safe:
+            raise ValueError(error_message)
+
+        response = requests.get(
+            page_url,
+            timeout=15,
+            headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+                              '(KHTML, like Gecko) Chrome/123.0 Safari/537.36'
+            }
+        )
+        response.raise_for_status()
+
+        parsed = urlparse(page_url)
+        text_parts = [
+            parsed.netloc.replace('.', ' '),
+            parsed.path.replace('/', ' ').replace('-', ' ').replace('_', ' '),
+            parsed.query.replace('&', ' ').replace('=', ' ')
+        ]
+
+        content_type = (response.headers.get('Content-Type') or '').lower()
+        if 'html' in content_type or 'text/' in content_type or not content_type:
+            html = response.text[:250000]
+            patterns = [
+                r'<title[^>]*>(.*?)</title>',
+                r'<meta[^>]+property=["\']og:title["\'][^>]+content=["\'](.*?)["\']',
+                r'<meta[^>]+name=["\']title["\'][^>]+content=["\'](.*?)["\']',
+                r'<meta[^>]+name=["\']description["\'][^>]+content=["\'](.*?)["\']',
+                r'<meta[^>]+property=["\']og:description["\'][^>]+content=["\'](.*?)["\']',
+                r'<meta[^>]+name=["\']keywords["\'][^>]+content=["\'](.*?)["\']',
+                r'<meta[^>]+name=["\']category["\'][^>]+content=["\'](.*?)["\']',
+            ]
+            for pattern in patterns:
+                for match in re.findall(pattern, html, flags=re.IGNORECASE | re.DOTALL):
+                    cleaned = re.sub(r'\s+', ' ', unescape(match)).strip()
+                    if cleaned:
+                        text_parts.append(cleaned)
+
+        source_text = normalize_match_text(' '.join(text_parts))
+        if not source_text:
+            raise ValueError('Could not read any useful text from that page.')
+        return source_text
+
+    def detect_category_from_web(page_url, folder_index):
+        source_text = extract_web_match_text(page_url)
+        best_match = None
+        best_score = 0.0
+        best_category_only = ('', 0.0)
+
+        for category_name, sub_index in folder_index.items():
+            category_score = score_folder_label(category_name, source_text)
+            if category_score > best_category_only[1]:
+                best_category_only = (category_name, category_score)
+
+            for sub_name, folder_numbers in sub_index.items():
+                sub_score = score_folder_label(sub_name, source_text)
+                combined_score = (sub_score * 3.0) + category_score
+                if category_score > 0 and sub_score > 0:
+                    combined_score += 2.0
+                if combined_score > best_score:
+                    best_score = combined_score
+                    best_match = (category_name, sub_name, folder_numbers)
+
+        if best_match and best_score >= 4.0:
+            category_name, sub_name, folder_numbers = best_match
+            next_folder = (max(folder_numbers) + 1) if folder_numbers else 1
+            return category_name, sub_name, str(next_folder)
+
+        if best_category_only[1] >= 3.0:
+            category_name = best_category_only[0]
+            return category_name, '', ''
+
+        raise ValueError('No strong category match found from the page content.')
 
     if request.method == 'POST':
         action = request.POST.get('action') or 'convert'
@@ -2426,6 +2564,39 @@ def admin_edit_photo(request):
                         )
                     except Exception as exc:
                         errors.append(f'Resize failed: {exc}')
+
+        elif action == 'detect_from_web':
+            converted_urls = request.POST.getlist('converted_urls')
+            source_page_url = (request.POST.get('source_page_url') or '').strip()
+
+            if not source_page_url:
+                errors.append('Please paste a product/page URL to detect category and sub category.')
+            else:
+                try:
+                    detected_category, detected_subcategory, detected_next_folder = detect_category_from_web(
+                        source_page_url,
+                        build_folder_index(product_image_root)
+                    )
+                    if detected_category and detected_subcategory:
+                        detected_message = (
+                            f"Detected {detected_category} > {detected_subcategory}"
+                        )
+                        if detected_next_folder:
+                            detected_message += f" | Suggested next folder: {detected_next_folder}"
+                    elif detected_category:
+                        detected_message = f"Detected category: {detected_category}"
+                except Exception as exc:
+                    errors.append(f'Web detect failed: {exc}')
+
+            for url in converted_urls:
+                filename = os.path.basename(url)
+                results.append({
+                    'source': url,
+                    'url': url,
+                    'filename': filename,
+                    'download_name': filename,
+                })
+            show_downloads = bool(results)
 
         elif action == 'save_to_folder':
             converted_urls = request.POST.getlist('converted_urls')
@@ -2556,6 +2727,11 @@ def admin_edit_photo(request):
         'folder_index': folder_index,
         'folder_index_json': json.dumps(folder_index),
         'category_options': sorted(folder_index.keys()),
+        'detected_category': detected_category,
+        'detected_subcategory': detected_subcategory,
+        'detected_next_folder': detected_next_folder,
+        'detected_message': detected_message,
+        'source_page_url': source_page_url,
         'total_categories': len(folder_index),
         'total_subcategories': total_subcategories,
         'total_product_folders': total_product_folders,
