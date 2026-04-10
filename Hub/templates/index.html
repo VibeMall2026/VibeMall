@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}">
                         {% endif %}
                     </a>
-                    <p>{{ product.brand|clean_brand_name|default:"VibeMall" }}</p>
+                    <p>VibeMall</p>
                     <h4><a href="{% url 'product_detail' product.slug %}">{{ product.name }}</a></h4>
                     <strong>₹{% if product.discount_price and product.discount_price > 0 %}{{ product.discount_price|floatformat:2 }}{% else %}{{ product.price|floatformat:2 }}{% endif %}</strong>
                     <div class="vm-home-mobile-product-card__actions">
@@ -307,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}">
                                 {% endif %}
                             </div>
-                            <small>{{ product.brand|clean_brand_name|default:"VibeMall" }}</small>
+                            <small>VibeMall</small>
                             <h4>{{ product.name }}</h4>
                             <strong>₹{% if product.discount_price and product.discount_price > 0 %}{{ product.discount_price|floatformat:2 }}{% else %}{{ product.price|floatformat:2 }}{% endif %}</strong>
                         </a>
@@ -406,7 +406,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Watch and Shop">
                         {% endif %}
                         <div class="vm-home-tablet-watch__meta">
-                            <small>{% if hero_reel and hero_reel.product and hero_reel.product.brand %}{{ hero_reel.product.brand|clean_brand_name }}{% else %}Watch and Shop{% endif %}</small>
+                            <small>Watch and Shop</small>
                             <h4>{% if hero_reel %}{{ hero_reel.title }}{% else %}Videos coming soon{% endif %}</h4>
                         </div>
                     </article>
@@ -551,7 +551,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}">
                         {% endif %}
                     </a>
-                    <small>{{ product.brand|clean_brand_name|default:"VibeMall" }}</small>
+                    <small>VibeMall</small>
                     <h4>
                         <a href="{% url 'product_detail' product.slug %}">{{ product.name }}</a>
                     </h4>
@@ -591,7 +591,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     {% endif %}
                     {% if reel.product and reel.product.slug %}</a>{% endif %}
                     <div>
-                        <small>{% if reel.product and reel.product.brand %}{{ reel.product.brand|clean_brand_name }}{% else %}Watch &amp; Shop{% endif %}</small>
+                        <small>Watch &amp; Shop</small>
                         <h4>{{ reel.title }}</h4>
                     </div>
                 </article>

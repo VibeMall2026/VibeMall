@@ -281,9 +281,7 @@
                 <div class="vm-wishlist-m-card__body">
                     <h3><a href="{% url 'product-details' item.product.id %}">{{ item.product.name }}</a></h3>
                     <p>
-                        {% if item.product.brand %}
-                        {{ item.product.brand }}
-                        {% elif item.product.category %}
+                        {% if item.product.category %}
                         {{ item.product.category }}
                         {% elif item.product.stock > 0 %}
                         In Stock
@@ -439,9 +437,7 @@
                 <div>
                     <h2 class="vm-wishlist-d-title">{{ item.product.name }}</h2>
                     <p class="vm-wishlist-d-subtitle">
-                        {% if item.product.brand %}
-                        {{ item.product.brand }}
-                        {% elif item.product.category %}
+                        {% if item.product.category %}
                         {{ item.product.category }}
                         {% elif item.product.stock > 0 %}
                         In Stock

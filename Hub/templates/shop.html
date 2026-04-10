@@ -437,7 +437,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         </button>
                     </div>
                 </div>
-                <small>{{ product.brand|default:product.category|default:'VIBEMALL' }}</small>
+                <small>VibeMall</small>
                 <h3><a href="{% url 'product-details' product.id %}">{{ product.name }}</a></h3>
                 <p>&#8377;{{ product.price }}</p>
             </article>
@@ -584,7 +584,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}">
                     {% endif %}
                 </a>
-                <small>{{ product.brand|default:product.category|default:'VIBEMALL' }}</small>
+                <small>VibeMall</small>
                 <h3><a href="{% url 'product-details' product.id %}">{{ product.name }}</a></h3>
                 <p>&#8377;{{ product.price }}</p>
             </article>
@@ -773,7 +773,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         </div>
                     </a>
                     <div class="vm-shop-d-info">
-                        <small>{{ product.brand|default:product.category|default:'VIBEMALL ATELIER' }}</small>
+                        <small>VibeMall</small>
                         <h4><a href="{% url 'product-details' product.id %}">{{ product.name }}</a></h4>
                         <div class="vm-shop-d-list-rating" data-product-rating="{% if stats %}{{ stats.avg_rating }}{% else %}{{ product.rating }}{% endif %}">
                             <span class="vm-shop-d-list-stars" aria-hidden="true"></span>

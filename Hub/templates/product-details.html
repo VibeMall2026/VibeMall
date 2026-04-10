@@ -174,7 +174,6 @@
                     {% if product.dimensions %}<li><strong>Dimensions:</strong> {{ product.dimensions }}</li>{% endif %}
                     {% if product.color %}<li><strong>Color:</strong> {{ product.color }}</li>{% endif %}
                     {% if product.size %}<li><strong>Size:</strong> {{ product.size }}</li>{% endif %}
-                    {% if product.brand %}<li><strong>Brand:</strong> {{ product.brand }}</li>{% endif %}
                     <li><strong>Stock:</strong> {% if product.stock > 0 %}In stock{% else %}Sold out{% endif %}</li>
                 </ul>
             </div>
@@ -234,7 +233,7 @@
 
         <section class="pddx-summary">
             <div class="pddx-summary__head">
-                <p class="pddx-kicker">{{ product.brand|default:"VibeMall" }}</p>
+                <p class="pddx-kicker">VibeMall</p>
                 <h1>{{ product.name }}</h1>
                 <p class="pddx-subtitle">{{ product.sub_category|default:product.get_category_display|default:"Curated Object" }}</p>
             </div>
@@ -383,7 +382,6 @@
 
         <div class="pddx-tab-panel" data-pddx-panel="specs" hidden>
             <div class="pddx-spec-grid">
-                <div><span>Brand</span><strong>{{ product.brand|default:"VibeMall" }}</strong></div>
                 <div><span>Category</span><strong>{{ product.get_category_display|default:"General" }}</strong></div>
                 <div><span>Sub-category</span><strong>{{ product.sub_category|default:"Standard" }}</strong></div>
                 <div><span>Stock</span><strong>{% if product.stock > 0 %}{{ product.stock }} available{% else %}Unavailable{% endif %}</strong></div>
@@ -1063,12 +1061,6 @@ function openDesktopProductImage() {
                                <li>
                                   <h6>Care Info</h6>
                                   <span>{{ product.care_info }}</span>
-                               </li>
-                               {% endif %}
-                               {% if product.brand %}
-                               <li>
-                                  <h6>Brand</h6>
-                                  <span>{{ product.brand }}</span>
                                </li>
                                {% endif %}
                                
