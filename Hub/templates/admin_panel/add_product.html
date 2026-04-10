@@ -225,8 +225,9 @@
                                     </div>
                                 {% endfor %}
                             </div>
-                            <input type="hidden" id="saved_main_category" value="{{ saved_info.main_category }}">
-                            <input type="hidden" id="saved_sub_category" value="{{ saved_info.sub_category }}">
+                            <input type="hidden" id="saved_main_category" value="{{ saved_info.display_main_category|default:saved_info.main_category }}">
+                            <input type="hidden" id="saved_sub_category" value="{{ saved_info.display_sub_category|default:saved_info.sub_category }}">
+                            <input type="hidden" id="saved_category_key" value="{{ saved_info.category_key|default:'' }}">
                         </div>
                     </div>
                     {% endif %}
@@ -585,6 +586,7 @@ function showGalleryError(message) {
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const mainCategory = document.getElementById('saved_main_category');
+    const savedCategoryKey = document.getElementById('saved_category_key');
     const savedSubCategory = document.getElementById('saved_sub_category');
     const subCategoryData = {{ sub_categories_json|safe }};
     const categorySelect = document.getElementById('category');
@@ -623,7 +625,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    if (mainCategory) {
+    if (savedCategoryKey && (savedCategoryKey.value || '').trim()) {
+        categorySelect.value = (savedCategoryKey.value || '').trim();
+    } else if (mainCategory) {
         const target = (mainCategory.value || '').trim().toLowerCase();
         if (target) {
             const options = Array.from(categorySelect.options);

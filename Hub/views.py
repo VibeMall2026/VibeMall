@@ -1507,17 +1507,27 @@ def admin_add_product(request):
             use_saved_images = request.POST.get('use_saved_images') == 'on'
             saved_info = request.session.get('edit_photo_saved') if use_saved_images else None
             if saved_info and not image:
-                base_path = saved_info.get('base_path')
                 target_dir = saved_info.get('target_dir')
-                main_category = saved_info.get('main_category')
+                saved_category_key = (saved_info.get('category_key') or '').strip()
+                saved_display_main_category = (saved_info.get('display_main_category') or '').strip()
+                saved_display_sub_category = (saved_info.get('display_sub_category') or '').strip()
+                saved_folder_main_category = (saved_info.get('main_category') or '').strip()
 
-                if not category and main_category:
-                    category_icon = CategoryIcon.objects.filter(name__iexact=main_category).first()
+                if not category and saved_category_key:
+                    category = saved_category_key
+
+                if not category and saved_display_main_category:
+                    category_icon = CategoryIcon.objects.filter(name__iexact=saved_display_main_category).first()
+                    if category_icon:
+                        category = category_icon.category_key
+
+                if not category and saved_folder_main_category:
+                    category_icon = CategoryIcon.objects.filter(name__iexact=saved_folder_main_category).first()
                     if category_icon:
                         category = category_icon.category_key
 
                 if not sub_category:
-                    sub_category = (saved_info.get('sub_category') or '').strip()
+                    sub_category = saved_display_sub_category or (saved_info.get('sub_category') or '').strip()
 
                 def file_from_path(path):
                     return File(open(path, 'rb'), name=os.path.basename(path))
@@ -2739,6 +2749,8 @@ def admin_edit_photo(request):
             converted_urls = request.POST.getlist('converted_urls')
             main_category = (request.POST.get('main_category') or '').strip()
             sub_category = (request.POST.get('sub_category') or '').strip()
+            main_category_label = (request.POST.get('main_category_label') or '').strip()
+            sub_category_label = (request.POST.get('sub_category_label') or '').strip()
             product_folder = (request.POST.get('product_folder') or '').strip()
             create_folder = request.POST.get('create_folder') == 'on'
 
@@ -2772,10 +2784,46 @@ def admin_edit_photo(request):
                             except Exception as exc:
                                 errors.append(f"{url}: {exc}")
                         if not errors:
+                            matched_dropdown = next(
+                                (
+                                    category for category in shop_dropdown_taxonomy
+                                    if (category.get('folder_category') or '').strip().lower() == main_category.lower()
+                                    and (category.get('label') or '').strip().lower() == (main_category_label or category.get('label') or '').strip().lower()
+                                ),
+                                None
+                            )
+                            if not matched_dropdown:
+                                matched_dropdown = next(
+                                    (
+                                        category for category in shop_dropdown_taxonomy
+                                        if (category.get('folder_category') or '').strip().lower() == main_category.lower()
+                                    ),
+                                    None
+                                )
+
+                            category_key = matched_dropdown.get('key', '') if matched_dropdown else ''
+                            if matched_dropdown and not main_category_label:
+                                main_category_label = matched_dropdown.get('label', '')
+
+                            matched_sub_dropdown = None
+                            if matched_dropdown:
+                                matched_sub_dropdown = next(
+                                    (
+                                        item for item in matched_dropdown.get('sub_categories', [])
+                                        if (item.get('folder_subcategory') or '').strip().lower() == sub_category.lower()
+                                    ),
+                                    None
+                                )
+                            if matched_sub_dropdown and not sub_category_label:
+                                sub_category_label = matched_sub_dropdown.get('label', '')
+
                             saved_message = f"Saved {len(converted_urls)} images to {target_dir}"
                             request.session['edit_photo_saved'] = {
                                 'main_category': main_category,
                                 'sub_category': sub_category,
+                                'display_main_category': main_category_label,
+                                'display_sub_category': sub_category_label,
+                                'category_key': category_key,
                                 'product_folder': product_folder,
                                 'base_path': product_image_root,
                                 'target_dir': target_dir,
@@ -2787,7 +2835,7 @@ def admin_edit_photo(request):
                                         os.remove(path)
                                 except Exception:
                                     pass
-                            show_downloads = True
+                            return redirect('admin_add_product')
 
             for url in converted_urls:
                 filename = os.path.basename(url)

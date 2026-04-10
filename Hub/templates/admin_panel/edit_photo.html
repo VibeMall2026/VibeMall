@@ -206,6 +206,8 @@
                     <input type="hidden" name="action" value="save_to_folder">
                     <input type="hidden" name="main_category" id="main_category_value">
                     <input type="hidden" name="sub_category" id="sub_category_value">
+                    <input type="hidden" name="main_category_label" id="main_category_label_value">
+                    <input type="hidden" name="sub_category_label" id="sub_category_label_value">
                     {% for item in results %}
                         <input type="hidden" name="converted_urls" value="{{ item.url }}">
                     {% endfor %}
@@ -446,6 +448,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const subCustom = document.getElementById('sub_category_custom');
     const mainValueField = document.getElementById('main_category_value');
     const subValueField = document.getElementById('sub_category_value');
+    const mainLabelField = document.getElementById('main_category_label_value');
+    const subLabelField = document.getElementById('sub_category_label_value');
     const hint = document.getElementById('product_folder_hint');
     const form = document.getElementById('save-images-form');
 
@@ -469,6 +473,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (mainValueField) {
             mainValueField.value = categoryEntry ? (categoryEntry.folder_category || categoryEntry.label || '') : (mainCustom.value || mainSelect.value || '').trim();
         }
+        if (mainLabelField) {
+            mainLabelField.value = categoryEntry ? (categoryEntry.label || '') : (mainCustom.value || mainSelect.value || '').trim();
+        }
         subSelect.innerHTML = '<option value="">Select sub category</option>';
         productSelect.innerHTML = '<option value="">Select folder number</option>';
         if (!categoryEntry) {
@@ -489,8 +496,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (mainValueField) {
             mainValueField.value = categoryEntry ? (categoryEntry.folder_category || categoryEntry.label || '') : (mainCustom.value || mainSelect.value || '').trim();
         }
+        if (mainLabelField) {
+            mainLabelField.value = categoryEntry ? (categoryEntry.label || '') : (mainCustom.value || mainSelect.value || '').trim();
+        }
         if (subValueField) {
             subValueField.value = subEntry ? (subEntry.folder_subcategory || subEntry.label || '') : (subCustom.value || subSelect.value || '').trim();
+        }
+        if (subLabelField) {
+            subLabelField.value = subEntry ? (subEntry.label || '') : (subCustom.value || subSelect.value || '').trim();
         }
         productSelect.innerHTML = '<option value="">Select folder number</option>';
         if (!categoryEntry || !subEntry) {
@@ -563,11 +576,19 @@ document.addEventListener('DOMContentLoaded', function() {
         form.addEventListener('submit', () => {
             const mainValue = (mainCustom.value || mainSelect.value || '').trim();
             const subValue = (subCustom.value || subSelect.value || '').trim();
+            const categoryEntry = getSelectedCategoryEntry();
+            const subEntry = getSelectedSubcategoryEntry(categoryEntry);
             if (mainValueField) {
-                mainValueField.value = mainValue;
+                mainValueField.value = categoryEntry ? (categoryEntry.folder_category || categoryEntry.label || '') : mainValue;
             }
             if (subValueField) {
-                subValueField.value = subValue;
+                subValueField.value = subEntry ? (subEntry.folder_subcategory || subEntry.label || '') : subValue;
+            }
+            if (mainLabelField) {
+                mainLabelField.value = categoryEntry ? (categoryEntry.label || '') : mainValue;
+            }
+            if (subLabelField) {
+                subLabelField.value = subEntry ? (subEntry.label || '') : subValue;
             }
         });
     }
