@@ -1183,15 +1183,83 @@ def _load_image_from_content(content, content_type=''):
 def _safe_edit_photo_path_from_url(url):
     media_root = getattr(settings, 'MEDIA_ROOT', None) or os.path.join(settings.BASE_DIR, 'media')
     media_url = getattr(settings, 'MEDIA_URL', '/media/')
-    if not url.startswith(media_url):
+    parsed = urlparse(url)
+    url_path = parsed.path or url
+    if not url_path.startswith(media_url):
         return None, None
-    rel_path = url[len(media_url):].lstrip('/')
+    rel_path = url_path[len(media_url):].lstrip('/')
     if not rel_path.startswith('edit_photo/'):
         return None, None
     abs_path = os.path.join(media_root, rel_path)
     if not os.path.isfile(abs_path):
         return None, None
     return abs_path, rel_path
+
+
+def _resolve_edit_photo_path(url, request=None):
+    safe_path, rel_path = _safe_edit_photo_path_from_url(url)
+    if safe_path:
+        return safe_path, rel_path
+
+    media_url = getattr(settings, 'MEDIA_URL', '/media/').rstrip('/')
+    parsed = urlparse(url)
+    url_path = parsed.path or url or ''
+    basename = os.path.basename(url_path)
+
+    temp_map = {}
+    if request is not None:
+        try:
+            temp_map = request.session.get('edit_photo_temp_map', {}) or {}
+        except Exception:
+            temp_map = {}
+
+    candidate_keys = [url]
+    if url_path:
+        candidate_keys.append(url_path)
+    if basename:
+        candidate_keys.append(basename)
+        candidate_keys.append(f'{media_url}/edit_photo/{basename}')
+
+    for key in candidate_keys:
+        mapped_url = temp_map.get(key)
+        if not mapped_url:
+            continue
+        safe_path, rel_path = _safe_edit_photo_path_from_url(mapped_url)
+        if safe_path:
+            return safe_path, rel_path
+
+    match = re.fullmatch(r'(\d+)\.png', basename or '')
+    if match:
+        index = match.group(1)
+        media_root = getattr(settings, 'MEDIA_ROOT', None) or os.path.join(settings.BASE_DIR, 'media')
+        edit_photo_dir = os.path.join(media_root, 'edit_photo')
+        if os.path.isdir(edit_photo_dir):
+            prefix = f'edit_photo_crop_{index}_'
+            candidates = []
+            for entry in os.listdir(edit_photo_dir):
+                if entry.startswith(prefix) and entry.endswith('.png'):
+                    abs_path = os.path.join(edit_photo_dir, entry)
+                    if os.path.isfile(abs_path):
+                        candidates.append((os.path.getmtime(abs_path), abs_path, f'edit_photo/{entry}'))
+            if candidates:
+                candidates.sort(reverse=True)
+                _, safe_path, rel_path = candidates[0]
+                return safe_path, rel_path
+
+    return None, None
+
+
+def _write_edit_photo_alias(source_url, index):
+    safe_path, _ = _safe_edit_photo_path_from_url(source_url)
+    if not safe_path:
+        return None
+
+    media_root = getattr(settings, 'MEDIA_ROOT', None) or os.path.join(settings.BASE_DIR, 'media')
+    alias_rel_path = os.path.join('edit_photo', f'{index}.png')
+    alias_abs_path = os.path.join(media_root, alias_rel_path)
+    os.makedirs(os.path.dirname(alias_abs_path), exist_ok=True)
+    shutil.copyfile(safe_path, alias_abs_path)
+    return f"{settings.MEDIA_URL}{alias_rel_path.replace(os.sep, '/')}"
 
 
 def _crop_png_by_ratio(abs_path, ratio, index=None):
@@ -2773,7 +2841,7 @@ def admin_edit_photo(request):
                     else:
                         to_delete = []
                         for idx, url in enumerate(converted_urls, start=1):
-                            safe_path, _ = _safe_edit_photo_path_from_url(url)
+                            safe_path, _ = _resolve_edit_photo_path(url, request=request)
                             if not safe_path:
                                 errors.append(f"{url}: Invalid converted image.")
                                 continue
@@ -2828,6 +2896,7 @@ def admin_edit_photo(request):
                                 'base_path': product_image_root,
                                 'target_dir': target_dir,
                             }
+                            request.session.pop('edit_photo_temp_map', None)
                             request.session.modified = True
                             for path in to_delete:
                                 try:
@@ -2862,13 +2931,17 @@ def admin_edit_photo(request):
             if not crop_ratio:
                 errors.append('Please crop the selected image before applying to all.')
             else:
+                temp_map = {}
                 for idx, url in enumerate(converted_urls, start=1):
-                    safe_path, _ = _safe_edit_photo_path_from_url(url)
+                    safe_path, _ = _resolve_edit_photo_path(url, request=request)
                     if not safe_path:
                         errors.append(f"{url}: Invalid converted image.")
                         continue
                     try:
                         public_url, _ = _crop_png_by_ratio(safe_path, crop_ratio, index=idx)
+                        alias_url = _write_edit_photo_alias(public_url, idx) or f"{settings.MEDIA_URL.rstrip('/')}/edit_photo/{idx}.png"
+                        temp_map[alias_url] = public_url
+                        temp_map[f'{idx}.png'] = public_url
                         results.append({
                             'source': url,
                             'url': public_url,
@@ -2878,6 +2951,8 @@ def admin_edit_photo(request):
                     except Exception as exc:
                         errors.append(f"{url}: {exc}")
                 if results:
+                    request.session['edit_photo_temp_map'] = temp_map
+                    request.session.modified = True
                     show_downloads = True
         else:
             urls = request.POST.getlist('image_urls')
