@@ -2361,6 +2361,8 @@ def admin_edit_photo(request):
     show_downloads = False
     saved_message = ''
     resize_result = None
+    detected_folder_category = ''
+    detected_folder_subcategory = ''
     detected_category = ''
     detected_subcategory = ''
     detected_next_folder = ''
@@ -2393,6 +2395,52 @@ def admin_edit_photo(request):
                 sub_index[sub_name] = sorted(numbers)
             folder_index[category_name] = sub_index
         return folder_index
+
+    def build_shop_taxonomy():
+        subcategory_map = {}
+        active_subcategories = (
+            SubCategory.objects
+            .filter(is_active=True)
+            .order_by('category_key', 'order', 'name')
+            .values('category_key', 'name')
+        )
+        for row in active_subcategories:
+            key = (row.get('category_key') or '').strip()
+            sub_name = (row.get('name') or '').strip()
+            if not key or not sub_name:
+                continue
+            subcategory_map.setdefault(key, []).append(sub_name)
+
+        product_subcategory_map = {}
+        product_subcategory_rows = (
+            Product.objects
+            .filter(is_active=True)
+            .exclude(sub_category='')
+            .values('category', 'sub_category')
+            .distinct()
+            .order_by('category', 'sub_category')
+        )
+        for row in product_subcategory_rows:
+            key = (row.get('category') or '').strip()
+            sub_name = (row.get('sub_category') or '').strip()
+            if not key or not sub_name:
+                continue
+            product_subcategory_map.setdefault(key, []).append(sub_name)
+
+        taxonomy = []
+        for icon in CategoryIcon.objects.filter(is_active=True).order_by('order', 'id'):
+            category_key = (icon.category_key or '').strip()
+            if not category_key:
+                continue
+
+            sub_names = subcategory_map.get(category_key) or product_subcategory_map.get(category_key, [])
+            taxonomy.append({
+                'label': icon.name,
+                'key': category_key,
+                'sub_categories': sub_names,
+            })
+
+        return taxonomy
 
     def is_safe_public_url(raw_url):
         parsed = urlparse(raw_url)
@@ -2498,30 +2546,80 @@ def admin_edit_photo(request):
         source_text = extract_web_match_text(page_url)
         best_match = None
         best_score = 0.0
-        best_category_only = ('', 0.0)
+        best_category_only = (None, 0.0)
+        shop_taxonomy = build_shop_taxonomy()
 
-        for category_name, sub_index in folder_index.items():
-            category_score = score_folder_label(category_name, source_text)
+        for category in shop_taxonomy:
+            category_score = max(
+                score_folder_label(category.get('label', ''), source_text),
+                score_folder_label(category.get('key', ''), source_text),
+            )
             if category_score > best_category_only[1]:
-                best_category_only = (category_name, category_score)
+                best_category_only = (category, category_score)
 
-            for sub_name, folder_numbers in sub_index.items():
+            for sub_name in category.get('sub_categories', []):
                 sub_score = score_folder_label(sub_name, source_text)
                 combined_score = (sub_score * 3.0) + category_score
                 if category_score > 0 and sub_score > 0:
                     combined_score += 2.0
                 if combined_score > best_score:
                     best_score = combined_score
-                    best_match = (category_name, sub_name, folder_numbers)
+                    best_match = (category, sub_name)
+
+        def resolve_folder_category(category):
+            best_name = ''
+            best_value = 0.0
+            for folder_category_name in folder_index.keys():
+                score = max(
+                    score_folder_label(folder_category_name, normalize_match_text(f"{category.get('label', '')} {category.get('key', '')}")),
+                    score_folder_label(category.get('label', ''), normalize_match_text(folder_category_name)),
+                    score_folder_label(category.get('key', ''), normalize_match_text(folder_category_name)),
+                )
+                if score > best_value:
+                    best_value = score
+                    best_name = folder_category_name
+            return best_name if best_value > 0 else ''
+
+        def resolve_folder_subcategory(folder_category_name, sub_name):
+            if not folder_category_name or folder_category_name not in folder_index or not sub_name:
+                return '', []
+            best_name = ''
+            best_value = 0.0
+            for folder_sub_name, folder_numbers in folder_index[folder_category_name].items():
+                score = max(
+                    score_folder_label(folder_sub_name, normalize_match_text(sub_name)),
+                    score_folder_label(sub_name, normalize_match_text(folder_sub_name)),
+                )
+                if score > best_value:
+                    best_value = score
+                    best_name = folder_sub_name
+            if not best_name:
+                return '', []
+            return best_name, folder_index[folder_category_name].get(best_name, [])
 
         if best_match and best_score >= 4.0:
-            category_name, sub_name, folder_numbers = best_match
+            category, sub_name = best_match
+            folder_category_name = resolve_folder_category(category)
+            folder_sub_name, folder_numbers = resolve_folder_subcategory(folder_category_name, sub_name)
             next_folder = (max(folder_numbers) + 1) if folder_numbers else 1
-            return category_name, sub_name, str(next_folder)
+            return {
+                'category_label': category.get('label', ''),
+                'subcategory_label': sub_name,
+                'folder_category': folder_category_name,
+                'folder_subcategory': folder_sub_name,
+                'next_folder': str(next_folder) if folder_category_name and folder_sub_name else '',
+            }
 
-        if best_category_only[1] >= 3.0:
-            category_name = best_category_only[0]
-            return category_name, '', ''
+        if best_category_only[0] and best_category_only[1] >= 3.0:
+            category = best_category_only[0]
+            folder_category_name = resolve_folder_category(category)
+            return {
+                'category_label': category.get('label', ''),
+                'subcategory_label': '',
+                'folder_category': folder_category_name,
+                'folder_subcategory': '',
+                'next_folder': '',
+            }
 
         raise ValueError('No strong category match found from the page content.')
 
@@ -2573,18 +2671,30 @@ def admin_edit_photo(request):
                 errors.append('Please paste a product/page URL to detect category and sub category.')
             else:
                 try:
-                    detected_category, detected_subcategory, detected_next_folder = detect_category_from_web(
+                    detection = detect_category_from_web(
                         source_page_url,
                         build_folder_index(product_image_root)
                     )
+                    detected_category = detection.get('category_label', '')
+                    detected_subcategory = detection.get('subcategory_label', '')
+                    detected_folder_category = detection.get('folder_category', '')
+                    detected_folder_subcategory = detection.get('folder_subcategory', '')
+                    detected_next_folder = detection.get('next_folder', '')
+
                     if detected_category and detected_subcategory:
                         detected_message = (
                             f"Detected {detected_category} > {detected_subcategory}"
                         )
+                        if detected_folder_category and detected_folder_subcategory:
+                            detected_message += (
+                                f" | Folder map: {detected_folder_category} > {detected_folder_subcategory}"
+                            )
                         if detected_next_folder:
                             detected_message += f" | Suggested next folder: {detected_next_folder}"
                     elif detected_category:
                         detected_message = f"Detected category: {detected_category}"
+                        if detected_folder_category:
+                            detected_message += f" | Folder map: {detected_folder_category}"
                 except Exception as exc:
                     errors.append(f'Web detect failed: {exc}')
 
@@ -2712,6 +2822,7 @@ def admin_edit_photo(request):
                     errors.append(f"{url}: {exc}")
 
     folder_index = build_folder_index(product_image_root)
+    shop_taxonomy = build_shop_taxonomy()
     total_subcategories = sum(len(sub_index) for sub_index in folder_index.values())
     total_product_folders = sum(
         len(folder_numbers)
@@ -2727,6 +2838,9 @@ def admin_edit_photo(request):
         'folder_index': folder_index,
         'folder_index_json': json.dumps(folder_index),
         'category_options': sorted(folder_index.keys()),
+        'shop_taxonomy': shop_taxonomy,
+        'detected_folder_category': detected_folder_category,
+        'detected_folder_subcategory': detected_folder_subcategory,
         'detected_category': detected_category,
         'detected_subcategory': detected_subcategory,
         'detected_next_folder': detected_next_folder,
