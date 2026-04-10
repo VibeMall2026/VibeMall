@@ -387,6 +387,71 @@
                         </div>
                     </div>
 
+                    <div class="card mb-4" style="border: 1px solid #d8f0df;">
+                        <div class="card-header" style="background: #f4fbf6;">
+                            <h5 class="mb-0">
+                                <i class="bx bx-message-square-dots me-2"></i>
+                                Add Customer Review With Photos
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted small mb-3">
+                                Optional. This creates one approved customer review during product creation and can include multiple review photos.
+                            </p>
+
+                            <div class="mb-3">
+                                <label class="form-label">Review Rating</label>
+                                <div class="d-flex flex-wrap gap-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="admin_review_rating" id="add_review_rating_5" value="5">
+                                        <label class="form-check-label" for="add_review_rating_5">5 Stars</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="admin_review_rating" id="add_review_rating_4" value="4">
+                                        <label class="form-check-label" for="add_review_rating_4">4 Stars</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="admin_review_rating" id="add_review_rating_3" value="3">
+                                        <label class="form-check-label" for="add_review_rating_3">3 Stars</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="admin_review_rating" id="add_review_rating_2" value="2">
+                                        <label class="form-check-label" for="add_review_rating_2">2 Stars</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="admin_review_rating" id="add_review_rating_1" value="1">
+                                        <label class="form-check-label" for="add_review_rating_1">1 Star</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="admin_review_name">Reviewer Name</label>
+                                    <input type="text" class="form-control" id="admin_review_name" name="admin_review_name" placeholder="Enter customer name">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="admin_review_email">Reviewer Email</label>
+                                    <input type="email" class="form-control" id="admin_review_email" name="admin_review_email" placeholder="Enter customer email">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="admin_review_comment">Review Comment</label>
+                                <textarea class="form-control" id="admin_review_comment" name="admin_review_comment" rows="4" placeholder="Write a customer review comment..."></textarea>
+                            </div>
+
+                            <div class="mb-0">
+                                <label class="form-label" for="admin_review_images">Review Photos</label>
+                                <input class="form-control" type="file" id="admin_review_images" name="admin_review_images" accept="image/*" multiple onchange="previewReviewImages()">
+                                <small class="text-muted">You can upload multiple customer review photos.</small>
+                                <div id="reviewImagesPreview" class="mt-2" style="display: none;">
+                                    <small class="text-success">Selected review photos: <span id="reviewImagesCount">0</span></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     
                     <button type="submit" class="btn btn-primary">Add Product</button>
                     <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
@@ -520,6 +585,21 @@ function showGalleryError(message) {
     errorDiv.className = 'alert alert-danger mt-2';
     errorDiv.innerHTML = `<i class="bx bx-error-circle me-2"></i>${message}`;
     galleryInput.parentNode.insertBefore(errorDiv, galleryInput.nextSibling);
+}
+
+function previewReviewImages() {
+    const input = document.getElementById('admin_review_images');
+    const preview = document.getElementById('reviewImagesPreview');
+    const count = document.getElementById('reviewImagesCount');
+
+    if (!input || !preview || !count) return;
+
+    if (input.files && input.files.length > 0) {
+        count.textContent = input.files.length;
+        preview.style.display = 'block';
+    } else {
+        preview.style.display = 'none';
+    }
 }
 </script>
             </div>

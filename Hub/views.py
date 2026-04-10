@@ -14,6 +14,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime, parse_date
 from django.utils.html import strip_tags
+from django.utils.text import slugify
 from django.conf import settings
 from django.urls import reverse
 from django.core.mail import send_mail, EmailMultiAlternatives
@@ -1652,6 +1653,30 @@ def admin_add_product(request):
                 except (TypeError, ValueError):
                     reel_duration = 0
 
+            admin_review_name = (request.POST.get('admin_review_name') or '').strip()
+            admin_review_email = (request.POST.get('admin_review_email') or '').strip()
+            admin_review_comment = (request.POST.get('admin_review_comment') or '').strip()
+            admin_review_rating_raw = (request.POST.get('admin_review_rating') or '').strip()
+            admin_review_images = request.FILES.getlist('admin_review_images')
+            has_manual_review = bool(
+                admin_review_name or admin_review_email or admin_review_comment or admin_review_rating_raw or admin_review_images
+            )
+            admin_review_rating = None
+            if has_manual_review:
+                if admin_review_rating_raw:
+                    try:
+                        admin_review_rating = int(admin_review_rating_raw)
+                    except (TypeError, ValueError):
+                        admin_review_rating = None
+                if not admin_review_name:
+                    messages.error(request, 'Please enter reviewer name for the customer review section.')
+                    return redirect('admin_add_product')
+                if admin_review_rating is None or not 1 <= admin_review_rating <= 5:
+                    messages.error(request, 'Please select a valid 1 to 5 star rating for the customer review section.')
+                    return redirect('admin_add_product')
+                if not admin_review_email:
+                    admin_review_email = request.user.email or f"{slugify(admin_review_name) or 'customer'}@vibemall.local"
+
             use_saved_images = request.POST.get('use_saved_images') == 'on'
             saved_info = request.session.get('edit_photo_saved') if use_saved_images else None
             if saved_info and not image:
@@ -1769,6 +1794,20 @@ def admin_add_product(request):
             # Auto-generate approved reviews if rating/review_count provided
             if review_count > 0 and rating > 0:
                 generate_auto_reviews(product, review_count, rating, request.user)
+
+            if has_manual_review:
+                review = ProductReview.objects.create(
+                    product=product,
+                    user=request.user,
+                    rating=admin_review_rating,
+                    comment=admin_review_comment,
+                    name=admin_review_name,
+                    email=admin_review_email,
+                    is_approved=True,
+                    is_verified_purchase=False,
+                )
+                for image_file in admin_review_images:
+                    ReviewImage.objects.create(review=review, image=image_file)
 
             if reel_video_file:
                 from Hub.models import Reel
