@@ -1262,6 +1262,86 @@ def _write_edit_photo_alias(source_url, index):
     return f"{settings.MEDIA_URL}{alias_rel_path.replace(os.sep, '/')}"
 
 
+def _get_product_image_root():
+    return getattr(settings, 'PRODUCT_IMAGE_ROOT', r"D:\VibeMallProduct\ProductImage")
+
+
+def _sanitize_folder_segment(value, fallback='Untitled'):
+    sanitized = re.sub(r'[<>:"/\\|?*]+', ' ', (value or '').strip())
+    sanitized = re.sub(r'\s+', ' ', sanitized).strip().rstrip('. ')
+    return sanitized or fallback
+
+
+def _build_category_key(label, existing_keys=None):
+    base_key = re.sub(r'[^A-Z0-9]+', '_', _sanitize_folder_segment(label, fallback='CATEGORY').upper()).strip('_')
+    if not base_key:
+        base_key = 'CATEGORY'
+    base_key = base_key[:50]
+
+    existing_keys = {str(key or '').strip().upper() for key in (existing_keys or []) if str(key or '').strip()}
+    if base_key not in existing_keys:
+        return base_key
+
+    suffix = 2
+    while True:
+        suffix_text = f'_{suffix}'
+        candidate = f"{base_key[:max(1, 50 - len(suffix_text))]}{suffix_text}"
+        if candidate not in existing_keys:
+            return candidate
+        suffix += 1
+
+
+def _ensure_category_and_subcategory(main_label, sub_label='', category_key=''):
+    clean_main_label = _sanitize_folder_segment(main_label, fallback='General')
+    clean_sub_label = _sanitize_folder_segment(sub_label, fallback='General') if sub_label else ''
+
+    category_icon = CategoryIcon.objects.filter(name__iexact=clean_main_label).first()
+    if category_icon is None and category_key:
+        category_icon = CategoryIcon.objects.filter(category_key__iexact=category_key).first()
+
+    if category_icon is None:
+        existing_keys = CategoryIcon.objects.values_list('category_key', flat=True)
+        final_category_key = _build_category_key(category_key or clean_main_label, existing_keys=existing_keys)
+        max_order = CategoryIcon.objects.aggregate(max_order=Max('order')).get('max_order') or 0
+        category_icon = CategoryIcon.objects.create(
+            name=clean_main_label,
+            category_key=final_category_key,
+            is_active=True,
+            order=max_order + 1,
+        )
+    else:
+        final_category_key = (category_icon.category_key or '').strip()
+
+    created_subcategory = None
+    if clean_sub_label:
+        created_subcategory = SubCategory.objects.filter(
+            category_key__iexact=final_category_key,
+            name__iexact=clean_sub_label,
+        ).first()
+        if created_subcategory is None:
+            max_sub_order = (
+                SubCategory.objects
+                .filter(category_key__iexact=final_category_key)
+                .aggregate(max_order=Max('order'))
+                .get('max_order')
+                or 0
+            )
+            created_subcategory = SubCategory.objects.create(
+                category_key=final_category_key,
+                name=clean_sub_label,
+                is_active=True,
+                order=max_sub_order + 1,
+            )
+
+    return {
+        'category_label': clean_main_label,
+        'sub_category_label': clean_sub_label,
+        'category_key': final_category_key,
+        'category_icon': category_icon,
+        'subcategory': created_subcategory,
+    }
+
+
 def _crop_png_by_ratio(abs_path, ratio, index=None):
     _register_heif_opener()
     image = PILImage.open(abs_path)
@@ -2447,7 +2527,7 @@ def admin_edit_photo(request):
     detected_message = ''
     source_page_url = ''
 
-    product_image_root = r"D:\VibeMallProduct\ProductImage"
+    product_image_root = _get_product_image_root()
 
     def build_folder_index(root_path):
         folder_index = {}
@@ -2815,10 +2895,10 @@ def admin_edit_photo(request):
 
         elif action == 'save_to_folder':
             converted_urls = request.POST.getlist('converted_urls')
-            main_category = (request.POST.get('main_category') or '').strip()
-            sub_category = (request.POST.get('sub_category') or '').strip()
-            main_category_label = (request.POST.get('main_category_label') or '').strip()
-            sub_category_label = (request.POST.get('sub_category_label') or '').strip()
+            main_category = _sanitize_folder_segment(request.POST.get('main_category'), fallback='')
+            sub_category = _sanitize_folder_segment(request.POST.get('sub_category'), fallback='')
+            main_category_label = _sanitize_folder_segment(request.POST.get('main_category_label'), fallback='')
+            sub_category_label = _sanitize_folder_segment(request.POST.get('sub_category_label'), fallback='')
             product_folder = (request.POST.get('product_folder') or '').strip()
             create_folder = request.POST.get('create_folder') == 'on'
 
@@ -2840,6 +2920,7 @@ def admin_edit_photo(request):
                         errors.append('Target folder does not exist. Enable create folder.')
                     else:
                         to_delete = []
+                        saved_count = 0
                         for idx, url in enumerate(converted_urls, start=1):
                             safe_path, _ = _resolve_edit_photo_path(url, request=request)
                             if not safe_path:
@@ -2849,6 +2930,7 @@ def admin_edit_photo(request):
                             try:
                                 shutil.copyfile(safe_path, dest_path)
                                 to_delete.append(safe_path)
+                                saved_count += 1
                             except Exception as exc:
                                 errors.append(f"{url}: {exc}")
                         if not errors:
@@ -2872,6 +2954,8 @@ def admin_edit_photo(request):
                             category_key = matched_dropdown.get('key', '') if matched_dropdown else ''
                             if matched_dropdown and not main_category_label:
                                 main_category_label = matched_dropdown.get('label', '')
+                            elif not main_category_label:
+                                main_category_label = main_category
 
                             matched_sub_dropdown = None
                             if matched_dropdown:
@@ -2884,8 +2968,19 @@ def admin_edit_photo(request):
                                 )
                             if matched_sub_dropdown and not sub_category_label:
                                 sub_category_label = matched_sub_dropdown.get('label', '')
+                            elif not sub_category_label:
+                                sub_category_label = sub_category
 
-                            saved_message = f"Saved {len(converted_urls)} images to {target_dir}"
+                            category_sync = _ensure_category_and_subcategory(
+                                main_category_label or main_category,
+                                sub_category_label or sub_category,
+                                category_key=category_key,
+                            )
+                            main_category_label = category_sync.get('category_label') or main_category_label or main_category
+                            sub_category_label = category_sync.get('sub_category_label') or sub_category_label or sub_category
+                            category_key = category_sync.get('category_key') or category_key
+
+                            saved_message = f"Saved {saved_count} images to {target_dir}"
                             request.session['edit_photo_saved'] = {
                                 'main_category': main_category,
                                 'sub_category': sub_category,

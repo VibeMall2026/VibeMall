@@ -507,7 +507,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         productSelect.innerHTML = '<option value="">Select folder number</option>';
         if (!categoryEntry || !subEntry) {
-            hint.textContent = '';
+            const hasManualPath = ((mainCustom.value || mainSelect.value || '').trim() && (subCustom.value || subSelect.value || '').trim());
+            hint.textContent = hasManualPath ? 'Suggested next folder: 1' : '';
+            if (hasManualPath && !productInput.value) {
+                productInput.value = '1';
+            }
             return;
         }
         const numbers = subEntry.folder_numbers || [];
