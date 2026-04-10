@@ -1208,7 +1208,7 @@ def _crop_png_by_ratio(abs_path, ratio, index=None):
     image = image.convert('RGBA')
 
     if index is not None:
-        filename = f"{index}.png"
+        filename = f"edit_photo_crop_{index}_{uuid.uuid4().hex}.png"
     else:
         filename = f"edit_photo_crop_{uuid.uuid4().hex}.png"
     rel_path = os.path.join('edit_photo', filename)
@@ -2868,12 +2868,12 @@ def admin_edit_photo(request):
                         errors.append(f"{url}: Invalid converted image.")
                         continue
                     try:
-                        public_url, filename = _crop_png_by_ratio(safe_path, crop_ratio, index=idx)
+                        public_url, _ = _crop_png_by_ratio(safe_path, crop_ratio, index=idx)
                         results.append({
                             'source': url,
                             'url': public_url,
-                            'filename': filename,
-                            'download_name': filename,
+                            'filename': f'{idx}.png',
+                            'download_name': f'{idx}.png',
                         })
                     except Exception as exc:
                         errors.append(f"{url}: {exc}")
