@@ -2941,6 +2941,12 @@ def admin_edit_photo(request):
             product_folder = (request.POST.get('product_folder') or '').strip()
             create_folder = request.POST.get('create_folder') == 'on'
 
+            # Fall back to label values when folder mapping is empty (new/unmapped category or sub-category)
+            if not main_category and main_category_label:
+                main_category = main_category_label
+            if not sub_category and sub_category_label:
+                sub_category = sub_category_label
+
             if not main_category or not sub_category or not product_folder:
                 errors.append('Please select Main category, Sub_Category, and Product_folder.')
             elif not product_folder.isdigit():
