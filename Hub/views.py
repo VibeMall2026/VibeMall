@@ -2442,6 +2442,58 @@ def admin_edit_photo(request):
 
         return taxonomy
 
+    def resolve_folder_category(category, folder_index):
+        best_name = ''
+        best_value = 0.0
+        for folder_category_name in folder_index.keys():
+            score = max(
+                score_folder_label(folder_category_name, normalize_match_text(f"{category.get('label', '')} {category.get('key', '')}")),
+                score_folder_label(category.get('label', ''), normalize_match_text(folder_category_name)),
+                score_folder_label(category.get('key', ''), normalize_match_text(folder_category_name)),
+            )
+            if score > best_value:
+                best_value = score
+                best_name = folder_category_name
+        return best_name if best_value > 0 else ''
+
+    def resolve_folder_subcategory(folder_category_name, sub_name, folder_index):
+        if not folder_category_name or folder_category_name not in folder_index or not sub_name:
+            return '', []
+        best_name = ''
+        best_value = 0.0
+        for folder_sub_name, folder_numbers in folder_index[folder_category_name].items():
+            score = max(
+                score_folder_label(folder_sub_name, normalize_match_text(sub_name)),
+                score_folder_label(sub_name, normalize_match_text(folder_sub_name)),
+            )
+            if score > best_value:
+                best_value = score
+                best_name = folder_sub_name
+        if not best_name:
+            return '', []
+        return best_name, folder_index[folder_category_name].get(best_name, [])
+
+    def build_shop_folder_dropdown(folder_index):
+        taxonomy = build_shop_taxonomy()
+        dropdown = []
+        for category in taxonomy:
+            folder_category_name = resolve_folder_category(category, folder_index)
+            sub_entries = []
+            for sub_name in category.get('sub_categories', []):
+                folder_sub_name, folder_numbers = resolve_folder_subcategory(folder_category_name, sub_name, folder_index)
+                sub_entries.append({
+                    'label': sub_name,
+                    'folder_subcategory': folder_sub_name,
+                    'folder_numbers': folder_numbers,
+                })
+            dropdown.append({
+                'label': category.get('label', ''),
+                'key': category.get('key', ''),
+                'folder_category': folder_category_name,
+                'sub_categories': sub_entries,
+            })
+        return dropdown
+
     def is_safe_public_url(raw_url):
         parsed = urlparse(raw_url)
         if parsed.scheme not in ('http', 'https'):
@@ -2542,14 +2594,13 @@ def admin_edit_photo(request):
             raise ValueError('Could not read any useful text from that page.')
         return source_text
 
-    def detect_category_from_web(page_url, folder_index):
+    def detect_category_from_web(page_url, folder_index, dropdown_taxonomy):
         source_text = extract_web_match_text(page_url)
         best_match = None
         best_score = 0.0
         best_category_only = (None, 0.0)
-        shop_taxonomy = build_shop_taxonomy()
 
-        for category in shop_taxonomy:
+        for category in dropdown_taxonomy:
             category_score = max(
                 score_folder_label(category.get('label', ''), source_text),
                 score_folder_label(category.get('key', ''), source_text),
@@ -2566,41 +2617,15 @@ def admin_edit_photo(request):
                     best_score = combined_score
                     best_match = (category, sub_name)
 
-        def resolve_folder_category(category):
-            best_name = ''
-            best_value = 0.0
-            for folder_category_name in folder_index.keys():
-                score = max(
-                    score_folder_label(folder_category_name, normalize_match_text(f"{category.get('label', '')} {category.get('key', '')}")),
-                    score_folder_label(category.get('label', ''), normalize_match_text(folder_category_name)),
-                    score_folder_label(category.get('key', ''), normalize_match_text(folder_category_name)),
-                )
-                if score > best_value:
-                    best_value = score
-                    best_name = folder_category_name
-            return best_name if best_value > 0 else ''
-
-        def resolve_folder_subcategory(folder_category_name, sub_name):
-            if not folder_category_name or folder_category_name not in folder_index or not sub_name:
-                return '', []
-            best_name = ''
-            best_value = 0.0
-            for folder_sub_name, folder_numbers in folder_index[folder_category_name].items():
-                score = max(
-                    score_folder_label(folder_sub_name, normalize_match_text(sub_name)),
-                    score_folder_label(sub_name, normalize_match_text(folder_sub_name)),
-                )
-                if score > best_value:
-                    best_value = score
-                    best_name = folder_sub_name
-            if not best_name:
-                return '', []
-            return best_name, folder_index[folder_category_name].get(best_name, [])
-
         if best_match and best_score >= 4.0:
             category, sub_name = best_match
-            folder_category_name = resolve_folder_category(category)
-            folder_sub_name, folder_numbers = resolve_folder_subcategory(folder_category_name, sub_name)
+            folder_category_name = category.get('folder_category', '')
+            matched_sub = next(
+                (item for item in category.get('sub_categories', []) if item.get('label') == sub_name),
+                None
+            )
+            folder_sub_name = matched_sub.get('folder_subcategory', '') if matched_sub else ''
+            folder_numbers = matched_sub.get('folder_numbers', []) if matched_sub else []
             next_folder = (max(folder_numbers) + 1) if folder_numbers else 1
             return {
                 'category_label': category.get('label', ''),
@@ -2612,11 +2637,10 @@ def admin_edit_photo(request):
 
         if best_category_only[0] and best_category_only[1] >= 3.0:
             category = best_category_only[0]
-            folder_category_name = resolve_folder_category(category)
             return {
                 'category_label': category.get('label', ''),
                 'subcategory_label': '',
-                'folder_category': folder_category_name,
+                'folder_category': category.get('folder_category', ''),
                 'folder_subcategory': '',
                 'next_folder': '',
             }
@@ -2625,6 +2649,8 @@ def admin_edit_photo(request):
 
     if request.method == 'POST':
         action = request.POST.get('action') or 'convert'
+        folder_index = build_folder_index(product_image_root)
+        shop_dropdown_taxonomy = build_shop_folder_dropdown(folder_index)
 
         if action == 'resize_image':
             uploaded_image = request.FILES.get('resize_image')
@@ -2673,7 +2699,8 @@ def admin_edit_photo(request):
                 try:
                     detection = detect_category_from_web(
                         source_page_url,
-                        build_folder_index(product_image_root)
+                        folder_index,
+                        shop_dropdown_taxonomy
                     )
                     detected_category = detection.get('category_label', '')
                     detected_subcategory = detection.get('subcategory_label', '')
@@ -2823,6 +2850,7 @@ def admin_edit_photo(request):
 
     folder_index = build_folder_index(product_image_root)
     shop_taxonomy = build_shop_taxonomy()
+    shop_dropdown_taxonomy = build_shop_folder_dropdown(folder_index)
     total_subcategories = sum(len(sub_index) for sub_index in folder_index.values())
     total_product_folders = sum(
         len(folder_numbers)
@@ -2837,6 +2865,7 @@ def admin_edit_photo(request):
         'resize_result': resize_result,
         'folder_index': folder_index,
         'folder_index_json': json.dumps(folder_index),
+        'shop_dropdown_taxonomy_json': json.dumps(shop_dropdown_taxonomy),
         'category_options': sorted(folder_index.keys()),
         'shop_taxonomy': shop_taxonomy,
         'detected_folder_category': detected_folder_category,

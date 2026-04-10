@@ -201,7 +201,7 @@
                 </div>
                 {% endif %}
 
-                <form method="POST" id="save-images-form" class="mb-4" data-detected-category="{{ detected_folder_category|default:'' }}" data-detected-subcategory="{{ detected_folder_subcategory|default:'' }}" data-detected-folder="{{ detected_next_folder|default:'' }}">
+                <form method="POST" id="save-images-form" class="mb-4" data-detected-category-label="{{ detected_category|default:'' }}" data-detected-subcategory-label="{{ detected_subcategory|default:'' }}" data-detected-folder="{{ detected_next_folder|default:'' }}">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="save_to_folder">
                     <input type="hidden" name="main_category" id="main_category_value">
@@ -215,8 +215,8 @@
                             <label class="form-label" for="main_category_select">Main category</label>
                             <select class="form-select" id="main_category_select" name="_main_category_select">
                                 <option value="">Select category</option>
-                                {% for name in category_options %}
-                                    <option value="{{ name }}">{{ name }}</option>
+                                {% for category in shop_taxonomy %}
+                                    <option value="{{ category.label }}">{{ category.label }}</option>
                                 {% endfor %}
                             </select>
                             <input type="text" class="form-control mt-2" id="main_category_custom" placeholder="Or type new category">
@@ -437,7 +437,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const folderIndex = {{ folder_index_json|safe }};
+    const dropdownTaxonomy = {{ shop_dropdown_taxonomy_json|safe }};
     const mainSelect = document.getElementById('main_category_select');
     const subSelect = document.getElementById('sub_category_select');
     const productSelect = document.getElementById('product_folder_select');
@@ -451,40 +451,53 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (!mainSelect || !subSelect || !productSelect || !productInput) return;
 
-    const updateSubcategories = () => {
+    const getSelectedCategoryEntry = () => {
         const mainValue = (mainCustom.value || mainSelect.value || '').trim();
+        return dropdownTaxonomy.find((item) => item.label === mainValue) || null;
+    };
+
+    const getSelectedSubcategoryEntry = (categoryEntry) => {
+        const subValue = (subCustom.value || subSelect.value || '').trim();
+        if (!categoryEntry) {
+            return null;
+        }
+        return (categoryEntry.sub_categories || []).find((item) => item.label === subValue) || null;
+    };
+
+    const updateSubcategories = () => {
+        const categoryEntry = getSelectedCategoryEntry();
         if (mainValueField) {
-            mainValueField.value = mainValue;
+            mainValueField.value = categoryEntry ? (categoryEntry.folder_category || categoryEntry.label || '') : (mainCustom.value || mainSelect.value || '').trim();
         }
         subSelect.innerHTML = '<option value="">Select sub category</option>';
         productSelect.innerHTML = '<option value="">Select folder number</option>';
-        if (!mainValue || !folderIndex[mainValue]) {
+        if (!categoryEntry) {
             hint.textContent = '';
             return;
         }
-        Object.keys(folderIndex[mainValue]).forEach((sub) => {
+        (categoryEntry.sub_categories || []).forEach((sub) => {
             const opt = document.createElement('option');
-            opt.value = sub;
-            opt.textContent = sub;
+            opt.value = sub.label;
+            opt.textContent = sub.label;
             subSelect.appendChild(opt);
         });
     };
 
     const updateProductFolders = () => {
-        const mainValue = (mainCustom.value || mainSelect.value || '').trim();
-        const subValue = (subCustom.value || subSelect.value || '').trim();
+        const categoryEntry = getSelectedCategoryEntry();
+        const subEntry = getSelectedSubcategoryEntry(categoryEntry);
         if (mainValueField) {
-            mainValueField.value = mainValue;
+            mainValueField.value = categoryEntry ? (categoryEntry.folder_category || categoryEntry.label || '') : (mainCustom.value || mainSelect.value || '').trim();
         }
         if (subValueField) {
-            subValueField.value = subValue;
+            subValueField.value = subEntry ? (subEntry.folder_subcategory || subEntry.label || '') : (subCustom.value || subSelect.value || '').trim();
         }
         productSelect.innerHTML = '<option value="">Select folder number</option>';
-        if (!mainValue || !subValue || !folderIndex[mainValue] || !folderIndex[mainValue][subValue]) {
+        if (!categoryEntry || !subEntry) {
             hint.textContent = '';
             return;
         }
-        const numbers = folderIndex[mainValue][subValue] || [];
+        const numbers = subEntry.folder_numbers || [];
         numbers.forEach((num) => {
             const opt = document.createElement('option');
             opt.value = String(num);
@@ -523,15 +536,16 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     if (form) {
-        const detectedCategory = (form.dataset.detectedCategory || '').trim();
-        const detectedSubcategory = (form.dataset.detectedSubcategory || '').trim();
+        const detectedCategory = (form.dataset.detectedCategoryLabel || '').trim();
+        const detectedSubcategory = (form.dataset.detectedSubcategoryLabel || '').trim();
         const detectedFolder = (form.dataset.detectedFolder || '').trim();
 
-        if (detectedCategory && folderIndex[detectedCategory]) {
+        if (detectedCategory && dropdownTaxonomy.some((item) => item.label === detectedCategory)) {
             mainSelect.value = detectedCategory;
             mainCustom.value = '';
             updateSubcategories();
-            if (detectedSubcategory && folderIndex[detectedCategory][detectedSubcategory]) {
+            const categoryEntry = getSelectedCategoryEntry();
+            if (detectedSubcategory && categoryEntry && (categoryEntry.sub_categories || []).some((item) => item.label === detectedSubcategory)) {
                 subSelect.value = detectedSubcategory;
                 subCustom.value = '';
                 updateProductFolders();
