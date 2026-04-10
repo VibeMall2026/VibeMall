@@ -1561,12 +1561,13 @@ if (redeemCheckbox) {
     const checkoutForm = document.getElementById('checkoutForm');
     const useDefaultAddress = document.getElementById('useDefaultAddress');
     const setDefaultAddress = checkoutForm ? checkoutForm.querySelector('input[name="set_default_address"]') : null;
-    const countryField = document.querySelector('select[name="country"]');
+    const countryField = document.getElementById('countrySelect') || (checkoutForm ? checkoutForm.querySelector('select[name="country"]') : null);
     const pincodeValidField = document.getElementById('pincodeValid');
     const placeOrderButton = document.getElementById('placeOrderButton');
     if (!postcodeField || !cityField) return;
 
     let lookupTimer = null;
+    const defaultAddressSnapshot = {};
 
     const setHint = (text, isError) => {
         if (!cityHint) return;
@@ -1623,20 +1624,48 @@ if (redeemCheckbox) {
         }
     };
 
+    const triggerAddressValidation = () => {
+        if (countryField) {
+            countryField.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        if (postcodeField) {
+            postcodeField.dispatchEvent(new Event('input', { bubbles: true }));
+            postcodeField.dispatchEvent(new Event('blur', { bubbles: true }));
+        }
+    };
+
+    const rememberCurrentAddress = () => {
+        defaultAddressSnapshot.firstName = firstNameField ? firstNameField.value : '';
+        defaultAddressSnapshot.lastName = lastNameField ? lastNameField.value : '';
+        defaultAddressSnapshot.phone = phoneField ? phoneField.value : '';
+        defaultAddressSnapshot.address = addressField ? addressField.value : '';
+        defaultAddressSnapshot.city = cityField ? cityField.value : '';
+        defaultAddressSnapshot.state = stateField ? stateField.value : '';
+        defaultAddressSnapshot.postcode = postcodeField ? postcodeField.value : '';
+        defaultAddressSnapshot.country = countryField ? countryField.value : '';
+    };
+
+    const restoreRememberedAddress = () => {
+        if (firstNameField) firstNameField.value = defaultAddressSnapshot.firstName || '';
+        if (lastNameField) lastNameField.value = defaultAddressSnapshot.lastName || '';
+        if (phoneField) phoneField.value = defaultAddressSnapshot.phone || '';
+        if (addressField) addressField.value = defaultAddressSnapshot.address || '';
+        if (cityField) cityField.value = defaultAddressSnapshot.city || '';
+        if (stateField) stateField.value = defaultAddressSnapshot.state || '';
+        if (postcodeField) postcodeField.value = defaultAddressSnapshot.postcode || '';
+        if (countryField) countryField.value = defaultAddressSnapshot.country || 'India';
+        triggerAddressValidation();
+    };
+
     const applyDefaultAddress = () => {
         if (!useDefaultAddress) return;
 
         if (!useDefaultAddress.checked) {
-            // Clear fields when unchecked
-            if (firstNameField) firstNameField.value = '';
-            if (lastNameField) lastNameField.value = '';
-            if (phoneField) phoneField.value = '';
-            if (addressField) addressField.value = '';
-            if (cityField) cityField.value = '';
-            if (stateField) stateField.value = '';
-            if (postcodeField) postcodeField.value = '';
+            restoreRememberedAddress();
             return;
         }
+
+        rememberCurrentAddress();
 
         // Using an existing saved address should not auto-mark a new default.
         if (setDefaultAddress) {
@@ -1647,23 +1676,19 @@ if (redeemCheckbox) {
         const parts = fullName.trim().split(' ');
         const first = parts.shift() || '';
         const last = parts.join(' ');
+        const line1 = (useDefaultAddress.dataset.address1 || '').trim();
+        const line2 = (useDefaultAddress.dataset.address2 || '').trim();
         if (firstNameField) firstNameField.value = first;
         if (lastNameField) lastNameField.value = last;
         if (phoneField) phoneField.value = useDefaultAddress.dataset.phone || '';
-        if (addressField) addressField.value = (useDefaultAddress.dataset.address1 || '').trim();
+        if (addressField) addressField.value = [line1, line2].filter(Boolean).join(', ');
         if (cityField) cityField.value = useDefaultAddress.dataset.city || '';
         if (stateField) stateField.value = useDefaultAddress.dataset.state || '';
         if (postcodeField) postcodeField.value = useDefaultAddress.dataset.pincode || '';
         if (countryField && useDefaultAddress.dataset.country) {
             countryField.value = useDefaultAddress.dataset.country;
         }
-
-        const pinValue = (postcodeField.value || '').trim();
-        if (/^[0-9]{6}$/.test(pinValue)) {
-            fetchCity(pinValue);
-        } else {
-            updateSubmitState(!isIndia());
-        }
+        triggerAddressValidation();
     };
 
     postcodeField.addEventListener('input', () => {
@@ -2096,17 +2121,6 @@ document.addEventListener('DOMContentLoaded', function () {
         countryId: 'tabletCountryField'
     });
 
-    configureDefaultAddress({
-        checkboxId: 'useDefaultAddress',
-        firstNameId: 'firstNameField',
-        lastNameId: 'lastNameField',
-        phoneId: 'phoneField',
-        addressId: 'addressField',
-        cityId: 'cityField',
-        stateId: 'stateField',
-        postcodeId: 'postcodeField',
-        countryId: 'countrySelect'
-    });
 });
 </script>
 {% endblock %}
