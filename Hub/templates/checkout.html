@@ -1961,4 +1961,152 @@ function getCookie(name) {
 
 {% block extra_js %}
 <script src="{% static 'assets/js/checkout-tablet.js' %}?v=20260405-01"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    function configureDefaultAddress(options) {
+        const existingCheckbox = document.getElementById(options.checkboxId);
+        if (!existingCheckbox) {
+            return;
+        }
+
+        const checkbox = existingCheckbox.cloneNode(true);
+        existingCheckbox.replaceWith(checkbox);
+
+        const fields = {
+            fullName: options.fullNameId ? document.getElementById(options.fullNameId) : null,
+            firstName: options.firstNameId ? document.getElementById(options.firstNameId) : null,
+            lastName: options.lastNameId ? document.getElementById(options.lastNameId) : null,
+            phone: options.phoneId ? document.getElementById(options.phoneId) : null,
+            address: options.addressId ? document.getElementById(options.addressId) : null,
+            city: options.cityId ? document.getElementById(options.cityId) : null,
+            state: options.stateId ? document.getElementById(options.stateId) : null,
+            postcode: options.postcodeId ? document.getElementById(options.postcodeId) : null,
+            country: options.countryId ? document.getElementById(options.countryId) : null
+        };
+
+        const snapshot = {};
+        const fieldEntries = Object.entries(fields).filter(function ([, field]) {
+            return !!field;
+        });
+
+        function rememberCurrentValues() {
+            fieldEntries.forEach(function ([key, field]) {
+                snapshot[key] = field.value;
+            });
+        }
+
+        function restoreValues() {
+            fieldEntries.forEach(function ([key, field]) {
+                if (Object.prototype.hasOwnProperty.call(snapshot, key)) {
+                    field.value = snapshot[key];
+                }
+            });
+
+            if (fields.country) {
+                fields.country.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            if (fields.postcode) {
+                fields.postcode.dispatchEvent(new Event('input', { bubbles: true }));
+                fields.postcode.dispatchEvent(new Event('blur', { bubbles: true }));
+            }
+        }
+
+        function populateDefaultAddress() {
+            const line1 = (checkbox.dataset.address1 || '').trim();
+            const line2 = (checkbox.dataset.address2 || '').trim();
+            const address = [line1, line2].filter(Boolean).join(', ');
+            const fullName = (checkbox.dataset.fullName || '').trim();
+
+            if (fields.fullName) {
+                fields.fullName.value = fullName;
+            }
+
+            if (fields.firstName || fields.lastName) {
+                const parts = fullName.split(/\s+/).filter(Boolean);
+                if (fields.firstName) {
+                    fields.firstName.value = parts.shift() || '';
+                }
+                if (fields.lastName) {
+                    fields.lastName.value = parts.join(' ');
+                }
+            }
+
+            if (fields.phone) {
+                fields.phone.value = checkbox.dataset.phone || '';
+            }
+            if (fields.address) {
+                fields.address.value = address;
+            }
+            if (fields.city) {
+                fields.city.value = checkbox.dataset.city || '';
+            }
+            if (fields.state) {
+                fields.state.value = checkbox.dataset.state || '';
+            }
+            if (fields.postcode) {
+                fields.postcode.value = checkbox.dataset.pincode || '';
+            }
+            if (fields.country) {
+                fields.country.value = checkbox.dataset.country || 'India';
+                fields.country.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            if (fields.postcode) {
+                fields.postcode.dispatchEvent(new Event('input', { bubbles: true }));
+                fields.postcode.dispatchEvent(new Event('blur', { bubbles: true }));
+            }
+        }
+
+        checkbox.addEventListener('change', function () {
+            if (checkbox.checked) {
+                rememberCurrentValues();
+                populateDefaultAddress();
+            } else {
+                restoreValues();
+            }
+        });
+
+        if (checkbox.checked) {
+            rememberCurrentValues();
+            populateDefaultAddress();
+        }
+    }
+
+    configureDefaultAddress({
+        checkboxId: 'mobileUseDefaultAddress',
+        fullNameId: 'mobileFullNameField',
+        phoneId: 'mobilePhoneField',
+        addressId: 'mobileAddressField',
+        cityId: 'mobileCityField',
+        stateId: 'mobileStateField',
+        postcodeId: 'mobilePostcodeField',
+        countryId: 'mobileCountryField'
+    });
+
+    configureDefaultAddress({
+        checkboxId: 'tabletUseDefaultAddress',
+        fullNameId: 'tabletFullNameField',
+        firstNameId: 'tabletFirstNameField',
+        lastNameId: 'tabletLastNameField',
+        phoneId: 'tabletPhoneField',
+        addressId: 'tabletAddressField',
+        cityId: 'tabletCityField',
+        stateId: 'tabletStateField',
+        postcodeId: 'tabletPostcodeField',
+        countryId: 'tabletCountryField'
+    });
+
+    configureDefaultAddress({
+        checkboxId: 'useDefaultAddress',
+        firstNameId: 'firstNameField',
+        lastNameId: 'lastNameField',
+        phoneId: 'phoneField',
+        addressId: 'addressField',
+        cityId: 'cityField',
+        stateId: 'stateField',
+        postcodeId: 'postcodeField',
+        countryId: 'countrySelect'
+    });
+});
+</script>
 {% endblock %}
