@@ -1771,6 +1771,7 @@ class Reel(models.Model):
     # Status
     is_published = models.BooleanField(default=False, help_text="Publish on website")
     is_processing = models.BooleanField(default=False, help_text="Video generation in progress")
+    show_on_homepage = models.BooleanField(default=True, help_text="Show this reel in the homepage carousel")
     order = models.PositiveIntegerField(default=0, help_text="Display order on homepage (lower numbers appear first)")
     
     # Metadata

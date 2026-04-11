@@ -5544,14 +5544,22 @@ def index(request):
             Reel.objects
             .filter(
                 is_published=True,
-                product__isnull=False,
-                product__is_active=True,
+                show_on_homepage=True,
                 video_file__isnull=False,
             )
             .exclude(video_file='')
             .select_related('product')
-            .order_by('order', '-created_at')[:6]
+            .order_by('order', '-created_at')
         )
+        # Fall back to all published reels if none are flagged for homepage
+        if not watch_shop_reels:
+            watch_shop_reels = list(
+                Reel.objects
+                .filter(is_published=True, video_file__isnull=False)
+                .exclude(video_file='')
+                .select_related('product')
+                .order_by('order', '-created_at')
+            )
 
         public_context = {
             'sliders': sliders,
@@ -12031,6 +12039,7 @@ def admin_edit_reel(request, reel_id):
         
         reel.transition_type = request.POST.get('transition_type', 'zoom')
         reel.is_published = request.POST.get('is_published') == 'on'
+        reel.show_on_homepage = request.POST.get('show_on_homepage') == 'on'
         
         # Branding fields
         reel.watermark_position = request.POST.get('watermark_position', 'top-right')
@@ -12224,6 +12233,19 @@ def admin_reel_details(request, reel_id):
         'is_published': reel.is_published,
         'created_at': reel.created_at.strftime('%Y-%m-%d %H:%M:%S')
     })
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_toggle_reel_homepage(request, reel_id):
+    """Toggle show_on_homepage for a reel via AJAX POST"""
+    from Hub.models import Reel
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    reel = get_object_or_404(Reel, id=reel_id)
+    reel.show_on_homepage = not reel.show_on_homepage
+    reel.save(update_fields=['show_on_homepage'])
+    return JsonResponse({'show_on_homepage': reel.show_on_homepage})
 
 
 @login_required(login_url='login')

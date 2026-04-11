@@ -337,6 +337,13 @@
                             <i class="fas fa-file"></i> Draft
                         </span>
                     {% endif %}
+
+                    <div class="mt-2 d-flex align-items-center gap-2">
+                        <span class="reel-status {% if reel.show_on_homepage %}status-published{% else %}status-draft{% endif %}" style="cursor:pointer;" onclick="toggleHomepage({{ reel.id }}, this)" title="Toggle homepage visibility">
+                            <i class="fas {% if reel.show_on_homepage %}fa-home{% else %}fa-home{% endif %}"></i>
+                            {% if reel.show_on_homepage %}On Homepage{% else %}Hidden{% endif %}
+                        </span>
+                    </div>
                     
                     <div class="reel-actions">
                         {% if reel.video_file %}
@@ -511,6 +518,26 @@
         });
         
         items.forEach(item => grid.appendChild(item));
+    }
+
+    // Toggle homepage visibility
+    function toggleHomepage(reelId, el) {
+        const csrfToken = document.cookie.match(/csrftoken=([^;]+)/);
+        fetch(`/admin-panel/reels/${reelId}/toggle-homepage/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken ? csrfToken[1] : '', 'Content-Type': 'application/json' },
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.show_on_homepage) {
+                el.className = 'reel-status status-published';
+                el.innerHTML = '<i class="fas fa-home"></i> On Homepage';
+            } else {
+                el.className = 'reel-status status-draft';
+                el.innerHTML = '<i class="fas fa-home"></i> Hidden';
+            }
+        })
+        .catch(() => alert('Failed to update. Please try again.'));
     }
 </script>
 {% endblock %}

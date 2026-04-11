@@ -118,6 +118,7 @@ urlpatterns = [
     path('admin-panel/reels/<int:reel_id>/delete/', views.admin_delete_reel, name='admin_delete_reel'),
     path('admin-panel/reels/<int:reel_id>/details/', views.admin_reel_details, name='admin_reel_details'),
     path('admin-panel/reels/<int:reel_id>/generate/', views.admin_generate_reel, name='admin_generate_reel'),
+    path('admin-panel/reels/<int:reel_id>/toggle-homepage/', views.admin_toggle_reel_homepage, name='admin_toggle_reel_homepage'),
     
     # Auth
     path('accounts/login/', views.login_view, name='accounts_login'),
