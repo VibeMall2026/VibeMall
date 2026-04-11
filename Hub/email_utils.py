@@ -256,6 +256,11 @@ def send_order_confirmation_email(order):
         except Exception:
             returns_policy_path = '/faq/'
 
+        try:
+            invoice_download_path = reverse('download_invoice', args=[order.order_number])
+        except Exception:
+            invoice_download_path = f"/order/download-invoice/{order.order_number}/"
+
         payment_status_display = order.get_payment_status_display()
         if order.delivery_date:
             estimated_delivery = order.delivery_date.strftime('%B %d, %Y')
@@ -297,7 +302,7 @@ def send_order_confirmation_email(order):
             'order_details_url': f"{site_url}{order_details_path}",
             'contact_url': f"{site_url}{contact_path}",
             'returns_policy_url': f"{site_url}{returns_policy_path}",
-            'invoice_download_url': f"{site_url}{order_details_path}",
+            'invoice_download_url': f"{site_url}{invoice_download_path}",
             'current_year': datetime.now().year,
         })
         
