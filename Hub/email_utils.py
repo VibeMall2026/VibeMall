@@ -350,22 +350,114 @@ def send_order_confirmation_email(order):
                 # Render invoice HTML
                 invoice_html = render_to_string('invoice_pdf.html', invoice_context)
                 
-                # Generate PDF from HTML
+                # Generate PDF from HTML — use empty base_url to avoid external fetches
                 pdf_file = BytesIO()
-                HTML(string=invoice_html, base_url=invoice_context['site_url']).write_pdf(pdf_file)
+                HTML(string=invoice_html, base_url='').write_pdf(pdf_file)
                 pdf_file.seek(0)
+                pdf_bytes = pdf_file.read()
                 
-                # Attach PDF to email
-                email.attach(
-                    f'Invoice_{order.order_number}.pdf',
-                    pdf_file.read(),
-                    'application/pdf'
-                )
-                
-                logger.info(f"Invoice PDF generated and attached for order {order.order_number}")
+                if pdf_bytes:
+                    email.attach(
+                        f'Invoice_{order.order_number}.pdf',
+                        pdf_bytes,
+                        'application/pdf'
+                    )
+                    logger.info(f"Invoice PDF generated and attached for order {order.order_number}")
+                else:
+                    raise ValueError("WeasyPrint returned empty PDF")
             except Exception as pdf_error:
-                logger.error(f"Failed to generate/attach invoice PDF for order {order.order_number}: {str(pdf_error)}")
-                # Continue sending email without PDF
+                logger.error(f"WeasyPrint failed for order {order.order_number}: {pdf_error}. Trying ReportLab fallback.")
+                # ReportLab fallback so PDF is always attached
+                try:
+                    from reportlab.lib.pagesizes import A4
+                    from reportlab.pdfgen import canvas
+                    from reportlab.lib.units import mm
+                    invoice_context = build_invoice_context(order)
+                    fallback_buf = BytesIO()
+                    c = canvas.Canvas(fallback_buf, pagesize=A4)
+                    pw, ph = A4
+                    c.setFont('Helvetica-Bold', 18)
+                    c.drawCentredString(pw / 2, ph - 30 * mm, 'VibeMall')
+                    c.setFont('Helvetica', 11)
+                    c.drawCentredString(pw / 2, ph - 38 * mm, f'Invoice #{order.order_number}')
+                    y = ph - 52 * mm
+                    lines = [
+                        f"Date: {invoice_context.get('invoice_date', '')}",
+                        f"Customer: {invoice_context.get('customer_name', '')}",
+                        f"Email: {invoice_context.get('customer_email', '')}",
+                        '',
+                    ]
+                    for item in invoice_context.get('order_items', []):
+                        lines.append(f"  {item.get('name','')}  x{item.get('quantity','')}  Rs {item.get('line_total','')}")
+                    lines += [
+                        '',
+                        f"Subtotal: Rs {invoice_context.get('subtotal_amount', '')}",
+                        f"Shipping: Rs {invoice_context.get('shipping_amount', '')}",
+                        f"Total: Rs {invoice_context.get('grand_total', '')}",
+                        '',
+                        f"Payment: {invoice_context.get('payment_method_display', '')}",
+                    ]
+                    c.setFont('Helvetica', 10)
+                    for line in lines:
+                        c.drawString(20 * mm, y, str(line))
+                        y -= 6 * mm
+                        if y < 20 * mm:
+                            c.showPage()
+                            y = ph - 20 * mm
+                    c.save()
+                    fallback_buf.seek(0)
+                    fallback_bytes = fallback_buf.read()
+                    if fallback_bytes:
+                        email.attach(f'Invoice_{order.order_number}.pdf', fallback_bytes, 'application/pdf')
+                        logger.info(f"ReportLab fallback PDF attached for order {order.order_number}")
+                except Exception as rl_err:
+                    logger.error(f"ReportLab fallback also failed for order {order.order_number}: {rl_err}")
+        else:
+            # WeasyPrint not available — use ReportLab directly
+            try:
+                from reportlab.lib.pagesizes import A4
+                from reportlab.pdfgen import canvas
+                from reportlab.lib.units import mm
+                invoice_context = build_invoice_context(order)
+                fallback_buf = BytesIO()
+                c = canvas.Canvas(fallback_buf, pagesize=A4)
+                pw, ph = A4
+                c.setFont('Helvetica-Bold', 18)
+                c.drawCentredString(pw / 2, ph - 30 * mm, 'VibeMall')
+                c.setFont('Helvetica', 11)
+                c.drawCentredString(pw / 2, ph - 38 * mm, f'Invoice #{order.order_number}')
+                y = ph - 52 * mm
+                lines = [
+                    f"Date: {invoice_context.get('invoice_date', '')}",
+                    f"Customer: {invoice_context.get('customer_name', '')}",
+                    f"Email: {invoice_context.get('customer_email', '')}",
+                    '',
+                ]
+                for item in invoice_context.get('order_items', []):
+                    lines.append(f"  {item.get('name','')}  x{item.get('quantity','')}  Rs {item.get('line_total','')}")
+                lines += [
+                    '',
+                    f"Subtotal: Rs {invoice_context.get('subtotal_amount', '')}",
+                    f"Shipping: Rs {invoice_context.get('shipping_amount', '')}",
+                    f"Total: Rs {invoice_context.get('grand_total', '')}",
+                    '',
+                    f"Payment: {invoice_context.get('payment_method_display', '')}",
+                ]
+                c.setFont('Helvetica', 10)
+                for line in lines:
+                    c.drawString(20 * mm, y, str(line))
+                    y -= 6 * mm
+                    if y < 20 * mm:
+                        c.showPage()
+                        y = ph - 20 * mm
+                c.save()
+                fallback_buf.seek(0)
+                fallback_bytes = fallback_buf.read()
+                if fallback_bytes:
+                    email.attach(f'Invoice_{order.order_number}.pdf', fallback_bytes, 'application/pdf')
+                    logger.info(f"ReportLab PDF attached (weasyprint unavailable) for order {order.order_number}")
+            except Exception as rl_err:
+                logger.error(f"ReportLab PDF failed for order {order.order_number}: {rl_err}")
         
         email.send(fail_silently=False)
         
