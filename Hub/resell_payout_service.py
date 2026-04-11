@@ -182,6 +182,87 @@ class PayoutEmailService:
             return False
 
     @staticmethod
+    def send_admin_withdraw_request_notification(payout_transaction):
+        """
+        Send admin email immediately when a reseller submits a withdraw request.
+        """
+        try:
+            admin_emails = list(
+                User.objects.filter(is_staff=True, is_active=True)
+                .exclude(email='')
+                .values_list('email', flat=True)
+            )
+            if not admin_emails:
+                return False
+
+            reseller = payout_transaction.reseller
+            account_details = payout_transaction.upi_id or payout_transaction.bank_account or 'N/A'
+            method_display = dict(PayoutTransaction.PAYOUT_METHOD_CHOICES).get(
+                payout_transaction.payout_method, payout_transaction.payout_method
+            )
+            site_url = getattr(settings, 'SITE_URL', '').rstrip('/')
+            admin_url = f"{site_url}/admin-panel/resell/payouts/?view=requested"
+
+            subject = f'Withdraw Request: ₹{payout_transaction.amount} from {reseller.username}'
+            html_body = f"""
+<!DOCTYPE html><html><head><style>
+body{{font-family:Arial,sans-serif;line-height:1.6;color:#333;}}
+.container{{max-width:600px;margin:0 auto;padding:20px;}}
+.header{{background:#fff3cd;padding:20px;border-left:4px solid #ffc107;}}
+.details{{background:#f8f9fa;padding:15px;border-radius:5px;margin:15px 0;}}
+.row{{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e9ecef;}}
+.row:last-child{{border-bottom:none;}}
+.label{{font-weight:bold;color:#495057;}}
+.amount{{font-size:18px;font-weight:bold;color:#28a745;}}
+.btn{{display:inline-block;background:#007bff;color:white;padding:12px 30px;text-decoration:none;border-radius:5px;margin:20px 0;}}
+.footer{{border-top:1px solid #e9ecef;margin-top:20px;padding-top:20px;font-size:12px;color:#6c757d;}}
+</style></head><body>
+<div class="container">
+  <div class="header"><h2>⚠️ New Withdraw Request</h2><p>A reseller has submitted a payout withdrawal request</p></div>
+  <div style="padding:20px;">
+    <p>Hello Admin,</p>
+    <p>A reseller has requested a payout withdrawal. Please review and process it from the admin panel.</p>
+    <div class="details">
+      <div class="row"><span class="label">Reseller:</span><span>{reseller.get_full_name() or reseller.username} (@{reseller.username})</span></div>
+      <div class="row"><span class="label">Email:</span><span>{reseller.email}</span></div>
+      <div class="row"><span class="label">Amount Requested:</span><span class="amount">₹{payout_transaction.amount}</span></div>
+      <div class="row"><span class="label">Payment Method:</span><span>{method_display}</span></div>
+      <div class="row"><span class="label">Account / UPI:</span><span>{account_details}</span></div>
+      <div class="row"><span class="label">Request ID:</span><span>#{payout_transaction.id}</span></div>
+      <div class="row"><span class="label">Requested At:</span><span>{payout_transaction.initiated_at.strftime('%B %d, %Y %H:%M') if payout_transaction.initiated_at else 'Just now'}</span></div>
+    </div>
+    <a href="{admin_url}" class="btn">Review Payout Request</a>
+    <div class="footer"><p>This is an automated notification from VibeMall Resell Management System.</p></div>
+  </div>
+</div>
+</body></html>"""
+
+            plain_body = (
+                f"New Withdraw Request\n\n"
+                f"Reseller: {reseller.get_full_name() or reseller.username} (@{reseller.username})\n"
+                f"Email: {reseller.email}\n"
+                f"Amount: Rs.{payout_transaction.amount}\n"
+                f"Method: {method_display}\n"
+                f"Account/UPI: {account_details}\n"
+                f"Request ID: #{payout_transaction.id}\n\n"
+                f"Review at: {admin_url}"
+            )
+
+            email = EmailMessage(
+                subject=subject,
+                body=plain_body,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=admin_emails,
+            )
+            email.attach_alternative(html_body, 'text/html')
+            email.send()
+            logger.info(f"Admin withdraw request notification sent for payout {payout_transaction.id}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to send admin withdraw notification for payout {payout_transaction.id}: {e}")
+            return False
+
+    @staticmethod
     def send_payout_confirmation_to_reseller(payout_transaction, invoice_pdf_path=None):
         """
         Send reseller confirmation email with invoice after payout is completed.

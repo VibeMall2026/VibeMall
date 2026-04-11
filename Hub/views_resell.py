@@ -551,7 +551,14 @@ def request_payout(request):
             payout_method=payout_method,
             payment_details=payment_details
         )
-        
+
+        # Notify admins immediately about the withdraw request
+        try:
+            from .resell_payout_service import PayoutEmailService
+            PayoutEmailService.send_admin_withdraw_request_notification(payout)
+        except Exception:
+            pass  # Don't fail the request if email fails
+
         return JsonResponse({
             'success': True,
             'message': 'Payout request submitted successfully.',

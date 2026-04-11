@@ -697,7 +697,7 @@ def admin_payout_management(request):
     - Pending payouts (under 7 days, in return window)
     - Completed/failed payouts
     """
-    view_type = request.GET.get('view', 'eligible')  # eligible, pending, completed
+    view_type = request.GET.get('view', 'eligible')  # eligible, pending, completed, requested
     reseller_id = request.GET.get('reseller', '')
     sort_by = request.GET.get('sort', '-margin_amount')
     page_size = _get_safe_page_size(request)
@@ -759,8 +759,36 @@ def admin_payout_management(request):
             'payout_methods': dict(PayoutTransaction.PAYOUT_METHOD_CHOICES),
         }
 
+    elif view_type == 'requested':
+        # Show reseller-initiated withdraw requests (INITIATED status)
+        payouts = PayoutTransaction.objects.select_related(
+            'reseller', 'reseller__reseller_profile'
+        ).filter(status='INITIATED').order_by('-initiated_at')
+
+        if reseller_id:
+            payouts = payouts.filter(reseller_id=reseller_id)
+
+        paginator = Paginator(payouts, page_size)
+        page_number = request.GET.get('page', 1)
+        page_obj = paginator.get_page(page_number)
+
+        total_requested = payouts.count()
+        total_requested_amount = payouts.aggregate(
+            total=Sum('amount')
+        )['total'] or Decimal('0.00')
+
+        context = {
+            'view_type': 'requested',
+            'page_obj': page_obj,
+            'payouts': page_obj.object_list,
+            'total_requested': total_requested,
+            'total_requested_amount': total_requested_amount,
+            'resellers': resellers,
+            'filter_reseller': reseller_id,
+        }
+
     else:
-        # Show completed payouts (old behavior)
+        # Show completed payouts
         status_filter = request.GET.get('status', 'COMPLETED')
         date_from = request.GET.get('date_from', '')
         date_to = request.GET.get('date_to', '')

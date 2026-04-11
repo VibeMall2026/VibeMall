@@ -450,6 +450,11 @@ body.vm-page-reseller-withdraw-desktop .vm-mobile-side-menu-overlay {
         <header class="vm-rwd-head">
             <h1>Payouts</h1>
             <p>Manage your earnings and submit withdrawal requests from this page.</p>
+            {% if request.user.is_staff %}
+            <a href="{% url 'admin_payout_management' %}?view=requested" style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:8px 16px;background:#1b1c19;color:#fff;border-radius:8px;text-decoration:none;font-size:12px;font-weight:700;letter-spacing:.06em;">
+                <i class="fas fa-shield-alt"></i> Admin: Manage Payouts
+            </a>
+            {% endif %}
         </header>
 
         {% if messages %}
