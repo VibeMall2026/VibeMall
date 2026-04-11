@@ -12409,13 +12409,6 @@ def address_book_view(request):
 @login_required(login_url='accounts_login')
 def payment_methods_view(request):
     """Payment Methods: show a summary of past payment methods used."""
-    payment_methods_used = list(
-        Order.objects.filter(user=request.user)
-        .exclude(payment_method__isnull=True)
-        .exclude(payment_method__exact='')
-        .values_list('payment_method', flat=True)
-        .distinct()
-    )
     payment_meta = {
         'COD': {'label': 'Cash on Delivery', 'icon': 'fas fa-money-bill-wave', 'color': '#28a745'},
         'RAZORPAY': {'label': 'Razorpay (Cards / UPI / Net Banking)', 'icon': 'fas fa-credit-card', 'color': '#2196f3'},
@@ -12423,10 +12416,23 @@ def payment_methods_view(request):
         'ONLINE': {'label': 'Online Payment', 'icon': 'fas fa-globe', 'color': '#ff9800'},
         'CARD': {'label': 'Credit / Debit Card', 'icon': 'fas fa-credit-card', 'color': '#e91e63'},
     }
-    methods = [
-        {**payment_meta.get(method, {'label': method, 'icon': 'fas fa-circle', 'color': '#6c757d'}), 'key': method}
-        for method in payment_methods_used
-    ]
+    # Collect unique payment methods (normalised to uppercase, stripped)
+    raw_methods = (
+        Order.objects.filter(user=request.user)
+        .exclude(payment_method__isnull=True)
+        .exclude(payment_method__exact='')
+        .values_list('payment_method', flat=True)
+    )
+    seen = set()
+    methods = []
+    for pm in raw_methods:
+        key = (pm or '').strip().upper()
+        if key and key not in seen:
+            seen.add(key)
+            methods.append({
+                **payment_meta.get(key, {'label': key, 'icon': 'fas fa-circle', 'color': '#6c757d'}),
+                'key': key,
+            })
     return render(request, 'payment_methods.html', {'methods': methods})
 
 
