@@ -637,9 +637,20 @@ document.addEventListener('DOMContentLoaded', function () {
         const total = slides.length;
         if (total === 0) return;
 
+        const carousel = track.closest('.vm-reel-carousel');
         let current = 0;
         const maxIndex = Math.max(0, total - slidesPerView);
         const AUTO_INTERVAL = 3500;
+
+        function setSlideWidths() {
+            const carouselW = carousel.offsetWidth;
+            const slideW = carouselW / slidesPerView;
+            slides.forEach(s => {
+                s.style.flex = '0 0 ' + slideW + 'px';
+                s.style.width = slideW + 'px';
+            });
+            return slideW;
+        }
 
         // Build dots
         for (let i = 0; i <= maxIndex; i++) {
@@ -650,30 +661,29 @@ document.addEventListener('DOMContentLoaded', function () {
             dotsWrap.appendChild(dot);
         }
 
-        function getSlideWidth() {
-            return slides[0] ? slides[0].getBoundingClientRect().width : 0;
-        }
-
         function goTo(idx) {
             current = Math.max(0, Math.min(idx, maxIndex));
-            const offset = getSlideWidth() * current;
-            track.style.transform = 'translateX(-' + offset + 'px)';
+            const slideW = slides[0] ? slides[0].offsetWidth : 0;
+            track.style.transform = 'translateX(-' + (slideW * current) + 'px)';
             dotsWrap.querySelectorAll('button').forEach((d, i) => d.classList.toggle('is-active', i === current));
         }
+
+        // Init widths then go to 0
+        setSlideWidths();
+        goTo(0);
 
         if (prevBtn) prevBtn.addEventListener('click', () => goTo(current - 1));
         if (nextBtn) nextBtn.addEventListener('click', () => goTo(current + 1));
 
         // Auto-slide
         let timer = setInterval(() => goTo(current < maxIndex ? current + 1 : 0), AUTO_INTERVAL);
-        const carousel = track.closest('.vm-reel-carousel');
         carousel.addEventListener('mouseenter', () => clearInterval(timer));
         carousel.addEventListener('mouseleave', () => {
             timer = setInterval(() => goTo(current < maxIndex ? current + 1 : 0), AUTO_INTERVAL);
         });
 
         // Recalculate on resize
-        window.addEventListener('resize', () => goTo(current));
+        window.addEventListener('resize', () => { setSlideWidths(); goTo(current); });
 
         // Touch/swipe support
         let touchStartX = 0;
