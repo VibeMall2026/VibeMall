@@ -633,15 +633,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const dotsWrap = document.getElementById(dotsId);
         if (!track) return;
 
-        const slides = track.querySelectorAll('.vm-reel-carousel__slide');
+        const slides = Array.from(track.querySelectorAll('.vm-reel-carousel__slide'));
         const total = slides.length;
         if (total === 0) return;
 
         let current = 0;
         const maxIndex = Math.max(0, total - slidesPerView);
         const AUTO_INTERVAL = 3500;
-        // Each slide is (100/slidesPerView)% wide, so moving by 1 slide = (100/slidesPerView)%
-        const slideWidthPct = 100 / slidesPerView;
 
         // Build dots
         for (let i = 0; i <= maxIndex; i++) {
@@ -652,9 +650,14 @@ document.addEventListener('DOMContentLoaded', function () {
             dotsWrap.appendChild(dot);
         }
 
+        function getSlideWidth() {
+            return slides[0] ? slides[0].getBoundingClientRect().width : 0;
+        }
+
         function goTo(idx) {
             current = Math.max(0, Math.min(idx, maxIndex));
-            track.style.transform = 'translateX(-' + (slideWidthPct * current) + '%)';
+            const offset = getSlideWidth() * current;
+            track.style.transform = 'translateX(-' + offset + 'px)';
             dotsWrap.querySelectorAll('button').forEach((d, i) => d.classList.toggle('is-active', i === current));
         }
 
@@ -668,6 +671,9 @@ document.addEventListener('DOMContentLoaded', function () {
         carousel.addEventListener('mouseleave', () => {
             timer = setInterval(() => goTo(current < maxIndex ? current + 1 : 0), AUTO_INTERVAL);
         });
+
+        // Recalculate on resize
+        window.addEventListener('resize', () => goTo(current));
 
         // Touch/swipe support
         let touchStartX = 0;

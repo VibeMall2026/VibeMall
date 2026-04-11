@@ -2269,7 +2269,8 @@ body.vm-mini-cart-open {
 /* ── Reel Carousel ── */
 .vm-reel-carousel { position: relative; overflow: hidden; width: 100%; }
 .vm-reel-carousel__track { display: flex; flex-wrap: nowrap; transition: transform 0.5s cubic-bezier(.4,0,.2,1); will-change: transform; }
-.vm-reel-carousel__slide { flex: 0 0 33.333%; width: 33.333%; min-width: 0; position: relative; overflow: hidden; }
+/* Desktop: 3 slides visible */
+.vm-reel-carousel__slide { flex: 0 0 calc(100% / 3); width: calc(100% / 3); min-width: 0; position: relative; overflow: hidden; }
 .vm-reel-carousel__slide img,
 .vm-reel-carousel__slide video { width: 100%; height: 420px; object-fit: cover; display: block; }
 .vm-reel-carousel__slide a { display: block; }
