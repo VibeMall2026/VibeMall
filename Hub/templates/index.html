@@ -152,10 +152,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     <h3>Watch and Shop</h3>
                 </div>
             </div>
-            <div class="vm-reel-carousel vm-reel-carousel--mobile" id="vmReelCarouselMobile">
-                <div class="vm-reel-carousel__track" id="vmReelTrackMobile">
-                    {% for reel in watch_shop_reels %}
-                    <article class="vm-home-mobile-series__card vm-reel-carousel__slide">
+            <div class="vm-home-mobile-series__track">
+                    {% for reel in watch_shop_reels|slice:":3" %}
+                    <article class="vm-home-mobile-series__card">
                         {% if reel.product and reel.product.slug %}<a href="{% url 'product_detail' reel.product.slug %}">{% endif %}
                         {% if reel.video_file %}
                         <video autoplay muted loop playsinline preload="metadata"{% if reel.thumbnail %} poster="{{ reel.thumbnail.url }}"{% endif %}>
@@ -175,7 +174,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         </div>
                     </article>
                     {% empty %}
-                    <article class="vm-home-mobile-series__card vm-reel-carousel__slide">
+                    <article class="vm-home-mobile-series__card">
                         <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Videos coming soon">
                         <div class="vm-home-mobile-series__overlay">
                             <span>Watch and Shop 01</span>
@@ -184,10 +183,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     </article>
                     {% endfor %}
                 </div>
-                <button class="vm-reel-carousel__btn vm-reel-carousel__btn--prev" id="vmReelPrevMobile" aria-label="Previous">&#8249;</button>
-                <button class="vm-reel-carousel__btn vm-reel-carousel__btn--next" id="vmReelNextMobile" aria-label="Next">&#8250;</button>
-                <div class="vm-reel-carousel__dots" id="vmReelDotsMobile"></div>
-            </div>
         </section>
 
         <section class="vm-home-mobile-newsletter">
@@ -396,11 +391,29 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                     <a href="{% url 'blog' %}" class="vm-home-tablet-link">Explore Stories</a>
                 </div>
-                <div class="vm-reel-carousel vm-reel-carousel--tablet" id="vmReelCarouselTablet">
-                    <div class="vm-reel-carousel__track" id="vmReelTrackTablet">
-                        {% for reel in watch_shop_reels %}
-                        <article class="vm-reel-carousel__slide">
-                            {% if reel.product and reel.product.slug %}<a href="{% url 'product_detail' reel.product.slug %}">{% endif %}
+                <div class="vm-home-tablet-watch">
+                    {% with hero_reel=watch_shop_reels|first %}
+                    <article class="vm-home-tablet-watch__hero">
+                        {% if hero_reel and hero_reel.video_file %}
+                        <video autoplay muted loop playsinline preload="metadata"{% if hero_reel.thumbnail %} poster="{{ hero_reel.thumbnail.url }}"{% endif %}>
+                            <source src="{{ hero_reel.video_file.url }}" type="video/mp4">
+                        </video>
+                        {% elif hero_reel and hero_reel.thumbnail %}
+                        <img src="{{ hero_reel.thumbnail.url }}" alt="{{ hero_reel.title }}">
+                        {% elif hero_reel and hero_reel.product and hero_reel.product.image %}
+                        <img src="{{ hero_reel.product.image.url }}" alt="{{ hero_reel.title }}">
+                        {% else %}
+                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Watch and Shop">
+                        {% endif %}
+                        <div class="vm-home-tablet-watch__meta">
+                            <small>Watch and Shop</small>
+                            <h4>{% if hero_reel %}{{ hero_reel.title }}{% else %}Videos coming soon{% endif %}</h4>
+                        </div>
+                    </article>
+                    {% endwith %}
+                    <div class="vm-home-tablet-watch__stack">
+                        {% for reel in watch_shop_reels|slice:"1:3" %}
+                        <article>
                             {% if reel.video_file %}
                             <video autoplay muted loop playsinline preload="metadata"{% if reel.thumbnail %} poster="{{ reel.thumbnail.url }}"{% endif %}>
                                 <source src="{{ reel.video_file.url }}" type="video/mp4">
@@ -412,22 +425,21 @@ document.addEventListener('DOMContentLoaded', function () {
                             {% else %}
                             <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ reel.title }}">
                             {% endif %}
-                            {% if reel.product and reel.product.slug %}</a>{% endif %}
                             <div class="vm-home-tablet-watch__meta">
-                                <small>Watch and Shop</small>
+                                <small>Watch and Shop {{ forloop.counter|add:"1" }}</small>
                                 <h4>{{ reel.title }}</h4>
                             </div>
                         </article>
                         {% empty %}
-                        <article class="vm-reel-carousel__slide">
+                        <article>
                             <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Watch and Shop">
-                            <div class="vm-home-tablet-watch__meta"><small>Watch and Shop</small><h4>Videos coming soon</h4></div>
+                            <div class="vm-home-tablet-watch__meta">
+                                <small>Watch and Shop</small>
+                                <h4>More videos coming soon</h4>
+                            </div>
                         </article>
                         {% endfor %}
                     </div>
-                    <button class="vm-reel-carousel__btn vm-reel-carousel__btn--prev" id="vmReelPrevTablet" aria-label="Previous">&#8249;</button>
-                    <button class="vm-reel-carousel__btn vm-reel-carousel__btn--next" id="vmReelNextTablet" aria-label="Next">&#8250;</button>
-                    <div class="vm-reel-carousel__dots" id="vmReelDotsTablet"></div>
                 </div>
             </section>
 
@@ -694,12 +706,10 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Desktop only — mobile and tablet carousels are handled by their own layout
+    // Desktop only — mobile and tablet use their original static layouts
     if (window.matchMedia('(min-width: 1200px)').matches) {
         initReelCarousel('vmReelTrackDesktop', 'vmReelPrevDesktop', 'vmReelNextDesktop', 'vmReelDotsDesktop', 3);
     }
-    initReelCarousel('vmReelTrackMobile',   'vmReelPrevMobile',   'vmReelNextMobile',   'vmReelDotsMobile',   1);
-    initReelCarousel('vmReelTrackTablet',   'vmReelPrevTablet',   'vmReelNextTablet',   'vmReelDotsTablet',   2);
 });
 </script>
 <script>
