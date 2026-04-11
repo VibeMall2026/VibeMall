@@ -24,6 +24,13 @@ document.addEventListener('DOMContentLoaded', function () {
     } else {
         document.querySelectorAll('.vm-home-tablet-only, .vm-copy-home-desktop').forEach((node) => node.remove());
     }
+
+    // Init desktop reel carousel AFTER layout cleanup so offsetWidth is correct
+    if (isDesktop) {
+        requestAnimationFrame(function() {
+            initDesktopReelCarousel();
+        });
+    }
 });
 </script>
 
@@ -636,83 +643,79 @@ document.addEventListener('DOMContentLoaded', function () {
 
 </section>
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    // ── Reel Carousel ──
-    function initReelCarousel(trackId, prevId, nextId, dotsId, slidesPerView) {
-        const track = document.getElementById(trackId);
-        const prevBtn = document.getElementById(prevId);
-        const nextBtn = document.getElementById(nextId);
-        const dotsWrap = document.getElementById(dotsId);
-        if (!track) return;
+function initDesktopReelCarousel() {
+    var carousel = document.getElementById('vmReelCarouselDesktop');
+    var track = document.getElementById('vmReelTrackDesktop');
+    var prevBtn = document.getElementById('vmReelPrevDesktop');
+    var nextBtn = document.getElementById('vmReelNextDesktop');
+    var dotsWrap = document.getElementById('vmReelDotsDesktop');
+    if (!track || !carousel) return;
 
-        const slides = Array.from(track.querySelectorAll('.vm-reel-carousel__slide'));
-        const total = slides.length;
-        if (total === 0) return;
+    var slides = Array.from(track.querySelectorAll('.vm-reel-carousel__slide'));
+    var total = slides.length;
+    if (total === 0) return;
 
-        const carousel = track.closest('.vm-reel-carousel');
-        let current = 0;
-        const maxIndex = Math.max(0, total - slidesPerView);
-        const AUTO_INTERVAL = 3500;
+    var slidesPerView = 3;
+    var current = 0;
+    var maxIndex = Math.max(0, total - slidesPerView);
+    var AUTO_INTERVAL = 3500;
 
-        function setSlideWidths() {
-            const carouselW = carousel.offsetWidth;
-            const slideW = Math.floor(carouselW / slidesPerView);
-            slides.forEach(s => {
-                s.style.width = slideW + 'px';
-                s.style.flexShrink = '0';
-                s.style.flexGrow = '0';
-                s.style.flexBasis = slideW + 'px';
-            });
-            return slideW;
-        }
+    function setSlideWidths() {
+        var carouselW = carousel.offsetWidth;
+        var slideW = Math.floor(carouselW / slidesPerView);
+        slides.forEach(function(s) {
+            s.style.width = slideW + 'px';
+            s.style.flexShrink = '0';
+            s.style.flexGrow = '0';
+            s.style.flexBasis = slideW + 'px';
+        });
+        return slideW;
+    }
 
-        // Build dots
-        for (let i = 0; i <= maxIndex; i++) {
-            const dot = document.createElement('button');
-            dot.setAttribute('aria-label', 'Go to slide ' + (i + 1));
-            if (i === 0) dot.classList.add('is-active');
-            dot.addEventListener('click', () => goTo(i));
+    // Build dots
+    dotsWrap.innerHTML = '';
+    for (var i = 0; i <= maxIndex; i++) {
+        (function(idx) {
+            var dot = document.createElement('button');
+            dot.setAttribute('aria-label', 'Go to slide ' + (idx + 1));
+            if (idx === 0) dot.classList.add('is-active');
+            dot.addEventListener('click', function() { goTo(idx); });
             dotsWrap.appendChild(dot);
-        }
+        })(i);
+    }
 
-        function goTo(idx) {
-            current = Math.max(0, Math.min(idx, maxIndex));
-            const slideW = slides[0] ? slides[0].offsetWidth : 0;
-            track.style.transform = 'translateX(-' + (slideW * current) + 'px)';
-            dotsWrap.querySelectorAll('button').forEach((d, i) => d.classList.toggle('is-active', i === current));
-        }
-
-        // Init widths then go to 0
-        setSlideWidths();
-        goTo(0);
-
-        if (prevBtn) prevBtn.addEventListener('click', () => goTo(current - 1));
-        if (nextBtn) nextBtn.addEventListener('click', () => goTo(current + 1));
-
-        // Auto-slide
-        let timer = setInterval(() => goTo(current < maxIndex ? current + 1 : 0), AUTO_INTERVAL);
-        carousel.addEventListener('mouseenter', () => clearInterval(timer));
-        carousel.addEventListener('mouseleave', () => {
-            timer = setInterval(() => goTo(current < maxIndex ? current + 1 : 0), AUTO_INTERVAL);
-        });
-
-        // Recalculate on resize
-        window.addEventListener('resize', () => { setSlideWidths(); goTo(current); });
-
-        // Touch/swipe support
-        let touchStartX = 0;
-        track.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
-        track.addEventListener('touchend', e => {
-            const diff = touchStartX - e.changedTouches[0].clientX;
-            if (Math.abs(diff) > 40) goTo(diff > 0 ? current + 1 : current - 1);
+    function goTo(idx) {
+        current = Math.max(0, Math.min(idx, maxIndex));
+        var slideW = slides[0].offsetWidth;
+        track.style.transform = 'translateX(-' + (slideW * current) + 'px)';
+        dotsWrap.querySelectorAll('button').forEach(function(d, i) {
+            d.classList.toggle('is-active', i === current);
         });
     }
 
-    // Desktop only — mobile and tablet use their original static layouts
-    if (window.matchMedia('(min-width: 1200px)').matches) {
-        initReelCarousel('vmReelTrackDesktop', 'vmReelPrevDesktop', 'vmReelNextDesktop', 'vmReelDotsDesktop', 3);
-    }
-});
+    setSlideWidths();
+    goTo(0);
+
+    prevBtn.addEventListener('click', function() { goTo(current - 1); });
+    nextBtn.addEventListener('click', function() { goTo(current + 1); });
+
+    var timer = setInterval(function() { goTo(current < maxIndex ? current + 1 : 0); }, AUTO_INTERVAL);
+    carousel.addEventListener('mouseenter', function() { clearInterval(timer); });
+    carousel.addEventListener('mouseleave', function() {
+        timer = setInterval(function() { goTo(current < maxIndex ? current + 1 : 0); }, AUTO_INTERVAL);
+    });
+
+    window.addEventListener('resize', function() { setSlideWidths(); goTo(current); });
+
+    // Touch/swipe
+    var touchStartX = 0;
+    track.addEventListener('touchstart', function(e) { touchStartX = e.touches[0].clientX; }, { passive: true });
+    track.addEventListener('touchend', function(e) {
+        var diff = touchStartX - e.changedTouches[0].clientX;
+        if (Math.abs(diff) > 40) goTo(diff > 0 ? current + 1 : current - 1);
+    });
+}
+</script>
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
