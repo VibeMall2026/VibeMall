@@ -656,10 +656,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
         function setSlideWidths() {
             const carouselW = carousel.offsetWidth;
-            const slideW = carouselW / slidesPerView;
+            const slideW = Math.floor(carouselW / slidesPerView);
             slides.forEach(s => {
-                s.style.flex = '0 0 ' + slideW + 'px';
                 s.style.width = slideW + 'px';
+                s.style.flexShrink = '0';
+                s.style.flexGrow = '0';
+                s.style.flexBasis = slideW + 'px';
             });
             return slideW;
         }
