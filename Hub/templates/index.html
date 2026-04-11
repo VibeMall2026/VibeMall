@@ -640,6 +640,8 @@ document.addEventListener('DOMContentLoaded', function () {
         let current = 0;
         const maxIndex = Math.max(0, total - slidesPerView);
         const AUTO_INTERVAL = 3500;
+        // Each slide is (100/slidesPerView)% wide, so moving by 1 slide = (100/slidesPerView)%
+        const slideWidthPct = 100 / slidesPerView;
 
         // Build dots
         for (let i = 0; i <= maxIndex; i++) {
@@ -652,8 +654,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         function goTo(idx) {
             current = Math.max(0, Math.min(idx, maxIndex));
-            const pct = (100 / slidesPerView) * current;
-            track.style.transform = 'translateX(-' + pct + '%)';
+            track.style.transform = 'translateX(-' + (slideWidthPct * current) + '%)';
             dotsWrap.querySelectorAll('button').forEach((d, i) => d.classList.toggle('is-active', i === current));
         }
 
@@ -662,8 +663,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Auto-slide
         let timer = setInterval(() => goTo(current < maxIndex ? current + 1 : 0), AUTO_INTERVAL);
-        track.closest('.vm-reel-carousel').addEventListener('mouseenter', () => clearInterval(timer));
-        track.closest('.vm-reel-carousel').addEventListener('mouseleave', () => {
+        const carousel = track.closest('.vm-reel-carousel');
+        carousel.addEventListener('mouseenter', () => clearInterval(timer));
+        carousel.addEventListener('mouseleave', () => {
             timer = setInterval(() => goTo(current < maxIndex ? current + 1 : 0), AUTO_INTERVAL);
         });
 
