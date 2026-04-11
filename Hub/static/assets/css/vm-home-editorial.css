@@ -2269,14 +2269,6 @@ body.vm-mini-cart-open {
 /* ── Reel Carousel ── */
 .vm-reel-carousel { position: relative; overflow: hidden; width: 100%; }
 .vm-reel-carousel__track { display: flex; flex-wrap: nowrap; transition: transform 0.5s cubic-bezier(.4,0,.2,1); will-change: transform; }
-/* Desktop: 3 slides visible */
-.vm-reel-carousel__slide { flex: 0 0 calc(100% / 3); width: calc(100% / 3); min-width: 0; position: relative; overflow: hidden; }
-.vm-reel-carousel__slide img,
-.vm-reel-carousel__slide video { width: 100%; height: 420px; object-fit: cover; display: block; }
-.vm-reel-carousel__slide a { display: block; }
-.vm-reel-carousel__info { position: absolute; left: 16px; bottom: 14px; color: #fff; pointer-events: none; }
-.vm-reel-carousel__info small { display: block; font-size: 9px; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 4px; }
-.vm-reel-carousel__info h4 { margin: 0; font-family: var(--vm-serif); font-size: 22px; line-height: 1.2; }
 .vm-reel-carousel__btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,.45); color: #fff; border: none; width: 44px; height: 44px; border-radius: 50%; font-size: 26px; line-height: 1; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; transition: background .2s; }
 .vm-reel-carousel__btn:hover { background: rgba(0,0,0,.75); }
 .vm-reel-carousel__btn--prev { left: 10px; }
@@ -2284,6 +2276,16 @@ body.vm-mini-cart-open {
 .vm-reel-carousel__dots { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; z-index: 10; }
 .vm-reel-carousel__dots button { width: 8px; height: 8px; border-radius: 50%; border: none; background: rgba(255,255,255,.5); cursor: pointer; padding: 0; transition: background .2s, transform .2s; }
 .vm-reel-carousel__dots button.is-active { background: #fff; transform: scale(1.3); }
+
+/* Desktop carousel: 3 slides visible — only applied when NOT mobile/tablet modifier */
+.vm-reel-carousel:not(.vm-reel-carousel--mobile):not(.vm-reel-carousel--tablet) .vm-reel-carousel__slide { flex: 0 0 calc(100% / 3); width: calc(100% / 3); min-width: 0; position: relative; overflow: hidden; }
+.vm-reel-carousel:not(.vm-reel-carousel--mobile):not(.vm-reel-carousel--tablet) .vm-reel-carousel__slide img,
+.vm-reel-carousel:not(.vm-reel-carousel--mobile):not(.vm-reel-carousel--tablet) .vm-reel-carousel__slide video { width: 100%; height: 420px; object-fit: cover; display: block; }
+.vm-reel-carousel:not(.vm-reel-carousel--mobile):not(.vm-reel-carousel--tablet) .vm-reel-carousel__slide a { display: block; }
+.vm-reel-carousel__info { position: absolute; left: 16px; bottom: 14px; color: #fff; pointer-events: none; }
+.vm-reel-carousel__info small { display: block; font-size: 9px; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 4px; }
+.vm-reel-carousel__info h4 { margin: 0; font-family: var(--vm-serif); font-size: 22px; line-height: 1.2; }
+
 /* Mobile: 1 slide at a time */
 .vm-reel-carousel--mobile .vm-reel-carousel__slide { flex: 0 0 100%; width: 100%; }
 .vm-reel-carousel--mobile .vm-reel-carousel__slide img,

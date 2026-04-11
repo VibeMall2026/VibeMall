@@ -684,7 +684,10 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    initReelCarousel('vmReelTrackDesktop',  'vmReelPrevDesktop',  'vmReelNextDesktop',  'vmReelDotsDesktop',  3);
+    // Desktop only — mobile and tablet carousels are handled by their own layout
+    if (window.matchMedia('(min-width: 1200px)').matches) {
+        initReelCarousel('vmReelTrackDesktop', 'vmReelPrevDesktop', 'vmReelNextDesktop', 'vmReelDotsDesktop', 3);
+    }
     initReelCarousel('vmReelTrackMobile',   'vmReelPrevMobile',   'vmReelNextMobile',   'vmReelDotsMobile',   1);
     initReelCarousel('vmReelTrackTablet',   'vmReelPrevTablet',   'vmReelNextTablet',   'vmReelDotsTablet',   2);
 });
