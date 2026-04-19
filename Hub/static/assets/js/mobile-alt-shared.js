@@ -201,17 +201,15 @@ document.addEventListener('DOMContentLoaded', function () {
         const menuLinks = document.querySelectorAll('.vm-mobile-side-menu__link:not([data-vm-mobile-submenu-toggle]), .vm-mobile-side-menu__sublink');
         menuLinks.forEach(function (link) {
             link.addEventListener('click', function () {
-                // Don't close on submit/button type links
-                if (link.tagName !== 'BUTTON') {
-                    closeMenu();
+                if (link.tagName === 'BUTTON') {
+                    return;
                 }
-            });
 
-            link.addEventListener('touchstart', function () {
-                if (link.tagName !== 'BUTTON') {
-                    closeMenu();
-                }
-            }, { passive: true });
+                // Give the browser a moment to complete the tap/navigation first.
+                window.setTimeout(function () {
+                    closeMenu({ restoreScroll: false });
+                }, 180);
+            });
         });
     }
 
