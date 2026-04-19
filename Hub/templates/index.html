@@ -3,39 +3,29 @@
 
 {% block title %}VibeMall Atelier{% endblock %}
 {% block meta_description %}VibeMall Atelier luxury editorial homepage.{% endblock %}
-{% block body_class %}vm-page-mobile-alt vm-page-mobile-home{% endblock %}
+{% block body_class %}{% if home_variant == 'desktop' %}vm-page-home-editorial{% else %}vm-page-mobile-alt vm-page-mobile-home{% endif %}{% endblock %}
+{% block ui_chrome %}{% if home_variant == 'mobile' %}mobile{% elif home_variant == 'tablet' %}tablet{% else %}desktop{% endif %}{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'assets/css/vm-home-editorial.css' %}?v=20260328-03">
+{% if home_variant == 'mobile' %}
 <link rel="stylesheet" href="{% static 'assets/css/home-mobile-alt.css' %}?v=20260329-01">
+{% elif home_variant == 'tablet' %}
 <link rel="stylesheet" href="{% static 'assets/css/home-tablet-alt.css' %}?v=20260329-01">
+{% endif %}
 {% endblock %}
 
 {% block content %}
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const isDesktop = window.matchMedia('(min-width: 1200px)').matches;
-    const isTablet = window.matchMedia('(min-width: 768px) and (max-width: 1199.98px)').matches;
-
-    if (isDesktop) {
-        document.querySelectorAll('.vm-home-mobile-only, .vm-home-tablet-only').forEach((node) => node.remove());
-    } else if (isTablet) {
-        document.querySelectorAll('.vm-home-mobile-only, .vm-copy-home-desktop').forEach((node) => node.remove());
-    } else {
-        document.querySelectorAll('.vm-home-tablet-only, .vm-copy-home-desktop').forEach((node) => node.remove());
-    }
-});
-</script>
-
+{% if home_variant == 'mobile' %}
 <section class="vm-home-mobile-only">
     {% include 'partials/vm_mobile_alt_header.html' %}
 
     <main class="vm-home-mobile-main vm-mobile-content-offset">
         <section class="vm-home-mobile-hero" data-vm-mobile-slider>
             <div class="vm-home-mobile-hero__slides">
-                <img class="vm-home-mobile-hero__image is-active" data-vm-mobile-slide src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpKJXEfegHPUl0kHtz3GkHGNVLgqK7dLvGrQMPZworaiom9Q4i7AkcRLq62UIXiMLG6B_jeYKlsy9YIxPVuOK55mcOXYxh3vHcN2BaeuCjmyht_tENl3v0jUSJ9pudR2ax2anwdLh6HB4Tnq2HZ-hH-AkDmrKxZSH6NwGtAR3znbFWW1JqgSUNNoIUz1aVYtIA1_aaRTcsMYJEGc-SmSWGxEMNKdKQnEPIBRXt7xNo0o2EqPo1z0cS0kt6X07AEu6mBSHMajYNis0" alt="The Poetry of Modern Drape" referrerpolicy="no-referrer">
-                <img class="vm-home-mobile-hero__image" data-vm-mobile-slide src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPgZcF0ecnNzrhiTIOBosODib_rgNafg4VuUXINy8jtP45Sjc0gdrriXJ-29JiDsZtHNCULAUffv_RomzJ2Bhov88cdC2xGfHSn-Qo_bVdOYiHajrWN5xBmTpCHb7I8GTacrClH2fVTShiQYEvkdvJ9s6RBnpG-__GOi8MI0jK8Ay3dW-2sAGBSVXKe2HcaCzULPC-Xt8yhduSML_Q6ZtxFb170C4ZxegrEp22j-ZbfyV74nucTwSJqWdPWZr3u8QEsKLkeVgK4VX3" alt="Autumn Winter collection" referrerpolicy="no-referrer">
-                <img class="vm-home-mobile-hero__image" data-vm-mobile-slide src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSKjRWc8A_jccmkjuT5rARs5Dkb8FRST48xFMtX545bJsK_AdpRLCzFJfof42wreLgDVfEkckEk21YWQfhkZNSL3vwlcvrEK7c0Y_o1cP7NXJe9anYtcRgdUKbJqxuZyrIASZzHVeu22m6YifhNyUEGIziBY3xP87vYaPZofatsGq6PYMypIpcITUMi-zcpcGc66L-lozFx5xKV07IZeBRYAQ4N-iZxn6wzQLROCuVwI7NgUWlLv1TXzseb45Ga62mFM3ykDvyUhRg" alt="Curated signature style" referrerpolicy="no-referrer">
+                <img class="vm-home-mobile-hero__image is-active" data-vm-mobile-slide src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpKJXEfegHPUl0kHtz3GkHGNVLgqK7dLvGrQMPZworaiom9Q4i7AkcRLq62UIXiMLG6B_jeYKlsy9YIxPVuOK55mcOXYxh3vHcN2BaeuCjmyht_tENl3v0jUSJ9pudR2ax2anwdLh6HB4Tnq2HZ-hH-AkDmrKxZSH6NwGtAR3znbFWW1JqgSUNNoIUz1aVYtIA1_aaRTcsMYJEGc-SmSWGxEMNKdKQnEPIBRXt7xNo0o2EqPo1z0cS0kt6X07AEu6mBSHMajYNis0" alt="The Poetry of Modern Drape" referrerpolicy="no-referrer" fetchpriority="high" decoding="sync">
+                <img class="vm-home-mobile-hero__image" data-vm-mobile-slide src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPgZcF0ecnNzrhiTIOBosODib_rgNafg4VuUXINy8jtP45Sjc0gdrriXJ-29JiDsZtHNCULAUffv_RomzJ2Bhov88cdC2xGfHSn-Qo_bVdOYiHajrWN5xBmTpCHb7I8GTacrClH2fVTShiQYEvkdvJ9s6RBnpG-__GOi8MI0jK8Ay3dW-2sAGBSVXKe2HcaCzULPC-Xt8yhduSML_Q6ZtxFb170C4ZxegrEp22j-ZbfyV74nucTwSJqWdPWZr3u8QEsKLkeVgK4VX3" alt="Autumn Winter collection" referrerpolicy="no-referrer" loading="lazy" decoding="async">
+                <img class="vm-home-mobile-hero__image" data-vm-mobile-slide src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSKjRWc8A_jccmkjuT5rARs5Dkb8FRST48xFMtX545bJsK_AdpRLCzFJfof42wreLgDVfEkckEk21YWQfhkZNSL3vwlcvrEK7c0Y_o1cP7NXJe9anYtcRgdUKbJqxuZyrIASZzHVeu22m6YifhNyUEGIziBY3xP87vYaPZofatsGq6PYMypIpcITUMi-zcpcGc66L-lozFx5xKV07IZeBRYAQ4N-iZxn6wzQLROCuVwI7NgUWlLv1TXzseb45Ga62mFM3ykDvyUhRg" alt="Curated signature style" referrerpolicy="no-referrer" loading="lazy" decoding="async">
             </div>
             <div class="vm-home-mobile-hero__overlay"></div>
             <div class="vm-home-mobile-hero__content">
@@ -61,13 +51,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 <a href="{% url 'shop' %}?category={{ category.category_key|urlencode }}" class="vm-home-mobile-category">
                     <div class="vm-home-mobile-category__image">
                         {% if category.icon_image %}
-                        <img src="{{ category.icon_image.url }}" alt="{{ category.name }}">
+                        <img src="{{ category.icon_image.url }}" alt="{{ category.name }}" loading="lazy" decoding="async">
                         {% elif category.card_image %}
-                        <img src="{{ category.card_image.url }}" alt="{{ category.name }}">
+                        <img src="{{ category.card_image.url }}" alt="{{ category.name }}" loading="lazy" decoding="async">
                         {% elif category_fallback_images|get_item:category.category_key %}
-                        <img src="{{ category_fallback_images|get_item:category.category_key }}" alt="{{ category.name }}">
+                        <img src="{{ category_fallback_images|get_item:category.category_key }}" alt="{{ category.name }}" loading="lazy" decoding="async">
                         {% else %}
-                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ category.name }}">
+                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ category.name }}" loading="lazy" decoding="async">
                         {% endif %}
                     </div>
                     <span>{{ category.name }}</span>
@@ -96,9 +86,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 <article class="vm-home-mobile-product-card">
                     <a href="{% url 'product_detail' product.slug %}" class="vm-home-mobile-product-card__media">
                         {% if product.image %}
-                        <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy" decoding="async">
                         {% else %}
-                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}">
+                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}" loading="lazy" decoding="async">
                         {% endif %}
                     </a>
                     <p>VibeMall</p>
@@ -135,7 +125,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 {% empty %}
                 <article class="vm-home-mobile-product-card">
                     <a href="{% url 'shop' %}" class="vm-home-mobile-product-card__media">
-                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Products coming soon">
+                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Products coming soon" loading="lazy" decoding="async">
                     </a>
                     <p>VibeMall</p>
                     <h4><a href="{% url 'shop' %}">Products coming soon</a></h4>
@@ -161,11 +151,11 @@ document.addEventListener('DOMContentLoaded', function () {
                             <source src="{{ reel.video_file.url }}" type="video/mp4">
                         </video>
                         {% elif reel.thumbnail %}
-                        <img src="{{ reel.thumbnail.url }}" alt="{{ reel.title }}">
+                        <img src="{{ reel.thumbnail.url }}" alt="{{ reel.title }}" loading="lazy" decoding="async">
                         {% elif reel.product and reel.product.image %}
-                        <img src="{{ reel.product.image.url }}" alt="{{ reel.title }}">
+                        <img src="{{ reel.product.image.url }}" alt="{{ reel.title }}" loading="lazy" decoding="async">
                         {% else %}
-                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ reel.title }}">
+                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ reel.title }}" loading="lazy" decoding="async">
                         {% endif %}
                         {% if reel.product and reel.product.slug %}</a>{% endif %}
                         <div class="vm-home-mobile-series__overlay">
@@ -175,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     </article>
                     {% empty %}
                     <article class="vm-home-mobile-series__card">
-                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Videos coming soon">
+                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Videos coming soon" loading="lazy" decoding="async">
                         <div class="vm-home-mobile-series__overlay">
                             <span>Watch and Shop 01</span>
                             <p>Videos coming soon</p>
@@ -229,11 +219,12 @@ document.addEventListener('DOMContentLoaded', function () {
     {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='home' %}
 </section>
 
+{% elif home_variant == 'tablet' %}
 <section class="vm-home-tablet-only">
     <main class="vm-home-tablet-main">
         <div class="vm-home-tablet-shell">
             <section class="vm-home-tablet-hero">
-                <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZjga-Cjm8E3Bviv_XCTIjt5pFkPwRVhYXZO6oa7vHQt4242ymP-hJrdYxsU5K7w-dkGUcEwGXMMQGJYOQa-T9CgFVG2IX4J-RMo9lTuLhZtHu3fTPjkTVVJQlyYCivB0yIQoNhXves_PIG9_LFiK92PSPxT4VpxzKRARxx-7z8NyAl7eAyepynOvz69XjI2Y8IW-N13Wf3n3LRR1fqXCyiKVyUKJZBEW30TnbHg0G7I3r3ht9oiRKB3Au15JNWpMyEy0bgVDgEOk" alt="Editorial fashion" referrerpolicy="no-referrer">
+                <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZjga-Cjm8E3Bviv_XCTIjt5pFkPwRVhYXZO6oa7vHQt4242ymP-hJrdYxsU5K7w-dkGUcEwGXMMQGJYOQa-T9CgFVG2IX4J-RMo9lTuLhZtHu3fTPjkTVVJQlyYCivB0yIQoNhXves_PIG9_LFiK92PSPxT4VpxzKRARxx-7z8NyAl7eAyepynOvz69XjI2Y8IW-N13Wf3n3LRR1fqXCyiKVyUKJZBEW30TnbHg0G7I3r3ht9oiRKB3Au15JNWpMyEy0bgVDgEOk" alt="Editorial fashion" referrerpolicy="no-referrer" fetchpriority="high" decoding="sync">
                 <div class="vm-home-tablet-hero__content">
                     <span class="vm-home-tablet-kicker">Edition 01 // Atelier</span>
                     <h2>The Poetry of Modern Drape</h2>
@@ -254,13 +245,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     <a href="{% url 'shop' %}?category={{ category.category_key|urlencode }}" class="vm-home-tablet-category">
                         <div class="vm-home-tablet-category__image">
                             {% if category.icon_image %}
-                            <img src="{{ category.icon_image.url }}" alt="{{ category.name }}">
+                            <img src="{{ category.icon_image.url }}" alt="{{ category.name }}" loading="lazy" decoding="async">
                             {% elif category.card_image %}
-                            <img src="{{ category.card_image.url }}" alt="{{ category.name }}">
+                            <img src="{{ category.card_image.url }}" alt="{{ category.name }}" loading="lazy" decoding="async">
                             {% elif category_fallback_images|get_item:category.category_key %}
-                            <img src="{{ category_fallback_images|get_item:category.category_key }}" alt="{{ category.name }}">
+                            <img src="{{ category_fallback_images|get_item:category.category_key }}" alt="{{ category.name }}" loading="lazy" decoding="async">
                             {% else %}
-                            <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ category.name }}">
+                            <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ category.name }}" loading="lazy" decoding="async">
                             {% endif %}
                         </div>
                         <span>{{ category.name }}</span>
@@ -302,9 +293,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         <a href="{% url 'product_detail' product.slug %}" class="vm-home-tablet-product">
                             <div class="vm-home-tablet-product__media">
                                 {% if product.image %}
-                                <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                                <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy" decoding="async">
                                 {% else %}
-                                <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}">
+                                <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}" loading="lazy" decoding="async">
                                 {% endif %}
                             </div>
                             <small>VibeMall</small>
@@ -343,7 +334,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <article>
                         <a href="{% url 'shop' %}" class="vm-home-tablet-product">
                             <div class="vm-home-tablet-product__media">
-                                <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Products coming soon">
+                                <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Products coming soon" loading="lazy" decoding="async">
                                 <span class="vm-home-tablet-product__wish"><i class="far fa-heart"></i></span>
                             </div>
                             <small>VibeMall</small>
@@ -361,9 +352,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         {% with feature_product=recommended|first %}
                         <div>
                             {% if feature_product and feature_product.image %}
-                            <img src="{{ feature_product.image.url }}" alt="{{ feature_product.name }}">
+                            <img src="{{ feature_product.image.url }}" alt="{{ feature_product.name }}" loading="lazy" decoding="async">
                             {% else %}
-                            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqs9I_GSZ-nUeamQhu3q5JDuOu4LPBDiebNfO-Yv35d5NOCyom0hUBY6VRNR2o0nrl3nA4cYEL8pYulLX6uS5MbDLPcmgMovYWIat-kmF4M19dIYCVQ6rt3KOI7XQDQyCR26EMyraYvmG3enpBTUeEhBqdUOK3xMM12HwZH338ffE8LPx55s68THX4TRbmZMmvmujD9NTBScdBfw4eFfkauPj76vN7nJWG9hayvNA1jVGD7cp95SNT36GspfCY1VriNkJpcJfdfK8" alt="Curated selection" referrerpolicy="no-referrer">
+                            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqs9I_GSZ-nUeamQhu3q5JDuOu4LPBDiebNfO-Yv35d5NOCyom0hUBY6VRNR2o0nrl3nA4cYEL8pYulLX6uS5MbDLPcmgMovYWIat-kmF4M19dIYCVQ6rt3KOI7XQDQyCR26EMyraYvmG3enpBTUeEhBqdUOK3xMM12HwZH338ffE8LPx55s68THX4TRbmZMmvmujD9NTBScdBfw4eFfkauPj76vN7nJWG9hayvNA1jVGD7cp95SNT36GspfCY1VriNkJpcJfdfK8" alt="Curated selection" referrerpolicy="no-referrer" loading="lazy" decoding="async">
                             {% endif %}
                         </div>
                         <div class="vm-home-tablet-curated__copy">
@@ -399,11 +390,11 @@ document.addEventListener('DOMContentLoaded', function () {
                             <source src="{{ hero_reel.video_file.url }}" type="video/mp4">
                         </video>
                         {% elif hero_reel and hero_reel.thumbnail %}
-                        <img src="{{ hero_reel.thumbnail.url }}" alt="{{ hero_reel.title }}">
+                        <img src="{{ hero_reel.thumbnail.url }}" alt="{{ hero_reel.title }}" loading="lazy" decoding="async">
                         {% elif hero_reel and hero_reel.product and hero_reel.product.image %}
-                        <img src="{{ hero_reel.product.image.url }}" alt="{{ hero_reel.title }}">
+                        <img src="{{ hero_reel.product.image.url }}" alt="{{ hero_reel.title }}" loading="lazy" decoding="async">
                         {% else %}
-                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Watch and Shop">
+                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Watch and Shop" loading="lazy" decoding="async">
                         {% endif %}
                         <div class="vm-home-tablet-watch__meta">
                             <small>Watch and Shop</small>
@@ -419,11 +410,11 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <source src="{{ reel.video_file.url }}" type="video/mp4">
                             </video>
                             {% elif reel.thumbnail %}
-                            <img src="{{ reel.thumbnail.url }}" alt="{{ reel.title }}">
+                            <img src="{{ reel.thumbnail.url }}" alt="{{ reel.title }}" loading="lazy" decoding="async">
                             {% elif reel.product and reel.product.image %}
-                            <img src="{{ reel.product.image.url }}" alt="{{ reel.title }}">
+                            <img src="{{ reel.product.image.url }}" alt="{{ reel.title }}" loading="lazy" decoding="async">
                             {% else %}
-                            <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ reel.title }}">
+                            <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ reel.title }}" loading="lazy" decoding="async">
                             {% endif %}
                             <div class="vm-home-tablet-watch__meta">
                                 <small>Watch and Shop {{ forloop.counter|add:"1" }}</small>
@@ -432,7 +423,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         </article>
                         {% empty %}
                         <article>
-                            <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Watch and Shop">
+                            <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Watch and Shop" loading="lazy" decoding="async">
                             <div class="vm-home-tablet-watch__meta">
                                 <small>Watch and Shop</small>
                                 <h4>More videos coming soon</h4>
@@ -469,10 +460,11 @@ document.addEventListener('DOMContentLoaded', function () {
     </main>
 </section>
 
+{% else %}
 <section class="vm-copy-page vm-copy-home-desktop">
 
     <section class="vm-copy-hero">
-        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPgZcF0ecnNzrhiTIOBosODib_rgNafg4VuUXINy8jtP45Sjc0gdrriXJ-29JiDsZtHNCULAUffv_RomzJ2Bhov88cdC2xGfHSn-Qo_bVdOYiHajrWN5xBmTpCHb7I8GTacrClH2fVTShiQYEvkdvJ9s6RBnpG-__GOi8MI0jK8Ay3dW-2sAGBSVXKe2HcaCzULPC-Xt8yhduSML_Q6ZtxFb170C4ZxegrEp22j-ZbfyV74nucTwSJqWdPWZr3u8QEsKLkeVgK4VX3" alt="Hero" referrerpolicy="no-referrer">
+        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPgZcF0ecnNzrhiTIOBosODib_rgNafg4VuUXINy8jtP45Sjc0gdrriXJ-29JiDsZtHNCULAUffv_RomzJ2Bhov88cdC2xGfHSn-Qo_bVdOYiHajrWN5xBmTpCHb7I8GTacrClH2fVTShiQYEvkdvJ9s6RBnpG-__GOi8MI0jK8Ay3dW-2sAGBSVXKe2HcaCzULPC-Xt8yhduSML_Q6ZtxFb170C4ZxegrEp22j-ZbfyV74nucTwSJqWdPWZr3u8QEsKLkeVgK4VX3" alt="Hero" referrerpolicy="no-referrer" fetchpriority="high" decoding="sync">
         <div class="vm-copy-hero-overlay"></div>
         <div class="vm-copy-hero-content">
             <span>AUTUMN / WINTER '24</span>
@@ -498,13 +490,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 <a href="{% url 'shop' %}?category={{ category.category_key|urlencode }}">
                     <article>
                         {% if category.card_image %}
-                            <img src="{{ category.card_image.url }}" alt="{{ category.name }}">
+                            <img src="{{ category.card_image.url }}" alt="{{ category.name }}" loading="lazy" decoding="async">
                         {% elif category.icon_image %}
-                            <img src="{{ category.icon_image.url }}" alt="{{ category.name }}">
+                            <img src="{{ category.icon_image.url }}" alt="{{ category.name }}" loading="lazy" decoding="async">
                         {% elif category_fallback_images|get_item:category.category_key %}
-                            <img src="{{ category_fallback_images|get_item:category.category_key }}" alt="{{ category.name }}">
+                            <img src="{{ category_fallback_images|get_item:category.category_key }}" alt="{{ category.name }}" loading="lazy" decoding="async">
                         {% else %}
-                            <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ category.name }}">
+                            <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ category.name }}" loading="lazy" decoding="async">
                         {% endif %}
                         <span>{{ category.name }}</span>
                     </article>
@@ -517,7 +509,7 @@ document.addEventListener('DOMContentLoaded', function () {
     <section class="vm-copy-section vm-copy-featured">
         <div class="vm-copy-container vm-copy-feature-grid">
             <div class="vm-copy-feature-image-wrap">
-                <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSKjRWc8A_jccmkjuT5rARs5Dkb8FRST48xFMtX545bJsK_AdpRLCzFJfof42wreLgDVfEkckEk21YWQfhkZNSL3vwlcvrEK7c0Y_o1cP7NXJe9anYtcRgdUKbJqxuZyrIASZzHVeu22m6YifhNyUEGIziBY3xP87vYaPZofatsGq6PYMypIpcITUMi-zcpcGc66L-lozFx5xKV07IZeBRYAQ4N-iZxn6wzQLROCuVwI7NgUWlLv1TXzseb45Ga62mFM3ykDvyUhRg" alt="Featured" referrerpolicy="no-referrer">
+                <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSKjRWc8A_jccmkjuT5rARs5Dkb8FRST48xFMtX545bJsK_AdpRLCzFJfof42wreLgDVfEkckEk21YWQfhkZNSL3vwlcvrEK7c0Y_o1cP7NXJe9anYtcRgdUKbJqxuZyrIASZzHVeu22m6YifhNyUEGIziBY3xP87vYaPZofatsGq6PYMypIpcITUMi-zcpcGc66L-lozFx5xKV07IZeBRYAQ4N-iZxn6wzQLROCuVwI7NgUWlLv1TXzseb45Ga62mFM3ykDvyUhRg" alt="Featured" referrerpolicy="no-referrer" loading="lazy" decoding="async">
                 <div class="vm-copy-feature-card">
                     <small>VibeMall Signature</small>
                     <h3>Curated Style Drop</h3>
@@ -546,9 +538,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 <article>
                     <a href="{% url 'product_detail' product.slug %}">
                         {% if product.image %}
-                        <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy" decoding="async">
                         {% else %}
-                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}">
+                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}" loading="lazy" decoding="async">
                         {% endif %}
                     </a>
                     <small>VibeMall</small>
@@ -561,7 +553,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 </article>
                 {% empty %}
                 <article>
-                    <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Product">
+                    <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Product" loading="lazy" decoding="async">
                     <small>VibeMall</small>
                     <h4>Products coming soon</h4>
                     <p>₹0.00</p>
@@ -583,11 +575,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         <source src="{{ reel.video_file.url }}" type="video/mp4">
                     </video>
                     {% elif reel.thumbnail %}
-                    <img src="{{ reel.thumbnail.url }}" alt="{{ reel.title }}">
+                    <img src="{{ reel.thumbnail.url }}" alt="{{ reel.title }}" loading="lazy" decoding="async">
                     {% elif reel.product and reel.product.image %}
-                    <img src="{{ reel.product.image.url }}" alt="{{ reel.title }}">
+                    <img src="{{ reel.product.image.url }}" alt="{{ reel.title }}" loading="lazy" decoding="async">
                     {% else %}
-                    <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ reel.title }}">
+                    <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ reel.title }}" loading="lazy" decoding="async">
                     {% endif %}
                     {% if reel.product and reel.product.slug %}</a>{% endif %}
                     <div>
@@ -596,7 +588,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                 </article>
                 {% empty %}
-                <article class="large"><img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Watch &amp; Shop"><div><small>Watch &amp; Shop</small><h4>Videos coming soon</h4></div></article>
+                <article class="large"><img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Watch &amp; Shop" loading="lazy" decoding="async"><div><small>Watch &amp; Shop</small><h4>Videos coming soon</h4></div></article>
                 {% endfor %}
             </div>
         </div>
@@ -627,6 +619,7 @@ document.addEventListener('DOMContentLoaded', function () {
     </section>
 
 </section>
+{% endif %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const forms = document.querySelectorAll('[data-vm-newsletter-form]');

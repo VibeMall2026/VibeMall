@@ -5413,6 +5413,30 @@ def spa_home(request):
     return render(request, 'vibemall_spa_home.html')
 
 
+def _resolve_home_variant(request: HttpRequest) -> str:
+    """Choose the homepage variant server-side so we only render one device layout."""
+    forced_view = (request.GET.get('view') or '').strip().lower()
+    if forced_view in {'mobile', 'tablet', 'desktop'}:
+        return forced_view
+
+    ch_mobile = (request.META.get('HTTP_SEC_CH_UA_MOBILE') or '').strip().lower()
+    user_agent = (request.META.get('HTTP_USER_AGENT') or '').lower()
+
+    is_tablet = any(
+        token in user_agent
+        for token in ['ipad', 'tablet', 'kindle', 'playbook', 'silk', 'sm-t', 'nexus 7', 'nexus 10']
+    )
+    is_mobile = ch_mobile in {'?1', '1', 'true'} or any(
+        token in user_agent for token in ['mobile', 'iphone', 'ipod', 'android mobile', 'opera mini', 'iemobile']
+    )
+
+    if is_tablet:
+        return 'tablet'
+    if is_mobile:
+        return 'mobile'
+    return 'desktop'
+
+
 def index(request):
     homepage_cache_key = 'homepage_public_context_v2'
     public_context = cache.get(homepage_cache_key)
@@ -5626,6 +5650,7 @@ def index(request):
         'cart_product_ids': cart_product_ids,
         'liked_reel_ids': liked_reel_ids,
         'delivered_orders': delivered_orders,
+        'home_variant': _resolve_home_variant(request),
     })
 
     return render(request, 'index.html', context)
