@@ -26,7 +26,19 @@
     <meta property="twitter:description" content="{% block twitter_description %}VibeMall - Shop the latest products with amazing deals.{% endblock %}">
     <meta property="twitter:image" content="{% block twitter_image %}{% static 'assets/img/logo/vibemall-brand.png' %}{% endblock %}">
     
-    <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicon.png' %}">
+    {% if site_settings and site_settings.site_favicon %}
+    <link rel="icon" type="image/png" href="{{ site_settings.site_favicon.url }}">
+    <link rel="shortcut icon" type="image/png" href="{{ site_settings.site_favicon.url }}">
+    <link rel="apple-touch-icon" href="{{ site_settings.site_favicon.url }}">
+    {% elif site_settings and site_settings.site_logo %}
+    <link rel="icon" type="image/png" href="{{ site_settings.site_logo.url }}">
+    <link rel="shortcut icon" type="image/png" href="{{ site_settings.site_logo.url }}">
+    <link rel="apple-touch-icon" href="{{ site_settings.site_logo.url }}">
+    {% else %}
+    <link rel="icon" type="image/png" href="{% static 'assets/img/logo/vibemall-brand.png' %}">
+    <link rel="shortcut icon" type="image/png" href="{% static 'assets/img/logo/vibemall-brand.png' %}">
+    <link rel="apple-touch-icon" href="{% static 'assets/img/logo/vibemall-brand.png' %}">
+    {% endif %}
     <link rel="stylesheet" href="{% static 'assets/css/preloader.css' %}">
     {% if request.resolver_match and request.resolver_match.url_name == 'index' %}
     <link rel="stylesheet" href="{% static 'assets/css/font-awesome-pro.css' %}">
