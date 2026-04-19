@@ -564,31 +564,63 @@
 
     <section class="vm-copy-section vm-copy-watch">
         <div class="vm-copy-container">
-            <div class="vm-copy-section-head"><div><h2>Watch &amp; Shop</h2><p>Live curated showcases from our stylists</p></div></div>
-            <div class="vm-copy-watch-grid">
-                {% for reel in watch_shop_reels|slice:":3" %}
-                <article{% if forloop.first %} class="large"{% endif %}>
-                    {% if reel.product and reel.product.slug %}<a href="{% url 'product_detail' reel.product.slug %}">{% endif %}
-                    {% if reel.video_file %}
-                    <video autoplay muted loop playsinline preload="metadata"{% if reel.thumbnail %} poster="{{ reel.thumbnail.url }}"{% endif %}>
-                        <source src="{{ reel.video_file.url }}" type="video/mp4">
-                    </video>
-                    {% elif reel.thumbnail %}
-                    <img src="{{ reel.thumbnail.url }}" alt="{{ reel.title }}" loading="lazy" decoding="async">
-                    {% elif reel.product and reel.product.image %}
-                    <img src="{{ reel.product.image.url }}" alt="{{ reel.title }}" loading="lazy" decoding="async">
-                    {% else %}
-                    <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ reel.title }}" loading="lazy" decoding="async">
-                    {% endif %}
-                    {% if reel.product and reel.product.slug %}</a>{% endif %}
-                    <div>
-                        <small>Watch &amp; Shop</small>
-                        <h4>{{ reel.title }}</h4>
+            <div class="vm-copy-section-head vm-copy-watch-head">
+                <div>
+                    <h2>Watch &amp; Shop</h2>
+                    <p>Live curated showcases from our stylists</p>
+                </div>
+                {% if watch_shop_reels|length > 3 %}
+                <div class="vm-copy-watch-controls" data-vm-watch-controls>
+                    <button type="button" class="vm-copy-watch-control" data-vm-watch-prev aria-label="Previous reels">
+                        <i class="fal fa-arrow-left"></i>
+                    </button>
+                    <button type="button" class="vm-copy-watch-control" data-vm-watch-next aria-label="Next reels">
+                        <i class="fal fa-arrow-right"></i>
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+            <div class="vm-copy-watch-slider" data-vm-watch-slider>
+                <div class="vm-copy-watch-viewport">
+                    <div class="vm-copy-watch-track" data-vm-watch-track>
+                        {% for reel in watch_shop_reels %}
+                        <article class="vm-copy-watch-slide" data-vm-watch-slide>
+                            {% if reel.product and reel.product.slug %}<a href="{% url 'product_detail' reel.product.slug %}" class="vm-copy-watch-media">{% else %}<div class="vm-copy-watch-media">{% endif %}
+                            {% if reel.video_file %}
+                            <video muted loop playsinline preload="metadata" data-vm-watch-video{% if reel.thumbnail %} poster="{{ reel.thumbnail.url }}"{% endif %}>
+                                <source src="{{ reel.video_file.url }}" type="video/mp4">
+                            </video>
+                            {% elif reel.thumbnail %}
+                            <img src="{{ reel.thumbnail.url }}" alt="{{ reel.title }}" loading="lazy" decoding="async">
+                            {% elif reel.product and reel.product.image %}
+                            <img src="{{ reel.product.image.url }}" alt="{{ reel.title }}" loading="lazy" decoding="async">
+                            {% else %}
+                            <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ reel.title }}" loading="lazy" decoding="async">
+                            {% endif %}
+                            <span class="vm-copy-watch-overlay"></span>
+                            {% if reel.product and reel.product.slug %}</a>{% else %}</div>{% endif %}
+                            <div class="vm-copy-watch-copy">
+                                <small>Watch &amp; Shop</small>
+                                <h4>{{ reel.title }}</h4>
+                            </div>
+                        </article>
+                        {% empty %}
+                        <article class="vm-copy-watch-slide">
+                            <div class="vm-copy-watch-media">
+                                <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Watch &amp; Shop" loading="lazy" decoding="async">
+                                <span class="vm-copy-watch-overlay"></span>
+                            </div>
+                            <div class="vm-copy-watch-copy">
+                                <small>Watch &amp; Shop</small>
+                                <h4>Videos coming soon</h4>
+                            </div>
+                        </article>
+                        {% endfor %}
                     </div>
-                </article>
-                {% empty %}
-                <article class="large"><img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Watch &amp; Shop" loading="lazy" decoding="async"><div><small>Watch &amp; Shop</small><h4>Videos coming soon</h4></div></article>
-                {% endfor %}
+                </div>
+                {% if watch_shop_reels|length > 1 %}
+                <div class="vm-copy-watch-dots" data-vm-watch-dots aria-label="Watch and shop slider pagination"></div>
+                {% endif %}
             </div>
         </div>
     </section>
@@ -666,6 +698,143 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         });
+    });
+
+    const watchSliders = document.querySelectorAll('[data-vm-watch-slider]');
+    watchSliders.forEach(function (slider) {
+        const section = slider.closest('.vm-copy-watch');
+        const track = slider.querySelector('[data-vm-watch-track]');
+        const slides = track ? Array.from(track.querySelectorAll('[data-vm-watch-slide]')) : [];
+        const prevButton = section ? section.querySelector('[data-vm-watch-prev]') : null;
+        const nextButton = section ? section.querySelector('[data-vm-watch-next]') : null;
+        const dotsWrap = slider.querySelector('[data-vm-watch-dots]');
+
+        if (!track || slides.length === 0) {
+            return;
+        }
+
+        let currentIndex = 0;
+        let visibleCount = 3;
+        let dots = [];
+
+        const syncVideos = function () {
+            slides.forEach(function (slide, index) {
+                const video = slide.querySelector('[data-vm-watch-video]');
+                if (!video) {
+                    return;
+                }
+
+                const isVisible = index >= currentIndex && index < currentIndex + visibleCount;
+                if (!isVisible) {
+                    video.pause();
+                    return;
+                }
+
+                const playAttempt = video.play();
+                if (playAttempt && typeof playAttempt.catch === 'function') {
+                    playAttempt.catch(function () {});
+                }
+            });
+        };
+
+        const getMetrics = function () {
+            const firstSlide = slides[0];
+            const gap = parseFloat(window.getComputedStyle(track).gap || '0') || 0;
+            const slideWidth = firstSlide ? firstSlide.getBoundingClientRect().width : 0;
+            return { gap, slideWidth };
+        };
+
+        const getMaxIndex = function () {
+            return Math.max(0, slides.length - visibleCount);
+        };
+
+        const renderDots = function () {
+            if (!dotsWrap) {
+                return;
+            }
+
+            const count = getMaxIndex() + 1;
+            dotsWrap.innerHTML = '';
+            dots = [];
+
+            if (count <= 1) {
+                dotsWrap.hidden = true;
+                return;
+            }
+
+            dotsWrap.hidden = false;
+            for (let index = 0; index < count; index += 1) {
+                const dot = document.createElement('button');
+                dot.type = 'button';
+                dot.className = 'vm-copy-watch-dot';
+                dot.setAttribute('aria-label', 'Go to reel set ' + (index + 1));
+                dot.addEventListener('click', function () {
+                    currentIndex = index;
+                    updateSlider();
+                });
+                dotsWrap.appendChild(dot);
+                dots.push(dot);
+            }
+        };
+
+        const updateButtons = function () {
+            const maxIndex = getMaxIndex();
+            if (prevButton) {
+                prevButton.disabled = currentIndex <= 0;
+            }
+            if (nextButton) {
+                nextButton.disabled = currentIndex >= maxIndex;
+            }
+        };
+
+        const updateDots = function () {
+            dots.forEach(function (dot, index) {
+                dot.classList.toggle('is-active', index === currentIndex);
+            });
+        };
+
+        const updateSlider = function () {
+            const maxIndex = getMaxIndex();
+            if (currentIndex > maxIndex) {
+                currentIndex = maxIndex;
+            }
+
+            const metrics = getMetrics();
+            const offset = currentIndex * (metrics.slideWidth + metrics.gap);
+            track.style.transform = 'translate3d(-' + offset + 'px, 0, 0)';
+            updateButtons();
+            updateDots();
+            syncVideos();
+        };
+
+        const refreshSlider = function () {
+            visibleCount = window.innerWidth >= 1200 ? 3 : 1;
+            renderDots();
+            updateSlider();
+        };
+
+        if (prevButton) {
+            prevButton.addEventListener('click', function () {
+                if (currentIndex <= 0) {
+                    return;
+                }
+                currentIndex -= 1;
+                updateSlider();
+            });
+        }
+
+        if (nextButton) {
+            nextButton.addEventListener('click', function () {
+                if (currentIndex >= getMaxIndex()) {
+                    return;
+                }
+                currentIndex += 1;
+                updateSlider();
+            });
+        }
+
+        window.addEventListener('resize', refreshSlider);
+        refreshSlider();
     });
 });
 </script>
