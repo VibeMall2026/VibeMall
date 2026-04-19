@@ -28,6 +28,15 @@
     
     <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicon.png' %}">
     <link rel="stylesheet" href="{% static 'assets/css/preloader.css' %}">
+    {% if request.resolver_match and request.resolver_match.url_name == 'index' %}
+    <link rel="stylesheet" href="{% static 'assets/css/font-awesome-pro.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/buttons-rounded.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/base-custom.css' %}?v=20260329-03">
+    <link rel="stylesheet" href="{% static 'assets/css/mobile-alt-shared.css' %}?v=20260329-02">
+    <link rel="stylesheet" href="{% static 'assets/css/tablet-header-shared.css' %}?v=20260403-01">
+    <link rel="stylesheet" href="{% static 'assets/css/tablet-footer-shared.css' %}?v=20260404-01">
+    <link rel="stylesheet" href="{% static 'assets/css/vm-home-editorial.css' %}?v=20260329-03">
+    {% else %}
     <link rel="stylesheet" href="{% static 'assets/css/bootstrap.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/meanmenu.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/animate.css' %}">
@@ -49,6 +58,7 @@
     <link rel="stylesheet" href="{% static 'assets/css/tablet-header-shared.css' %}?v=20260403-01">
     <link rel="stylesheet" href="{% static 'assets/css/tablet-footer-shared.css' %}?v=20260404-01">
     <link rel="stylesheet" href="{% static 'assets/css/vm-home-editorial.css' %}?v=20260329-03">
+    {% endif %}
     <style>
     @media (min-width: 1450px) and (max-width: 1599.98px) {
         .container,
@@ -713,6 +723,7 @@
                 </div>
             </div>
         </div>
+        {% if not request.resolver_match or request.resolver_match.url_name != 'index' %}
         <script src="{% static 'assets/js/vendor/jquery.js' %}"></script>    
         <script src="{% static 'assets/js/vendor/waypoints.js' %}"></script>
         <script src="{% static 'assets/js/bootstrap-bundle.js' %}"></script>
@@ -732,6 +743,7 @@
         <script src="{% static 'assets/js/ajax-form.js' %}"></script>
         <script src="{% static 'assets/js/main.js' %}?v=20260403-01"></script>
         <script src="{% static 'assets/js/custom-fixes.js' %}"></script>
+        {% endif %}
         <script src="{% static 'assets/js/base-custom.js' %}?v=20260331-01"></script>
         <script src="{% static 'assets/js/mobile-alt-shared.js' %}?v=20260406-01"></script>
         <script src="{% static 'assets/js/tablet-header-shared.js' %}?v=20260403-01"></script>

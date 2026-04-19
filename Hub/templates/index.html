@@ -7,7 +7,6 @@
 {% block ui_chrome %}{% if home_variant == 'mobile' %}mobile{% elif home_variant == 'tablet' %}tablet{% else %}desktop{% endif %}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'assets/css/vm-home-editorial.css' %}?v=20260328-03">
 {% if home_variant == 'mobile' %}
 <link rel="stylesheet" href="{% static 'assets/css/home-mobile-alt.css' %}?v=20260329-01">
 {% elif home_variant == 'tablet' %}
