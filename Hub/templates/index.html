@@ -911,6 +911,8 @@ document.addEventListener('DOMContentLoaded', function () {
         let currentIndex = 0;
         let visibleCount = 3;
         let dots = [];
+        let autoplayTimer = null;
+        const autoplayDelay = 4500;
 
         const syncVideos = function () {
             slides.forEach(function (slide, index) {
@@ -941,6 +943,35 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const getMaxIndex = function () {
             return Math.max(0, slides.length - visibleCount);
+        };
+
+        const stopAutoplay = function () {
+            if (autoplayTimer) {
+                window.clearInterval(autoplayTimer);
+                autoplayTimer = null;
+            }
+        };
+
+        const nextSlide = function () {
+            const maxIndex = getMaxIndex();
+            if (maxIndex <= 0) {
+                return;
+            }
+
+            currentIndex = currentIndex >= maxIndex ? 0 : currentIndex + 1;
+            updateSlider();
+        };
+
+        const startAutoplay = function () {
+            stopAutoplay();
+
+            if (window.innerWidth < 1200 || getMaxIndex() <= 0 || document.hidden) {
+                return;
+            }
+
+            autoplayTimer = window.setInterval(function () {
+                nextSlide();
+            }, autoplayDelay);
         };
 
         const renderDots = function () {
@@ -1006,6 +1037,7 @@ document.addEventListener('DOMContentLoaded', function () {
             visibleCount = window.innerWidth >= 1200 ? 3 : 1;
             renderDots();
             updateSlider();
+            startAutoplay();
         };
 
         if (prevButton) {
@@ -1015,6 +1047,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 currentIndex -= 1;
                 updateSlider();
+                startAutoplay();
             });
         }
 
@@ -1025,8 +1058,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 currentIndex += 1;
                 updateSlider();
+                startAutoplay();
             });
         }
+
+        slider.addEventListener('mouseenter', stopAutoplay);
+        slider.addEventListener('mouseleave', startAutoplay);
+        slider.addEventListener('focusin', stopAutoplay);
+        slider.addEventListener('focusout', startAutoplay);
+        document.addEventListener('visibilitychange', function () {
+            if (document.hidden) {
+                stopAutoplay();
+            } else {
+                startAutoplay();
+            }
+        });
 
         window.addEventListener('resize', refreshSlider);
         refreshSlider();
