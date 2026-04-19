@@ -3460,7 +3460,12 @@ def admin_newsletter_subscribers(request):
     subscribers_qs = NewsletterSubscription.objects.all().order_by('-subscribed_at')
 
     if search_query:
-        subscribers_qs = subscribers_qs.filter(email__icontains=search_query)
+        subscribers_qs = subscribers_qs.filter(
+            Q(email__icontains=search_query) |
+            Q(source_page__icontains=search_query) |
+            Q(ip_address__icontains=search_query) |
+            Q(user_agent__icontains=search_query)
+        )
 
     if status_filter == 'active':
         subscribers_qs = subscribers_qs.filter(is_active=True)
@@ -5806,12 +5811,21 @@ def blog(request): return render(request, 'blog.html')
 def blog_details(request): return render(request, 'blog-details.html')
 
 
+def _get_request_ip(request: HttpRequest) -> str:
+    forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if forwarded_for:
+        return forwarded_for.split(',')[0].strip()
+    return (request.META.get('REMOTE_ADDR') or '').strip()
+
+
 @require_POST
 @csrf_exempt
 def subscribe_newsletter(request):
     """Capture newsletter subscribers from CTA forms."""
     email = (request.POST.get('email') or '').strip().lower()
     source_page = (request.POST.get('source_page') or '').strip()[:120]
+    client_ip = _get_request_ip(request)
+    user_agent = (request.META.get('HTTP_USER_AGENT') or '').strip()[:255]
     is_ajax = (
         request.headers.get('x-requested-with') == 'XMLHttpRequest'
         or request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
@@ -5842,6 +5856,8 @@ def subscribe_newsletter(request):
         email=email,
         defaults={
             'source_page': source_page,
+            'ip_address': client_ip or None,
+            'user_agent': user_agent,
             'is_active': True,
         }
     )
@@ -5856,12 +5872,33 @@ def subscribe_newsletter(request):
         status = 'resubscribed'
         subscriber.is_active = True
         subscriber.unsubscribed_at = None
+        update_fields = ['is_active', 'unsubscribed_at', 'updated_at']
         if source_page:
             subscriber.source_page = source_page
-            subscriber.save(update_fields=['is_active', 'unsubscribed_at', 'source_page', 'updated_at'])
-        else:
-            subscriber.save(update_fields=['is_active', 'unsubscribed_at', 'updated_at'])
+            update_fields.append('source_page')
+        if client_ip and subscriber.ip_address != client_ip:
+            subscriber.ip_address = client_ip
+            update_fields.append('ip_address')
+        if user_agent and subscriber.user_agent != user_agent:
+            subscriber.user_agent = user_agent
+            update_fields.append('user_agent')
+        subscriber.save(update_fields=update_fields)
         message = 'Welcome back. Your newsletter subscription is active again.'
+
+    if not created and status == 'already_subscribed':
+        update_fields = []
+        if source_page and subscriber.source_page != source_page:
+            subscriber.source_page = source_page
+            update_fields.append('source_page')
+        if client_ip and subscriber.ip_address != client_ip:
+            subscriber.ip_address = client_ip
+            update_fields.append('ip_address')
+        if user_agent and subscriber.user_agent != user_agent:
+            subscriber.user_agent = user_agent
+            update_fields.append('user_agent')
+        if update_fields:
+            update_fields.append('updated_at')
+            subscriber.save(update_fields=update_fields)
 
     # Send a welcome email when the user subscribes or resubscribes
     if created or status == 'resubscribed':

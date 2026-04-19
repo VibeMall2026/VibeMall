@@ -302,15 +302,31 @@ class CartAdmin(admin.ModelAdmin):
 
 @admin.register(NewsletterSubscription)
 class NewsletterSubscriptionAdmin(admin.ModelAdmin):
-    list_display = ('email', 'is_active', 'source_page_display', 'subscribed_at', 'updated_at')
+    list_display = (
+        'email',
+        'is_active',
+        'source_page_display',
+        'ip_address',
+        'user_agent_display',
+        'subscribed_at',
+        'updated_at',
+    )
     list_filter = ('is_active', 'source_page', 'subscribed_at')
-    search_fields = ('email', 'source_page')
-    readonly_fields = ('subscribed_at', 'updated_at', 'unsubscribed_at')
+    search_fields = ('email', 'source_page', 'ip_address', 'user_agent')
+    readonly_fields = ('ip_address', 'user_agent', 'subscribed_at', 'updated_at', 'unsubscribed_at')
 
     def source_page_display(self, obj):
         return obj.source_page or 'Unknown'
     source_page_display.short_description = 'Source'
     source_page_display.admin_order_field = 'source_page'
+
+    def user_agent_display(self, obj):
+        if not obj.user_agent:
+            return '-'
+        if len(obj.user_agent) <= 80:
+            return obj.user_agent
+        return f"{obj.user_agent[:77]}..."
+    user_agent_display.short_description = 'User Agent'
 
 @admin.register(Wishlist)
 class WishlistAdmin(admin.ModelAdmin):

@@ -33,6 +33,8 @@ class NewsletterSubscription(models.Model):
     email = models.EmailField(unique=True)
     is_active = models.BooleanField(default=True)
     source_page = models.CharField(max_length=120, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=255, blank=True)
     subscribed_at = models.DateTimeField(auto_now_add=True)
     unsubscribed_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -106,7 +106,7 @@
                         type="text"
                         name="search"
                         class="form-control"
-                        placeholder="Search by email..."
+                        placeholder="Search by email, IP, source, or user-agent..."
                         value="{{ search_query }}"
                     >
                 </div>
@@ -141,6 +141,8 @@
                         <th>#</th>
                         <th>Email</th>
                         <th>Source</th>
+                        <th>IP</th>
+                        <th>User Agent</th>
                         <th>Status</th>
                         <th>Subscribed</th>
                         <th>Updated</th>
@@ -159,6 +161,22 @@
                             {% endif %}
                         </td>
                         <td>
+                            {% if subscriber.ip_address %}
+                                <code>{{ subscriber.ip_address }}</code>
+                            {% else %}
+                                <span class="text-muted">Unknown</span>
+                            {% endif %}
+                        </td>
+                        <td style="min-width: 240px;">
+                            {% if subscriber.user_agent %}
+                                <span title="{{ subscriber.user_agent }}">
+                                    {{ subscriber.user_agent|truncatechars:80 }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted">Unknown</span>
+                            {% endif %}
+                        </td>
+                        <td>
                             {% if subscriber.is_active %}
                                 <span class="badge bg-label-success">Active</span>
                             {% else %}
@@ -170,7 +188,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="text-center py-4 text-muted">No newsletter subscribers found.</td>
+                        <td colspan="8" class="text-center py-4 text-muted">No newsletter subscribers found.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
