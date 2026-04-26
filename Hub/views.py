@@ -2256,6 +2256,34 @@ def admin_edit_product(request, product_id):
                         is_active=True
                     )
 
+            variant_colors = request.POST.getlist('variant_colors')
+            variant_files = request.FILES.getlist('variant_images')
+            processed_variant_images = []
+
+            for idx, variant_file in enumerate(variant_files, 1):
+                try:
+                    processed_image = crop_image_height(variant_file)
+                    color_value = (variant_colors[idx - 1].strip() if idx - 1 < len(variant_colors) else '').strip()
+                    if processed_image:
+                        processed_variant_images.append({'image': processed_image, 'color': color_value})
+                    else:
+                        messages.warning(request, f'Failed to process color variant image {idx}. Using original file.')
+                        processed_variant_images.append({'image': variant_file, 'color': color_value})
+                except Exception as e:
+                    messages.warning(request, f'Error processing color variant image {idx}: {str(e)}. Skipping this image.')
+                    continue
+
+            if processed_variant_images:
+                current_gallery_count = ProductImage.objects.filter(product=product).count()
+                for idx, variant in enumerate(processed_variant_images, start=current_gallery_count + 1):
+                    ProductImage.objects.create(
+                        product=product,
+                        image=variant['image'],
+                        color=variant['color'],
+                        order=idx,
+                        is_active=True
+                    )
+
             reel_added = False
 
             # Optional direct reel upload from edit product page

@@ -176,6 +176,9 @@
                                              style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px;">
                                         <div class="mt-2">
                                             <small class="text-muted d-block">Order: {{ gallery_img.order }}</small>
+                                            {% if gallery_img.color %}
+                                            <small class="text-primary d-block">Color: {{ gallery_img.color }}</small>
+                                            {% endif %}
                                             <a href="{% url 'admin_delete_gallery_image' gallery_img.id %}" 
                                                class="btn btn-sm btn-danger"
                                                onclick="return confirm('Delete this gallery image?')">
@@ -198,6 +201,13 @@
                         <div id="galleryPreview" class="mt-2" style="display: none;">
                             <small class="text-primary">Selected images: <span id="selectedCount">0</span></small>
                         </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Add Color Variant Images</label>
+                        <div id="colorVariantContainer"></div>
+                        <button type="button" class="btn btn-outline-primary btn-sm mb-2" onclick="addColorVariantRow()">Add Color Variant Image</button>
+                        <small class="text-muted d-block">For example: Red image, Blue image, Pink image. These will be saved color-wise for the product page.</small>
                     </div>
 
                     <div class="card mb-4" style="border: 1px solid #dce3ff;">
@@ -608,6 +618,33 @@
         errorDiv.className = 'alert alert-danger mt-2';
         errorDiv.innerHTML = `<i class="bx bx-error-circle me-2"></i>${message}`;
         galleryInput.parentNode.insertBefore(errorDiv, galleryInput.nextSibling);
+    }
+
+    function addColorVariantRow() {
+        const container = document.getElementById('colorVariantContainer');
+        if (!container) return;
+
+        const row = document.createElement('div');
+        row.className = 'row mb-2 color-variant-row';
+        row.innerHTML = `
+            <div class="col-md-5">
+                <input type="text" class="form-control" name="variant_colors" placeholder="Variant Color (e.g. Red, Blue, Pink)" />
+            </div>
+            <div class="col-md-5">
+                <input type="file" class="form-control" name="variant_images" accept="image/*" />
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="removeColorVariantRow(this)">Remove</button>
+            </div>
+        `;
+        container.appendChild(row);
+    }
+
+    function removeColorVariantRow(button) {
+        const row = button.closest('.color-variant-row');
+        if (row) {
+            row.remove();
+        }
     }
     </script>
         <div class="card mb-4">
