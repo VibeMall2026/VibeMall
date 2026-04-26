@@ -94,7 +94,7 @@
                 {% endif %}
             </div>
             <div class="vm-pd-m-thumbs" role="tablist" aria-label="Product image thumbnails">
-                <button type="button" class="vm-pd-m-thumb is-active" data-image-src="{% if product.image and product.image.name %}{{ product.image.url }}{% else %}{% static 'assets/img/product/tp-1.jpg' %}{% endif %}" aria-label="Main image">
+                <button type="button" class="vm-pd-m-thumb is-active" data-image-src="{% if product.image and product.image.name %}{{ product.image.url }}{% else %}{% static 'assets/img/product/tp-1.jpg' %}{% endif %}" data-image-color="" aria-label="Main image">
                     {% if product.image and product.image.name %}
                     <img src="{{ product.image.url }}" alt="{{ product.name }} thumbnail">
                     {% else %}
@@ -103,7 +103,7 @@
                 </button>
                 {% for additional_image in product.additional_images.all %}
                     {% if additional_image.image and additional_image.image.name %}
-                    <button type="button" class="vm-pd-m-thumb" data-image-src="{{ additional_image.image.url }}" aria-label="Product image {{ forloop.counter }}" title="{% if additional_image.color %}{{ additional_image.color }}{% else %}Product image {{ forloop.counter }}{% endif %}">
+                    <button type="button" class="vm-pd-m-thumb" data-image-src="{{ additional_image.image.url }}" data-image-color="{{ additional_image.color|default:'' }}" aria-label="Product image {{ forloop.counter }}" title="{% if additional_image.color %}{{ additional_image.color }}{% else %}Product image {{ forloop.counter }}{% endif %}">
                         <img src="{{ additional_image.image.url }}" alt="{{ product.name }} thumbnail {{ forloop.counter }}">
                         {% if additional_image.color %}
                         <span class="vm-pd-m-thumb-label">{{ additional_image.color }}</span>
@@ -199,7 +199,7 @@
 
     <div class="pddx-layout">
         <aside class="pddx-thumbs" aria-label="Product image thumbnails">
-            <button type="button" class="pddx-thumb is-active" data-image-src="{% if product.image and product.image.name %}{{ product.image.url }}{% else %}{% static 'assets/img/product/tp-1.jpg' %}{% endif %}" aria-label="Main product image">
+            <button type="button" class="pddx-thumb is-active" data-image-src="{% if product.image and product.image.name %}{{ product.image.url }}{% else %}{% static 'assets/img/product/tp-1.jpg' %}{% endif %}" data-image-color="" aria-label="Main product image">
                 {% if product.image and product.image.name %}
                 <img src="{{ product.image.url }}" alt="{{ product.name }} thumbnail">
                 {% else %}
@@ -208,7 +208,7 @@
             </button>
             {% for additional_image in product.additional_images.all %}
                 {% if additional_image.image and additional_image.image.name %}
-                <button type="button" class="pddx-thumb" data-image-src="{{ additional_image.image.url }}" aria-label="Product image {{ forloop.counter }}" title="{% if additional_image.color %}{{ additional_image.color }}{% else %}Product image {{ forloop.counter }}{% endif %}">
+                <button type="button" class="pddx-thumb" data-image-src="{{ additional_image.image.url }}" data-image-color="{{ additional_image.color|default:'' }}" aria-label="Product image {{ forloop.counter }}" title="{% if additional_image.color %}{{ additional_image.color }}{% else %}Product image {{ forloop.counter }}{% endif %}">
                     <img src="{{ additional_image.image.url }}" alt="{{ product.name }} thumbnail {{ forloop.counter }}">
                     {% if additional_image.color %}
                     <span class="pddx-thumb__color-label">{{ additional_image.color }}</span>
@@ -483,6 +483,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     initDesktopOptionGroup('[data-pddx-color-root]', '[data-pddx-color-list]', '[data-pddx-color-value]', 'pddx-swatch', true);
     initDesktopOptionGroup('[data-pddx-size-root]', '[data-pddx-size-list]', '[data-pddx-size-value]', 'pddx-size-btn', false);
+    initProductColorImageSync();
 
     /* ── Mobile image switcher ── */
     const vmMainImage = document.getElementById('vmPdMainImage');
@@ -636,7 +637,13 @@ function initDesktopOptionGroup(rootSelector, listSelector, valueSelector, butto
         .map(function(option) { return option.trim(); })
         .filter(Boolean);
 
-    const finalOptions = options.length ? options : [isColorGroup ? 'Signature finish' : 'One Size'];
+    let finalOptions = options.length ? options : [];
+    if (isColorGroup) {
+        finalOptions = mergeUniqueOptions(finalOptions, getGalleryColorOptions());
+    }
+    if (!finalOptions.length) {
+        finalOptions = [isColorGroup ? 'Signature finish' : 'One Size'];
+    }
     list.innerHTML = '';
 
     finalOptions.forEach(function(option, index) {
@@ -669,6 +676,129 @@ function initDesktopOptionGroup(rootSelector, listSelector, valueSelector, butto
     });
 
     if (valueLabel) valueLabel.textContent = finalOptions[0];
+}
+
+function normalizeProductColor(value) {
+    return (value || '')
+        .toString()
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, ' ');
+}
+
+function mergeUniqueOptions(baseOptions, incomingOptions) {
+    const uniqueOptions = [];
+    const seen = new Set();
+
+    (baseOptions || []).concat(incomingOptions || []).forEach(function(option) {
+        const cleanOption = (option || '').toString().trim();
+        const key = normalizeProductColor(cleanOption);
+        if (!cleanOption || !key || seen.has(key)) {
+            return;
+        }
+        seen.add(key);
+        uniqueOptions.push(cleanOption);
+    });
+
+    return uniqueOptions;
+}
+
+function getGalleryColorOptions() {
+    return Array.from(document.querySelectorAll('.pddx-thumb[data-image-color], .vm-pd-m-thumb[data-image-color]'))
+        .map(function(thumb) { return thumb.getAttribute('data-image-color') || ''; })
+        .map(function(color) { return color.trim(); })
+        .filter(Boolean);
+}
+
+function setActiveThumb(thumbSelector, mainImageSelector, thumbToActivate) {
+    if (!thumbToActivate) return;
+
+    const imageSrc = thumbToActivate.getAttribute('data-image-src');
+    const mainImage = document.querySelector(mainImageSelector);
+    if (mainImage && imageSrc) {
+        mainImage.src = imageSrc;
+    }
+
+    document.querySelectorAll(thumbSelector).forEach(function(thumb) {
+        thumb.classList.remove('is-active');
+    });
+    thumbToActivate.classList.add('is-active');
+}
+
+function syncDesktopColorSelection(colorValue) {
+    const colorRoot = document.querySelector('[data-pddx-color-root]');
+    if (!colorRoot) return;
+
+    const normalizedTarget = normalizeProductColor(colorValue);
+    const colorButtons = colorRoot.querySelectorAll('.pddx-swatch');
+    const valueLabel = colorRoot.querySelector('[data-pddx-color-value]');
+    let matchedButton = null;
+
+    colorButtons.forEach(function(button) {
+        const buttonValue = button.getAttribute('data-value') || '';
+        const isMatch = normalizedTarget && normalizeProductColor(buttonValue) === normalizedTarget;
+        button.classList.toggle('is-active', isMatch);
+        button.setAttribute('aria-pressed', isMatch ? 'true' : 'false');
+        if (isMatch) {
+            matchedButton = button;
+        }
+    });
+
+    if (matchedButton && valueLabel) {
+        valueLabel.textContent = matchedButton.getAttribute('data-value') || colorValue;
+    }
+}
+
+function initProductColorImageSync() {
+    const colorRoot = document.querySelector('[data-pddx-color-root]');
+    if (!colorRoot) return;
+
+    const colorButtons = colorRoot.querySelectorAll('.pddx-swatch');
+    if (!colorButtons.length) return;
+
+    function findThumbByColor(thumbSelector, colorValue) {
+        const normalizedTarget = normalizeProductColor(colorValue);
+        const thumbs = Array.from(document.querySelectorAll(thumbSelector));
+
+        if (!normalizedTarget) {
+            return thumbs[0] || null;
+        }
+
+        return thumbs.find(function(thumb) {
+            return normalizeProductColor(thumb.getAttribute('data-image-color')) === normalizedTarget;
+        }) || thumbs.find(function(thumb) {
+            return !normalizeProductColor(thumb.getAttribute('data-image-color'));
+        }) || thumbs[0] || null;
+    }
+
+    function applyColorSelection(colorValue) {
+        const desktopThumb = findThumbByColor('.pddx-thumb', colorValue);
+        const mobileThumb = findThumbByColor('.vm-pd-m-thumb', colorValue);
+
+        setActiveThumb('.pddx-thumb', '#pddxMainImage', desktopThumb);
+        setActiveThumb('.vm-pd-m-thumb', '#vmPdMainImage', mobileThumb);
+        syncDesktopColorSelection(colorValue);
+    }
+
+    colorButtons.forEach(function(button) {
+        button.addEventListener('click', function() {
+            applyColorSelection(button.getAttribute('data-value') || '');
+        });
+    });
+
+    document.querySelectorAll('.pddx-thumb[data-image-color]').forEach(function(thumb) {
+        thumb.addEventListener('click', function() {
+            const thumbColor = thumb.getAttribute('data-image-color') || '';
+            if (thumbColor) {
+                syncDesktopColorSelection(thumbColor);
+            }
+        });
+    });
+
+    const initiallySelectedColor = colorRoot.querySelector('.pddx-swatch.is-active');
+    if (initiallySelectedColor) {
+        applyColorSelection(initiallySelectedColor.getAttribute('data-value') || '');
+    }
 }
 
 function inferDesktopColor(label) {
