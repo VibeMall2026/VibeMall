@@ -1623,16 +1623,28 @@ def admin_add_product(request):
             # Process color variant images with optional color labels
             variant_images = []
             variant_colors = request.POST.getlist('variant_colors')
+            variant_roles = request.POST.getlist('variant_image_roles')
             variant_files = request.FILES.getlist('variant_images')
             for idx, variant_file in enumerate(variant_files, 1):
                 try:
-                    processed_image = crop_image_height(variant_file)
                     color_value = (variant_colors[idx - 1].strip() if idx - 1 < len(variant_colors) else '').strip()
+                    role_value = (variant_roles[idx - 1].strip() if idx - 1 < len(variant_roles) else '').strip()
+                    if role_value not in {
+                        ProductImage.IMAGE_ROLE_GALLERY,
+                        ProductImage.IMAGE_ROLE_MAIN,
+                        ProductImage.IMAGE_ROLE_DESCRIPTION,
+                    }:
+                        role_value = ProductImage.IMAGE_ROLE_GALLERY
+                    processed_image = (
+                        variant_file
+                        if role_value == ProductImage.IMAGE_ROLE_DESCRIPTION
+                        else crop_image_height(variant_file)
+                    )
                     if processed_image:
-                        variant_images.append({'image': processed_image, 'color': color_value})
+                        variant_images.append({'image': processed_image, 'color': color_value, 'image_role': role_value})
                     else:
                         messages.warning(request, f'Failed to process color variant image {idx}. Using original file.')
-                        variant_images.append({'image': variant_file, 'color': color_value})
+                        variant_images.append({'image': variant_file, 'color': color_value, 'image_role': role_value})
                 except Exception as e:
                     messages.warning(request, f'Error processing color variant image {idx}: {str(e)}. Skipping this image.')
                     continue
@@ -1780,6 +1792,7 @@ def admin_add_product(request):
                 ProductImage.objects.create(
                     product=product,
                     image=gallery_image,
+                    image_role=ProductImage.IMAGE_ROLE_GALLERY,
                     order=idx,
                     is_active=True
                 )
@@ -1790,6 +1803,7 @@ def admin_add_product(request):
                     product=product,
                     image=variant['image'],
                     color=variant['color'],
+                    image_role=variant['image_role'],
                     order=idx,
                     is_active=True
                 )
@@ -2257,18 +2271,30 @@ def admin_edit_product(request, product_id):
                     )
 
             variant_colors = request.POST.getlist('variant_colors')
+            variant_roles = request.POST.getlist('variant_image_roles')
             variant_files = request.FILES.getlist('variant_images')
             processed_variant_images = []
 
             for idx, variant_file in enumerate(variant_files, 1):
                 try:
-                    processed_image = crop_image_height(variant_file)
                     color_value = (variant_colors[idx - 1].strip() if idx - 1 < len(variant_colors) else '').strip()
+                    role_value = (variant_roles[idx - 1].strip() if idx - 1 < len(variant_roles) else '').strip()
+                    if role_value not in {
+                        ProductImage.IMAGE_ROLE_GALLERY,
+                        ProductImage.IMAGE_ROLE_MAIN,
+                        ProductImage.IMAGE_ROLE_DESCRIPTION,
+                    }:
+                        role_value = ProductImage.IMAGE_ROLE_GALLERY
+                    processed_image = (
+                        variant_file
+                        if role_value == ProductImage.IMAGE_ROLE_DESCRIPTION
+                        else crop_image_height(variant_file)
+                    )
                     if processed_image:
-                        processed_variant_images.append({'image': processed_image, 'color': color_value})
+                        processed_variant_images.append({'image': processed_image, 'color': color_value, 'image_role': role_value})
                     else:
                         messages.warning(request, f'Failed to process color variant image {idx}. Using original file.')
-                        processed_variant_images.append({'image': variant_file, 'color': color_value})
+                        processed_variant_images.append({'image': variant_file, 'color': color_value, 'image_role': role_value})
                 except Exception as e:
                     messages.warning(request, f'Error processing color variant image {idx}: {str(e)}. Skipping this image.')
                     continue
@@ -2280,6 +2306,7 @@ def admin_edit_product(request, product_id):
                         product=product,
                         image=variant['image'],
                         color=variant['color'],
+                        image_role=variant['image_role'],
                         order=idx,
                         is_active=True
                     )
@@ -7123,6 +7150,23 @@ def product_details(request: HttpRequest, product_id: Optional[int] = None) -> H
                 product=product,
                 is_approved=True
             ).select_related('user', 'answered_by').order_by('-answered_at', '-created_at')
+
+            gallery_images = product.additional_images.filter(
+                is_active=True
+            ).exclude(
+                image_role=ProductImage.IMAGE_ROLE_DESCRIPTION
+            ).order_by('order')
+            description_variant_images = product.additional_images.filter(
+                is_active=True,
+                image_role=ProductImage.IMAGE_ROLE_DESCRIPTION,
+            ).order_by('order')
+            initial_description_image_url = ''
+            if product.descriptionImage and getattr(product.descriptionImage, 'name', ''):
+                initial_description_image_url = product.descriptionImage.url
+            else:
+                first_description_variant = description_variant_images.first()
+                if first_description_variant and first_description_variant.image:
+                    initial_description_image_url = first_description_variant.image.url
             
             total_questions = approved_questions.count()
             
@@ -7149,6 +7193,9 @@ def product_details(request: HttpRequest, product_id: Optional[int] = None) -> H
                 'user_votes': user_votes,
                 'rating_filter': rating_filter,
                 'sort_by': sort_by,
+                'gallery_images': gallery_images,
+                'description_variant_images': description_variant_images,
+                'initial_description_image_url': initial_description_image_url,
             })
         except Product.DoesNotExist:
             return render(request, '404.html', status=404)
@@ -8451,12 +8498,21 @@ def add_product(request):
             # Process color variant images with optional color labels
             variant_images = []
             variant_colors = request.POST.getlist('variant_colors')
+            variant_roles = request.POST.getlist('variant_image_roles')
             variant_files = request.FILES.getlist('variant_images')
             for idx, variant_file in enumerate(variant_files, 1):
                 color_value = (variant_colors[idx - 1].strip() if idx - 1 < len(variant_colors) else '').strip()
+                role_value = (variant_roles[idx - 1].strip() if idx - 1 < len(variant_roles) else '').strip()
+                if role_value not in {
+                    ProductImage.IMAGE_ROLE_GALLERY,
+                    ProductImage.IMAGE_ROLE_MAIN,
+                    ProductImage.IMAGE_ROLE_DESCRIPTION,
+                }:
+                    role_value = ProductImage.IMAGE_ROLE_GALLERY
                 variant_images.append({
                     'image': variant_file,
                     'color': color_value,
+                    'image_role': role_value,
                 })
             
             # Create product
@@ -8488,6 +8544,7 @@ def add_product(request):
                 ProductImage.objects.create(
                     product=product,
                     image=gallery_image,
+                    image_role=ProductImage.IMAGE_ROLE_GALLERY,
                     order=idx,
                     is_active=True
                 )
@@ -8498,6 +8555,7 @@ def add_product(request):
                     product=product,
                     image=variant['image'],
                     color=variant['color'],
+                    image_role=variant['image_role'],
                     order=idx,
                     is_active=True
                 )

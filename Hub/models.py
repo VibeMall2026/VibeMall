@@ -412,9 +412,24 @@ class Product(models.Model):
 
 class ProductImage(models.Model):
     """Additional images for product gallery"""
+    IMAGE_ROLE_GALLERY = 'gallery'
+    IMAGE_ROLE_MAIN = 'main'
+    IMAGE_ROLE_DESCRIPTION = 'description'
+    IMAGE_ROLE_CHOICES = [
+        (IMAGE_ROLE_GALLERY, 'Gallery Image'),
+        (IMAGE_ROLE_MAIN, 'Main Product Image'),
+        (IMAGE_ROLE_DESCRIPTION, 'Description Image'),
+    ]
+
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='additional_images')
     image = models.ImageField(upload_to='products/gallery/')
     color = models.CharField(max_length=100, blank=True, help_text='Color variant for this image')
+    image_role = models.CharField(
+        max_length=20,
+        choices=IMAGE_ROLE_CHOICES,
+        default=IMAGE_ROLE_GALLERY,
+        help_text='How this image should be used for the product'
+    )
     order = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
 
@@ -422,7 +437,7 @@ class ProductImage(models.Model):
         ordering = ['order']
 
     def __str__(self):
-        return f"{self.product.name} - Image {self.order}"
+        return f"{self.product.name} - {self.get_image_role_display()} {self.order}"
 
 
 class ProductStockNotification(models.Model):
