@@ -56,6 +56,9 @@ CANCEL_WINDOW_HOURS = 2
 MAX_RETURN_ATTEMPTS = 1
 NON_RETURNABLE_CATEGORIES = set()
 
+MOBILE_REVIEW_PROMPT_SESSION_KEY = 'mobile_review_prompt_seen_count'
+MOBILE_REVIEW_PROMPT_MAX_SHOWN = 2
+
 RETURN_STATUS_FLOW = {
     'REQUESTED': ['APPROVED', 'REJECTED', 'CANCELLED'],
     'APPROVED': ['PICKUP_SCHEDULED'],
@@ -8164,7 +8167,8 @@ def vote_review(request, review_id):
 @require_POST
 def mobile_review_prompt_dismiss(request):
     """Dismiss mobile delivered-order review prompt for the active login session."""
-    request.session['mobile_review_prompt_seen'] = True
+    current_count = request.session.get(MOBILE_REVIEW_PROMPT_SESSION_KEY, 0) + 1
+    request.session[MOBILE_REVIEW_PROMPT_SESSION_KEY] = min(current_count, MOBILE_REVIEW_PROMPT_MAX_SHOWN)
     request.session.modified = True
     return JsonResponse({'success': True})
 
@@ -8172,7 +8176,7 @@ def mobile_review_prompt_dismiss(request):
 @login_required(login_url='login')
 @require_POST
 def mobile_review_prompt_submit(request, product_id):
-    """Submit quick mobile review for delivered product and mark prompt as seen for session."""
+    """Submit quick mobile review for delivered product and count the prompt display for session."""
     try:
         product = Product.objects.get(id=product_id, is_active=True)
     except Product.DoesNotExist:
@@ -8187,9 +8191,10 @@ def mobile_review_prompt_submit(request, product_id):
     if not delivered_match:
         return JsonResponse({'success': False, 'message': 'This review is only available for delivered products.'}, status=403)
 
-    # Prevent duplicate review submissions from this one-time prompt.
+    # Prevent duplicate review submissions from this prompt and count the prompt display.
     if ProductReview.objects.filter(product=product, user=request.user).exists():
-        request.session['mobile_review_prompt_seen'] = True
+        current_count = request.session.get(MOBILE_REVIEW_PROMPT_SESSION_KEY, 0) + 1
+        request.session[MOBILE_REVIEW_PROMPT_SESSION_KEY] = min(current_count, MOBILE_REVIEW_PROMPT_MAX_SHOWN)
         request.session.modified = True
         return JsonResponse({'success': True, 'message': 'Review already submitted for this product.'})
 
@@ -8217,7 +8222,8 @@ def mobile_review_prompt_submit(request, product_id):
         is_verified_purchase=True,
     )
 
-    request.session['mobile_review_prompt_seen'] = True
+    current_count = request.session.get(MOBILE_REVIEW_PROMPT_SESSION_KEY, 0) + 1
+    request.session[MOBILE_REVIEW_PROMPT_SESSION_KEY] = min(current_count, MOBILE_REVIEW_PROMPT_MAX_SHOWN)
     request.session.modified = True
 
     product.refresh_from_db(fields=['review_count', 'rating'])

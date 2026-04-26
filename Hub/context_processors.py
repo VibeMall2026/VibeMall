@@ -14,6 +14,9 @@ from datetime import timedelta
 from .models import Cart, Wishlist, SiteSettings, LoyaltyPoints, CategoryIcon, Product, SubCategory, Coupon, Order, OrderItem, ProductReview
 from django.db.models import F, Sum
 
+MOBILE_REVIEW_PROMPT_SESSION_KEY = 'mobile_review_prompt_seen_count'
+MOBILE_REVIEW_PROMPT_MAX_SHOWN = 2
+
 
 def cart_wishlist_context(request):
     """Add cart and wishlist counts and totals to template context"""
@@ -314,7 +317,9 @@ def admin_panel_context(request):
 
 
 def mobile_review_prompt_context(request):
-    """Provide one-time-per-session mobile review prompt context for delivered products."""
+    """Provide after-delivery review prompt context for delivered products.
+    The prompt can show up to two times across the active session.
+    """
     context = {
         'mobile_review_prompt': None,
     }
@@ -327,8 +332,8 @@ def mobile_review_prompt_context(request):
     if request.path.startswith('/admin-panel/'):
         return context
 
-    # Show only once per login session.
-    if request.session.get('mobile_review_prompt_seen'):
+    # Show at most twice across the active session.
+    if request.session.get(MOBILE_REVIEW_PROMPT_SESSION_KEY, 0) >= MOBILE_REVIEW_PROMPT_MAX_SHOWN:
         return context
 
     delivered_items = (

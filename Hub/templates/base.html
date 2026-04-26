@@ -9,6 +9,8 @@
     <meta name="description" content="{% block meta_description %}VibeMall - Shop the latest products with amazing deals, fast shipping, and secure checkout. Browse mobiles, food, home, furniture, sports and more.{% endblock %}">
     <meta name="keywords" content="{% block meta_keywords %}online shopping, ecommerce, fashion, electronics, deals{% endblock %}">
     <meta name="author" content="VibeMall">
+    <meta name="application-name" content="{{ site_settings.site_name|default:'VibeMall' }}">
+    <meta name="apple-mobile-web-app-title" content="{{ site_settings.site_name|default:'VibeMall' }}">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <link rel="canonical" href="{% block canonical_url %}{% if site_url %}{{ site_url }}{{ request.path }}{% else %}{{ request.scheme }}://{{ request.get_host }}{{ request.path }}{% endif %}{% endblock %}">
     
@@ -17,14 +19,15 @@
     <meta property="og:url" content="{% block og_url %}{% if site_url %}{{ site_url }}{{ request.path }}{% else %}{{ request.scheme }}://{{ request.get_host }}{{ request.path }}{% endif %}{% endblock %}">
     <meta property="og:title" content="{% block og_title %}VibeMall - Your Shopping Destination{% endblock %}">
     <meta property="og:description" content="{% block og_description %}VibeMall - Shop the latest products with amazing deals, fast shipping, and secure checkout.{% endblock %}">
-    <meta property="og:image" content="{% block og_image %}{% static 'assets/img/logo/vibemall-brand.png' %}{% endblock %}">
+    <meta property="og:site_name" content="{{ site_settings.site_name|default:'VibeMall' }}">
+    <meta property="og:image" content="{% block og_image %}{% static 'assets/img/logo/vibemall-brand.png' %}?v=20260426-01{% endblock %}">
     
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="{% block twitter_url %}{% if site_url %}{{ site_url }}{{ request.path }}{% else %}{{ request.scheme }}://{{ request.get_host }}{{ request.path }}{% endif %}{% endblock %}">
     <meta property="twitter:title" content="{% block twitter_title %}VibeMall - Your Shopping Destination{% endblock %}">
     <meta property="twitter:description" content="{% block twitter_description %}VibeMall - Shop the latest products with amazing deals.{% endblock %}">
-    <meta property="twitter:image" content="{% block twitter_image %}{% static 'assets/img/logo/vibemall-brand.png' %}{% endblock %}">
+    <meta property="twitter:image" content="{% block twitter_image %}{% static 'assets/img/logo/vibemall-brand.png' %}?v=20260426-01{% endblock %}">
     
     {% if site_settings and site_settings.site_favicon %}
     <link rel="icon" type="image/png" href="{{ site_settings.site_favicon.url }}">
@@ -35,9 +38,9 @@
     <link rel="shortcut icon" type="image/png" href="{{ site_settings.site_logo.url }}">
     <link rel="apple-touch-icon" href="{{ site_settings.site_logo.url }}">
     {% else %}
-    <link rel="icon" type="image/png" href="{% static 'assets/img/logo/vibemall-brand.png' %}">
-    <link rel="shortcut icon" type="image/png" href="{% static 'assets/img/logo/vibemall-brand.png' %}">
-    <link rel="apple-touch-icon" href="{% static 'assets/img/logo/vibemall-brand.png' %}">
+    <link rel="icon" type="image/png" href="{% static 'assets/img/logo/vibemall-brand.png' %}?v=20260426-01">
+    <link rel="shortcut icon" type="image/png" href="{% static 'assets/img/logo/vibemall-brand.png' %}?v=20260426-01">
+    <link rel="apple-touch-icon" href="{% static 'assets/img/logo/vibemall-brand.png' %}?v=20260426-01">
     {% endif %}
     <link rel="stylesheet" href="{% static 'assets/css/preloader.css' %}">
     {% if request.resolver_match and request.resolver_match.url_name == 'index' %}
@@ -341,9 +344,9 @@
         }
 
         .vm-review-modal {
-            width: min(100%, 960px);
-            min-height: 560px;
-            max-height: calc(100vh - 44px);
+            width: min(100%, 900px);
+            min-height: 0;
+            max-height: calc(100vh - 40px);
             background: #ffffff;
             box-shadow: 0 40px 60px -5px rgba(27, 28, 25, 0.10);
             border-radius: 0;
@@ -369,13 +372,30 @@
         .vm-review-layout {
             display: grid;
             grid-template-columns: 42% 58%;
-            min-height: 560px;
-            max-height: calc(100vh - 44px);
+            min-height: 0;
+            max-height: calc(100vh - 40px);
+        }
+
+        .vm-review-media,
+        .vm-review-form-wrap {
+            min-height: 0;
         }
 
         .vm-review-media img {
+            width: 100%;
             height: 100%;
-            min-height: 560px;
+            min-height: 0;
+            object-fit: cover;
+        }
+
+        .vm-review-form-wrap {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 30px 38px;
+            background: #fbf9f4;
+            overflow-y: auto;
+            max-height: 100%;
         }
 
         .vm-review-media-copy {
@@ -390,15 +410,6 @@
         .vm-review-media-copy h3 {
             font-size: 33px;
             line-height: 1.1;
-        }
-
-        .vm-review-form-wrap {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: 30px 38px;
-            background: #fbf9f4;
-            overflow-y: auto;
         }
 
         .vm-review-head p {
