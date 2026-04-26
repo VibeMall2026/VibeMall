@@ -7,6 +7,7 @@ from Hub import views
 
 urlpatterns = [
     path('admin/new-dashboard/', RedirectView.as_view(url='/admin-panel/new-dashboard/', permanent=False)),
+    path('favicon.ico', RedirectView.as_view(url=f'{settings.STATIC_URL}assets/img/favicon.ico?v=20260426-02', permanent=False)),
     path('admin/', admin.site.urls),
     path('', include('Hub.urls')),
     path('', views.index, name='index'),
