@@ -7203,6 +7203,25 @@ def product_details(request: HttpRequest, product_id: Optional[int] = None) -> H
                 first_description_variant = description_variant_images.first()
                 if first_description_variant and first_description_variant.image:
                     initial_description_image_url = first_description_variant.image.url
+
+            recommended_products = list(
+                Product.objects
+                .filter(is_active=True)
+                .exclude(id=product.id)
+                .annotate(
+                    same_sub_category=Case(
+                        When(sub_category=product.sub_category, then=Value(1)),
+                        default=Value(0),
+                        output_field=IntegerField(),
+                    ),
+                    same_category=Case(
+                        When(category=product.category, then=Value(1)),
+                        default=Value(0),
+                        output_field=IntegerField(),
+                    ),
+                )
+                .order_by('-same_sub_category', '-same_category', '-sold', '-id')[:4]
+            )
             
             total_questions = approved_questions.count()
             
@@ -7232,6 +7251,7 @@ def product_details(request: HttpRequest, product_id: Optional[int] = None) -> H
                 'gallery_images': gallery_images,
                 'description_variant_images': description_variant_images,
                 'initial_description_image_url': initial_description_image_url,
+                'recommended_products': recommended_products,
             })
         except Product.DoesNotExist:
             return render(request, '404.html', status=404)
