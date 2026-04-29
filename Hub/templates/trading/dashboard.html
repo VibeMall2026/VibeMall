@@ -209,14 +209,14 @@
             </td>
             <td>{{ t.volume|default:"-" }}</td>
             <td>{{ t.entry|default:t.open_price|default:"-" }}</td>
-            <td>{{ t.sl|default:t.stop_loss|default:"-" }}</td>
-            <td>{{ t.tp|default:t.take_profit|default:"-" }}</td>
+            <td>{{ t.sl|default:"-" }}</td>
+            <td>{{ t.tp|default:"-" }}</td>
             <td>{{ t.risk|default:"-" }}</td>
-            <td>{{ t.rr|default:t.risk_reward|default:"-" }}</td>
-            <td style="font-size:.8rem;">{{ t.opened|default:t.open_time|default:"-" }}</td>
+            <td>{{ t.rr|default:"-" }}</td>
+            <td style="font-size:.8rem;">{{ t.opened|default:"-" }}</td>
             <td>
               <button class="btn btn-sm btn-outline-warning"
-                onclick="openModify({{ t.id|default:t.position_id|default:0 }}, '{{ t.sl|default:t.stop_loss|default:'' }}', '{{ t.tp|default:t.take_profit|default:'' }}')">
+                onclick="openModify({{ t.id|default:0 }}, '{{ t.sl|default:'' }}', '{{ t.tp|default:'' }}')">
                 Edit SL/TP
               </button>
             </td>
@@ -255,12 +255,12 @@
               </span>
             </td>
             <td>{{ t.volume|default:"-" }}</td>
-            <td>{{ t.entry|default:t.open_price|default:"-" }}</td>
-            <td>{{ t.sl|default:t.stop_loss|default:"-" }}</td>
-            <td>{{ t.tp|default:t.take_profit|default:"-" }}</td>
-            <td>{{ t.rr|default:t.risk_reward|default:"-" }}</td>
+            <td>{{ t.entry|default:"-" }}</td>
+            <td>{{ t.sl|default:"-" }}</td>
+            <td>{{ t.tp|default:"-" }}</td>
+            <td>{{ t.rr|default:"-" }}</td>
             <td class="{% if t.pnl >= 0 %}pnl-pos{% else %}pnl-neg{% endif %}">
-              {{ t.pnl|default:t.profit|default:"-" }}
+              {{ t.pnl|default:"-" }}
             </td>
             <td>
               <span class="badge bg-label-{% if t.status == 'win' %}success{% elif t.status == 'loss' %}danger{% else %}secondary{% endif %}">
@@ -268,7 +268,7 @@
               </span>
             </td>
             <td style="font-size:.8rem;">{{ t.channel|default:"-" }}</td>
-            <td style="font-size:.8rem;">{{ t.opened|default:t.open_time|default:"-" }}</td>
+            <td style="font-size:.8rem;">{{ t.opened|default:"-" }}</td>
           </tr>
           {% empty %}
           <tr><td colspan="11" class="text-center text-muted py-4">No recent trades</td></tr>
@@ -303,8 +303,8 @@
                 {{ s.side|upper|default:"-" }}
               </span>
             </td>
-            <td>{{ s.sl|default:s.stop_loss|default:"-" }}</td>
-            <td>{{ s.tp|default:s.take_profit|default:"-" }}</td>
+            <td>{{ s.sl|default:"-" }}</td>
+            <td>{% if s.tp %}{{ s.tp.0|default:"-" }}{% else %}-{% endif %}</td>
             <td>
               <span class="badge bg-label-{% if s.status == 'executed' %}success{% elif s.status == 'rejected' %}danger{% else %}secondary{% endif %}">
                 {{ s.status|default:"-" }}
@@ -314,7 +314,7 @@
             <td style="font-size:.8rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
               {{ s.reason|default:"-" }}
             </td>
-            <td style="font-size:.8rem;">{{ s.time|default:s.created_at|default:"-" }}</td>
+            <td style="font-size:.8rem;">{{ s.time|default:"-" }}</td>
           </tr>
           {% empty %}
           <tr><td colspan="8" class="text-center text-muted py-4">No recent signals</td></tr>
