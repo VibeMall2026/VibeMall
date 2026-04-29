@@ -3868,10 +3868,10 @@ def admin_main_page_products(request):
 
     # Main page category products
     categories = [
-        ('category1', 'Category 1'),
-        ('category2', 'Category 2'),
-        ('category3', 'Category 3'),
-        ('category4', 'Category 4'),
+        ('category1', 'Top Deals Of The Day'),
+        ('category2', 'Top Selling Products'),
+        ('category3', 'Top Featured Products'),
+        ('category4', 'Recommended for You'),
     ]
     
     main_page_items = MainPageProduct.objects.select_related('product').order_by('category', 'order')
@@ -3885,9 +3885,7 @@ def admin_main_page_products(request):
         }
     
     # Get available products
-    available_products = Product.objects.filter(is_active=True).exclude(
-        id__in=MainPageProduct.objects.values_list('product_id', flat=True)
-    ).order_by('-sold', 'name')
+    available_products = Product.objects.filter(is_active=True).order_by('-sold', 'name')
 
     sub_categories = SubCategory.objects.filter(is_active=True).order_by('category_key', 'order', 'name')
     main_page_subcategory_banners = (
@@ -5573,7 +5571,8 @@ def index(request):
         top_deals = category_buckets['category1'] or latest_products
         top_selling = category_buckets['category2'] or latest_products
         top_featured = category_buckets['category3'] or latest_products
-        recommended = category_buckets['category4'] or latest_products
+        # Recommended products should only come from admin-selected items.
+        recommended = category_buckets['category4']
 
         subcategory_banner_records = list(
             MainPageSubCategoryBanner.objects

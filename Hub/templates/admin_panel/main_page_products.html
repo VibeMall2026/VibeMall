@@ -157,7 +157,7 @@
 {% block content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="fw-bold">Main Page Categories Management</h4>
+        <h4 class="fw-bold">Homepage Product Sections Management</h4>
     </div>
 
     {% if messages %}
@@ -177,8 +177,8 @@
             <div class="section-selector-grid">
                 <a class="section-card {% if active_section == 'categories' %}active{% endif %}"
                    href="{% url 'admin_main_page_products' %}?section=categories">
-                    <h6>Main Page Categories</h6>
-                    <p>Homepage na 4 category product blocks manage karo.</p>
+                    <h6>Homepage Product Sections</h6>
+                    <p>Top Deals, Top Selling, Top Featured ane Recommended for You manage karo.</p>
                     <span class="section-pill">{{ main_category_item_count }} Items</span>
                 </a>
                 <a class="section-card {% if active_section == 'subcat_banners' %}active{% endif %}"
@@ -221,7 +221,7 @@
     {% if active_section == 'categories' %}
     <div class="card mb-4">
         <div class="card-body">
-            <h5 class="card-title mb-3">Add Product to Main Page</h5>
+            <h5 class="card-title mb-3">Add Product to Homepage Section</h5>
             <form method="POST" action="{% url 'admin_main_page_products' %}" class="add-product-form">
                 {% csrf_token %}
                 <input type="hidden" name="section" value="categories">
@@ -241,7 +241,7 @@
                         {% endif %}
                     </div>
                     <div>
-                        <label class="form-label mb-2">Select Category</label>
+                        <label class="form-label mb-2">Select Section</label>
                         <select name="category" class="form-select" required style="min-width: 150px;">
                             {% for cat_key, cat_name in categories %}
                             <option value="{{ cat_key }}">{{ cat_name }}</option>
@@ -249,10 +249,13 @@
                         </select>
                     </div>
                     <button type="submit" name="action" value="add" class="btn btn-primary">
-                        <i class='bx bx-plus'></i> Add to Category
+                        <i class='bx bx-plus'></i> Add to Section
                     </button>
                 </div>
             </form>
+            <div class="alert alert-info mt-3 mb-0">
+                <strong>Recommended for You:</strong> ahiya je products tame <strong>Recommended for You</strong> section ma add karso, homepage par ej products show thase.
+            </div>
         </div>
     </div>
 
@@ -299,7 +302,7 @@
                     {% endfor %}
                 </div>
             {% else %}
-                <div class="empty-message">No products in this category yet</div>
+                <div class="empty-message">No products in this section yet</div>
             {% endif %}
         {% endwith %}
     </div>
@@ -314,10 +317,10 @@
     <div class="alert alert-info mt-4">
         <h6 class="alert-heading">How to use:</h6>
         <ul class="mb-0">
-            <li>Select a product and category, then click <strong>"Add to Category"</strong></li>
+            <li>Select a product and section, then click <strong>"Add to Section"</strong></li>
             <li>Use the <strong>"Order"</strong> numbers to set display position (lower = appears first)</li>
             <li>Click <strong>"Save Display Order"</strong> to apply changes</li>
-            <li>These 4 categories will appear on the main page homepage</li>
+            <li><strong>Recommended for You</strong> ma add karel products j homepage par dekhase</li>
         </ul>
     </div>
     {% endif %}
