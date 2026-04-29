@@ -2243,6 +2243,30 @@ def admin_edit_product(request, product_id):
                 product.descriptionImage = request.FILES['descriptionImage']
             
             product.save()
+
+            # Update existing gallery/variant image metadata so old uploads can be mapped to colors.
+            existing_images = list(ProductImage.objects.filter(product=product))
+            for existing_image in existing_images:
+                color_value = (request.POST.get(f'existing_image_color_{existing_image.id}', '') or '').strip()
+                role_value = (request.POST.get(f'existing_image_role_{existing_image.id}', existing_image.image_role) or '').strip()
+                order_raw = request.POST.get(f'existing_image_order_{existing_image.id}', existing_image.order)
+
+                if role_value not in {
+                    ProductImage.IMAGE_ROLE_GALLERY,
+                    ProductImage.IMAGE_ROLE_MAIN,
+                    ProductImage.IMAGE_ROLE_DESCRIPTION,
+                }:
+                    role_value = ProductImage.IMAGE_ROLE_GALLERY
+
+                try:
+                    order_value = int(order_raw)
+                except (TypeError, ValueError):
+                    order_value = existing_image.order
+
+                existing_image.color = color_value
+                existing_image.image_role = role_value
+                existing_image.order = order_value
+                existing_image.save(update_fields=['color', 'image_role', 'order'])
             
             # Handle gallery images if provided
             if 'gallery_images' in request.FILES:
@@ -2310,6 +2334,19 @@ def admin_edit_product(request, product_id):
                         order=idx,
                         is_active=True
                     )
+
+            if not (product.color or '').strip():
+                auto_variant_colors = []
+                seen_variant_colors = set()
+                for image_item in ProductImage.objects.filter(product=product).exclude(color='').order_by('order', 'id'):
+                    normalized_color = (image_item.color or '').strip()
+                    key = normalized_color.lower()
+                    if normalized_color and key not in seen_variant_colors:
+                        seen_variant_colors.add(key)
+                        auto_variant_colors.append(normalized_color)
+                if auto_variant_colors:
+                    product.color = ', '.join(auto_variant_colors)
+                    product.save(update_fields=['color'])
 
             reel_added = False
 

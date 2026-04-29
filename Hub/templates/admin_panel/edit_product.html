@@ -175,11 +175,35 @@
                                         <img src="{{ gallery_img.image.url }}" alt="Gallery image" 
                                              style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px;">
                                         <div class="mt-2">
-                                            <small class="text-muted d-block">Order: {{ gallery_img.order }}</small>
-                                            <small class="text-dark d-block">Type: {{ gallery_img.get_image_role_display }}</small>
-                                            {% if gallery_img.color %}
-                                            <small class="text-primary d-block">Color: {{ gallery_img.color }}</small>
-                                            {% endif %}
+                                            <div class="mb-2 text-start">
+                                                <label class="form-label small mb-1">Color</label>
+                                                <input
+                                                    type="text"
+                                                    class="form-control form-control-sm"
+                                                    name="existing_image_color_{{ gallery_img.id }}"
+                                                    value="{{ gallery_img.color|default:'' }}"
+                                                    list="variantColorSuggestions"
+                                                    placeholder="Pink, Navy Blue..."
+                                                />
+                                            </div>
+                                            <div class="mb-2 text-start">
+                                                <label class="form-label small mb-1">Role</label>
+                                                <select class="form-select form-select-sm" name="existing_image_role_{{ gallery_img.id }}">
+                                                    <option value="gallery" {% if gallery_img.image_role == 'gallery' %}selected{% endif %}>Gallery</option>
+                                                    <option value="main" {% if gallery_img.image_role == 'main' %}selected{% endif %}>Main Product</option>
+                                                    <option value="description" {% if gallery_img.image_role == 'description' %}selected{% endif %}>Description</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-2 text-start">
+                                                <label class="form-label small mb-1">Order</label>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    class="form-control form-control-sm"
+                                                    name="existing_image_order_{{ gallery_img.id }}"
+                                                    value="{{ gallery_img.order }}"
+                                                />
+                                            </div>
                                             <a href="{% url 'admin_delete_gallery_image' gallery_img.id %}" 
                                                class="btn btn-sm btn-danger"
                                                onclick="return confirm('Delete this gallery image?')">
@@ -191,7 +215,7 @@
                             </div>
                             {% endfor %}
                         </div>
-                        <small class="text-muted">These include gallery images plus any color-wise main or description images. You can add more below.</small>
+                        <small class="text-muted">Ahiya existing image mate color ane role set kari shako cho. Product page par color-switch aa mapping par depend kare chhe.</small>
                     </div>
                     {% endif %}
                     
