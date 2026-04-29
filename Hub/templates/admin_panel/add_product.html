@@ -240,9 +240,17 @@
                     
                     <div class="mb-3">
                         <label class="form-label">Color Variant Images</label>
-                        <div id="colorVariantContainer"></div>
-                        <button type="button" class="btn btn-outline-primary btn-sm mb-2" onclick="addColorVariantRow()">Add Color Variant Image</button>
-                        <small class="text-muted">Upload color-wise Main Product Image, Gallery Image, or Description Image for each variant.</small>
+                        <div class="d-flex flex-wrap gap-2 mb-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="openColorVariantModal()">
+                                <i class="bx bx-palette me-1"></i>Add Color Variant Set
+                            </button>
+                        </div>
+                        <div class="alert alert-info py-2 px-3 small mb-3">
+                            Half color name lakho to suggestion aavse. Ek popup ma same color mate Main, Gallery ane Description image ek sathe add kari shako cho.
+                        </div>
+                        <div id="colorVariantSummary" class="row g-3 mb-2"></div>
+                        <div id="colorVariantContainer" class="d-none"></div>
+                        <small class="text-muted">Popup mathi ek color select kari ne badha required image roles ekaj jagya par upload karo.</small>
                     </div>
 
                     <div class="mb-3">
@@ -457,6 +465,73 @@
                     <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
                 </form>
 
+<datalist id="variantColorSuggestions">
+    <option value="Red"></option>
+    <option value="Maroon"></option>
+    <option value="Wine"></option>
+    <option value="Pink"></option>
+    <option value="Rose Pink"></option>
+    <option value="Baby Pink"></option>
+    <option value="Peach"></option>
+    <option value="Orange"></option>
+    <option value="Rust"></option>
+    <option value="Yellow"></option>
+    <option value="Mustard"></option>
+    <option value="Gold"></option>
+    <option value="Green"></option>
+    <option value="Olive Green"></option>
+    <option value="Mint Green"></option>
+    <option value="Blue"></option>
+    <option value="Sky Blue"></option>
+    <option value="Navy Blue"></option>
+    <option value="Teal"></option>
+    <option value="Purple"></option>
+    <option value="Lavender"></option>
+    <option value="Brown"></option>
+    <option value="Beige"></option>
+    <option value="Cream"></option>
+    <option value="Off White"></option>
+    <option value="White"></option>
+    <option value="Grey"></option>
+    <option value="Black"></option>
+</datalist>
+
+<div class="modal fade" id="colorVariantModal" tabindex="-1" aria-labelledby="colorVariantModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="colorVariantModalLabel">Add Color Variant Set</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <label class="form-label" for="variantColorModalInput">Color Name</label>
+                        <input type="text" class="form-control" id="variantColorModalInput" list="variantColorSuggestions" placeholder="Half name lakho, jem ke Pi, Re, Nav..." />
+                        <small class="text-muted">Example: Pink, Rose Pink, Navy Blue, Olive Green</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="variantMainImageInput">Main Product Image</label>
+                        <input type="file" class="form-control" id="variantMainImageInput" accept="image/*" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="variantGalleryImageInput">Gallery Image</label>
+                        <input type="file" class="form-control" id="variantGalleryImageInput" accept="image/*" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="variantDescriptionImageInput">Description Image</label>
+                        <input type="file" class="form-control" id="variantDescriptionImageInput" accept="image/*" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveColorVariantSet()">Add Variant Set</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 function toggleReturnOptions() {
     const isReturnable = document.getElementById('is_returnable').checked;
@@ -480,41 +555,140 @@ function toggleReturnOptions() {
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     toggleReturnOptions();
-    addColorVariantRow();
 });
 
 function addColorVariantRow() {
-    const container = document.getElementById('colorVariantContainer');
-    if (!container) return;
-
-    const row = document.createElement('div');
-    row.className = 'row mb-2 color-variant-row';
-    row.innerHTML = `
-        <div class="col-md-4">
-            <input type="text" class="form-control" name="variant_colors" placeholder="Variant Color (e.g. Red, Blue)" />
-        </div>
-        <div class="col-md-3">
-            <select class="form-select" name="variant_image_roles">
-                <option value="gallery">Gallery Image</option>
-                <option value="main">Main Product Image</option>
-                <option value="description">Description Image</option>
-            </select>
-        </div>
-        <div class="col-md-3">
-            <input type="file" class="form-control" name="variant_images" accept="image/*" />
-        </div>
-        <div class="col-md-2 d-flex align-items-end">
-            <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="removeColorVariantRow(this)">Remove</button>
-        </div>
-    `;
-    container.appendChild(row);
+    openColorVariantModal();
 }
 
 function removeColorVariantRow(button) {
-    const row = button.closest('.color-variant-row');
-    if (row) {
-        row.remove();
+    const card = button.closest('[data-variant-card-id]');
+    if (!card) return;
+
+    const variantId = card.getAttribute('data-variant-card-id');
+    const hiddenGroup = document.querySelector('[data-variant-hidden-id="' + variantId + '"]');
+    if (hiddenGroup) {
+        hiddenGroup.remove();
     }
+    card.remove();
+}
+
+function openColorVariantModal() {
+    const modalEl = document.getElementById('colorVariantModal');
+    if (!modalEl || typeof bootstrap === 'undefined') return;
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+}
+
+function resetColorVariantModal() {
+    const colorInput = document.getElementById('variantColorModalInput');
+    const mainInput = document.getElementById('variantMainImageInput');
+    const galleryInput = document.getElementById('variantGalleryImageInput');
+    const descriptionInput = document.getElementById('variantDescriptionImageInput');
+
+    if (colorInput) colorInput.value = '';
+    if (mainInput) mainInput.value = '';
+    if (galleryInput) galleryInput.value = '';
+    if (descriptionInput) descriptionInput.value = '';
+}
+
+function createHiddenTextInput(name, value) {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = name;
+    input.value = value;
+    return input;
+}
+
+function createHiddenFileInput(name, file) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.name = name;
+    input.className = 'd-none';
+    input.accept = 'image/*';
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+    return input;
+}
+
+function buildVariantFileSummary(roleLabel, file) {
+    return `
+        <div class="small text-muted mb-1">
+            <strong>${roleLabel}:</strong> ${file.name}
+        </div>
+    `;
+}
+
+function saveColorVariantSet() {
+    const colorInput = document.getElementById('variantColorModalInput');
+    const mainInput = document.getElementById('variantMainImageInput');
+    const galleryInput = document.getElementById('variantGalleryImageInput');
+    const descriptionInput = document.getElementById('variantDescriptionImageInput');
+    const summary = document.getElementById('colorVariantSummary');
+    const hiddenContainer = document.getElementById('colorVariantContainer');
+    const modalEl = document.getElementById('colorVariantModal');
+
+    if (!colorInput || !summary || !hiddenContainer || !modalEl) return;
+
+    const colorValue = (colorInput.value || '').trim();
+    const mainFile = mainInput && mainInput.files ? mainInput.files[0] : null;
+    const galleryFile = galleryInput && galleryInput.files ? galleryInput.files[0] : null;
+    const descriptionFile = descriptionInput && descriptionInput.files ? descriptionInput.files[0] : null;
+
+    if (!colorValue) {
+        alert('Please enter a color name.');
+        colorInput.focus();
+        return;
+    }
+
+    if (!mainFile && !galleryFile && !descriptionFile) {
+        alert('At least one image is required for this color variant.');
+        return;
+    }
+
+    const variantId = 'variant-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+    const hiddenGroup = document.createElement('div');
+    hiddenGroup.setAttribute('data-variant-hidden-id', variantId);
+
+    const fileSummary = [];
+    [
+        { role: 'main', label: 'Main Product Image', file: mainFile },
+        { role: 'gallery', label: 'Gallery Image', file: galleryFile },
+        { role: 'description', label: 'Description Image', file: descriptionFile }
+    ].forEach(function(item) {
+        if (!item.file) return;
+        hiddenGroup.appendChild(createHiddenTextInput('variant_colors', colorValue));
+        hiddenGroup.appendChild(createHiddenTextInput('variant_image_roles', item.role));
+        hiddenGroup.appendChild(createHiddenFileInput('variant_images', item.file));
+        fileSummary.push(buildVariantFileSummary(item.label, item.file));
+    });
+
+    hiddenContainer.appendChild(hiddenGroup);
+
+    const column = document.createElement('div');
+    column.className = 'col-md-6';
+    column.setAttribute('data-variant-card-id', variantId);
+    column.innerHTML = `
+        <div class="card border-primary h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div>
+                        <h6 class="mb-1">${colorValue}</h6>
+                        <span class="badge bg-label-primary">Color Variant Set</span>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeColorVariantRow(this)">Remove</button>
+                </div>
+                <div class="mt-3">
+                    ${fileSummary.join('')}
+                </div>
+            </div>
+        </div>
+    `;
+    summary.appendChild(column);
+
+    resetColorVariantModal();
+    bootstrap.Modal.getOrCreateInstance(modalEl).hide();
 }
 
 function previewGalleryImages() {
