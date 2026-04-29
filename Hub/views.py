@@ -6046,6 +6046,8 @@ def buy_now(request, product_id):
     try:
         product = Product.objects.get(id=product_id, is_active=True)
         quantity = int(request.POST.get('quantity', 1))
+        selected_color = (request.POST.get('selected_color') or request.POST.get('color') or '').strip()[:50]
+        selected_size = (request.POST.get('selected_size') or request.POST.get('size') or '').strip()[:20]
         
         if quantity < 1:
             return JsonResponse({
@@ -6064,7 +6066,9 @@ def buy_now(request, product_id):
         request.session['buy_now_item'] = {
             'product_id': product.id,
             'quantity': quantity,
-            'price': str(product.price)
+            'price': str(product.price),
+            'color': selected_color,
+            'size': selected_size,
         }
         
         return JsonResponse({
@@ -6585,6 +6589,8 @@ def checkout_confirm(request):
                         product_price=Decimal(str(buy_now_item['price'])) + (resell_margin_per_unit if is_resell else Decimal('0')),
                         product_image=product_image,
                         quantity=buy_now_item['quantity'],
+                        size=(buy_now_item.get('size') or '')[:10],
+                        color=(buy_now_item.get('color') or '')[:50],
                         base_price=Decimal(str(buy_now_item['price'])),
                         margin_amount=resell_margin_per_unit if is_resell else (product.margin if product else Decimal('0'))
                     )
@@ -6609,6 +6615,8 @@ def checkout_confirm(request):
                             product_price=item_base_price + item_margin,
                             product_image=product_image,
                             quantity=item.quantity,
+                            size=(item.size or '')[:10],
+                            color=(item.color or '')[:50],
                             base_price=item_base_price,
                             margin_amount=item_margin
                         )
@@ -7961,6 +7969,8 @@ def add_to_cart(request: HttpRequest) -> JsonResponse:
     """Add product to cart or increase quantity"""
     product_id = request.POST.get('product_id')
     quantity = int(request.POST.get('quantity', 1))
+    selected_color = (request.POST.get('selected_color') or request.POST.get('color') or '').strip()[:50]
+    selected_size = (request.POST.get('selected_size') or request.POST.get('size') or '').strip()[:20]
     
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
     
@@ -7979,6 +7989,8 @@ def add_to_cart(request: HttpRequest) -> JsonResponse:
         cart_item, created = Cart.objects.get_or_create(
             user=request.user,
             product=product,
+            color=selected_color,
+            size=selected_size,
             defaults={'quantity': quantity}
         )
         
@@ -8739,6 +8751,8 @@ def buy_now(request, product_id):
     try:
         product = Product.objects.get(id=product_id, is_active=True)
         quantity = int(request.POST.get('quantity', 1))
+        selected_color = (request.POST.get('selected_color') or request.POST.get('color') or '').strip()[:50]
+        selected_size = (request.POST.get('selected_size') or request.POST.get('size') or '').strip()[:20]
         
         if quantity < 1:
             return JsonResponse({
@@ -8757,7 +8771,9 @@ def buy_now(request, product_id):
         request.session['buy_now_item'] = {
             'product_id': product.id,
             'quantity': quantity,
-            'price': float(product.price)
+            'price': float(product.price),
+            'color': selected_color,
+            'size': selected_size,
         }
         request.session.modified = True
         

@@ -263,6 +263,8 @@
                     {% csrf_token %}
                     <input type="hidden" name="product_id" value="{{ product.id }}">
                     <input type="hidden" name="quantity" id="vmPdMobileQtyHidden" value="1">
+                    <input type="hidden" name="selected_color" data-selected-color-input value="">
+                    <input type="hidden" name="selected_size" data-selected-size-input value="">
                     <button type="submit" {% if product.stock == 0 %}disabled{% endif %}>Add to Bag</button>
                 </form>
                 <button type="button" class="vm-pd-m-wishlist {% if in_wishlist %}is-active{% endif %}" data-product-id="{{ product.id }}" data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}" data-label-active="In wishlist" data-label-inactive="Save to wishlist" onclick="handlePdWishlistClick(this)">
@@ -478,6 +480,8 @@
                 <form method="POST" action="{% url 'add_to_cart' %}" class="pddx-cart-form">
                     {% csrf_token %}
                     <input type="hidden" name="product_id" value="{{ product.id }}">
+                    <input type="hidden" name="selected_color" data-selected-color-input value="">
+                    <input type="hidden" name="selected_size" data-selected-size-input value="">
                     <div class="pddx-qty-control" data-max="{{ product.stock|default:999 }}">
                         <button type="button" class="pddx-qty-btn" data-step="-1" aria-label="Decrease quantity">-</button>
                         <input type="number" class="pddx-qty-input" id="pddxQtyInput" name="quantity" value="1" min="1" max="{{ product.stock|default:999 }}" inputmode="numeric" aria-label="Quantity">
@@ -693,6 +697,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initDesktopOptionGroup('[data-pddx-color-root]', '[data-pddx-color-list]', '[data-pddx-color-value]', 'pddx-swatch', true);
     initDesktopOptionGroup('[data-pddx-size-root]', '[data-pddx-size-list]', '[data-pddx-size-value]', 'pddx-size-btn', false);
     initProductColorImageSync();
+    syncProductVariantInputs();
 
     /* ── Mobile image switcher ── */
     const vmMainImage = document.getElementById('vmPdMainImage');
@@ -755,6 +760,36 @@ function getCsrfTokenPd() {
     return cookie ? decodeURIComponent(cookie.split('=')[1]) : '';
 }
 
+function getSelectedVariantValue(rootSelector, buttonSelector, valueSelector) {
+    const root = document.querySelector(rootSelector);
+    if (!root) return '';
+
+    const activeButton = root.querySelector(buttonSelector + '.is-active');
+    if (activeButton) {
+        return (activeButton.getAttribute('data-value') || '').trim();
+    }
+
+    const valueLabel = root.querySelector(valueSelector);
+    return valueLabel ? (valueLabel.textContent || '').trim() : '';
+}
+
+function syncProductVariantInputs() {
+    const selectedColor = getSelectedVariantValue('[data-pddx-color-root]', '.pddx-swatch', '[data-pddx-color-value]');
+    const selectedSize = getSelectedVariantValue('[data-pddx-size-root]', '.pddx-size-btn', '[data-pddx-size-value]');
+
+    document.querySelectorAll('[data-selected-color-input]').forEach(function(input) {
+        input.value = selectedColor;
+    });
+    document.querySelectorAll('[data-selected-size-input]').forEach(function(input) {
+        input.value = selectedSize;
+    });
+
+    return {
+        color: selectedColor,
+        size: selectedSize
+    };
+}
+
 async function handlePdWishlistClick(button) {
     if (window.vmStorefrontActions && typeof window.vmStorefrontActions.toggleWishlist === 'function') {
         return window.vmStorefrontActions.toggleWishlist(button);
@@ -768,6 +803,7 @@ async function buyNow(productId, quantity) {
     {% endif %}
     const url = '/buy-now/' + productId + '/';
     const csrftoken = getCsrfTokenPd();
+    const variantSelection = syncProductVariantInputs();
     try {
         const response = await fetch(url, {
             method: 'POST',
@@ -776,7 +812,11 @@ async function buyNow(productId, quantity) {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            body: 'quantity=' + quantity
+            body: new URLSearchParams({
+                quantity: quantity,
+                selected_color: variantSelection.color || '',
+                selected_size: variantSelection.size || ''
+            }).toString()
         });
         const data = await response.json();
         if (response.ok && data.success) {
@@ -879,12 +919,14 @@ function initDesktopOptionGroup(rootSelector, listSelector, valueSelector, butto
             button.classList.add('is-active');
             button.setAttribute('aria-pressed', 'true');
             if (valueLabel) valueLabel.textContent = option;
+            syncProductVariantInputs();
         });
 
         list.appendChild(button);
     });
 
     if (valueLabel) valueLabel.textContent = finalOptions[0];
+    syncProductVariantInputs();
 }
 
 function normalizeProductColor(value) {
@@ -961,6 +1003,7 @@ function syncDesktopColorSelection(colorValue) {
     if (matchedButton && valueLabel) {
         valueLabel.textContent = matchedButton.getAttribute('data-value') || colorValue;
     }
+    syncProductVariantInputs();
 }
 
 function findDescriptionImageByColor(colorValue) {

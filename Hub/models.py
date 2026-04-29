@@ -513,11 +513,13 @@ class Cart(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='cart_items')
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
+    size = models.CharField(max_length=20, blank=True, default='')
+    color = models.CharField(max_length=50, blank=True, default='')
     added_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('user', 'product')
+        unique_together = ('user', 'product', 'size', 'color')
         verbose_name_plural = 'Cart Items'
 
     def get_total_price(self) -> Decimal:

@@ -29,8 +29,8 @@
                     <div>
                         <h6><a href="{% url 'product-details' item.product.id %}">{{ item.product.name }}</a></h6>
                         <p class="vm-mini-alt__meta">
-                            {% if item.product.color %}{{ item.product.color }}{% endif %}{% if item.product.color and item.size %} / {% endif %}{% if item.size %}{{ item.size }}{% endif %}
-                            {% if not item.product.color and not item.size %}Curated selection{% endif %}
+                            {% if item.color %}Color: {{ item.color }}{% endif %}{% if item.color and item.size %} / {% endif %}{% if item.size %}Size: {{ item.size }}{% endif %}
+                            {% if not item.color and not item.size %}Curated selection{% endif %}
                         </p>
                     </div>
                     <div class="vm-mini-alt__bottom-row">

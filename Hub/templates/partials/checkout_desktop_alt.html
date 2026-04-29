@@ -204,10 +204,10 @@
                             <div class="vm-checkout-d-item-copy">
                                 <div>
                                     <h4>{{ item.product.name }}</h4>
-                                    <p class="vm-checkout-d-item-meta">Qty: {{ item.quantity }}</p>
+                                    <p class="vm-checkout-d-item-meta">Qty: {{ item.quantity }}{% if item.color %} • {{ item.color }}{% endif %}{% if item.size %} • {{ item.size }}{% endif %}</p>
                                 </div>
                                 <div class="vm-checkout-d-item-row">
-                                    <span class="vm-checkout-d-item-meta">Curated piece</span>
+                                    <span class="vm-checkout-d-item-meta">{% if item.color or item.size %}Selected variant{% else %}Curated piece{% endif %}</span>
                                     <span class="vm-checkout-d-item-price">₹{{ item.get_total_price|floatformat:2 }}</span>
                                 </div>
                             </div>

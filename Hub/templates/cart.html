@@ -46,6 +46,9 @@
                         </a>
                     </div>
                     <p>₹{{ item.product.price }}</p>
+                    {% if item.color or item.size %}
+                    <p>{% if item.color %}Color: {{ item.color }}{% endif %}{% if item.color and item.size %} / {% endif %}{% if item.size %}Size: {{ item.size }}{% endif %}</p>
+                    {% endif %}
                     <form method="POST" action="{% url 'update_cart_quantity' item.id %}" class="vm-cart-m-qty-form" aria-label="Update quantity for {{ item.product.name }}">
                         {% csrf_token %}
                         <label for="vm-cart-m-qty-{{ item.id }}">Qty</label>
@@ -109,7 +112,13 @@
                     <div class="vm-cart-t-row">
                         <div>
                             <h3>{{ item.product.name }}</h3>
-                            <p class="vm-cart-t-meta">Refined Selection</p>
+                            <p class="vm-cart-t-meta">
+                                {% if item.color or item.size %}
+                                {% if item.color %}Color: {{ item.color }}{% endif %}{% if item.color and item.size %} / {% endif %}{% if item.size %}Size: {{ item.size }}{% endif %}
+                                {% else %}
+                                Refined Selection
+                                {% endif %}
+                            </p>
                         </div>
                         <strong>₹{{ item.get_total_price|floatformat:2 }}</strong>
                     </div>
@@ -196,7 +205,13 @@
                     <div class="vm-cart-d-copy">
                         <div class="vm-cart-d-copy-main">
                             <h3>{{ item.product.name }}</h3>
-                            <p>Quantity-ready atelier selection</p>
+                            <p>
+                                {% if item.color or item.size %}
+                                {% if item.color %}Color: {{ item.color }}{% endif %}{% if item.color and item.size %} / {% endif %}{% if item.size %}Size: {{ item.size }}{% endif %}
+                                {% else %}
+                                Quantity-ready atelier selection
+                                {% endif %}
+                            </p>
                             <a href="{% url 'remove_from_cart' item.id %}" class="vm-cart-d-remove js-confirm-remove" data-confirm-message="Remove this item?" aria-label="Remove {{ item.product.name }}">Remove</a>
                         </div>
 

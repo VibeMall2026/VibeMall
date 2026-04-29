@@ -444,7 +444,7 @@
                     <div class="flex-1">
                         <p>{{ item.product.category|default:'Order Item' }}</p>
                         <h3>{{ item.product_name }}</h3>
-                        <small>Qty: {{ item.quantity }}{% if item.color %} — {{ item.color }}{% elif item.size %} — {{ item.size }}{% endif %}</small>
+                        <small>Qty: {{ item.quantity }}{% if item.color %} — {{ item.color }}{% endif %}{% if item.size %} — {{ item.size }}{% endif %}</small>
                         <strong>Rs {{ item.product_price }}</strong>
                     </div>
                 </article>

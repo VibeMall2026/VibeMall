@@ -238,7 +238,7 @@
                                         {% endif %}
                                         <div>
                                             <strong>{{ item.product_name }}</strong>
-                                            {% if item.size %}<br><small class="text-muted">{{ item.size }}</small>{% endif %}
+                                            {% if item.color or item.size %}<br><small class="text-muted">{% if item.color %}{{ item.color }}{% endif %}{% if item.color and item.size %} • {% endif %}{% if item.size %}{{ item.size }}{% endif %}</small>{% endif %}
                                         </div>
                                     </div>
                                 </td>

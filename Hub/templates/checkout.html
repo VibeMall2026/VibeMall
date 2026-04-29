@@ -67,7 +67,10 @@
                     <div class="vm-checkout-mobile-item__meta">
                         <h3>{{ item.product.name }}</h3>
                         <p>Quantity {{ item.quantity }}</p>
-                        <strong>&#8377;{{ item.get_total_price|floatformat:2 }}</strong>
+                        {% if item.color or item.size %}
+                        <p>{% if item.color %}Color: {{ item.color }}{% endif %}{% if item.color and item.size %} / {% endif %}{% if item.size %}Size: {{ item.size }}{% endif %}</p>
+                        {% endif %}
+                        <strong>{% if item.subtotal %}&#8377;{{ item.subtotal|floatformat:2 }}{% else %}&#8377;{{ item.get_total_price|floatformat:2 }}{% endif %}</strong>
                     </div>
                 </article>
                 {% endfor %}
@@ -659,8 +662,8 @@
                         </div>
                         <div class="vm-checkout-tablet-item__content">
                             <h4 class="vm-checkout-tablet-item__name">{{ item.product.name }}</h4>
-                            <p class="vm-checkout-tablet-item__variant">Qty: {{ item.quantity }}</p>
-                            <p class="vm-checkout-tablet-item__price">₹{{ item.get_total_price|floatformat:2 }}</p>
+                            <p class="vm-checkout-tablet-item__variant">Qty: {{ item.quantity }}{% if item.color %} • {{ item.color }}{% endif %}{% if item.size %} • {{ item.size }}{% endif %}</p>
+                            <p class="vm-checkout-tablet-item__price">{% if item.subtotal %}₹{{ item.subtotal|floatformat:2 }}{% else %}₹{{ item.get_total_price|floatformat:2 }}{% endif %}</p>
                         </div>
                     </div>
                     {% endfor %}

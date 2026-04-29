@@ -37,8 +37,11 @@ def _get_checkout_items(request: HttpRequest) -> Tuple[List[Any], Optional[Dict[
                 'product': product,
                 'quantity': buy_now_data['quantity'],
                 'price': float(buy_now_data['price']),
+                'size': (buy_now_data.get('size') or '').strip(),
+                'color': (buy_now_data.get('color') or '').strip(),
                 'subtotal': float(buy_now_data['price']) * buy_now_data['quantity']
             }
+            buy_now_item['get_total_price'] = buy_now_item['subtotal']
             total_price = buy_now_item['subtotal']
             cart_items = [buy_now_item]
         except Product.DoesNotExist:
