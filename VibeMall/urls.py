@@ -1,11 +1,13 @@
 from django.contrib import admin
 from django.urls import path, include
+
 from django.views.generic import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
 from Hub import views
 
 urlpatterns = [
+    path('trading/', include('trading.urls')),
     path('admin/new-dashboard/', RedirectView.as_view(url='/admin-panel/new-dashboard/', permanent=False)),
     path('favicon.ico', RedirectView.as_view(url=f'{settings.STATIC_URL}assets/img/favicon.ico?v=20260426-03', permanent=False)),
     path('admin/', admin.site.urls),

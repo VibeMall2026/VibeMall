@@ -1,0 +1,462 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load static %}
+
+{% block title %}Trading Bot Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+  .status-card { border-radius: 10px; }
+  .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .dot-green { background: #28c76f; box-shadow: 0 0 6px #28c76f; }
+  .dot-red   { background: #ea5455; box-shadow: 0 0 6px #ea5455; }
+  .dot-grey  { background: #a8aaae; }
+  .pnl-pos { color: #28c76f; font-weight: 600; }
+  .pnl-neg { color: #ea5455; font-weight: 600; }
+  .table-dark-custom { background: #2b2c40; color: #cdd0d6; }
+  .table-dark-custom th { background: #232333; color: #a8aaae; font-size: 0.78rem; text-transform: uppercase; letter-spacing: .5px; }
+  .table-dark-custom td { border-color: #3b3d52; vertical-align: middle; font-size: 0.875rem; }
+  .badge-buy  { background: rgba(40,199,111,.15); color: #28c76f; }
+  .badge-sell { background: rgba(234,84,85,.15);  color: #ea5455; }
+  .section-header { font-size: 1rem; font-weight: 600; color: #cdd0d6; margin-bottom: 1rem; }
+  .ctrl-btn { min-width: 110px; }
+  .stat-label { font-size: 0.75rem; color: #a8aaae; text-transform: uppercase; letter-spacing: .5px; }
+  .stat-value { font-size: 1.4rem; font-weight: 700; color: #cdd0d6; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Page header -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="fw-bold mb-1" style="color:#cdd0d6;">
+      <i class="bx bx-line-chart me-2" style="color:#696cff;"></i>Trading Bot Dashboard
+    </h4>
+    <p class="text-muted mb-0" style="font-size:.85rem;">Live monitoring &amp; control panel</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <button class="btn btn-success ctrl-btn" onclick="botAction('start')"><i class="bx bx-play me-1"></i>Start Bot</button>
+    <button class="btn btn-danger ctrl-btn"  onclick="botAction('stop')"><i class="bx bx-stop me-1"></i>Stop Bot</button>
+    <button class="btn btn-warning ctrl-btn" onclick="botAction('restart')"><i class="bx bx-refresh me-1"></i>Restart</button>
+    <button class="btn btn-secondary ctrl-btn" onclick="weekendShutdown()"><i class="bx bx-moon me-1"></i>Weekend</button>
+    <a href="/trading/settings/" class="btn btn-outline-primary ctrl-btn"><i class="bx bx-cog me-1"></i>Settings</a>
+  </div>
+</div>
+
+<!-- Status Cards Row -->
+<div class="row g-3 mb-4">
+  <!-- Bot Running -->
+  <div class="col-6 col-md-3 col-xl-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3">
+        <div class="stat-label mb-1">Bot Status</div>
+        <div class="d-flex align-items-center">
+          <span class="status-dot {% if bot_running %}dot-green{% else %}dot-red{% endif %}"></span>
+          <span class="stat-value" style="font-size:1rem;">{% if bot_running %}Running{% else %}Stopped{% endif %}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- MT5 -->
+  <div class="col-6 col-md-3 col-xl-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3">
+        <div class="stat-label mb-1">MT5</div>
+        <div class="d-flex align-items-center">
+          <span class="status-dot {% if mt5_connected %}dot-green{% else %}dot-red{% endif %}"></span>
+          <span class="stat-value" style="font-size:1rem;">{% if mt5_connected %}Connected{% else %}Offline{% endif %}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Telegram -->
+  <div class="col-6 col-md-3 col-xl-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3">
+        <div class="stat-label mb-1">Telegram</div>
+        <div class="d-flex align-items-center">
+          <span class="status-dot {% if telegram_connected %}dot-green{% else %}dot-red{% endif %}"></span>
+          <span class="stat-value" style="font-size:1rem;">{% if telegram_connected %}Connected{% else %}Offline{% endif %}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Open Positions -->
+  <div class="col-6 col-md-3 col-xl-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3">
+        <div class="stat-label mb-1">Open Positions</div>
+        <div class="stat-value">{{ open_positions }}</div>
+      </div>
+    </div>
+  </div>
+  <!-- Balance -->
+  <div class="col-6 col-md-3 col-xl-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3">
+        <div class="stat-label mb-1">Balance</div>
+        <div class="stat-value">{{ currency }} {{ balance|floatformat:2 }}</div>
+      </div>
+    </div>
+  </div>
+  <!-- Equity -->
+  <div class="col-6 col-md-3 col-xl-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3">
+        <div class="stat-label mb-1">Equity</div>
+        <div class="stat-value">{{ currency }} {{ equity|floatformat:2 }}</div>
+      </div>
+    </div>
+  </div>
+  <!-- Free Margin -->
+  <div class="col-6 col-md-3 col-xl-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3">
+        <div class="stat-label mb-1">Free Margin</div>
+        <div class="stat-value">{{ currency }} {{ free_margin|floatformat:2 }}</div>
+      </div>
+    </div>
+  </div>
+  <!-- Signals Processed -->
+  <div class="col-6 col-md-3 col-xl-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3">
+        <div class="stat-label mb-1">Signals Processed</div>
+        <div class="stat-value">{{ signals_processed }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Today Stats Row -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-2">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3 text-center">
+        <div class="stat-label mb-1">Wins</div>
+        <div class="stat-value pnl-pos">{{ wins }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3 text-center">
+        <div class="stat-label mb-1">Losses</div>
+        <div class="stat-value pnl-neg">{{ losses }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3 text-center">
+        <div class="stat-label mb-1">Total Trades</div>
+        <div class="stat-value">{{ total_trades }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3 text-center">
+        <div class="stat-label mb-1">Today PnL</div>
+        <div class="stat-value {% if today_net_pnl >= 0 %}pnl-pos{% else %}pnl-neg{% endif %}">
+          {{ today_net_pnl|floatformat:2 }}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3 text-center">
+        <div class="stat-label mb-1">Win Rate</div>
+        <div class="stat-value">{{ win_rate|floatformat:1 }}%</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3 text-center">
+        <div class="stat-label mb-1">Total PnL</div>
+        <div class="stat-value {% if total_pnl >= 0 %}pnl-pos{% else %}pnl-neg{% endif %}">
+          {{ total_pnl|floatformat:2 }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Open Trades Table -->
+<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
+  <div class="card-header d-flex justify-content-between align-items-center" style="background:#232333;border-bottom:1px solid #3b3d52;">
+    <span class="section-header mb-0"><i class="bx bx-trending-up me-2" style="color:#28c76f;"></i>Open Trades</span>
+    <span class="badge bg-label-success">{{ open_trades|length }}</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-dark-custom mb-0">
+        <thead>
+          <tr>
+            <th>Symbol</th><th>Side</th><th>Volume</th><th>Entry</th>
+            <th>SL</th><th>TP</th><th>Risk</th><th>R:R</th><th>Opened</th><th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in open_trades %}
+          <tr>
+            <td><strong>{{ t.symbol|default:"-" }}</strong></td>
+            <td>
+              <span class="badge {% if t.side|lower == 'buy' %}badge-buy{% else %}badge-sell{% endif %}">
+                {{ t.side|upper|default:"-" }}
+              </span>
+            </td>
+            <td>{{ t.volume|default:"-" }}</td>
+            <td>{{ t.entry|default:t.open_price|default:"-" }}</td>
+            <td>{{ t.sl|default:t.stop_loss|default:"-" }}</td>
+            <td>{{ t.tp|default:t.take_profit|default:"-" }}</td>
+            <td>{{ t.risk|default:"-" }}</td>
+            <td>{{ t.rr|default:t.risk_reward|default:"-" }}</td>
+            <td style="font-size:.8rem;">{{ t.opened|default:t.open_time|default:"-" }}</td>
+            <td>
+              <button class="btn btn-sm btn-outline-warning"
+                onclick="openModify({{ t.id|default:t.position_id|default:0 }}, '{{ t.sl|default:t.stop_loss|default:'' }}', '{{ t.tp|default:t.take_profit|default:'' }}')">
+                Edit SL/TP
+              </button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="10" class="text-center text-muted py-4">No open trades</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Trades Table -->
+<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
+  <div class="card-header d-flex justify-content-between align-items-center" style="background:#232333;border-bottom:1px solid #3b3d52;">
+    <span class="section-header mb-0"><i class="bx bx-history me-2" style="color:#696cff;"></i>Recent Trades</span>
+    <span class="badge bg-label-primary">{{ recent_trades|length }}</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-dark-custom mb-0">
+        <thead>
+          <tr>
+            <th>Symbol</th><th>Side</th><th>Volume</th><th>Entry</th>
+            <th>SL</th><th>TP</th><th>R:R</th><th>PnL</th><th>Status</th><th>Channel</th><th>Opened</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in recent_trades %}
+          <tr>
+            <td><strong>{{ t.symbol|default:"-" }}</strong></td>
+            <td>
+              <span class="badge {% if t.side|lower == 'buy' %}badge-buy{% else %}badge-sell{% endif %}">
+                {{ t.side|upper|default:"-" }}
+              </span>
+            </td>
+            <td>{{ t.volume|default:"-" }}</td>
+            <td>{{ t.entry|default:t.open_price|default:"-" }}</td>
+            <td>{{ t.sl|default:t.stop_loss|default:"-" }}</td>
+            <td>{{ t.tp|default:t.take_profit|default:"-" }}</td>
+            <td>{{ t.rr|default:t.risk_reward|default:"-" }}</td>
+            <td class="{% if t.pnl >= 0 %}pnl-pos{% else %}pnl-neg{% endif %}">
+              {{ t.pnl|default:t.profit|default:"-" }}
+            </td>
+            <td>
+              <span class="badge bg-label-{% if t.status == 'win' %}success{% elif t.status == 'loss' %}danger{% else %}secondary{% endif %}">
+                {{ t.status|default:"-" }}
+              </span>
+            </td>
+            <td style="font-size:.8rem;">{{ t.channel|default:"-" }}</td>
+            <td style="font-size:.8rem;">{{ t.opened|default:t.open_time|default:"-" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="11" class="text-center text-muted py-4">No recent trades</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Signals Table -->
+<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
+  <div class="card-header d-flex justify-content-between align-items-center" style="background:#232333;border-bottom:1px solid #3b3d52;">
+    <span class="section-header mb-0"><i class="bx bx-signal-5 me-2" style="color:#ff9f43;"></i>Recent Signals</span>
+    <span class="badge bg-label-warning">{{ recent_signals|length }}</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-dark-custom mb-0">
+        <thead>
+          <tr>
+            <th>Symbol</th><th>Side</th><th>SL</th><th>TP</th>
+            <th>Status</th><th>Channel</th><th>Reason</th><th>Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in recent_signals %}
+          <tr>
+            <td><strong>{{ s.symbol|default:"-" }}</strong></td>
+            <td>
+              <span class="badge {% if s.side|lower == 'buy' %}badge-buy{% else %}badge-sell{% endif %}">
+                {{ s.side|upper|default:"-" }}
+              </span>
+            </td>
+            <td>{{ s.sl|default:s.stop_loss|default:"-" }}</td>
+            <td>{{ s.tp|default:s.take_profit|default:"-" }}</td>
+            <td>
+              <span class="badge bg-label-{% if s.status == 'executed' %}success{% elif s.status == 'rejected' %}danger{% else %}secondary{% endif %}">
+                {{ s.status|default:"-" }}
+              </span>
+            </td>
+            <td style="font-size:.8rem;">{{ s.channel|default:"-" }}</td>
+            <td style="font-size:.8rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              {{ s.reason|default:"-" }}
+            </td>
+            <td style="font-size:.8rem;">{{ s.time|default:s.created_at|default:"-" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8" class="text-center text-muted py-4">No recent signals</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Edit SL/TP Modal -->
+<div class="modal fade" id="modifyModal" tabindex="-1" aria-labelledby="modifyModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background:#2b2c40;border:1px solid #3b3d52;color:#cdd0d6;">
+      <div class="modal-header" style="border-bottom:1px solid #3b3d52;">
+        <h5 class="modal-title" id="modifyModalLabel">
+          <i class="bx bx-edit me-2" style="color:#ff9f43;"></i>Edit SL / TP
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="modifyPositionId" value="">
+        <div class="mb-3">
+          <label class="form-label" style="color:#a8aaae;">Stop Loss (SL)</label>
+          <input type="number" step="any" id="modifySL" class="form-control"
+                 style="background:#232333;border:1px solid #3b3d52;color:#cdd0d6;"
+                 placeholder="Enter new SL">
+        </div>
+        <div class="mb-3">
+          <label class="form-label" style="color:#a8aaae;">Take Profit (TP)</label>
+          <input type="number" step="any" id="modifyTP" class="form-control"
+                 style="background:#232333;border:1px solid #3b3d52;color:#cdd0d6;"
+                 placeholder="Enter new TP">
+        </div>
+        <div id="modifyResult" class="mt-2" style="display:none;"></div>
+      </div>
+      <div class="modal-footer" style="border-top:1px solid #3b3d52;">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-warning" onclick="submitModify()">
+          <i class="bx bx-save me-1"></i>Update
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:11000;">
+  <div id="botToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body" id="botToastMsg">Action completed.</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  function showToast(msg, success) {
+    const toast = document.getElementById('botToast');
+    const msgEl = document.getElementById('botToastMsg');
+    msgEl.textContent = msg;
+    toast.className = 'toast align-items-center text-white border-0 ' + (success ? 'bg-success' : 'bg-danger');
+    const bsToast = new bootstrap.Toast(toast, { delay: 4000 });
+    bsToast.show();
+  }
+
+  function botAction(action) {
+    const csrfToken = getCookie('csrftoken');
+    const body = new URLSearchParams({ action: action });
+    fetch('/trading/bot-control/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString()
+    })
+    .then(r => r.json())
+    .then(data => {
+      const msg = data.message || data.status || (data.success ? 'Action sent: ' + action : 'Error: ' + (data.error || 'Unknown'));
+      showToast(msg, data.success);
+    })
+    .catch(() => showToast('Bot is offline or unreachable.', false));
+  }
+
+  function weekendShutdown() {
+    botAction('weekend_shutdown');
+  }
+
+  function openModify(positionId, sl, tp) {
+    document.getElementById('modifyPositionId').value = positionId;
+    document.getElementById('modifySL').value = sl;
+    document.getElementById('modifyTP').value = tp;
+    document.getElementById('modifyResult').style.display = 'none';
+    const modal = new bootstrap.Modal(document.getElementById('modifyModal'));
+    modal.show();
+  }
+
+  function submitModify() {
+    const positionId = document.getElementById('modifyPositionId').value;
+    const sl = document.getElementById('modifySL').value;
+    const tp = document.getElementById('modifyTP').value;
+    const csrfToken = getCookie('csrftoken');
+    const resultEl = document.getElementById('modifyResult');
+
+    const body = new URLSearchParams({ sl: sl, tp: tp });
+    fetch(`/trading/modify-position/${positionId}/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString()
+    })
+    .then(r => r.json())
+    .then(data => {
+      resultEl.style.display = 'block';
+      if (data.success) {
+        resultEl.innerHTML = '<div class="alert alert-success py-2 mb-0">Position updated successfully.</div>';
+        setTimeout(() => {
+          bootstrap.Modal.getInstance(document.getElementById('modifyModal')).hide();
+          location.reload();
+        }, 1200);
+      } else {
+        resultEl.innerHTML = '<div class="alert alert-danger py-2 mb-0">Error: ' + (data.error || 'Failed to update') + '</div>';
+      }
+    })
+    .catch(() => {
+      resultEl.style.display = 'block';
+      resultEl.innerHTML = '<div class="alert alert-danger py-2 mb-0">Bot is offline or unreachable.</div>';
+    });
+  }
+</script>
+{% endblock %}

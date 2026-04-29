@@ -102,6 +102,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # 'livereload',  # Commented out - not needed
     'Hub',
+    'trading',
 ]
 
 MIDDLEWARE = [

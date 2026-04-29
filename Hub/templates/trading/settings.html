@@ -1,0 +1,369 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load static %}
+
+{% block title %}Bot Settings{% endblock %}
+
+{% block extra_css %}
+<style>
+  .settings-card { background:#2b2c40; border:1px solid #3b3d52; border-radius:10px; }
+  .settings-card .card-header { background:#232333; border-bottom:1px solid #3b3d52; }
+  .section-title { font-size:.95rem; font-weight:600; color:#cdd0d6; }
+  .form-label { color:#a8aaae; font-size:.85rem; }
+  .form-control, .form-select {
+    background:#232333 !important; border:1px solid #3b3d52 !important;
+    color:#cdd0d6 !important;
+  }
+  .form-control:focus, .form-select:focus {
+    border-color:#696cff !important; box-shadow:0 0 0 .2rem rgba(105,108,255,.25) !important;
+  }
+  .form-control::placeholder { color:#5a5c72; }
+  .channel-tag {
+    display:inline-flex; align-items:center; gap:6px;
+    background:#3b3d52; color:#cdd0d6; border-radius:20px;
+    padding:4px 12px; font-size:.85rem; margin:4px;
+  }
+  .channel-tag button { background:none; border:none; color:#ea5455; cursor:pointer; padding:0; font-size:1rem; line-height:1; }
+  .ctrl-btn { min-width:110px; }
+  #parseResult {
+    background:#232333; border:1px solid #3b3d52; border-radius:8px;
+    padding:12px; color:#cdd0d6; font-family:monospace; font-size:.85rem;
+    white-space:pre-wrap; min-height:80px;
+  }
+  .status-dot { width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:6px; }
+  .dot-green { background:#28c76f; box-shadow:0 0 6px #28c76f; }
+  .dot-red   { background:#ea5455; box-shadow:0 0 6px #ea5455; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Page header -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="fw-bold mb-1" style="color:#cdd0d6;">
+      <i class="bx bx-cog me-2" style="color:#696cff;"></i>Bot Settings
+    </h4>
+    <p class="text-muted mb-0" style="font-size:.85rem;">Configure risk, channels, and validation parameters</p>
+  </div>
+  <a href="/trading/" class="btn btn-outline-secondary">
+    <i class="bx bx-arrow-back me-1"></i>Back to Dashboard
+  </a>
+</div>
+
+<!-- Status bar -->
+<div class="d-flex gap-3 mb-4 flex-wrap">
+  <span class="d-flex align-items-center" style="color:#cdd0d6;font-size:.875rem;">
+    <span class="status-dot {% if bot_running %}dot-green{% else %}dot-red{% endif %}"></span>
+    Bot: {% if bot_running %}Running{% else %}Stopped{% endif %}
+  </span>
+  <span class="d-flex align-items-center" style="color:#cdd0d6;font-size:.875rem;">
+    <span class="status-dot {% if mt5_connected %}dot-green{% else %}dot-red{% endif %}"></span>
+    MT5: {% if mt5_connected %}Connected{% else %}Offline{% endif %}
+  </span>
+  <span class="d-flex align-items-center" style="color:#cdd0d6;font-size:.875rem;">
+    <span class="status-dot {% if telegram_connected %}dot-green{% else %}dot-red{% endif %}"></span>
+    Telegram: {% if telegram_connected %}Connected{% else %}Offline{% endif %}
+  </span>
+</div>
+
+<div class="row g-4">
+  <!-- Left column -->
+  <div class="col-12 col-lg-7">
+
+    <!-- Bot Control -->
+    <div class="card settings-card mb-4">
+      <div class="card-header">
+        <span class="section-title"><i class="bx bx-joystick me-2" style="color:#ff9f43;"></i>Bot Control</span>
+      </div>
+      <div class="card-body">
+        <div class="d-flex gap-2 flex-wrap">
+          <button class="btn btn-success ctrl-btn" onclick="botAction('start')"><i class="bx bx-play me-1"></i>Start Bot</button>
+          <button class="btn btn-danger ctrl-btn"  onclick="botAction('stop')"><i class="bx bx-stop me-1"></i>Stop Bot</button>
+          <button class="btn btn-warning ctrl-btn" onclick="botAction('restart')"><i class="bx bx-refresh me-1"></i>Restart</button>
+          <button class="btn btn-secondary ctrl-btn" onclick="botAction('weekend_shutdown')"><i class="bx bx-moon me-1"></i>Weekend</button>
+        </div>
+        <div id="ctrlResult" class="mt-3" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- Risk Settings -->
+    <div class="card settings-card mb-4">
+      <div class="card-header">
+        <span class="section-title"><i class="bx bx-shield-quarter me-2" style="color:#ea5455;"></i>Risk Settings</span>
+      </div>
+      <div class="card-body">
+        <form id="riskForm">
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-6">
+              <label class="form-label">Risk % per Trade</label>
+              <input type="number" step="0.01" name="risk_percent" class="form-control"
+                     value="{{ risk_percent }}" placeholder="e.g. 1.5">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Reward Ratio</label>
+              <input type="number" step="0.1" name="reward_ratio" class="form-control"
+                     value="{{ reward_ratio }}" placeholder="e.g. 2.0">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Max Trades</label>
+              <input type="number" name="max_trades" class="form-control"
+                     value="{{ max_trades }}" placeholder="e.g. 5">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Max Positions</label>
+              <input type="number" name="max_positions" class="form-control"
+                     value="{{ max_positions }}" placeholder="e.g. 3">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Max Daily Loss</label>
+              <input type="number" step="0.01" name="max_daily_loss" class="form-control"
+                     value="{{ max_daily_loss }}" placeholder="e.g. 50">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Max Consecutive Losses</label>
+              <input type="number" name="max_consecutive_losses" class="form-control"
+                     value="{{ max_consecutive_losses }}" placeholder="e.g. 3">
+            </div>
+          </div>
+          <div id="riskResult" class="mt-3" style="display:none;"></div>
+          <div class="mt-3">
+            <button type="button" class="btn btn-primary" onclick="saveSettings('riskForm', 'riskResult')">
+              <i class="bx bx-save me-1"></i>Save Risk Settings
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Validation Settings -->
+    <div class="card settings-card mb-4">
+      <div class="card-header">
+        <span class="section-title"><i class="bx bx-check-shield me-2" style="color:#28c76f;"></i>Validation Settings</span>
+      </div>
+      <div class="card-body">
+        <form id="validationForm">
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-6">
+              <label class="form-label">Max Spread</label>
+              <input type="number" step="0.1" name="max_spread" class="form-control"
+                     value="{{ max_spread }}" placeholder="e.g. 3.0">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Duplicate Window (sec)</label>
+              <input type="number" name="duplicate_window" class="form-control"
+                     value="{{ duplicate_window }}" placeholder="e.g. 60">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Min Seconds Between Trades</label>
+              <input type="number" name="min_seconds" class="form-control"
+                     value="{{ min_seconds }}" placeholder="e.g. 30">
+            </div>
+            <div class="col-6 d-flex align-items-end">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="allow_pending" id="allowPending"
+                       {% if allow_pending %}checked{% endif %}>
+                <label class="form-check-label" for="allowPending" style="color:#cdd0d6;">Allow Pending Orders</label>
+              </div>
+            </div>
+          </div>
+          <div id="validationResult" class="mt-3" style="display:none;"></div>
+          <div class="mt-3">
+            <button type="button" class="btn btn-primary" onclick="saveSettings('validationForm', 'validationResult')">
+              <i class="bx bx-save me-1"></i>Save Validation Settings
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right column -->
+  <div class="col-12 col-lg-5">
+
+    <!-- Telegram Channels -->
+    <div class="card settings-card mb-4">
+      <div class="card-header">
+        <span class="section-title"><i class="bx bx-send me-2" style="color:#00b2ff;"></i>Telegram Channels</span>
+      </div>
+      <div class="card-body">
+        <div id="channelsList" class="mb-3">
+          {% for ch in channels %}
+          <span class="channel-tag" id="ch-{{ forloop.counter }}">
+            {{ ch }}
+            <button onclick="removeChannel('{{ ch }}')" title="Remove">×</button>
+          </span>
+          {% empty %}
+          <p class="text-muted" style="font-size:.85rem;">No channels configured.</p>
+          {% endfor %}
+        </div>
+        <div class="d-flex gap-2">
+          <input type="text" id="newChannelInput" class="form-control"
+                 placeholder="e.g. @SignalChannel or -100123456789">
+          <button class="btn btn-primary" onclick="addChannel()" style="white-space:nowrap;">
+            <i class="bx bx-plus me-1"></i>Add
+          </button>
+        </div>
+        <div id="channelResult" class="mt-2" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- Signal Format Tester -->
+    <div class="card settings-card mb-4">
+      <div class="card-header">
+        <span class="section-title"><i class="bx bx-test-tube me-2" style="color:#ff9f43;"></i>Signal Format Tester</span>
+      </div>
+      <div class="card-body">
+        <label class="form-label">Paste raw Telegram signal text:</label>
+        <textarea id="signalText" class="form-control mb-3" rows="5"
+                  placeholder="XAUUSD BUY&#10;Entry: 1920.00&#10;SL: 1915.00&#10;TP: 1930.00"></textarea>
+        <button class="btn btn-warning w-100 mb-3" onclick="parseSignal()">
+          <i class="bx bx-search-alt me-1"></i>Parse Signal
+        </button>
+        <label class="form-label">Result:</label>
+        <div id="parseResult">Parsed output will appear here...</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:11000;">
+  <div id="botToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body" id="botToastMsg">Done.</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  function showToast(msg, success) {
+    const toast = document.getElementById('botToast');
+    const msgEl = document.getElementById('botToastMsg');
+    msgEl.textContent = msg;
+    toast.className = 'toast align-items-center text-white border-0 ' + (success ? 'bg-success' : 'bg-danger');
+    const bsToast = new bootstrap.Toast(toast, { delay: 4000 });
+    bsToast.show();
+  }
+
+  function showResult(elId, msg, success) {
+    const el = document.getElementById(elId);
+    el.style.display = 'block';
+    el.innerHTML = `<div class="alert alert-${success ? 'success' : 'danger'} py-2 mb-0">${msg}</div>`;
+    setTimeout(() => { el.style.display = 'none'; }, 4000);
+  }
+
+  function botAction(action) {
+    const csrfToken = getCookie('csrftoken');
+    fetch('/trading/bot-control/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ action }).toString()
+    })
+    .then(r => r.json())
+    .then(data => {
+      const msg = data.message || data.status || (data.success ? 'Action sent: ' + action : 'Error: ' + (data.error || 'Unknown'));
+      showResult('ctrlResult', msg, data.success);
+      showToast(msg, data.success);
+    })
+    .catch(() => showResult('ctrlResult', 'Bot is offline or unreachable.', false));
+  }
+
+  function saveSettings(formId, resultId) {
+    const form = document.getElementById(formId);
+    const csrfToken = getCookie('csrftoken');
+    const body = new URLSearchParams(new FormData(form)).toString();
+    fetch('/trading/update-settings/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body
+    })
+    .then(r => r.json())
+    .then(data => {
+      const msg = data.message || (data.success ? 'Settings saved successfully.' : 'Error: ' + (data.error || 'Failed'));
+      showResult(resultId, msg, data.success);
+    })
+    .catch(() => showResult(resultId, 'Bot is offline or unreachable.', false));
+  }
+
+  function addChannel() {
+    const channel = document.getElementById('newChannelInput').value.trim();
+    if (!channel) return;
+    const csrfToken = getCookie('csrftoken');
+    fetch('/trading/update-channels/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ action: 'add', channel }).toString()
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById('newChannelInput').value = '';
+        showResult('channelResult', 'Channel added. Reload to see updated list.', true);
+        showToast('Channel added: ' + channel, true);
+      } else {
+        showResult('channelResult', 'Error: ' + (data.error || 'Failed'), false);
+      }
+    })
+    .catch(() => showResult('channelResult', 'Bot is offline or unreachable.', false));
+  }
+
+  function removeChannel(channel) {
+    if (!confirm('Remove channel: ' + channel + '?')) return;
+    const csrfToken = getCookie('csrftoken');
+    fetch('/trading/update-channels/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ action: 'remove', channel }).toString()
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showResult('channelResult', 'Channel removed. Reload to see updated list.', true);
+        showToast('Channel removed: ' + channel, true);
+      } else {
+        showResult('channelResult', 'Error: ' + (data.error || 'Failed'), false);
+      }
+    })
+    .catch(() => showResult('channelResult', 'Bot is offline or unreachable.', false));
+  }
+
+  function parseSignal() {
+    const text = document.getElementById('signalText').value.trim();
+    const resultEl = document.getElementById('parseResult');
+    if (!text) { resultEl.textContent = 'Please enter signal text first.'; return; }
+    resultEl.textContent = 'Parsing...';
+    const csrfToken = getCookie('csrftoken');
+    fetch('/trading/parse-signal/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ text }).toString()
+    })
+    .then(r => r.json())
+    .then(data => {
+      resultEl.textContent = JSON.stringify(data, null, 2);
+    })
+    .catch(() => { resultEl.textContent = 'Bot is offline or unreachable.'; });
+  }
+</script>
+{% endblock %}
