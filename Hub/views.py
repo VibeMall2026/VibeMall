@@ -7204,23 +7204,59 @@ def product_details(request: HttpRequest, product_id: Optional[int] = None) -> H
                 if first_description_variant and first_description_variant.image:
                     initial_description_image_url = first_description_variant.image.url
 
-            recommended_products = list(
-                Product.objects
-                .filter(is_active=True)
-                .exclude(id=product.id)
-                .annotate(
-                    same_sub_category=Case(
-                        When(sub_category=product.sub_category, then=Value(1)),
-                        default=Value(0),
-                        output_field=IntegerField(),
-                    ),
-                    same_category=Case(
-                        When(category=product.category, then=Value(1)),
-                        default=Value(0),
-                        output_field=IntegerField(),
-                    ),
+            recommended_queryset = Product.objects.filter(is_active=True).exclude(id=product.id)
+            similarity_annotations = {}
+            similarity_order = []
+
+            product_sub_category = (product.sub_category or '').strip()
+            if product_sub_category:
+                similarity_annotations['same_sub_category'] = Case(
+                    When(sub_category__iexact=product_sub_category, then=Value(1)),
+                    default=Value(0),
+                    output_field=IntegerField(),
                 )
-                .order_by('-same_sub_category', '-same_category', '-sold', '-id')[:4]
+                similarity_order.append('-same_sub_category')
+
+            product_category = (product.category or '').strip()
+            if product_category:
+                similarity_annotations['same_category'] = Case(
+                    When(category=product_category, then=Value(1)),
+                    default=Value(0),
+                    output_field=IntegerField(),
+                )
+                similarity_order.append('-same_category')
+
+            product_brand = (product.brand or '').strip()
+            if product_brand:
+                similarity_annotations['same_brand'] = Case(
+                    When(brand__iexact=product_brand, then=Value(1)),
+                    default=Value(0),
+                    output_field=IntegerField(),
+                )
+                similarity_order.append('-same_brand')
+
+            tag_match_expression = Value(0, output_field=IntegerField())
+            product_tags = [tag.strip() for tag in (product.tags or '').split(',') if tag.strip()]
+            for tag in product_tags[:5]:
+                tag_match_expression = tag_match_expression + Case(
+                    When(tags__icontains=tag, then=Value(1)),
+                    default=Value(0),
+                    output_field=IntegerField(),
+                )
+            if product_tags:
+                similarity_annotations['shared_tag_score'] = tag_match_expression
+                similarity_order.append('-shared_tag_score')
+
+            if similarity_annotations:
+                recommended_queryset = recommended_queryset.annotate(**similarity_annotations)
+
+            recommended_products = list(
+                recommended_queryset.order_by(
+                    *similarity_order,
+                    '-rating',
+                    '-sold',
+                    '-id',
+                )[:4]
             )
             
             total_questions = approved_questions.count()
