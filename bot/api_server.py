@@ -232,3 +232,32 @@ async def control_bot(body: ControlRequest):
 
     else:
         raise HTTPException(status_code=400, detail=f"Unknown action: {action}")
+
+
+# ── Shortcut endpoints (called by Django trading/views.py) ────────────────────
+
+@app.post("/start", dependencies=[Depends(verify_api_key)])
+async def start_bot():
+    """Shortcut: start the bot."""
+    if state.running:
+        return {"success": False, "message": "Bot already running", "status": "running"}
+    state.running = True
+    return {"success": True, "message": "Bot started", "status": "running"}
+
+
+@app.post("/stop", dependencies=[Depends(verify_api_key)])
+async def stop_bot():
+    """Shortcut: stop the bot."""
+    state.running = False
+    return {"success": True, "message": "Bot stopped", "status": "stopped"}
+
+
+# ── Health check (no auth required) ──────────────────────────────────────────
+@app.get("/health")
+async def health():
+    """Quick health check — called by Django dashboard."""
+    return {
+        "running": state.running,
+        "mt5_connected": mt5_bridge.is_connected(),
+        "telegram_connected": state.telegram_connected,
+    }
