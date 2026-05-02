@@ -195,3 +195,68 @@ def parse_signal(request):
     # TelegramCopier uses 'message' field (not 'text')
     ok, data = _post('/parse-signal', json={'message': text})
     return JsonResponse({'success': ok, **data})
+
+
+# ── Algo Dashboard ────────────────────────────────────────────────────────────
+
+@staff_member_required
+def algo_dashboard(request):
+    """Algo strategy dashboard — Order Block + FVG."""
+    return render(request, 'trading/algo_dashboard.html')
+
+
+@staff_member_required
+def algo_status(request):
+    """Proxy GET /algo/status from bot API."""
+    ok, data = True, _get('/algo/status', {})
+    return JsonResponse(data)
+
+
+@staff_member_required
+@require_POST
+def algo_control(request, action):
+    """Proxy POST /algo/{start|stop|enable|disable} to bot API."""
+    if action not in ('start', 'stop', 'enable', 'disable'):
+        return JsonResponse({'success': False, 'error': 'Invalid action'}, status=400)
+    ok, data = _post(f'/algo/{action}')
+    return JsonResponse({'success': ok, **data})
+
+
+@staff_member_required
+def algo_config(request):
+    """Proxy PUT /algo/config to bot API."""
+    if request.method == 'PUT':
+        import json
+        try:
+            payload = json.loads(request.body)
+        except Exception:
+            return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        ok, data = _put('/algo/config', json=payload)
+        return JsonResponse({'success': ok, **data})
+    return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+
+
+@staff_member_required
+def algo_signals(request):
+    """Proxy GET /signals from bot API (for algo trade history)."""
+    data = _get('/signals', [])
+    return JsonResponse(data, safe=False)
+
+
+@staff_member_required
+def bot_api_proxy(request, endpoint):
+    """Generic proxy for bot API calls from the frontend."""
+    url = f"{BOT_API}/{endpoint}"
+    try:
+        if request.method == 'GET':
+            resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        elif request.method == 'POST':
+            resp = requests.post(url, headers=HEADERS, timeout=TIMEOUT)
+        elif request.method == 'PUT':
+            import json
+            resp = requests.put(url, headers=HEADERS, json=json.loads(request.body or '{}'), timeout=TIMEOUT)
+        else:
+            return JsonResponse({'error': 'Method not allowed'}, status=405)
+        return JsonResponse(resp.json(), safe=False, status=resp.status_code)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=503)

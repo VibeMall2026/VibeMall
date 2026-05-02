@@ -15,6 +15,9 @@ from bot import config
 from bot.state import state
 from bot import mt5_bridge
 from bot.signal_parser import parse_signal
+from bot.algo.order_block import (
+    start_algo, stop_algo, get_algo_status, update_algo_config
+)
 
 app = FastAPI(title="Trading Bot API", version="1.0.0")
 
@@ -261,3 +264,62 @@ async def health():
         "mt5_connected": mt5_bridge.is_connected(),
         "telegram_connected": state.telegram_connected,
     }
+
+
+# ── Algo Trading Endpoints ────────────────────────────────────────────────────
+
+class AlgoConfigUpdate(BaseModel):
+    symbol: Optional[str] = None
+    enabled: Optional[bool] = None
+    risk_reward: Optional[float] = None
+    risk_percent: Optional[float] = None
+    analysis_tf: Optional[int] = None
+    execution_tf: Optional[int] = None
+
+
+@app.get("/algo/status", dependencies=[Depends(verify_api_key)])
+async def algo_status():
+    """Get current algo strategy status and active order blocks."""
+    return get_algo_status()
+
+
+@app.post("/algo/start", dependencies=[Depends(verify_api_key)])
+async def algo_start():
+    """Start the Order Block algo strategy thread."""
+    success = start_algo()
+    return {"success": success, "message": "Algo started" if success else "Algo already running"}
+
+
+@app.post("/algo/stop", dependencies=[Depends(verify_api_key)])
+async def algo_stop():
+    """Stop the Order Block algo strategy thread."""
+    success = stop_algo()
+    return {"success": success, "message": "Algo stopped" if success else "Algo not running"}
+
+
+@app.post("/algo/enable", dependencies=[Depends(verify_api_key)])
+async def algo_enable():
+    """Enable algo trading (will execute real trades)."""
+    update_algo_config(enabled=True)
+    return {"success": True, "message": "Algo trading enabled — will execute real trades"}
+
+
+@app.post("/algo/disable", dependencies=[Depends(verify_api_key)])
+async def algo_disable():
+    """Disable algo trading (scan only, no trades)."""
+    update_algo_config(enabled=False)
+    return {"success": True, "message": "Algo trading disabled — scan only mode"}
+
+
+@app.put("/algo/config", dependencies=[Depends(verify_api_key)])
+async def algo_update_config(body: AlgoConfigUpdate):
+    """Update algo strategy configuration at runtime."""
+    status = update_algo_config(
+        symbol=body.symbol,
+        enabled=body.enabled,
+        risk_reward=body.risk_reward,
+        risk_percent=body.risk_percent,
+        analysis_tf=body.analysis_tf,
+        execution_tf=body.execution_tf,
+    )
+    return {"success": True, "config": status}

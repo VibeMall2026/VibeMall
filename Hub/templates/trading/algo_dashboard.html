@@ -1,0 +1,547 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load static %}
+
+{% block title %}Algo Strategy Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+  .status-card { border-radius: 10px; }
+  .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .dot-green  { background: #28c76f; box-shadow: 0 0 6px #28c76f; }
+  .dot-red    { background: #ea5455; box-shadow: 0 0 6px #ea5455; }
+  .dot-orange { background: #ff9f43; box-shadow: 0 0 6px #ff9f43; }
+  .dot-grey   { background: #a8aaae; }
+  .pnl-pos { color: #28c76f; font-weight: 600; }
+  .pnl-neg { color: #ea5455; font-weight: 600; }
+  .table-dark-custom { background: #2b2c40; color: #cdd0d6; }
+  .table-dark-custom th { background: #232333; color: #a8aaae; font-size: 0.78rem; text-transform: uppercase; letter-spacing: .5px; }
+  .table-dark-custom td { border-color: #3b3d52; vertical-align: middle; font-size: 0.875rem; }
+  .badge-buy  { background: rgba(40,199,111,.15); color: #28c76f; }
+  .badge-sell { background: rgba(234,84,85,.15);  color: #ea5455; }
+  .badge-bullish { background: rgba(40,199,111,.15); color: #28c76f; }
+  .badge-bearish { background: rgba(234,84,85,.15);  color: #ea5455; }
+  .section-header { font-size: 1rem; font-weight: 600; color: #cdd0d6; margin-bottom: 1rem; }
+  .ctrl-btn { min-width: 110px; }
+  .stat-label { font-size: 0.75rem; color: #a8aaae; text-transform: uppercase; letter-spacing: .5px; }
+  .stat-value { font-size: 1.4rem; font-weight: 700; color: #cdd0d6; }
+  .ob-zone-bar {
+    height: 6px; border-radius: 3px;
+    background: linear-gradient(90deg, #ea5455 0%, #ff9f43 50%, #28c76f 100%);
+    position: relative; margin: 4px 0;
+  }
+  .ob-mid-marker {
+    position: absolute; top: -3px; width: 2px; height: 12px;
+    background: #696cff; left: 50%; transform: translateX(-50%);
+  }
+  .config-input {
+    background: #232333 !important;
+    border: 1px solid #3b3d52 !important;
+    color: #cdd0d6 !important;
+    font-size: 0.875rem;
+  }
+  .config-input:focus {
+    border-color: #696cff !important;
+    box-shadow: 0 0 0 0.2rem rgba(105,108,255,.25) !important;
+  }
+  .algo-enabled { border-left: 3px solid #28c76f; }
+  .algo-disabled { border-left: 3px solid #a8aaae; }
+  .pulse { animation: pulse 2s infinite; }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(40,199,111,.4); }
+    70%  { box-shadow: 0 0 0 8px rgba(40,199,111,0); }
+    100% { box-shadow: 0 0 0 0 rgba(40,199,111,0); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="fw-bold mb-1" style="color:#cdd0d6;">
+      <i class="bx bx-bot me-2" style="color:#696cff;"></i>Algo Strategy Dashboard
+    </h4>
+    <p class="text-muted mb-0" style="font-size:.85rem;">
+      Order Block + Fair Value Gap — Automated Trading
+    </p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="/trading/" class="btn btn-outline-secondary ctrl-btn">
+      <i class="bx bx-arrow-back me-1"></i>Main Dashboard
+    </a>
+    <button class="btn btn-success ctrl-btn" id="btnStartAlgo" onclick="algoAction('start')">
+      <i class="bx bx-play me-1"></i>Start Algo
+    </button>
+    <button class="btn btn-danger ctrl-btn" id="btnStopAlgo" onclick="algoAction('stop')">
+      <i class="bx bx-stop me-1"></i>Stop Algo
+    </button>
+    <button class="btn btn-warning ctrl-btn" id="btnEnableTrading" onclick="algoAction('enable')">
+      <i class="bx bx-check-shield me-1"></i>Enable Trading
+    </button>
+    <button class="btn btn-secondary ctrl-btn" id="btnDisableTrading" onclick="algoAction('disable')">
+      <i class="bx bx-shield-x me-1"></i>Disable Trading
+    </button>
+  </div>
+</div>
+
+<!-- Status Cards -->
+<div class="row g-3 mb-4" id="statusCards">
+  <div class="col-6 col-md-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3">
+        <div class="stat-label mb-1">Algo Thread</div>
+        <div class="d-flex align-items-center">
+          <span class="status-dot dot-grey" id="dotAlgoRunning"></span>
+          <span class="stat-value" style="font-size:1rem;" id="lblAlgoRunning">Loading...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3">
+        <div class="stat-label mb-1">Trading Mode</div>
+        <div class="d-flex align-items-center">
+          <span class="status-dot dot-grey" id="dotTradingEnabled"></span>
+          <span class="stat-value" style="font-size:1rem;" id="lblTradingEnabled">Loading...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3">
+        <div class="stat-label mb-1">Symbol</div>
+        <div class="stat-value" id="lblSymbol">-</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3">
+        <div class="stat-label mb-1">Active Order Blocks</div>
+        <div class="stat-value" id="lblActiveOBs">-</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3">
+        <div class="stat-label mb-1">Analysis TF</div>
+        <div class="stat-value" id="lblAnalysisTF">-</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3">
+        <div class="stat-label mb-1">Execution TF</div>
+        <div class="stat-value" id="lblExecutionTF">-</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3">
+        <div class="stat-label mb-1">Risk : Reward</div>
+        <div class="stat-value" id="lblRR">-</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3">
+        <div class="stat-label mb-1">Risk / Trade</div>
+        <div class="stat-value" id="lblRiskPct">-</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Algo Trade Stats -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-2">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3 text-center">
+        <div class="stat-label mb-1">Algo Trades</div>
+        <div class="stat-value" id="lblAlgoTrades">0</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3 text-center">
+        <div class="stat-label mb-1">Wins</div>
+        <div class="stat-value pnl-pos" id="lblAlgoWins">0</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3 text-center">
+        <div class="stat-label mb-1">Losses</div>
+        <div class="stat-value pnl-neg" id="lblAlgoLosses">0</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3 text-center">
+        <div class="stat-label mb-1">Win Rate</div>
+        <div class="stat-value" id="lblAlgoWinRate">0%</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3 text-center">
+        <div class="stat-label mb-1">Total PnL</div>
+        <div class="stat-value" id="lblAlgoPnL">0.00</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3 text-center">
+        <div class="stat-label mb-1">OBs Detected</div>
+        <div class="stat-value" id="lblOBsDetected">0</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+
+  <!-- Active Order Blocks -->
+  <div class="col-12 col-xl-7">
+    <div class="card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-header d-flex justify-content-between align-items-center" style="background:#232333;border-bottom:1px solid #3b3d52;">
+        <span class="section-header mb-0">
+          <i class="bx bx-layer me-2" style="color:#ff9f43;"></i>Active Order Blocks
+        </span>
+        <button class="btn btn-sm btn-outline-secondary" onclick="refreshStatus()">
+          <i class="bx bx-refresh"></i> Refresh
+        </button>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-dark-custom mb-0">
+            <thead>
+              <tr>
+                <th>Direction</th>
+                <th>OB High</th>
+                <th>OB Low</th>
+                <th>50% Level</th>
+                <th>Zone</th>
+                <th>Detected</th>
+                <th>Status</th>
+                <th>Ticket</th>
+              </tr>
+            </thead>
+            <tbody id="obTableBody">
+              <tr><td colspan="8" class="text-center text-muted py-4">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Config Panel -->
+  <div class="col-12 col-xl-5">
+    <div class="card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-header" style="background:#232333;border-bottom:1px solid #3b3d52;">
+        <span class="section-header mb-0">
+          <i class="bx bx-cog me-2" style="color:#696cff;"></i>Strategy Configuration
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="stat-label">Symbol</label>
+            <input type="text" id="cfgSymbol" class="form-control config-input mt-1" placeholder="XAUUSD">
+          </div>
+          <div class="col-6">
+            <label class="stat-label">Analysis Timeframe (min)</label>
+            <select id="cfgAnalysisTF" class="form-select config-input mt-1">
+              <option value="5">5 min</option>
+              <option value="15" selected>15 min</option>
+              <option value="30">30 min</option>
+              <option value="60">1 hour</option>
+              <option value="240">4 hour</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="stat-label">Execution Timeframe (min)</label>
+            <select id="cfgExecutionTF" class="form-select config-input mt-1">
+              <option value="1">1 min</option>
+              <option value="5" selected>5 min</option>
+              <option value="15">15 min</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="stat-label">Risk : Reward</label>
+            <input type="number" step="0.5" min="1" id="cfgRR" class="form-control config-input mt-1" placeholder="2.0">
+          </div>
+          <div class="col-6">
+            <label class="stat-label">Risk % per Trade</label>
+            <input type="number" step="0.1" min="0.1" max="5" id="cfgRiskPct" class="form-control config-input mt-1" placeholder="1.0">
+          </div>
+          <div class="col-12 mt-2">
+            <button class="btn btn-primary w-100" onclick="updateConfig()">
+              <i class="bx bx-save me-1"></i>Apply Configuration
+            </button>
+          </div>
+        </div>
+        <div id="configResult" class="mt-3" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Algo Trade History -->
+<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
+  <div class="card-header d-flex justify-content-between align-items-center" style="background:#232333;border-bottom:1px solid #3b3d52;">
+    <span class="section-header mb-0">
+      <i class="bx bx-history me-2" style="color:#696cff;"></i>Algo Trade History
+    </span>
+    <span class="badge bg-label-primary" id="algoTradeCount">0</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-dark-custom mb-0">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Symbol</th>
+            <th>Side</th>
+            <th>Entry</th>
+            <th>SL</th>
+            <th>TP</th>
+            <th>Status</th>
+            <th>OB ID</th>
+            <th>Ticket</th>
+          </tr>
+        </thead>
+        <tbody id="algoTradeBody">
+          <tr><td colspan="9" class="text-center text-muted py-4">No algo trades yet</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:11000;">
+  <div id="algoToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body" id="algoToastMsg">Action completed.</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const API_KEY = 'Paladiya@2023';
+const BOT_BASE = '/trading/api';
+
+function getCookie(name) {
+  let v = null;
+  if (document.cookie) {
+    document.cookie.split(';').forEach(c => {
+      c = c.trim();
+      if (c.startsWith(name + '=')) v = decodeURIComponent(c.substring(name.length + 1));
+    });
+  }
+  return v;
+}
+
+function showToast(msg, success) {
+  const toast = document.getElementById('algoToast');
+  document.getElementById('algoToastMsg').textContent = msg;
+  toast.className = 'toast align-items-center text-white border-0 ' + (success ? 'bg-success' : 'bg-danger');
+  new bootstrap.Toast(toast, { delay: 4000 }).show();
+}
+
+function algoAction(action) {
+  const csrfToken = getCookie('csrftoken');
+  fetch(`/trading/algo/${action}/`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }
+  })
+  .then(r => r.json())
+  .then(data => {
+    showToast(data.message || (data.success ? 'Done' : 'Error'), data.success);
+    setTimeout(refreshStatus, 800);
+  })
+  .catch(() => showToast('Bot is offline or unreachable.', false));
+}
+
+function updateConfig() {
+  const csrfToken = getCookie('csrftoken');
+  const payload = {
+    symbol:      document.getElementById('cfgSymbol').value || null,
+    analysis_tf: parseInt(document.getElementById('cfgAnalysisTF').value) || null,
+    execution_tf: parseInt(document.getElementById('cfgExecutionTF').value) || null,
+    risk_reward: parseFloat(document.getElementById('cfgRR').value) || null,
+    risk_percent: parseFloat(document.getElementById('cfgRiskPct').value) || null,
+  };
+  // Remove nulls
+  Object.keys(payload).forEach(k => payload[k] === null && delete payload[k]);
+
+  fetch('/trading/algo/config/', {
+    method: 'PUT',
+    headers: {
+      'X-CSRFToken': csrfToken,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  })
+  .then(r => r.json())
+  .then(data => {
+    const el = document.getElementById('configResult');
+    el.style.display = 'block';
+    if (data.success) {
+      el.innerHTML = '<div class="alert alert-success py-2 mb-0"><i class="bx bx-check me-1"></i>Configuration applied.</div>';
+      setTimeout(refreshStatus, 500);
+    } else {
+      el.innerHTML = '<div class="alert alert-danger py-2 mb-0">Error: ' + (data.error || 'Failed') + '</div>';
+    }
+    setTimeout(() => { el.style.display = 'none'; }, 3000);
+  })
+  .catch(() => showToast('Bot is offline.', false));
+}
+
+function refreshStatus() {
+  fetch('/trading/algo/status/', {
+    headers: { 'Content-Type': 'application/json' }
+  })
+  .then(r => r.json())
+  .then(data => updateUI(data))
+  .catch(() => console.log('Algo status fetch failed'));
+}
+
+function updateUI(data) {
+  // Running status
+  const running = data.running;
+  const enabled = data.enabled;
+
+  const dotRunning = document.getElementById('dotAlgoRunning');
+  const lblRunning = document.getElementById('lblAlgoRunning');
+  dotRunning.className = 'status-dot ' + (running ? 'dot-green pulse' : 'dot-red');
+  lblRunning.textContent = running ? 'Running' : 'Stopped';
+
+  const dotEnabled = document.getElementById('dotTradingEnabled');
+  const lblEnabled = document.getElementById('lblTradingEnabled');
+  dotEnabled.className = 'status-dot ' + (enabled ? 'dot-green' : 'dot-orange');
+  lblEnabled.textContent = enabled ? 'Live Trading' : 'Scan Only';
+
+  document.getElementById('lblSymbol').textContent = data.symbol || '-';
+  document.getElementById('lblActiveOBs').textContent = data.total_obs_tracked || 0;
+  document.getElementById('lblAnalysisTF').textContent = (data.analysis_timeframe || '-') + 'm';
+  document.getElementById('lblExecutionTF').textContent = (data.execution_timeframe || '-') + 'm';
+  document.getElementById('lblRR').textContent = '1 : ' + (data.risk_reward || '-');
+  document.getElementById('lblRiskPct').textContent = (data.risk_percent || '-') + '%';
+
+  // Populate config inputs
+  if (data.symbol) document.getElementById('cfgSymbol').value = data.symbol;
+  if (data.analysis_timeframe) document.getElementById('cfgAnalysisTF').value = data.analysis_timeframe;
+  if (data.execution_timeframe) document.getElementById('cfgExecutionTF').value = data.execution_timeframe;
+  if (data.risk_reward) document.getElementById('cfgRR').value = data.risk_reward;
+  if (data.risk_percent) document.getElementById('cfgRiskPct').value = data.risk_percent;
+
+  // Order blocks table
+  const obs = data.active_order_blocks || [];
+  document.getElementById('lblOBsDetected').textContent = obs.length;
+  const obBody = document.getElementById('obTableBody');
+  if (obs.length === 0) {
+    obBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No active order blocks detected</td></tr>';
+  } else {
+    obBody.innerHTML = obs.map(ob => `
+      <tr>
+        <td>
+          <span class="badge ${ob.direction === 'bullish' ? 'badge-bullish' : 'badge-bearish'}">
+            ${ob.direction === 'bullish' ? '▲ BULLISH' : '▼ BEARISH'}
+          </span>
+        </td>
+        <td>${parseFloat(ob.high).toFixed(5)}</td>
+        <td>${parseFloat(ob.low).toFixed(5)}</td>
+        <td style="color:#696cff;font-weight:600;">${parseFloat(ob.midpoint).toFixed(5)}</td>
+        <td>
+          <div class="ob-zone-bar" style="width:80px;">
+            <div class="ob-mid-marker"></div>
+          </div>
+        </td>
+        <td style="font-size:.8rem;">${ob.time ? ob.time.substring(0,16).replace('T',' ') : '-'}</td>
+        <td>
+          <span class="badge ${ob.active ? 'bg-label-success' : 'bg-label-secondary'}">
+            ${ob.trade_taken ? 'Traded' : ob.active ? 'Watching' : 'Inactive'}
+          </span>
+        </td>
+        <td style="font-size:.8rem;">${ob.ticket || '-'}</td>
+      </tr>
+    `).join('');
+  }
+
+  // Algo trade history from signal_log (filter ALGO:OB source)
+  // We'll fetch from the main signals endpoint and filter
+  fetchAlgoTrades();
+}
+
+function fetchAlgoTrades() {
+  fetch('/trading/api/signals', {
+    headers: { 'X-API-Key': API_KEY }
+  })
+  .then(r => r.json())
+  .then(signals => {
+    const algoTrades = (Array.isArray(signals) ? signals : (signals.items || []))
+      .filter(s => s.source && s.source.startsWith('ALGO:'));
+
+    document.getElementById('algoTradeCount').textContent = algoTrades.length;
+    document.getElementById('lblAlgoTrades').textContent = algoTrades.length;
+
+    const wins = algoTrades.filter(t => t.status === 'executed').length;
+    document.getElementById('lblAlgoWins').textContent = wins;
+    document.getElementById('lblAlgoLosses').textContent = algoTrades.length - wins;
+    const wr = algoTrades.length > 0 ? (wins / algoTrades.length * 100).toFixed(1) : '0.0';
+    document.getElementById('lblAlgoWinRate').textContent = wr + '%';
+
+    const body = document.getElementById('algoTradeBody');
+    if (algoTrades.length === 0) {
+      body.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">No algo trades yet — enable trading and wait for OB signals</td></tr>';
+    } else {
+      body.innerHTML = algoTrades.map(t => `
+        <tr>
+          <td style="font-size:.8rem;">${t.time || '-'}</td>
+          <td><strong>${t.symbol || '-'}</strong></td>
+          <td>
+            <span class="badge ${t.side === 'buy' ? 'badge-buy' : 'badge-sell'}">
+              ${(t.side || '-').toUpperCase()}
+            </span>
+          </td>
+          <td>${t.entry ? parseFloat(t.entry).toFixed(5) : '-'}</td>
+          <td>${t.sl ? parseFloat(t.sl).toFixed(5) : '-'}</td>
+          <td>${t.tp ? parseFloat(t.tp).toFixed(5) : '-'}</td>
+          <td>
+            <span class="badge ${t.status === 'executed' ? 'bg-label-success' : t.status === 'failed' ? 'bg-label-danger' : 'bg-label-secondary'}">
+              ${t.status || '-'}
+            </span>
+          </td>
+          <td style="font-size:.75rem;color:#a8aaae;">${t.ob_id ? t.ob_id.substring(0,12) + '...' : '-'}</td>
+          <td>${t.ticket || '-'}</td>
+        </tr>
+      `).join('');
+    }
+  })
+  .catch(() => {});
+}
+
+// Auto-refresh every 30 seconds
+refreshStatus();
+setInterval(refreshStatus, 30000);
+</script>
+{% endblock %}

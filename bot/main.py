@@ -6,6 +6,7 @@ Usage:
   python -m bot.main --api    # Start API server only (no Telegram)
 """
 import asyncio
+import os
 import sys
 import threading
 import uvicorn
@@ -61,10 +62,29 @@ def main() -> None:
     logger.info(f"  Channels: {', '.join(config.TG_CHANNELS) or 'none'}")
     logger.info("=" * 60)
 
+    # Kill any process holding the port before starting
+    import subprocess, re
+    try:
+        result = subprocess.run(["netstat", "-ano"], capture_output=True, text=True)
+        for line in result.stdout.splitlines():
+            if f":{config.API_PORT}" in line and "LISTENING" in line:
+                parts = line.split()
+                pid = parts[-1]
+                if pid.isdigit() and int(pid) != os.getpid():
+                    subprocess.run(["taskkill", "/F", "/PID", pid], capture_output=True)
+                    logger.info(f"Freed port {config.API_PORT} (killed PID {pid})")
+                    import time; time.sleep(1)
+    except Exception:
+        pass
+
     # Start API server in background thread
     api_thread = threading.Thread(target=start_api_server, daemon=True)
     api_thread.start()
     logger.info(f"API server started on port {config.API_PORT}")
+
+    # Start algo strategy thread (scan-only by default, enable via API)
+    from bot.algo.order_block import start_algo
+    start_algo()
 
     if api_only:
         logger.info("Running in API-only mode (no Telegram listener).")
