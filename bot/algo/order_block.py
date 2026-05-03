@@ -72,7 +72,7 @@ class AlgoConfig:
     atr_min_multiplier: float = 0.5     # min ATR as fraction of avg ATR
     max_active_obs: int = 5             # max order blocks tracked at once
     scan_interval_seconds: int = 60     # how often to scan for new setups
-    enabled: bool = False               # master on/off switch
+    enabled: bool = True               # True = live trading on by default
 
 
 # Global config instance
@@ -547,10 +547,11 @@ def start_algo() -> bool:
         logger.warning("[ALGO] Already running")
         return False
 
+    algo_config.enabled = True   # always enable trading when started
     _algo_running = True
     _algo_thread = threading.Thread(target=_algo_loop, daemon=True, name="AlgoThread")
     _algo_thread.start()
-    logger.success("[ALGO] Order Block strategy thread started")
+    logger.success("[ALGO] Order Block strategy thread started (trading ENABLED)")
     return True
 
 

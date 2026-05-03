@@ -22,7 +22,7 @@ import requests
 # ---------------------------------------------------------------------------
 
 PROJECT_ROOT: Path = Path(__file__).parent.resolve()
-PYTHON_EXE: Path = PROJECT_ROOT / ".ci_probe_0306" / "Scripts" / "python.exe"
+PYTHON_EXE: Path = Path(r"C:\Users\ADMIN\AppData\Local\Programs\Python\Python311\python.exe")
 WATCHDOG_SCRIPT: Path = PROJECT_ROOT / "watchdog.py"
 
 STARTUP_DELAY: int = 60          # seconds to wait after login before doing anything

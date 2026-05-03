@@ -279,3 +279,9 @@ BANK_VERIFICATION_TIMEOUT_HOURS = _env_int('BANK_VERIFICATION_TIMEOUT_HOURS', 24
 WEBHOOK_LOG_ENABLED = _env_bool('WEBHOOK_LOG_ENABLED', True)
 WEBHOOK_LOG_RETENTION_DAYS = _env_int('WEBHOOK_LOG_RETENTION_DAYS', 30)
 WEBHOOK_LOG_LEVEL = os.getenv('WEBHOOK_LOG_LEVEL', 'INFO')
+
+# ── n8n AI Automation ──────────────────────────────────────────────────────
+# Secret key for authenticating n8n product ingestion requests.
+# n8n HTTP Request node must send: Authorization: Bearer <N8N_API_KEY>
+N8N_API_KEY = os.getenv('N8N_API_KEY', '').strip()
+# ───────────────────────────────────────────────────────────────────────────

@@ -5,8 +5,14 @@ from . import views_resell
 from . import views_admin_resell
 from . import backup_views
 from . import views_new_features
+from . import views_n8n  # n8n AI product ingestion
 
 urlpatterns = [
+
+    # ── n8n AI Automation ──────────────────────────────────────────────────
+    path('api/n8n/product/', views_n8n.n8n_product_ingest, name='n8n_product_ingest'),
+    # ───────────────────────────────────────────────────────────────────────
+
     path('coming-soon/', views.coming_soon, name='coming_soon'),
     path('launch/the-atelier-awakens/', views.launch_experience, name='launch_experience'),
 

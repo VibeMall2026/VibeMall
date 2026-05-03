@@ -38,6 +38,7 @@ TG_API_HASH: str = os.getenv("TG_API_HASH", "")
 TG_PHONE: str = os.getenv("TG_PHONE", "")
 TG_SESSION_NAME: str = os.getenv("TG_SESSION_NAME", "telegram_to_mt5")
 TG_SESSION_DIR: str = os.getenv("TG_SESSION_DIR", "sessions")
+TG_SESSION_STRING: str = os.getenv("TG_SESSION_STRING", "")
 TG_CHANNELS: list[str] = _list("TG_CHANNELS")
 TG_RECONNECT_DELAY: int = _int("TG_RECONNECT_DELAY_SECONDS", 10)
 

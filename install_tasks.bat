@@ -11,10 +11,10 @@ setlocal EnableDelayedExpansion
 
 set TASK_SERVER=TradingBotServer
 set TASK_TUNNEL=TradingBotSSHTunnel
-set PROJECT_DIR=%~dp0
-set PYTHON_EXE=%PROJECT_DIR%.ci_probe_0306\Scripts\python.exe
-set STARTUP_SCRIPT=%PROJECT_DIR%startup_manager.py
-set TUNNEL_SCRIPT=%PROJECT_DIR%ssh_tunnel.bat
+set PROJECT_DIR=C:\Users\ADMIN\VibeMall-77d8112a
+set PYTHON_EXE=C:\Users\ADMIN\AppData\Local\Programs\Python\Python311\python.exe
+set STARTUP_SCRIPT=%PROJECT_DIR%\startup_manager.py
+set TUNNEL_SCRIPT=%PROJECT_DIR%\ssh_tunnel.bat
 
 REM ---- Sub-command dispatch ----
 if /I "%~1"=="enable"  goto :subcmd_enable

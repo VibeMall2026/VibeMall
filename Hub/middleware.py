@@ -23,6 +23,7 @@ class ComingSoonModeMiddleware:
             '/admin/',
             '/api/products/search/',
             '/api/razorpay-webhook/',
+            '/api/n8n/',          # n8n AI automation endpoints
             '/static/',
             '/media/',
             '/favicon.ico',

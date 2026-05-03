@@ -1,12 +1,17 @@
 """
 Telegram listener using Telethon.
 Monitors configured channels and passes messages to the signal processor.
+
+Session strategy:
+  1. If TG_SESSION_STRING is set in .env → use StringSession (fully portable, no file)
+  2. Otherwise → use file-based session (requires manual auth on first run)
 """
 import asyncio
+import os
 from datetime import datetime
 from loguru import logger
 from telethon import TelegramClient, events
-from telethon.errors import SessionPasswordNeededError
+from telethon.sessions import StringSession
 
 from bot import config
 from bot.state import state
@@ -58,11 +63,20 @@ async def start_listener() -> None:
         logger.error("Telegram API credentials not configured.")
         return
 
-    import os
-    os.makedirs(config.TG_SESSION_DIR, exist_ok=True)
-    session_path = f"{config.TG_SESSION_DIR}/{config.TG_SESSION_NAME}"
+    # ── Session strategy ──────────────────────────────────────────────────────
+    session_string = os.environ.get("TG_SESSION_STRING", "").strip()
 
-    _client = TelegramClient(session_path, config.TG_API_ID, config.TG_API_HASH)
+    if session_string:
+        # Use portable string session — no file, no IP issues, fully automated
+        logger.info("Using Telegram StringSession (automated mode)")
+        session = StringSession(session_string)
+    else:
+        # Fall back to file-based session
+        os.makedirs(config.TG_SESSION_DIR, exist_ok=True)
+        session = f"{config.TG_SESSION_DIR}/{config.TG_SESSION_NAME}"
+        logger.info(f"Using file-based Telegram session: {session}")
+
+    _client = TelegramClient(session, config.TG_API_ID, config.TG_API_HASH)
 
     await _client.start(phone=config.TG_PHONE)
     state.telegram_connected = True
