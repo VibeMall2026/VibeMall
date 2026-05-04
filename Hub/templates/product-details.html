@@ -649,6 +649,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (pddxMainImg && src) pddxMainImg.src = src;
             document.querySelectorAll('.pddx-thumb').forEach(function(t) { t.classList.remove('is-active'); });
             this.classList.add('is-active');
+            // When a colored thumb is clicked, also sync the color swatch
+            var thumbColor = this.getAttribute('data-image-color') || '';
+            if (thumbColor && typeof window._vmApplyColorSelection === 'function') {
+                window._vmApplyColorSelection(thumbColor);
+            }
         });
     });
 
@@ -1128,43 +1133,38 @@ function initProductColorImageSync() {
     function filterThumbsByColor(colorValue) {
         var normalizedTarget = normalizeProductColor(colorValue);
 
-        // Desktop thumbs
-        var desktopThumbs = Array.from(document.querySelectorAll('.pddx-thumb'));
-        desktopThumbs.forEach(function(thumb) {
-            var thumbColor = normalizeProductColor(thumb.getAttribute('data-image-color'));
-            if (!normalizedTarget) {
-                // No color selected — show all
-                thumb.style.display = '';
-            } else if (!thumbColor) {
-                // Thumb has no color tag = it's the main/default image — always show
-                thumb.style.display = '';
-            } else if (thumbColor === normalizedTarget ||
-                       thumbColor.includes(normalizedTarget) ||
-                       normalizedTarget.includes(thumbColor)) {
-                // Matching color — show
-                thumb.style.display = '';
-            } else {
-                // Different color — hide
-                thumb.style.display = 'none';
-            }
-        });
+        function applyFilter(thumbSelector) {
+            var thumbs = Array.from(document.querySelectorAll(thumbSelector));
+            // Find the first thumb with no color — that's the main default image
+            var mainThumbIndex = thumbs.findIndex(function(t) {
+                return !normalizeProductColor(t.getAttribute('data-image-color'));
+            });
 
-        // Mobile thumbs
-        var mobileThumbs = Array.from(document.querySelectorAll('.vm-pd-m-thumb'));
-        mobileThumbs.forEach(function(thumb) {
-            var thumbColor = normalizeProductColor(thumb.getAttribute('data-image-color'));
-            if (!normalizedTarget) {
-                thumb.style.display = '';
-            } else if (!thumbColor) {
-                thumb.style.display = '';
-            } else if (thumbColor === normalizedTarget ||
-                       thumbColor.includes(normalizedTarget) ||
-                       normalizedTarget.includes(thumbColor)) {
-                thumb.style.display = '';
-            } else {
-                thumb.style.display = 'none';
-            }
-        });
+            thumbs.forEach(function(thumb, idx) {
+                var thumbColor = normalizeProductColor(thumb.getAttribute('data-image-color'));
+
+                if (!normalizedTarget) {
+                    // No color selected — show all
+                    thumb.style.display = '';
+                    return;
+                }
+
+                if (!thumbColor) {
+                    // No color tag — only show if it's the very first (main) thumb
+                    thumb.style.display = (idx === mainThumbIndex) ? '' : 'none';
+                    return;
+                }
+
+                // Show if color matches (exact or partial)
+                var matches = (thumbColor === normalizedTarget) ||
+                              thumbColor.includes(normalizedTarget) ||
+                              normalizedTarget.includes(thumbColor);
+                thumb.style.display = matches ? '' : 'none';
+            });
+        }
+
+        applyFilter('.pddx-thumb');
+        applyFilter('.vm-pd-m-thumb');
     }
 
     function applyColorSelection(colorValue) {
@@ -1237,6 +1237,12 @@ function initProductColorImageSync() {
     const initiallySelectedColor = colorRoot.querySelector('.pddx-swatch.is-active');
     if (initiallySelectedColor) {
         applyColorSelection(initiallySelectedColor.getAttribute('data-value') || '');
+    } else {
+        // No swatch selected yet — apply filter for first available color
+        var firstSwatch = colorRoot.querySelector('.pddx-swatch');
+        if (firstSwatch) {
+            applyColorSelection(firstSwatch.getAttribute('data-value') || '');
+        }
     }
 }
 
