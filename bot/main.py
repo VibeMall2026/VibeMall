@@ -77,6 +77,11 @@ def main() -> None:
     except Exception:
         pass
 
+    # Initialize state channels from config
+    from bot.state import state as _state
+    if not _state.channels:
+        _state.channels = list(config.TG_CHANNELS)
+
     # Start API server in background thread
     api_thread = threading.Thread(target=start_api_server, daemon=True)
     api_thread.start()
