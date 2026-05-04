@@ -3391,6 +3391,7 @@ def admin_site_settings(request):
             settings_obj.admin_logo = request.FILES.get('admin_logo')
         
         settings_obj.save()
+        cache.delete('site_settings_context_v1')
         messages.success(request, 'Site settings updated successfully!')
         return redirect('admin_site_settings')
     

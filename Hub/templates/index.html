@@ -93,6 +93,80 @@
     color: #6f5c37 !important;
   }
 
+  /* Product card hover overlay */
+  .vm-copy-product-card__media {
+    position: relative;
+    overflow: hidden;
+  }
+  .vm-copy-product-card__hover {
+    position: absolute;
+    inset: 0;
+    background: rgba(23, 24, 24, 0.38);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    padding: 16px;
+  }
+  .vm-copy-product-card:hover .vm-copy-product-card__hover {
+    opacity: 1;
+  }
+  .vm-copy-product-card__quick,
+  .vm-copy-product-card__cart {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    color: #171818;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease;
+    white-space: nowrap;
+    width: 100%;
+    justify-content: center;
+  }
+  .vm-copy-product-card__quick:hover {
+    background: #171818;
+    color: #fff;
+  }
+  .vm-copy-product-card__cart:hover,
+  .vm-copy-product-card__cart.in-cart {
+    background: #171818;
+    color: #fff;
+  }
+  .vm-copy-product-card__wish {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #fff;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 15px;
+    color: #171818;
+    transition: background 0.18s ease, color 0.18s ease;
+  }
+  .vm-copy-product-card__wish:hover,
+  .vm-copy-product-card__wish.wishlisted {
+    background: #171818;
+    color: #fff;
+  }
+
   .vm-copy-watch-slider {
     position: relative;
   }
@@ -832,14 +906,40 @@
             </div>
             <div class="vm-copy-product-grid">
                 {% for product in recommended|slice:":4" %}
-                <article>
-                    <a href="{% url 'product_detail' product.slug %}">
-                        {% if product.image %}
-                        <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy" decoding="async">
-                        {% else %}
-                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}" loading="lazy" decoding="async">
-                        {% endif %}
-                    </a>
+                <article class="vm-copy-product-card">
+                    <div class="vm-copy-product-card__media">
+                        <a href="{% url 'product_detail' product.slug %}">
+                            {% if product.image %}
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy" decoding="async">
+                            {% else %}
+                            <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ product.name }}" loading="lazy" decoding="async">
+                            {% endif %}
+                        </a>
+                        <div class="vm-copy-product-card__hover">
+                            <a href="{% url 'product_detail' product.slug %}" class="vm-copy-product-card__quick">
+                                <i class="fal fa-eye"></i>
+                                <span>Quick View</span>
+                            </a>
+                            <button type="button"
+                                class="vm-copy-product-card__cart cart-btn {% if product.id in cart_product_ids %}in-cart{% endif %}"
+                                data-product-id="{{ product.id }}"
+                                data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
+                                aria-label="Add {{ product.name }} to cart"
+                                onclick="handleCartClick(this)">
+                                <i class="{% if product.id in cart_product_ids %}fas{% else %}fal{% endif %} fa-shopping-bag"></i>
+                                <span>{% if product.id in cart_product_ids %}In Cart{% else %}Add to Cart{% endif %}</span>
+                            </button>
+                            <button type="button"
+                                class="vm-copy-product-card__wish wishlist-btn {% if product.id in wishlist_product_ids %}wishlisted{% endif %}"
+                                data-product-id="{{ product.id }}"
+                                data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
+                                data-in-wishlist="{% if product.id in wishlist_product_ids %}1{% else %}0{% endif %}"
+                                aria-label="Wishlist {{ product.name }}"
+                                onclick="handleWishlistClick(this)">
+                                <i class="{% if product.id in wishlist_product_ids %}fas{% else %}fal{% endif %} fa-heart"></i>
+                            </button>
+                        </div>
+                    </div>
                     <small>VibeMall</small>
                     <h4>
                         <a href="{% url 'product_detail' product.slug %}">{{ product.name }}</a>
@@ -849,8 +949,10 @@
                     </p>
                 </article>
                 {% empty %}
-                <article>
-                    <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Product" loading="lazy" decoding="async">
+                <article class="vm-copy-product-card">
+                    <div class="vm-copy-product-card__media">
+                        <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="Product" loading="lazy" decoding="async">
+                    </div>
                     <small>VibeMall</small>
                     <h4>Products coming soon</h4>
                     <p>₹0.00</p>
