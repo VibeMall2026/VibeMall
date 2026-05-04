@@ -470,7 +470,8 @@ def _scan_and_trade() -> None:
                     f"Time: {ob.time}"
                 )
 
-        # Trim to max active OBs (keep most recent)
+        # Trim to max active OBs (keep most recent) — remove traded/inactive first
+        _active_obs = [o for o in _active_obs if o.active and not o.trade_taken]
         _active_obs = sorted(_active_obs, key=lambda x: x.time, reverse=True)
         _active_obs = _active_obs[:algo_config.max_active_obs]
 
@@ -481,6 +482,18 @@ def _scan_and_trade() -> None:
     # Check open positions — don't stack too many algo trades
     open_positions = mt5_bridge.get_open_positions()
     algo_positions = [p for p in open_positions if "ALGO:OB" in p.get("comment", "")]
+
+    # If a traded OB's position was manually closed, allow re-trading
+    with _obs_lock:
+        open_tickets = {p.get("id") for p in open_positions}
+        for ob in _active_obs:
+            if ob.trade_taken and ob.ticket and ob.ticket not in open_tickets:
+                # Position was manually closed — reset OB to allow new trade
+                logger.info(f"[ALGO] OB {ob.id} position manually closed — resetting for re-entry")
+                ob.trade_taken = False
+                ob.active = True
+                ob.ticket = None
+
     if len(algo_positions) >= 2:
         logger.debug(f"[ALGO] Max algo positions reached ({len(algo_positions)})")
         return
