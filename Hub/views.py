@@ -8911,6 +8911,21 @@ def admin_sliders(request):
     }
     return render(request, 'admin_panel/sliders.html', context)
 
+def _normalize_slider_url(url):
+    """Ensure slider URLs are absolute paths. e.g. 'shop' → '/shop/', '/shop' → '/shop/'"""
+    if not url or url == '#':
+        return url or '#'
+    url = url.strip()
+    # Already absolute URL or anchor
+    if url.startswith('http://') or url.startswith('https://') or url.startswith('#'):
+        return url
+    # Already starts with /
+    if url.startswith('/'):
+        return url
+    # Relative path — prepend /
+    return '/' + url
+
+
 @login_required(login_url='login')
 @staff_member_required(login_url='login')
 def admin_add_slider(request):
@@ -8921,7 +8936,11 @@ def admin_add_slider(request):
             subtitle = request.POST.get('subtitle', '')
             description = request.POST.get('description', '')
             top_button_text = request.POST.get('top_button_text', '')
-            top_button_url = request.POST.get('top_button_url', '#')
+            top_button_url = _normalize_slider_url(request.POST.get('top_button_url', '#'))
+            eyebrow_text = request.POST.get('eyebrow_text', '')
+            title_italic_part = request.POST.get('title_italic_part', '')
+            button2_text = request.POST.get('button2_text', '')
+            button2_url = _normalize_slider_url(request.POST.get('button2_url', ''))
             order = request.POST.get('order', 0)
             is_active = request.POST.get('is_active') == 'on'
             image = request.FILES.get('image')
@@ -8932,11 +8951,16 @@ def admin_add_slider(request):
                 description=description,
                 top_button_text=top_button_text,
                 top_button_url=top_button_url,
+                eyebrow_text=eyebrow_text,
+                title_italic_part=title_italic_part,
+                button2_text=button2_text,
+                button2_url=button2_url,
                 order=int(order) if order else 0,
                 is_active=is_active,
                 image=image
             )
             
+            cache.delete('homepage_public_context_v2')
             messages.success(request, f'Slider "{slider.title}" added successfully!')
             return redirect('admin_sliders')
             
@@ -8957,16 +8981,23 @@ def admin_edit_slider(request, slider_id):
             slider.subtitle = request.POST.get('subtitle', '')
             slider.description = request.POST.get('description', '')
             slider.top_button_text = request.POST.get('top_button_text', '')
-            slider.top_button_url = request.POST.get('top_button_url', '#')
+            slider.top_button_url = _normalize_slider_url(request.POST.get('top_button_url', '#'))
             order = request.POST.get('order', 0)
             slider.order = int(order) if order else 0
             slider.is_active = request.POST.get('is_active') == 'on'
+            
+            # Also save new hero fields
+            slider.eyebrow_text = request.POST.get('eyebrow_text', '')
+            slider.title_italic_part = request.POST.get('title_italic_part', '')
+            slider.button2_text = request.POST.get('button2_text', '')
+            slider.button2_url = _normalize_slider_url(request.POST.get('button2_url', ''))
             
             if 'image' in request.FILES:
                 slider.image = request.FILES['image']
             
             slider.save()
             
+            cache.delete('homepage_public_context_v2')
             messages.success(request, f'Slider "{slider.title}" updated successfully!')
             return redirect('admin_sliders')
             
@@ -8987,6 +9018,7 @@ def admin_delete_slider(request, slider_id):
     if request.method == 'POST':
         slider_title = slider.title
         slider.delete()
+        cache.delete('homepage_public_context_v2')
         messages.success(request, f'Slider "{slider_title}" deleted successfully!')
     
     return redirect('admin_sliders')
