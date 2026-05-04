@@ -1195,4 +1195,175 @@
 })();
 </script>
 {% endif %}
+
+{% if show_review_prompt and review_prompt_product %}
+<!-- Refined Review Popup -->
+<div id="vmReviewPromptOverlay" style="
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.55);
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px;
+    animation: vmFadeIn 0.25s ease;
+" role="dialog" aria-modal="true" aria-labelledby="vmReviewPromptTitle">
+    <div style="
+        background: #fff;
+        border-radius: 20px;
+        max-width: 560px;
+        width: 100%;
+        display: grid;
+        grid-template-columns: 180px 1fr;
+        overflow: hidden;
+        box-shadow: 0 24px 64px rgba(0,0,0,0.22);
+        position: relative;
+    " id="vmReviewPromptCard">
+        <!-- Close button -->
+        <button type="button" id="vmReviewPromptClose" aria-label="Close review prompt" style="
+            position: absolute; top: 14px; right: 14px;
+            background: rgba(0,0,0,0.08); border: none; border-radius: 50%;
+            width: 32px; height: 32px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; color: #333; z-index: 2;
+        ">&#x2715;</button>
+
+        <!-- Product image -->
+        <div style="background: #f5f3ee; overflow: hidden;">
+            {% if review_prompt_product.image and review_prompt_product.image.name %}
+            <img src="{{ review_prompt_product.image.url }}" alt="{{ review_prompt_product.name }}"
+                 style="width: 100%; height: 100%; object-fit: cover; display: block;">
+            {% else %}
+            <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#bbb;">
+                <i class="fas fa-box" style="font-size:40px;"></i>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Review form -->
+        <div style="padding: 28px 24px 24px;">
+            <p style="margin:0 0 4px; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:#9a8c7a; font-weight:700;">Share your experience</p>
+            <h2 id="vmReviewPromptTitle" style="margin:0 0 20px; font-family:'Noto Serif',Georgia,serif; font-size:22px; color:#171818; line-height:1.2;">Refined Review</h2>
+
+            <!-- Star rating -->
+            <div style="margin-bottom:6px;">
+                <div id="vmRpStars" style="display:flex; gap:6px; margin-bottom:4px;" role="radiogroup" aria-label="Rate this product">
+                    {% for i in "12345" %}
+                    <button type="button" class="vm-rp-star" data-val="{{ forloop.counter }}" aria-label="{{ forloop.counter }} star"
+                        style="background:none;border:none;cursor:pointer;font-size:26px;color:#d4c9b8;padding:0;line-height:1;transition:color 0.15s;">
+                        &#9733;
+                    </button>
+                    {% endfor %}
+                </div>
+                <p id="vmRpRatingLabel" style="margin:0;font-size:12px;color:#9a8c7a;min-height:16px;"></p>
+            </div>
+
+            <!-- Comment -->
+            <textarea id="vmRpComment" rows="3" placeholder="Describe the craftsmanship, fit, and feel..." style="
+                width:100%; border:1px solid #e0dbd3; border-radius:10px;
+                padding:10px 12px; font-size:13px; resize:none;
+                font-family:inherit; color:#171818; background:#faf9f7;
+                margin-bottom:14px; box-sizing:border-box;
+            "></textarea>
+
+            <p style="margin:0 0 12px; font-size:11px; color:#b0a898;">Write your feedback</p>
+
+            <!-- Submit -->
+            <button type="button" id="vmRpSubmit" style="
+                width:100%; background:#171818; color:#fff; border:none;
+                border-radius:10px; padding:12px; font-size:13px;
+                font-weight:700; letter-spacing:0.06em; cursor:pointer;
+                transition:opacity 0.2s;
+            ">Submit Review</button>
+
+            <p id="vmRpMsg" style="margin:8px 0 0; font-size:12px; color:#1f6d45; text-align:center; min-height:16px;"></p>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes vmFadeIn { from { opacity:0; } to { opacity:1; } }
+@media (max-width: 540px) {
+    #vmReviewPromptCard { grid-template-columns: 1fr !important; }
+    #vmReviewPromptCard > div:first-child { height: 180px; }
+}
+</style>
+
+<script>
+(function () {
+    var overlay = document.getElementById('vmReviewPromptOverlay');
+    var closeBtn = document.getElementById('vmReviewPromptClose');
+    var stars = document.querySelectorAll('.vm-rp-star');
+    var ratingLabel = document.getElementById('vmRpRatingLabel');
+    var comment = document.getElementById('vmRpComment');
+    var submitBtn = document.getElementById('vmRpSubmit');
+    var msgEl = document.getElementById('vmRpMsg');
+    var selectedRating = 0;
+
+    var labels = ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent'];
+    var dismissUrl = '{% url "mobile_review_prompt_dismiss" %}';
+    var submitUrl = '{% url "mobile_review_prompt_submit" review_prompt_product.id %}';
+    var csrfToken = (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || '';
+
+    function setRating(val) {
+        selectedRating = val;
+        stars.forEach(function (s, i) {
+            s.style.color = i < val ? '#f5a623' : '#d4c9b8';
+        });
+        ratingLabel.textContent = labels[val] || '';
+    }
+
+    stars.forEach(function (s) {
+        s.addEventListener('mouseenter', function () {
+            var v = parseInt(s.getAttribute('data-val'));
+            stars.forEach(function (x, i) { x.style.color = i < v ? '#f5a623' : '#d4c9b8'; });
+        });
+        s.addEventListener('mouseleave', function () { setRating(selectedRating); });
+        s.addEventListener('click', function () { setRating(parseInt(s.getAttribute('data-val'))); });
+    });
+
+    function dismiss() {
+        overlay.style.opacity = '0';
+        overlay.style.transition = 'opacity 0.2s';
+        setTimeout(function () { overlay.style.display = 'none'; }, 200);
+        fetch(dismissUrl, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: ''
+        }).catch(function () {});
+    }
+
+    closeBtn.addEventListener('click', dismiss);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) dismiss(); });
+
+    submitBtn.addEventListener('click', function () {
+        if (!selectedRating) { msgEl.style.color = '#ba1a1a'; msgEl.textContent = 'Please select a rating.'; return; }
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting…';
+
+        var body = 'rating=' + selectedRating + '&comment=' + encodeURIComponent(comment.value.trim());
+        fetch(submitUrl, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            msgEl.style.color = '#1f6d45';
+            msgEl.textContent = data.message || 'Thank you for your review!';
+            setTimeout(function () { dismiss(); }, 1400);
+        })
+        .catch(function () {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit Review';
+            msgEl.style.color = '#ba1a1a';
+            msgEl.textContent = 'Something went wrong. Please try again.';
+        });
+    });
+
+    // Auto-show after 1.2s delay
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity 0.3s';
+    setTimeout(function () { overlay.style.opacity = '1'; }, 1200);
+})();
+</script>
+{% endif %}
+
 {% endblock %}

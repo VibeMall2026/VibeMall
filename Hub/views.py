@@ -10752,6 +10752,22 @@ def order_details(request, order_number):
         active_return = order.return_requests.order_by('-requested_at').first()
         cancel_request = getattr(order, 'cancellation_request', None)
         cancel_eligible, cancel_reason, cancel_deadline = _cancel_eligibility(order)
+
+        # Review prompt: show only for delivered orders, max 2 times per session
+        show_review_prompt = False
+        review_prompt_product = None
+        if order.order_status == 'DELIVERED':
+            seen_count = request.session.get(MOBILE_REVIEW_PROMPT_SESSION_KEY, 0)
+            if seen_count < MOBILE_REVIEW_PROMPT_MAX_SHOWN:
+                # Pick first unreviewed product from this order
+                for item in order_items:
+                    if item.product and not ProductReview.objects.filter(
+                        product=item.product, user=request.user
+                    ).exists():
+                        show_review_prompt = True
+                        review_prompt_product = item.product
+                        break
+
         return render(request, 'order_details.html', {
             'order': order,
             'order_items': order_items,
@@ -10764,6 +10780,8 @@ def order_details(request, order_number):
             'cancel_eligible': cancel_eligible,
             'cancel_reason': cancel_reason,
             'cancel_deadline': cancel_deadline,
+            'show_review_prompt': show_review_prompt,
+            'review_prompt_product': review_prompt_product,
         })
     except Order.DoesNotExist:
         messages.error(request, 'Order not found')
