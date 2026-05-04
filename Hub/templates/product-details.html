@@ -1125,7 +1125,52 @@ function initProductColorImageSync() {
         }) || thumbs[0] || null;
     }
 
+    function filterThumbsByColor(colorValue) {
+        var normalizedTarget = normalizeProductColor(colorValue);
+
+        // Desktop thumbs
+        var desktopThumbs = Array.from(document.querySelectorAll('.pddx-thumb'));
+        desktopThumbs.forEach(function(thumb) {
+            var thumbColor = normalizeProductColor(thumb.getAttribute('data-image-color'));
+            if (!normalizedTarget) {
+                // No color selected — show all
+                thumb.style.display = '';
+            } else if (!thumbColor) {
+                // Thumb has no color tag = it's the main/default image — always show
+                thumb.style.display = '';
+            } else if (thumbColor === normalizedTarget ||
+                       thumbColor.includes(normalizedTarget) ||
+                       normalizedTarget.includes(thumbColor)) {
+                // Matching color — show
+                thumb.style.display = '';
+            } else {
+                // Different color — hide
+                thumb.style.display = 'none';
+            }
+        });
+
+        // Mobile thumbs
+        var mobileThumbs = Array.from(document.querySelectorAll('.vm-pd-m-thumb'));
+        mobileThumbs.forEach(function(thumb) {
+            var thumbColor = normalizeProductColor(thumb.getAttribute('data-image-color'));
+            if (!normalizedTarget) {
+                thumb.style.display = '';
+            } else if (!thumbColor) {
+                thumb.style.display = '';
+            } else if (thumbColor === normalizedTarget ||
+                       thumbColor.includes(normalizedTarget) ||
+                       normalizedTarget.includes(thumbColor)) {
+                thumb.style.display = '';
+            } else {
+                thumb.style.display = 'none';
+            }
+        });
+    }
+
     function applyColorSelection(colorValue) {
+        // 0. Filter thumbnails — show only matching color thumbs
+        filterThumbsByColor(colorValue);
+
         // 1. Try exact match from hidden variant data
         var mappedImageSrc = findMainImageByColor(colorValue);
 
