@@ -240,25 +240,39 @@ def get_trade_history(limit: int = 50) -> list[dict]:
     deals = mt5.history_deals_get(from_date, now_utc)
     if not deals:
         return []
+
+    # Build map of position_id → comment from opening deals
+    position_comments: dict = {}
+    for d in deals:
+        if d.entry == mt5.DEAL_ENTRY_IN and d.comment:
+            position_comments[d.position_id] = d.comment
+
     result = []
     for d in sorted(deals, key=lambda x: x.time, reverse=True):
-        # Skip entry deals (no PnL) — only show exit/close deals
-        if d.entry == mt5.DEAL_ENTRY_IN:
+        # Only show exit/close deals which have PnL
+        if d.entry != mt5.DEAL_ENTRY_OUT:
             continue
-        comment = d.comment or ""
-        # Determine source
+
+        # Get comment from opening deal via position_id
+        comment = position_comments.get(d.position_id, d.comment or "")
+
+        # Determine source and channel
         if "ALGO:OB" in comment:
             source = "ALGO"
-            channel = "Algo Strategy"
-        elif comment.startswith("TG:"):
+            channel = "⚡ Algo Strategy"
+        elif "goldsingnaltest" in comment or "BENGOLDTRADER" in comment or comment.startswith("TG:"):
             source = "TELEGRAM"
-            channel = comment[3:]
+            channel = comment.replace("TG:", "").strip()
+        elif comment:
+            source = "MANUAL"
+            channel = comment[:20]
         else:
             source = "MANUAL"
-            channel = comment or "-"
+            channel = "-"
 
         result.append({
             "ticket": d.ticket,
+            "position_id": d.position_id,
             "symbol": d.symbol,
             "side": "buy" if d.type == mt5.DEAL_TYPE_BUY else "sell",
             "volume": d.volume,
@@ -271,7 +285,7 @@ def get_trade_history(limit: int = 50) -> list[dict]:
             "source": source,
             "channel": channel,
             "comment": comment,
-            "opened": str(datetime.fromtimestamp(d.time).strftime("%Y-%m-%d %H:%M:%S")),
+            "opened": datetime.utcfromtimestamp(d.time).strftime("%Y-%m-%d %H:%M:%S"),
         })
         if len(result) >= limit:
             break
