@@ -268,7 +268,13 @@
                 {{ t.status|default:"-" }}
               </span>
             </td>
-            <td style="font-size:.8rem;">{{ t.channel|default:"-" }}</td>
+            <td style="font-size:.8rem;">
+              {% if t.source == 'ALGO' %}
+                <span class="badge" style="background:rgba(105,108,255,.15);color:#696cff;">⚡ Algo</span>
+              {% else %}
+                {{ t.channel|default:"-" }}
+              {% endif %}
+            </td>
             <td style="font-size:.8rem;">{{ t.opened|default:"-" }}</td>
           </tr>
           {% empty %}

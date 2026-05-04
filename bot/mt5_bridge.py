@@ -240,17 +240,32 @@ def get_trade_history(limit: int = 50) -> list[dict]:
         return []
     result = []
     for d in sorted(deals, key=lambda x: x.time, reverse=True)[:limit]:
+        comment = d.comment or ""
+        # Determine source
+        if "ALGO:OB" in comment:
+            source = "ALGO"
+            channel = "Algo Strategy"
+        elif comment.startswith("TG:"):
+            source = "TELEGRAM"
+            channel = comment[3:]
+        else:
+            source = "MANUAL"
+            channel = comment or "-"
+
         result.append({
             "ticket": d.ticket,
             "symbol": d.symbol,
             "side": "buy" if d.type == mt5.DEAL_TYPE_BUY else "sell",
             "volume": d.volume,
             "entry": d.price,
-            "sl": 0,
-            "tp": 0,
-            "pnl": d.profit,
+            "sl": "-",
+            "tp": "-",
+            "rr": "-",
+            "pnl": round(d.profit, 2),
             "status": "win" if d.profit > 0 else "loss" if d.profit < 0 else "breakeven",
-            "opened": str(datetime.fromtimestamp(d.time)),
-            "comment": d.comment,
+            "source": source,
+            "channel": channel,
+            "comment": comment,
+            "opened": str(datetime.fromtimestamp(d.time).strftime("%Y-%m-%d %H:%M:%S")),
         })
     return result
