@@ -1190,11 +1190,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const nextBtn = carousel.querySelector('[data-vm-hero-next]');
         const dotsWrap = carousel.querySelector('[data-vm-hero-dots]');
 
-        if (!track || slides.length <= 1) return;
+        if (!track || slides.length === 0) return;
 
         let current = 0;
         let autoTimer = null;
-        const delay = 5000;
+        const delay = 4000;
         const dots = [];
 
         if (dotsWrap) {
