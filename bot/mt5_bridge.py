@@ -233,9 +233,11 @@ def get_open_positions() -> list[dict]:
 def get_trade_history(limit: int = 50) -> list[dict]:
     if not MT5_AVAILABLE or not is_connected():
         return []
-    from datetime import datetime, timedelta
-    from_date = datetime.now() - timedelta(days=60)  # extended to 60 days
-    deals = mt5.history_deals_get(from_date, datetime.now())
+    from datetime import datetime, timedelta, timezone
+    # Use UTC to avoid timezone mismatch with MT5 server time
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+    from_date = now_utc - timedelta(days=60)
+    deals = mt5.history_deals_get(from_date, now_utc)
     if not deals:
         return []
     result = []
