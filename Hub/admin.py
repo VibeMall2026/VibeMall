@@ -46,7 +46,14 @@ from .models import (
 # Import improved Reel admin classes
 from .admin_reel_reorder import ReelAdminImproved, ReelImageAdminImproved
 
-admin.site.register(Slider)
+@admin.register(Slider)
+class SliderAdmin(admin.ModelAdmin):
+    list_display = ['title', 'eyebrow_text', 'is_active', 'order']
+    list_editable = ['is_active', 'order']
+    fieldsets = [
+        ('Basic', {'fields': ['title', 'subtitle', 'description', 'image', 'is_active', 'order']}),
+        ('Hero Banner', {'fields': ['eyebrow_text', 'title_italic_part', 'top_button_text', 'top_button_url', 'button2_text', 'button2_url', 'use_as_hero']}),
+    ]
 
 @admin.register(CategoryIcon)
 class CategoryIconAdmin(admin.ModelAdmin):

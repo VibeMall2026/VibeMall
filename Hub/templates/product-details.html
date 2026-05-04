@@ -920,6 +920,9 @@ function initDesktopOptionGroup(rootSelector, listSelector, valueSelector, butto
             button.setAttribute('aria-pressed', 'true');
             if (valueLabel) valueLabel.textContent = option;
             syncProductVariantInputs();
+            if (isColorGroup && typeof window._vmApplyColorSelection === 'function') {
+                window._vmApplyColorSelection(option);
+            }
         });
 
         list.appendChild(button);
@@ -1119,12 +1122,7 @@ function initProductColorImageSync() {
         syncDesktopColorSelection(colorValue);
         setDescriptionImageByColor(colorValue);
     }
-
-    colorButtons.forEach(function(button) {
-        button.addEventListener('click', function() {
-            applyColorSelection(button.getAttribute('data-value') || '');
-        });
-    });
+    window._vmApplyColorSelection = applyColorSelection;
 
     document.querySelectorAll('.pddx-thumb[data-image-color]').forEach(function(thumb) {
         thumb.addEventListener('click', function() {

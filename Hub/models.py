@@ -148,6 +148,12 @@ class Slider(models.Model):
     image = models.ImageField(upload_to='sliders/')
     top_button_text = models.CharField(max_length=50, default="HOT DEALS")
     top_button_url = models.CharField(max_length=100)
+    # Hero banner fields
+    eyebrow_text = models.CharField(max_length=100, blank=True, default='', help_text="Small text above title e.g. 'AUTUMN / WINTER 24'")
+    title_italic_part = models.CharField(max_length=200, blank=True, default='', help_text="Italic part of the title (appended after title)")
+    button2_text = models.CharField(max_length=50, blank=True, default='', help_text="Second button text e.g. 'Read Editorial'")
+    button2_url = models.CharField(max_length=200, blank=True, default='', help_text="Second button URL")
+    use_as_hero = models.BooleanField(default=False, help_text="Show this slide in the desktop hero carousel")
     order = models.IntegerField(default=0, help_text="Display order (lower numbers appear first)")
     is_active = models.BooleanField(default=True)
 
