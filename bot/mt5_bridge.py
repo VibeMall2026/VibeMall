@@ -234,12 +234,15 @@ def get_trade_history(limit: int = 50) -> list[dict]:
     if not MT5_AVAILABLE or not is_connected():
         return []
     from datetime import datetime, timedelta
-    from_date = datetime.now() - timedelta(days=30)
+    from_date = datetime.now() - timedelta(days=60)  # extended to 60 days
     deals = mt5.history_deals_get(from_date, datetime.now())
     if not deals:
         return []
     result = []
-    for d in sorted(deals, key=lambda x: x.time, reverse=True)[:limit]:
+    for d in sorted(deals, key=lambda x: x.time, reverse=True):
+        # Skip entry deals (no PnL) — only show exit/close deals
+        if d.entry == mt5.DEAL_ENTRY_IN:
+            continue
         comment = d.comment or ""
         # Determine source
         if "ALGO:OB" in comment:
@@ -268,4 +271,6 @@ def get_trade_history(limit: int = 50) -> list[dict]:
             "comment": comment,
             "opened": str(datetime.fromtimestamp(d.time).strftime("%Y-%m-%d %H:%M:%S")),
         })
+        if len(result) >= limit:
+            break
     return result
