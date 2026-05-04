@@ -50,9 +50,9 @@ def dashboard(request):
     signals_resp = _get('/signals', {'items': []})
 
     # TelegramCopier returns ListResponse with 'items' key
-    open_trades = open_trades_resp.get('items', []) if isinstance(open_trades_resp, dict) else open_trades_resp
-    trades = trades_resp.get('items', []) if isinstance(trades_resp, dict) else trades_resp
-    signals = signals_resp.get('items', []) if isinstance(signals_resp, dict) else signals_resp
+    open_trades = open_trades_resp if isinstance(open_trades_resp, list) else open_trades_resp.get('items', [])
+    trades = trades_resp if isinstance(trades_resp, list) else trades_resp.get('items', [])
+    signals = signals_resp if isinstance(signals_resp, list) else signals_resp.get('items', [])
 
     # Account info from /status
     account = status.get('account', {})
