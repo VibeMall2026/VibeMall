@@ -75,3 +75,7 @@ class BotState:
 
 # Singleton
 state = BotState()
+
+# Initialize channels from config
+from bot import config as _config
+state.channels = list(_config.TG_CHANNELS)

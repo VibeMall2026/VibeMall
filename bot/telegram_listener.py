@@ -82,9 +82,14 @@ async def start_listener() -> None:
     state.telegram_connected = True
     logger.success("Telegram connected.")
 
-    # Resolve channel entities
+    # Resolve channel entities — merge config + state channels
+    all_channels = list(config.TG_CHANNELS)
+    for ch in state.channels:
+        if ch not in all_channels:
+            all_channels.append(ch)
+
     channel_entities = []
-    for ch in config.TG_CHANNELS:
+    for ch in all_channels:
         try:
             entity = await _client.get_entity(ch)
             channel_entities.append(entity)

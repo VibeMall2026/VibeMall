@@ -187,6 +187,8 @@ async def add_channel(body: ChannelRequest):
     ch = body.channel.strip()
     if ch not in state.channels:
         state.channels.append(ch)
+        # Persist to bot/.env so it survives restarts
+        _persist_channels()
     return {"success": True, "channels": state.channels}
 
 
@@ -195,7 +197,28 @@ async def remove_channel(body: ChannelRequest):
     ch = body.channel.strip()
     if ch in state.channels:
         state.channels.remove(ch)
+        _persist_channels()
     return {"success": True, "channels": state.channels}
+
+
+def _persist_channels() -> None:
+    """Write current state.channels back to bot/.env TG_CHANNELS."""
+    import re
+    from pathlib import Path
+    env_path = Path(__file__).parent / ".env"
+    try:
+        content = env_path.read_text(encoding="utf-8")
+        new_value = ",".join(state.channels)
+        content = re.sub(
+            r"^TG_CHANNELS=.*$",
+            f"TG_CHANNELS={new_value}",
+            content,
+            flags=re.MULTILINE,
+        )
+        env_path.write_text(content, encoding="utf-8")
+        logger.info(f"Persisted channels to bot/.env: {new_value}")
+    except Exception as e:
+        logger.warning(f"Could not persist channels: {e}")
 
 
 @app.put("/positions/{position_id}", dependencies=[Depends(verify_api_key)])
