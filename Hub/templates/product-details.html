@@ -1055,9 +1055,19 @@ function findMainImageByColor(colorValue) {
         return '';
     }
 
-    const matchedVariants = variantImages.filter(function(item) {
+    // 1. Exact match
+    let matchedVariants = variantImages.filter(function(item) {
         return normalizeProductColor(item.getAttribute('data-variant-color')) === normalizedTarget;
     });
+
+    // 2. Partial match fallback
+    if (!matchedVariants.length) {
+        matchedVariants = variantImages.filter(function(item) {
+            const variantColor = normalizeProductColor(item.getAttribute('data-variant-color'));
+            return variantColor && (variantColor.includes(normalizedTarget) || normalizedTarget.includes(variantColor));
+        });
+    }
+
     if (!matchedVariants.length) {
         return '';
     }
@@ -1092,6 +1102,7 @@ function initProductColorImageSync() {
             return thumbs[0] || null;
         }
 
+        // 1. Exact match
         const sameColorThumbs = thumbs.filter(function(thumb) {
             return normalizeProductColor(thumb.getAttribute('data-image-color')) === normalizedTarget;
         });
@@ -1101,24 +1112,54 @@ function initProductColorImageSync() {
             }) || sameColorThumbs[0];
         }
 
+        // 2. Partial match (e.g. "red" matches "dark red" or "red dress")
+        const partialMatch = thumbs.find(function(thumb) {
+            const thumbColor = normalizeProductColor(thumb.getAttribute('data-image-color'));
+            return thumbColor && (thumbColor.includes(normalizedTarget) || normalizedTarget.includes(thumbColor));
+        });
+        if (partialMatch) return partialMatch;
+
+        // 3. Fallback: first thumb without a color (the default/main image)
         return thumbs.find(function(thumb) {
             return !normalizeProductColor(thumb.getAttribute('data-image-color'));
         }) || thumbs[0] || null;
     }
 
     function applyColorSelection(colorValue) {
-        const mappedImageSrc = findMainImageByColor(colorValue);
-        const desktopThumb = findThumbBySrc('.pddx-thumb', mappedImageSrc) || findThumbByColor('.pddx-thumb', colorValue);
-        const mobileThumb = findThumbBySrc('.vm-pd-m-thumb', mappedImageSrc) || findThumbByColor('.vm-pd-m-thumb', colorValue);
+        // 1. Try exact match from hidden variant data
+        var mappedImageSrc = findMainImageByColor(colorValue);
 
-        setActiveThumb('.pddx-thumb', '#pddxMainImage', desktopThumb);
-        setActiveThumb('.vm-pd-m-thumb', '#vmPdMainImage', mobileThumb);
+        // 2. If no match in variant data, try finding a thumb with matching color directly
+        var desktopThumb = null;
+        var mobileThumb = null;
+
         if (mappedImageSrc) {
-            const desktopMainImage = document.getElementById('pddxMainImage');
-            const mobileMainImage = document.getElementById('vmPdMainImage');
-            if (desktopMainImage) desktopMainImage.src = mappedImageSrc;
-            if (mobileMainImage) mobileMainImage.src = mappedImageSrc;
+            desktopThumb = findThumbBySrc('.pddx-thumb', mappedImageSrc) || findThumbByColor('.pddx-thumb', colorValue);
+            mobileThumb  = findThumbBySrc('.vm-pd-m-thumb', mappedImageSrc) || findThumbByColor('.vm-pd-m-thumb', colorValue);
+        } else {
+            // No variant data match — find thumb directly by color label
+            desktopThumb = findThumbByColor('.pddx-thumb', colorValue);
+            mobileThumb  = findThumbByColor('.vm-pd-m-thumb', colorValue);
+            // Use the thumb's own image src as the mapped src
+            if (desktopThumb) {
+                mappedImageSrc = desktopThumb.getAttribute('data-image-src') || '';
+            } else if (mobileThumb) {
+                mappedImageSrc = mobileThumb.getAttribute('data-image-src') || '';
+            }
         }
+
+        // 3. Apply the image to both desktop and mobile main images
+        if (mappedImageSrc) {
+            var desktopMainImage = document.getElementById('pddxMainImage');
+            var mobileMainImage  = document.getElementById('vmPdMainImage');
+            if (desktopMainImage) desktopMainImage.src = mappedImageSrc;
+            if (mobileMainImage)  mobileMainImage.src  = mappedImageSrc;
+        }
+
+        // 4. Highlight the active thumb
+        if (desktopThumb) setActiveThumb('.pddx-thumb', '#pddxMainImage', desktopThumb);
+        if (mobileThumb)  setActiveThumb('.vm-pd-m-thumb', '#vmPdMainImage', mobileThumb);
+
         syncDesktopColorSelection(colorValue);
         setDescriptionImageByColor(colorValue);
     }
