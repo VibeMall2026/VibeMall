@@ -101,9 +101,9 @@
   .vm-copy-product-card__hover {
     position: absolute;
     inset: 0;
-    background: rgba(23, 24, 24, 0.38);
+    background: rgba(23, 24, 24, 0.28);
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     justify-content: center;
     gap: 10px;
@@ -118,53 +118,54 @@
   .vm-copy-product-card__cart {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
     background: #fff;
     color: #171818;
     border: none;
-    border-radius: 8px;
-    padding: 10px 18px;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    text-decoration: none;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    font-size: 17px;
     cursor: pointer;
-    transition: background 0.18s ease, color 0.18s ease;
-    white-space: nowrap;
-    width: 100%;
-    justify-content: center;
+    text-decoration: none;
+    transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+    flex-shrink: 0;
+  }
+  .vm-copy-product-card__quick span,
+  .vm-copy-product-card__cart span {
+    display: none;
   }
   .vm-copy-product-card__quick:hover {
     background: #171818;
     color: #fff;
+    transform: scale(1.1);
   }
   .vm-copy-product-card__cart:hover,
   .vm-copy-product-card__cart.in-cart {
     background: #171818;
     color: #fff;
+    transform: scale(1.1);
   }
   .vm-copy-product-card__wish {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: #fff;
-    border: none;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
-    font-size: 15px;
+    background: #fff;
     color: #171818;
-    transition: background 0.18s ease, color 0.18s ease;
+    border: none;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    font-size: 17px;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+    flex-shrink: 0;
   }
   .vm-copy-product-card__wish:hover,
   .vm-copy-product-card__wish.wishlisted {
-    background: #171818;
+    background: #c0392b;
     color: #fff;
+    transform: scale(1.1);
   }
 
   .vm-copy-watch-slider {
