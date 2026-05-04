@@ -493,48 +493,54 @@ function updateUI(data) {
 }
 
 function fetchAlgoTrades() {
-  fetch('/trading/api/signals', {
+  fetch('/trading/api/algo/trades', {
     headers: { 'X-API-Key': API_KEY }
   })
   .then(r => r.json())
-  .then(signals => {
-    const algoTrades = (Array.isArray(signals) ? signals : (signals.items || []))
-      .filter(s => s.source && s.source.startsWith('ALGO:'));
+  .then(data => {
+    const stats = data.stats || {};
+    const trades = data.trades || [];
 
-    document.getElementById('algoTradeCount').textContent = algoTrades.length;
-    document.getElementById('lblAlgoTrades').textContent = algoTrades.length;
+    document.getElementById('algoTradeCount').textContent = stats.total || 0;
+    document.getElementById('lblAlgoTrades').textContent = stats.total || 0;
+    document.getElementById('lblAlgoWins').textContent = stats.wins || 0;
+    document.getElementById('lblAlgoLosses').textContent = stats.losses || 0;
+    document.getElementById('lblAlgoWinRate').textContent = (stats.win_rate || 0) + '%';
 
-    const wins = algoTrades.filter(t => t.status === 'executed').length;
-    document.getElementById('lblAlgoWins').textContent = wins;
-    document.getElementById('lblAlgoLosses').textContent = algoTrades.length - wins;
-    const wr = algoTrades.length > 0 ? (wins / algoTrades.length * 100).toFixed(1) : '0.0';
-    document.getElementById('lblAlgoWinRate').textContent = wr + '%';
+    const pnlEl = document.getElementById('lblAlgoPnL');
+    const pnl = stats.total_pnl || 0;
+    pnlEl.textContent = pnl.toFixed(2);
+    pnlEl.className = 'stat-value ' + (pnl >= 0 ? 'pnl-pos' : 'pnl-neg');
 
     const body = document.getElementById('algoTradeBody');
-    if (algoTrades.length === 0) {
+    if (trades.length === 0) {
       body.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">No algo trades yet — enable trading and wait for OB signals</td></tr>';
     } else {
-      body.innerHTML = algoTrades.map(t => `
-        <tr>
-          <td style="font-size:.8rem;">${t.time || '-'}</td>
-          <td><strong>${t.symbol || '-'}</strong></td>
-          <td>
-            <span class="badge ${t.side === 'buy' ? 'badge-buy' : 'badge-sell'}">
-              ${(t.side || '-').toUpperCase()}
-            </span>
-          </td>
-          <td>${t.entry ? parseFloat(t.entry).toFixed(5) : '-'}</td>
-          <td>${t.sl ? parseFloat(t.sl).toFixed(5) : '-'}</td>
-          <td>${t.tp ? parseFloat(t.tp).toFixed(5) : '-'}</td>
-          <td>
-            <span class="badge ${t.status === 'executed' ? 'bg-label-success' : t.status === 'failed' ? 'bg-label-danger' : 'bg-label-secondary'}">
-              ${t.status || '-'}
-            </span>
-          </td>
-          <td style="font-size:.75rem;color:#a8aaae;">${t.ob_id ? t.ob_id.substring(0,12) + '...' : '-'}</td>
-          <td>${t.ticket || '-'}</td>
-        </tr>
-      `).join('');
+      body.innerHTML = trades.map(t => {
+        const pnl = parseFloat(t.pnl || 0);
+        const pnlClass = pnl > 0 ? 'pnl-pos' : pnl < 0 ? 'pnl-neg' : '';
+        return `
+          <tr>
+            <td style="font-size:.8rem;">${t.time || t.opened || '-'}</td>
+            <td><strong>${t.symbol || '-'}</strong></td>
+            <td>
+              <span class="badge ${(t.side||'').toLowerCase() === 'buy' ? 'badge-buy' : 'badge-sell'}">
+                ${(t.side || '-').toUpperCase()}
+              </span>
+            </td>
+            <td>${t.entry ? parseFloat(t.entry).toFixed(5) : '-'}</td>
+            <td>${t.sl ? parseFloat(t.sl).toFixed(5) : '-'}</td>
+            <td>${t.tp ? parseFloat(t.tp).toFixed(5) : '-'}</td>
+            <td class="${pnlClass}">${pnl !== 0 ? pnl.toFixed(2) : '-'}</td>
+            <td>
+              <span class="badge ${t.status === 'executed' || t.status === 'win' ? 'bg-label-success' : t.status === 'loss' ? 'bg-label-danger' : 'bg-label-secondary'}">
+                ${t.status || '-'}
+              </span>
+            </td>
+            <td>${t.ticket || '-'}</td>
+          </tr>
+        `;
+      }).join('');
     }
   })
   .catch(() => {});

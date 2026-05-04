@@ -323,3 +323,41 @@ async def algo_update_config(body: AlgoConfigUpdate):
         execution_tf=body.execution_tf,
     )
     return {"success": True, "config": status}
+
+
+@app.get("/algo/trades", dependencies=[Depends(verify_api_key)])
+async def algo_trades():
+    """
+    Return all trades executed by the algo strategy.
+    Pulls from MT5 trade history filtered by ALGO:OB comment.
+    Also includes in-memory signal_log entries for current session.
+    """
+    # From MT5 history (persistent across restarts)
+    mt5_trades = mt5_bridge.get_trade_history(limit=200)
+    algo_mt5 = [t for t in mt5_trades if "ALGO:OB" in str(t.get("comment", ""))]
+
+    # From in-memory signal log (current session)
+    algo_mem = [s for s in state.signal_log if str(s.get("source", "")).startswith("ALGO:")]
+
+    # Merge — MT5 history is authoritative, memory fills in current session
+    mt5_tickets = {t.get("ticket") for t in algo_mt5}
+    for s in algo_mem:
+        if s.get("ticket") not in mt5_tickets:
+            algo_mt5.insert(0, s)
+
+    # Stats
+    total = len(algo_mt5)
+    wins = len([t for t in algo_mt5 if t.get("pnl", 0) > 0 or t.get("status") == "win"])
+    losses = len([t for t in algo_mt5 if t.get("pnl", 0) < 0 or t.get("status") == "loss"])
+    total_pnl = sum(float(t.get("pnl", 0)) for t in algo_mt5)
+
+    return {
+        "trades": algo_mt5,
+        "stats": {
+            "total": total,
+            "wins": wins,
+            "losses": losses,
+            "win_rate": round(wins / total * 100, 1) if total > 0 else 0,
+            "total_pnl": round(total_pnl, 2),
+        }
+    }
