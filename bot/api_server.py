@@ -138,8 +138,10 @@ async def get_signals():
 
 @app.get("/settings", dependencies=[Depends(verify_api_key)])
 async def get_settings():
+    # Use state.channels if populated, otherwise fall back to config
+    channels = state.channels if state.channels else list(config.TG_CHANNELS)
     return {
-        "channels": state.channels,
+        "channels": channels,
         "risk": {
             "risk_percent": state.risk_percent,
             "reward_ratio": state.reward_ratio,
@@ -185,9 +187,11 @@ async def update_settings(body: SettingsUpdate):
 @app.post("/channels", dependencies=[Depends(verify_api_key)])
 async def add_channel(body: ChannelRequest):
     ch = body.channel.strip()
+    # Ensure state.channels is populated from config first
+    if not state.channels:
+        state.channels = list(config.TG_CHANNELS)
     if ch not in state.channels:
         state.channels.append(ch)
-        # Persist to bot/.env so it survives restarts
         _persist_channels()
     return {"success": True, "channels": state.channels}
 
@@ -195,6 +199,8 @@ async def add_channel(body: ChannelRequest):
 @app.delete("/channels", dependencies=[Depends(verify_api_key)])
 async def remove_channel(body: ChannelRequest):
     ch = body.channel.strip()
+    if not state.channels:
+        state.channels = list(config.TG_CHANNELS)
     if ch in state.channels:
         state.channels.remove(ch)
         _persist_channels()
