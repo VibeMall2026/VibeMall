@@ -2134,6 +2134,26 @@ body.vm-mini-cart-open {
   min-height: 500px;
   overflow: hidden;
 }
+
+/* Carousel track and slide must fill the hero height */
+.vm-copy-hero--carousel,
+.vm-copy-hero__track,
+.vm-copy-hero__slide {
+  height: 100%;
+  width: 100%;
+}
+
+.vm-copy-hero__track {
+  display: flex;
+  position: relative;
+}
+
+.vm-copy-hero__slide {
+  flex: 0 0 100%;
+  position: relative;
+  overflow: hidden;
+}
+
 .vm-copy-hero img { width: 100%; height: 100%; object-fit: cover; }
 .vm-copy-hero-overlay {
   position: absolute;
