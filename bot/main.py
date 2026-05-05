@@ -30,13 +30,17 @@ def start_api_server() -> None:
 
 async def start_bot() -> None:
     """Connect MT5 and start Telegram listener."""
-    # Connect MT5
-    logger.info("Connecting to MT5...")
-    if mt5_bridge.connect():
-        state.mt5_connected = True
-        logger.success("MT5 connected.")
+    # Connect MT5 (only if not already connected)
+    if not mt5_bridge.is_connected():
+        logger.info("Connecting to MT5...")
+        if mt5_bridge.connect():
+            state.mt5_connected = True
+            logger.success("MT5 connected.")
+        else:
+            logger.warning("MT5 not connected — running without trade execution.")
     else:
-        logger.warning("MT5 not connected — running without trade execution.")
+        state.mt5_connected = True
+        logger.info("MT5 already connected.")
 
     # Start Telegram listener
     logger.info("Starting Telegram listener...")
@@ -63,7 +67,8 @@ def main() -> None:
     logger.info("=" * 60)
 
     # Kill any process holding the port before starting
-    import subprocess, re
+    import subprocess
+    import time
     try:
         result = subprocess.run(["netstat", "-ano"], capture_output=True, text=True)
         for line in result.stdout.splitlines():
@@ -73,7 +78,7 @@ def main() -> None:
                 if pid.isdigit() and int(pid) != os.getpid():
                     subprocess.run(["taskkill", "/F", "/PID", pid], capture_output=True)
                     logger.info(f"Freed port {config.API_PORT} (killed PID {pid})")
-                    import time; time.sleep(1)
+                    time.sleep(2)  # Wait longer for OS to release the port
     except Exception:
         pass
 
@@ -83,8 +88,9 @@ def main() -> None:
         _state.channels = list(config.TG_CHANNELS)
 
     # Start API server in background thread
-    api_thread = threading.Thread(target=start_api_server, daemon=True)
+    api_thread = threading.Thread(target=start_api_server, daemon=True, name="APIServer")
     api_thread.start()
+    time.sleep(1)  # Give uvicorn time to bind before proceeding
     logger.info(f"API server started on port {config.API_PORT}")
 
     # Start algo strategy thread (scan-only by default, enable via API)
