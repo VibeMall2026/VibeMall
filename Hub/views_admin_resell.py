@@ -1014,6 +1014,10 @@ def admin_approve_payout(request, payout_id):
         messages.error(request, 'Unable to approve payout right now. Please try again.')
     
     return redirect('/admin-panel/resell/payouts/?view=completed')
+
+
+@staff_member_required
+def admin_reject_payout(request, payout_id):
     """
     Reject a payout transaction and release earnings for re-payout
     POST /admin-panel/resell/payouts/<id>/reject/
@@ -1041,13 +1045,13 @@ def admin_approve_payout(request, payout_id):
                 status__in=['CONFIRMED', 'PENDING']
             ).update(payout_transaction=None)
 
-            messages.success(request, f'Payout rejected. Earnings released for re-payout.')
+            messages.success(request, 'Payout rejected. Earnings released for re-payout.')
     except PayoutTransaction.DoesNotExist:
         messages.error(request, 'Payout transaction not found.')
     except Exception:
         logger.exception('Failed to reject payout. payout_id=%s', payout_id)
         messages.error(request, 'Unable to reject payout right now. Please try again.')
-    
+
     return redirect('/admin-panel/resell/payouts/?view=completed')
 
 
