@@ -277,7 +277,7 @@
             <td>{{ t.sl|default:"-" }}</td>
             <td>{{ t.tp|default:"-" }}</td>
             <td>{{ t.rr|default:"-" }}</td>
-            <td class="{% if t.pnl >= 0 %}pnl-pos{% else %}pnl-neg{% endif %}">
+            <td class="{% if t.pnl > 0 %}pnl-pos{% elif t.pnl < 0 %}pnl-neg{% endif %}">
               {{ t.pnl|default:"-" }}
             </td>
             <td>

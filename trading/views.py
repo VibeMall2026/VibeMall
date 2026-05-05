@@ -113,7 +113,7 @@ def dashboard(request):
         'win_rate': performance.get('win_rate', 0),
         'total_pnl': performance.get('total_pnl', performance.get('pnl', 0)),
         'open_trades': open_trades,
-        'recent_trades': trades[:20],
+        'recent_trades': trades[:50],
         'recent_signals': signals[:20],
     }
     return render(request, 'trading/dashboard.html', context)

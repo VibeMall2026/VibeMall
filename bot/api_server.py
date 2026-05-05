@@ -128,7 +128,7 @@ async def get_open_trades():
 
 @app.get("/trades", dependencies=[Depends(verify_api_key)])
 async def get_trades():
-    return mt5_bridge.get_trade_history(limit=50)
+    return mt5_bridge.get_trade_history(limit=100)
 
 
 @app.get("/signals", dependencies=[Depends(verify_api_key)])

@@ -234,8 +234,9 @@ def get_trade_history(limit: int = 50) -> list[dict]:
     if not MT5_AVAILABLE or not is_connected():
         return []
     from datetime import datetime, timedelta, timezone
-    # Use UTC to avoid timezone mismatch with MT5 server time
-    now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+    # Use UTC+0 naive datetime — MT5 history_deals_get expects naive UTC
+    # Add a 1-hour buffer to ensure very recent trades are not missed
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=1)
     from_date = now_utc - timedelta(days=60)
     deals = mt5.history_deals_get(from_date, now_utc)
     if not deals:
