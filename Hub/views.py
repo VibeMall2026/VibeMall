@@ -6451,9 +6451,8 @@ def checkout_confirm(request):
                     user=request.user
                 ).exists()
                 if not already_used:
-                    # Calculate discount
-                    cart_total = subtotal + tax + shipping_cost
-                    coupon_discount = Decimal(str(applied_coupon.get_discount_amount(float(cart_total))))
+                    # Calculate discount on subtotal only (before tax and shipping)
+                    coupon_discount = Decimal(str(applied_coupon.get_discount_amount(float(subtotal))))
         except Coupon.DoesNotExist:
             applied_coupon = None
 
@@ -8369,8 +8368,11 @@ def vote_review(request, review_id):
 @login_required(login_url='login')
 @require_POST
 def mobile_review_prompt_dismiss(request):
-    """Dismiss mobile delivered-order review prompt — count persists across logins."""
-    _increment_review_prompt_count(request.user, request)
+    """Dismiss mobile delivered-order review prompt."""
+    # Clear the session flag so the banner can show again next session (up to max count)
+    session_key = f'review_prompt_shown_session_{request.user.id}'
+    request.session.pop(session_key, None)
+    request.session.modified = True
     return JsonResponse({'success': True})
 
 
@@ -8392,9 +8394,8 @@ def mobile_review_prompt_submit(request, product_id):
     if not delivered_match:
         return JsonResponse({'success': False, 'message': 'This review is only available for delivered products.'}, status=403)
 
-    # Prevent duplicate review submissions from this prompt and count the prompt display.
+    # Prevent duplicate review submissions from this prompt.
     if ProductReview.objects.filter(product=product, user=request.user).exists():
-        _increment_review_prompt_count(request.user, request)
         return JsonResponse({'success': True, 'message': 'Review already submitted for this product.'})
 
     raw_rating = request.POST.get('rating', '5')
@@ -8421,7 +8422,10 @@ def mobile_review_prompt_submit(request, product_id):
         is_verified_purchase=True,
     )
 
-    _increment_review_prompt_count(request.user, request)
+    # Clear the session flag so the banner can show again next session (up to max count)
+    session_key = f'review_prompt_shown_session_{request.user.id}'
+    request.session.pop(session_key, None)
+    request.session.modified = True
 
     product.refresh_from_db(fields=['review_count', 'rating'])
     return JsonResponse({
@@ -12876,7 +12880,7 @@ def get_available_coupons(request):
                     'type': 'FIRST_ORDER'
                 })
         
-        # 2. Spend 5K Coupon (15%)
+        # 2. Spend 5K Coupon (5%)
         tracker, _ = UserSpendTracker.objects.get_or_create(user=user)
         
         if tracker.can_earn_5k_coupon():
@@ -12891,7 +12895,7 @@ def get_available_coupons(request):
                     'discount_type': 'PERCENTAGE',
                     'discount_value': 5,
                     'min_purchase_amount': 0,
-                    'max_discount_amount': 250,  # Max ₹250 discount
+                    'max_discount_amount': 250,
                     'usage_per_user': 1,
                     'valid_from': timezone.now(),
                     'valid_to': timezone.now() + timedelta(days=30),
@@ -12913,7 +12917,44 @@ def get_available_coupons(request):
                 'type': 'SPEND_5K',
                 'spent_amount': float(tracker.current_cycle_spent)
             })
-        
+
+        # 3. Manual coupons created by admin
+        already_shown_codes = {c['code'] for c in available_coupons}
+        manual_coupons = Coupon.objects.filter(
+            coupon_type='MANUAL',
+            is_active=True,
+        ).exclude(code__in=already_shown_codes)
+
+        for coupon in manual_coupons:
+            if not coupon.is_valid():
+                continue
+            # Skip if user already used it
+            if CouponUsage.objects.filter(coupon=coupon, user=user).exists():
+                continue
+            # Skip if usage limit reached
+            if coupon.usage_limit and CouponUsage.objects.filter(coupon=coupon).count() >= coupon.usage_limit:
+                continue
+            # Skip if cart doesn't meet minimum purchase
+            if cart_total < float(coupon.min_purchase_amount):
+                continue
+
+            discount_amount = coupon.get_discount_amount(cart_total)
+            if coupon.discount_type == 'PERCENTAGE':
+                discount_label = f"{coupon.discount_value}% OFF"
+            else:
+                discount_label = f"₹{coupon.discount_value} OFF"
+
+            available_coupons.append({
+                'code': coupon.code,
+                'title': coupon.description or f'{discount_label} Coupon',
+                'description': coupon.description,
+                'discount': discount_label,
+                'discount_amount': float(discount_amount),
+                'min_purchase': float(coupon.min_purchase_amount),
+                'used': False,
+                'type': 'MANUAL',
+            })
+
         return JsonResponse({
             'success': True,
             'coupons': available_coupons,

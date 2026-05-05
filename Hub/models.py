@@ -5,6 +5,9 @@ from django.utils import timezone
 from decimal import Decimal
 from typing import Optional, Dict, Any, List
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Import comprehensive feature models
 from .models_customer_insights import *
@@ -15,6 +18,68 @@ from .models_content_management import *
 from .models_performance_optimization import *
 from .models_ai_ml_features import *
 from .models_activation_tracking import *
+
+
+def _compress_image_field(instance, field_name, max_width=1200, quality=82):
+    """
+    Compress and resize an ImageField on a model instance in-place.
+    Skips if the field is empty, file doesn't exist, or PIL is unavailable.
+    Only processes JPEG/PNG. Converts PNG without transparency to JPEG.
+    """
+    try:
+        from PIL import Image
+        import io
+        from django.core.files.base import ContentFile
+
+        field = getattr(instance, field_name, None)
+        if not field or not field.name:
+            return
+
+        try:
+            field.open('rb')
+            img = Image.open(field)
+            img.load()
+            field.close()
+        except Exception:
+            return
+
+        # Only process raster images
+        if img.format not in ('JPEG', 'PNG', 'WEBP'):
+            return
+
+        # Skip if already small enough
+        if img.width <= max_width:
+            return
+
+        # Resize maintaining aspect ratio
+        ratio = max_width / img.width
+        new_height = int(img.height * ratio)
+        img = img.resize((max_width, new_height), Image.LANCZOS)
+
+        # Determine output format
+        has_transparency = img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info)
+        output_format = 'PNG' if has_transparency else 'JPEG'
+        if output_format == 'JPEG' and img.mode != 'RGB':
+            img = img.convert('RGB')
+
+        buffer = io.BytesIO()
+        save_kwargs = {'format': output_format, 'optimize': True}
+        if output_format == 'JPEG':
+            save_kwargs['quality'] = quality
+        img.save(buffer, **save_kwargs)
+        buffer.seek(0)
+
+        # Preserve original filename, update extension if format changed
+        original_name = field.name.split('/')[-1]
+        if output_format == 'JPEG' and not original_name.lower().endswith(('.jpg', '.jpeg')):
+            original_name = original_name.rsplit('.', 1)[0] + '.jpg'
+
+        field.save(original_name, ContentFile(buffer.read()), save=False)
+        # Persist the new file reference without triggering full save() recursion
+        type(instance).objects.filter(pk=instance.pk).update(**{field_name: field.name})
+
+    except Exception as exc:
+        logger.warning('Image compression skipped for %s.%s: %s', type(instance).__name__, field_name, exc)
 
 class PasswordResetLog(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
@@ -370,7 +435,12 @@ class Product(models.Model):
                 counter += 1
             
             self.slug = slug
+
         super().save(*args, **kwargs)
+
+        # Compress main product image after save
+        _compress_image_field(self, 'image', max_width=1200, quality=82)
+        _compress_image_field(self, 'descriptionImage', max_width=1400, quality=80)
 
     @property
     def discount_percent_display(self):
@@ -444,6 +514,10 @@ class ProductImage(models.Model):
 
     def __str__(self):
         return f"{self.product.name} - {self.get_image_role_display()} {self.order}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        _compress_image_field(self, 'image', max_width=1200, quality=82)
 
 
 class ProductStockNotification(models.Model):

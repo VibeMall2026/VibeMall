@@ -318,7 +318,7 @@ def admin_panel_context(request):
 
 def mobile_review_prompt_context(request):
     """Provide after-delivery review prompt context for delivered products.
-    The prompt can show up to two times across the active session.
+    The prompt can show up to two times total (persists across logins).
     """
     context = {
         'mobile_review_prompt': None,
@@ -333,7 +333,7 @@ def mobile_review_prompt_context(request):
         return context
 
     # Show at most twice across all logins (persistent counter).
-    from Hub.views import _get_review_prompt_count, MOBILE_REVIEW_PROMPT_MAX_SHOWN
+    from Hub.views import _get_review_prompt_count, _increment_review_prompt_count, MOBILE_REVIEW_PROMPT_MAX_SHOWN
     if _get_review_prompt_count(user) >= MOBILE_REVIEW_PROMPT_MAX_SHOWN:
         return context
 
@@ -361,6 +361,13 @@ def mobile_review_prompt_context(request):
             image_url = product.image.url
     except Exception:
         image_url = ''
+
+    # Increment count when banner is shown (only once per session to avoid double-counting on page refreshes)
+    session_key = f'review_prompt_shown_session_{user.id}'
+    if not request.session.get(session_key):
+        _increment_review_prompt_count(user, request)
+        request.session[session_key] = True
+        request.session.modified = True
 
     context['mobile_review_prompt'] = {
         'product_id': product.id,
