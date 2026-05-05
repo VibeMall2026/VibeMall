@@ -92,8 +92,27 @@ async def get_status():
 async def get_stats():
     account = mt5_bridge.get_account_info()
     open_pos = mt5_bridge.get_open_positions()
-    total_trades = state.daily_wins + state.daily_losses
-    win_rate = (state.daily_wins / total_trades * 100) if total_trades > 0 else 0.0
+
+    # Calculate stats from actual MT5 trade history (not in-memory counters)
+    # This ensures stats are correct even after bot restarts
+    trades = mt5_bridge.get_trade_history(limit=500)
+
+    from datetime import datetime, timezone, date
+    today = datetime.now(timezone.utc).date()
+
+    total_wins = sum(1 for t in trades if t.get('status') == 'win')
+    total_losses = sum(1 for t in trades if t.get('status') == 'loss')
+    total_pnl = sum(float(t.get('pnl', 0)) for t in trades)
+    total_trades = total_wins + total_losses
+
+    # Today's stats — filter by today's date
+    today_trades = [t for t in trades if t.get('opened', '').startswith(str(today))]
+    today_wins = sum(1 for t in today_trades if t.get('status') == 'win')
+    today_losses = sum(1 for t in today_trades if t.get('status') == 'loss')
+    today_pnl = sum(float(t.get('pnl', 0)) for t in today_trades)
+    today_total = today_wins + today_losses
+
+    win_rate = (total_wins / total_trades * 100) if total_trades > 0 else 0.0
 
     return {
         "bot": {
@@ -107,16 +126,16 @@ async def get_stats():
             "open": len(open_pos),
         },
         "performance": {
-            "winning_trades": state.daily_wins,
-            "losing_trades": state.daily_losses,
+            "winning_trades": total_wins,
+            "losing_trades": total_losses,
             "win_rate": round(win_rate, 2),
-            "total_pnl": round(state.daily_net_pnl, 2),
+            "total_pnl": round(total_pnl, 2),
         },
         "daily": {
-            "wins": state.daily_wins,
-            "losses": state.daily_losses,
-            "trades_count": total_trades,
-            "net_pnl": round(state.daily_net_pnl, 2),
+            "wins": today_wins,
+            "losses": today_losses,
+            "trades_count": today_total,
+            "net_pnl": round(today_pnl, 2),
         },
     }
 
