@@ -398,8 +398,19 @@ def run_backtest(
     cerebro = bt.Cerebro()
 
     # ── Data feed ─────────────────────────────────────────────────────────────
+    # Pre-process CSV to strip timezone info from datetime column
+    import pandas as pd
+    import tempfile, os
+    df = pd.read_csv(csv_file)
+    dt_col = df.columns[0]
+    df[dt_col] = pd.to_datetime(df[dt_col]).dt.tz_localize(None).astype(str)
+    # Write cleaned CSV to temp file
+    tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False)
+    df.to_csv(tmp.name, index=False)
+    tmp.close()
+
     data = bt.feeds.GenericCSVData(
-        dataname=csv_file,
+        dataname=tmp.name,
         dtformat='%Y-%m-%d %H:%M:%S',
         datetime=0,
         open=1,
@@ -409,7 +420,7 @@ def run_backtest(
         volume=5,
         openinterest=-1,
         timeframe=bt.TimeFrame.Minutes,
-        compression=60,   # 1-hour bars
+        compression=60,
     )
     cerebro.adddata(data)
 
@@ -460,6 +471,12 @@ def run_backtest(
 
     if plot:
         cerebro.plot(style='candlestick', barup='green', bardown='red')
+
+    # Cleanup temp file
+    try:
+        os.unlink(tmp.name)
+    except Exception:
+        pass
 
     return results
 
