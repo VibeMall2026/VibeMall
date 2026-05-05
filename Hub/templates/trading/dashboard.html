@@ -25,6 +25,23 @@
 {% endblock %}
 
 {% block content %}
+<!-- API Unreachable Banner -->
+{% if not api_reachable %}
+<div class="alert alert-danger d-flex align-items-start gap-3 mb-4" role="alert" style="background:#3d1f1f;border:1px solid #ea5455;border-radius:10px;">
+  <i class="bx bx-wifi-off fs-4 mt-1" style="color:#ea5455;flex-shrink:0;"></i>
+  <div>
+    <strong style="color:#ea5455;">Bot API Unreachable</strong>
+    <div style="color:#cdd0d6;font-size:.875rem;margin-top:4px;">
+      {{ api_error }}
+    </div>
+    <div style="color:#a8aaae;font-size:.8rem;margin-top:6px;">
+      <strong>Fix:</strong> Run <code>ssh_tunnel.bat</code> on your Windows PC to restore the SSH tunnel
+      (<code>{{ bot_api_url }}</code>). The bot may still be executing trades — this only affects the dashboard display.
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <!-- Page header -->
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
   <div>

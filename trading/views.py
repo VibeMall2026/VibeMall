@@ -1,9 +1,12 @@
+import logging
 import os
 import requests
 from django.shortcuts import render
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
+
+logger = logging.getLogger(__name__)
 
 BOT_API = os.environ.get('BOT_API_URL', 'http://127.0.0.1:8001')
 API_KEY = os.environ.get('BOT_API_KEY', 'Paladiya@2023')
@@ -14,12 +17,35 @@ TIMEOUT = 5
 def _get(endpoint, default=None):
     if default is None:
         default = {}
+    url = f"{BOT_API}{endpoint}"
     try:
-        resp = requests.get(f"{BOT_API}{endpoint}", headers=HEADERS, timeout=TIMEOUT)
+        resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
         resp.raise_for_status()
         return resp.json()
-    except Exception:
+    except requests.exceptions.ConnectionError as exc:
+        logger.error("Bot API unreachable at %s — %s", url, exc)
         return default
+    except requests.exceptions.Timeout:
+        logger.error("Bot API timed out at %s", url)
+        return default
+    except Exception as exc:
+        logger.error("Bot API error at %s — %s", url, exc)
+        return default
+
+
+def _check_api_health():
+    """Return (reachable: bool, error_msg: str|None)."""
+    url = f"{BOT_API}/health"
+    try:
+        resp = requests.get(url, timeout=TIMEOUT)
+        resp.raise_for_status()
+        return True, None
+    except requests.exceptions.ConnectionError:
+        return False, f"Cannot connect to Bot API at {BOT_API} — is the SSH tunnel running?"
+    except requests.exceptions.Timeout:
+        return False, f"Bot API timed out at {BOT_API}"
+    except Exception as exc:
+        return False, str(exc)
 
 
 def _post(endpoint, json=None):
@@ -42,12 +68,18 @@ def _put(endpoint, json=None):
 
 @staff_member_required
 def dashboard(request):
-    health = _get('/health', {})
-    status = _get('/status', {})
-    open_trades_resp = _get('/open-trades', {'items': []})
-    trades_resp = _get('/trades', {'items': []})
-    stats = _get('/stats', {})
-    signals_resp = _get('/signals', {'items': []})
+    api_reachable, api_error_msg = _check_api_health()
+
+    if api_reachable:
+        health = _get('/health', {})
+        status = _get('/status', {})
+        open_trades_resp = _get('/open-trades', {'items': []})
+        trades_resp = _get('/trades', {'items': []})
+        stats = _get('/stats', {})
+        signals_resp = _get('/signals', {'items': []})
+    else:
+        health = status = stats = {}
+        open_trades_resp = trades_resp = signals_resp = {'items': []}
 
     # TelegramCopier returns ListResponse with 'items' key
     open_trades = open_trades_resp if isinstance(open_trades_resp, list) else open_trades_resp.get('items', [])
@@ -62,6 +94,9 @@ def dashboard(request):
     daily = stats.get('daily', {})
 
     context = {
+        'api_reachable': api_reachable,
+        'api_error': api_error_msg,
+        'bot_api_url': BOT_API,
         'bot_running': health.get('running', False),
         'mt5_connected': health.get('mt5_connected', False),
         'telegram_connected': health.get('telegram_connected', False),
@@ -86,14 +121,18 @@ def dashboard(request):
 
 @staff_member_required
 def settings_page(request):
-    settings_data = _get('/settings', {})
-    health = _get('/health', {})
+    api_reachable, api_error_msg = _check_api_health()
+    settings_data = _get('/settings', {}) if api_reachable else {}
+    health = _get('/health', {}) if api_reachable else {}
 
     channels = settings_data.get('channels', [])
     risk = settings_data.get('risk', {})
     validation = settings_data.get('validation', {})
 
     context = {
+        'api_reachable': api_reachable,
+        'api_error': api_error_msg,
+        'bot_api_url': BOT_API,
         'bot_running': health.get('running', False),
         'mt5_connected': health.get('mt5_connected', False),
         'telegram_connected': health.get('telegram_connected', False),
@@ -202,7 +241,12 @@ def parse_signal(request):
 @staff_member_required
 def algo_dashboard(request):
     """Algo strategy dashboard — Order Block + FVG."""
-    return render(request, 'trading/algo_dashboard.html')
+    api_reachable, api_error_msg = _check_api_health()
+    return render(request, 'trading/algo_dashboard.html', {
+        'api_reachable': api_reachable,
+        'api_error': api_error_msg,
+        'bot_api_url': BOT_API,
+    })
 
 
 @staff_member_required
