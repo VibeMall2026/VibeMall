@@ -332,8 +332,9 @@ def mobile_review_prompt_context(request):
     if request.path.startswith('/admin-panel/'):
         return context
 
-    # Show at most twice across the active session.
-    if request.session.get(MOBILE_REVIEW_PROMPT_SESSION_KEY, 0) >= MOBILE_REVIEW_PROMPT_MAX_SHOWN:
+    # Show at most twice across all logins (persistent counter).
+    from Hub.views import _get_review_prompt_count, MOBILE_REVIEW_PROMPT_MAX_SHOWN
+    if _get_review_prompt_count(user) >= MOBILE_REVIEW_PROMPT_MAX_SHOWN:
         return context
 
     delivered_items = (

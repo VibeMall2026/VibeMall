@@ -59,6 +59,29 @@ NON_RETURNABLE_CATEGORIES = set()
 MOBILE_REVIEW_PROMPT_SESSION_KEY = 'mobile_review_prompt_seen_count'
 MOBILE_REVIEW_PROMPT_MAX_SHOWN = 2
 
+
+def _get_review_prompt_count(user):
+    """Get how many times the review prompt has been shown to this user (persists across logins)."""
+    cache_key = f'review_prompt_count_u{user.id}'
+    val = cache.get(cache_key)
+    if val is None:
+        # Fall back to session-based count for backward compat (first login after deploy)
+        val = 0
+    return int(val)
+
+
+def _increment_review_prompt_count(user, request):
+    """Increment the persistent review prompt count for this user."""
+    cache_key = f'review_prompt_count_u{user.id}'
+    current = _get_review_prompt_count(user)
+    new_count = min(current + 1, MOBILE_REVIEW_PROMPT_MAX_SHOWN)
+    # Store for 1 year (365 days)
+    cache.set(cache_key, new_count, 60 * 60 * 24 * 365)
+    # Also keep session in sync
+    request.session[MOBILE_REVIEW_PROMPT_SESSION_KEY] = new_count
+    request.session.modified = True
+    return new_count
+
 RETURN_STATUS_FLOW = {
     'REQUESTED': ['APPROVED', 'REJECTED', 'CANCELLED'],
     'APPROVED': ['PICKUP_SCHEDULED'],
@@ -8346,17 +8369,15 @@ def vote_review(request, review_id):
 @login_required(login_url='login')
 @require_POST
 def mobile_review_prompt_dismiss(request):
-    """Dismiss mobile delivered-order review prompt for the active login session."""
-    current_count = request.session.get(MOBILE_REVIEW_PROMPT_SESSION_KEY, 0) + 1
-    request.session[MOBILE_REVIEW_PROMPT_SESSION_KEY] = min(current_count, MOBILE_REVIEW_PROMPT_MAX_SHOWN)
-    request.session.modified = True
+    """Dismiss mobile delivered-order review prompt — count persists across logins."""
+    _increment_review_prompt_count(request.user, request)
     return JsonResponse({'success': True})
 
 
 @login_required(login_url='login')
 @require_POST
 def mobile_review_prompt_submit(request, product_id):
-    """Submit quick mobile review for delivered product and count the prompt display for session."""
+    """Submit quick mobile review for delivered product — count persists across logins."""
     try:
         product = Product.objects.get(id=product_id, is_active=True)
     except Product.DoesNotExist:
@@ -8373,9 +8394,7 @@ def mobile_review_prompt_submit(request, product_id):
 
     # Prevent duplicate review submissions from this prompt and count the prompt display.
     if ProductReview.objects.filter(product=product, user=request.user).exists():
-        current_count = request.session.get(MOBILE_REVIEW_PROMPT_SESSION_KEY, 0) + 1
-        request.session[MOBILE_REVIEW_PROMPT_SESSION_KEY] = min(current_count, MOBILE_REVIEW_PROMPT_MAX_SHOWN)
-        request.session.modified = True
+        _increment_review_prompt_count(request.user, request)
         return JsonResponse({'success': True, 'message': 'Review already submitted for this product.'})
 
     raw_rating = request.POST.get('rating', '5')
@@ -8402,9 +8421,7 @@ def mobile_review_prompt_submit(request, product_id):
         is_verified_purchase=True,
     )
 
-    current_count = request.session.get(MOBILE_REVIEW_PROMPT_SESSION_KEY, 0) + 1
-    request.session[MOBILE_REVIEW_PROMPT_SESSION_KEY] = min(current_count, MOBILE_REVIEW_PROMPT_MAX_SHOWN)
-    request.session.modified = True
+    _increment_review_prompt_count(request.user, request)
 
     product.refresh_from_db(fields=['review_count', 'rating'])
     return JsonResponse({
@@ -10786,11 +10803,11 @@ def order_details(request, order_number):
         cancel_request = getattr(order, 'cancellation_request', None)
         cancel_eligible, cancel_reason, cancel_deadline = _cancel_eligibility(order)
 
-        # Review prompt: show only for delivered orders, max 2 times per session
+        # Review prompt: show only for delivered orders, max 2 times (persists across logins)
         show_review_prompt = False
         review_prompt_product = None
         if order.order_status == 'DELIVERED':
-            seen_count = request.session.get(MOBILE_REVIEW_PROMPT_SESSION_KEY, 0)
+            seen_count = _get_review_prompt_count(request.user)
             if seen_count < MOBILE_REVIEW_PROMPT_MAX_SHOWN:
                 # Pick first unreviewed product from this order
                 for item in order_items:
