@@ -69,11 +69,11 @@ class EMAPullbackStrategy(bt.Strategy):
         rr_breakeven=1.0,
         rr_lock=2.0,
         trail_atr_mult=1.0,
-        sl_atr_mult=1.5,
-        pullback_atr=2.0,           # relaxed from 1.5
-        rsi_buy_max=45,             # relaxed from 40
-        rsi_sell_min=55,            # relaxed from 60
-        cooldown_bars=3,            # reduced from 5
+        sl_atr_mult=2.0,            # wider SL from 1.5
+        pullback_atr=2.5,           # wider pullback zone
+        rsi_buy_max=45,
+        rsi_sell_min=55,
+        cooldown_bars=5,            # more cooldown to avoid overtrading
         daily_profit_limit=50.0,
         max_drawdown_pct=0.10,
         spread_pips=2,
