@@ -250,12 +250,12 @@ def get_trade_history(limit: int = 50) -> list[dict]:
 
     result = []
     for d in sorted(deals, key=lambda x: x.time, reverse=True):
-        # Only show exit/close deals which have PnL
-        if d.entry != mt5.DEAL_ENTRY_OUT:
+        # Show exit/close deals — DEAL_ENTRY_OUT (normal close) and DEAL_ENTRY_OUT_BY (hedge close)
+        if d.entry not in (mt5.DEAL_ENTRY_OUT, mt5.DEAL_ENTRY_OUT_BY):
             continue
 
-        # Get comment from opening deal via position_id
-        comment = position_comments.get(d.position_id, d.comment or "")
+        # Get comment from opening deal via position_id, fallback to closing deal comment
+        comment = position_comments.get(d.position_id, "") or d.comment or ""
 
         # Determine source and channel
         if "ALGO:OB" in comment:
