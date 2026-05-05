@@ -472,9 +472,11 @@ if __name__ == '__main__':
     import sys
 
     csv = sys.argv[1] if len(sys.argv) > 1 else 'EURUSD_H1.csv'
+    # Pass --no-plot to disable chart (required on headless VPS)
+    plot = '--no-plot' not in sys.argv
     run_backtest(
         csv_file=csv,
         initial_cash=10_000.0,
         commission=0.00005,
-        plot=True,
+        plot=plot,
     )
