@@ -234,11 +234,11 @@ def get_trade_history(limit: int = 50) -> list[dict]:
     if not MT5_AVAILABLE or not is_connected():
         return []
     from datetime import datetime, timedelta, timezone
-    # Use fixed wide range: from 60 days ago to far future
-    # Avoids ALL timezone/broker-time calculation issues
-    from_date = datetime(2020, 1, 1)   # far past — covers everything
-    now_utc = datetime(2030, 1, 1)     # far future — covers everything
-    deals = mt5.history_deals_get(from_date, now_utc)
+
+    # Use fixed wide range to avoid ALL timezone/broker-time issues
+    from_date = datetime(2020, 1, 1)
+    to_date = datetime(2030, 1, 1)
+    deals = mt5.history_deals_get(from_date, to_date)
     if not deals:
         return []
 
