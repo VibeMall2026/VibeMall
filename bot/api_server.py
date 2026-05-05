@@ -328,7 +328,10 @@ class AlgoConfigUpdate(BaseModel):
 @app.get("/algo/status", dependencies=[Depends(verify_api_key)])
 async def algo_status():
     """Get current algo strategy status and active order blocks."""
-    return get_algo_status()
+    status = get_algo_status()
+    from bot.algo.order_block import get_risk_status
+    status["risk"] = get_risk_status()
+    return status
 
 
 @app.post("/algo/start", dependencies=[Depends(verify_api_key)])

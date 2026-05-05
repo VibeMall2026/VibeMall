@@ -72,11 +72,106 @@ class AlgoConfig:
     atr_min_multiplier: float = 0.5     # min ATR as fraction of avg ATR
     max_active_obs: int = 5             # max order blocks tracked at once
     scan_interval_seconds: int = 60     # how often to scan for new setups
-    enabled: bool = True               # True = live trading on by default
+    enabled: bool = True                # True = live trading on by default
+
+    # ── Risk Management ───────────────────────────────────────────────────────
+    daily_profit_limit: float = 50.0    # Stop trading if daily profit >= $50
+    daily_loss_limit: float = 50.0      # Stop trading if daily loss >= $50
+    max_drawdown_pct: float = 0.10      # Stop trading if drawdown >= 10%
+    rr_breakeven: float = 1.0           # Move SL to breakeven at +1R
+    rr_lock_profit: float = 2.0         # Lock +1R profit at +2R
+    trail_atr_mult: float = 1.0         # ATR multiplier for trailing stop beyond +2R
 
 
 # Global config instance
 algo_config = AlgoConfig()
+
+# ── Daily Risk Tracking ───────────────────────────────────────────────────────
+from datetime import date as _date
+
+_daily_pnl: float = 0.0
+_daily_date: _date = _date.today()
+_peak_equity: float = 0.0
+_dd_halted: bool = False          # permanent halt on max drawdown
+_daily_halted: bool = False       # daily halt on profit/loss limit
+
+
+def _reset_daily_if_needed() -> None:
+    """Reset daily counters at start of new day."""
+    global _daily_pnl, _daily_date, _daily_halted
+    today = _date.today()
+    if _daily_date != today:
+        _daily_date = today
+        _daily_pnl = 0.0
+        _daily_halted = False
+        logger.info("[ALGO] Daily counters reset for new day")
+
+
+def record_trade_pnl(pnl: float) -> None:
+    """Call this after each trade closes to update daily PnL tracking."""
+    global _daily_pnl, _daily_halted
+    _reset_daily_if_needed()
+    _daily_pnl += pnl
+    logger.info(f"[ALGO] Daily PnL updated: {_daily_pnl:.2f}")
+
+    if _daily_pnl >= algo_config.daily_profit_limit:
+        _daily_halted = True
+        logger.warning(f"[ALGO] ✅ Daily profit limit ${algo_config.daily_profit_limit} reached — halting for today")
+    elif _daily_pnl <= -algo_config.daily_loss_limit:
+        _daily_halted = True
+        logger.warning(f"[ALGO] ⛔ Daily loss limit ${algo_config.daily_loss_limit} reached — halting for today")
+
+
+def check_drawdown() -> bool:
+    """Check if max drawdown exceeded. Returns True if trading should halt."""
+    global _peak_equity, _dd_halted
+    if _dd_halted:
+        return True
+    account = mt5_bridge.get_account_info()
+    equity = account.get('equity', 0)
+    if equity <= 0:
+        return False
+    if equity > _peak_equity:
+        _peak_equity = equity
+    if _peak_equity > 0:
+        drawdown = (_peak_equity - equity) / _peak_equity
+        if drawdown >= algo_config.max_drawdown_pct:
+            _dd_halted = True
+            logger.error(f"[ALGO] ⛔ Max drawdown {drawdown:.1%} exceeded — trading halted permanently")
+            return True
+    return False
+
+
+def can_trade() -> bool:
+    """Return True if risk rules allow a new trade."""
+    _reset_daily_if_needed()
+    if _dd_halted:
+        logger.debug("[ALGO] Trading halted: max drawdown exceeded")
+        return False
+    if _daily_halted:
+        logger.debug("[ALGO] Trading halted: daily profit/loss limit reached")
+        return False
+    return True
+
+
+def get_risk_status() -> dict:
+    """Return current risk management status."""
+    _reset_daily_if_needed()
+    account = mt5_bridge.get_account_info()
+    equity = account.get('equity', 0)
+    drawdown = (_peak_equity - equity) / _peak_equity if _peak_equity > 0 else 0.0
+    return {
+        "daily_pnl": round(_daily_pnl, 2),
+        "daily_profit_limit": algo_config.daily_profit_limit,
+        "daily_loss_limit": algo_config.daily_loss_limit,
+        "daily_halted": _daily_halted,
+        "dd_halted": _dd_halted,
+        "current_drawdown_pct": round(drawdown * 100, 2),
+        "max_drawdown_pct": algo_config.max_drawdown_pct * 100,
+        "peak_equity": round(_peak_equity, 2),
+        "can_trade": can_trade(),
+    }
+
 
 
 # ── Data structures ───────────────────────────────────────────────────────────
@@ -136,6 +231,11 @@ class OrderBlock:
     active: bool = True     # False once price enters zone
     trade_taken: bool = False
     ticket: Optional[int] = None
+    # R-multiple tracking fields
+    entry_price: float = 0.0
+    initial_sl: float = 0.0
+    one_r: float = 0.0
+    r_stage: int = 0        # 0=initial, 1=breakeven, 2=locked, 3=trailing
 
     @property
     def sl_level(self) -> float:
@@ -380,15 +480,28 @@ def _check_entry_signal(ob: OrderBlock, candles_exec: list[Candle]) -> Optional[
 # ── Trade execution ───────────────────────────────────────────────────────────
 
 def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
-    """Execute trade for confirmed Order Block setup."""
+    """Execute trade for confirmed Order Block setup with full risk management."""
+
+    # ── Risk management gate ──────────────────────────────────────────────────
+    if not can_trade():
+        logger.info("[ALGO] Trade blocked by risk management rules")
+        return False
+
+    if check_drawdown():
+        logger.info("[ALGO] Trade blocked: max drawdown exceeded")
+        return False
+
     sl = ob.sl_level
     tp = ob.tp_level(entry_price, algo_config.risk_reward_ratio)
     side = "buy" if ob.direction == "bullish" else "sell"
 
+    # 1R = distance between entry and stop loss
+    one_r = abs(entry_price - sl)
+
     logger.info(
         f"[ALGO] Order Block trade | {algo_config.symbol} {side.upper()} | "
         f"Entry: {entry_price:.5f} | SL: {sl:.5f} | TP: {tp:.5f} | "
-        f"OB zone: {ob.low:.5f}-{ob.high:.5f} | 50%: {ob.midpoint:.5f}"
+        f"1R: {one_r:.5f} | OB zone: {ob.low:.5f}-{ob.high:.5f} | 50%: {ob.midpoint:.5f}"
     )
 
     result = mt5_bridge.open_trade(
@@ -403,12 +516,15 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
     if result.get("success"):
         ob.trade_taken = True
         ob.ticket = result.get("ticket")
-        ob.active = False  # deactivate after trade
+        ob.active = False
+        ob.entry_price = entry_price
+        ob.initial_sl = sl
+        ob.one_r = one_r
+        ob.r_stage = 0  # 0=initial, 1=breakeven, 2=locked, 3=trailing
         logger.success(
             f"[ALGO] Trade opened | Ticket: {ob.ticket} | "
-            f"R:R 1:{algo_config.risk_reward_ratio}"
+            f"R:R 1:{algo_config.risk_reward_ratio} | 1R=${one_r:.5f}"
         )
-        # Log to state
         state.signal_log.insert(0, {
             "time": datetime.now().isoformat(),
             "symbol": algo_config.symbol,
@@ -416,6 +532,7 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
             "entry": entry_price,
             "sl": sl,
             "tp": tp,
+            "one_r": one_r,
             "status": "executed",
             "source": "ALGO:OrderBlock",
             "ob_id": ob.id,
@@ -426,20 +543,128 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
         return False
 
 
+def _manage_open_trade_risk(ob: OrderBlock) -> None:
+    """
+    R-Multiple trailing stop management for open trades.
+
+    Stage 0 → 1: At +1R → move SL to breakeven
+    Stage 1 → 2: At +2R → lock in +1R profit
+    Stage 2 → 3: Beyond +2R → trail by ATR × trail_atr_mult
+    """
+    if not ob.ticket or not hasattr(ob, 'one_r') or ob.one_r <= 0:
+        return
+
+    # Get current price
+    current_price = _get_current_price(algo_config.symbol)
+    if current_price is None:
+        return
+
+    side = "buy" if ob.direction == "bullish" else "sell"
+    entry = ob.entry_price
+    one_r = ob.one_r
+
+    if side == "buy":
+        profit_r = (current_price - entry) / one_r
+    else:
+        profit_r = (entry - current_price) / one_r
+
+    new_sl = None
+
+    if profit_r >= algo_config.rr_lock_profit and ob.r_stage < 2:
+        # +2R reached → lock in +1R profit
+        if side == "buy":
+            new_sl = entry + one_r
+        else:
+            new_sl = entry - one_r
+        ob.r_stage = 2
+        logger.info(f"[ALGO] +2R reached — locking +1R profit @ SL={new_sl:.5f}")
+
+    elif profit_r >= algo_config.rr_breakeven and ob.r_stage < 1:
+        # +1R reached → move to breakeven
+        new_sl = entry
+        ob.r_stage = 1
+        logger.info(f"[ALGO] +1R reached — moving SL to breakeven @ {new_sl:.5f}")
+
+    if ob.r_stage >= 2:
+        # Beyond +2R → trail by ATR
+        candles = _get_candles(algo_config.symbol, algo_config.execution_timeframe, 20)
+        atr = _calculate_atr(candles, algo_config.atr_period) if candles else None
+        if atr:
+            if side == "buy":
+                trail_sl = current_price - atr * algo_config.trail_atr_mult
+                if new_sl is None or trail_sl > new_sl:
+                    new_sl = trail_sl
+                    ob.r_stage = 3
+            else:
+                trail_sl = current_price + atr * algo_config.trail_atr_mult
+                if new_sl is None or trail_sl < new_sl:
+                    new_sl = trail_sl
+                    ob.r_stage = 3
+
+    # Apply new SL if it improves position
+    if new_sl is not None:
+        current_sl = ob.initial_sl
+        should_update = (side == "buy" and new_sl > current_sl) or \
+                        (side == "sell" and new_sl < current_sl)
+        if should_update:
+            result = mt5_bridge.modify_position(ob.ticket, sl=new_sl)
+            if result.get("success"):
+                ob.initial_sl = new_sl
+                logger.info(f"[ALGO] SL updated to {new_sl:.5f} (stage={ob.r_stage})")
+
+
+
+
 # ── Main scan loop ────────────────────────────────────────────────────────────
 
 def _scan_and_trade() -> None:
     """
     Main algo loop:
-    1. Fetch candles on analysis timeframe
-    2. Detect new Order Blocks
-    3. Apply trend + volatility filters
-    4. Check entry signals on execution timeframe
-    5. Execute trades
+    1. Check risk management gates (drawdown, daily limits)
+    2. Manage R-multiple trailing stops on open trades
+    3. Fetch candles on analysis timeframe
+    4. Detect new Order Blocks
+    5. Apply trend + volatility filters
+    6. Check entry signals on execution timeframe
+    7. Execute trades
     """
     global _active_obs
 
     symbol = algo_config.symbol
+
+    # ── Risk management checks ────────────────────────────────────────────────
+    check_drawdown()
+
+    # ── Manage R-multiple trailing stops on open algo positions ───────────────
+    open_positions = mt5_bridge.get_open_positions()
+    open_tickets = {p.get("id") for p in open_positions}
+
+    with _obs_lock:
+        for ob in _active_obs:
+            if ob.ticket and ob.ticket in open_tickets and ob.trade_taken:
+                _manage_open_trade_risk(ob)
+
+    # ── Check for closed trades and record PnL ────────────────────────────────
+    with _obs_lock:
+        for ob in _active_obs:
+            if ob.trade_taken and ob.ticket and ob.ticket not in open_tickets:
+                # Trade was closed — fetch PnL from history
+                try:
+                    history = mt5_bridge.get_trade_history(limit=10)
+                    for t in history:
+                        if t.get("ticket") == ob.ticket or t.get("position_id") == ob.ticket:
+                            pnl = float(t.get("pnl", 0))
+                            record_trade_pnl(pnl)
+                            logger.info(f"[ALGO] Trade {ob.ticket} closed | PnL={pnl:.2f}")
+                            break
+                except Exception as e:
+                    logger.warning(f"[ALGO] Could not fetch PnL for ticket {ob.ticket}: {e}")
+                # Reset OB for potential re-entry
+                logger.info(f"[ALGO] OB {ob.id} position closed — resetting for re-entry")
+                ob.trade_taken = False
+                ob.active = True
+                ob.ticket = None
+                ob.r_stage = 0
 
     # Fetch analysis timeframe candles
     candles_analysis = _get_candles(symbol, algo_config.analysis_timeframe, algo_config.ob_lookback + 10)
@@ -477,6 +702,10 @@ def _scan_and_trade() -> None:
 
     # Check if bot is allowed to trade
     if not state.running:
+        return
+
+    # Check risk management rules before entering new trades
+    if not can_trade():
         return
 
     # Check open positions — don't stack too many algo trades
