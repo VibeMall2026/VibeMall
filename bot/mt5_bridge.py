@@ -234,9 +234,9 @@ def get_trade_history(limit: int = 50) -> list[dict]:
     if not MT5_AVAILABLE or not is_connected():
         return []
     from datetime import datetime, timedelta, timezone
-    # Use UTC+0 naive datetime — MT5 history_deals_get expects naive UTC
-    # Add a 1-hour buffer to ensure very recent trades are not missed
-    now_utc = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=1)
+    # Use a far-future end date to avoid any broker timezone mismatch
+    # MT5 history_deals_get uses broker server time internally
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=12)
     from_date = now_utc - timedelta(days=60)
     deals = mt5.history_deals_get(from_date, now_utc)
     if not deals:
@@ -250,8 +250,18 @@ def get_trade_history(limit: int = 50) -> list[dict]:
 
     result = []
     for d in sorted(deals, key=lambda x: x.time, reverse=True):
-        # Show exit/close deals — DEAL_ENTRY_OUT (normal close) and DEAL_ENTRY_OUT_BY (hedge close)
-        if d.entry not in (mt5.DEAL_ENTRY_OUT, mt5.DEAL_ENTRY_OUT_BY):
+        # Include all closing deal types:
+        # DEAL_ENTRY_OUT     = normal close (SL/TP hit, manual close button)
+        # DEAL_ENTRY_OUT_BY  = close by opposite position (hedge accounts)
+        # Skip DEAL_ENTRY_IN (trade open) and DEAL_ENTRY_INOUT (balance ops)
+        if d.entry == mt5.DEAL_ENTRY_IN:
+            continue
+        # Skip pure balance/deposit/withdrawal/commission operations (no symbol)
+        if not d.symbol:
+            continue
+        # Skip zero-profit deals that are just commission/swap records
+        # (but keep breakeven trades that have a symbol and volume)
+        if d.profit == 0 and d.volume == 0:
             continue
 
         # Get comment from opening deal via position_id, fallback to closing deal comment
