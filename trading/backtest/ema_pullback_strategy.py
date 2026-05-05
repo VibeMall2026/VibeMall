@@ -64,16 +64,16 @@ class EMAPullbackStrategy(bt.Strategy):
         ema_slow=200,
         rsi_period=14,
         atr_period=14,
-        atr_threshold=0.0003,
+        atr_threshold=0.00005,      # relaxed from 0.0003
         risk_pct=0.01,
         rr_breakeven=1.0,
         rr_lock=2.0,
         trail_atr_mult=1.0,
         sl_atr_mult=1.5,
-        pullback_atr=1.5,
-        rsi_buy_max=40,
-        rsi_sell_min=60,
-        cooldown_bars=5,
+        pullback_atr=2.0,           # relaxed from 1.5
+        rsi_buy_max=45,             # relaxed from 40
+        rsi_sell_min=55,            # relaxed from 60
+        cooldown_bars=3,            # reduced from 5
         daily_profit_limit=50.0,
         max_drawdown_pct=0.10,
         spread_pips=2,
@@ -151,17 +151,22 @@ class EMAPullbackStrategy(bt.Strategy):
     def _position_size(self, entry, stop):
         """
         Calculate position size based on 1% risk model.
+        Capped to avoid margin issues in backtesting.
         size = (equity × risk_pct) / |entry - stop|
+        For forex: divide by pip_value to get units, then cap.
         """
         equity    = self.broker.getvalue()
         risk_amt  = equity * self.p.risk_pct
         sl_dist   = abs(entry - stop)
         if sl_dist == 0:
             return 0
+        # For forex pairs priced ~1.0-1.5, size in units
+        # Cap at max 10% of equity / price to avoid margin issues
         size = risk_amt / sl_dist
-        # Round down to nearest integer lot (or fractional if broker allows)
-        size = math.floor(size * 100) / 100  # 2 decimal places
-        return max(size, 0.01)
+        max_size = (equity * 0.10) / entry  # max 10% of equity as notional
+        size = min(size, max_size)
+        size = max(round(size, 2), 0.01)
+        return size
 
     def _trend_strength_ok(self):
         """EMA separation must exceed 0.5 × ATR to avoid ranging markets."""
