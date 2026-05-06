@@ -1214,10 +1214,13 @@ function initProductColorImageSync() {
         thumb.addEventListener('click', function() {
             const thumbColor = thumb.getAttribute('data-image-color') || '';
             if (thumbColor) {
-                syncDesktopColorSelection(thumbColor);
-                setDescriptionImageByColor(thumbColor);
+                // Apply full color selection to sync swatches, filter thumbnails, and update images
+                applyColorSelection(thumbColor);
             } else {
+                // Reset to default when clicking main image (no color)
+                syncDesktopColorSelection('');
                 setDescriptionImageByColor('');
+                filterThumbsByColor('');
             }
         });
     });
@@ -1226,10 +1229,13 @@ function initProductColorImageSync() {
         thumb.addEventListener('click', function() {
             const thumbColor = thumb.getAttribute('data-image-color') || '';
             if (thumbColor) {
-                syncDesktopColorSelection(thumbColor);
-                setDescriptionImageByColor(thumbColor);
+                // Apply full color selection to sync swatches, filter thumbnails, and update images
+                applyColorSelection(thumbColor);
             } else {
+                // Reset to default when clicking main image (no color)
+                syncDesktopColorSelection('');
                 setDescriptionImageByColor('');
+                filterThumbsByColor('');
             }
         });
     });
