@@ -207,6 +207,40 @@ from .view_helpers import (
     _lookup_ifsc_details,
 )
 
+
+def _get_product_image_for_color(product, color: str, request) -> str:
+    """
+    Return the absolute URL of the product image that matches the selected color.
+    Falls back to the product's main image if no color-variant image is found.
+    """
+    site_url = request.build_absolute_uri('/').rstrip('/')
+
+    if color:
+        # Case-insensitive match on gallery/main images that have a color tag
+        color_lower = color.strip().lower()
+        variant_image = (
+            ProductImage.objects
+            .filter(product=product, is_active=True)
+            .exclude(color='')
+            .exclude(image_role=ProductImage.IMAGE_ROLE_DESCRIPTION)
+            .order_by('order', 'id')
+        )
+        for vi in variant_image:
+            if vi.color.strip().lower() == color_lower and vi.image and vi.image.name:
+                image_url = vi.image.url
+                if not image_url.startswith('http'):
+                    return f"{site_url}{image_url}"
+                return image_url
+
+    # Fallback to main product image
+    if product.image and product.image.name:
+        image_url = product.image.url
+        if not image_url.startswith('http'):
+            return f"{site_url}{image_url}"
+        return image_url
+
+    return ''
+
 # ===== ADMIN PANEL VIEWS =====
 
 @login_required(login_url='login')
@@ -6596,14 +6630,8 @@ def checkout_confirm(request):
             if not resell_link:
                 if buy_now_item:
                     product = buy_now_item['product']
-                    product_image = ''
-                    if product.image:
-                        image_url = product.image.url
-                        if not image_url.startswith('http'):
-                            site_url = request.build_absolute_uri('/').rstrip('/')
-                            product_image = f"{site_url}{image_url}"
-                        else:
-                            product_image = image_url
+                    selected_color = (buy_now_item.get('color') or '').strip()
+                    product_image = _get_product_image_for_color(product, selected_color, request)
 
                     OrderItem.objects.create(
                         order=order,
@@ -6613,21 +6641,15 @@ def checkout_confirm(request):
                         product_image=product_image,
                         quantity=buy_now_item['quantity'],
                         size=(buy_now_item.get('size') or '')[:10],
-                        color=(buy_now_item.get('color') or '')[:50],
+                        color=selected_color[:50],
                         base_price=Decimal(str(buy_now_item['price'])),
                         margin_amount=resell_margin_per_unit if is_resell else (product.margin if product else Decimal('0'))
                     )
                     del request.session['buy_now_item']
                 else:
                     for item in cart_items:
-                        product_image = ''
-                        if item.product.image:
-                            image_url = item.product.image.url
-                            if not image_url.startswith('http'):
-                                site_url = request.build_absolute_uri('/').rstrip('/')
-                                product_image = f"{site_url}{image_url}"
-                            else:
-                                product_image = image_url
+                        item_color = (item.color or '').strip()
+                        product_image = _get_product_image_for_color(item.product, item_color, request)
 
                         item_base_price = Decimal(str(item.product.price))
                         item_margin = resell_margin_per_unit if is_resell else Decimal(str(item.product.margin or 0))
