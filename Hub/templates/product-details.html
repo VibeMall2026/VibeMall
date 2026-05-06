@@ -1135,12 +1135,13 @@ function initProductColorImageSync() {
 
         function applyFilter(thumbSelector) {
             var thumbs = Array.from(document.querySelectorAll(thumbSelector));
-            // Find the first thumb with no color — that's the main default image
-            var mainThumbIndex = thumbs.findIndex(function(t) {
-                return !normalizeProductColor(t.getAttribute('data-image-color'));
+
+            // Check if any thumb has the selected color
+            var hasColoredThumbs = normalizedTarget && thumbs.some(function(t) {
+                return normalizeProductColor(t.getAttribute('data-image-color')) === normalizedTarget;
             });
 
-            thumbs.forEach(function(thumb, idx) {
+            thumbs.forEach(function(thumb) {
                 var thumbColor = normalizeProductColor(thumb.getAttribute('data-image-color'));
 
                 if (!normalizedTarget) {
@@ -1150,14 +1151,14 @@ function initProductColorImageSync() {
                 }
 
                 if (!thumbColor) {
-                    // No color tag — only show if it's the very first (main) thumb
-                    thumb.style.display = (idx === mainThumbIndex) ? '' : 'none';
+                    // No color tag (main/default image):
+                    // Hide it if there are color-specific thumbs available for selected color
+                    thumb.style.display = hasColoredThumbs ? 'none' : '';
                     return;
                 }
 
-                // Show only if color matches exactly (no partial matching)
-                var matches = (thumbColor === normalizedTarget);
-                thumb.style.display = matches ? '' : 'none';
+                // Show only if color matches exactly
+                thumb.style.display = (thumbColor === normalizedTarget) ? '' : 'none';
             });
         }
 

@@ -5,9 +5,11 @@ NOTE: MetaTrader5 Python library only works on Windows.
       On Ubuntu VPS this module is imported but MT5 calls are skipped
       (bot runs in "simulation" mode until Windows bridge is connected).
 """
+import os
 import sys
 import math
 from typing import Optional
+import requests
 from loguru import logger
 from bot import config
 
@@ -18,6 +20,68 @@ try:
 except ImportError:
     MT5_AVAILABLE = False
     logger.warning("MetaTrader5 library not available (Ubuntu). Running without MT5.")
+
+# Bridge configuration (for Ubuntu VPS → Windows PC delegation)
+BRIDGE_URL = os.getenv("MT5_BRIDGE_URL", "").strip()
+BRIDGE_API_KEY = os.getenv("MT5_BRIDGE_API_KEY", "")
+USE_BRIDGE = not MT5_AVAILABLE and bool(BRIDGE_URL)
+
+if USE_BRIDGE:
+    logger.info(f"Bridge mode enabled: {BRIDGE_URL}")
+elif not MT5_AVAILABLE:
+    logger.warning("MT5 not available and no bridge configured")
+
+
+# ── Bridge HTTP Client ────────────────────────────────────────────────────────
+
+def _call_bridge(endpoint: str, method: str = "GET", json_data: dict = None, timeout: int = 5) -> Optional[dict]:
+    """
+    Call Windows bridge HTTP endpoint.
+    Returns response JSON dict on success, None on failure.
+    """
+    if not BRIDGE_URL:
+        return None
+    
+    url = f"{BRIDGE_URL}{endpoint}"
+    headers = {"X-API-Key": BRIDGE_API_KEY} if BRIDGE_API_KEY else {}
+    
+    try:
+        if method == "GET":
+            response = requests.get(url, headers=headers, timeout=timeout)
+        elif method == "POST":
+            response = requests.post(url, headers=headers, json=json_data, timeout=timeout)
+        elif method == "PUT":
+            response = requests.put(url, headers=headers, json=json_data, timeout=timeout)
+        else:
+            logger.error(f"Unsupported HTTP method: {method}")
+            return None
+        
+        response.raise_for_status()
+        return response.json()
+    
+    except requests.exceptions.Timeout:
+        logger.error(f"Bridge request timeout: {url}")
+        return None
+    except requests.exceptions.ConnectionError:
+        logger.error(f"Bridge connection error: {url}")
+        return None
+    except requests.exceptions.HTTPError as e:
+        logger.error(f"Bridge HTTP error: {e.response.status_code} - {url}")
+        return None
+    except Exception as e:
+        logger.error(f"Bridge request failed: {e}")
+        return None
+
+
+def _check_bridge_health() -> bool:
+    """
+    Check if Windows bridge is connected to MT5.
+    Returns True if bridge is reachable and MT5 is connected.
+    """
+    response = _call_bridge("/health")
+    if response is None:
+        return False
+    return response.get("mt5_connected", False)
 
 
 # ── Connection ────────────────────────────────────────────────────────────────
@@ -60,6 +124,11 @@ def is_connected() -> bool:
 
 def ensure_connected() -> bool:
     """Return an active MT5 connection, attempting a reconnect if needed."""
+    # Bridge delegation mode
+    if USE_BRIDGE:
+        return _check_bridge_health()
+    
+    # Direct MT5 mode (existing code)
     if not MT5_AVAILABLE:
         return False
     if is_connected():
@@ -72,6 +141,12 @@ def ensure_connected() -> bool:
 # ── Account info ──────────────────────────────────────────────────────────────
 
 def get_account_info() -> dict:
+    # Bridge delegation mode
+    if USE_BRIDGE:
+        response = _call_bridge("/account")
+        return response if response is not None else {}
+    
+    # Direct MT5 mode (existing code)
     if not MT5_AVAILABLE or not ensure_connected():
         return {}
     info = mt5.account_info()
@@ -97,6 +172,31 @@ def calculate_lot(symbol: str, sl_points: float) -> float:
 
 def calculate_lot_with_risk(symbol: str, sl_points: float, risk_percent: Optional[float] = None) -> float:
     """Calculate lot size based on risk % of account balance."""
+    # Bridge delegation mode - fetch account info from bridge
+    if USE_BRIDGE:
+        account_response = _call_bridge("/account")
+        if account_response is None:
+            logger.warning("Bridge account info unavailable, using minimum lot")
+            return 0.01
+        
+        balance = account_response.get("balance", 0)
+        if balance == 0:
+            return 0.01
+        
+        # Note: Symbol info is not available via bridge yet
+        # For now, use conservative defaults
+        # TODO: Add /symbol_info endpoint to bridge or fetch locally
+        effective_risk_percent = config.RISK_PERCENT if risk_percent is None else risk_percent
+        risk_amount = balance * (effective_risk_percent / 100.0)
+        
+        # Conservative lot calculation without symbol info
+        # Assume standard forex pair with $10 per pip per lot
+        lot = risk_amount / (sl_points * 10)
+        lot = max(0.01, min(100.0, lot))  # Clamp to reasonable range
+        lot = round(lot, 2)  # Round to 2 decimals
+        return lot
+    
+    # Direct MT5 mode (existing code)
     if not MT5_AVAILABLE or not ensure_connected():
         return 0.01
     info = mt5.account_info()
@@ -140,6 +240,24 @@ def open_trade(
     Open a market or pending order.
     Returns dict with success, ticket, message.
     """
+    # Bridge delegation mode
+    if USE_BRIDGE:
+        json_data = {
+            "symbol": symbol,
+            "side": side,
+            "order_type": order_type,
+            "sl": sl,
+            "tp": tp,
+            "entry": entry,
+            "risk_percent": risk_percent,
+            "comment": comment,
+        }
+        response = _call_bridge("/trade", method="POST", json_data=json_data)
+        if response is None:
+            return {"success": False, "message": "Bridge request failed"}
+        return response
+    
+    # Direct MT5 mode (existing code)
     if not MT5_AVAILABLE or not ensure_connected():
         return {"success": False, "message": "MT5 not connected"}
 
@@ -226,6 +344,19 @@ def open_trade(
 # ── Modify position ───────────────────────────────────────────────────────────
 
 def modify_position(position_id: int, sl: Optional[float] = None, tp: Optional[float] = None) -> dict:
+    # Bridge delegation mode
+    if USE_BRIDGE:
+        json_data = {}
+        if sl is not None:
+            json_data["sl"] = sl
+        if tp is not None:
+            json_data["tp"] = tp
+        response = _call_bridge(f"/positions/{position_id}", method="PUT", json_data=json_data)
+        if response is None:
+            return {"success": False, "message": "Bridge request failed"}
+        return response
+    
+    # Direct MT5 mode (existing code)
     if not MT5_AVAILABLE or not ensure_connected():
         return {"success": False, "message": "MT5 not connected"}
 
@@ -252,6 +383,12 @@ def modify_position(position_id: int, sl: Optional[float] = None, tp: Optional[f
 # ── Get open positions ────────────────────────────────────────────────────────
 
 def get_open_positions() -> list[dict]:
+    # Bridge delegation mode
+    if USE_BRIDGE:
+        response = _call_bridge("/positions")
+        return response if response is not None else []
+    
+    # Direct MT5 mode (existing code)
     if not MT5_AVAILABLE or not ensure_connected():
         return []
     positions = mt5.positions_get()
@@ -279,6 +416,12 @@ def get_open_positions() -> list[dict]:
 # ── Get trade history ─────────────────────────────────────────────────────────
 
 def get_trade_history(limit: int = 50) -> list[dict]:
+    # Bridge delegation mode
+    if USE_BRIDGE:
+        response = _call_bridge(f"/history?limit={limit}")
+        return response if response is not None else []
+    
+    # Direct MT5 mode (existing code)
     if not MT5_AVAILABLE or not ensure_connected():
         return []
     from datetime import datetime, timedelta, timezone
