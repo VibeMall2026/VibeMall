@@ -93,11 +93,12 @@ class ParseSignalRequest(BaseModel):
 @app.get("/status", dependencies=[Depends(verify_api_key)])
 async def get_status():
     account = mt5_bridge.get_account_info()
+    mt5_connected = mt5_bridge.ensure_connected()
     return {
         "bot": {
             "running": state.running,
             "telegram_connected": state.telegram_connected,
-            "mt5_connected": mt5_bridge.is_connected(),
+            "mt5_connected": mt5_connected,
         },
         "account": account,
         "signals_processed": state.signals_processed,
@@ -108,6 +109,7 @@ async def get_status():
 async def get_stats():
     account = mt5_bridge.get_account_info()
     open_pos = mt5_bridge.get_open_positions()
+    mt5_connected = mt5_bridge.ensure_connected()
 
     # Calculate stats from actual MT5 trade history (not in-memory counters)
     # This ensures stats are correct even after bot restarts
@@ -134,7 +136,7 @@ async def get_stats():
         "bot": {
             "running": state.running,
             "telegram_connected": state.telegram_connected,
-            "mt5_connected": mt5_bridge.is_connected(),
+            "mt5_connected": mt5_connected,
         },
         "account": account,
         "trades": {
@@ -325,7 +327,7 @@ async def health():
     """Quick health check — called by Django dashboard."""
     return {
         "running": state.running,
-        "mt5_connected": mt5_bridge.is_connected(),
+        "mt5_connected": mt5_bridge.ensure_connected(),
         "telegram_connected": state.telegram_connected,
     }
 

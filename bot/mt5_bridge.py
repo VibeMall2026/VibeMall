@@ -58,10 +58,21 @@ def is_connected() -> bool:
         return False
 
 
+def ensure_connected() -> bool:
+    """Return an active MT5 connection, attempting a reconnect if needed."""
+    if not MT5_AVAILABLE:
+        return False
+    if is_connected():
+        return True
+
+    logger.warning("MT5 connection inactive. Attempting reconnect...")
+    return connect()
+
+
 # ── Account info ──────────────────────────────────────────────────────────────
 
 def get_account_info() -> dict:
-    if not MT5_AVAILABLE or not is_connected():
+    if not MT5_AVAILABLE or not ensure_connected():
         return {}
     info = mt5.account_info()
     if not info:
@@ -86,7 +97,7 @@ def calculate_lot(symbol: str, sl_points: float) -> float:
 
 def calculate_lot_with_risk(symbol: str, sl_points: float, risk_percent: Optional[float] = None) -> float:
     """Calculate lot size based on risk % of account balance."""
-    if not MT5_AVAILABLE or not is_connected():
+    if not MT5_AVAILABLE or not ensure_connected():
         return 0.01
     info = mt5.account_info()
     if not info:
@@ -129,7 +140,7 @@ def open_trade(
     Open a market or pending order.
     Returns dict with success, ticket, message.
     """
-    if not MT5_AVAILABLE or not is_connected():
+    if not MT5_AVAILABLE or not ensure_connected():
         return {"success": False, "message": "MT5 not connected"}
 
     sym_info = mt5.symbol_info(symbol)
@@ -215,7 +226,7 @@ def open_trade(
 # ── Modify position ───────────────────────────────────────────────────────────
 
 def modify_position(position_id: int, sl: Optional[float] = None, tp: Optional[float] = None) -> dict:
-    if not MT5_AVAILABLE or not is_connected():
+    if not MT5_AVAILABLE or not ensure_connected():
         return {"success": False, "message": "MT5 not connected"}
 
     positions = mt5.positions_get(ticket=position_id)
@@ -241,7 +252,7 @@ def modify_position(position_id: int, sl: Optional[float] = None, tp: Optional[f
 # ── Get open positions ────────────────────────────────────────────────────────
 
 def get_open_positions() -> list[dict]:
-    if not MT5_AVAILABLE or not is_connected():
+    if not MT5_AVAILABLE or not ensure_connected():
         return []
     positions = mt5.positions_get()
     if not positions:
@@ -268,7 +279,7 @@ def get_open_positions() -> list[dict]:
 # ── Get trade history ─────────────────────────────────────────────────────────
 
 def get_trade_history(limit: int = 50) -> list[dict]:
-    if not MT5_AVAILABLE or not is_connected():
+    if not MT5_AVAILABLE or not ensure_connected():
         return []
     from datetime import datetime, timedelta, timezone
 
