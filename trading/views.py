@@ -121,6 +121,17 @@ def _delete(base_url, endpoint, json_body=None):
     return _request("DELETE", base_url, endpoint, json_body=json_body)
 
 
+def _bot_flags(health: dict, status: dict) -> tuple[bool, bool, bool]:
+    """Resolve bot flags with /status priority, then /health fallback."""
+    status_bot = status.get("bot", {}) if isinstance(status, dict) else {}
+    health = health if isinstance(health, dict) else {}
+
+    bot_running = status_bot.get("running", health.get("running", False))
+    mt5_connected = status_bot.get("mt5_connected", health.get("mt5_connected", False))
+    telegram_connected = status_bot.get("telegram_connected", health.get("telegram_connected", False))
+    return bool(bot_running), bool(mt5_connected), bool(telegram_connected)
+
+
 @staff_member_required
 def dashboard(request):
     api_reachable, bot_api_url, api_error_msg = _check_api_health()
@@ -143,14 +154,15 @@ def dashboard(request):
     account = status.get("account", {})
     performance = stats.get("performance", {})
     daily = stats.get("daily", {})
+    bot_running, mt5_connected, telegram_connected = _bot_flags(health, status)
 
     context = {
         "api_reachable": api_reachable,
         "api_error": api_error_msg,
         "bot_api_url": bot_api_url,
-        "bot_running": health.get("running", False),
-        "mt5_connected": health.get("mt5_connected", False),
-        "telegram_connected": health.get("telegram_connected", False),
+        "bot_running": bot_running,
+        "mt5_connected": mt5_connected,
+        "telegram_connected": telegram_connected,
         "balance": account.get("balance", 0),
         "equity": account.get("equity", 0),
         "free_margin": account.get("margin_free", account.get("free_margin", 0)),
@@ -175,18 +187,20 @@ def settings_page(request):
     api_reachable, bot_api_url, api_error_msg = _check_api_health()
     settings_data = _get(bot_api_url, "/settings", {}) if api_reachable else {}
     health = _get(bot_api_url, "/health", {}) if api_reachable else {}
+    status = _get(bot_api_url, "/status", {}) if api_reachable else {}
 
     channels = settings_data.get("channels", [])
     risk = settings_data.get("risk", {})
     validation = settings_data.get("validation", {})
+    bot_running, mt5_connected, telegram_connected = _bot_flags(health, status)
 
     context = {
         "api_reachable": api_reachable,
         "api_error": api_error_msg,
         "bot_api_url": bot_api_url,
-        "bot_running": health.get("running", False),
-        "mt5_connected": health.get("mt5_connected", False),
-        "telegram_connected": health.get("telegram_connected", False),
+        "bot_running": bot_running,
+        "mt5_connected": mt5_connected,
+        "telegram_connected": telegram_connected,
         "channels": channels,
         "risk_percent": risk.get("risk_percent", ""),
         "reward_ratio": risk.get("reward_ratio", risk.get("fixed_reward_ratio", "")),
