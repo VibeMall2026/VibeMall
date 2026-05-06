@@ -8,11 +8,27 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
-from dotenv import dotenv_values
 
 logger = logging.getLogger(__name__)
 
-BOT_ENV = dotenv_values(Path(__file__).resolve().parent.parent / "bot" / ".env")
+
+def _read_simple_env(env_path: Path) -> dict[str, str]:
+    values: dict[str, str] = {}
+    try:
+        for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            values[key.strip()] = value.strip().strip('"').strip("'")
+    except FileNotFoundError:
+        return values
+    except Exception as exc:
+        logger.warning("Could not read bot env file at %s: %s", env_path, exc)
+    return values
+
+
+BOT_ENV = _read_simple_env(Path(__file__).resolve().parent.parent / "bot" / ".env")
 DEFAULT_BOT_API_CANDIDATES = [
     "http://127.0.0.1:2222",
     "http://127.0.0.1:8000",
