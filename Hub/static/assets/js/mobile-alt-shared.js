@@ -32,9 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.body.dataset.vmMenuScrollLocked === 'true' ||
                 document.body.style.position === 'fixed' ||
                 document.body.style.overflow === 'hidden' ||
-                pageRoot.style.overflow === 'hidden' ||
-                document.body.style.touchAction === 'none' ||
-                pageRoot.style.touchAction === 'none'
+                pageRoot.style.overflow === 'hidden'
             );
         }
 
@@ -51,17 +49,13 @@ document.addEventListener('DOMContentLoaded', function () {
             document.body.dataset.vmMenuBodyPosition = document.body.style.position || '';
             document.body.dataset.vmMenuBodyTop = document.body.style.top || '';
             document.body.dataset.vmMenuBodyWidth = document.body.style.width || '';
-            document.body.dataset.vmMenuBodyTouchAction = document.body.style.touchAction || '';
             document.body.dataset.vmMenuHtmlOverflow = pageRoot.style.overflow || '';
-            document.body.dataset.vmMenuHtmlTouchAction = pageRoot.style.touchAction || '';
 
             pageRoot.style.overflow = 'hidden';
-            pageRoot.style.touchAction = 'none';
             document.body.style.overflow = 'hidden';
             document.body.style.position = 'fixed';
             document.body.style.top = '-' + scrollY + 'px';
             document.body.style.width = '100%';
-            document.body.style.touchAction = 'none';
         }
 
         function unlockPageScroll(options) {
@@ -73,12 +67,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             pageRoot.style.overflow = document.body.dataset.vmMenuHtmlOverflow || '';
-            pageRoot.style.touchAction = document.body.dataset.vmMenuHtmlTouchAction || '';
             document.body.style.overflow = document.body.dataset.vmMenuBodyOverflow || '';
             document.body.style.position = document.body.dataset.vmMenuBodyPosition || '';
             document.body.style.top = document.body.dataset.vmMenuBodyTop || '';
             document.body.style.width = document.body.dataset.vmMenuBodyWidth || '';
-            document.body.style.touchAction = document.body.dataset.vmMenuBodyTouchAction || '';
 
             delete document.body.dataset.vmMenuScrollLocked;
             delete document.body.dataset.vmMenuScrollY;
@@ -86,9 +78,7 @@ document.addEventListener('DOMContentLoaded', function () {
             delete document.body.dataset.vmMenuBodyPosition;
             delete document.body.dataset.vmMenuBodyTop;
             delete document.body.dataset.vmMenuBodyWidth;
-            delete document.body.dataset.vmMenuBodyTouchAction;
             delete document.body.dataset.vmMenuHtmlOverflow;
-            delete document.body.dataset.vmMenuHtmlTouchAction;
 
             if (shouldRestoreScroll) {
                 window.scrollTo(0, lockedScrollY);
