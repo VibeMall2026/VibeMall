@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def _read_simple_env(env_path: Path) -> dict[str, str]:
+    # Keep .env parsing dependency-free so CI and production share the same path.
     values: dict[str, str] = {}
     try:
         for raw_line in env_path.read_text(encoding="utf-8").splitlines():
