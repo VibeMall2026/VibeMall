@@ -98,6 +98,7 @@ document.addEventListener('DOMContentLoaded', function () {
         function closeMenu(options) {
             sideMenu.classList.remove('is-open');
             menuOverlay.classList.remove('is-open');
+            document.body.classList.remove('vm-mobile-menu-open');
             unlockPageScroll(options);
             // Close all open submenus
             submenuToggles.forEach(function (toggle) {
@@ -113,6 +114,7 @@ document.addEventListener('DOMContentLoaded', function () {
         function openMenu() {
             sideMenu.classList.add('is-open');
             menuOverlay.classList.add('is-open');
+            document.body.classList.add('vm-mobile-menu-open');
             lockPageScroll();
         }
 
