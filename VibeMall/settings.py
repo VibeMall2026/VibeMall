@@ -192,6 +192,14 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'VibeMall <info.vibemall@gm
 SERVER_EMAIL = os.getenv('SERVER_EMAIL', EMAIL_HOST_USER or 'info.vibemall@gmail.com').strip()
 SITE_URL = os.getenv('SITE_URL', 'https://vibemall.in').rstrip('/')
 
+# Admin Notification Settings
+ADMIN_NOTIFICATION_EMAILS = [
+    email.strip() 
+    for email in os.getenv('ADMIN_NOTIFICATION_EMAILS', '').split(',') 
+    if email.strip()
+]
+ENABLE_ADMIN_ORDER_NOTIFICATIONS = _env_bool('ENABLE_ADMIN_ORDER_NOTIFICATIONS', True)
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/

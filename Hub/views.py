@@ -6737,10 +6737,12 @@ def checkout_confirm(request):
                 logger.error(f"Order confirmation email exception for order {order.order_number}: {email_exc}", exc_info=True)
                 messages.warning(request, 'Order placed successfully, but confirmation email failed to send. Please contact support.')
 
-            try:
-                send_admin_order_notification(order, request)
-            except Exception as admin_email_exc:
-                logger.error(f"Admin notification email exception for order {order.order_number}: {admin_email_exc}", exc_info=True)
+            # Send admin notification if enabled
+            if getattr(settings, 'ENABLE_ADMIN_ORDER_NOTIFICATIONS', True):
+                try:
+                    send_admin_order_notification(order, request)
+                except Exception as admin_email_exc:
+                    logger.error(f"Admin notification email exception for order {order.order_number}: {admin_email_exc}", exc_info=True)
 
             if order.approval_status == 'PENDING_APPROVAL':
                 messages.warning(request, f'Order placed successfully! Order #: {order.order_number}. Your order is pending approval due to security checks.')
@@ -9453,10 +9455,12 @@ def razorpay_payment_success(request):
                 logger.error(f"Razorpay order confirmation email exception for order {order.order_number}: {email_exc}", exc_info=True)
                 messages.warning(request, 'Order placed successfully, but confirmation email failed to send. Please contact support.')
 
-            try:
-                send_admin_order_notification(order, request)
-            except Exception as admin_email_exc:
-                logger.error(f"Razorpay admin notification email exception for order {order.order_number}: {admin_email_exc}", exc_info=True)
+            # Send admin notification if enabled
+            if getattr(settings, 'ENABLE_ADMIN_ORDER_NOTIFICATIONS', True):
+                try:
+                    send_admin_order_notification(order, request)
+                except Exception as admin_email_exc:
+                    logger.error(f"Razorpay admin notification email exception for order {order.order_number}: {admin_email_exc}", exc_info=True)
             
             if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 return JsonResponse({'success': True, 'redirect': reverse('order_confirmation', args=[order.id])})
