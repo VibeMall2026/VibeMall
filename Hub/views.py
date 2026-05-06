@@ -193,7 +193,7 @@ def _log_rto_history(rto_case: 'RTOCase', old_status: str, new_status: str, user
         notes=notes,
     )
 
-from .models import CategoryIcon, SubCategory, Slider, Feature, Banner, Product, DealCountdown, UserProfile, Address, Cart, Wishlist, ProductImage, ProductReview, ReviewImage, ReviewVote, ProductQuestion, Order, OrderItem, OrderStatusHistory, OrderCancellationRequest, ReturnRequest, ReturnItem, ReturnHistory, ReturnAttachment, ReturnLabel, RTOCase, RTOHistory, AdminEmailSettings, ProductStockNotification, BrandPartner, SiteSettings, LoyaltyPoints, PointsTransaction, MainPageProduct, MainPageSubCategoryBanner, MainPageBanner, ChatThread, ChatMessage, ChatAttachment, NewsletterSubscription
+from .models import CategoryIcon, SubCategory, Slider, Feature, Banner, Product, DealCountdown, UserProfile, Address, Cart, Wishlist, ProductImage, ProductReview, ReviewImage, ReviewVote, ProductQuestion, Order, OrderItem, OrderStatusHistory, OrderCancellationRequest, ReturnRequest, ReturnItem, ReturnHistory, ReturnAttachment, ReturnLabel, RTOCase, RTOHistory, AdminEmailSettings, ProductStockNotification, BrandPartner, SiteSettings, LoyaltyPoints, PointsTransaction, MainPageProduct, MainPageSubCategoryBanner, MainPageBanner, ChatThread, ChatMessage, ChatAttachment, NewsletterSubscription, Coupon, CouponUsage
 from .models_content_management import FAQCategory, FAQ
 from .email_utils import send_order_confirmation_email, send_order_status_update_email, send_admin_order_notification, build_invoice_context
 from .view_helpers import (
@@ -6465,7 +6465,7 @@ def checkout_confirm(request):
             # Verify user has enough points (non-atomic check for display)
             loyalty_account = LoyaltyPoints.objects.get(user=request.user)
             if points_to_redeem <= loyalty_account.points_available:
-                # Calculate rupee value (1 point = ₹0.03)
+                # Calculate rupee value (1 point = ₹1)
                 points_discount = LoyaltyPointsManager.calculate_rupee_value(points_to_redeem)
         except LoyaltyPoints.DoesNotExist:
             redeem_points = False
@@ -13741,3 +13741,106 @@ def verify_bank_transfer_endpoint(request):
     except Exception as e:
         logger.error(f'Bank transfer verification error: {str(e)}')
         return JsonResponse({'status': 'failed', 'message': str(e)}, status=500)
+
+
+# ===== COUPON VALIDATION API =====
+
+@login_required(login_url='login')
+@require_POST
+def validate_coupon(request):
+    """
+    Validate and calculate discount for a coupon code.
+    POST body (JSON): { "code": "SUMMER20", "cart_total": 1332.45 }
+    Returns: { valid, code, coupon_id, discount_amount, message }
+    """
+    try:
+        body = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'valid': False, 'message': 'Invalid request.'}, status=400)
+
+    code = (body.get('code') or '').strip().upper()
+    try:
+        cart_total = Decimal(str(body.get('cart_total') or 0))
+    except (InvalidOperation, TypeError):
+        cart_total = Decimal('0')
+
+    if not code:
+        return JsonResponse({'valid': False, 'message': 'Please enter a coupon code.'})
+
+    try:
+        coupon = Coupon.objects.get(code=code)
+    except Coupon.DoesNotExist:
+        return JsonResponse({'valid': False, 'message': 'Coupon code not found.'})
+
+    if not coupon.is_valid():
+        return JsonResponse({'valid': False, 'message': 'This coupon has expired or is no longer active.'})
+
+    if cart_total < coupon.min_purchase_amount:
+        return JsonResponse({
+            'valid': False,
+            'message': f'Minimum purchase of ₹{coupon.min_purchase_amount} required for this coupon.'
+        })
+
+    # Check total usage limit
+    if coupon.usage_limit is not None and coupon.times_used() >= coupon.usage_limit:
+        return JsonResponse({'valid': False, 'message': 'This coupon has reached its usage limit.'})
+
+    # Check per-customer usage via CouponUsage
+    customer_uses = CouponUsage.objects.filter(coupon=coupon, user=request.user).count()
+    if customer_uses >= coupon.usage_per_user:
+        return JsonResponse({'valid': False, 'message': 'You have already used this coupon.'})
+
+    discount_amount = coupon.get_discount_amount(cart_total)
+
+    if coupon.discount_type == 'PERCENTAGE':
+        message = f'{coupon.discount_value}% discount applied! You save ₹{discount_amount:.2f}.'
+    else:
+        message = f'₹{discount_amount:.2f} discount applied!'
+
+    return JsonResponse({
+        'valid': True,
+        'code': coupon.code,
+        'coupon_id': coupon.id,
+        'discount_type': coupon.discount_type,
+        'discount_amount': float(discount_amount),
+        'message': message,
+    })
+
+
+@login_required(login_url='login')
+def get_available_coupons(request):
+    """
+    Return list of currently active coupons for the logged-in user.
+    Accepts both GET and POST.
+    """
+    now = timezone.now()
+    coupons = Coupon.objects.filter(
+        is_active=True,
+        valid_from__lte=now,
+        valid_to__gte=now,
+    ).order_by('-created_at')[:20]
+
+    result = []
+    for coupon in coupons:
+        if not coupon.is_valid():
+            continue
+
+        # Check if usage limit reached globally
+        if coupon.usage_limit is not None and coupon.times_used() >= coupon.usage_limit:
+            continue
+
+        customer_uses = CouponUsage.objects.filter(coupon=coupon, user=request.user).count()
+        used = customer_uses >= coupon.usage_per_user
+
+        result.append({
+            'id': coupon.id,
+            'code': coupon.code,
+            'description': coupon.description,
+            'discount_type': coupon.discount_type,
+            'discount_value': float(coupon.discount_value),
+            'min_purchase_amount': float(coupon.min_purchase_amount),
+            'valid_until': coupon.valid_to.strftime('%d %b %Y'),
+            'used': used,
+        })
+
+    return JsonResponse({'coupons': result})

@@ -11,8 +11,9 @@ import logging
 logger = logging.getLogger('vibemall')
 
 # Loyalty Points Configuration
-POINTS_PER_RUPEE = Decimal('33')  # ₹1 spent = 33 points
-RUPEES_PER_POINT = Decimal('0.03')  # 1 point = ₹0.03
+# ₹100 spent = 1 point | 1 point = ₹1
+POINTS_PER_RUPEE = Decimal('0.01')   # ₹1 spent = 0.01 points  →  ₹100 = 1 point
+RUPEES_PER_POINT = Decimal('1.00')   # 1 point = ₹1
 
 
 class LoyaltyPointsManager:
