@@ -1155,10 +1155,8 @@ function initProductColorImageSync() {
                     return;
                 }
 
-                // Show if color matches (exact or partial)
-                var matches = (thumbColor === normalizedTarget) ||
-                              thumbColor.includes(normalizedTarget) ||
-                              normalizedTarget.includes(thumbColor);
+                // Show only if color matches exactly (no partial matching)
+                var matches = (thumbColor === normalizedTarget);
                 thumb.style.display = matches ? '' : 'none';
             });
         }
