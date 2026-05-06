@@ -10,7 +10,36 @@ from typing import Any, Dict, List, Optional, Tuple
 from django.conf import settings
 from django.http import HttpRequest
 
-from .models import Cart, Product
+from .models import Cart, Product, ProductImage
+
+
+def _get_product_image_url_for_color(product: Optional[Product], color: Optional[str]) -> str:
+    """Return the best available product image URL for a selected color."""
+    if not product:
+        return ''
+
+    selected_color = (color or '').strip().lower()
+    if selected_color:
+        variant_images = (
+            ProductImage.objects
+            .filter(product=product, is_active=True)
+            .exclude(color='')
+            .exclude(image_role=ProductImage.IMAGE_ROLE_DESCRIPTION)
+            .order_by('order', 'id')
+        )
+        for image_item in variant_images:
+            if (image_item.color or '').strip().lower() == selected_color and image_item.image:
+                try:
+                    return image_item.image.url
+                except Exception:
+                    continue
+
+    if product.image:
+        try:
+            return product.image.url
+        except Exception:
+            return ''
+    return ''
 
 
 def _split_full_name(full_name: Optional[str]) -> Tuple[str, str]:
@@ -39,6 +68,7 @@ def _get_checkout_items(request: HttpRequest) -> Tuple[List[Any], Optional[Dict[
                 'price': float(buy_now_data['price']),
                 'size': (buy_now_data.get('size') or '').strip(),
                 'color': (buy_now_data.get('color') or '').strip(),
+                'display_image_url': _get_product_image_url_for_color(product, buy_now_data.get('color')),
                 'subtotal': float(buy_now_data['price']) * buy_now_data['quantity']
             }
             buy_now_item['get_total_price'] = buy_now_item['subtotal']
