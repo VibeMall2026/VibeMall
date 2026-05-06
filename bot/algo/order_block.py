@@ -72,7 +72,7 @@ class AlgoConfig:
     atr_min_multiplier: float = 0.5     # min ATR as fraction of avg ATR
     max_active_obs: int = 5             # max order blocks tracked at once
     scan_interval_seconds: int = 60     # how often to scan for new setups
-    enabled: bool = True                # True = live trading on by default
+    enabled: bool = False               # False = scan only until explicitly enabled
 
     # ── Risk Management ───────────────────────────────────────────────────────
     daily_profit_limit: float = 50.0    # Stop trading if daily profit >= $50
@@ -510,6 +510,8 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
         sl=sl,
         tp=tp,
         entry=entry_price,
+        order_type="market",
+        risk_percent=algo_config.risk_percent,
         comment=f"ALGO:OB:{ob.id[:8]}",
     )
 
@@ -696,7 +698,7 @@ def _scan_and_trade() -> None:
                 )
 
         # Trim to max active OBs (keep most recent) — remove traded/inactive first
-        _active_obs = [o for o in _active_obs if o.active and not o.trade_taken]
+        _active_obs = [o for o in _active_obs if o.active or o.trade_taken]
         _active_obs = sorted(_active_obs, key=lambda x: x.time, reverse=True)
         _active_obs = _active_obs[:algo_config.max_active_obs]
 
@@ -705,6 +707,8 @@ def _scan_and_trade() -> None:
         return
 
     # Check risk management rules before entering new trades
+    if not algo_config.enabled:
+        return
     if not can_trade():
         return
 
@@ -769,7 +773,7 @@ def _algo_loop() -> None:
 
     while _algo_running:
         try:
-            if algo_config.enabled and mt5_bridge.is_connected():
+            if mt5_bridge.is_connected():
                 _scan_and_trade()
         except Exception as e:
             logger.error(f"[ALGO] Scan error: {e}")
@@ -789,11 +793,12 @@ def start_algo() -> bool:
         logger.warning("[ALGO] Already running")
         return False
 
-    algo_config.enabled = True   # always enable trading when started
     _algo_running = True
     _algo_thread = threading.Thread(target=_algo_loop, daemon=True, name="AlgoThread")
     _algo_thread.start()
-    logger.success("[ALGO] Order Block strategy thread started (trading ENABLED)")
+    logger.success(
+        f"[ALGO] Order Block strategy thread started ({'trading ENABLED' if algo_config.enabled else 'scan-only mode'})"
+    )
     return True
 
 

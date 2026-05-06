@@ -53,6 +53,12 @@ async def _handle_message(event) -> None:
         return
 
     logger.info(f"Valid signal: {sig.symbol} {sig.side.upper()} SL={sig.sl} TP={sig.tp}")
+    if not state.running:
+        log_entry["status"] = "blocked"
+        log_entry["reason"] = "Bot is stopped â€” signal execution paused"
+        logger.info("Signal received while bot stopped; execution skipped.")
+        return
+
     await execute_signal(sig, channel=f"@{channel_name}")
 
 

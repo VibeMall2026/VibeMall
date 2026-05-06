@@ -1,6 +1,8 @@
 """
 Risk manager — checks all limits before allowing a trade.
 """
+from datetime import datetime, timezone
+
 from loguru import logger
 from bot.state import state
 from bot import config
@@ -18,8 +20,18 @@ def can_trade(symbol: str) -> tuple[bool, str]:
     if state.daily_trades >= state.max_trades_per_day:
         return False, f"Daily trade limit reached ({state.max_trades_per_day})"
 
+    recent_trades = mt5_bridge.get_trade_history(limit=200)
+
     # Consecutive loss limit
-    if state.consecutive_losses >= state.max_consecutive_losses:
+    consecutive_losses = 0
+    for trade in recent_trades:
+        status = trade.get("status")
+        if status == "loss":
+            consecutive_losses += 1
+            continue
+        if status in ("win", "breakeven"):
+            break
+    if consecutive_losses >= state.max_consecutive_losses:
         return False, f"Consecutive loss limit reached ({state.max_consecutive_losses})"
 
     # Open positions limit
@@ -32,8 +44,14 @@ def can_trade(symbol: str) -> tuple[bool, str]:
     if account:
         balance = account.get("balance", 0)
         if balance > 0:
-            loss_pct = abs(state.daily_net_pnl) / balance * 100
-            if state.daily_net_pnl < 0 and loss_pct >= state.max_daily_loss_percent:
+            today = datetime.now(timezone.utc).date()
+            today_pnl = 0.0
+            for trade in recent_trades:
+                opened = str(trade.get("opened", ""))
+                if opened.startswith(str(today)):
+                    today_pnl += float(trade.get("pnl", 0) or 0)
+            loss_pct = abs(today_pnl) / balance * 100
+            if today_pnl < 0 and loss_pct >= state.max_daily_loss_percent:
                 return False, f"Daily loss limit reached ({loss_pct:.1f}% >= {state.max_daily_loss_percent}%)"
 
     # Spread check

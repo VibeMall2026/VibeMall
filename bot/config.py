@@ -56,7 +56,7 @@ ADMIN_CHAT_ID: str = os.getenv("ADMIN_CHAT_ID", "")
 ADMIN_BOT_TOKEN: str = os.getenv("ADMIN_BOT_TOKEN", "")
 
 # ── API server ────────────────────────────────────────────────────────────────
-API_KEY: str = os.getenv("API_KEY", "Paladiya@2023")
+API_KEY: str = os.getenv("API_KEY", "")
 API_HOST: str = os.getenv("API_HOST", "0.0.0.0")
 API_PORT: int = _int("API_PORT", 8000)
 API_ALLOWED_IPS: list[str] = _list("API_ALLOWED_IPS", "127.0.0.1,::1")

@@ -80,6 +80,11 @@ def get_account_info() -> dict:
 # ── Lot size calculation ───────────────────────────────────────────────────────
 
 def calculate_lot(symbol: str, sl_points: float) -> float:
+    """Backward-compatible wrapper using configured risk percentage."""
+    return calculate_lot_with_risk(symbol, sl_points, risk_percent=None)
+
+
+def calculate_lot_with_risk(symbol: str, sl_points: float, risk_percent: Optional[float] = None) -> float:
     """Calculate lot size based on risk % of account balance."""
     if not MT5_AVAILABLE or not is_connected():
         return 0.01
@@ -91,7 +96,8 @@ def calculate_lot(symbol: str, sl_points: float) -> float:
         logger.warning(f"Symbol info not found: {symbol}")
         return 0.01
 
-    risk_amount = info.balance * (config.RISK_PERCENT / 100.0)
+    effective_risk_percent = config.RISK_PERCENT if risk_percent is None else risk_percent
+    risk_amount = info.balance * (effective_risk_percent / 100.0)
     tick_value = sym_info.trade_tick_value
     tick_size = sym_info.trade_tick_size
 
@@ -115,6 +121,8 @@ def open_trade(
     sl: float,
     tp: float,
     entry: Optional[float] = None,
+    order_type: str = "market",
+    risk_percent: Optional[float] = None,
     comment: str = "TG Signal",
 ) -> dict:
     """
@@ -135,23 +143,50 @@ def open_trade(
     if not tick:
         return {"success": False, "message": f"No tick data for {symbol}"}
 
-    order_type_map = {
+    market_type_map = {
         "buy": mt5.ORDER_TYPE_BUY,
         "sell": mt5.ORDER_TYPE_SELL,
     }
-    order_type = order_type_map.get(side.lower())
-    if order_type is None:
-        return {"success": False, "message": f"Unknown side: {side}"}
+    pending_type_map = {
+        "buylimit": mt5.ORDER_TYPE_BUY_LIMIT,
+        "buystop": mt5.ORDER_TYPE_BUY_STOP,
+        "selllimit": mt5.ORDER_TYPE_SELL_LIMIT,
+        "sellstop": mt5.ORDER_TYPE_SELL_STOP,
+    }
 
-    price = tick.ask if side.lower() == "buy" else tick.bid
+    normalized_order_type = (order_type or "market").lower().replace(" ", "_")
+    normalized_order_type = normalized_order_type.replace("_", "")
+
+    if normalized_order_type == "market":
+        mt5_order_type = market_type_map.get(side.lower())
+        action = mt5.TRADE_ACTION_DEAL
+        price = tick.ask if side.lower() == "buy" else tick.bid
+    else:
+        mt5_order_type = pending_type_map.get(normalized_order_type)
+        action = mt5.TRADE_ACTION_PENDING
+        price = entry
+        if price is None:
+            return {"success": False, "message": "Pending order requires an entry price"}
+        if normalized_order_type == "buylimit" and price >= tick.ask:
+            return {"success": False, "message": "BUY LIMIT entry must be below current ask"}
+        if normalized_order_type == "buystop" and price <= tick.ask:
+            return {"success": False, "message": "BUY STOP entry must be above current ask"}
+        if normalized_order_type == "selllimit" and price <= tick.bid:
+            return {"success": False, "message": "SELL LIMIT entry must be above current bid"}
+        if normalized_order_type == "sellstop" and price >= tick.bid:
+            return {"success": False, "message": "SELL STOP entry must be below current bid"}
+
+    if mt5_order_type is None:
+        return {"success": False, "message": f"Unknown order type: {order_type}"}
+
     sl_points = abs(price - sl)
-    lot = calculate_lot(symbol, sl_points)
+    lot = calculate_lot_with_risk(symbol, sl_points, risk_percent=risk_percent)
 
     request = {
-        "action": mt5.TRADE_ACTION_DEAL,
+        "action": action,
         "symbol": symbol,
         "volume": lot,
-        "type": order_type,
+        "type": mt5_order_type,
         "price": price,
         "sl": sl,
         "tp": tp,
@@ -167,7 +202,9 @@ def open_trade(
         return {"success": False, "message": f"order_send returned None: {mt5.last_error()}"}
 
     if result.retcode == mt5.TRADE_RETCODE_DONE:
-        logger.success(f"Trade opened | {symbol} {side.upper()} | Lot: {lot} | Ticket: {result.order}")
+        logger.success(
+            f"Trade opened | {symbol} {side.upper()} | Type: {normalized_order_type} | Lot: {lot} | Ticket: {result.order}"
+        )
         return {"success": True, "ticket": result.order, "lot": lot, "message": "Trade opened"}
     else:
         msg = f"Order failed: retcode={result.retcode} comment={result.comment}"

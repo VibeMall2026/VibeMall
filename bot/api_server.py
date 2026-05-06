@@ -6,7 +6,9 @@ import asyncio
 from datetime import datetime
 from typing import Optional
 
+from loguru import logger
 from fastapi import FastAPI, HTTPException, Security, Depends, Request
+from fastapi.responses import JSONResponse
 from fastapi.security.api_key import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -29,6 +31,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def restrict_client_ips(request: Request, call_next):
+    if request.url.path == "/health":
+        return await call_next(request)
+
+    allowed_ips = {ip.strip() for ip in config.API_ALLOWED_IPS if ip.strip()}
+    if allowed_ips:
+        client_host = request.client.host if request.client else ""
+        if client_host and client_host not in allowed_ips:
+            return JSONResponse(status_code=403, content={"detail": f"IP not allowed: {client_host}"})
+
+    return await call_next(request)
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 _api_key_header = APIKeyHeader(name="X-API-Key", auto_error=True)

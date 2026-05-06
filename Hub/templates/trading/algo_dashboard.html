@@ -361,7 +361,6 @@
 
 {% block extra_js %}
 <script>
-const API_KEY = 'Paladiya@2023';
 const BOT_BASE = '/trading/api';
 
 function getCookie(name) {
@@ -508,9 +507,7 @@ function updateUI(data) {
 }
 
 function fetchAlgoTrades() {
-  fetch('/trading/api/algo/trades', {
-    headers: { 'X-API-Key': API_KEY }
-  })
+  fetch('/trading/api/algo/trades')
   .then(r => r.json())
   .then(data => {
     const stats = data.stats || {};

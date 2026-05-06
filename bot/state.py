@@ -79,3 +79,13 @@ state = BotState()
 # Initialize channels from config
 from bot import config as _config
 state.channels = list(_config.TG_CHANNELS)
+state.risk_percent = _config.RISK_PERCENT
+state.reward_ratio = _config.FIXED_REWARD_RATIO
+state.max_trades_per_day = _config.MAX_TRADES_PER_DAY
+state.max_open_positions = _config.MAX_OPEN_POSITIONS
+state.max_daily_loss_percent = _config.MAX_DAILY_LOSS_PERCENT
+state.max_consecutive_losses = _config.MAX_CONSECUTIVE_LOSSES
+state.max_spread_points = _config.MAX_SPREAD_POINTS
+state.duplicate_window_minutes = _config.DUPLICATE_WINDOW_MINUTES
+state.min_seconds_between_trades = _config.MIN_SECONDS_BETWEEN_TRADES
+state.allow_pending_orders = _config.ALLOW_PENDING_ORDERS

@@ -35,7 +35,7 @@
       {{ api_error }}
     </div>
     <div style="color:#a8aaae;font-size:.8rem;margin-top:6px;">
-      <strong>Fix:</strong> Run <code>ssh_tunnel.bat</code> on your Windows PC to restore the SSH tunnel
+      <strong>Fix:</strong> Start the bot API or restore the SSH tunnel if you rely on the Windows bridge
       (<code>{{ bot_api_url }}</code>). The bot may still be executing trades — this only affects the dashboard display.
     </div>
   </div>
@@ -328,7 +328,7 @@
               </span>
             </td>
             <td>{{ s.sl|default:"-" }}</td>
-            <td>{% if s.tp %}{{ s.tp.0|default:"-" }}{% else %}-{% endif %}</td>
+            <td>{{ s.tp|default:"-" }}</td>
             <td>
               <span class="badge bg-label-{% if s.status == 'executed' %}success{% elif s.status == 'rejected' %}danger{% else %}secondary{% endif %}">
                 {{ s.status|default:"-" }}

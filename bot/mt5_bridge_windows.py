@@ -22,8 +22,9 @@ load_dotenv(Path(__file__).parent / ".env")
 
 import MetaTrader5 as mt5
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Security
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security.api_key import APIKeyHeader
 from pydantic import BaseModel
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -35,11 +36,12 @@ MT5_TIMEOUT_MS = int(os.getenv("MT5_TIMEOUT_MS", "60000"))
 MT5_DEVIATION  = int(os.getenv("MT5_DEVIATION", "20"))
 MT5_MAGIC      = int(os.getenv("MT5_MAGIC_NUMBER", "550001"))
 RISK_PERCENT   = float(os.getenv("RISK_PERCENT", "0.1"))
-API_KEY        = os.getenv("API_KEY", "Paladiya@2023")
+API_KEY        = os.getenv("API_KEY", "")
 BRIDGE_PORT    = int(os.getenv("BRIDGE_PORT", "8001"))
 
 app = FastAPI(title="MT5 Bridge", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+_api_key_header = APIKeyHeader(name="X-API-Key", auto_error=True)
 
 
 # ── MT5 Connection ────────────────────────────────────────────────────────────
@@ -77,11 +79,16 @@ def ensure_connected() -> bool:
 # ── Lot calculation ───────────────────────────────────────────────────────────
 
 def calculate_lot(symbol: str, sl_distance: float) -> float:
+    return calculate_lot_with_risk(symbol, sl_distance, risk_percent=None)
+
+
+def calculate_lot_with_risk(symbol: str, sl_distance: float, risk_percent: Optional[float] = None) -> float:
     info = mt5.account_info()
     sym = mt5.symbol_info(symbol)
     if not info or not sym or sl_distance == 0:
         return sym.volume_min if sym else 0.01
-    risk_amount = info.balance * (RISK_PERCENT / 100.0)
+    effective_risk_percent = RISK_PERCENT if risk_percent is None else risk_percent
+    risk_amount = info.balance * (effective_risk_percent / 100.0)
     tick_value = sym.trade_tick_value
     tick_size  = sym.trade_tick_size
     if tick_size == 0:
@@ -99,15 +106,23 @@ def calculate_lot(symbol: str, sl_distance: float) -> float:
 class TradeRequest(BaseModel):
     symbol: str
     side: str          # buy | sell
+    order_type: str = "market"
     sl: float
     tp: float
     entry: Optional[float] = None
+    risk_percent: Optional[float] = None
     comment: str = "VPS Signal"
 
 
 class ModifyRequest(BaseModel):
     sl: Optional[float] = None
     tp: Optional[float] = None
+
+
+def verify_api_key(api_key: str = Security(_api_key_header)) -> str:
+    if api_key != API_KEY:
+        raise HTTPException(403, "Invalid API key")
+    return api_key
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -130,7 +145,7 @@ def health():
 
 
 @app.get("/account")
-def get_account():
+def get_account(_: str = Security(verify_api_key)):
     if not ensure_connected():
         raise HTTPException(503, "MT5 not connected")
     info = mt5.account_info()
@@ -148,7 +163,7 @@ def get_account():
 
 
 @app.get("/positions")
-def get_positions():
+def get_positions(_: str = Security(verify_api_key)):
     if not ensure_connected():
         return []
     positions = mt5.positions_get()
@@ -173,7 +188,7 @@ def get_positions():
 
 
 @app.put("/positions/{position_id}")
-def modify_position(position_id: int, body: ModifyRequest):
+def modify_position(position_id: int, body: ModifyRequest, _: str = Security(verify_api_key)):
     if not ensure_connected():
         raise HTTPException(503, "MT5 not connected")
     positions = mt5.positions_get(ticket=position_id)
@@ -196,7 +211,7 @@ def modify_position(position_id: int, body: ModifyRequest):
 
 
 @app.post("/trade")
-def open_trade(body: TradeRequest):
+def open_trade(body: TradeRequest, _: str = Security(verify_api_key)):
     if not ensure_connected():
         raise HTTPException(503, "MT5 not connected")
 
@@ -214,14 +229,41 @@ def open_trade(body: TradeRequest):
     if not tick:
         raise HTTPException(400, f"No tick data for {symbol}")
 
-    price = tick.ask if side == "buy" else tick.bid
-    sl_distance = abs(price - body.sl)
-    lot = calculate_lot(symbol, sl_distance)
+    normalized_order_type = (body.order_type or "market").lower().replace(" ", "_")
+    normalized_order_type = normalized_order_type.replace("_", "")
 
-    order_type = mt5.ORDER_TYPE_BUY if side == "buy" else mt5.ORDER_TYPE_SELL
+    if normalized_order_type == "market":
+        price = tick.ask if side == "buy" else tick.bid
+        order_type = mt5.ORDER_TYPE_BUY if side == "buy" else mt5.ORDER_TYPE_SELL
+        action = mt5.TRADE_ACTION_DEAL
+    else:
+        if body.entry is None:
+            raise HTTPException(400, "Pending order requires an entry price")
+        price = body.entry
+        pending_type_map = {
+            "buylimit": mt5.ORDER_TYPE_BUY_LIMIT,
+            "buystop": mt5.ORDER_TYPE_BUY_STOP,
+            "selllimit": mt5.ORDER_TYPE_SELL_LIMIT,
+            "sellstop": mt5.ORDER_TYPE_SELL_STOP,
+        }
+        order_type = pending_type_map.get(normalized_order_type)
+        action = mt5.TRADE_ACTION_PENDING
+        if order_type is None:
+            raise HTTPException(400, f"Unsupported order type: {body.order_type}")
+        if normalized_order_type == "buylimit" and price >= tick.ask:
+            raise HTTPException(400, "BUY LIMIT entry must be below current ask")
+        if normalized_order_type == "buystop" and price <= tick.ask:
+            raise HTTPException(400, "BUY STOP entry must be above current ask")
+        if normalized_order_type == "selllimit" and price <= tick.bid:
+            raise HTTPException(400, "SELL LIMIT entry must be above current bid")
+        if normalized_order_type == "sellstop" and price >= tick.bid:
+            raise HTTPException(400, "SELL STOP entry must be below current bid")
+
+    sl_distance = abs(price - body.sl)
+    lot = calculate_lot_with_risk(symbol, sl_distance, risk_percent=body.risk_percent)
 
     request = {
-        "action":       mt5.TRADE_ACTION_DEAL,
+        "action":       action,
         "symbol":       symbol,
         "volume":       lot,
         "type":         order_type,
@@ -247,7 +289,7 @@ def open_trade(body: TradeRequest):
 
 
 @app.get("/history")
-def get_history(limit: int = 50):
+def get_history(limit: int = 50, _: str = Security(verify_api_key)):
     if not ensure_connected():
         return []
     from datetime import datetime, timedelta

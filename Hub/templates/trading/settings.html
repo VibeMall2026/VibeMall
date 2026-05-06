@@ -115,9 +115,9 @@
                      value="{{ max_positions }}" placeholder="e.g. 3">
             </div>
             <div class="col-6">
-              <label class="form-label">Max Daily Loss</label>
+              <label class="form-label">Max Daily Loss %</label>
               <input type="number" step="0.01" name="max_daily_loss" class="form-control"
-                     value="{{ max_daily_loss }}" placeholder="e.g. 50">
+                     value="{{ max_daily_loss }}" placeholder="e.g. 3">
             </div>
             <div class="col-6">
               <label class="form-label">Max Consecutive Losses</label>
@@ -150,9 +150,9 @@
                      value="{{ max_spread }}" placeholder="e.g. 3.0">
             </div>
             <div class="col-6">
-              <label class="form-label">Duplicate Window (sec)</label>
+              <label class="form-label">Duplicate Window (min)</label>
               <input type="number" name="duplicate_window" class="form-control"
-                     value="{{ duplicate_window }}" placeholder="e.g. 60">
+                     value="{{ duplicate_window }}" placeholder="e.g. 5">
             </div>
             <div class="col-6">
               <label class="form-label">Min Seconds Between Trades</label>

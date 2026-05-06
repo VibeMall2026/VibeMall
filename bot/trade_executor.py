@@ -27,14 +27,20 @@ async def _execute_via_bridge(sig: ParsedSignal, channel: str) -> dict:
     payload = {
         "symbol": sig.symbol,
         "side": sig.side,
+        "order_type": sig.order_type,
         "sl": sig.sl,
         "tp": tp,
         "entry": sig.entry,
+        "risk_percent": state.risk_percent,
         "comment": f"VPS:{channel}",
     }
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.post(f"{MT5_BRIDGE_URL}/trade", json=payload)
+            resp = await client.post(
+                f"{MT5_BRIDGE_URL}/trade",
+                json=payload,
+                headers={"X-API-Key": config.API_KEY},
+            )
             resp.raise_for_status()
             return resp.json()
     except Exception as e:
@@ -54,6 +60,18 @@ async def execute_signal(sig: ParsedSignal, channel: str = "") -> dict:
 
     symbol = sig.symbol
     side = sig.side
+
+    if not state.running:
+        reason = "Bot is stopped â€” signal execution paused"
+        logger.warning(reason)
+        _update_signal_log(symbol, "blocked", reason)
+        return {"success": False, "reason": reason}
+
+    if sig.order_type != "market" and not state.allow_pending_orders:
+        reason = "Pending orders are disabled in settings"
+        logger.warning(reason)
+        _update_signal_log(symbol, "blocked", reason)
+        return {"success": False, "reason": reason}
 
     # ── Duplicate window check ────────────────────────────────────────────────
     if state.duplicate_window_minutes > 0 and symbol in _last_trade_time:
@@ -95,11 +113,16 @@ async def execute_signal(sig: ParsedSignal, channel: str = "") -> dict:
             sl=sig.sl,
             tp=tp,
             entry=sig.entry,
+            order_type=sig.order_type,
+            risk_percent=state.risk_percent,
             comment=comment,
         )
 
     if result.get("success"):
         _last_trade_time[symbol] = datetime.now()
+        with state._lock:
+            state.reset_daily_if_needed()
+            state.daily_trades += 1
         _update_signal_log(symbol, "executed", "Trade opened successfully")
         logger.success(f"Trade executed: {symbol} {side.upper()} ticket={result.get('ticket')}")
     else:

@@ -19,6 +19,7 @@ from typing import Optional
 class ParsedSignal:
     symbol: str = ""
     side: str = ""          # "buy" | "sell"
+    order_type: str = "market"
     entry: Optional[float] = None
     sl: Optional[float] = None
     tp: list[float] = field(default_factory=list)
@@ -30,6 +31,7 @@ class ParsedSignal:
         return {
             "symbol": self.symbol,
             "side": self.side,
+            "order_type": self.order_type,
             "entry": self.entry,
             "sl": self.sl,
             "tp": self.tp,
@@ -43,9 +45,20 @@ class ParsedSignal:
 _PRICE_RE = re.compile(r"[\d]+(?:[.,]\d+)?")
 
 
-def _price(text: str) -> Optional[float]:
-    m = _PRICE_RE.search(text.replace(",", "."))
-    return float(m.group()) if m else None
+def _price(text: str, take: str = "first") -> Optional[float]:
+    matches = _PRICE_RE.findall(text.replace(",", "."))
+    if not matches:
+        return None
+    value = matches[0] if take == "first" else matches[-1]
+    return float(value)
+
+
+def _price_after(label_pattern: str, text: str) -> Optional[float]:
+    normalized = text.replace(",", ".")
+    match = re.search(rf"(?:{label_pattern})[^\d]*([\d]+(?:\.\d+)?)", normalized, re.IGNORECASE)
+    if match:
+        return float(match.groups()[-1])
+    return _price(normalized, take="last")
 
 
 def _find_prices(label_pattern: str, text: str) -> list[float]:
@@ -53,7 +66,7 @@ def _find_prices(label_pattern: str, text: str) -> list[float]:
     results = []
     for line in text.splitlines():
         if re.search(label_pattern, line, re.IGNORECASE):
-            p = _price(line)
+            p = _price_after(label_pattern, line)
             if p:
                 results.append(p)
     return results
@@ -104,15 +117,18 @@ def parse_signal(text: str) -> ParsedSignal:
     raw_side = side_match.group(1).lower().replace(" ", "")
     if "buylimit" in raw_side or "buystop" in raw_side:
         sig.side = "buy"
+        sig.order_type = raw_side
     elif "selllimit" in raw_side or "sellstop" in raw_side:
         sig.side = "sell"
+        sig.order_type = raw_side
     else:
         sig.side = raw_side  # "buy" or "sell"
+        sig.order_type = "market"
 
     # ── Entry ─────────────────────────────────────────────────────────────────
     for line in text.splitlines():
-        if re.search(r"\b(entry|enter|price|@)\b", line, re.IGNORECASE):
-            p = _price(line)
+        if re.search(r"\b(entry|enter|price)\b|@", line, re.IGNORECASE):
+            p = _price_after(r"\b(entry|enter|price)\b|@", line)
             if p:
                 sig.entry = p
                 break
@@ -120,7 +136,7 @@ def parse_signal(text: str) -> ParsedSignal:
     # ── SL ────────────────────────────────────────────────────────────────────
     for line in text.splitlines():
         if re.search(r"\bsl\b|\bstop\s*loss\b|\bstop\b", line, re.IGNORECASE):
-            p = _price(line)
+            p = _price_after(r"\bsl\b|\bstop\s*loss\b|\bstop\b", line)
             if p:
                 sig.sl = p
                 break
@@ -134,6 +150,10 @@ def parse_signal(text: str) -> ParsedSignal:
         return sig
     if not sig.tp:
         sig.reason = "No Take Profit found — signal rejected"
+        return sig
+
+    if sig.order_type != "market" and sig.entry is None:
+        sig.reason = "Pending order requires an entry price â€” signal rejected"
         return sig
 
     sig.valid = True
