@@ -8368,11 +8368,9 @@ def vote_review(request, review_id):
 @login_required(login_url='login')
 @require_POST
 def mobile_review_prompt_dismiss(request):
-    """Dismiss mobile delivered-order review prompt."""
-    # Clear the session flag so the banner can show again next session (up to max count)
-    session_key = f'review_prompt_shown_session_{request.user.id}'
-    request.session.pop(session_key, None)
-    request.session.modified = True
+    """Dismiss mobile delivered-order review prompt — keep session flag so it won't re-appear on refresh."""
+    # Do NOT clear the session flag here — we want it to stay so the popup
+    # doesn't reappear on page refresh within the same session.
     return JsonResponse({'success': True})
 
 
@@ -8422,10 +8420,8 @@ def mobile_review_prompt_submit(request, product_id):
         is_verified_purchase=True,
     )
 
-    # Clear the session flag so the banner can show again next session (up to max count)
-    session_key = f'review_prompt_shown_session_{request.user.id}'
-    request.session.pop(session_key, None)
-    request.session.modified = True
+    # Keep the session flag set — review was submitted so the popup should never
+    # reappear for this product anyway (ProductReview.exists() will block it).
 
     product.refresh_from_db(fields=['review_count', 'rating'])
     return JsonResponse({
@@ -10807,12 +10803,14 @@ def order_details(request, order_number):
         cancel_request = getattr(order, 'cancellation_request', None)
         cancel_eligible, cancel_reason, cancel_deadline = _cancel_eligibility(order)
 
-        # Review prompt: show only for delivered orders, max 2 times (persists across logins)
+        # Review prompt: show only for delivered orders, once per page load (session-guarded)
         show_review_prompt = False
         review_prompt_product = None
         if order.order_status == 'DELIVERED':
+            session_shown_key = f'review_prompt_shown_session_{request.user.id}'
+            already_shown_this_session = request.session.get(session_shown_key, False)
             seen_count = _get_review_prompt_count(request.user)
-            if seen_count < MOBILE_REVIEW_PROMPT_MAX_SHOWN:
+            if not already_shown_this_session and seen_count < MOBILE_REVIEW_PROMPT_MAX_SHOWN:
                 # Pick first unreviewed product from this order
                 for item in order_items:
                     if item.product and not ProductReview.objects.filter(
@@ -10820,6 +10818,10 @@ def order_details(request, order_number):
                     ).exists():
                         show_review_prompt = True
                         review_prompt_product = item.product
+                        # Mark as shown for this session and increment persistent count
+                        request.session[session_shown_key] = True
+                        request.session.modified = True
+                        _increment_review_prompt_count(request.user, request)
                         break
 
         return render(request, 'order_details.html', {
