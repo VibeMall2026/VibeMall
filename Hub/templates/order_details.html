@@ -1,7 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
-
-{% block title %}Order #{{ order.order_number }} - VibeMall{% endblock %}
+{% load hub_filters %}
 {% block body_class %}vm-page-mobile-alt vm-orderdetails-mobile-page{% endblock %}
 
 {% block extra_css %}
@@ -857,7 +856,7 @@
                 </div>
                 <div style="flex:1;">
                     <h4 class="vm-odm-item-name">{{ item.product_name }}</h4>
-                    <p class="vm-odm-item-var">{% if item.color %}{{ item.color }}{% else %}N/A{% endif %} • {% if item.size %}{{ item.size }}{% else %}N/A{% endif %}</p>
+                    <p class="vm-odm-item-var">{% if item.color %}{{ item.color|color_swatch }}{% else %}N/A{% endif %} • {% if item.size %}{{ item.size }}{% else %}N/A{% endif %}</p>
                     <div class="vm-odm-item-row">
                         <span class="vm-odm-item-qty">Qty: {{ item.quantity }}</span>
                         <span class="vm-odm-item-price">Rs {{ item.subtotal }}</span>
@@ -1076,7 +1075,7 @@
                             </div>
                             <div class="vm-odt-item-info">
                                 <h4>{{ item.product_name }}</h4>
-                                <div class="vm-odt-item-meta">Qty: {{ item.quantity }}{% if item.color %} • {{ item.color }}{% endif %}{% if item.size %} • {{ item.size }}{% endif %}</div>
+                                <div class="vm-odt-item-meta">Qty: {{ item.quantity }}{% if item.color %} • {{ item.color|color_swatch }}{% endif %}{% if item.size %} • {{ item.size }}{% endif %}</div>
                                 <div class="vm-odt-item-price">₹{{ item.subtotal|floatformat:2 }}</div>
                             </div>
                         </article>

@@ -1,6 +1,7 @@
 ﻿{% extends "base.html" %}
 
 {% load static %}
+{% load hub_filters %}
 
 {% block title %}Order Confirmation - VibeMall{% endblock %}
 {% block body_class %}vm-page-mobile-alt vm-page-mobile-order-confirmation{% endblock %}
@@ -191,7 +192,7 @@
                                 {% endif %}
                                 <h3 class="vm-ocd-item__name">{{ item.product_name }}</h3>
                                 <p class="vm-ocd-item__variant">
-                                    {% if item.color %}Color: {{ item.color }}{% endif %}{% if item.color and item.size %} / {% endif %}{% if item.size %}Size: {{ item.size }}{% endif %}{% if not item.color and not item.size %}1 piece{% endif %}
+                                    {% if item.color %}Color: {{ item.color|color_swatch }}{% endif %}{% if item.color and item.size %} / {% endif %}{% if item.size %}Size: {{ item.size }}{% endif %}{% if not item.color and not item.size %}1 piece{% endif %}
                                 </p>
                                 <p class="vm-ocd-item__qty">Qty: {{ item.quantity }}</p>
                                 <p class="vm-ocd-item__price">&#8377;{{ item.product_price|floatformat:2 }}</p>

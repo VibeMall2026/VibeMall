@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load hub_filters %}
 
 {% block title %}Track Order #{{ order.order_number }} - VibeMall{% endblock %}
 {% block body_class %}vm-page-track-order-desktop vm-page-mobile-alt{% endblock %}
@@ -570,7 +571,7 @@
                             </div>
                             <div>
                                 <h4>{{ item.product_name }}</h4>
-                                <p>Qty: {{ item.quantity }}{% if item.size %} • {{ item.size }}{% endif %}{% if item.color %} • {{ item.color }}{% endif %}</p>
+                                <p>Qty: {{ item.quantity }}{% if item.size %} • {{ item.size }}{% endif %}{% if item.color %} • {{ item.color|color_swatch }}{% endif %}</p>
                                 <strong>Rs {{ item.product_price }}</strong>
                             </div>
                         </article>

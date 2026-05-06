@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% load static %}
+{% load hub_filters %}
 
 {% block body_class %}vm-page-mobile-alt vm-page-mobile-checkout-confirm{% endblock %}
 
@@ -52,11 +53,7 @@
                     </div>
                     <div class="vm-ccm-item__content">
                         <h3>{{ item.product_name|default:item.product.name }}</h3>
-                        <p>{% if item.color or item.size %}{% if item.color %}Color: {{ item.color }}{% endif %}{% if item.color and item.size %} / {% endif %}{% if item.size %}Size: {{ item.size }}{% endif %}{% else %}Selected piece{% endif %}</p>
-                        <div class="vm-ccm-item__meta">
-                            <span>Qty {{ item.quantity }}</span>
-                            <strong>
-                                {% if item.subtotal %}
+                        <p>{% if item.color or item.size %}{% if item.color %}Color: {{ item.color|color_swatch }}{% endif %}{% if item.color and item.size %} / {% endif %}{% if item.size %}Size: {{ item.size }}{% endif %}{% else %}Selected piece{% endif %}</p>
                                 &#8377;{{ item.subtotal|floatformat:2 }}
                                 {% else %}
                                 &#8377;{{ item.get_total_price|floatformat:2 }}
@@ -209,7 +206,7 @@
                             </div>
                             <div class="vm-cct-item__content">
                                 <h3>{{ item.product_name|default:item.product.name }}</h3>
-                                <p>{% if item.color or item.size %}{% if item.color %}Color: {{ item.color }}{% endif %}{% if item.color and item.size %} / {% endif %}{% if item.size %}Size: {{ item.size }}{% endif %}{% else %}Selected piece{% endif %}</p>
+                                <p>{% if item.color or item.size %}{% if item.color %}Color: {{ item.color|color_swatch }}{% endif %}{% if item.color and item.size %} / {% endif %}{% if item.size %}Size: {{ item.size }}{% endif %}{% else %}Selected piece{% endif %}</p>
                                 <div class="vm-cct-item__meta">
                                     <span>Qty: {{ item.quantity|stringformat:"02d" }}</span>
                                     <strong>
@@ -392,7 +389,7 @@
                                 <span class="vm-ccd-item__cat">{{ item.product.category.name }}</span>
                                 {% endif %}
                                 <h3>{{ item.product_name|default:item.product.name }}</h3>
-                                <p>Quantity: {{ item.quantity }}{% if item.color %} • {{ item.color }}{% endif %}{% if item.size %} • {{ item.size }}{% endif %}</p>
+                                <p>Quantity: {{ item.quantity }}{% if item.color %} • {{ item.color|color_swatch }}{% endif %}{% if item.size %} • {{ item.size }}{% endif %}</p>
                             </div>
                             <strong class="vm-ccd-item__price">
                                 {% if item.subtotal %}
