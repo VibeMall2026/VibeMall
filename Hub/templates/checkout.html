@@ -61,6 +61,8 @@
                     <div class="vm-checkout-mobile-item__image">
                         {% if item.display_image_url %}
                         <img src="{{ item.display_image_url }}" alt="{{ item.product.name }}">
+                        {% elif item.product and item.product.image %}
+                        <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
                         {% else %}
                         <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.product.name }}">
                         {% endif %}
@@ -657,6 +659,8 @@
                         <div class="vm-checkout-tablet-item__image">
                             {% if item.display_image_url %}
                             <img src="{{ item.display_image_url }}" alt="{{ item.product.name }}">
+                            {% elif item.product and item.product.image %}
+                            <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
                             {% else %}
                             <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.product.name }}">
                             {% endif %}
