@@ -100,13 +100,38 @@ def build_invoice_context(order):
     order_items = []
     for item in order.items.select_related('product').all():
         image_url = ''
-        if item.product_image:
-            image_url = absolute_media_url(item.product_image)
-        elif item.product and getattr(item.product, 'image', None):
+
+        # 1. Try color-matched variant image from ProductImage gallery
+        if item.product and item.color:
+            color_lower = item.color.strip().lower()
+            try:
+                from .models import ProductImage as PI
+                variant_img = (
+                    PI.objects
+                    .filter(product=item.product, is_active=True)
+                    .exclude(color='')
+                    .order_by('order')
+                )
+                for vi in variant_img:
+                    if vi.color.strip().lower() == color_lower:
+                        try:
+                            image_url = absolute_media_url(vi.image.url)
+                        except Exception:
+                            pass
+                        break
+            except Exception:
+                pass
+
+        # 2. Fall back to product's main image
+        if not image_url and item.product and getattr(item.product, 'image', None):
             try:
                 image_url = absolute_media_url(item.product.image.url)
             except Exception:
                 image_url = ''
+
+        # 3. Fall back to snapshot URL saved at order time
+        if not image_url and item.product_image:
+            image_url = absolute_media_url(item.product_image)
 
         variant_parts = []
         if item.size:

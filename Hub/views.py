@@ -10803,26 +10803,9 @@ def order_details(request, order_number):
         cancel_request = getattr(order, 'cancellation_request', None)
         cancel_eligible, cancel_reason, cancel_deadline = _cancel_eligibility(order)
 
-        # Review prompt: show only for delivered orders, once per page load (session-guarded)
+        # Review prompt is handled globally by mobile_review_prompt_context processor.
         show_review_prompt = False
         review_prompt_product = None
-        if order.order_status == 'DELIVERED':
-            session_shown_key = f'review_prompt_shown_session_{request.user.id}'
-            already_shown_this_session = request.session.get(session_shown_key, False)
-            seen_count = _get_review_prompt_count(request.user)
-            if not already_shown_this_session and seen_count < MOBILE_REVIEW_PROMPT_MAX_SHOWN:
-                # Pick first unreviewed product from this order
-                for item in order_items:
-                    if item.product and not ProductReview.objects.filter(
-                        product=item.product, user=request.user
-                    ).exists():
-                        show_review_prompt = True
-                        review_prompt_product = item.product
-                        # Mark as shown for this session and increment persistent count
-                        request.session[session_shown_key] = True
-                        request.session.modified = True
-                        _increment_review_prompt_count(request.user, request)
-                        break
 
         return render(request, 'order_details.html', {
             'order': order,
