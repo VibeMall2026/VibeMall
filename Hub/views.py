@@ -9452,6 +9452,11 @@ def razorpay_payment_success(request):
             except Exception as email_exc:
                 logger.error(f"Razorpay order confirmation email exception for order {order.order_number}: {email_exc}", exc_info=True)
                 messages.warning(request, 'Order placed successfully, but confirmation email failed to send. Please contact support.')
+
+            try:
+                send_admin_order_notification(order, request)
+            except Exception as admin_email_exc:
+                logger.error(f"Razorpay admin notification email exception for order {order.order_number}: {admin_email_exc}", exc_info=True)
             
             if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 return JsonResponse({'success': True, 'redirect': reverse('order_confirmation', args=[order.id])})

@@ -10,7 +10,7 @@ from django.urls import reverse
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
-from .models import EmailLog, Notification, SiteSettings
+from .models import EmailLog, Notification, SiteSettings, AdminEmailSettings
 import logging
 from urllib.parse import urlparse
 
@@ -29,6 +29,7 @@ def _validate_email_settings() -> str:
     configured_host_user = getattr(settings, 'EMAIL_HOST_USER', '').strip()
     configured_host_password = getattr(settings, 'EMAIL_HOST_PASSWORD', '').strip()
     default_from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', '').strip()
+    email_backend = getattr(settings, 'EMAIL_BACKEND', '').strip()
 
     if not configured_host_user and not default_from_email:
         raise ValueError('Email sender is not configured. Set EMAIL_HOST_USER or DEFAULT_FROM_EMAIL in environment settings.')
@@ -36,9 +37,45 @@ def _validate_email_settings() -> str:
     if configured_host_user.startswith('replace_with_') or configured_host_password.startswith('replace_with_'):
         raise ValueError('Email SMTP is using placeholder values. Please set EMAIL_HOST_USER and EMAIL_HOST_PASSWORD in .env.')
 
+    if email_backend == 'django.core.mail.backends.smtp.EmailBackend':
+        if not configured_host_user or not configured_host_password:
+            raise ValueError(
+                'SMTP email delivery is not configured. Set EMAIL_HOST_USER and EMAIL_HOST_PASSWORD in the project .env file.'
+            )
+
     # Prefer a clean DEFAULT_FROM_EMAIL if available for better deliverability;
     # otherwise, fall back to the SMTP login address.
     return default_from_email or configured_host_user
+
+
+def _get_admin_notification_emails() -> list[str]:
+    emails: list[str] = []
+
+    try:
+        configured_admins = AdminEmailSettings.objects.filter(is_active=True).values_list('admin_email', flat=True)
+        emails.extend([email.strip() for email in configured_admins if email and email.strip()])
+    except Exception:
+        pass
+
+    fallback_setting = getattr(settings, 'ADMIN_NOTIFICATION_EMAILS', '')
+    if isinstance(fallback_setting, str) and fallback_setting.strip():
+        emails.extend([email.strip() for email in fallback_setting.split(',') if email.strip()])
+    elif isinstance(fallback_setting, (list, tuple)):
+        emails.extend([str(email).strip() for email in fallback_setting if str(email).strip()])
+
+    if not emails:
+        emails.append('info.vibemall@gmail.com')
+
+    # Preserve order while deduplicating
+    unique_emails: list[str] = []
+    seen: set[str] = set()
+    for email in emails:
+        key = email.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        unique_emails.append(email)
+    return unique_emails
 
 
 def _resolve_site_url(request=None) -> str:
@@ -851,8 +888,7 @@ def send_admin_order_notification(order, request):
         # Validate email configuration before sending
         from_email = _validate_email_settings()
 
-        # Send to VibeMall admin email only
-        admin_emails = ['info.vibemall@gmail.com']
+        admin_emails = _get_admin_notification_emails()
         
         # Build absolute URLs
         site_url = request.build_absolute_uri('/').rstrip('/')
