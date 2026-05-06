@@ -138,6 +138,75 @@
   font-size: 0.92rem;
 }
 
+/* ── Mobile variant selectors (color / size) ── */
+.vm-pd-m-variant-row {
+  margin: 0.75rem 0;
+}
+
+.vm-pd-m-variant-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: rgba(23, 24, 24, 0.7);
+}
+
+.vm-pd-m-variant-value {
+  font-weight: 600;
+  color: #171818;
+}
+
+.vm-pd-m-swatch-row,
+.vm-pd-m-size-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.vm-pd-m-swatch-btn {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.vm-pd-m-swatch-btn.is-active {
+  border-color: #171818;
+  transform: scale(1.1);
+}
+
+.vm-pd-m-swatch__fill {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  display: block;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+.vm-pd-m-size-btn {
+  padding: 0.3rem 0.75rem;
+  border: 1px solid #c4c7c7;
+  border-radius: 0.4rem;
+  background: #fff;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.vm-pd-m-size-btn.is-active {
+  border-color: #171818;
+  background: #171818;
+  color: #fff;
+}
+
 @media (max-width: 991.98px) {
   .pddx-reco__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -257,6 +326,26 @@
                     <button type="button" class="vm-pd-m-qty-btn" data-step="1" aria-label="Increase quantity"><i class="far fa-plus"></i></button>
                 </div>
             </div>
+
+            {% if product.color %}
+            <div class="vm-pd-m-variant-row" data-vm-mobile-color-root data-options="{{ product.color|escapejs }}">
+                <div class="vm-pd-m-variant-head">
+                    <span>Color</span>
+                    <span class="vm-pd-m-variant-value" data-vm-mobile-color-value>{{ product.color }}</span>
+                </div>
+                <div class="vm-pd-m-swatch-row" data-vm-mobile-color-list></div>
+            </div>
+            {% endif %}
+
+            {% if product.size %}
+            <div class="vm-pd-m-variant-row" data-vm-mobile-size-root data-options="{{ product.size|escapejs }}">
+                <div class="vm-pd-m-variant-head">
+                    <span>Size</span>
+                    <span class="vm-pd-m-variant-value" data-vm-mobile-size-value>{{ product.size }}</span>
+                </div>
+                <div class="vm-pd-m-size-row" data-vm-mobile-size-list></div>
+            </div>
+            {% endif %}
 
             <div class="vm-pd-m-actions">
                 <form method="POST" action="{% url 'add_to_cart' %}">
@@ -704,6 +793,10 @@ document.addEventListener('DOMContentLoaded', function() {
     initProductColorImageSync();
     syncProductVariantInputs();
 
+    // ── Mobile variant selectors ──
+    initMobileOptionGroup('[data-vm-mobile-color-root]', '[data-vm-mobile-color-list]', '[data-vm-mobile-color-value]', 'vm-pd-m-swatch-btn', true);
+    initMobileOptionGroup('[data-vm-mobile-size-root]', '[data-vm-mobile-size-list]', '[data-vm-mobile-size-value]', 'vm-pd-m-size-btn', false);
+
     /* ── Mobile image switcher ── */
     const vmMainImage = document.getElementById('vmPdMainImage');
     const vmThumbs    = document.querySelectorAll('.vm-pd-m-thumb');
@@ -779,8 +872,22 @@ function getSelectedVariantValue(rootSelector, buttonSelector, valueSelector) {
 }
 
 function syncProductVariantInputs() {
-    const selectedColor = getSelectedVariantValue('[data-pddx-color-root]', '.pddx-swatch', '[data-pddx-color-value]');
-    const selectedSize = getSelectedVariantValue('[data-pddx-size-root]', '.pddx-size-btn', '[data-pddx-size-value]');
+    // Detect which layout is active (mobile vs desktop) based on visibility
+    const mobileSection = document.querySelector('.vm-pd-mobile-only');
+    const isMobileLayout = mobileSection && window.getComputedStyle(mobileSection).display !== 'none';
+
+    let selectedColor, selectedSize;
+    if (isMobileLayout) {
+        selectedColor = getSelectedVariantValue('[data-vm-mobile-color-root]', '.vm-pd-m-swatch-btn', '[data-vm-mobile-color-value]')
+            || getSelectedVariantValue('[data-pddx-color-root]', '.pddx-swatch', '[data-pddx-color-value]');
+        selectedSize = getSelectedVariantValue('[data-vm-mobile-size-root]', '.vm-pd-m-size-btn', '[data-vm-mobile-size-value]')
+            || getSelectedVariantValue('[data-pddx-size-root]', '.pddx-size-btn', '[data-pddx-size-value]');
+    } else {
+        selectedColor = getSelectedVariantValue('[data-pddx-color-root]', '.pddx-swatch', '[data-pddx-color-value]')
+            || getSelectedVariantValue('[data-vm-mobile-color-root]', '.vm-pd-m-swatch-btn', '[data-vm-mobile-color-value]');
+        selectedSize = getSelectedVariantValue('[data-pddx-size-root]', '.pddx-size-btn', '[data-pddx-size-value]')
+            || getSelectedVariantValue('[data-vm-mobile-size-root]', '.vm-pd-m-size-btn', '[data-vm-mobile-size-value]');
+    }
 
     document.querySelectorAll('[data-selected-color-input]').forEach(function(input) {
         input.value = selectedColor;
@@ -925,6 +1032,64 @@ function initDesktopOptionGroup(rootSelector, listSelector, valueSelector, butto
             button.setAttribute('aria-pressed', 'true');
             if (valueLabel) valueLabel.textContent = option;
             syncProductVariantInputs();
+            if (isColorGroup && typeof window._vmApplyColorSelection === 'function') {
+                window._vmApplyColorSelection(option);
+            }
+        });
+
+        list.appendChild(button);
+    });
+
+    if (valueLabel) valueLabel.textContent = finalOptions[0];
+    syncProductVariantInputs();
+}
+
+function initMobileOptionGroup(rootSelector, listSelector, valueSelector, buttonClass, isColorGroup) {
+    const root = document.querySelector(rootSelector);
+    if (!root) return;
+
+    const list = root.querySelector(listSelector);
+    const valueLabel = root.querySelector(valueSelector);
+    if (!list) return;
+
+    const options = (root.getAttribute('data-options') || '')
+        .split(',')
+        .map(function(o) { return o.trim(); })
+        .filter(Boolean);
+
+    let finalOptions = options.length ? options : [isColorGroup ? 'Signature finish' : 'One Size'];
+    if (isColorGroup) {
+        finalOptions = mergeUniqueOptions(finalOptions, getGalleryColorOptions());
+    }
+
+    list.innerHTML = '';
+    finalOptions.forEach(function(option, index) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = buttonClass + (index === 0 ? ' is-active' : '');
+        button.setAttribute('data-value', option);
+        button.setAttribute('aria-pressed', index === 0 ? 'true' : 'false');
+
+        if (isColorGroup) {
+            const fill = document.createElement('span');
+            fill.className = 'vm-pd-m-swatch__fill';
+            fill.style.background = inferDesktopColor(option);
+            button.appendChild(fill);
+            button.title = option;
+        } else {
+            button.textContent = option;
+        }
+
+        button.addEventListener('click', function() {
+            list.querySelectorAll('.' + buttonClass).forEach(function(item) {
+                item.classList.remove('is-active');
+                item.setAttribute('aria-pressed', 'false');
+            });
+            button.classList.add('is-active');
+            button.setAttribute('aria-pressed', 'true');
+            if (valueLabel) valueLabel.textContent = option;
+            syncProductVariantInputs();
+            // Also sync desktop swatch if visible
             if (isColorGroup && typeof window._vmApplyColorSelection === 'function') {
                 window._vmApplyColorSelection(option);
             }

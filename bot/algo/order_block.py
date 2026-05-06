@@ -266,7 +266,32 @@ _algo_running = False
 # ── MT5 helpers ───────────────────────────────────────────────────────────────
 
 def _get_candles(symbol: str, timeframe_minutes: int, count: int) -> list[Candle]:
-    """Fetch OHLCV candles from MT5."""
+    """Fetch OHLCV candles from MT5 or via Windows bridge."""
+    from bot import mt5_bridge as _bridge
+
+    # Bridge mode (Ubuntu VPS → Windows PC)
+    if _bridge.USE_BRIDGE:
+        try:
+            response = _bridge._call_bridge(
+                f"/candles?symbol={symbol}&timeframe={timeframe_minutes}&count={count}"
+            )
+            if response and isinstance(response, list):
+                candles = []
+                for r in response:
+                    candles.append(Candle(
+                        time=datetime.fromisoformat(r['time']) if isinstance(r['time'], str) else datetime.fromtimestamp(r['time']),
+                        open=float(r['open']),
+                        high=float(r['high']),
+                        low=float(r['low']),
+                        close=float(r['close']),
+                        volume=float(r.get('volume', r.get('tick_volume', 0))),
+                    ))
+                return candles
+        except Exception as e:
+            logger.warning(f"[ALGO] Bridge candles fetch failed: {e}")
+        return []
+
+    # Direct MT5 mode (Windows only)
     if not MT5_AVAILABLE or not mt5_bridge.is_connected():
         return []
 
@@ -298,7 +323,20 @@ def _get_candles(symbol: str, timeframe_minutes: int, count: int) -> list[Candle
 
 
 def _get_current_price(symbol: str) -> Optional[float]:
-    """Get current bid price."""
+    """Get current bid price from MT5 or via Windows bridge."""
+    from bot import mt5_bridge as _bridge
+
+    # Bridge mode
+    if _bridge.USE_BRIDGE:
+        try:
+            response = _bridge._call_bridge(f"/price?symbol={symbol}")
+            if response and "bid" in response:
+                return float(response["bid"])
+        except Exception as e:
+            logger.warning(f"[ALGO] Bridge price fetch failed: {e}")
+        return None
+
+    # Direct MT5 mode
     if not MT5_AVAILABLE or not mt5_bridge.is_connected():
         return None
     tick = mt5.symbol_info_tick(symbol)

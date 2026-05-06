@@ -313,6 +313,69 @@ def get_history(limit: int = 50, _: str = Security(verify_api_key)):
     return result
 
 
+@app.get("/candles")
+def get_candles(symbol: str, timeframe: int = 15, count: int = 100, _: str = Security(verify_api_key)):
+    """Return OHLCV candles for algo strategy (used by Ubuntu VPS)."""
+    if not ensure_connected():
+        raise HTTPException(503, "MT5 not connected")
+
+    tf_map = {
+        1: mt5.TIMEFRAME_M1,
+        5: mt5.TIMEFRAME_M5,
+        15: mt5.TIMEFRAME_M15,
+        30: mt5.TIMEFRAME_M30,
+        60: mt5.TIMEFRAME_H1,
+        240: mt5.TIMEFRAME_H4,
+        1440: mt5.TIMEFRAME_D1,
+    }
+    tf = tf_map.get(timeframe, mt5.TIMEFRAME_M15)
+
+    # Select symbol if not visible
+    sym_info = mt5.symbol_info(symbol)
+    if sym_info and not sym_info.visible:
+        mt5.symbol_select(symbol, True)
+
+    rates = mt5.copy_rates_from_pos(symbol, tf, 0, count)
+    if rates is None or len(rates) == 0:
+        return []
+
+    from datetime import datetime as dt
+    result = []
+    for r in rates:
+        result.append({
+            "time": dt.fromtimestamp(r['time']).isoformat(),
+            "open": float(r['open']),
+            "high": float(r['high']),
+            "low": float(r['low']),
+            "close": float(r['close']),
+            "volume": float(r['tick_volume']),
+        })
+    return result
+
+
+@app.get("/price")
+def get_price(symbol: str, _: str = Security(verify_api_key)):
+    """Return current bid/ask price for a symbol (used by Ubuntu VPS algo)."""
+    if not ensure_connected():
+        raise HTTPException(503, "MT5 not connected")
+
+    # Select symbol if not visible
+    sym_info = mt5.symbol_info(symbol)
+    if sym_info and not sym_info.visible:
+        mt5.symbol_select(symbol, True)
+
+    tick = mt5.symbol_info_tick(symbol)
+    if not tick:
+        raise HTTPException(404, f"No tick data for {symbol}")
+
+    return {
+        "symbol": symbol,
+        "bid": tick.bid,
+        "ask": tick.ask,
+        "time": tick.time,
+    }
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
