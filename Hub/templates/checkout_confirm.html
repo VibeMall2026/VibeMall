@@ -54,12 +54,13 @@
                     <div class="vm-ccm-item__content">
                         <h3>{{ item.product_name|default:item.product.name }}</h3>
                         <p>{% if item.color or item.size %}{% if item.color %}Color: {{ item.color|color_swatch }}{% endif %}{% if item.color and item.size %} / {% endif %}{% if item.size %}Size: {{ item.size }}{% endif %}{% else %}Selected piece{% endif %}</p>
-                                &#8377;{{ item.subtotal|floatformat:2 }}
-                                {% else %}
-                                &#8377;{{ item.get_total_price|floatformat:2 }}
-                                {% endif %}
-                            </strong>
-                        </div>
+                        <strong class="vm-ccm-item__price">
+                            {% if item.subtotal %}
+                            &#8377;{{ item.subtotal|floatformat:2 }}
+                            {% else %}
+                            &#8377;{{ item.get_total_price|floatformat:2 }}
+                            {% endif %}
+                        </strong>
                     </div>
                 </article>
                 {% endfor %}
