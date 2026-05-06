@@ -43,7 +43,9 @@
                 {% for item in cart_items %}
                 <article class="vm-ccm-item">
                     <div class="vm-ccm-item__media">
-                        {% if item.product_image %}
+                        {% if item.display_image_url %}
+                        <img src="{{ item.display_image_url }}" alt="{{ item.product_name|default:item.product.name }}">
+                        {% elif item.product_image %}
                         <img src="{{ item.product_image }}" alt="{{ item.product_name|default:item.product.name }}">
                         {% elif item.product and item.product.image %}
                         <img src="{{ item.product.image.url }}" alt="{{ item.product_name|default:item.product.name }}">
@@ -197,7 +199,9 @@
                         {% for item in cart_items %}
                         <article class="vm-cct-item">
                             <div class="vm-cct-item__media">
-                                {% if item.product_image %}
+                                {% if item.display_image_url %}
+                                <img src="{{ item.display_image_url }}" alt="{{ item.product_name|default:item.product.name }}">
+                                {% elif item.product_image %}
                                 <img src="{{ item.product_image }}" alt="{{ item.product_name|default:item.product.name }}">
                                 {% elif item.product and item.product.image %}
                                 <img src="{{ item.product.image.url }}" alt="{{ item.product_name|default:item.product.name }}">
@@ -377,7 +381,9 @@
                         {% for item in cart_items %}
                         <article class="vm-ccd-item">
                             <div class="vm-ccd-item__media">
-                                {% if item.product_image %}
+                                {% if item.display_image_url %}
+                                <img src="{{ item.display_image_url }}" alt="{{ item.product_name|default:item.product.name }}">
+                                {% elif item.product_image %}
                                 <img src="{{ item.product_image }}" alt="{{ item.product_name|default:item.product.name }}">
                                 {% elif item.product and item.product.image %}
                                 <img src="{{ item.product.image.url }}" alt="{{ item.product_name|default:item.product.name }}">

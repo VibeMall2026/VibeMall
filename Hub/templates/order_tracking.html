@@ -563,8 +563,8 @@
                         {% for item in order_items %}
                         <article class="vm-tod-item">
                             <div class="vm-tod-item-media">
-                                {% if item.product_image %}
-                                <img src="{{ item.product_image }}" alt="{{ item.product_name }}">
+                                {% if item.display_image_url %}
+                                <img src="{{ item.display_image_url }}" alt="{{ item.product_name }}">
                                 {% else %}
                                 <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ item.product_name }}">
                                 {% endif %}

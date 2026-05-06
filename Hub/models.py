@@ -609,6 +609,32 @@ class Cart(models.Model):
     def __str__(self) -> str:
         return f"{self.user.username} - {self.product.name} x{self.quantity}"
 
+    @property
+    def display_image_url(self) -> str:
+        """Return the best image URL for the selected cart variant."""
+        selected_color = (self.color or '').strip().lower()
+        if selected_color:
+            variant = (
+                ProductImage.objects
+                .filter(product=self.product, is_active=True)
+                .exclude(color='')
+                .exclude(image_role=ProductImage.IMAGE_ROLE_DESCRIPTION)
+                .order_by('order', 'id')
+            )
+            for image_item in variant:
+                if (image_item.color or '').strip().lower() == selected_color and image_item.image:
+                    try:
+                        return image_item.image.url
+                    except Exception:
+                        continue
+
+        if self.product and self.product.image:
+            try:
+                return self.product.image.url
+            except Exception:
+                return ''
+        return ''
+
 
 class Wishlist(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='wishlist_items')
@@ -1064,39 +1090,38 @@ class OrderItem(models.Model):
     @property
     def display_image_url(self):
         """Return safest available image URL for admin/front display."""
+        raw_url = (self.product_image or '').strip()
+        if raw_url:
+            local_hosts = (
+                'http://127.0.0.1', 'https://127.0.0.1',
+                'http://localhost', 'https://localhost'
+            )
+
+            if raw_url.startswith(local_hosts):
+                try:
+                    from urllib.parse import urlparse
+                    parsed = urlparse(raw_url)
+                    return parsed.path if parsed.path.startswith('/media/') else ''
+                except Exception:
+                    return ''
+
+            if raw_url.startswith('/media/'):
+                return raw_url
+
+            if raw_url.startswith('media/'):
+                return f"/{raw_url}"
+
+            if raw_url.startswith(('http://', 'https://')):
+                return raw_url
+
+            return raw_url
+
         if self.product and self.product.image:
             try:
                 return self.product.image.url
             except Exception:
-                pass
-
-        raw_url = (self.product_image or '').strip()
-        if not raw_url:
-            return ''
-
-        local_hosts = (
-            'http://127.0.0.1', 'https://127.0.0.1',
-            'http://localhost', 'https://localhost'
-        )
-
-        if raw_url.startswith(local_hosts):
-            try:
-                from urllib.parse import urlparse
-                parsed = urlparse(raw_url)
-                return parsed.path if parsed.path.startswith('/media/') else ''
-            except Exception:
                 return ''
-
-        if raw_url.startswith('/media/'):
-            return raw_url
-
-        if raw_url.startswith('media/'):
-            return f"/{raw_url}"
-
-        if raw_url.startswith(('http://', 'https://')):
-            return raw_url
-
-        return raw_url
+        return ''
 
 
 class OrderStatusHistory(models.Model):
