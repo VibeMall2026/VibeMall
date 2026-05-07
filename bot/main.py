@@ -28,6 +28,30 @@ def start_api_server() -> None:
     )
 
 
+def _mt5_reconnect_loop() -> None:
+    """
+    Background thread that monitors MT5 connection and auto-reconnects.
+    Checks every 10 seconds — if disconnected, attempts reconnect.
+    """
+    import time
+    logger.info("[MT5] Auto-reconnect monitor started (10s interval)")
+    while True:
+        try:
+            if not mt5_bridge.is_connected():
+                logger.warning("[MT5] Connection lost — attempting reconnect...")
+                if mt5_bridge.connect():
+                    state.mt5_connected = True
+                    logger.success("[MT5] Reconnected successfully.")
+                else:
+                    state.mt5_connected = False
+                    logger.error("[MT5] Reconnect failed — will retry in 10s")
+            else:
+                state.mt5_connected = True
+        except Exception as e:
+            logger.error(f"[MT5] Reconnect monitor error: {e}")
+        time.sleep(10)
+
+
 async def start_bot() -> None:
     """Connect MT5 and start Telegram listener."""
     # Connect MT5 (only if not already connected)
@@ -96,6 +120,12 @@ def main() -> None:
     # Start algo strategy thread (scan-only by default, enable via API)
     from bot.algo.order_block import start_algo
     start_algo()
+
+    # Start MT5 auto-reconnect monitor
+    reconnect_thread = threading.Thread(
+        target=_mt5_reconnect_loop, daemon=True, name="MT5ReconnectMonitor"
+    )
+    reconnect_thread.start()
 
     if api_only:
         logger.info("Running in API-only mode (no Telegram listener).")
