@@ -74,7 +74,7 @@ class AlgoConfig:
     scan_interval_seconds: int = 60     # how often to scan for new OB setups
     risk_check_interval_seconds: int = 1  # how often to check SL/profit lock on open trades
     max_trades_per_ob: int = 1          # max trades allowed per OB zone (1 = no re-entry after loss)
-    enabled: bool = False               # False = scan only until explicitly enabled
+    enabled: bool = True                # True = trading enabled by default
 
     # ── Risk Management ───────────────────────────────────────────────────────
     daily_profit_limit: float = 50.0    # Stop trading if daily profit >= $50
