@@ -71,7 +71,9 @@ class AlgoConfig:
     atr_period: int = 14                # ATR period for volatility filter
     atr_min_multiplier: float = 0.5     # min ATR as fraction of avg ATR
     max_active_obs: int = 5             # max order blocks tracked at once
-    scan_interval_seconds: int = 60     # how often to scan for new setups
+    scan_interval_seconds: int = 60     # how often to scan for new OB setups
+    risk_check_interval_seconds: int = 1  # how often to check SL/profit lock on open trades
+    max_trades_per_ob: int = 1          # max trades allowed per OB zone (1 = no re-entry after loss)
     enabled: bool = False               # False = scan only until explicitly enabled
 
     # ── Risk Management ───────────────────────────────────────────────────────
@@ -81,6 +83,11 @@ class AlgoConfig:
     rr_breakeven: float = 1.0           # Move SL to breakeven at +1R
     rr_lock_profit: float = 2.0         # Lock +1R profit at +2R
     trail_atr_mult: float = 1.0         # ATR multiplier for trailing stop beyond +2R
+
+    # ── Dollar-Based Profit Lock ──────────────────────────────────────────────
+    dollar_profit_trigger: float = 15.0  # When floating profit >= $15...
+    dollar_profit_lock: float = 10.0     # ...move SL to lock in $10 profit
+    dollar_lock_enabled: bool = True     # Enable/disable dollar profit lock
 
 
 # Global config instance
@@ -231,11 +238,14 @@ class OrderBlock:
     active: bool = True     # False once price enters zone
     trade_taken: bool = False
     ticket: Optional[int] = None
+    trade_count: int = 0            # how many trades taken on this OB zone
     # R-multiple tracking fields
     entry_price: float = 0.0
     initial_sl: float = 0.0
     one_r: float = 0.0
     r_stage: int = 0        # 0=initial, 1=breakeven, 2=locked, 3=trailing
+    # Dollar-based profit lock
+    dollar_lock_applied: bool = False   # True once $-based SL lock is applied
 
     @property
     def sl_level(self) -> float:
@@ -258,8 +268,9 @@ class OrderBlock:
 _active_obs: list[OrderBlock] = []
 _obs_lock = threading.Lock()
 
-# Algo thread
+# Algo threads
 _algo_thread: Optional[threading.Thread] = None
+_risk_thread: Optional[threading.Thread] = None
 _algo_running = False
 
 
@@ -557,6 +568,7 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
         ob.trade_taken = True
         ob.ticket = result.get("ticket")
         ob.active = False
+        ob.trade_count += 1
         ob.entry_price = entry_price
         ob.initial_sl = sl
         ob.one_r = one_r
@@ -590,6 +602,10 @@ def _manage_open_trade_risk(ob: OrderBlock) -> None:
     Stage 0 → 1: At +1R → move SL to breakeven
     Stage 1 → 2: At +2R → lock in +1R profit
     Stage 2 → 3: Beyond +2R → trail by ATR × trail_atr_mult
+
+    Dollar-based profit lock (independent of R stages):
+    When floating profit >= dollar_profit_trigger ($15) → move SL to lock
+    dollar_profit_lock ($10) profit, if not already applied.
     """
     if not ob.ticket or not hasattr(ob, 'one_r') or ob.one_r <= 0:
         return
@@ -610,20 +626,71 @@ def _manage_open_trade_risk(ob: OrderBlock) -> None:
 
     new_sl = None
 
+    # ── Dollar-based profit lock (checked first, independent of R stages) ────
+    if (
+        algo_config.dollar_lock_enabled
+        and not ob.dollar_lock_applied
+    ):
+        # Fetch live floating profit from open positions
+        try:
+            open_positions = mt5_bridge.get_open_positions()
+            for pos in open_positions:
+                if pos.get("id") == ob.ticket or pos.get("position_id") == ob.ticket:
+                    floating_pnl = float(pos.get("pnl", 0))
+                    if floating_pnl >= algo_config.dollar_profit_trigger:
+                        # Calculate the price at which $dollar_profit_lock is locked
+                        # profit = (price - entry) * volume * contract_size  ← MT5 handles this
+                        # We need: new_sl such that if price hits new_sl, profit = $lock_amount
+                        # Approximation: price_offset = lock_amount / (floating_pnl / price_offset_current)
+                        # Simpler: lock_sl_offset = (entry_to_current_offset) * (lock_amount / floating_pnl)
+                        current_offset = abs(current_price - entry)
+                        if current_offset > 0 and floating_pnl > 0:
+                            lock_offset = current_offset * (algo_config.dollar_profit_lock / floating_pnl)
+                            if side == "buy":
+                                dollar_lock_sl = entry + lock_offset
+                            else:
+                                dollar_lock_sl = entry - lock_offset
+
+                            # Only apply if this SL is better than current SL
+                            current_sl = ob.initial_sl
+                            is_better = (side == "buy" and dollar_lock_sl > current_sl) or \
+                                        (side == "sell" and dollar_lock_sl < current_sl)
+                            if is_better:
+                                new_sl = dollar_lock_sl
+                                ob.dollar_lock_applied = True
+                                logger.info(
+                                    f"[ALGO] 💰 Dollar profit lock triggered | "
+                                    f"Floating P&L=${floating_pnl:.2f} >= ${algo_config.dollar_profit_trigger} | "
+                                    f"Locking ${algo_config.dollar_profit_lock} profit @ SL={dollar_lock_sl:.5f}"
+                                )
+                    break
+        except Exception as e:
+            logger.warning(f"[ALGO] Dollar profit lock check failed: {e}")
+
+    # ── R-Multiple stages ─────────────────────────────────────────────────────
     if profit_r >= algo_config.rr_lock_profit and ob.r_stage < 2:
         # +2R reached → lock in +1R profit
         if side == "buy":
-            new_sl = entry + one_r
+            r_sl = entry + one_r
         else:
-            new_sl = entry - one_r
+            r_sl = entry - one_r
         ob.r_stage = 2
-        logger.info(f"[ALGO] +2R reached — locking +1R profit @ SL={new_sl:.5f}")
+        logger.info(f"[ALGO] +2R reached — locking +1R profit @ SL={r_sl:.5f}")
+        # Take the better of dollar lock and R lock
+        if new_sl is None:
+            new_sl = r_sl
+        else:
+            new_sl = max(new_sl, r_sl) if side == "buy" else min(new_sl, r_sl)
 
     elif profit_r >= algo_config.rr_breakeven and ob.r_stage < 1:
         # +1R reached → move to breakeven
-        new_sl = entry
+        r_sl = entry
         ob.r_stage = 1
-        logger.info(f"[ALGO] +1R reached — moving SL to breakeven @ {new_sl:.5f}")
+        logger.info(f"[ALGO] +1R reached — moving SL to breakeven @ {r_sl:.5f}")
+        if new_sl is None:
+            new_sl = r_sl
+        else:
+            new_sl = max(new_sl, r_sl) if side == "buy" else min(new_sl, r_sl)
 
     if ob.r_stage >= 2:
         # Beyond +2R → trail by ATR
@@ -661,12 +728,14 @@ def _scan_and_trade() -> None:
     """
     Main algo loop:
     1. Check risk management gates (drawdown, daily limits)
-    2. Manage R-multiple trailing stops on open trades
+    2. Check for closed trades and record PnL
     3. Fetch candles on analysis timeframe
     4. Detect new Order Blocks
     5. Apply trend + volatility filters
     6. Check entry signals on execution timeframe
     7. Execute trades
+
+    Note: Open trade SL/profit-lock management runs in _risk_check_loop (1s).
     """
     global _active_obs
 
@@ -675,36 +744,37 @@ def _scan_and_trade() -> None:
     # ── Risk management checks ────────────────────────────────────────────────
     check_drawdown()
 
-    # ── Manage R-multiple trailing stops on open algo positions ───────────────
-    open_positions = mt5_bridge.get_open_positions()
-    open_tickets = {p.get("id") for p in open_positions}
-
-    with _obs_lock:
-        for ob in _active_obs:
-            if ob.ticket and ob.ticket in open_tickets and ob.trade_taken:
-                _manage_open_trade_risk(ob)
-
     # ── Check for closed trades and record PnL ────────────────────────────────
     with _obs_lock:
         for ob in _active_obs:
             if ob.trade_taken and ob.ticket and ob.ticket not in open_tickets:
-                # Trade was closed — fetch PnL from history
+                # Reset OB for potential re-entry ONLY if trade was profitable
+                # (avoid re-entering same losing zone repeatedly)
+                pnl_val = 0.0
                 try:
                     history = mt5_bridge.get_trade_history(limit=10)
                     for t in history:
                         if t.get("ticket") == ob.ticket or t.get("position_id") == ob.ticket:
-                            pnl = float(t.get("pnl", 0))
-                            record_trade_pnl(pnl)
-                            logger.info(f"[ALGO] Trade {ob.ticket} closed | PnL={pnl:.2f}")
+                            pnl_val = float(t.get("pnl", 0))
+                            record_trade_pnl(pnl_val)
+                            logger.info(f"[ALGO] Trade {ob.ticket} closed | PnL={pnl_val:.2f}")
                             break
                 except Exception as e:
                     logger.warning(f"[ALGO] Could not fetch PnL for ticket {ob.ticket}: {e}")
-                # Reset OB for potential re-entry
-                logger.info(f"[ALGO] OB {ob.id} position closed — resetting for re-entry")
-                ob.trade_taken = False
-                ob.active = True
+
+                if pnl_val >= 0:
+                    # Profitable/breakeven — allow re-entry on this OB
+                    logger.info(f"[ALGO] OB {ob.id} closed with profit — resetting for re-entry")
+                    ob.trade_taken = False
+                    ob.active = True
+                else:
+                    # Loss — permanently deactivate this OB zone
+                    logger.info(f"[ALGO] OB {ob.id} closed at loss (${pnl_val:.2f}) — deactivating zone")
+                    ob.trade_taken = False
+                    ob.active = False  # do NOT re-enter a losing OB zone
                 ob.ticket = None
                 ob.r_stage = 0
+                ob.dollar_lock_applied = False
 
     # Fetch analysis timeframe candles
     candles_analysis = _get_candles(symbol, algo_config.analysis_timeframe, algo_config.ob_lookback + 10)
@@ -764,6 +834,8 @@ def _scan_and_trade() -> None:
                 ob.trade_taken = False
                 ob.active = True
                 ob.ticket = None
+                ob.dollar_lock_applied = False
+                ob.r_stage = 0
 
     if len(algo_positions) >= 2:
         logger.debug(f"[ALGO] Max algo positions reached ({len(algo_positions)})")
@@ -778,6 +850,12 @@ def _scan_and_trade() -> None:
     with _obs_lock:
         for ob in _active_obs:
             if not ob.active or ob.trade_taken:
+                continue
+
+            # Skip OB if max trades already taken on this zone
+            if ob.trade_count >= algo_config.max_trades_per_ob:
+                ob.active = False
+                logger.debug(f"[ALGO] OB {ob.id} max trades reached ({ob.trade_count}) — deactivating")
                 continue
 
             # Invalidate OB if price has blown through it
@@ -802,8 +880,49 @@ def _scan_and_trade() -> None:
                 break  # one trade per scan
 
 
+def _risk_check_loop() -> None:
+    """
+    High-frequency loop (every 1 second) for open trade risk management:
+    - Dollar-based profit lock ($15 → lock $10)
+    - R-multiple trailing stop updates (breakeven, lock, trail)
+
+    Kept separate from OB scan loop to avoid heavy candle fetches every second.
+    """
+    global _algo_running
+    logger.info("[ALGO] Risk check loop started (1s interval)")
+
+    while _algo_running:
+        try:
+            if mt5_bridge.is_connected():
+                open_positions = mt5_bridge.get_open_positions()
+                open_tickets = {p.get("id") for p in open_positions}
+
+                with _obs_lock:
+                    for ob in _active_obs:
+                        if ob.ticket and ob.ticket in open_tickets and ob.trade_taken:
+                            _manage_open_trade_risk(ob)
+        except Exception as e:
+            logger.error(f"[ALGO] Risk check error: {e}")
+
+        time.sleep(algo_config.risk_check_interval_seconds)
+
+    logger.info("[ALGO] Risk check loop stopped.")
+
+
 def _algo_loop() -> None:
-    """Background thread that runs the algo scan loop."""
+    """
+    Main algo loop (every 60 seconds) for OB detection and new trade entries:
+    1. Check risk management gates (drawdown, daily limits)
+    2. Check for closed trades and record PnL
+    3. Fetch candles on analysis timeframe
+    4. Detect new Order Blocks
+    5. Apply trend + volatility filters
+    6. Check entry signals on execution timeframe
+    7. Execute trades
+
+    Note: Open trade risk management (SL/profit lock) runs in _risk_check_loop
+    at 1-second intervals for faster response.
+    """
     global _algo_running
     logger.info(f"[ALGO] Order Block strategy started | Symbol: {algo_config.symbol} | "
                 f"Analysis TF: {algo_config.analysis_timeframe}m | "
@@ -825,17 +944,27 @@ def _algo_loop() -> None:
 
 def start_algo() -> bool:
     """Start the algo trading thread."""
-    global _algo_thread, _algo_running
+    global _algo_thread, _risk_thread, _algo_running
 
     if _algo_running:
         logger.warning("[ALGO] Already running")
         return False
 
     _algo_running = True
+
+    # OB scan thread — runs every 60s for candle analysis and new entries
     _algo_thread = threading.Thread(target=_algo_loop, daemon=True, name="AlgoThread")
     _algo_thread.start()
+
+    # Risk check thread — runs every 1s for SL/profit-lock management
+    _risk_thread = threading.Thread(target=_risk_check_loop, daemon=True, name="AlgoRiskThread")
+    _risk_thread.start()
+
     logger.success(
-        f"[ALGO] Order Block strategy thread started ({'trading ENABLED' if algo_config.enabled else 'scan-only mode'})"
+        f"[ALGO] Order Block strategy started | "
+        f"OB scan: {algo_config.scan_interval_seconds}s | "
+        f"Risk check: {algo_config.risk_check_interval_seconds}s | "
+        f"{'trading ENABLED' if algo_config.enabled else 'scan-only mode'}"
     )
     return True
 
