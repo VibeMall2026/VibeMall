@@ -93,7 +93,8 @@ class ParseSignalRequest(BaseModel):
 @app.get("/status", dependencies=[Depends(verify_api_key)])
 async def get_status():
     account = mt5_bridge.get_account_info()
-    mt5_connected = mt5_bridge.ensure_connected()
+    # Use state flag (set by main thread) — avoids thread-safety issues with mt5.terminal_info()
+    mt5_connected = state.mt5_connected and mt5_bridge.is_connected()
     return {
         "bot": {
             "running": state.running,
@@ -105,13 +106,22 @@ async def get_status():
     }
 
 
+@app.get("/health")
+async def health():
+    """Quick health check — called by Django dashboard."""
+    mt5_connected = state.mt5_connected and mt5_bridge.is_connected()
+    return {
+        "running": state.running,
+        "mt5_connected": mt5_connected,
+        "telegram_connected": state.telegram_connected,
+    }
+
+
 @app.get("/stats", dependencies=[Depends(verify_api_key)])
 async def get_stats():
     account = mt5_bridge.get_account_info()
     open_pos = mt5_bridge.get_open_positions()
-    mt5_connected = mt5_bridge.ensure_connected()
-
-    # Calculate stats from actual MT5 trade history (not in-memory counters)
+    mt5_connected = state.mt5_connected and mt5_bridge.is_connected()
     # This ensures stats are correct even after bot restarts
     trades = mt5_bridge.get_trade_history(limit=500)
 
@@ -321,15 +331,8 @@ async def stop_bot():
     return {"success": True, "message": "Bot stopped", "status": "stopped"}
 
 
-# ── Health check (no auth required) ──────────────────────────────────────────
-@app.get("/health")
-async def health():
-    """Quick health check — called by Django dashboard."""
-    return {
-        "running": state.running,
-        "mt5_connected": mt5_bridge.ensure_connected(),
-        "telegram_connected": state.telegram_connected,
-    }
+
+
 
 
 # ── Algo Trading Endpoints ────────────────────────────────────────────────────
