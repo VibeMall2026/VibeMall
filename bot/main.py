@@ -31,22 +31,28 @@ def start_api_server() -> None:
 def _mt5_reconnect_loop() -> None:
     """
     Background thread that monitors MT5 connection and auto-reconnects.
-    Checks every 10 seconds — if disconnected, attempts reconnect.
+    Uses account_info() as health check (safer than terminal_info() cross-thread).
     """
     import time
     logger.info("[MT5] Auto-reconnect monitor started (10s interval)")
     while True:
         try:
-            if not mt5_bridge.is_connected():
-                logger.warning("[MT5] Connection lost — attempting reconnect...")
+            # Use get_account_info() as health check — returns {} if disconnected
+            account = mt5_bridge.get_account_info()
+            if account and account.get("balance") is not None:
+                # Connected and returning data
+                if not state.mt5_connected:
+                    logger.success("[MT5] Connection confirmed — marking online")
+                state.mt5_connected = True
+            else:
+                # No data — try reconnect
+                logger.warning("[MT5] No account data — attempting reconnect...")
                 if mt5_bridge.connect():
                     state.mt5_connected = True
                     logger.success("[MT5] Reconnected successfully.")
                 else:
                     state.mt5_connected = False
                     logger.error("[MT5] Reconnect failed — will retry in 10s")
-            else:
-                state.mt5_connected = True
         except Exception as e:
             logger.error(f"[MT5] Reconnect monitor error: {e}")
         time.sleep(10)
