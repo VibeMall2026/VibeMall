@@ -745,6 +745,9 @@ def _scan_and_trade() -> None:
     check_drawdown()
 
     # ── Check for closed trades and record PnL ────────────────────────────────
+    open_positions = mt5_bridge.get_open_positions()
+    open_tickets = {p.get("id") for p in open_positions}
+
     with _obs_lock:
         for ob in _active_obs:
             if ob.trade_taken and ob.ticket and ob.ticket not in open_tickets:
@@ -822,11 +825,11 @@ def _scan_and_trade() -> None:
 
     # Check open positions — don't stack too many algo trades
     open_positions = mt5_bridge.get_open_positions()
+    open_tickets = {p.get("id") for p in open_positions}
     algo_positions = [p for p in open_positions if "ALGO:OB" in p.get("comment", "")]
 
     # If a traded OB's position was manually closed, allow re-trading
     with _obs_lock:
-        open_tickets = {p.get("id") for p in open_positions}
         for ob in _active_obs:
             if ob.trade_taken and ob.ticket and ob.ticket not in open_tickets:
                 # Position was manually closed — reset OB to allow new trade
