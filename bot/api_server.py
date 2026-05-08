@@ -183,6 +183,12 @@ async def get_signals():
     return state.signal_log[:50]
 
 
+@app.get("/messages", dependencies=[Depends(verify_api_key)])
+async def get_messages():
+    """Return raw channel messages log."""
+    return state.channel_messages[:100]
+
+
 @app.get("/settings", dependencies=[Depends(verify_api_key)])
 async def get_settings():
     # Use state.channels if populated, otherwise fall back to config

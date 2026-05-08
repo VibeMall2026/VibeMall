@@ -143,13 +143,15 @@ def dashboard(request):
         trades_resp = _get(bot_api_url, "/trades", [])
         stats = _get(bot_api_url, "/stats", {})
         signals_resp = _get(bot_api_url, "/signals", [])
+        messages_resp = _get(bot_api_url, "/messages", [])
     else:
         health = status = stats = {}
-        open_trades_resp = trades_resp = signals_resp = []
+        open_trades_resp = trades_resp = signals_resp = messages_resp = []
 
     open_trades = open_trades_resp if isinstance(open_trades_resp, list) else open_trades_resp.get("items", [])
     trades = trades_resp if isinstance(trades_resp, list) else trades_resp.get("items", [])
     signals = signals_resp if isinstance(signals_resp, list) else signals_resp.get("items", [])
+    messages = messages_resp if isinstance(messages_resp, list) else []
 
     account = status.get("account", {})
     performance = stats.get("performance", {})
@@ -178,6 +180,7 @@ def dashboard(request):
         "open_trades": open_trades,
         "recent_trades": trades[:50],
         "recent_signals": signals[:20],
+        "channel_messages": messages[:50],
     }
     return render(request, "trading/dashboard.html", context)
 

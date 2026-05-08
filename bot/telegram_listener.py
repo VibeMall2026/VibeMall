@@ -32,6 +32,16 @@ async def _handle_message(event) -> None:
     channel_name = getattr(chat, "username", None) or str(chat.id)
     logger.info(f"[TG] New message from @{channel_name}: {text[:80]}...")
 
+    # Store raw message in channel_messages log
+    with state._lock:
+        state.channel_messages.insert(0, {
+            "channel": f"@{channel_name}",
+            "text": text[:500],
+            "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        })
+        if len(state.channel_messages) > 200:
+            state.channel_messages = state.channel_messages[:200]
+
     state.signals_processed += 1
     sig = parse_signal(text)
 

@@ -30,6 +30,9 @@ class BotState:
     # Signal log (last 100)
     signal_log: list[dict] = field(default_factory=list)
 
+    # Raw channel messages log (last 200)
+    channel_messages: list[dict] = field(default_factory=list)
+
     # Settings (mirrors config, can be updated at runtime)
     risk_percent: float = 0.1
     reward_ratio: float = 2.0
