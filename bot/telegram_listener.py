@@ -108,6 +108,9 @@ async def start_listener() -> None:
 
     @_client.on(events.NewMessage(chats=channel_entities))
     async def handler(event):
+        chat = await event.get_chat()
+        channel_name = getattr(chat, "username", None) or str(chat.id)
+        logger.debug(f"[TG] Raw event received from @{channel_name}")
         await _handle_message(event)
 
     logger.info("Telegram listener running...")
