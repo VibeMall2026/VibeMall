@@ -387,10 +387,13 @@ def algo_signals(request):
 
 
 @staff_member_required
+@staff_member_required
 def bot_api_proxy(request, endpoint):
-    api_reachable, bot_api_url, api_error_msg = _check_api_health()
-    if not api_reachable:
-        return JsonResponse({"error": api_error_msg}, status=503)
+    # Use known bot API URL directly — skip health check to avoid timeout
+    bot_api_url = os.environ.get("BOT_API_URL", "").strip().rstrip("/")
+    if not bot_api_url:
+        # Fallback to Tailscale IP
+        bot_api_url = "http://100.124.101.92:8001"
 
     # Strip trailing slash to match FastAPI routes
     endpoint = endpoint.rstrip("/")
@@ -400,7 +403,10 @@ def bot_api_proxy(request, endpoint):
         if request.method == "GET":
             kwargs["params"] = request.GET
         elif request.body:
-            kwargs["json"] = json.loads(request.body)
+            try:
+                kwargs["json"] = json.loads(request.body)
+            except Exception:
+                pass
 
         if request.method == "GET":
             resp = requests.get(url, **kwargs)
