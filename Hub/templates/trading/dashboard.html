@@ -68,6 +68,64 @@
   </div>
 </div>
 
+<!-- Strategy Edit Modal -->
+<div class="modal fade" id="strategyModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background:#2b2c40;border:1px solid #3b3d52;color:#cdd0d6;">
+      <div class="modal-header" style="border-bottom:1px solid #3b3d52;">
+        <h5 class="modal-title"><i class="bx bx-layer me-2" style="color:#696cff;"></i>Select Strategies</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="strategyAccountId">
+        <p style="color:#a8aaae;font-size:.85rem;">Select one or more strategies to run on this account:</p>
+        <div class="d-flex flex-column gap-2">
+          <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
+            <input type="checkbox" value="order_block" id="strat_order_block" class="form-check-input mt-1">
+            <div>
+              <div style="font-weight:600;">⚡ Order Block + FVG</div>
+              <small style="color:#a8aaae;">ICT/Smart Money — detects Order Blocks and Fair Value Gaps</small>
+            </div>
+          </label>
+          <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
+            <input type="checkbox" value="telegram_signals" id="strat_telegram_signals" class="form-check-input mt-1">
+            <div>
+              <div style="font-weight:600;">📡 Telegram Signals Only</div>
+              <small style="color:#a8aaae;">Execute trades only from Telegram channel signals</small>
+            </div>
+          </label>
+          <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#1a1a2e;cursor:not-allowed;opacity:.5;">
+            <input type="checkbox" value="ema_crossover" disabled class="form-check-input mt-1">
+            <div>
+              <div style="font-weight:600;">📈 EMA Crossover <span class="badge bg-secondary ms-1" style="font-size:.65rem;">Soon</span></div>
+              <small style="color:#a8aaae;">Classic EMA 9/21 crossover strategy</small>
+            </div>
+          </label>
+          <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#1a1a2e;cursor:not-allowed;opacity:.5;">
+            <input type="checkbox" value="rsi_reversal" disabled class="form-check-input mt-1">
+            <div>
+              <div style="font-weight:600;">🔄 RSI Reversal <span class="badge bg-secondary ms-1" style="font-size:.65rem;">Soon</span></div>
+              <small style="color:#a8aaae;">RSI overbought/oversold reversal</small>
+            </div>
+          </label>
+          <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#1a1a2e;cursor:not-allowed;opacity:.5;">
+            <input type="checkbox" value="bollinger_breakout" disabled class="form-check-input mt-1">
+            <div>
+              <div style="font-weight:600;">📊 Bollinger Breakout <span class="badge bg-secondary ms-1" style="font-size:.65rem;">Soon</span></div>
+              <small style="color:#a8aaae;">Bollinger Band breakout strategy</small>
+            </div>
+          </label>
+        </div>
+        <div id="strategyResult" class="mt-2" style="display:none;"></div>
+      </div>
+      <div class="modal-footer" style="border-top:1px solid #3b3d52;">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="saveStrategies()"><i class="bx bx-save me-1"></i>Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Add Account Modal -->
 <div class="modal fade" id="addAccountModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
@@ -94,15 +152,18 @@
           <input type="text" id="accServer" class="form-control" style="background:#232333;border:1px solid #3b3d52;color:#cdd0d6;" placeholder="e.g. MetaQuotes-Demo">
         </div>
         <div class="mb-3">
-          <label class="form-label" style="color:#a8aaae;">Trading Strategy</label>
-          <select id="accStrategy" class="form-select" style="background:#232333;border:1px solid #3b3d52;color:#cdd0d6;">
-            <option value="order_block">Order Block + FVG (ICT/Smart Money)</option>
-            <option value="telegram_signals">Telegram Signals Only</option>
-            <option value="ema_crossover" disabled>EMA Crossover (Coming Soon)</option>
-            <option value="rsi_reversal" disabled>RSI Reversal (Coming Soon)</option>
-            <option value="bollinger_breakout" disabled>Bollinger Band Breakout (Coming Soon)</option>
-          </select>
-          <small style="color:#a8aaae;">Strategy will run automatically on this account</small>
+          <label class="form-label" style="color:#a8aaae;">Trading Strategies (select one or more)</label>
+          <div class="d-flex flex-column gap-2 p-2 rounded" style="background:#232333;border:1px solid #3b3d52;">
+            <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
+              <input type="checkbox" value="order_block" id="newAccStrat_order_block" class="form-check-input" checked>
+              <span>⚡ Order Block + FVG</span>
+            </label>
+            <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
+              <input type="checkbox" value="telegram_signals" id="newAccStrat_telegram_signals" class="form-check-input">
+              <span>📡 Telegram Signals Only</span>
+            </label>
+          </div>
+          <small style="color:#a8aaae;">Selected strategies will run on this account</small>
         </div>
         <div id="addAccountResult" class="mt-2" style="display:none;"></div>
       </div>
@@ -575,10 +636,15 @@
         <td>${acc.currency} ${acc.balance.toFixed(2)}</td>
         <td>${acc.currency} ${acc.equity.toFixed(2)}</td>
         <td>
-          <select class="form-select form-select-sm" style="background:#232333;border:1px solid #3b3d52;color:#cdd0d6;min-width:160px;"
-            onchange="changeStrategy('${acc.id}', this.value)">
-            ${STRATEGY_OPTIONS.replace(`value="${acc.strategy}"`, `value="${acc.strategy}" selected`)}
-          </select>
+          <div class="d-flex flex-wrap gap-1">
+            {% set strategies = ['order_block', 'telegram_signals'] %}
+            <button class="btn btn-sm btn-outline-info" onclick="openStrategyModal('${acc.id}', ${JSON.stringify(acc.strategy)})">
+              <i class="bx bx-edit me-1"></i>Edit
+            </button>
+            <small class="text-muted d-block w-100" style="font-size:.75rem;">
+              ${(acc.strategy || []).join(', ')}
+            </small>
+          </div>
         </td>
         <td>
           <span class="badge ${acc.connected ? 'bg-label-success' : 'bg-label-danger'}">
@@ -628,6 +694,47 @@
     .catch(() => showToast('Request failed', false));
   }
 
+  function openStrategyModal(accountId, currentStrategies) {
+    document.getElementById('strategyAccountId').value = accountId;
+    // Reset all checkboxes
+    ['order_block', 'telegram_signals'].forEach(s => {
+      const el = document.getElementById(`strat_${s}`);
+      if (el) el.checked = (currentStrategies || []).includes(s);
+    });
+    document.getElementById('strategyResult').style.display = 'none';
+    new bootstrap.Modal(document.getElementById('strategyModal')).show();
+  }
+
+  function saveStrategies() {
+    const accountId = document.getElementById('strategyAccountId').value;
+    const selected = ['order_block', 'telegram_signals']
+      .filter(s => document.getElementById(`strat_${s}`)?.checked);
+    if (selected.length === 0) {
+      document.getElementById('strategyResult').style.display = 'block';
+      document.getElementById('strategyResult').innerHTML = '<div class="alert alert-warning py-2 mb-0">Select at least one strategy</div>';
+      return;
+    }
+    const csrfToken = getCookie('csrftoken');
+    fetch(`/trading/api/accounts/${accountId}/strategy`, {
+      method: 'PUT',
+      credentials: 'same-origin',
+      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ strategy: selected }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        bootstrap.Modal.getInstance(document.getElementById('strategyModal')).hide();
+        showToast('Strategies updated', true);
+        loadAccounts();
+      } else {
+        document.getElementById('strategyResult').style.display = 'block';
+        document.getElementById('strategyResult').innerHTML = `<div class="alert alert-danger py-2 mb-0">Error: ${data.message || 'Failed'}</div>`;
+      }
+    })
+    .catch(() => showToast('Request failed', false));
+  }
+
   function submitAddAccount() {
     const csrfToken = getCookie('csrftoken');
     const payload = {
@@ -635,7 +742,8 @@
       login: parseInt(document.getElementById('accLogin').value),
       password: document.getElementById('accPassword').value,
       server: document.getElementById('accServer').value,
-      strategy: document.getElementById('accStrategy').value,
+      strategy: ['order_block', 'telegram_signals']
+        .filter(s => document.getElementById(`newAccStrat_${s}`)?.checked),
     };
     const resultEl = document.getElementById('addAccountResult');
     fetch('/trading/api/accounts/', {

@@ -41,7 +41,11 @@ class MT5Account:
     currency: str = "USD"
     leverage: int = 100
     error: str = ""
-    strategy: str = "order_block"   # strategy assigned to this account
+    strategy: list = None   # list of strategy IDs assigned to this account
+
+    def __post_init__(self):
+        if self.strategy is None:
+            self.strategy = ["order_block"]
 
     def to_dict(self) -> dict:
         return {
@@ -56,7 +60,7 @@ class MT5Account:
             "currency": self.currency,
             "leverage": self.leverage,
             "error": self.error,
-            "strategy": self.strategy,
+            "strategy": self.strategy if isinstance(self.strategy, list) else [self.strategy],
         }
 
 
@@ -114,7 +118,7 @@ def add_account(label: str, login: int, password: str, server: str, path: str = 
             server=server,
             path=path or _config.MT5_PATH,
             enabled=True,
-            strategy=strategy,
+            strategy=strategy if isinstance(strategy, list) else [strategy],
         )
         _accounts.append(acc)
         logger.info(f"[ACCOUNTS] Added account: {acc.label} ({acc.login}@{acc.server}) strategy={strategy}")
@@ -145,17 +149,24 @@ def toggle_account(account_id: str, enabled: bool) -> bool:
     return False
 
 
-def update_account_strategy(account_id: str, strategy: str) -> bool:
-    """Update the strategy assigned to an account."""
+def update_account_strategy(account_id: str, strategy) -> bool:
+    """Update the strategy/strategies assigned to an account. Accepts str or list."""
     from bot.strategies import get_strategy
-    if not get_strategy(strategy):
-        logger.warning(f"[ACCOUNTS] Unknown strategy: {strategy}")
-        return False
+    # Normalize to list
+    if isinstance(strategy, str):
+        strategies = [strategy]
+    else:
+        strategies = list(strategy)
+    # Validate all strategies
+    for s in strategies:
+        if not get_strategy(s):
+            logger.warning(f"[ACCOUNTS] Unknown strategy: {s}")
+            return False
     acc = get_account(account_id)
     if acc:
         old = acc.strategy
-        acc.strategy = strategy
-        logger.info(f"[ACCOUNTS] Account {account_id} strategy: {old} → {strategy}")
+        acc.strategy = strategies
+        logger.info(f"[ACCOUNTS] Account {account_id} strategies: {old} → {strategies}")
         return True
     return False
 

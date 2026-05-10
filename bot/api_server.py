@@ -366,7 +366,7 @@ class AccountAddRequest(BaseModel):
     password: str
     server: str
     path: Optional[str] = ""
-    strategy: Optional[str] = "order_block"
+    strategy: Optional[list] = ["order_block"]
 
 
 @app.get("/strategies", dependencies=[Depends(verify_api_key)])
@@ -393,7 +393,7 @@ async def add_account(body: AccountAddRequest):
         password=body.password,
         server=body.server,
         path=body.path or "",
-        strategy=body.strategy or "order_block",
+        strategy=body.strategy or ["order_block"],
     )
     return {"success": True, "account": acc.to_dict()}
 
