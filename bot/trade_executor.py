@@ -102,28 +102,60 @@ async def execute_signal(sig: ParsedSignal, channel: str = "") -> dict:
     tp = sig.tp[0] if sig.tp else 0.0
     comment = f"TG:{channel}"
 
-    # Use Windows bridge if configured, else direct MT5
+    # Use Windows bridge if configured, else multi-account direct MT5
     if MT5_BRIDGE_URL:
         logger.info(f"Executing via Windows MT5 Bridge: {MT5_BRIDGE_URL}")
         result = await _execute_via_bridge(sig, channel)
+        success = result.get("success")
     else:
-        result = mt5_bridge.open_trade(
-            symbol=symbol,
-            side=side,
-            sl=sig.sl,
-            tp=tp,
-            entry=sig.entry,
-            order_type=sig.order_type,
-            risk_percent=state.risk_percent,
-            comment=comment,
-        )
+        # Execute on ALL enabled MT5 accounts
+        from bot.accounts import execute_on_all_accounts, get_all_accounts
+        enabled_accounts = [a for a in get_all_accounts() if a.enabled]
+
+        if len(enabled_accounts) <= 1:
+            # Single account — use original mt5_bridge for compatibility
+            result = mt5_bridge.open_trade(
+                symbol=symbol,
+                side=side,
+                sl=sig.sl,
+                tp=tp,
+                entry=sig.entry,
+                order_type=sig.order_type,
+                risk_percent=state.risk_percent,
+                comment=comment,
+            )
+            success = result.get("success")
+        else:
+            # Multiple accounts — execute on all
+            results = execute_on_all_accounts(
+                symbol=symbol,
+                side=side,
+                sl=sig.sl,
+                tp=tp,
+                entry=sig.entry,
+                order_type=sig.order_type,
+                risk_percent=state.risk_percent,
+                comment=comment,
+            )
+            # Consider success if at least one account succeeded
+            success = any(r.get("success") for r in results)
+            succeeded = [r for r in results if r.get("success")]
+            failed = [r for r in results if not r.get("success")]
+            result = {
+                "success": success,
+                "message": f"Executed on {len(succeeded)}/{len(results)} accounts",
+                "ticket": succeeded[0].get("ticket") if succeeded else None,
+                "multi_results": results,
+            }
+            if failed:
+                logger.warning(f"[ACCOUNTS] Failed on: {[r['account_label'] for r in failed]}")
 
     if result.get("success"):
         _last_trade_time[symbol] = datetime.now()
         with state._lock:
             state.reset_daily_if_needed()
             state.daily_trades += 1
-        _update_signal_log(symbol, "executed", "Trade opened successfully")
+        _update_signal_log(symbol, "executed", result.get("message", "Trade opened successfully"))
         logger.success(f"Trade executed: {symbol} {side.upper()} ticket={result.get('ticket')}")
     else:
         _update_signal_log(symbol, "failed", result.get("message", "Unknown error"))

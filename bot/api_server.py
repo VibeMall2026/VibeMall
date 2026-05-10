@@ -183,6 +183,12 @@ async def get_signals():
     return state.signal_log[:50]
 
 
+@app.get("/channel-messages", dependencies=[Depends(verify_api_key)])
+async def get_channel_messages():
+    """Return raw messages received from all monitored channels."""
+    return state.channel_messages[:100]
+
+
 @app.get("/messages", dependencies=[Depends(verify_api_key)])
 async def get_messages():
     """Return raw channel messages log."""
@@ -350,6 +356,62 @@ class AlgoConfigUpdate(BaseModel):
     risk_percent: Optional[float] = None
     analysis_tf: Optional[int] = None
     execution_tf: Optional[int] = None
+
+
+# ── MT5 Accounts Endpoints ────────────────────────────────────────────────────
+
+class AccountAddRequest(BaseModel):
+    label: str
+    login: int
+    password: str
+    server: str
+    path: Optional[str] = ""
+
+
+@app.get("/accounts", dependencies=[Depends(verify_api_key)])
+async def list_accounts():
+    """List all configured MT5 accounts."""
+    from bot.accounts import get_all_accounts
+    return [acc.to_dict() for acc in get_all_accounts()]
+
+
+@app.post("/accounts", dependencies=[Depends(verify_api_key)])
+async def add_account(body: AccountAddRequest):
+    """Add a new MT5 account."""
+    from bot.accounts import add_account as _add
+    acc = _add(
+        label=body.label,
+        login=body.login,
+        password=body.password,
+        server=body.server,
+        path=body.path or "",
+    )
+    return {"success": True, "account": acc.to_dict()}
+
+
+@app.delete("/accounts/{account_id}", dependencies=[Depends(verify_api_key)])
+async def delete_account(account_id: str):
+    """Remove an MT5 account."""
+    from bot.accounts import remove_account as _remove
+    success = _remove(account_id)
+    return {"success": success, "message": "Removed" if success else "Cannot remove primary account"}
+
+
+@app.post("/accounts/{account_id}/toggle", dependencies=[Depends(verify_api_key)])
+async def toggle_account(account_id: str, body: dict = {}):
+    """Enable or disable an MT5 account."""
+    from bot.accounts import toggle_account as _toggle
+    enabled = body.get("enabled", True)
+    success = _toggle(account_id, enabled)
+    return {"success": success}
+
+
+@app.post("/accounts/refresh", dependencies=[Depends(verify_api_key)])
+async def refresh_accounts():
+    """Refresh balance/equity for all accounts."""
+    from bot.accounts import refresh_account_info, get_all_accounts
+    refresh_account_info()
+    return [acc.to_dict() for acc in get_all_accounts()]
 
 
 @app.get("/algo/status", dependencies=[Depends(verify_api_key)])

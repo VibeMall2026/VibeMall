@@ -1,3 +1,4 @@
+
 {% extends "admin_panel/base_admin.html" %}
 {% load static %}
 
@@ -41,6 +42,66 @@
   </div>
 </div>
 {% endif %}
+
+<!-- MT5 Accounts Section -->
+<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
+  <div class="card-header d-flex justify-content-between align-items-center" style="background:#232333;border-bottom:1px solid #3b3d52;">
+    <span class="section-header mb-0"><i class="bx bx-server me-2" style="color:#28c76f;"></i>MT5 Accounts</span>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm btn-outline-info" onclick="refreshAccounts()"><i class="bx bx-refresh me-1"></i>Refresh</button>
+      <button class="btn btn-sm btn-success" onclick="openAddAccount()"><i class="bx bx-plus me-1"></i>Add Account</button>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-dark-custom mb-0" id="accountsTable">
+        <thead>
+          <tr>
+            <th>Label</th><th>Login</th><th>Server</th><th>Balance</th><th>Equity</th><th>Status</th><th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="accountsBody">
+          <tr><td colspan="7" class="text-center text-muted py-3">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Add Account Modal -->
+<div class="modal fade" id="addAccountModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background:#2b2c40;border:1px solid #3b3d52;color:#cdd0d6;">
+      <div class="modal-header" style="border-bottom:1px solid #3b3d52;">
+        <h5 class="modal-title"><i class="bx bx-plus-circle me-2" style="color:#28c76f;"></i>Add MT5 Account</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label" style="color:#a8aaae;">Label (Display Name)</label>
+          <input type="text" id="accLabel" class="form-control" style="background:#232333;border:1px solid #3b3d52;color:#cdd0d6;" placeholder="e.g. Demo Account 2">
+        </div>
+        <div class="mb-3">
+          <label class="form-label" style="color:#a8aaae;">MT5 Login</label>
+          <input type="number" id="accLogin" class="form-control" style="background:#232333;border:1px solid #3b3d52;color:#cdd0d6;" placeholder="12345678">
+        </div>
+        <div class="mb-3">
+          <label class="form-label" style="color:#a8aaae;">Password</label>
+          <input type="password" id="accPassword" class="form-control" style="background:#232333;border:1px solid #3b3d52;color:#cdd0d6;" placeholder="MT5 password">
+        </div>
+        <div class="mb-3">
+          <label class="form-label" style="color:#a8aaae;">Server</label>
+          <input type="text" id="accServer" class="form-control" style="background:#232333;border:1px solid #3b3d52;color:#cdd0d6;" placeholder="e.g. MetaQuotes-Demo">
+        </div>
+        <div id="addAccountResult" class="mt-2" style="display:none;"></div>
+      </div>
+      <div class="modal-footer" style="border-top:1px solid #3b3d52;">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" onclick="submitAddAccount()"><i class="bx bx-save me-1"></i>Add Account</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Page header -->
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
@@ -333,6 +394,40 @@
   </div>
 </div>
 
+<!-- Channel Messages Table -->
+<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
+  <div class="card-header d-flex justify-content-between align-items-center" style="background:#232333;border-bottom:1px solid #3b3d52;">
+    <span class="section-header mb-0"><i class="bx bxl-telegram me-2" style="color:#29b6f6;"></i>Channel Messages</span>
+    <span class="badge bg-label-info">{{ channel_messages|length }}</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-dark-custom mb-0">
+        <thead>
+          <tr>
+            <th style="width:130px;">Channel</th>
+            <th style="width:140px;">Time</th>
+            <th>Message</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in channel_messages %}
+          <tr>
+            <td>
+              <span class="badge" style="background:rgba(41,182,246,.15);color:#29b6f6;">{{ m.channel|default:"-" }}</span>
+            </td>
+            <td style="font-size:.8rem;color:#a8aaae;">{{ m.time|default:"-" }}</td>
+            <td style="font-size:.82rem;white-space:pre-wrap;max-width:600px;word-break:break-word;">{{ m.text|default:"-" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="text-center text-muted py-4">No messages received yet</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <!-- Recent Signals Table -->
 <div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
   <div class="card-header d-flex justify-content-between align-items-center" style="background:#232333;border-bottom:1px solid #3b3d52;">
@@ -428,7 +523,128 @@
 
 {% block extra_js %}
 <script>
-  function getCookie(name) {
+  // ── MT5 Accounts ──────────────────────────────────────────────────────────
+  function loadAccounts() {
+    fetch('/trading/api/accounts/', { headers: { 'X-CSRFToken': getCookie('csrftoken') } })
+      .then(r => r.json())
+      .then(accounts => renderAccounts(accounts))
+      .catch(() => {
+        document.getElementById('accountsBody').innerHTML =
+          '<tr><td colspan="7" class="text-center text-muted py-3">Could not load accounts</td></tr>';
+      });
+  }
+
+  function renderAccounts(accounts) {
+    const tbody = document.getElementById('accountsBody');
+    if (!accounts || accounts.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">No accounts configured</td></tr>';
+      return;
+    }
+    tbody.innerHTML = accounts.map(acc => `
+      <tr>
+        <td><strong>${acc.label}</strong></td>
+        <td style="font-size:.85rem;">${acc.login}</td>
+        <td style="font-size:.8rem;color:#a8aaae;">${acc.server}</td>
+        <td>${acc.currency} ${acc.balance.toFixed(2)}</td>
+        <td>${acc.currency} ${acc.equity.toFixed(2)}</td>
+        <td>
+          <span class="badge ${acc.connected ? 'bg-label-success' : 'bg-label-danger'}">
+            ${acc.connected ? '● Online' : '● Offline'}
+          </span>
+          ${acc.error ? `<small class="text-danger d-block" style="font-size:.7rem;">${acc.error}</small>` : ''}
+        </td>
+        <td>
+          <div class="d-flex gap-1">
+            <button class="btn btn-sm ${acc.enabled ? 'btn-outline-warning' : 'btn-outline-success'}"
+              onclick="toggleAccount('${acc.id}', ${!acc.enabled})">
+              ${acc.enabled ? 'Disable' : 'Enable'}
+            </button>
+            ${acc.id !== 'acc_1' ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteAccount('${acc.id}', '${acc.label}')">Remove</button>` : ''}
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function refreshAccounts() {
+    const csrfToken = getCookie('csrftoken');
+    fetch('/trading/api/accounts/refresh/', { method: 'POST', headers: { 'X-CSRFToken': csrfToken } })
+      .then(r => r.json())
+      .then(accounts => { renderAccounts(accounts); showToast('Accounts refreshed', true); })
+      .catch(() => showToast('Refresh failed', false));
+  }
+
+  function openAddAccount() {
+    document.getElementById('accLabel').value = '';
+    document.getElementById('accLogin').value = '';
+    document.getElementById('accPassword').value = '';
+    document.getElementById('accServer').value = '';
+    document.getElementById('addAccountResult').style.display = 'none';
+    new bootstrap.Modal(document.getElementById('addAccountModal')).show();
+  }
+
+  function submitAddAccount() {
+    const csrfToken = getCookie('csrftoken');
+    const payload = {
+      label: document.getElementById('accLabel').value,
+      login: parseInt(document.getElementById('accLogin').value),
+      password: document.getElementById('accPassword').value,
+      server: document.getElementById('accServer').value,
+    };
+    const resultEl = document.getElementById('addAccountResult');
+    fetch('/trading/api/accounts/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    .then(r => r.json())
+    .then(data => {
+      resultEl.style.display = 'block';
+      if (data.success) {
+        resultEl.innerHTML = '<div class="alert alert-success py-2 mb-0">Account added successfully!</div>';
+        setTimeout(() => {
+          bootstrap.Modal.getInstance(document.getElementById('addAccountModal')).hide();
+          loadAccounts();
+        }, 1000);
+      } else {
+        resultEl.innerHTML = `<div class="alert alert-danger py-2 mb-0">Error: ${data.message || 'Failed'}</div>`;
+      }
+    })
+    .catch(() => {
+      resultEl.style.display = 'block';
+      resultEl.innerHTML = '<div class="alert alert-danger py-2 mb-0">Request failed</div>';
+    });
+  }
+
+  function toggleAccount(accountId, enabled) {
+    const csrfToken = getCookie('csrftoken');
+    fetch(`/trading/api/accounts/${accountId}/toggle/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled }),
+    })
+    .then(r => r.json())
+    .then(data => { if (data.success) loadAccounts(); })
+    .catch(() => showToast('Toggle failed', false));
+  }
+
+  function deleteAccount(accountId, label) {
+    if (!confirm(`Remove account "${label}"?`)) return;
+    const csrfToken = getCookie('csrftoken');
+    fetch(`/trading/api/accounts/${accountId}/`, {
+      method: 'DELETE',
+      headers: { 'X-CSRFToken': csrfToken },
+    })
+    .then(r => r.json())
+    .then(data => {
+      showToast(data.success ? 'Account removed' : data.message, data.success);
+      if (data.success) loadAccounts();
+    });
+  }
+
+  // Load accounts on page load
+  loadAccounts();
+
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
       const cookies = document.cookie.split(';');
