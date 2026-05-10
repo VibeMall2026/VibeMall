@@ -41,6 +41,7 @@ class MT5Account:
     currency: str = "USD"
     leverage: int = 100
     error: str = ""
+    strategy: str = "order_block"   # strategy assigned to this account
 
     def to_dict(self) -> dict:
         return {
@@ -55,6 +56,7 @@ class MT5Account:
             "currency": self.currency,
             "leverage": self.leverage,
             "error": self.error,
+            "strategy": self.strategy,
         }
 
 
@@ -94,7 +96,7 @@ def get_account(account_id: str) -> Optional[MT5Account]:
     return None
 
 
-def add_account(label: str, login: int, password: str, server: str, path: str = "") -> MT5Account:
+def add_account(label: str, login: int, password: str, server: str, path: str = "", strategy: str = "order_block") -> MT5Account:
     """Add a new MT5 account."""
     with _accounts_lock:
         # Generate unique ID
@@ -112,9 +114,10 @@ def add_account(label: str, login: int, password: str, server: str, path: str = 
             server=server,
             path=path or _config.MT5_PATH,
             enabled=True,
+            strategy=strategy,
         )
         _accounts.append(acc)
-        logger.info(f"[ACCOUNTS] Added account: {acc.label} ({acc.login}@{acc.server})")
+        logger.info(f"[ACCOUNTS] Added account: {acc.label} ({acc.login}@{acc.server}) strategy={strategy}")
         return acc
 
 
@@ -138,6 +141,21 @@ def toggle_account(account_id: str, enabled: bool) -> bool:
     if acc:
         acc.enabled = enabled
         logger.info(f"[ACCOUNTS] Account {account_id} {'enabled' if enabled else 'disabled'}")
+        return True
+    return False
+
+
+def update_account_strategy(account_id: str, strategy: str) -> bool:
+    """Update the strategy assigned to an account."""
+    from bot.strategies import get_strategy
+    if not get_strategy(strategy):
+        logger.warning(f"[ACCOUNTS] Unknown strategy: {strategy}")
+        return False
+    acc = get_account(account_id)
+    if acc:
+        old = acc.strategy
+        acc.strategy = strategy
+        logger.info(f"[ACCOUNTS] Account {account_id} strategy: {old} → {strategy}")
         return True
     return False
 

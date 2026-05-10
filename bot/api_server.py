@@ -366,6 +366,14 @@ class AccountAddRequest(BaseModel):
     password: str
     server: str
     path: Optional[str] = ""
+    strategy: Optional[str] = "order_block"
+
+
+@app.get("/strategies", dependencies=[Depends(verify_api_key)])
+async def list_strategies():
+    """List all available strategies."""
+    from bot.strategies import get_all_strategies
+    return get_all_strategies()
 
 
 @app.get("/accounts", dependencies=[Depends(verify_api_key)])
@@ -385,6 +393,7 @@ async def add_account(body: AccountAddRequest):
         password=body.password,
         server=body.server,
         path=body.path or "",
+        strategy=body.strategy or "order_block",
     )
     return {"success": True, "account": acc.to_dict()}
 
@@ -403,6 +412,15 @@ async def toggle_account(account_id: str, body: dict = {}):
     from bot.accounts import toggle_account as _toggle
     enabled = body.get("enabled", True)
     success = _toggle(account_id, enabled)
+    return {"success": success}
+
+
+@app.put("/accounts/{account_id}/strategy", dependencies=[Depends(verify_api_key)])
+async def update_strategy(account_id: str, body: dict = {}):
+    """Update strategy for an account."""
+    from bot.accounts import update_account_strategy
+    strategy = body.get("strategy", "order_block")
+    success = update_account_strategy(account_id, strategy)
     return {"success": success}
 
 

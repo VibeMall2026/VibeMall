@@ -391,6 +391,8 @@ def bot_api_proxy(request, endpoint):
     if not api_reachable:
         return JsonResponse({"error": api_error_msg}, status=503)
 
+    # Strip trailing slash to match FastAPI routes
+    endpoint = endpoint.rstrip("/")
     url = f"{bot_api_url}/{endpoint}"
     try:
         kwargs = {"headers": HEADERS, "timeout": TIMEOUT}

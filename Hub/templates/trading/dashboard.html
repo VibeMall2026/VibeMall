@@ -57,7 +57,7 @@
       <table class="table table-dark-custom mb-0" id="accountsTable">
         <thead>
           <tr>
-            <th>Label</th><th>Login</th><th>Server</th><th>Balance</th><th>Equity</th><th>Status</th><th>Action</th>
+            <th>Label</th><th>Login</th><th>Server</th><th>Balance</th><th>Equity</th><th>Strategy</th><th>Status</th><th>Action</th>
           </tr>
         </thead>
         <tbody id="accountsBody">
@@ -92,6 +92,17 @@
         <div class="mb-3">
           <label class="form-label" style="color:#a8aaae;">Server</label>
           <input type="text" id="accServer" class="form-control" style="background:#232333;border:1px solid #3b3d52;color:#cdd0d6;" placeholder="e.g. MetaQuotes-Demo">
+        </div>
+        <div class="mb-3">
+          <label class="form-label" style="color:#a8aaae;">Trading Strategy</label>
+          <select id="accStrategy" class="form-select" style="background:#232333;border:1px solid #3b3d52;color:#cdd0d6;">
+            <option value="order_block">Order Block + FVG (ICT/Smart Money)</option>
+            <option value="telegram_signals">Telegram Signals Only</option>
+            <option value="ema_crossover" disabled>EMA Crossover (Coming Soon)</option>
+            <option value="rsi_reversal" disabled>RSI Reversal (Coming Soon)</option>
+            <option value="bollinger_breakout" disabled>Bollinger Band Breakout (Coming Soon)</option>
+          </select>
+          <small style="color:#a8aaae;">Strategy will run automatically on this account</small>
         </div>
         <div id="addAccountResult" class="mt-2" style="display:none;"></div>
       </div>
@@ -534,10 +545,26 @@
       });
   }
 
+  const STRATEGY_LABELS = {
+    'order_block': '⚡ Order Block + FVG',
+    'telegram_signals': '📡 Telegram Signals',
+    'ema_crossover': '📈 EMA Crossover',
+    'rsi_reversal': '🔄 RSI Reversal',
+    'bollinger_breakout': '📊 Bollinger Breakout',
+  };
+
+  const STRATEGY_OPTIONS = `
+    <option value="order_block">Order Block + FVG</option>
+    <option value="telegram_signals">Telegram Signals Only</option>
+    <option value="ema_crossover" disabled>EMA Crossover (Soon)</option>
+    <option value="rsi_reversal" disabled>RSI Reversal (Soon)</option>
+    <option value="bollinger_breakout" disabled>Bollinger Breakout (Soon)</option>
+  `;
+
   function renderAccounts(accounts) {
     const tbody = document.getElementById('accountsBody');
     if (!accounts || accounts.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">No accounts configured</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">No accounts configured</td></tr>';
       return;
     }
     tbody.innerHTML = accounts.map(acc => `
@@ -547,6 +574,12 @@
         <td style="font-size:.8rem;color:#a8aaae;">${acc.server}</td>
         <td>${acc.currency} ${acc.balance.toFixed(2)}</td>
         <td>${acc.currency} ${acc.equity.toFixed(2)}</td>
+        <td>
+          <select class="form-select form-select-sm" style="background:#232333;border:1px solid #3b3d52;color:#cdd0d6;min-width:160px;"
+            onchange="changeStrategy('${acc.id}', this.value)">
+            ${STRATEGY_OPTIONS.replace(`value="${acc.strategy}"`, `value="${acc.strategy}" selected`)}
+          </select>
+        </td>
         <td>
           <span class="badge ${acc.connected ? 'bg-label-success' : 'bg-label-danger'}">
             ${acc.connected ? '● Online' : '● Offline'}
@@ -583,6 +616,18 @@
     new bootstrap.Modal(document.getElementById('addAccountModal')).show();
   }
 
+  function changeStrategy(accountId, strategy) {
+    const csrfToken = getCookie('csrftoken');
+    fetch(`/trading/api/accounts/${accountId}/strategy/`, {
+      method: 'PUT',
+      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ strategy }),
+    })
+    .then(r => r.json())
+    .then(data => showToast(data.success ? `Strategy updated` : 'Update failed', data.success))
+    .catch(() => showToast('Request failed', false));
+  }
+
   function submitAddAccount() {
     const csrfToken = getCookie('csrftoken');
     const payload = {
@@ -590,6 +635,7 @@
       login: parseInt(document.getElementById('accLogin').value),
       password: document.getElementById('accPassword').value,
       server: document.getElementById('accServer').value,
+      strategy: document.getElementById('accStrategy').value,
     };
     const resultEl = document.getElementById('addAccountResult');
     fetch('/trading/api/accounts/', {
