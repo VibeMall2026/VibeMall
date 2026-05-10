@@ -15,5 +15,6 @@ urlpatterns = [
     path('update-channels/', views.update_channels, name='update_channels'),
     path('modify-position/<int:position_id>/', views.modify_position, name='modify_position'),
     path('parse-signal/', views.parse_signal, name='parse_signal'),
-    path('api/<path:endpoint>', views.bot_api_proxy, name='bot_api_proxy'),
+    path('api/<path:endpoint>/', views.bot_api_proxy, name='bot_api_proxy'),
+    path('api/<path:endpoint>', views.bot_api_proxy, name='bot_api_proxy_noslash'),
 ]
