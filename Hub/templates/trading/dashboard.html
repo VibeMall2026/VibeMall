@@ -536,12 +536,12 @@
 <script>
   // ── MT5 Accounts ──────────────────────────────────────────────────────────
   function loadAccounts() {
-    fetch('/trading/api/accounts/', { headers: { 'X-CSRFToken': getCookie('csrftoken') } })
-      .then(r => r.json())
+    fetch('/trading/api/accounts', { credentials: 'same-origin', headers: { 'X-CSRFToken': getCookie('csrftoken') } })
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(accounts => renderAccounts(accounts))
-      .catch(() => {
+      .catch(err => {
         document.getElementById('accountsBody').innerHTML =
-          '<tr><td colspan="7" class="text-center text-muted py-3">Could not load accounts</td></tr>';
+          `<tr><td colspan="8" class="text-center text-muted py-3">Could not load accounts (${err})</td></tr>`;
       });
   }
 
@@ -601,7 +601,7 @@
 
   function refreshAccounts() {
     const csrfToken = getCookie('csrftoken');
-    fetch('/trading/api/accounts/refresh/', { method: 'POST', headers: { 'X-CSRFToken': csrfToken } })
+    fetch('/trading/api/accounts/refresh', { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRFToken': csrfToken } })
       .then(r => r.json())
       .then(accounts => { renderAccounts(accounts); showToast('Accounts refreshed', true); })
       .catch(() => showToast('Refresh failed', false));
