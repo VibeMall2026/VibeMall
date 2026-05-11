@@ -386,7 +386,9 @@ async def list_strategies():
 @app.get("/accounts", dependencies=[Depends(verify_api_key)])
 async def list_accounts():
     """List all configured MT5 accounts."""
-    from bot.accounts import get_all_accounts
+    from bot.accounts import get_all_accounts, _load_extra_accounts
+    # Re-run extra account loader so any new .env entries appear without restart
+    _load_extra_accounts()
     return [acc.to_dict() for acc in get_all_accounts()]
 
 
