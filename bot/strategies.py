@@ -25,6 +25,13 @@ STRATEGIES: list[dict] = [
         "module": "bot.algo.order_block",
     },
     {
+        "id": "breakout",
+        "name": "Range Breakout Retest",
+        "description": "Recent range breakout with trend, ATR, volume, and retest confirmation",
+        "status": "available",
+        "module": "bot.algo.breakout",
+    },
+    {
         "id": "ema_crossover",
         "name": "EMA Crossover",
         "description": "Classic EMA 9/21 crossover strategy with trend filter",

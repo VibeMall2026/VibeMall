@@ -88,6 +88,13 @@
             </div>
           </label>
           <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
+            <input type="checkbox" value="breakout" id="strat_breakout" class="form-check-input mt-1">
+            <div>
+              <div style="font-weight:600;">📈 Range Breakout Retest</div>
+              <small style="color:#a8aaae;">Breakout + trend + ATR + volume + retest confirmation</small>
+            </div>
+          </label>
+          <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
             <input type="checkbox" value="telegram_signals" id="strat_telegram_signals" class="form-check-input mt-1">
             <div>
               <div style="font-weight:600;">📡 Telegram Signals Only</div>
@@ -157,6 +164,10 @@
             <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
               <input type="checkbox" value="order_block" id="newAccStrat_order_block" class="form-check-input" checked>
               <span>⚡ Order Block + FVG</span>
+            </label>
+            <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
+              <input type="checkbox" value="breakout" id="newAccStrat_breakout" class="form-check-input">
+              <span>📈 Range Breakout Retest</span>
             </label>
             <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
               <input type="checkbox" value="telegram_signals" id="newAccStrat_telegram_signals" class="form-check-input">
@@ -608,6 +619,7 @@
 
   const STRATEGY_LABELS = {
     'order_block': '⚡ Order Block + FVG',
+    'breakout': '📈 Range Breakout Retest',
     'telegram_signals': '📡 Telegram Signals',
     'ema_crossover': '📈 EMA Crossover',
     'rsi_reversal': '🔄 RSI Reversal',
@@ -616,6 +628,7 @@
 
   const STRATEGY_OPTIONS = `
     <option value="order_block">Order Block + FVG</option>
+    <option value="breakout">Range Breakout Retest</option>
     <option value="telegram_signals">Telegram Signals Only</option>
     <option value="ema_crossover" disabled>EMA Crossover (Soon)</option>
     <option value="rsi_reversal" disabled>RSI Reversal (Soon)</option>
@@ -637,11 +650,11 @@
         <td>${acc.currency} ${acc.equity.toFixed(2)}</td>
         <td>
           <div class="d-flex flex-wrap gap-1">
-            <button class="btn btn-sm btn-outline-info" onclick="openStrategyModal('${acc.id}', ${JSON.stringify(acc.strategy)})">
+            <button class="btn btn-sm btn-outline-info" onclick="openStrategyModal('${acc.id}', ${JSON.stringify(Array.isArray(acc.strategy) ? acc.strategy : [acc.strategy])})">
               <i class="bx bx-edit me-1"></i>Edit
             </button>
             <small class="text-muted d-block w-100" style="font-size:.75rem;">
-              ${(acc.strategy || []).join(', ')}
+              ${Array.isArray(acc.strategy) ? acc.strategy.join(', ') : (acc.strategy || '')}
             </small>
           </div>
         </td>
@@ -696,7 +709,7 @@
   function openStrategyModal(accountId, currentStrategies) {
     document.getElementById('strategyAccountId').value = accountId;
     // Reset all checkboxes
-    ['order_block', 'telegram_signals'].forEach(s => {
+    ['order_block', 'breakout', 'telegram_signals'].forEach(s => {
       const el = document.getElementById(`strat_${s}`);
       if (el) el.checked = (currentStrategies || []).includes(s);
     });
@@ -706,7 +719,7 @@
 
   function saveStrategies() {
     const accountId = document.getElementById('strategyAccountId').value;
-    const selected = ['order_block', 'telegram_signals']
+    const selected = ['order_block', 'breakout', 'telegram_signals']
       .filter(s => document.getElementById(`strat_${s}`)?.checked);
     if (selected.length === 0) {
       document.getElementById('strategyResult').style.display = 'block';
@@ -741,7 +754,7 @@
       login: parseInt(document.getElementById('accLogin').value),
       password: document.getElementById('accPassword').value,
       server: document.getElementById('accServer').value,
-      strategy: ['order_block', 'telegram_signals']
+      strategy: ['order_block', 'breakout', 'telegram_signals']
         .filter(s => document.getElementById(`newAccStrat_${s}`)?.checked),
     };
     const resultEl = document.getElementById('addAccountResult');

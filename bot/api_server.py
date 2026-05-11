@@ -17,8 +17,14 @@ from bot import config
 from bot.state import state
 from bot import mt5_bridge
 from bot.signal_parser import parse_signal
-from bot.algo.order_block import (
-    start_algo, stop_algo, get_algo_status, update_algo_config
+from bot.algo.manager import (
+    get_active_strategy_id,
+    get_algo_status,
+    get_risk_status,
+    select_strategy,
+    start_algo,
+    stop_algo,
+    update_algo_config,
 )
 
 app = FastAPI(title="Trading Bot API", version="1.0.0")
@@ -350,6 +356,7 @@ async def stop_bot():
 # ── Algo Trading Endpoints ────────────────────────────────────────────────────
 
 class AlgoConfigUpdate(BaseModel):
+    strategy_id: Optional[str] = None
     symbol: Optional[str] = None
     enabled: Optional[bool] = None
     risk_reward: Optional[float] = None
@@ -434,25 +441,40 @@ async def refresh_accounts():
 
 @app.get("/algo/status", dependencies=[Depends(verify_api_key)])
 async def algo_status():
-    """Get current algo strategy status and active order blocks."""
+    """Get current live algo strategy status."""
     status = get_algo_status()
-    from bot.algo.order_block import get_risk_status
     status["risk"] = get_risk_status()
     return status
 
 
 @app.post("/algo/start", dependencies=[Depends(verify_api_key)])
-async def algo_start():
-    """Start the Order Block algo strategy thread."""
-    success = start_algo()
+async def algo_start(body: dict = {}):
+    """Start the selected algo strategy thread."""
+    success = start_algo(body.get("strategy_id"))
     return {"success": success, "message": "Algo started" if success else "Algo already running"}
 
 
 @app.post("/algo/stop", dependencies=[Depends(verify_api_key)])
 async def algo_stop():
-    """Stop the Order Block algo strategy thread."""
+    """Stop the active algo strategy thread."""
     success = stop_algo()
     return {"success": success, "message": "Algo stopped" if success else "Algo not running"}
+
+
+@app.put("/algo/strategy", dependencies=[Depends(verify_api_key)])
+async def algo_select_strategy(body: dict = {}):
+    """Switch the active live algo strategy module."""
+    strategy_id = body.get("strategy_id")
+    if not strategy_id:
+        raise HTTPException(status_code=400, detail="strategy_id is required")
+    result = select_strategy(strategy_id)
+    return {"success": True, **result}
+
+
+@app.get("/algo/strategy", dependencies=[Depends(verify_api_key)])
+async def algo_active_strategy():
+    """Return the currently selected live algo strategy."""
+    return {"active_strategy": get_active_strategy_id()}
 
 
 @app.post("/algo/enable", dependencies=[Depends(verify_api_key)])
@@ -473,6 +495,7 @@ async def algo_disable():
 async def algo_update_config(body: AlgoConfigUpdate):
     """Update algo strategy configuration at runtime."""
     status = update_algo_config(
+        strategy_id=body.strategy_id,
         symbol=body.symbol,
         enabled=body.enabled,
         risk_reward=body.risk_reward,
@@ -487,12 +510,12 @@ async def algo_update_config(body: AlgoConfigUpdate):
 async def algo_trades():
     """
     Return all trades executed by the algo strategy.
-    Pulls from MT5 trade history filtered by ALGO:OB comment.
+    Pulls from MT5 trade history filtered by ALGO comment.
     Also includes in-memory signal_log entries for current session.
     """
     # From MT5 history (persistent across restarts)
     mt5_trades = mt5_bridge.get_trade_history(limit=200)
-    algo_mt5 = [t for t in mt5_trades if "ALGO:OB" in str(t.get("comment", ""))]
+    algo_mt5 = [t for t in mt5_trades if "ALGO:" in str(t.get("comment", ""))]
 
     # From in-memory signal log (current session)
     algo_mem = [s for s in state.signal_log if str(s.get("source", "")).startswith("ALGO:")]
