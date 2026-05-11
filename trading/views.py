@@ -38,7 +38,7 @@ DEFAULT_BOT_API_CANDIDATES = [
 ]
 API_KEY = os.environ.get("BOT_API_KEY") or os.environ.get("API_KEY") or BOT_ENV.get("API_KEY", "")
 HEADERS = {"X-API-Key": API_KEY} if API_KEY else {}
-TIMEOUT = 3  # Reduced from 5s to 3s for faster failover
+TIMEOUT = 8  # Increased from 3s for better reliability across network
 
 
 def _candidate_bot_api_urls():
@@ -412,9 +412,8 @@ def algo_signals(request):
 @staff_member_required
 @staff_member_required
 def bot_api_proxy(request, endpoint):
-    api_reachable, bot_api_url, api_error_msg = _check_api_health()
-    if not api_reachable:
-        return JsonResponse({"error": api_error_msg or "Bot API unavailable"}, status=503)
+    # Try to find a working bot API URL — don't block on health check
+    _, bot_api_url, _ = _check_api_health()
 
     # Strip trailing slash to match FastAPI routes
     endpoint = endpoint.rstrip("/")
@@ -441,5 +440,20 @@ def bot_api_proxy(request, endpoint):
             return JsonResponse({"error": "Method not allowed"}, status=405)
 
         return JsonResponse(resp.json(), safe=False, status=resp.status_code)
+    except requests.exceptions.ConnectionError as exc:
+        return JsonResponse({
+            "success": False,
+            "error": "Bot API unreachable",
+            "detail": f"Cannot connect to {url}. Make sure the bot is running on Windows PC.",
+        }, status=503)
+    except requests.exceptions.Timeout:
+        return JsonResponse({
+            "success": False,
+            "error": "Bot API timeout",
+            "detail": f"Request to {url} timed out after {TIMEOUT}s.",
+        }, status=503)
     except Exception as exc:
-        return JsonResponse({"error": str(exc)}, status=503)
+        return JsonResponse({
+            "success": False,
+            "error": str(exc),
+        }, status=503)
