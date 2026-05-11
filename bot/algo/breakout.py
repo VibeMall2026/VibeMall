@@ -36,6 +36,7 @@ from bot.algo.order_block import (
 @dataclass
 class AlgoConfig:
     symbol: str = "XAUUSD"
+    symbols: list = None  # Multi-symbol list — if set, overrides symbol
     analysis_timeframe: int = 15
     execution_timeframe: int = 15
     risk_reward_ratio: float = 1.5
@@ -61,8 +62,15 @@ class AlgoConfig:
     dollar_profit_lock: float = 10.0
     dollar_lock_enabled: bool = True
 
+    def get_symbols(self) -> list:
+        """Return list of symbols to trade."""
+        if self.symbols:
+            return self.symbols
+        return [self.symbol]
+
 
 algo_config = AlgoConfig()
+algo_config.symbols = ["XAUUSD", "EURUSD", "USDJPY", "GBPUSD", "USDCHF"]
 
 
 @dataclass
@@ -531,10 +539,12 @@ def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
                 record_sl_trail(setup.ticket, old_sl, new_sl, stage_label)
 
 
-def _scan_and_trade() -> None:
+def _scan_and_trade(symbol: str = None) -> None:
     global _active_breakouts
 
-    symbol = algo_config.symbol
+    if symbol is None:
+        symbol = algo_config.symbol
+
     check_drawdown()
 
     open_positions = mt5_bridge.get_open_positions()
@@ -651,14 +661,19 @@ def _risk_check_loop() -> None:
 
 def _algo_loop() -> None:
     global _algo_running
+    symbols = algo_config.get_symbols()
     logger.info(
-        f"[BREAKOUT] Strategy started | Symbol: {algo_config.symbol} | "
+        f"[BREAKOUT] Strategy started | Symbols: {symbols} | "
         f"Analysis TF: {algo_config.analysis_timeframe}m | Execution TF: {algo_config.execution_timeframe}m"
     )
     while _algo_running:
         try:
             if mt5_bridge.is_connected():
-                _scan_and_trade()
+                for sym in algo_config.get_symbols():
+                    try:
+                        _scan_and_trade(sym)
+                    except Exception as e:
+                        logger.error(f"[BREAKOUT] Scan error for {sym}: {e}")
         except Exception as exc:
             logger.error(f"[BREAKOUT] Scan error: {exc}")
         time.sleep(algo_config.scan_interval_seconds)

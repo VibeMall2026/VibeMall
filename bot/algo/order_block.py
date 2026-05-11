@@ -61,6 +61,7 @@ from bot.state import state
 @dataclass
 class AlgoConfig:
     symbol: str = "XAUUSD"
+    symbols: list = None  # Multi-symbol list — if set, overrides symbol
     analysis_timeframe: int = 15        # minutes — for OB/FVG detection
     execution_timeframe: int = 5        # minutes — for entry confirmation
     risk_reward_ratio: float = 2.0      # minimum R:R (1:2)
@@ -89,9 +90,16 @@ class AlgoConfig:
     dollar_profit_lock: float = 10.0     # ...move SL to lock in $10 profit
     dollar_lock_enabled: bool = True     # Enable/disable dollar profit lock
 
+    def get_symbols(self) -> list:
+        """Return list of symbols to trade."""
+        if self.symbols:
+            return self.symbols
+        return [self.symbol]
+
 
 # Global config instance
 algo_config = AlgoConfig()
+algo_config.symbols = ["XAUUSD", "EURUSD", "USDJPY", "GBPUSD", "USDCHF"]
 
 # ── Daily Risk Tracking ───────────────────────────────────────────────────────
 from datetime import date as _date
@@ -808,22 +816,14 @@ def _manage_open_trade_risk(ob: OrderBlock) -> None:
 
 # ── Main scan loop ────────────────────────────────────────────────────────────
 
-def _scan_and_trade() -> None:
+def _scan_and_trade(symbol: str = None) -> None:
     """
-    Main algo loop:
-    1. Check risk management gates (drawdown, daily limits)
-    2. Check for closed trades and record PnL
-    3. Fetch candles on analysis timeframe
-    4. Detect new Order Blocks
-    5. Apply trend + volatility filters
-    6. Check entry signals on execution timeframe
-    7. Execute trades
-
-    Note: Open trade SL/profit-lock management runs in _risk_check_loop (1s).
+    Main algo loop for one symbol.
     """
     global _active_obs
 
-    symbol = algo_config.symbol
+    if symbol is None:
+        symbol = algo_config.symbol
 
     # ── Risk management checks ────────────────────────────────────────────────
     check_drawdown()
@@ -1012,28 +1012,22 @@ def _risk_check_loop() -> None:
 
 
 def _algo_loop() -> None:
-    """
-    Main algo loop (every 60 seconds) for OB detection and new trade entries:
-    1. Check risk management gates (drawdown, daily limits)
-    2. Check for closed trades and record PnL
-    3. Fetch candles on analysis timeframe
-    4. Detect new Order Blocks
-    5. Apply trend + volatility filters
-    6. Check entry signals on execution timeframe
-    7. Execute trades
-
-    Note: Open trade risk management (SL/profit lock) runs in _risk_check_loop
-    at 1-second intervals for faster response.
-    """
     global _algo_running
-    logger.info(f"[ALGO] Order Block strategy started | Symbol: {algo_config.symbol} | "
-                f"Analysis TF: {algo_config.analysis_timeframe}m | "
-                f"Execution TF: {algo_config.execution_timeframe}m")
+    symbols = algo_config.get_symbols()
+    logger.info(
+        f"[ALGO] Order Block strategy started | Symbols: {symbols} | "
+        f"Analysis TF: {algo_config.analysis_timeframe}m | "
+        f"Execution TF: {algo_config.execution_timeframe}m"
+    )
 
     while _algo_running:
         try:
             if mt5_bridge.is_connected():
-                _scan_and_trade()
+                for sym in algo_config.get_symbols():
+                    try:
+                        _scan_and_trade(sym)
+                    except Exception as e:
+                        logger.error(f"[ALGO] Scan error for {sym}: {e}")
         except Exception as e:
             logger.error(f"[ALGO] Scan error: {e}")
 

@@ -32,7 +32,8 @@ from bot.algo.order_block import (
 
 @dataclass
 class AlgoConfig:
-    symbol: str = "EURUSD"
+    symbol: str = "EURUSD"   # OB+FVG+Breakout — EURUSD only
+    symbols: list = None     # Not used for confluence — single symbol only
     analysis_timeframe: int = 15
     execution_timeframe: int = 15
     risk_reward_ratio: float = 1.5
@@ -55,6 +56,9 @@ class AlgoConfig:
     dollar_profit_trigger: float = 15.0
     dollar_profit_lock: float = 10.0
     dollar_lock_enabled: bool = True
+
+    def get_symbols(self) -> list:
+        return [self.symbol]  # Confluence — EURUSD only
 
 
 algo_config = AlgoConfig()
