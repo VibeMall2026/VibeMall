@@ -62,7 +62,8 @@ def _check_api_health():
 
             status_resp = requests.get(f"{base_url}/status", headers=HEADERS, timeout=TIMEOUT)
             if status_resp.status_code == 403:
-                return False, base_url, f"Bot API rejected the configured API key at {base_url}"
+                errors.append(f"{base_url}: rejected API key or client IP")
+                continue
             status_resp.raise_for_status()
             return True, base_url, None
         except requests.exceptions.ConnectionError:
