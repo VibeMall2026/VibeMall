@@ -789,8 +789,23 @@
     document.getElementById('accLogin').value = '';
     document.getElementById('accPassword').value = '';
     document.getElementById('accServer').value = '';
-    document.getElementById('addAccountResult').style.display = 'none';
-    new bootstrap.Modal(document.getElementById('addAccountModal')).show();
+    const resultEl = document.getElementById('addAccountResult');
+    resultEl.style.display = 'none';
+
+    // Check if bot API is reachable before opening modal
+    fetch('/trading/api/health', { credentials: 'same-origin' })
+      .then(r => r.json())
+      .then(() => {
+        new bootstrap.Modal(document.getElementById('addAccountModal')).show();
+      })
+      .catch(() => {
+        resultEl.style.display = 'block';
+        resultEl.innerHTML = `<div class="alert alert-danger py-2 mb-0">
+          <strong>Bot API Offline</strong><br>
+          <small>Start the bot on Windows PC first, then try adding an account.</small>
+        </div>`;
+        new bootstrap.Modal(document.getElementById('addAccountModal')).show();
+      });
   }
 
   function changeStrategy(accountId, strategy) {
@@ -889,9 +904,13 @@
         resultEl.innerHTML = `<div class="alert alert-danger py-2 mb-0">Error: ${errorMsg}</div>`;
       }
     })
-    .catch(() => {
+    .catch(err => {
       resultEl.style.display = 'block';
-      resultEl.innerHTML = '<div class="alert alert-danger py-2 mb-0">Request failed</div>';
+      resultEl.innerHTML = `<div class="alert alert-danger py-2 mb-0">
+        <strong>Request failed</strong><br>
+        <small style="opacity:.85;">${err && err.message ? err.message : 'Could not reach Bot API'}</small><br>
+        <small style="opacity:.7;">Make sure the bot is running on Windows PC (port 8001)</small>
+      </div>`;
     });
   }
 
