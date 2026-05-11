@@ -78,7 +78,7 @@ class AlgoConfig:
 
     # ── Risk Management ───────────────────────────────────────────────────────
     daily_profit_limit: float = 50.0    # Stop trading if daily profit >= $50
-    daily_loss_limit: float = 50.0      # Stop trading if daily loss >= $50
+    daily_loss_limit: float = 30.0      # Stop trading if daily loss >= $30
     max_drawdown_pct: float = 0.10      # Stop trading if drawdown >= 10%
     rr_breakeven: float = 1.0           # Move SL to breakeven at +1R
     rr_lock_profit: float = 2.0         # Lock +1R profit at +2R
