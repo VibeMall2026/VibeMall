@@ -123,10 +123,10 @@ def main() -> None:
     time.sleep(1)  # Give uvicorn time to bind before proceeding
     logger.info(f"API server started on port {config.API_PORT}")
 
-    # Start selected algo strategy thread (scan-only by default, enable via API)
-    from bot.algo.manager import select_strategy, start_algo
-    select_strategy(os.getenv("BOT_ALGO_STRATEGY", "order_block"))
-    start_algo()
+    # Start ALL algo strategies assigned to accounts (parallel execution)
+    from bot.algo.runner import start_all_strategies
+    started = start_all_strategies()
+    logger.info(f"[RUNNER] Started strategies: {started}")
 
     # Start MT5 auto-reconnect monitor
     reconnect_thread = threading.Thread(

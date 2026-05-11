@@ -553,56 +553,93 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
         f"1R: {one_r:.5f} | OB zone: {ob.low:.5f}-{ob.high:.5f} | 50%: {ob.midpoint:.5f}"
     )
 
-    result = mt5_bridge.open_trade(
-        symbol=algo_config.symbol,
-        side=side,
-        sl=sl,
-        tp=tp,
-        entry=entry_price,
-        order_type="market",
-        risk_percent=algo_config.risk_percent,
-        comment=f"ALGO:OB:{ob.id[:8]}",
-    )
+    # Execute only on accounts that have 'order_block' strategy assigned
+    from bot.accounts import get_all_accounts, execute_on_all_accounts
 
-    if result.get("success"):
-        ob.trade_taken = True
-        ob.ticket = result.get("ticket")
-        ob.active = False
-        ob.trade_count += 1
-        ob.entry_price = entry_price
-        ob.initial_sl = sl
-        ob.one_r = one_r
-        ob.r_stage = 0  # 0=initial, 1=breakeven, 2=locked, 3=trailing
-        logger.success(
-            f"[ALGO] Trade opened | Ticket: {ob.ticket} | "
-            f"R:R 1:{algo_config.risk_reward_ratio} | 1R=${one_r:.5f}"
+    ob_accounts = [
+        acc for acc in get_all_accounts()
+        if acc.enabled and "order_block" in (acc.strategy or [])
+    ]
+
+    ticket = None
+    if not ob_accounts:
+        # Fallback: use primary mt5_bridge connection
+        logger.warning("[ALGO] No accounts with 'order_block' strategy — using primary connection")
+        result = mt5_bridge.open_trade(
+            symbol=algo_config.symbol,
+            side=side,
+            sl=sl,
+            tp=tp,
+            entry=entry_price,
+            order_type="market",
+            risk_percent=algo_config.risk_percent,
+            comment=f"ALGO:OB:{ob.id[:8]}",
         )
-        state.signal_log.insert(0, {
-            "time": datetime.now().isoformat(),
-            "symbol": algo_config.symbol,
-            "side": side,
-            "entry": entry_price,
-            "sl": sl,
-            "tp": tp,
-            "one_r": one_r,
-            "status": "executed",
-            "source": "ALGO:OrderBlock",
-            "ob_id": ob.id,
-            "ticket": ob.ticket,
-            # Trade detail fields
-            "entry_reason": f"Order Block {ob.direction} | Zone: {ob.low:.5f}-{ob.high:.5f} | 50%: {ob.midpoint:.5f} | FVG: {ob.fvg.direction}",
-            "initial_sl": sl,
-            "initial_tp": tp,
-            "risk_reward": algo_config.risk_reward_ratio,
-            "sl_trail_log": [],   # filled by _manage_open_trade_risk
-            "exit_reason": None,  # filled when trade closes
-            "exit_price": None,
-            "final_pnl": None,
-        })
-        return True
+        if not result.get("success"):
+            logger.error(f"[ALGO] Trade failed: {result.get('message')}")
+            return False
+        ticket = result.get("ticket")
     else:
-        logger.error(f"[ALGO] Trade failed: {result.get('message')}")
-        return False
+        results = execute_on_all_accounts(
+            symbol=algo_config.symbol,
+            side=side,
+            sl=sl,
+            tp=tp,
+            entry=entry_price,
+            order_type="market",
+            risk_percent=algo_config.risk_percent,
+            comment=f"ALGO:OB:{ob.id[:8]}",
+        )
+        ob_logins = {acc.login for acc in ob_accounts}
+        relevant = [r for r in results if r.get("login") in ob_logins]
+        successes = [r for r in relevant if r.get("success")]
+
+        if not successes:
+            logger.error(f"[ALGO] Trade failed on all order_block accounts: {relevant}")
+            return False
+
+        ticket = successes[0].get("ticket")
+        for r in successes:
+            logger.success(
+                f"[ALGO] Trade on {r.get('account_label')} ({r.get('login')}) | "
+                f"Ticket: {r.get('ticket')} | {algo_config.symbol} {side.upper()}"
+            )
+
+    ob.trade_taken = True
+    ob.ticket = ticket
+    ob.active = False
+    ob.trade_count += 1
+    ob.entry_price = entry_price
+    ob.initial_sl = sl
+    ob.one_r = one_r
+    ob.r_stage = 0  # 0=initial, 1=breakeven, 2=locked, 3=trailing
+    logger.success(
+        f"[ALGO] Trade opened | Ticket: {ob.ticket} | "
+        f"R:R 1:{algo_config.risk_reward_ratio} | 1R=${one_r:.5f}"
+    )
+    state.signal_log.insert(0, {
+        "time": datetime.now().isoformat(),
+        "symbol": algo_config.symbol,
+        "side": side,
+        "entry": entry_price,
+        "sl": sl,
+        "tp": tp,
+        "one_r": one_r,
+        "status": "executed",
+        "source": "ALGO:OrderBlock",
+        "ob_id": ob.id,
+        "ticket": ticket,
+        # Trade detail fields
+        "entry_reason": f"Order Block {ob.direction} | Zone: {ob.low:.5f}-{ob.high:.5f} | 50%: {ob.midpoint:.5f} | FVG: {ob.fvg.direction}",
+        "initial_sl": sl,
+        "initial_tp": tp,
+        "risk_reward": algo_config.risk_reward_ratio,
+        "sl_trail_log": [],   # filled by _manage_open_trade_risk
+        "exit_reason": None,  # filled when trade closes
+        "exit_price": None,
+        "final_pnl": None,
+    })
+    return True
 
 
 def _manage_open_trade_risk(ob: OrderBlock) -> None:
