@@ -517,19 +517,32 @@ async def algo_trades():
     mt5_trades = mt5_bridge.get_trade_history(limit=200)
     algo_mt5 = [t for t in mt5_trades if "ALGO:" in str(t.get("comment", ""))]
 
-    # From in-memory signal log (current session)
-    algo_mem = [s for s in state.signal_log if str(s.get("source", "")).startswith("ALGO:")]
+    # From in-memory signal log (current session) — merge detail fields
+    algo_mem = {s.get("ticket"): s for s in state.signal_log if str(s.get("source", "")).startswith("ALGO:")}
 
-    # Merge — MT5 history is authoritative, memory fills in current session
+    # Enrich MT5 trades with in-memory detail
+    for t in algo_mt5:
+        ticket = t.get("ticket")
+        if ticket in algo_mem:
+            mem = algo_mem[ticket]
+            t["entry_reason"] = mem.get("entry_reason")
+            t["initial_sl"] = mem.get("initial_sl")
+            t["initial_tp"] = mem.get("initial_tp")
+            t["sl_trail_log"] = mem.get("sl_trail_log", [])
+            t["exit_reason"] = mem.get("exit_reason")
+            t["risk_reward"] = mem.get("risk_reward")
+            t["one_r"] = mem.get("one_r")
+
+    # Add in-memory trades not yet in MT5 history
     mt5_tickets = {t.get("ticket") for t in algo_mt5}
-    for s in algo_mem:
-        if s.get("ticket") not in mt5_tickets:
+    for ticket, s in algo_mem.items():
+        if ticket not in mt5_tickets:
             algo_mt5.insert(0, s)
 
     # Stats
     total = len(algo_mt5)
-    wins = len([t for t in algo_mt5 if t.get("pnl", 0) > 0 or t.get("status") == "win"])
-    losses = len([t for t in algo_mt5 if t.get("pnl", 0) < 0 or t.get("status") == "loss"])
+    wins = len([t for t in algo_mt5 if float(t.get("pnl", 0)) > 0 or t.get("status") == "win"])
+    losses = len([t for t in algo_mt5 if float(t.get("pnl", 0)) < 0 or t.get("status") == "loss"])
     total_pnl = sum(float(t.get("pnl", 0)) for t in algo_mt5)
 
     return {
@@ -542,3 +555,20 @@ async def algo_trades():
             "total_pnl": round(total_pnl, 2),
         }
     }
+
+
+@app.get("/algo/trade-detail/{ticket}", dependencies=[Depends(verify_api_key)])
+async def algo_trade_detail(ticket: int):
+    """Return full detail for a specific algo trade including entry reason, SL trail, exit reason."""
+    # Check in-memory signal log first
+    for entry in state.signal_log:
+        if entry.get("ticket") == ticket:
+            return {"found": True, "detail": entry}
+
+    # Fallback: MT5 history
+    history = mt5_bridge.get_trade_history(limit=200)
+    for t in history:
+        if t.get("ticket") == ticket or t.get("position_id") == ticket:
+            return {"found": True, "detail": t}
+
+    return {"found": False, "detail": {}}

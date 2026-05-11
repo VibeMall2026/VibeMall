@@ -588,6 +588,16 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
             "status": "executed",
             "source": "ALGO:OrderBlock",
             "ob_id": ob.id,
+            "ticket": ob.ticket,
+            # Trade detail fields
+            "entry_reason": f"Order Block {ob.direction} | Zone: {ob.low:.5f}-{ob.high:.5f} | 50%: {ob.midpoint:.5f} | FVG: {ob.fvg.direction}",
+            "initial_sl": sl,
+            "initial_tp": tp,
+            "risk_reward": algo_config.risk_reward_ratio,
+            "sl_trail_log": [],   # filled by _manage_open_trade_risk
+            "exit_reason": None,  # filled when trade closes
+            "exit_price": None,
+            "final_pnl": None,
         })
         return True
     else:
@@ -718,6 +728,18 @@ def _manage_open_trade_risk(ob: OrderBlock) -> None:
             if result.get("success"):
                 ob.initial_sl = new_sl
                 logger.info(f"[ALGO] SL updated to {new_sl:.5f} (stage={ob.r_stage})")
+                # Log SL trail event in signal_log
+                for entry in state.signal_log:
+                    if entry.get("ticket") == ob.ticket:
+                        trail_log = entry.get("sl_trail_log", [])
+                        stage_names = {0: "initial", 1: "breakeven", 2: "profit_lock", 3: "trailing"}
+                        trail_log.append({
+                            "time": datetime.now().isoformat(),
+                            "new_sl": round(new_sl, 5),
+                            "stage": stage_names.get(ob.r_stage, str(ob.r_stage)),
+                        })
+                        entry["sl_trail_log"] = trail_log
+                        break
 
 
 
@@ -778,6 +800,21 @@ def _scan_and_trade() -> None:
                 ob.ticket = None
                 ob.r_stage = 0
                 ob.dollar_lock_applied = False
+                # Record exit reason in signal_log
+                for entry in state.signal_log:
+                    if entry.get("ticket") == ob.ticket or entry.get("ob_id") == ob.id:
+                        entry["final_pnl"] = round(pnl_val, 2)
+                        entry["exit_price"] = None  # fetched from history if available
+                        if pnl_val > 0:
+                            entry["exit_reason"] = "TP Hit" if ob.r_stage < 3 else "Trailing SL"
+                            entry["status"] = "win"
+                        elif pnl_val < 0:
+                            entry["exit_reason"] = "SL Hit"
+                            entry["status"] = "loss"
+                        else:
+                            entry["exit_reason"] = "Breakeven"
+                            entry["status"] = "breakeven"
+                        break
 
     # Fetch analysis timeframe candles
     candles_analysis = _get_candles(symbol, algo_config.analysis_timeframe, algo_config.ob_lookback + 10)
