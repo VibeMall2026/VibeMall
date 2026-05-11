@@ -613,10 +613,30 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
     ob.initial_sl = sl
     ob.one_r = one_r
     ob.r_stage = 0  # 0=initial, 1=breakeven, 2=locked, 3=trailing
+
+    entry_reason = f"Order Block {ob.direction} | Zone: {ob.low:.5f}-{ob.high:.5f} | 50%: {ob.midpoint:.5f} | FVG: {ob.fvg.direction}"
+
     logger.success(
         f"[ALGO] Trade opened | Ticket: {ob.ticket} | "
         f"R:R 1:{algo_config.risk_reward_ratio} | 1R=${one_r:.5f}"
     )
+
+    # Persist to trade journal (survives bot restarts)
+    from bot.trade_journal import record_trade_open
+    record_trade_open(
+        ticket=ticket,
+        symbol=algo_config.symbol,
+        side=side,
+        entry_price=entry_price,
+        initial_sl=sl,
+        initial_tp=tp,
+        one_r=one_r,
+        risk_reward=algo_config.risk_reward_ratio,
+        entry_reason=entry_reason,
+        source="ALGO:OrderBlock",
+        strategy="order_block",
+    )
+
     state.signal_log.insert(0, {
         "time": datetime.now().isoformat(),
         "symbol": algo_config.symbol,
@@ -629,13 +649,12 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
         "source": "ALGO:OrderBlock",
         "ob_id": ob.id,
         "ticket": ticket,
-        # Trade detail fields
-        "entry_reason": f"Order Block {ob.direction} | Zone: {ob.low:.5f}-{ob.high:.5f} | 50%: {ob.midpoint:.5f} | FVG: {ob.fvg.direction}",
+        "entry_reason": entry_reason,
         "initial_sl": sl,
         "initial_tp": tp,
         "risk_reward": algo_config.risk_reward_ratio,
-        "sl_trail_log": [],   # filled by _manage_open_trade_risk
-        "exit_reason": None,  # filled when trade closes
+        "sl_trail_log": [],
+        "exit_reason": None,
         "exit_price": None,
         "final_pnl": None,
     })
@@ -763,17 +782,23 @@ def _manage_open_trade_risk(ob: OrderBlock) -> None:
         if should_update:
             result = mt5_bridge.modify_position(ob.ticket, sl=new_sl)
             if result.get("success"):
+                old_sl = ob.initial_sl
                 ob.initial_sl = new_sl
-                logger.info(f"[ALGO] SL updated to {new_sl:.5f} (stage={ob.r_stage})")
-                # Log SL trail event in signal_log
+                stage_names = {0: "initial", 1: "breakeven", 2: "profit_lock", 3: "trailing"}
+                stage_label = stage_names.get(ob.r_stage, str(ob.r_stage))
+                logger.info(f"[ALGO] SL updated to {new_sl:.5f} (stage={stage_label})")
+                # Log to persistent journal
+                from bot.trade_journal import record_sl_trail
+                record_sl_trail(ob.ticket, old_sl, new_sl, stage_label)
+                # Also update in-memory signal_log
                 for entry in state.signal_log:
                     if entry.get("ticket") == ob.ticket:
                         trail_log = entry.get("sl_trail_log", [])
-                        stage_names = {0: "initial", 1: "breakeven", 2: "profit_lock", 3: "trailing"}
                         trail_log.append({
                             "time": datetime.now().isoformat(),
+                            "old_sl": round(old_sl, 5),
                             "new_sl": round(new_sl, 5),
-                            "stage": stage_names.get(ob.r_stage, str(ob.r_stage)),
+                            "stage": stage_label,
                         })
                         entry["sl_trail_log"] = trail_log
                         break

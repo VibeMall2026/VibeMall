@@ -656,15 +656,61 @@ async def algo_trades():
 @app.get("/algo/trade-detail/{ticket}", dependencies=[Depends(verify_api_key)])
 async def algo_trade_detail(ticket: int):
     """Return full detail for a specific algo trade including entry reason, SL trail, exit reason."""
-    # Check in-memory signal log first
+    from bot.trade_journal import get_trade, enrich_trade
+
+    # 1. Check persistent journal first (survives restarts)
+    journal_entry = get_trade(ticket)
+
+    # 2. Check in-memory signal log
+    mem_entry = None
     for entry in state.signal_log:
         if entry.get("ticket") == ticket:
-            return {"found": True, "detail": entry}
+            mem_entry = entry
+            break
 
-    # Fallback: MT5 history
+    # 3. Check MT5 history
+    mt5_entry = None
     history = mt5_bridge.get_trade_history(limit=200)
     for t in history:
         if t.get("ticket") == ticket or t.get("position_id") == ticket:
-            return {"found": True, "detail": t}
+            mt5_entry = t
+            break
+
+    # Merge: journal > memory > mt5
+    if journal_entry:
+        detail = dict(journal_entry)
+        # Enrich with MT5 data if available
+        if mt5_entry:
+            detail["pnl"] = mt5_entry.get("pnl", detail.get("final_pnl"))
+            detail["status"] = mt5_entry.get("status", "")
+            detail["opened"] = mt5_entry.get("opened", detail.get("opened_at", ""))
+            detail["volume"] = mt5_entry.get("volume", "")
+        # Enrich with memory data
+        if mem_entry:
+            detail["sl_trail_log"] = mem_entry.get("sl_trail_log") or detail.get("sl_trail_log", [])
+        return {"found": True, "detail": detail}
+
+    if mem_entry:
+        return {"found": True, "detail": mem_entry}
+
+    if mt5_entry:
+        # Determine entry reason from comment
+        comment = mt5_entry.get("comment", "")
+        if "ALGO:OB" in comment:
+            entry_reason = "Order Block + FVG (Algo)"
+        elif "ALGO:BRK" in comment:
+            entry_reason = "Range Breakout Retest (Algo)"
+        elif "ALGO:CONF" in comment:
+            entry_reason = "OB + FVG + Breakout Confluence (Algo)"
+        elif comment.startswith("TG:"):
+            entry_reason = f"Telegram Signal — {comment.replace('TG:', '').strip()}"
+        else:
+            entry_reason = comment or "Telegram Signal / Manual"
+
+        mt5_entry["entry_reason"] = entry_reason
+        mt5_entry["sl_trail_log"] = []
+        mt5_entry["initial_sl"] = mt5_entry.get("sl", "-")
+        mt5_entry["initial_tp"] = mt5_entry.get("tp", "-")
+        return {"found": True, "detail": mt5_entry}
 
     return {"found": False, "detail": {}}

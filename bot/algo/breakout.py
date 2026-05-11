@@ -439,6 +439,28 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
         "setup_id": setup.id,
         "ticket": ticket,
     })
+
+    # Persist to trade journal
+    from bot.trade_journal import record_trade_open
+    entry_reason = (
+        f"Range Breakout {setup.direction} | "
+        f"Level: {setup.breakout_level:.5f} | "
+        f"Range: {setup.range_low:.5f}-{setup.range_high:.5f}"
+    )
+    record_trade_open(
+        ticket=ticket,
+        symbol=algo_config.symbol,
+        side=side,
+        entry_price=entry_price,
+        initial_sl=sl,
+        initial_tp=tp,
+        one_r=one_r,
+        risk_reward=algo_config.risk_reward_ratio,
+        entry_reason=entry_reason,
+        source="ALGO:Breakout",
+        strategy="breakout",
+    )
+
     logger.success(f"[BREAKOUT] Trade opened | Ticket: {ticket} | R:R 1:{algo_config.risk_reward_ratio}")
     return True
 
@@ -499,8 +521,14 @@ def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
         if should_update:
             result = mt5_bridge.modify_position(setup.ticket, sl=new_sl)
             if result.get("success"):
+                old_sl = setup.initial_sl
                 setup.initial_sl = new_sl
-                logger.info(f"[BREAKOUT] SL updated to {new_sl:.5f} (stage={setup.r_stage})")
+                stage_names = {0: "initial", 1: "breakeven", 2: "profit_lock", 3: "trailing"}
+                stage_label = stage_names.get(setup.r_stage, str(setup.r_stage))
+                logger.info(f"[BREAKOUT] SL updated to {new_sl:.5f} (stage={stage_label})")
+                # Persist to journal
+                from bot.trade_journal import record_sl_trail
+                record_sl_trail(setup.ticket, old_sl, new_sl, stage_label)
 
 
 def _scan_and_trade() -> None:
