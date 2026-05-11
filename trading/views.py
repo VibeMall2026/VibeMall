@@ -31,14 +31,14 @@ def _read_simple_env(env_path: Path) -> dict[str, str]:
 
 BOT_ENV = _read_simple_env(Path(__file__).resolve().parent.parent / "bot" / ".env")
 DEFAULT_BOT_API_CANDIDATES = [
-    "http://100.124.101.92:8001",   # Windows PC Tailscale IP (primary)
+    "http://127.0.0.1:2222",        # SSH tunnel (primary — most reliable)
     "http://127.0.0.1:8001",        # localhost fallback
-    "http://127.0.0.1:2222",        # SSH tunnel fallback
+    "http://100.124.101.92:8001",   # Windows PC Tailscale IP (fallback)
     "http://127.0.0.1:8000",        # Django port fallback
 ]
 API_KEY = os.environ.get("BOT_API_KEY") or os.environ.get("API_KEY") or BOT_ENV.get("API_KEY", "")
 HEADERS = {"X-API-Key": API_KEY} if API_KEY else {}
-TIMEOUT = 8  # Increased from 3s for better reliability across network
+TIMEOUT = 3  # Fast timeout — tunnel responds instantly
 
 
 def _candidate_bot_api_urls():
