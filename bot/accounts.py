@@ -88,13 +88,34 @@ def _load_extra_accounts() -> None:
     """
     Load extra MT5 accounts from MT5_EXTRA_ACCOUNTS config.
 
+    Reads directly from bot/.env file at call time so changes take effect
+    without restarting the bot process.
+
     Format (semicolon-separated entries):
         Label|login|password|server|strategy1+strategy2
 
     Example:
         Range Breakout Demo|106903766|IbLcNr_4|MetaQuotes-Demo|breakout
     """
-    raw = (_config.MT5_EXTRA_ACCOUNTS or "").strip()
+    # Read directly from .env file so live changes are picked up without restart
+    import os
+    from pathlib import Path
+
+    raw = ""
+    env_path = Path(__file__).parent / ".env"
+    try:
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line.startswith("MT5_EXTRA_ACCOUNTS="):
+                raw = line.split("=", 1)[1].strip().strip('"').strip("'")
+                break
+    except Exception as exc:
+        logger.warning(f"[ACCOUNTS] Could not read .env for extra accounts: {exc}")
+
+    # Fallback to config/env var if .env read failed
+    if not raw:
+        raw = (os.getenv("MT5_EXTRA_ACCOUNTS") or _config.MT5_EXTRA_ACCOUNTS or "").strip()
+
     if not raw:
         return
 
@@ -115,15 +136,21 @@ def _load_extra_accounts() -> None:
         server = parts[3].strip()
         strategies = [s.strip() for s in parts[4].split("+")] if len(parts) >= 5 else ["order_block"]
 
-        acc_id = f"acc_{i}"
-        # Avoid duplicates on reload
-        if any(a.id == acc_id or a.login == login for a in _accounts):
+        # Avoid duplicates — check by login number
+        if any(a.login == login for a in _accounts):
             logger.debug(f"[ACCOUNTS] Extra account already loaded: {label} ({login})")
             continue
 
+        # Find next available acc_id
+        existing_ids = {a.id for a in _accounts}
+        j = 2
+        while f"acc_{j}" in existing_ids:
+            j += 1
+        acc_id = f"acc_{j}"
+
         acc = MT5Account(
             id=acc_id,
-            label=label or f"Account {i}",
+            label=label or f"Account {j}",
             login=login,
             password=password,
             server=server,
