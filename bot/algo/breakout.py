@@ -274,14 +274,14 @@ def _detect_breakouts(candles: list[Candle]) -> list[BreakoutSetup]:
         atr = _calculate_atr(candles[: idx + 1], algo_config.atr_period)
         avg_volume = _average_volume(window)
 
-        if atr is None or avg_volume <= 0 or range_size <= 0:
+        if atr is None or range_size <= 0:
             continue
 
         if range_size < atr * algo_config.range_min_atr_multiplier:
             continue
 
         buffer = atr * algo_config.breakout_buffer_atr
-        volume_ok = current.volume >= avg_volume * algo_config.min_volume_multiplier
+        volume_ok = True if avg_volume <= 0 else current.volume >= avg_volume * algo_config.min_volume_multiplier
         body_ok = current.body_ratio >= algo_config.min_breakout_body_ratio
 
         if (

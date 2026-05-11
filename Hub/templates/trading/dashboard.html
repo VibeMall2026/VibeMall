@@ -650,7 +650,9 @@
         <td>${acc.currency} ${acc.equity.toFixed(2)}</td>
         <td>
           <div class="d-flex flex-wrap gap-1">
-            <button class="btn btn-sm btn-outline-info" onclick="openStrategyModal('${acc.id}', ${JSON.stringify(Array.isArray(acc.strategy) ? acc.strategy : [acc.strategy])})">
+            <button class="btn btn-sm btn-outline-info bo-edit-btn"
+              data-account-id="${acc.id}"
+              data-strategies="${(Array.isArray(acc.strategy) ? acc.strategy : [acc.strategy]).join(',')}">
               <i class="bx bx-edit me-1"></i>Edit
             </button>
             <small class="text-muted d-block w-100" style="font-size:.75rem;">
@@ -810,6 +812,16 @@
 
   // Load accounts on page load
   loadAccounts();
+
+  // Event delegation for Edit button (avoids onclick in template literal)
+  document.getElementById('accountsBody').addEventListener('click', function(e) {
+    const btn = e.target.closest('.bo-edit-btn');
+    if (btn) {
+      const accountId = btn.dataset.accountId;
+      const strategies = btn.dataset.strategies ? btn.dataset.strategies.split(',').filter(Boolean) : [];
+      openStrategyModal(accountId, strategies);
+    }
+  });
 
   function getCookie(name) {
     let cookieValue = null;
