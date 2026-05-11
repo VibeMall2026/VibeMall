@@ -349,6 +349,68 @@ async def stop_bot():
     return {"success": True, "message": "Bot stopped", "status": "stopped"}
 
 
+@app.get("/strategy/{strategy_id}/stats", dependencies=[Depends(verify_api_key)])
+async def strategy_stats(strategy_id: str):
+    """Return per-strategy dashboard stats: accounts, open trades, history, and performance."""
+    from bot.accounts import get_all_accounts
+    from bot.strategies import get_strategy
+
+    strat = get_strategy(strategy_id)
+    if not strat:
+        raise HTTPException(status_code=404, detail=f"Strategy '{strategy_id}' not found")
+
+    # Accounts assigned to this strategy
+    assigned_accounts = [
+        acc for acc in get_all_accounts()
+        if strategy_id in (acc.strategy or [])
+    ]
+
+    # All open positions and trade history
+    all_positions = mt5_bridge.get_open_positions()
+    all_history = mt5_bridge.get_trade_history(limit=500)
+
+    # Strategy comment prefix mapping
+    comment_map = {
+        "order_block": "ALGO:OB",
+        "breakout": "ALGO:BRK",
+        "confluence": "ALGO:CONF",
+    }
+    comment_prefix = comment_map.get(strategy_id, f"ALGO:{strategy_id[:3].upper()}")
+
+    # Filter trades by comment prefix OR by account login
+    assigned_logins = {acc.login for acc in assigned_accounts}
+
+    open_trades = [
+        p for p in all_positions
+        if comment_prefix in str(p.get("comment", ""))
+        or p.get("login") in assigned_logins
+    ]
+
+    history = [
+        t for t in all_history
+        if comment_prefix in str(t.get("comment", ""))
+    ]
+
+    wins = sum(1 for t in history if t.get("status") == "win")
+    losses = sum(1 for t in history if t.get("status") == "loss")
+    total_pnl = sum(float(t.get("pnl", 0)) for t in history)
+    total = wins + losses
+
+    return {
+        "strategy": strat,
+        "accounts": [acc.to_dict() for acc in assigned_accounts],
+        "open_trades": open_trades,
+        "recent_trades": history[:50],
+        "stats": {
+            "wins": wins,
+            "losses": losses,
+            "total": total,
+            "win_rate": round(wins / total * 100, 1) if total > 0 else 0,
+            "total_pnl": round(total_pnl, 2),
+        },
+    }
+
+
 
 
 

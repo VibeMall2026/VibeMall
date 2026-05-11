@@ -330,8 +330,29 @@ def parse_signal(request):
 
 
 @staff_member_required
-def algo_dashboard(request):
+def strategy_dashboard(request, strategy_id):
+    """Per-strategy dashboard page."""
     api_reachable, bot_api_url, api_error_msg = _check_api_health()
+    return render(request, "trading/strategy_dashboard.html", {
+        "api_reachable": api_reachable,
+        "api_error": api_error_msg,
+        "bot_api_url": bot_api_url,
+        "strategy_id": strategy_id,
+    })
+
+
+@staff_member_required
+def strategy_stats(request, strategy_id):
+    """AJAX endpoint — returns strategy stats JSON."""
+    api_reachable, bot_api_url, api_error_msg = _check_api_health()
+    if not api_reachable:
+        return JsonResponse({"success": False, "error": api_error_msg}, status=503)
+    data = _get(bot_api_url, f"/strategy/{strategy_id}/stats", {})
+    return JsonResponse(data, safe=False)
+
+
+@staff_member_required
+def algo_dashboard(request):    api_reachable, bot_api_url, api_error_msg = _check_api_health()
     return render(
         request,
         "trading/algo_dashboard.html",

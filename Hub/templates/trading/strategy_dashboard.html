@@ -1,0 +1,432 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load static %}
+
+{% block title %}{{ strategy_id }} Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ── Dark theme variables (matches dashboard.html) ── */
+  .status-card { border-radius: 10px; }
+  .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .dot-green  { background: #28c76f; box-shadow: 0 0 6px #28c76f; }
+  .dot-red    { background: #ea5455; box-shadow: 0 0 6px #ea5455; }
+  .dot-grey   { background: #a8aaae; }
+  .pnl-pos    { color: #28c76f; font-weight: 600; }
+  .pnl-neg    { color: #ea5455; font-weight: 600; }
+  .table-dark-custom { background: #2b2c40; color: #cdd0d6; }
+  .table-dark-custom th { background: #232333; color: #a8aaae; font-size: 0.78rem; text-transform: uppercase; letter-spacing: .5px; }
+  .table-dark-custom td { border-color: #3b3d52; vertical-align: middle; font-size: 0.875rem; }
+  .badge-buy  { background: rgba(40,199,111,.15); color: #28c76f; }
+  .badge-sell { background: rgba(234,84,85,.15);  color: #ea5455; }
+  .section-header { font-size: 1rem; font-weight: 600; color: #cdd0d6; margin-bottom: 1rem; }
+  .stat-label { font-size: 0.75rem; color: #a8aaae; text-transform: uppercase; letter-spacing: .5px; }
+  .stat-value { font-size: 1.4rem; font-weight: 700; color: #cdd0d6; }
+
+  /* ── Strategy-specific ── */
+  .strat-icon { font-size: 2rem; line-height: 1; }
+  .stat-card-inner { border-radius: 10px; padding: 1.1rem 1.25rem; height: 100%; }
+  .refresh-indicator { font-size: .75rem; color: #a8aaae; }
+  .empty-row td { color: #a8aaae; font-style: italic; }
+
+  /* Spinner overlay */
+  #loadingOverlay {
+    position: fixed; inset: 0; background: rgba(35,35,51,.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999; transition: opacity .3s;
+  }
+  #loadingOverlay.hidden { opacity: 0; pointer-events: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Loading overlay (shown on first load) -->
+<div id="loadingOverlay">
+  <div class="text-center">
+    <div class="spinner-border text-primary mb-3" style="width:3rem;height:3rem;"></div>
+    <div style="color:#cdd0d6;">Loading strategy data…</div>
+  </div>
+</div>
+
+<!-- API Unreachable Banner -->
+{% if not api_reachable %}
+<div class="alert alert-danger d-flex align-items-start gap-3 mb-4" role="alert"
+     style="background:#3d1f1f;border:1px solid #ea5455;border-radius:10px;">
+  <i class="bx bx-wifi-off fs-4 mt-1" style="color:#ea5455;flex-shrink:0;"></i>
+  <div>
+    <strong style="color:#ea5455;">Bot API Unreachable</strong>
+    <div style="color:#cdd0d6;font-size:.875rem;margin-top:4px;">{{ api_error }}</div>
+    <div style="color:#a8aaae;font-size:.8rem;margin-top:6px;">
+      <strong>Fix:</strong> Start the bot API or restore the SSH tunnel
+      (<code>{{ bot_api_url }}</code>).
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Page header ── -->
+<div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+  <a href="/trading/" class="btn btn-outline-secondary btn-sm">
+    <i class="bx bx-arrow-back me-1"></i>Back
+  </a>
+
+  <div class="d-flex align-items-center gap-3">
+    <div class="strat-icon" id="strategyIcon">⚙️</div>
+    <div>
+      <h4 class="fw-bold mb-0" style="color:#cdd0d6;" id="strategyTitle">Loading…</h4>
+      <p class="text-muted mb-0" style="font-size:.85rem;" id="strategyDesc"></p>
+    </div>
+  </div>
+
+  <div class="ms-auto d-flex align-items-center gap-3">
+    <span class="refresh-indicator" id="lastRefreshed"></span>
+    <span class="badge" id="strategyStatusBadge"
+          style="font-size:.85rem;padding:.5rem 1rem;background:rgba(168,170,174,.15);color:#a8aaae;">
+      Loading
+    </span>
+    <button class="btn btn-sm btn-outline-info" onclick="loadStrategyData()">
+      <i class="bx bx-refresh me-1"></i>Refresh
+    </button>
+  </div>
+</div>
+
+<!-- ── Stats cards ── -->
+<div class="row g-3 mb-4" id="statsRow">
+  <!-- Wins -->
+  <div class="col-6 col-md-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3 text-center">
+        <div class="stat-label mb-1">Wins</div>
+        <div class="stat-value pnl-pos" id="statWins">—</div>
+      </div>
+    </div>
+  </div>
+  <!-- Losses -->
+  <div class="col-6 col-md-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3 text-center">
+        <div class="stat-label mb-1">Losses</div>
+        <div class="stat-value pnl-neg" id="statLosses">—</div>
+      </div>
+    </div>
+  </div>
+  <!-- Win Rate -->
+  <div class="col-6 col-md-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3 text-center">
+        <div class="stat-label mb-1">Win Rate</div>
+        <div class="stat-value" id="statWinRate" style="color:#696cff;">—</div>
+      </div>
+    </div>
+  </div>
+  <!-- Total PnL -->
+  <div class="col-6 col-md-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3 text-center">
+        <div class="stat-label mb-1">Total PnL</div>
+        <div class="stat-value" id="statPnl">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Assigned Accounts ── -->
+<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
+  <div class="card-header d-flex justify-content-between align-items-center"
+       style="background:#232333;border-bottom:1px solid #3b3d52;">
+    <span class="section-header mb-0">
+      <i class="bx bx-server me-2" style="color:#28c76f;"></i>Assigned Accounts
+    </span>
+    <span class="badge bg-label-success" id="accountsBadge">0</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-dark-custom mb-0" id="strategyAccountsTable">
+        <thead>
+          <tr>
+            <th>Label</th>
+            <th>Login</th>
+            <th>Server</th>
+            <th>Balance</th>
+            <th>Equity</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="accountsBody">
+          <tr class="empty-row"><td colspan="6" class="text-center py-3">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── Open Trades ── -->
+<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
+  <div class="card-header d-flex justify-content-between align-items-center"
+       style="background:#232333;border-bottom:1px solid #3b3d52;">
+    <span class="section-header mb-0">
+      <i class="bx bx-trending-up me-2" style="color:#28c76f;"></i>Open Trades
+    </span>
+    <span class="badge bg-label-success" id="openTradesBadge">0</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-dark-custom mb-0" id="strategyOpenTradesTable">
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Side</th>
+            <th>Volume</th>
+            <th>Entry</th>
+            <th>SL</th>
+            <th>TP</th>
+            <th>Comment</th>
+            <th>Opened</th>
+          </tr>
+        </thead>
+        <tbody id="openTradesBody">
+          <tr class="empty-row"><td colspan="8" class="text-center py-3">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── Recent Trades ── -->
+<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
+  <div class="card-header d-flex justify-content-between align-items-center"
+       style="background:#232333;border-bottom:1px solid #3b3d52;">
+    <span class="section-header mb-0">
+      <i class="bx bx-history me-2" style="color:#696cff;"></i>Recent Trades
+    </span>
+    <span class="badge bg-label-primary" id="recentTradesBadge">0</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-dark-custom mb-0" id="strategyRecentTradesTable">
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Side</th>
+            <th>Volume</th>
+            <th>Entry</th>
+            <th>SL</th>
+            <th>TP</th>
+            <th>PnL</th>
+            <th>Status</th>
+            <th>Comment</th>
+            <th>Opened</th>
+          </tr>
+        </thead>
+        <tbody id="recentTradesBody">
+          <tr class="empty-row"><td colspan="10" class="text-center py-3">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const STRATEGY_ID = "{{ strategy_id }}";
+
+/* ── Strategy metadata ── */
+const STRATEGY_META = {
+  order_block:       { name: 'Order Block + FVG',        icon: '⚡', color: '#696cff' },
+  breakout:          { name: 'Range Breakout Retest',     icon: '📈', color: '#28c76f' },
+  confluence:        { name: 'OB + FVG + Breakout',       icon: '🧩', color: '#ff9f43' },
+  telegram_signals:  { name: 'Telegram Signals',          icon: '📡', color: '#29b6f6' },
+};
+
+/* ── Helpers ── */
+function getCookie(name) {
+  const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+  return v ? v.pop() : '';
+}
+
+function fmt(val, decimals = 2) {
+  if (val === null || val === undefined || val === '') return '—';
+  const n = parseFloat(val);
+  return isNaN(n) ? String(val) : n.toFixed(decimals);
+}
+
+function sideBadge(side) {
+  if (!side) return '—';
+  const cls = side.toLowerCase() === 'buy' ? 'badge-buy' : 'badge-sell';
+  return `<span class="badge ${cls}">${side.toUpperCase()}</span>`;
+}
+
+function statusBadge(status) {
+  if (!status) return '—';
+  const map = { win: 'success', loss: 'danger', open: 'info' };
+  const cls = map[status.toLowerCase()] || 'secondary';
+  return `<span class="badge bg-label-${cls}">${status}</span>`;
+}
+
+function pnlClass(pnl) {
+  const n = parseFloat(pnl);
+  if (isNaN(n)) return '';
+  return n > 0 ? 'pnl-pos' : n < 0 ? 'pnl-neg' : '';
+}
+
+/* ── Render functions ── */
+function renderHeader(data) {
+  const strat = data.strategy || {};
+  const meta  = STRATEGY_META[STRATEGY_ID] || {};
+  const name  = strat.name || meta.name || STRATEGY_ID;
+  const desc  = strat.description || '';
+  const color = meta.color || '#a8aaae';
+  const icon  = meta.icon || '⚙️';
+
+  document.getElementById('strategyTitle').textContent = name;
+  document.getElementById('strategyDesc').textContent  = desc;
+  document.getElementById('strategyIcon').textContent  = icon;
+
+  const badge = document.getElementById('strategyStatusBadge');
+  const status = strat.status || 'available';
+  if (status === 'available') {
+    badge.style.cssText = `font-size:.85rem;padding:.5rem 1rem;background:rgba(40,199,111,.15);color:#28c76f;`;
+    badge.textContent = '● Active';
+  } else {
+    badge.style.cssText = `font-size:.85rem;padding:.5rem 1rem;background:rgba(168,170,174,.15);color:#a8aaae;`;
+    badge.textContent = status;
+  }
+}
+
+function renderStats(stats) {
+  if (!stats) return;
+  document.getElementById('statWins').textContent    = stats.wins ?? '—';
+  document.getElementById('statLosses').textContent  = stats.losses ?? '—';
+  document.getElementById('statWinRate').textContent = stats.win_rate != null ? stats.win_rate + '%' : '—';
+
+  const pnlEl = document.getElementById('statPnl');
+  const pnl   = parseFloat(stats.total_pnl ?? 0);
+  pnlEl.textContent = isNaN(pnl) ? '—' : (pnl >= 0 ? '+' : '') + pnl.toFixed(2);
+  pnlEl.className   = 'stat-value ' + (pnl >= 0 ? 'pnl-pos' : 'pnl-neg');
+}
+
+function renderAccounts(accounts) {
+  const tbody = document.getElementById('accountsBody');
+  document.getElementById('accountsBadge').textContent = accounts ? accounts.length : 0;
+
+  if (!accounts || accounts.length === 0) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="6" class="text-center py-4">No accounts assigned to this strategy</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = accounts.map(acc => `
+    <tr>
+      <td><strong>${acc.label || '—'}</strong></td>
+      <td style="font-size:.85rem;">${acc.login || '—'}</td>
+      <td style="font-size:.8rem;color:#a8aaae;">${acc.server || '—'}</td>
+      <td>${acc.currency || ''} ${fmt(acc.balance)}</td>
+      <td>${acc.currency || ''} ${fmt(acc.equity)}</td>
+      <td>
+        <span class="badge ${acc.connected ? 'bg-label-success' : 'bg-label-danger'}">
+          ${acc.connected ? '● Online' : '● Offline'}
+        </span>
+        ${acc.error ? `<small class="text-danger d-block" style="font-size:.7rem;">${acc.error}</small>` : ''}
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderOpenTrades(trades) {
+  const tbody = document.getElementById('openTradesBody');
+  document.getElementById('openTradesBadge').textContent = trades ? trades.length : 0;
+
+  if (!trades || trades.length === 0) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="8" class="text-center py-4">No open trades for this strategy</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = trades.map(t => `
+    <tr>
+      <td><strong>${t.symbol || '—'}</strong></td>
+      <td>${sideBadge(t.side)}</td>
+      <td>${fmt(t.volume, 2)}</td>
+      <td>${fmt(t.entry, 5)}</td>
+      <td>${t.sl ? fmt(t.sl, 5) : '—'}</td>
+      <td>${t.tp ? fmt(t.tp, 5) : '—'}</td>
+      <td style="font-size:.8rem;color:#a8aaae;">${t.comment || '—'}</td>
+      <td style="font-size:.8rem;">${t.opened || '—'}</td>
+    </tr>
+  `).join('');
+}
+
+function renderRecentTrades(trades) {
+  const tbody = document.getElementById('recentTradesBody');
+  document.getElementById('recentTradesBadge').textContent = trades ? trades.length : 0;
+
+  if (!trades || trades.length === 0) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="10" class="text-center py-4">No trade history for this strategy</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = trades.map(t => {
+    const pnl = parseFloat(t.pnl ?? 0);
+    const pnlStr = isNaN(pnl) ? '—' : (pnl >= 0 ? '+' : '') + pnl.toFixed(2);
+    return `
+      <tr>
+        <td><strong>${t.symbol || '—'}</strong></td>
+        <td>${sideBadge(t.side)}</td>
+        <td>${fmt(t.volume, 2)}</td>
+        <td>${fmt(t.entry, 5)}</td>
+        <td>${t.sl ? fmt(t.sl, 5) : '—'}</td>
+        <td>${t.tp ? fmt(t.tp, 5) : '—'}</td>
+        <td class="${pnlClass(t.pnl)}">${pnlStr}</td>
+        <td>${statusBadge(t.status)}</td>
+        <td style="font-size:.8rem;color:#a8aaae;">${t.comment || '—'}</td>
+        <td style="font-size:.8rem;">${t.opened || '—'}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderStrategyDashboard(data) {
+  if (!data || data.error) {
+    console.error('Strategy data error:', data);
+    return;
+  }
+  renderHeader(data);
+  renderStats(data.stats);
+  renderAccounts(data.accounts);
+  renderOpenTrades(data.open_trades);
+  renderRecentTrades(data.recent_trades);
+
+  // Update last-refreshed timestamp
+  const now = new Date();
+  document.getElementById('lastRefreshed').textContent =
+    'Updated ' + now.toLocaleTimeString();
+}
+
+/* ── Data loader ── */
+function loadStrategyData() {
+  fetch(`/trading/strategy/${STRATEGY_ID}/stats/`, {
+    credentials: 'same-origin',
+    headers: { 'X-CSRFToken': getCookie('csrftoken') },
+  })
+  .then(r => {
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  })
+  .then(data => {
+    renderStrategyDashboard(data);
+    // Hide loading overlay after first successful load
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) overlay.classList.add('hidden');
+  })
+  .catch(err => {
+    console.error('Failed to load strategy data:', err);
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) overlay.classList.add('hidden');
+  });
+}
+
+/* ── Bootstrap: load immediately, then auto-refresh every 30s ── */
+loadStrategyData();
+setInterval(loadStrategyData, 30000);
+</script>
+{% endblock %}
