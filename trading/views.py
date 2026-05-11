@@ -352,7 +352,8 @@ def strategy_stats(request, strategy_id):
 
 
 @staff_member_required
-def algo_dashboard(request):    api_reachable, bot_api_url, api_error_msg = _check_api_health()
+def algo_dashboard(request):
+    api_reachable, bot_api_url, api_error_msg = _check_api_health()
     return render(
         request,
         "trading/algo_dashboard.html",
