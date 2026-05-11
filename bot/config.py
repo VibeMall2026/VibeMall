@@ -51,6 +51,10 @@ MT5_TIMEOUT_MS: int = _int("MT5_TIMEOUT_MS", 60000)
 MT5_DEVIATION: int = _int("MT5_DEVIATION", 20)
 MT5_MAGIC_NUMBER: int = _int("MT5_MAGIC_NUMBER", 550001)
 
+# Extra accounts: "Label|login|password|server|strategy1+strategy2"
+# Multiple accounts separated by semicolons
+MT5_EXTRA_ACCOUNTS: str = os.getenv("MT5_EXTRA_ACCOUNTS", "")
+
 # ── Admin notifications ────────────────────────────────────────────────────────
 ADMIN_CHAT_ID: str = os.getenv("ADMIN_CHAT_ID", "")
 ADMIN_BOT_TOKEN: str = os.getenv("ADMIN_BOT_TOKEN", "")

@@ -363,23 +363,62 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
         f"Breakout level: {setup.breakout_level:.5f} | Range: {setup.range_low:.5f}-{setup.range_high:.5f}"
     )
 
-    result = mt5_bridge.open_trade(
-        symbol=algo_config.symbol,
-        side=side,
-        sl=sl,
-        tp=tp,
-        entry=entry_price,
-        order_type="market",
-        risk_percent=algo_config.risk_percent,
-        comment=f"ALGO:BRK:{setup.id[:8]}",
-    )
+    # Execute on all accounts that have 'breakout' strategy assigned
+    from bot.accounts import get_all_accounts
 
-    if not result.get("success"):
-        logger.error(f"[BREAKOUT] Trade failed: {result.get('message')}")
-        return False
+    breakout_accounts = [
+        acc for acc in get_all_accounts()
+        if acc.enabled and "breakout" in (acc.strategy or [])
+    ]
+
+    if not breakout_accounts:
+        # Fallback: use primary mt5_bridge connection
+        logger.warning("[BREAKOUT] No accounts with 'breakout' strategy — using primary connection")
+        result = mt5_bridge.open_trade(
+            symbol=algo_config.symbol,
+            side=side,
+            sl=sl,
+            tp=tp,
+            entry=entry_price,
+            order_type="market",
+            risk_percent=algo_config.risk_percent,
+            comment=f"ALGO:BRK:{setup.id[:8]}",
+        )
+        if not result.get("success"):
+            logger.error(f"[BREAKOUT] Trade failed: {result.get('message')}")
+            return False
+        ticket = result.get("ticket")
+    else:
+        # Execute on each breakout-assigned account
+        from bot.accounts import execute_on_all_accounts as _exec_all
+        results = _exec_all(
+            symbol=algo_config.symbol,
+            side=side,
+            sl=sl,
+            tp=tp,
+            entry=entry_price,
+            order_type="market",
+            risk_percent=algo_config.risk_percent,
+            comment=f"ALGO:BRK:{setup.id[:8]}",
+        )
+        # Filter to only breakout-account results
+        breakout_logins = {acc.login for acc in breakout_accounts}
+        relevant = [r for r in results if r.get("login") in breakout_logins]
+        successes = [r for r in relevant if r.get("success")]
+
+        if not successes:
+            logger.error(f"[BREAKOUT] Trade failed on all breakout accounts: {relevant}")
+            return False
+
+        ticket = successes[0].get("ticket")
+        for r in successes:
+            logger.success(
+                f"[BREAKOUT] Trade on {r.get('account_label')} ({r.get('login')}) | "
+                f"Ticket: {r.get('ticket')} | {algo_config.symbol} {side.upper()}"
+            )
 
     setup.trade_taken = True
-    setup.ticket = result.get("ticket")
+    setup.ticket = ticket
     setup.active = False
     setup.trade_count += 1
     setup.entry_price = entry_price
@@ -398,8 +437,9 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
         "status": "executed",
         "source": "ALGO:Breakout",
         "setup_id": setup.id,
+        "ticket": ticket,
     })
-    logger.success(f"[BREAKOUT] Trade opened | Ticket: {setup.ticket} | R:R 1:{algo_config.risk_reward_ratio}")
+    logger.success(f"[BREAKOUT] Trade opened | Ticket: {ticket} | R:R 1:{algo_config.risk_reward_ratio}")
     return True
 
 

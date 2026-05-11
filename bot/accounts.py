@@ -84,7 +84,62 @@ def _load_default_account() -> None:
         _accounts.append(primary)
 
 
+def _load_extra_accounts() -> None:
+    """
+    Load extra MT5 accounts from MT5_EXTRA_ACCOUNTS config.
+
+    Format (semicolon-separated entries):
+        Label|login|password|server|strategy1+strategy2
+
+    Example:
+        Range Breakout Demo|106903766|IbLcNr_4|MetaQuotes-Demo|breakout
+    """
+    raw = (_config.MT5_EXTRA_ACCOUNTS or "").strip()
+    if not raw:
+        return
+
+    entries = [e.strip() for e in raw.split(";") if e.strip()]
+    for i, entry in enumerate(entries, start=2):
+        parts = entry.split("|")
+        if len(parts) < 4:
+            logger.warning(f"[ACCOUNTS] Skipping malformed extra account entry: {entry!r}")
+            continue
+
+        label = parts[0].strip()
+        try:
+            login = int(parts[1].strip())
+        except ValueError:
+            logger.warning(f"[ACCOUNTS] Invalid login in extra account entry: {entry!r}")
+            continue
+        password = parts[2].strip()
+        server = parts[3].strip()
+        strategies = [s.strip() for s in parts[4].split("+")] if len(parts) >= 5 else ["order_block"]
+
+        acc_id = f"acc_{i}"
+        # Avoid duplicates on reload
+        if any(a.id == acc_id or a.login == login for a in _accounts):
+            logger.debug(f"[ACCOUNTS] Extra account already loaded: {label} ({login})")
+            continue
+
+        acc = MT5Account(
+            id=acc_id,
+            label=label or f"Account {i}",
+            login=login,
+            password=password,
+            server=server,
+            path=_config.MT5_PATH,
+            enabled=True,
+            strategy=strategies,
+        )
+        _accounts.append(acc)
+        logger.info(
+            f"[ACCOUNTS] Loaded extra account from config: {acc.label} "
+            f"({acc.login}@{acc.server}) strategy={strategies}"
+        )
+
+
 _load_default_account()
+_load_extra_accounts()
 
 
 def get_all_accounts() -> list[MT5Account]:
