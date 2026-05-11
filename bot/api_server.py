@@ -383,6 +383,35 @@ async def list_strategies():
     return get_all_strategies()
 
 
+@app.get("/accounts/debug", dependencies=[Depends(verify_api_key)])
+async def debug_accounts():
+    """Debug endpoint — shows raw .env read result and current account list."""
+    import os
+    from pathlib import Path
+
+    env_path = Path(__file__).parent / ".env"
+    raw_line = ""
+    env_exists = env_path.exists()
+    try:
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if stripped.startswith("MT5_EXTRA_ACCOUNTS="):
+                raw_line = stripped
+                break
+    except Exception as exc:
+        raw_line = f"ERROR: {exc}"
+
+    from bot.accounts import get_all_accounts, _accounts
+    return {
+        "env_path": str(env_path),
+        "env_exists": env_exists,
+        "raw_line_found": raw_line,
+        "MT5_EXTRA_ACCOUNTS_os_env": os.getenv("MT5_EXTRA_ACCOUNTS", "NOT SET"),
+        "accounts_count": len(_accounts),
+        "accounts": [a.to_dict() for a in _accounts],
+    }
+
+
 @app.get("/accounts", dependencies=[Depends(verify_api_key)])
 async def list_accounts():
     """List all configured MT5 accounts."""
