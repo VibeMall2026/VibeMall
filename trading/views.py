@@ -31,14 +31,14 @@ def _read_simple_env(env_path: Path) -> dict[str, str]:
 
 BOT_ENV = _read_simple_env(Path(__file__).resolve().parent.parent / "bot" / ".env")
 DEFAULT_BOT_API_CANDIDATES = [
-    "http://127.0.0.1:2222",        # SSH tunnel (primary — most reliable)
+    "http://100.124.101.92:8001",   # Windows PC Tailscale IP (primary)
     "http://127.0.0.1:8001",        # localhost fallback
-    "http://100.124.101.92:8001",   # Windows PC Tailscale IP (fallback)
+    "http://127.0.0.1:2222",        # SSH tunnel fallback
     "http://127.0.0.1:8000",        # Django port fallback
 ]
 API_KEY = os.environ.get("BOT_API_KEY") or os.environ.get("API_KEY") or BOT_ENV.get("API_KEY", "")
 HEADERS = {"X-API-Key": API_KEY} if API_KEY else {}
-TIMEOUT = 3  # Fast timeout — tunnel responds instantly
+TIMEOUT = 3  # Reduced from 5s to 3s for faster failover
 
 
 def _candidate_bot_api_urls():
@@ -412,8 +412,9 @@ def algo_signals(request):
 @staff_member_required
 @staff_member_required
 def bot_api_proxy(request, endpoint):
-    # Try to find a working bot API URL — don't block on health check
-    _, bot_api_url, _ = _check_api_health()
+    api_reachable, bot_api_url, api_error_msg = _check_api_health()
+    if not api_reachable:
+        return JsonResponse({"error": api_error_msg or "Bot API unavailable"}, status=503)
 
     # Strip trailing slash to match FastAPI routes
     endpoint = endpoint.rstrip("/")
@@ -440,20 +441,5 @@ def bot_api_proxy(request, endpoint):
             return JsonResponse({"error": "Method not allowed"}, status=405)
 
         return JsonResponse(resp.json(), safe=False, status=resp.status_code)
-    except requests.exceptions.ConnectionError as exc:
-        return JsonResponse({
-            "success": False,
-            "error": "Bot API unreachable",
-            "detail": f"Cannot connect to {url}. Make sure the bot is running on Windows PC.",
-        }, status=503)
-    except requests.exceptions.Timeout:
-        return JsonResponse({
-            "success": False,
-            "error": "Bot API timeout",
-            "detail": f"Request to {url} timed out after {TIMEOUT}s.",
-        }, status=503)
     except Exception as exc:
-        return JsonResponse({
-            "success": False,
-            "error": str(exc),
-        }, status=503)
+        return JsonResponse({"error": str(exc)}, status=503)

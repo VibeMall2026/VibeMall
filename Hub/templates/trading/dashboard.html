@@ -897,21 +897,13 @@
         }, 1000);
       } else {
         const errorMsg =
-          data.data?.detail ||
           data.data?.error ||
           data.data?.message ||
           data.data?.detail ||
           `HTTP ${data.status}`;
-        resultEl.innerHTML = `<div class="alert alert-danger py-2 mb-0"><strong>Error:</strong> ${errorMsg}</div>`;
+        resultEl.innerHTML = `<div class="alert alert-danger py-2 mb-0">Error: ${errorMsg}</div>`;
       }
     })
-    .catch(err => {
-      resultEl.style.display = 'block';
-      resultEl.innerHTML = `<div class="alert alert-danger py-2 mb-0"><strong>Network error</strong> — ${err?.message || 'unknown'}</div>`;
-    });
-  }
-
-  function toggleAccount(accountId, enabled) {
     .catch(err => {
       resultEl.style.display = 'block';
       resultEl.innerHTML = `<div class="alert alert-danger py-2 mb-0">
@@ -920,6 +912,9 @@
         <small style="opacity:.7;">Make sure the bot is running on Windows PC (port 8001)</small>
       </div>`;
     });
+  }
+
+  function toggleAccount(accountId, enabled) {
     const csrfToken = getCookie('csrftoken');
     fetch(`/trading/api/accounts/${accountId}/toggle/`, {
       method: 'POST',
