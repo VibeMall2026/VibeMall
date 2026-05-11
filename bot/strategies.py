@@ -32,6 +32,13 @@ STRATEGIES: list[dict] = [
         "module": "bot.algo.breakout",
     },
     {
+        "id": "confluence",
+        "name": "OB + FVG + Breakout",
+        "description": "Order Block + Fair Value Gap with same-direction breakout confluence",
+        "status": "available",
+        "module": "bot.algo.confluence",
+    },
+    {
         "id": "ema_crossover",
         "name": "EMA Crossover",
         "description": "Classic EMA 9/21 crossover strategy with trend filter",

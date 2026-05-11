@@ -373,7 +373,7 @@ class AccountAddRequest(BaseModel):
     password: str
     server: str
     path: Optional[str] = ""
-    strategy: Optional[list] = ["order_block"]
+    strategy: Optional[list[str] | str] = ["order_block"]
 
 
 @app.get("/strategies", dependencies=[Depends(verify_api_key)])
@@ -394,13 +394,16 @@ async def list_accounts():
 async def add_account(body: AccountAddRequest):
     """Add a new MT5 account."""
     from bot.accounts import add_account as _add
+    strategy = body.strategy or ["order_block"]
+    if isinstance(strategy, str):
+        strategy = [strategy]
     acc = _add(
         label=body.label,
         login=body.login,
         password=body.password,
         server=body.server,
         path=body.path or "",
-        strategy=body.strategy or ["order_block"],
+        strategy=strategy,
     )
     return {"success": True, "account": acc.to_dict()}
 

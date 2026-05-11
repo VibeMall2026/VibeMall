@@ -1,11 +1,8 @@
 """
-Breakout retest strategy for live algo trading.
+Order Block + FVG + Breakout confluence strategy for live algo trading.
 
-Core logic:
-1. Detect a strong close above/below a recent range on the analysis timeframe.
-2. Confirm trend, volatility, and relative volume.
-3. Wait for a retest on the execution timeframe.
-4. Enter on directional rejection from the breakout level.
+This strategy keeps the original OB/FVG idea separate from the order_block module
+and adds a same-direction range breakout requirement before an OB retest entry.
 """
 from __future__ import annotations
 
@@ -35,7 +32,7 @@ from bot.algo.order_block import (
 
 @dataclass
 class AlgoConfig:
-    symbol: str = "XAUUSD"
+    symbol: str = "EURUSD"
     analysis_timeframe: int = 15
     execution_timeframe: int = 15
     risk_reward_ratio: float = 1.5
@@ -43,13 +40,11 @@ class AlgoConfig:
     breakout_lookback: int = 10
     trend_ema_period: int = 20
     atr_period: int = 14
-    atr_min_multiplier: float = 0.6
-    range_min_atr_multiplier: float = 1.2
+    atr_min_multiplier: float = 0.5
     breakout_buffer_atr: float = 0.10
-    min_breakout_body_ratio: float = 0.55
-    min_volume_multiplier: float = 1.20
-    retest_tolerance_atr: float = 0.15
-    max_active_breakouts: int = 5
+    fvg_min_body_ratio: float = 0.60
+    max_active_setups: int = 5
+    max_setup_age_bars: int = 20
     scan_interval_seconds: int = 60
     risk_check_interval_seconds: int = 1
     max_trades_per_setup: int = 1
@@ -96,12 +91,13 @@ class Candle:
 
 
 @dataclass
-class BreakoutSetup:
+class ConfluenceSetup:
     id: str
     direction: str
+    ob_high: float
+    ob_low: float
+    ob_mid: float
     breakout_level: float
-    range_high: float
-    range_low: float
     time: datetime
     active: bool = True
     trade_taken: bool = False
@@ -112,14 +108,15 @@ class BreakoutSetup:
     one_r: float = 0.0
     r_stage: int = 0
     dollar_lock_applied: bool = False
+    created_bar: int = 0
 
     @property
     def sl_level(self) -> float:
-        range_size = max(self.range_high - self.range_low, 0.0)
-        buffer = range_size * 0.15
+        ob_size = max(self.ob_high - self.ob_low, 0.0)
+        buffer = ob_size * 0.10
         if self.direction == "bullish":
-            return self.range_low - buffer
-        return self.range_high + buffer
+            return self.ob_low - buffer
+        return self.ob_high + buffer
 
     def tp_level(self, entry: float, rr: float) -> float:
         sl_distance = abs(entry - self.sl_level)
@@ -128,11 +125,12 @@ class BreakoutSetup:
         return entry - sl_distance * rr
 
 
-_active_breakouts: list[BreakoutSetup] = []
-_breakout_lock = threading.Lock()
+_active_setups: list[ConfluenceSetup] = []
+_setup_lock = threading.Lock()
 _algo_thread: Optional[threading.Thread] = None
 _risk_thread: Optional[threading.Thread] = None
 _algo_running = False
+_bar_counter = 0
 
 
 def _get_candles(symbol: str, timeframe_minutes: int, count: int) -> list[Candle]:
@@ -156,7 +154,7 @@ def _get_candles(symbol: str, timeframe_minutes: int, count: int) -> list[Candle
                     for r in response
                 ]
         except Exception as exc:
-            logger.warning(f"[BREAKOUT] Bridge candles fetch failed: {exc}")
+            logger.warning(f"[CONFLUENCE] Bridge candles fetch failed: {exc}")
         return []
 
     if not MT5_AVAILABLE or not mt5_bridge.is_connected():
@@ -196,7 +194,7 @@ def _get_current_price(symbol: str) -> Optional[float]:
             if response and "bid" in response:
                 return float(response["bid"])
         except Exception as exc:
-            logger.warning(f"[BREAKOUT] Bridge price fetch failed: {exc}")
+            logger.warning(f"[CONFLUENCE] Bridge price fetch failed: {exc}")
         return None
 
     if not MT5_AVAILABLE or not mt5_bridge.is_connected():
@@ -233,13 +231,6 @@ def _calculate_atr(candles: list[Candle], period: int) -> Optional[float]:
     return sum(trs[-period:]) / period
 
 
-def _average_volume(candles: list[Candle], period: int = 10) -> float:
-    if not candles:
-        return 0.0
-    sample = candles[-period:]
-    return sum(c.volume for c in sample) / len(sample)
-
-
 def _is_trend_aligned(candles: list[Candle], direction: str) -> bool:
     ema = _calculate_ema(candles, algo_config.trend_ema_period)
     if ema is None:
@@ -258,110 +249,99 @@ def _is_volatility_sufficient(candles: list[Candle]) -> bool:
     return atr >= baseline * algo_config.atr_min_multiplier
 
 
-def _detect_breakouts(candles: list[Candle]) -> list[BreakoutSetup]:
-    setups: list[BreakoutSetup] = []
-    if len(candles) < algo_config.breakout_lookback + 2:
+def _detect_setups(candles: list[Candle], bar_index: int) -> list[ConfluenceSetup]:
+    setups: list[ConfluenceSetup] = []
+    if len(candles) < max(algo_config.breakout_lookback + 3, algo_config.atr_period + 3):
         return setups
 
-    start_idx = max(algo_config.breakout_lookback, len(candles) - 3)
-    for idx in range(start_idx, len(candles)):
-        window = candles[idx - algo_config.breakout_lookback:idx]
-        current = candles[idx]
+    c1 = candles[-3]
+    c2 = candles[-2]
+    c3 = candles[-1]
+    atr = _calculate_atr(candles, algo_config.atr_period)
+    if atr is None:
+        return setups
 
-        range_high = max(c.high for c in window)
-        range_low = min(c.low for c in window)
-        range_size = range_high - range_low
-        atr = _calculate_atr(candles[: idx + 1], algo_config.atr_period)
-        avg_volume = _average_volume(window)
+    prior_window = candles[-(algo_config.breakout_lookback + 3):-3]
+    if len(prior_window) < algo_config.breakout_lookback:
+        return setups
 
-        if atr is None or range_size <= 0:
-            continue
+    prior_high = max(c.high for c in prior_window)
+    prior_low = min(c.low for c in prior_window)
+    buffer = atr * algo_config.breakout_buffer_atr
 
-        if range_size < atr * algo_config.range_min_atr_multiplier:
-            continue
-
-        buffer = atr * algo_config.breakout_buffer_atr
-        volume_ok = True if avg_volume <= 0 else current.volume >= avg_volume * algo_config.min_volume_multiplier
-        body_ok = current.body_ratio >= algo_config.min_breakout_body_ratio
-
-        if (
-            current.is_bullish
-            and body_ok
-            and volume_ok
-            and current.close > range_high + buffer
-        ):
-            setups.append(
-                BreakoutSetup(
-                    id=f"bullish_{current.time.strftime('%Y%m%d%H%M')}",
-                    direction="bullish",
-                    breakout_level=range_high,
-                    range_high=range_high,
-                    range_low=range_low,
-                    time=current.time,
-                )
+    if (
+        c2.is_bullish
+        and c2.body_ratio >= algo_config.fvg_min_body_ratio
+        and c3.low > c1.high
+        and c3.close > prior_high + buffer
+    ):
+        setups.append(
+            ConfluenceSetup(
+                id=f"bullish_{c3.time.strftime('%Y%m%d%H%M')}",
+                direction="bullish",
+                ob_high=c1.high,
+                ob_low=c1.low,
+                ob_mid=(c1.high + c1.low) / 2,
+                breakout_level=prior_high,
+                time=c3.time,
+                created_bar=bar_index,
             )
-        elif (
-            current.is_bearish
-            and body_ok
-            and volume_ok
-            and current.close < range_low - buffer
-        ):
-            setups.append(
-                BreakoutSetup(
-                    id=f"bearish_{current.time.strftime('%Y%m%d%H%M')}",
-                    direction="bearish",
-                    breakout_level=range_low,
-                    range_high=range_high,
-                    range_low=range_low,
-                    time=current.time,
-                )
+        )
+
+    if (
+        c2.is_bearish
+        and c2.body_ratio >= algo_config.fvg_min_body_ratio
+        and c3.high < c1.low
+        and c3.close < prior_low - buffer
+    ):
+        setups.append(
+            ConfluenceSetup(
+                id=f"bearish_{c3.time.strftime('%Y%m%d%H%M')}",
+                direction="bearish",
+                ob_high=c1.high,
+                ob_low=c1.low,
+                ob_mid=(c1.high + c1.low) / 2,
+                breakout_level=prior_low,
+                time=c3.time,
+                created_bar=bar_index,
             )
+        )
 
     return setups
 
 
-def _check_entry_signal(setup: BreakoutSetup, candles_exec: list[Candle]) -> Optional[float]:
+def _check_entry_signal(setup: ConfluenceSetup, candles_exec: list[Candle]) -> Optional[float]:
     if len(candles_exec) < 2:
         return None
-
     last = candles_exec[-1]
     prev = candles_exec[-2]
-    atr = _calculate_atr(candles_exec, min(algo_config.atr_period, max(len(candles_exec) - 1, 1)))
-    tolerance = (atr or max(setup.range_high - setup.range_low, 0.0)) * algo_config.retest_tolerance_atr
 
     if setup.direction == "bullish":
-        touched = last.low <= setup.breakout_level + tolerance
-        confirmed = last.close > setup.breakout_level and last.is_bullish and last.close >= prev.close
+        touched = last.low <= setup.ob_mid and last.low >= setup.ob_low
+        confirmed = last.close > setup.ob_mid and prev.close <= setup.ob_mid
         if touched and confirmed:
             return last.close
     else:
-        touched = last.high >= setup.breakout_level - tolerance
-        confirmed = last.close < setup.breakout_level and last.is_bearish and last.close <= prev.close
+        touched = last.high >= setup.ob_mid and last.high <= setup.ob_high
+        confirmed = last.close < setup.ob_mid and prev.close >= setup.ob_mid
         if touched and confirmed:
             return last.close
-
     return None
 
 
-def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
+def _execute_trade(setup: ConfluenceSetup, entry_price: float) -> bool:
     if not can_trade():
-        logger.info("[BREAKOUT] Trade blocked by risk management rules")
+        logger.info("[CONFLUENCE] Trade blocked by risk management rules")
         return False
 
     if check_drawdown():
-        logger.info("[BREAKOUT] Trade blocked: max drawdown exceeded")
+        logger.info("[CONFLUENCE] Trade blocked: max drawdown exceeded")
         return False
 
     sl = setup.sl_level
     tp = setup.tp_level(entry_price, algo_config.risk_reward_ratio)
     side = "buy" if setup.direction == "bullish" else "sell"
     one_r = abs(entry_price - sl)
-
-    logger.info(
-        f"[BREAKOUT] {algo_config.symbol} {side.upper()} | "
-        f"Entry: {entry_price:.5f} | SL: {sl:.5f} | TP: {tp:.5f} | "
-        f"Breakout level: {setup.breakout_level:.5f} | Range: {setup.range_low:.5f}-{setup.range_high:.5f}"
-    )
 
     result = mt5_bridge.open_trade(
         symbol=algo_config.symbol,
@@ -371,11 +351,10 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
         entry=entry_price,
         order_type="market",
         risk_percent=algo_config.risk_percent,
-        comment=f"ALGO:BRK:{setup.id[:8]}",
+        comment=f"ALGO:CONF:{setup.id[:8]}",
     )
-
     if not result.get("success"):
-        logger.error(f"[BREAKOUT] Trade failed: {result.get('message')}")
+        logger.error(f"[CONFLUENCE] Trade failed: {result.get('message')}")
         return False
 
     setup.trade_taken = True
@@ -396,14 +375,17 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
         "tp": tp,
         "one_r": one_r,
         "status": "executed",
-        "source": "ALGO:Breakout",
+        "source": "ALGO:Confluence",
         "setup_id": setup.id,
     })
-    logger.success(f"[BREAKOUT] Trade opened | Ticket: {setup.ticket} | R:R 1:{algo_config.risk_reward_ratio}")
+    logger.success(
+        f"[CONFLUENCE] Trade opened | {algo_config.symbol} {side.upper()} | "
+        f"Entry: {entry_price:.5f} | SL: {sl:.5f} | TP: {tp:.5f}"
+    )
     return True
 
 
-def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
+def _manage_open_trade_risk(setup: ConfluenceSetup) -> None:
     if not setup.ticket or setup.one_r <= 0:
         return
 
@@ -434,7 +416,7 @@ def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
                             setup.dollar_lock_applied = True
                     break
         except Exception as exc:
-            logger.warning(f"[BREAKOUT] Dollar lock check failed: {exc}")
+            logger.warning(f"[CONFLUENCE] Dollar lock check failed: {exc}")
 
     if profit_r >= algo_config.rr_lock_profit and setup.r_stage < 2:
         r_sl = entry + one_r if side == "buy" else entry - one_r
@@ -460,11 +442,12 @@ def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
             result = mt5_bridge.modify_position(setup.ticket, sl=new_sl)
             if result.get("success"):
                 setup.initial_sl = new_sl
-                logger.info(f"[BREAKOUT] SL updated to {new_sl:.5f} (stage={setup.r_stage})")
+                logger.info(f"[CONFLUENCE] SL updated to {new_sl:.5f} (stage={setup.r_stage})")
 
 
 def _scan_and_trade() -> None:
-    global _active_breakouts
+    global _active_setups, _bar_counter
+    _bar_counter += 1
 
     symbol = algo_config.symbol
     check_drawdown()
@@ -472,8 +455,8 @@ def _scan_and_trade() -> None:
     open_positions = mt5_bridge.get_open_positions()
     open_tickets = {p.get("id") for p in open_positions}
 
-    with _breakout_lock:
-        for setup in _active_breakouts:
+    with _setup_lock:
+        for setup in _active_setups:
             if setup.trade_taken and setup.ticket and setup.ticket not in open_tickets:
                 pnl_val = 0.0
                 try:
@@ -484,21 +467,20 @@ def _scan_and_trade() -> None:
                             record_trade_pnl(pnl_val)
                             break
                 except Exception as exc:
-                    logger.warning(f"[BREAKOUT] Could not fetch PnL for ticket {setup.ticket}: {exc}")
-
+                    logger.warning(f"[CONFLUENCE] Could not fetch PnL for ticket {setup.ticket}: {exc}")
                 setup.trade_taken = False
                 setup.ticket = None
                 setup.r_stage = 0
                 setup.dollar_lock_applied = False
                 setup.active = pnl_val >= 0
 
-    candles_analysis = _get_candles(symbol, algo_config.analysis_timeframe, algo_config.breakout_lookback + 60)
-    if len(candles_analysis) < algo_config.breakout_lookback + 2:
+    candles_analysis = _get_candles(symbol, algo_config.analysis_timeframe, max(algo_config.breakout_lookback + 10, 80))
+    if len(candles_analysis) < algo_config.breakout_lookback + 3:
         return
 
-    new_setups = _detect_breakouts(candles_analysis)
-    with _breakout_lock:
-        existing_ids = {setup.id for setup in _active_breakouts}
+    new_setups = _detect_setups(candles_analysis, _bar_counter)
+    with _setup_lock:
+        existing_ids = {setup.id for setup in _active_setups}
         for setup in new_setups:
             if setup.id in existing_ids:
                 continue
@@ -506,85 +488,76 @@ def _scan_and_trade() -> None:
                 continue
             if not _is_volatility_sufficient(candles_analysis):
                 continue
-            _active_breakouts.append(setup)
+            _active_setups.append(setup)
             logger.info(
-                f"[BREAKOUT] New {setup.direction} breakout | "
-                f"Level: {setup.breakout_level:.5f} | Range: {setup.range_low:.5f}-{setup.range_high:.5f} | "
-                f"Time: {setup.time}"
+                f"[CONFLUENCE] New {setup.direction} setup | "
+                f"OB: {setup.ob_low:.5f}-{setup.ob_high:.5f} | Breakout: {setup.breakout_level:.5f}"
             )
 
-        _active_breakouts = [s for s in _active_breakouts if s.active or s.trade_taken]
-        _active_breakouts = sorted(_active_breakouts, key=lambda item: item.time, reverse=True)[:algo_config.max_active_breakouts]
+        _active_setups = [s for s in _active_setups if (s.active or s.trade_taken)]
+        _active_setups = [
+            s for s in _active_setups
+            if (_bar_counter - s.created_bar) <= algo_config.max_setup_age_bars or s.trade_taken
+        ]
+        _active_setups = sorted(_active_setups, key=lambda item: item.time, reverse=True)[:algo_config.max_active_setups]
 
     if not state.running or not algo_config.enabled or not can_trade():
         return
 
     open_positions = mt5_bridge.get_open_positions()
-    open_tickets = {p.get("id") for p in open_positions}
     algo_positions = [p for p in open_positions if "ALGO:" in str(p.get("comment", ""))]
-
-    with _breakout_lock:
-        for setup in _active_breakouts:
-            if setup.trade_taken and setup.ticket and setup.ticket not in open_tickets:
-                setup.trade_taken = False
-                setup.active = True
-                setup.ticket = None
-                setup.dollar_lock_applied = False
-                setup.r_stage = 0
-
     if len(algo_positions) >= 2:
         return
 
-    candles_exec = _get_candles(symbol, algo_config.execution_timeframe, 25)
-    if len(candles_exec) < 5:
+    candles_exec = _get_candles(symbol, algo_config.execution_timeframe, 20)
+    if len(candles_exec) < 3:
         return
 
     current_price = _get_current_price(symbol)
     if current_price is None:
         return
 
-    with _breakout_lock:
-        for setup in _active_breakouts:
+    with _setup_lock:
+        for setup in _active_setups:
             if not setup.active or setup.trade_taken:
                 continue
             if setup.trade_count >= algo_config.max_trades_per_setup:
                 setup.active = False
                 continue
-            if setup.direction == "bullish" and current_price < setup.range_low:
+            if setup.direction == "bullish" and current_price < setup.ob_low:
                 setup.active = False
                 continue
-            if setup.direction == "bearish" and current_price > setup.range_high:
+            if setup.direction == "bearish" and current_price > setup.ob_high:
                 setup.active = False
                 continue
-
             entry = _check_entry_signal(setup, candles_exec)
             if entry:
-                _execute_breakout_trade(setup, entry)
+                _execute_trade(setup, entry)
                 break
 
 
 def _risk_check_loop() -> None:
     global _algo_running
-    logger.info("[BREAKOUT] Risk check loop started")
+    logger.info("[CONFLUENCE] Risk check loop started")
     while _algo_running:
         try:
             if mt5_bridge.is_connected():
                 open_positions = mt5_bridge.get_open_positions()
                 open_tickets = {p.get("id") for p in open_positions}
-                with _breakout_lock:
-                    for setup in _active_breakouts:
+                with _setup_lock:
+                    for setup in _active_setups:
                         if setup.trade_taken and setup.ticket in open_tickets:
                             _manage_open_trade_risk(setup)
         except Exception as exc:
-            logger.error(f"[BREAKOUT] Risk check error: {exc}")
+            logger.error(f"[CONFLUENCE] Risk check error: {exc}")
         time.sleep(algo_config.risk_check_interval_seconds)
-    logger.info("[BREAKOUT] Risk check loop stopped")
+    logger.info("[CONFLUENCE] Risk check loop stopped")
 
 
 def _algo_loop() -> None:
     global _algo_running
     logger.info(
-        f"[BREAKOUT] Strategy started | Symbol: {algo_config.symbol} | "
+        f"[CONFLUENCE] Strategy started | Symbol: {algo_config.symbol} | "
         f"Analysis TF: {algo_config.analysis_timeframe}m | Execution TF: {algo_config.execution_timeframe}m"
     )
     while _algo_running:
@@ -592,23 +565,23 @@ def _algo_loop() -> None:
             if mt5_bridge.is_connected():
                 _scan_and_trade()
         except Exception as exc:
-            logger.error(f"[BREAKOUT] Scan error: {exc}")
+            logger.error(f"[CONFLUENCE] Scan error: {exc}")
         time.sleep(algo_config.scan_interval_seconds)
-    logger.info("[BREAKOUT] Strategy stopped")
+    logger.info("[CONFLUENCE] Strategy stopped")
 
 
 def start_algo() -> bool:
     global _algo_running, _algo_thread, _risk_thread
     if _algo_running:
-        logger.warning("[BREAKOUT] Already running")
+        logger.warning("[CONFLUENCE] Already running")
         return False
     _algo_running = True
-    _algo_thread = threading.Thread(target=_algo_loop, daemon=True, name="BreakoutAlgoThread")
-    _risk_thread = threading.Thread(target=_risk_check_loop, daemon=True, name="BreakoutRiskThread")
+    _algo_thread = threading.Thread(target=_algo_loop, daemon=True, name="ConfluenceAlgoThread")
+    _risk_thread = threading.Thread(target=_risk_check_loop, daemon=True, name="ConfluenceRiskThread")
     _algo_thread.start()
     _risk_thread.start()
     logger.success(
-        f"[BREAKOUT] Strategy started | Scan: {algo_config.scan_interval_seconds}s | "
+        f"[CONFLUENCE] Strategy started | Scan: {algo_config.scan_interval_seconds}s | "
         f"Risk check: {algo_config.risk_check_interval_seconds}s | "
         f"{'trading ENABLED' if algo_config.enabled else 'scan-only mode'}"
     )
@@ -620,39 +593,39 @@ def stop_algo() -> bool:
     if not _algo_running:
         return False
     _algo_running = False
-    logger.info("[BREAKOUT] Stopping strategy...")
+    logger.info("[CONFLUENCE] Stopping strategy...")
     return True
 
 
 def get_algo_status() -> dict:
-    with _breakout_lock:
+    with _setup_lock:
         setups = [
             {
-                "id": setup.id,
-                "direction": setup.direction,
-                "breakout_level": setup.breakout_level,
-                "range_high": setup.range_high,
-                "range_low": setup.range_low,
-                "time": setup.time.isoformat(),
-                "active": setup.active,
-                "trade_taken": setup.trade_taken,
-                "ticket": setup.ticket,
+                "id": s.id,
+                "direction": s.direction,
+                "ob_high": s.ob_high,
+                "ob_low": s.ob_low,
+                "ob_mid": s.ob_mid,
+                "breakout_level": s.breakout_level,
+                "time": s.time.isoformat(),
+                "active": s.active,
+                "trade_taken": s.trade_taken,
+                "ticket": s.ticket,
             }
-            for setup in _active_breakouts
+            for s in _active_setups
         ]
-
     return {
         "running": _algo_running,
         "enabled": algo_config.enabled,
-        "strategy": "breakout",
+        "strategy": "confluence",
         "symbol": algo_config.symbol,
         "analysis_timeframe": algo_config.analysis_timeframe,
         "execution_timeframe": algo_config.execution_timeframe,
         "risk_reward": algo_config.risk_reward_ratio,
         "risk_percent": algo_config.risk_percent,
-        "active_breakouts": setups,
+        "active_confluence_setups": setups,
         "active_order_blocks": [],
-        "total_breakouts_tracked": len(_active_breakouts),
+        "total_confluence_setups": len(_active_setups),
     }
 
 
@@ -676,6 +649,5 @@ def update_algo_config(
         algo_config.analysis_timeframe = analysis_tf
     if execution_tf is not None:
         algo_config.execution_timeframe = execution_tf
-
-    logger.info(f"[BREAKOUT] Config updated: {algo_config}")
+    logger.info(f"[CONFLUENCE] Config updated: {algo_config}")
     return get_algo_status()

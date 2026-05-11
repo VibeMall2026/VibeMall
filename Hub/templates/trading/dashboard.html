@@ -95,6 +95,13 @@
             </div>
           </label>
           <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
+            <input type="checkbox" value="confluence" id="strat_confluence" class="form-check-input mt-1">
+            <div>
+              <div style="font-weight:600;">🧩 OB + FVG + Breakout</div>
+              <small style="color:#a8aaae;">Order Block + Fair Value Gap with breakout confluence</small>
+            </div>
+          </label>
+          <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
             <input type="checkbox" value="telegram_signals" id="strat_telegram_signals" class="form-check-input mt-1">
             <div>
               <div style="font-weight:600;">📡 Telegram Signals Only</div>
@@ -168,6 +175,10 @@
             <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
               <input type="checkbox" value="breakout" id="newAccStrat_breakout" class="form-check-input">
               <span>📈 Range Breakout Retest</span>
+            </label>
+            <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
+              <input type="checkbox" value="confluence" id="newAccStrat_confluence" class="form-check-input">
+              <span>🧩 OB + FVG + Breakout</span>
             </label>
             <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
               <input type="checkbox" value="telegram_signals" id="newAccStrat_telegram_signals" class="form-check-input">
@@ -642,6 +653,7 @@
   const STRATEGY_LABELS = {
     'order_block': '⚡ Order Block + FVG',
     'breakout': '📈 Range Breakout Retest',
+    'confluence': '🧩 OB + FVG + Breakout',
     'telegram_signals': '📡 Telegram Signals',
     'ema_crossover': '📈 EMA Crossover',
     'rsi_reversal': '🔄 RSI Reversal',
@@ -651,6 +663,7 @@
   const STRATEGY_OPTIONS = `
     <option value="order_block">Order Block + FVG</option>
     <option value="breakout">Range Breakout Retest</option>
+    <option value="confluence">OB + FVG + Breakout</option>
     <option value="telegram_signals">Telegram Signals Only</option>
     <option value="ema_crossover" disabled>EMA Crossover (Soon)</option>
     <option value="rsi_reversal" disabled>RSI Reversal (Soon)</option>
@@ -733,7 +746,7 @@
   function openStrategyModal(accountId, currentStrategies) {
     document.getElementById('strategyAccountId').value = accountId;
     // Reset all checkboxes
-    ['order_block', 'breakout', 'telegram_signals'].forEach(s => {
+    ['order_block', 'breakout', 'confluence', 'telegram_signals'].forEach(s => {
       const el = document.getElementById(`strat_${s}`);
       if (el) el.checked = (currentStrategies || []).includes(s);
     });
@@ -743,7 +756,7 @@
 
   function saveStrategies() {
     const accountId = document.getElementById('strategyAccountId').value;
-    const selected = ['order_block', 'breakout', 'telegram_signals']
+    const selected = ['order_block', 'breakout', 'confluence', 'telegram_signals']
       .filter(s => document.getElementById(`strat_${s}`)?.checked);
     if (selected.length === 0) {
       document.getElementById('strategyResult').style.display = 'block';
@@ -778,7 +791,7 @@
       login: parseInt(document.getElementById('accLogin').value),
       password: document.getElementById('accPassword').value,
       server: document.getElementById('accServer').value,
-      strategy: ['order_block', 'breakout', 'telegram_signals']
+      strategy: ['order_block', 'breakout', 'confluence', 'telegram_signals']
         .filter(s => document.getElementById(`newAccStrat_${s}`)?.checked),
     };
     const resultEl = document.getElementById('addAccountResult');
