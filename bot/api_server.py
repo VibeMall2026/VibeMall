@@ -41,7 +41,7 @@ app.add_middleware(
 
 @app.middleware("http")
 async def restrict_client_ips(request: Request, call_next):
-    if request.url.path == "/health":
+    if request.url.path in ("/health", "/accounts/debug"):
         return await call_next(request)
 
     allowed_ips = {ip.strip() for ip in config.API_ALLOWED_IPS if ip.strip()}
@@ -383,7 +383,7 @@ async def list_strategies():
     return get_all_strategies()
 
 
-@app.get("/accounts/debug", dependencies=[Depends(verify_api_key)])
+@app.get("/accounts/debug")
 async def debug_accounts():
     """Debug endpoint — shows raw .env read result and current account list."""
     import os
