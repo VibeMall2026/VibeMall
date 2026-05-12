@@ -1,34 +1,4 @@
-{% extends "admin_panel/base_admin.html" %}
-{% load static %}
-
-{% block title %}{{ strategy_id }} Dashboard{% endblock %}
-
-{% block extra_css %}
-<style>
-  /* ── Dark theme variables (matches dashboard.html) ── */
-  .status-card { border-radius: 10px; }
-  .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
-  .dot-green  { background: #28c76f; box-shadow: 0 0 6px #28c76f; }
-  .dot-red    { background: #ea5455; box-shadow: 0 0 6px #ea5455; }
-  .dot-grey   { background: #a8aaae; }
-  .pnl-pos    { color: #28c76f; font-weight: 600; }
-  .pnl-neg    { color: #ea5455; font-weight: 600; }
-  .table-dark-custom { background: #2b2c40; color: #cdd0d6; }
-  .table-dark-custom th { background: #232333; color: #a8aaae; font-size: 0.78rem; text-transform: uppercase; letter-spacing: .5px; }
-  .table-dark-custom td { border-color: #3b3d52; vertical-align: middle; font-size: 0.875rem; }
-  .badge-buy  { background: rgba(40,199,111,.15); color: #28c76f; }
-  .badge-sell { background: rgba(234,84,85,.15);  color: #ea5455; }
-  .section-header { font-size: 1rem; font-weight: 600; color: #cdd0d6; margin-bottom: 1rem; }
-  .stat-label { font-size: 0.75rem; color: #a8aaae; text-transform: uppercase; letter-spacing: .5px; }
-  .stat-value { font-size: 1.4rem; font-weight: 700; color: #cdd0d6; }
-
-  /* ── Strategy-specific ── */
-  .strat-icon { font-size: 2rem; line-height: 1; }
-  .stat-card-inner { border-radius: 10px; padding: 1.1rem 1.25rem; height: 100%; }
-  .refresh-indicator { font-size: .75rem; color: #a8aaae; }
-  .empty-row td { color: #a8aaae; font-style: italic; }
-
-  /* Spinner overlay */
+x  /* Spinner overlay */
   #loadingOverlay {
     position: fixed; inset: 0; background: rgba(35,35,51,.6);
     display: flex; align-items: center; justify-content: center;

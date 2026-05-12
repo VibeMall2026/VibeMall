@@ -57,9 +57,9 @@ class AlgoConfig:
     enabled: bool = True
     rr_breakeven: float = 1.0
     rr_lock_profit: float = 1.5
-    trail_atr_mult: float = 1.0
-    dollar_profit_trigger: float = 15.0
-    dollar_profit_lock: float = 10.0
+    trail_atr_mult: float = 0.8         # Tighter trailing stop
+    dollar_profit_trigger: float = 8.0  # Trigger at $8 floating profit
+    dollar_profit_lock: float = 5.0     # Lock $5 profit
     dollar_lock_enabled: bool = True
 
     def get_symbols(self) -> list:
@@ -111,6 +111,7 @@ class BreakoutSetup:
     range_high: float
     range_low: float
     time: datetime
+    symbol: str = "XAUUSD"  # symbol this setup was detected on
     active: bool = True
     trade_taken: bool = False
     ticket: Optional[int] = None
@@ -136,7 +137,7 @@ class BreakoutSetup:
         return entry - sl_distance * rr
 
 
-_active_breakouts: list[BreakoutSetup] = []
+_active_breakouts: dict[str, list] = {}  # keyed by symbol
 _breakout_lock = threading.Lock()
 _algo_thread: Optional[threading.Thread] = None
 _risk_thread: Optional[threading.Thread] = None
@@ -366,7 +367,7 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
     one_r = abs(entry_price - sl)
 
     logger.info(
-        f"[BREAKOUT] {algo_config.symbol} {side.upper()} | "
+        f"[BREAKOUT] {setup.symbol} {side.upper()} | "
         f"Entry: {entry_price:.5f} | SL: {sl:.5f} | TP: {tp:.5f} | "
         f"Breakout level: {setup.breakout_level:.5f} | Range: {setup.range_low:.5f}-{setup.range_high:.5f}"
     )
@@ -383,7 +384,7 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
         # Fallback: use primary mt5_bridge connection
         logger.warning("[BREAKOUT] No accounts with 'breakout' strategy — using primary connection")
         result = mt5_bridge.open_trade(
-            symbol=algo_config.symbol,
+            symbol=setup.symbol,
             side=side,
             sl=sl,
             tp=tp,
@@ -398,18 +399,30 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
         ticket = result.get("ticket")
     else:
         # Execute on each breakout-assigned account
-        from bot.accounts import execute_on_all_accounts as _exec_all
-        results = _exec_all(
-            symbol=algo_config.symbol,
-            side=side,
-            sl=sl,
-            tp=tp,
-            entry=entry_price,
-            order_type="market",
-            risk_percent=algo_config.risk_percent,
-            comment=f"ALGO:BRK:{setup.id[:8]}",
-        )
-        # Filter to only breakout-account results
+        from bot.accounts import _connect_account, _reconnect_primary
+        from bot.accounts import _execute_single
+        results = []
+        for acc in breakout_accounts:
+            try:
+                if _connect_account(acc):
+                    r = _execute_single(
+                        symbol=setup.symbol,
+                        side=side,
+                        sl=sl,
+                        tp=tp,
+                        entry=entry_price,
+                        order_type="market",
+                        risk_percent=algo_config.risk_percent,
+                        comment=f"ALGO:BRK:{setup.id[:8]}",
+                    )
+                    r["account_id"] = acc.id
+                    r["account_label"] = acc.label
+                    r["login"] = acc.login
+                    results.append(r)
+            except Exception as _e:
+                logger.error(f"[BREAKOUT] Trade error on {acc.label}: {_e}")
+                results.append({"success": False, "message": str(_e), "login": acc.login, "account_label": acc.label})
+        _reconnect_primary()
         breakout_logins = {acc.login for acc in breakout_accounts}
         relevant = [r for r in results if r.get("login") in breakout_logins]
         successes = [r for r in relevant if r.get("success")]
@@ -422,7 +435,7 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
         for r in successes:
             logger.success(
                 f"[BREAKOUT] Trade on {r.get('account_label')} ({r.get('login')}) | "
-                f"Ticket: {r.get('ticket')} | {algo_config.symbol} {side.upper()}"
+                f"Ticket: {r.get('ticket')} | {setup.symbol} {side.upper()}"
             )
 
     setup.trade_taken = True
@@ -436,7 +449,7 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
 
     state.signal_log.insert(0, {
         "time": datetime.now().isoformat(),
-        "symbol": algo_config.symbol,
+        "symbol": setup.symbol,
         "side": side,
         "entry": entry_price,
         "sl": sl,
@@ -451,13 +464,13 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
     # Persist to trade journal
     from bot.trade_journal import record_trade_open
     entry_reason = (
-        f"Range Breakout {setup.direction} | "
+        f"Range Breakout {setup.direction} on {setup.symbol} | "
         f"Level: {setup.breakout_level:.5f} | "
         f"Range: {setup.range_low:.5f}-{setup.range_high:.5f}"
     )
     record_trade_open(
         ticket=ticket,
-        symbol=algo_config.symbol,
+        symbol=setup.symbol,
         side=side,
         entry_price=entry_price,
         initial_sl=sl,
@@ -477,7 +490,7 @@ def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
     if not setup.ticket or setup.one_r <= 0:
         return
 
-    current_price = _get_current_price(algo_config.symbol)
+    current_price = _get_current_price(getattr(setup, 'symbol', algo_config.symbol))
     if current_price is None:
         return
 
@@ -545,13 +558,18 @@ def _scan_and_trade(symbol: str = None) -> None:
     if symbol is None:
         symbol = algo_config.symbol
 
+    # Per-symbol breakout list
+    if symbol not in _active_breakouts:
+        _active_breakouts[symbol] = []
+    symbol_setups = _active_breakouts[symbol]
+
     check_drawdown()
 
     open_positions = mt5_bridge.get_open_positions()
     open_tickets = {p.get("id") for p in open_positions}
 
     with _breakout_lock:
-        for setup in _active_breakouts:
+        for setup in symbol_setups:
             if setup.trade_taken and setup.ticket and setup.ticket not in open_tickets:
                 pnl_val = 0.0
                 try:
@@ -576,7 +594,7 @@ def _scan_and_trade(symbol: str = None) -> None:
 
     new_setups = _detect_breakouts(candles_analysis)
     with _breakout_lock:
-        existing_ids = {setup.id for setup in _active_breakouts}
+        existing_ids = {setup.id for setup in symbol_setups}
         for setup in new_setups:
             if setup.id in existing_ids:
                 continue
@@ -584,15 +602,17 @@ def _scan_and_trade(symbol: str = None) -> None:
                 continue
             if not _is_volatility_sufficient(candles_analysis):
                 continue
-            _active_breakouts.append(setup)
+            setup.symbol = symbol  # tag setup with its symbol
+            symbol_setups.append(setup)
             logger.info(
-                f"[BREAKOUT] New {setup.direction} breakout | "
+                f"[BREAKOUT] New {setup.direction} breakout on {symbol} | "
                 f"Level: {setup.breakout_level:.5f} | Range: {setup.range_low:.5f}-{setup.range_high:.5f} | "
                 f"Time: {setup.time}"
             )
 
-        _active_breakouts = [s for s in _active_breakouts if s.active or s.trade_taken]
-        _active_breakouts = sorted(_active_breakouts, key=lambda item: item.time, reverse=True)[:algo_config.max_active_breakouts]
+        _active_breakouts[symbol] = [s for s in symbol_setups if s.active or s.trade_taken]
+        _active_breakouts[symbol] = sorted(_active_breakouts[symbol], key=lambda item: item.time, reverse=True)[:algo_config.max_active_breakouts]
+        symbol_setups = _active_breakouts[symbol]
 
     if not state.running or not algo_config.enabled or not can_trade():
         return
@@ -602,7 +622,7 @@ def _scan_and_trade(symbol: str = None) -> None:
     algo_positions = [p for p in open_positions if "ALGO:" in str(p.get("comment", ""))]
 
     with _breakout_lock:
-        for setup in _active_breakouts:
+        for setup in symbol_setups:
             if setup.trade_taken and setup.ticket and setup.ticket not in open_tickets:
                 setup.trade_taken = False
                 setup.active = True
@@ -622,7 +642,7 @@ def _scan_and_trade(symbol: str = None) -> None:
         return
 
     with _breakout_lock:
-        for setup in _active_breakouts:
+        for setup in symbol_setups:
             if not setup.active or setup.trade_taken:
                 continue
             if setup.trade_count >= algo_config.max_trades_per_setup:
@@ -650,7 +670,8 @@ def _risk_check_loop() -> None:
                 open_positions = mt5_bridge.get_open_positions()
                 open_tickets = {p.get("id") for p in open_positions}
                 with _breakout_lock:
-                    for setup in _active_breakouts:
+                    all_setups = [s for setups in _active_breakouts.values() for s in setups]
+                    for setup in all_setups:
                         if setup.trade_taken and setup.ticket in open_tickets:
                             _manage_open_trade_risk(setup)
         except Exception as exc:
@@ -709,6 +730,7 @@ def stop_algo() -> bool:
 
 def get_algo_status() -> dict:
     with _breakout_lock:
+        all_setups_flat = [s for setups in _active_breakouts.values() for s in setups]
         setups = [
             {
                 "id": setup.id,
@@ -721,7 +743,7 @@ def get_algo_status() -> dict:
                 "trade_taken": setup.trade_taken,
                 "ticket": setup.ticket,
             }
-            for setup in _active_breakouts
+            for setup in all_setups_flat
         ]
 
     return {
@@ -735,7 +757,7 @@ def get_algo_status() -> dict:
         "risk_percent": algo_config.risk_percent,
         "active_breakouts": setups,
         "active_order_blocks": [],
-        "total_breakouts_tracked": len(_active_breakouts),
+        "total_breakouts_tracked": sum(len(v) for v in _active_breakouts.values()),
     }
 
 

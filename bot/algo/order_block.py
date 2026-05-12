@@ -71,7 +71,7 @@ class AlgoConfig:
     trend_ema_period: int = 50          # EMA period for trend filter
     atr_period: int = 14                # ATR period for volatility filter
     atr_min_multiplier: float = 0.5     # min ATR as fraction of avg ATR
-    max_active_obs: int = 5             # max order blocks tracked at once
+    max_active_obs: int = 10            # max order blocks tracked at once (2 per symbol)
     scan_interval_seconds: int = 60     # how often to scan for new OB setups
     risk_check_interval_seconds: int = 1  # how often to check SL/profit lock on open trades
     max_trades_per_ob: int = 1          # max trades allowed per OB zone (1 = no re-entry after loss)
@@ -82,12 +82,12 @@ class AlgoConfig:
     daily_loss_limit: float = 30.0      # Stop trading if daily loss >= $30
     max_drawdown_pct: float = 0.10      # Stop trading if drawdown >= 10%
     rr_breakeven: float = 1.0           # Move SL to breakeven at +1R
-    rr_lock_profit: float = 2.0         # Lock +1R profit at +2R
-    trail_atr_mult: float = 1.0         # ATR multiplier for trailing stop beyond +2R
+    rr_lock_profit: float = 1.5         # Lock +1R profit at +1.5R
+    trail_atr_mult: float = 0.8         # ATR multiplier for trailing stop (tighter)
 
     # ── Dollar-Based Profit Lock ──────────────────────────────────────────────
-    dollar_profit_trigger: float = 15.0  # When floating profit >= $15...
-    dollar_profit_lock: float = 10.0     # ...move SL to lock in $10 profit
+    dollar_profit_trigger: float = 8.0   # When floating profit >= $8...
+    dollar_profit_lock: float = 5.0      # ...move SL to lock in $5 profit
     dollar_lock_enabled: bool = True     # Enable/disable dollar profit lock
 
     def get_symbols(self) -> list:
@@ -142,6 +142,14 @@ def check_drawdown() -> bool:
     global _peak_equity, _dd_halted
     if _dd_halted:
         return True
+    # Use primary account (acc_1) equity only for drawdown calculation
+    try:
+        from bot.accounts import get_account, _connect_account
+        primary = get_account("acc_1")
+        if primary:
+            _connect_account(primary)
+    except Exception:
+        pass
     account = mt5_bridge.get_account_info()
     equity = account.get('equity', 0)
     if equity <= 0:
@@ -237,12 +245,14 @@ class FairValueGap:
 @dataclass
 class OrderBlock:
     id: str
-    direction: str          # "bullish" | "bearish"
+    direction: str
     high: float             # OB high
     low: float              # OB low
     midpoint: float         # 50% level — key entry zone
     time: datetime
     fvg: FairValueGap
+    symbol: str = "XAUUSD"  # symbol this OB was detected on
+    atr: float = 0.0        # ATR at time of detection — used for SL/TP
     active: bool = True     # False once price enters zone
     trade_taken: bool = False
     ticket: Optional[int] = None
@@ -257,11 +267,16 @@ class OrderBlock:
 
     @property
     def sl_level(self) -> float:
-        """Stop loss level — just beyond OB boundary."""
+        """Stop loss level — ATR-based (1.5x ATR from OB boundary).
+        Falls back to OB zone if ATR not available.
+        """
+        ob_size = self.high - self.low
+        # Use ATR if available, else use OB size as proxy
+        buffer = (self.atr * 1.5) if self.atr > 0 else (ob_size * 0.5)
         if self.direction == "bullish":
-            return self.low - (self.high - self.low) * 0.1
+            return self.low - buffer
         else:
-            return self.high + (self.high - self.low) * 0.1
+            return self.high + buffer
 
     def tp_level(self, entry: float, rr: float) -> float:
         """Take profit based on R:R ratio."""
@@ -273,7 +288,7 @@ class OrderBlock:
 
 
 # Active order blocks being tracked
-_active_obs: list[OrderBlock] = []
+_active_obs: dict[str, list] = {}  # keyed by symbol
 _obs_lock = threading.Lock()
 
 # Algo threads
@@ -556,7 +571,7 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
     one_r = abs(entry_price - sl)
 
     logger.info(
-        f"[ALGO] Order Block trade | {algo_config.symbol} {side.upper()} | "
+        f"[ALGO] Order Block trade | {ob.symbol} {side.upper()} | "
         f"Entry: {entry_price:.5f} | SL: {sl:.5f} | TP: {tp:.5f} | "
         f"1R: {one_r:.5f} | OB zone: {ob.low:.5f}-{ob.high:.5f} | 50%: {ob.midpoint:.5f}"
     )
@@ -574,7 +589,7 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
         # Fallback: use primary mt5_bridge connection
         logger.warning("[ALGO] No accounts with 'order_block' strategy — using primary connection")
         result = mt5_bridge.open_trade(
-            symbol=algo_config.symbol,
+            symbol=ob.symbol,
             side=side,
             sl=sl,
             tp=tp,
@@ -596,7 +611,7 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
                 if _connect_account(acc):
                     from bot.accounts import _execute_single
                     r = _execute_single(
-                        symbol=algo_config.symbol,
+                        symbol=ob.symbol,
                         side=side,
                         sl=sl,
                         tp=tp,
@@ -625,7 +640,7 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
         for r in successes:
             logger.success(
                 f"[ALGO] Trade on {r.get('account_label')} ({r.get('login')}) | "
-                f"Ticket: {r.get('ticket')} | {algo_config.symbol} {side.upper()}"
+                f"Ticket: {r.get('ticket')} | {ob.symbol} {side.upper()}"
             )
 
     ob.trade_taken = True
@@ -648,7 +663,7 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
     from bot.trade_journal import record_trade_open
     record_trade_open(
         ticket=ticket,
-        symbol=algo_config.symbol,
+        symbol=ob.symbol,
         side=side,
         entry_price=entry_price,
         initial_sl=sl,
@@ -662,7 +677,7 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
 
     state.signal_log.insert(0, {
         "time": datetime.now().isoformat(),
-        "symbol": algo_config.symbol,
+        "symbol": ob.symbol,
         "side": side,
         "entry": entry_price,
         "sl": sl,
@@ -700,7 +715,7 @@ def _manage_open_trade_risk(ob: OrderBlock) -> None:
         return
 
     # Get current price
-    current_price = _get_current_price(algo_config.symbol)
+    current_price = _get_current_price(getattr(ob, 'symbol', algo_config.symbol))
     if current_price is None:
         return
 
@@ -783,7 +798,7 @@ def _manage_open_trade_risk(ob: OrderBlock) -> None:
 
     if ob.r_stage >= 2:
         # Beyond +2R → trail by ATR
-        candles = _get_candles(algo_config.symbol, algo_config.execution_timeframe, 20)
+        candles = _get_candles(getattr(ob, 'symbol', algo_config.symbol), algo_config.execution_timeframe, 20)
         atr = _calculate_atr(candles, algo_config.atr_period) if candles else None
         if atr:
             if side == "buy":
@@ -840,6 +855,11 @@ def _scan_and_trade(symbol: str = None) -> None:
     if symbol is None:
         symbol = algo_config.symbol
 
+    # Per-symbol OB list
+    if symbol not in _active_obs:
+        _active_obs[symbol] = []
+    symbol_obs = _active_obs[symbol]
+
     # ── Risk management checks ────────────────────────────────────────────────
     check_drawdown()
 
@@ -848,7 +868,7 @@ def _scan_and_trade(symbol: str = None) -> None:
     open_tickets = {p.get("id") for p in open_positions}
 
     with _obs_lock:
-        for ob in _active_obs:
+        for ob in symbol_obs:
             if ob.trade_taken and ob.ticket and ob.ticket not in open_tickets:
                 # Reset OB for potential re-entry ONLY if trade was profitable
                 # (avoid re-entering same losing zone repeatedly)
@@ -904,7 +924,10 @@ def _scan_and_trade(symbol: str = None) -> None:
 
     with _obs_lock:
         # Add new OBs (avoid duplicates)
-        existing_ids = {ob.id for ob in _active_obs}
+        existing_ids = {ob.id for ob in symbol_obs}
+        # Calculate current ATR for SL sizing
+        current_atr = _calculate_atr(candles_analysis, algo_config.atr_period) or 0.0
+
         for ob in new_obs:
             if ob.id not in existing_ids:
                 # Apply trend filter
@@ -915,7 +938,9 @@ def _scan_and_trade(symbol: str = None) -> None:
                 if not _is_volatility_sufficient(candles_analysis):
                     logger.debug(f"[ALGO] OB {ob.id} filtered out — low volatility")
                     continue
-                _active_obs.append(ob)
+                ob.symbol = symbol  # tag OB with its symbol
+                ob.atr = current_atr  # store ATR for SL calculation
+                symbol_obs.append(ob)
                 logger.info(
                     f"[ALGO] New {ob.direction} Order Block detected | "
                     f"Zone: {ob.low:.5f}-{ob.high:.5f} | 50%: {ob.midpoint:.5f} | "
@@ -923,9 +948,10 @@ def _scan_and_trade(symbol: str = None) -> None:
                 )
 
         # Trim to max active OBs (keep most recent) — remove traded/inactive first
-        _active_obs = [o for o in _active_obs if o.active or o.trade_taken]
-        _active_obs = sorted(_active_obs, key=lambda x: x.time, reverse=True)
-        _active_obs = _active_obs[:algo_config.max_active_obs]
+        _active_obs[symbol] = [o for o in symbol_obs if o.active or o.trade_taken]
+        symbol_obs = _active_obs[symbol]
+        _active_obs[symbol] = sorted(symbol_obs, key=lambda x: x.time, reverse=True)[:algo_config.max_active_obs]
+        symbol_obs = _active_obs[symbol]
 
     # Check if bot is allowed to trade
     if not state.running:
@@ -944,7 +970,7 @@ def _scan_and_trade(symbol: str = None) -> None:
 
     # If a traded OB's position was manually closed, allow re-trading
     with _obs_lock:
-        for ob in _active_obs:
+        for ob in symbol_obs:
             if ob.trade_taken and ob.ticket and ob.ticket not in open_tickets:
                 # Position was manually closed — reset OB to allow new trade
                 logger.info(f"[ALGO] OB {ob.id} position manually closed — resetting for re-entry")
@@ -965,7 +991,7 @@ def _scan_and_trade(symbol: str = None) -> None:
 
     # Check each active OB for entry signal
     with _obs_lock:
-        for ob in _active_obs:
+        for ob in symbol_obs:
             if not ob.active or ob.trade_taken:
                 continue
 
@@ -1015,7 +1041,8 @@ def _risk_check_loop() -> None:
                 open_tickets = {p.get("id") for p in open_positions}
 
                 with _obs_lock:
-                    for ob in _active_obs:
+                    all_obs = [ob for obs in _active_obs.values() for ob in obs]
+                    for ob in all_obs:
                         if ob.ticket and ob.ticket in open_tickets and ob.trade_taken:
                             _manage_open_trade_risk(ob)
         except Exception as e:
@@ -1107,7 +1134,7 @@ def get_algo_status() -> dict:
                 "trade_taken": ob.trade_taken,
                 "ticket": ob.ticket,
             }
-            for ob in _active_obs
+            for ob in all_obs_flat
         ]
 
     return {
