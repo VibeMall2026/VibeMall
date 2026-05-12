@@ -30,13 +30,20 @@ def _get_strategies_to_run() -> list[str]:
     """
     from bot.strategies import get_strategy
     needed: set[str] = set()
-    for acc in get_all_accounts():
+    accounts = get_all_accounts()
+    logger.info(f"[RUNNER] Checking {len(accounts)} accounts for strategy assignments")
+    for acc in accounts:
         if not acc.enabled:
+            logger.debug(f"[RUNNER] Account {acc.label} disabled — skip")
             continue
         for sid in (acc.strategy or []):
             strat = get_strategy(sid)
             if strat and strat.get("status") == "available" and strat.get("module"):
                 needed.add(sid)
+                logger.info(f"[RUNNER] Account '{acc.label}' → strategy '{sid}'")
+            else:
+                logger.debug(f"[RUNNER] Strategy '{sid}' not available as algo module")
+    logger.info(f"[RUNNER] Strategies to start: {list(needed)}")
     return list(needed)
 
 

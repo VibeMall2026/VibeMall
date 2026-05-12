@@ -142,14 +142,7 @@ def check_drawdown() -> bool:
     global _peak_equity, _dd_halted
     if _dd_halted:
         return True
-    # Use primary account (acc_1) equity only for drawdown calculation
-    try:
-        from bot.accounts import get_account, _connect_account
-        primary = get_account("acc_1")
-        if primary:
-            _connect_account(primary)
-    except Exception:
-        pass
+    # Use currently connected MT5 account equity (primary is always reconnected after multi-account ops)
     account = mt5_bridge.get_account_info()
     equity = account.get('equity', 0)
     if equity <= 0:
