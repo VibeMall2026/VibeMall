@@ -347,28 +347,86 @@ def _execute_trade(setup: ConfluenceSetup, entry_price: float) -> bool:
     side = "buy" if setup.direction == "bullish" else "sell"
     one_r = abs(entry_price - sl)
 
-    result = mt5_bridge.open_trade(
-        symbol=algo_config.symbol,
-        side=side,
-        sl=sl,
-        tp=tp,
-        entry=entry_price,
-        order_type="market",
-        risk_percent=algo_config.risk_percent,
-        comment=f"ALGO:CONF:{setup.id[:8]}",
-    )
-    if not result.get("success"):
-        logger.error(f"[CONFLUENCE] Trade failed: {result.get('message')}")
-        return False
+    # Execute only on accounts with 'confluence' strategy assigned
+    from bot.accounts import get_all_accounts, _connect_account, _reconnect_primary
+    from bot.accounts import _execute_single
+
+    conf_accounts = [
+        acc for acc in get_all_accounts()
+        if acc.enabled and "confluence" in (acc.strategy or [])
+    ]
+
+    ticket = None
+    if not conf_accounts:
+        logger.warning("[CONFLUENCE] No accounts with 'confluence' strategy — using primary")
+        result = mt5_bridge.open_trade(
+            symbol=algo_config.symbol,
+            side=side,
+            sl=sl,
+            tp=tp,
+            entry=entry_price,
+            order_type="market",
+            risk_percent=algo_config.risk_percent,
+            comment=f"ALGO:CONF:{setup.id[:8]}",
+        )
+        if not result.get("success"):
+            logger.error(f"[CONFLUENCE] Trade failed: {result.get('message')}")
+            return False
+        ticket = result.get("ticket")
+    else:
+        results = []
+        for acc in conf_accounts:
+            try:
+                if _connect_account(acc):
+                    r = _execute_single(
+                        symbol=algo_config.symbol,
+                        side=side,
+                        sl=sl,
+                        tp=tp,
+                        entry=entry_price,
+                        order_type="market",
+                        risk_percent=algo_config.risk_percent,
+                        comment=f"ALGO:CONF:{setup.id[:8]}",
+                    )
+                    r["account_label"] = acc.label
+                    r["login"] = acc.login
+                    results.append(r)
+            except Exception as _e:
+                logger.error(f"[CONFLUENCE] Trade error on {acc.label}: {_e}")
+        _reconnect_primary()
+        successes = [r for r in results if r.get("success")]
+        if not successes:
+            logger.error(f"[CONFLUENCE] Trade failed on all confluence accounts: {results}")
+            return False
+        ticket = successes[0].get("ticket")
+        for r in successes:
+            logger.success(f"[CONFLUENCE] Trade on {r.get('account_label')} | Ticket: {r.get('ticket')}")
 
     setup.trade_taken = True
-    setup.ticket = result.get("ticket")
+    setup.ticket = ticket
     setup.active = False
     setup.trade_count += 1
     setup.entry_price = entry_price
     setup.initial_sl = sl
     setup.one_r = one_r
     setup.r_stage = 0
+
+    # Persist to trade journal
+    from bot.trade_journal import record_trade_open
+    entry_reason = f"OB+FVG+Breakout Confluence {setup.direction} on {algo_config.symbol}"
+    record_trade_open(
+        ticket=ticket,
+        symbol=algo_config.symbol,
+        side=side,
+        entry_price=entry_price,
+        initial_sl=sl,
+        initial_tp=tp,
+        one_r=one_r,
+        risk_reward=algo_config.risk_reward_ratio,
+        entry_reason=entry_reason,
+        source="ALGO:Confluence",
+        strategy="confluence",
+    )
 
     state.signal_log.insert(0, {
         "time": datetime.now().isoformat(),
@@ -381,10 +439,11 @@ def _execute_trade(setup: ConfluenceSetup, entry_price: float) -> bool:
         "status": "executed",
         "source": "ALGO:Confluence",
         "setup_id": setup.id,
+        "ticket": ticket,
     })
     logger.success(
         f"[CONFLUENCE] Trade opened | {algo_config.symbol} {side.upper()} | "
-        f"Entry: {entry_price:.5f} | SL: {sl:.5f} | TP: {tp:.5f}"
+        f"Entry: {entry_price:.5f} | SL: {sl:.5f} | TP: {tp:.5f} | Ticket: {ticket}"
     )
     return True
 

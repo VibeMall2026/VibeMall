@@ -1122,10 +1122,12 @@ def stop_algo() -> bool:
 def get_algo_status() -> dict:
     """Return current algo status and active order blocks."""
     with _obs_lock:
+        all_obs_flat = [ob for obs in _active_obs.values() for ob in obs]
         obs_data = [
             {
                 "id": ob.id,
                 "direction": ob.direction,
+                "symbol": ob.symbol,
                 "high": ob.high,
                 "low": ob.low,
                 "midpoint": ob.midpoint,
@@ -1146,7 +1148,7 @@ def get_algo_status() -> dict:
         "risk_reward": algo_config.risk_reward_ratio,
         "risk_percent": algo_config.risk_percent,
         "active_order_blocks": obs_data,
-        "total_obs_tracked": len(_active_obs),
+        "total_obs_tracked": sum(len(v) for v in _active_obs.values()),
     }
 
 
