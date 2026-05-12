@@ -588,16 +588,31 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
             return False
         ticket = result.get("ticket")
     else:
-        results = execute_on_all_accounts(
-            symbol=algo_config.symbol,
-            side=side,
-            sl=sl,
-            tp=tp,
-            entry=entry_price,
-            order_type="market",
-            risk_percent=algo_config.risk_percent,
-            comment=f"ALGO:OB:{ob.id[:8]}",
-        )
+        from bot.accounts import _connect_account, _reconnect_primary
+        import math as _math
+        results = []
+        for acc in ob_accounts:
+            try:
+                if _connect_account(acc):
+                    from bot.accounts import _execute_single
+                    r = _execute_single(
+                        symbol=algo_config.symbol,
+                        side=side,
+                        sl=sl,
+                        tp=tp,
+                        entry=entry_price,
+                        order_type="market",
+                        risk_percent=algo_config.risk_percent,
+                        comment=f"ALGO:OB:{ob.id[:8]}",
+                    )
+                    r["account_id"] = acc.id
+                    r["account_label"] = acc.label
+                    r["login"] = acc.login
+                    results.append(r)
+            except Exception as _e:
+                logger.error(f"[ALGO] OB trade error on {acc.label}: {_e}")
+                results.append({"success": False, "message": str(_e), "login": acc.login, "account_label": acc.label})
+        _reconnect_primary()
         ob_logins = {acc.login for acc in ob_accounts}
         relevant = [r for r in results if r.get("login") in ob_logins]
         successes = [r for r in relevant if r.get("success")]

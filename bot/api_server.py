@@ -351,45 +351,75 @@ async def stop_bot():
 
 @app.get("/strategy/{strategy_id}/stats", dependencies=[Depends(verify_api_key)])
 async def strategy_stats(strategy_id: str):
-    """Return per-strategy dashboard stats: accounts, open trades, history, and performance."""
-    from bot.accounts import get_all_accounts
+    """Return per-strategy dashboard stats — fetches history from ALL assigned accounts."""
+    from bot.accounts import get_all_accounts, _connect_account, _reconnect_primary
     from bot.strategies import get_strategy
 
     strat = get_strategy(strategy_id)
     if not strat:
         raise HTTPException(status_code=404, detail=f"Strategy '{strategy_id}' not found")
 
-    # Accounts assigned to this strategy
     assigned_accounts = [
         acc for acc in get_all_accounts()
         if strategy_id in (acc.strategy or [])
     ]
 
-    # All open positions and trade history
-    all_positions = mt5_bridge.get_open_positions()
-    all_history = mt5_bridge.get_trade_history(limit=500)
-
-    # Strategy comment prefix mapping
     comment_map = {
         "order_block": "ALGO:OB",
         "breakout": "ALGO:BRK",
         "confluence": "ALGO:CONF",
     }
     comment_prefix = comment_map.get(strategy_id, f"ALGO:{strategy_id[:3].upper()}")
-
-    # Filter trades by comment prefix OR by account login
     assigned_logins = {acc.login for acc in assigned_accounts}
+
+    all_history = []
+    all_positions = []
+
+    try:
+        import MetaTrader5 as _mt5
+        MT5_AVAIL = True
+    except ImportError:
+        MT5_AVAIL = False
+
+    if MT5_AVAIL and assigned_accounts:
+        for acc in assigned_accounts:
+            try:
+                if _connect_account(acc):
+                    acc_history = mt5_bridge.get_trade_history(limit=500)
+                    for t in acc_history:
+                        t["account_login"] = acc.login
+                        t["account_label"] = acc.label
+                    all_history.extend(acc_history)
+                    acc_positions = mt5_bridge.get_open_positions()
+                    for p in acc_positions:
+                        p["account_login"] = acc.login
+                        p["account_label"] = acc.label
+                    all_positions.extend(acc_positions)
+            except Exception as e:
+                logger.warning(f"[STRATEGY] Could not fetch history for {acc.label}: {e}")
+        _reconnect_primary()
+    else:
+        all_history = mt5_bridge.get_trade_history(limit=500)
+        all_positions = mt5_bridge.get_open_positions()
+
+    history = [t for t in all_history if comment_prefix in str(t.get("comment", ""))]
+    if not history and assigned_logins:
+        history = all_history
 
     open_trades = [
         p for p in all_positions
         if comment_prefix in str(p.get("comment", ""))
-        or p.get("login") in assigned_logins
+        or p.get("account_login") in assigned_logins
     ]
 
-    history = [
-        t for t in all_history
-        if comment_prefix in str(t.get("comment", ""))
-    ]
+    seen = set()
+    unique_history = []
+    for t in history:
+        key = t.get("ticket") or t.get("position_id")
+        if key not in seen:
+            seen.add(key)
+            unique_history.append(t)
+    history = unique_history
 
     wins = sum(1 for t in history if t.get("status") == "win")
     losses = sum(1 for t in history if t.get("status") == "loss")
