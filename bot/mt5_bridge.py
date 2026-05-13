@@ -99,8 +99,17 @@ def connect() -> bool:
     if config.MT5_PATH:
         kwargs["path"] = config.MT5_PATH
 
+    # If no primary credentials are configured, try any enabled account directly.
+    if not config.MT5_LOGIN:
+        from bot.accounts import ensure_any_account_connected
+        return ensure_any_account_connected()
+
     if not mt5.initialize(**kwargs):
         logger.error(f"MT5 initialize failed: {mt5.last_error()}")
+        from bot.accounts import ensure_any_account_connected
+        if ensure_any_account_connected():
+            logger.warning("MT5 primary connect failed; using enabled account fallback")
+            return True
         return False
     info = mt5.account_info()
     logger.info(f"MT5 connected | Account: {info.login} | Balance: {info.balance} {info.currency}")
@@ -135,7 +144,11 @@ def ensure_connected() -> bool:
         return True
 
     logger.warning("MT5 connection inactive. Attempting reconnect...")
-    return connect()
+    if connect():
+        return True
+
+    from bot.accounts import ensure_any_account_connected
+    return ensure_any_account_connected()
 
 
 # ── Account info ──────────────────────────────────────────────────────────────

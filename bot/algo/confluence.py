@@ -604,7 +604,7 @@ def _risk_check_loop() -> None:
     logger.info("[CONFLUENCE] Risk check loop started")
     while _algo_running:
         try:
-            if mt5_bridge.is_connected():
+            if mt5_bridge.ensure_connected():
                 open_positions = mt5_bridge.get_open_positions()
                 open_tickets = {p.get("id") for p in open_positions}
                 with _setup_lock:
@@ -625,7 +625,7 @@ def _algo_loop() -> None:
     )
     while _algo_running:
         try:
-            if mt5_bridge.is_connected():
+            if mt5_bridge.ensure_connected():
                 _scan_and_trade()
         except Exception as exc:
             logger.error(f"[CONFLUENCE] Scan error: {exc}")

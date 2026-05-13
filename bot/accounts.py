@@ -78,7 +78,7 @@ def _normalize_single_strategy(strategy) -> list[str]:
 
 def _load_default_account() -> None:
     """Load the primary account from config on startup."""
-    if _config.MT5_LOGIN:
+    if _config.MT5_LOGIN > 0 and _config.MT5_PASSWORD and _config.MT5_SERVER:
         primary = MT5Account(
             id="acc_1",
             label="Primary Account",
@@ -217,10 +217,7 @@ def add_account(label: str, login: int, password: str, server: str, path: str = 
 
 
 def remove_account(account_id: str) -> bool:
-    """Remove an account (cannot remove primary acc_1)."""
-    if account_id == "acc_1":
-        logger.warning("[ACCOUNTS] Cannot remove primary account")
-        return False
+    """Remove an account."""
     with _accounts_lock:
         for i, acc in enumerate(_accounts):
             if acc.id == account_id:
@@ -323,10 +320,40 @@ def refresh_account_info() -> None:
 
 
 def _reconnect_primary() -> None:
-    """Reconnect to primary account after multi-account operations."""
+    """Reconnect to primary account after multi-account operations, if configured."""
     primary = get_account("acc_1")
     if primary and primary.enabled:
         _connect_account(primary)
+    else:
+        ensure_any_account_connected()
+
+
+def ensure_any_account_connected() -> bool:
+    """
+    Ensure at least one enabled MT5 account is connected for market-data scans.
+    Falls back to the first enabled account if no active terminal connection exists.
+    """
+    if not MT5_AVAILABLE:
+        return False
+
+    try:
+        if mt5.terminal_info() is not None:
+            return True
+    except Exception:
+        pass
+
+    with _accounts_lock:
+        accounts_copy = [acc for acc in _accounts if acc.enabled]
+
+    for acc in accounts_copy:
+        try:
+            if _connect_account(acc):
+                logger.info(f"[ACCOUNTS] Auto-connected scan session using {acc.label}")
+                return True
+        except Exception as exc:
+            logger.warning(f"[ACCOUNTS] Auto-connect failed for {acc.label}: {exc}")
+
+    return False
 
 
 # ── Multi-account trade execution ─────────────────────────────────────────────

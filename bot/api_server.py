@@ -534,7 +534,7 @@ async def delete_account(account_id: str):
     """Remove an MT5 account."""
     from bot.accounts import remove_account as _remove
     success = _remove(account_id)
-    return {"success": success, "message": "Removed" if success else "Cannot remove primary account"}
+    return {"success": success, "message": "Removed" if success else "Account not found"}
 
 
 @app.post("/accounts/{account_id}/toggle", dependencies=[Depends(verify_api_key)])

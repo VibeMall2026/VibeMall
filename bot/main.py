@@ -47,7 +47,7 @@ def _mt5_reconnect_loop() -> None:
             else:
                 # No data — try reconnect
                 logger.warning("[MT5] No account data — attempting reconnect...")
-                if mt5_bridge.connect():
+                if mt5_bridge.ensure_connected():
                     state.mt5_connected = True
                     logger.success("[MT5] Reconnected successfully.")
                 else:
@@ -63,7 +63,7 @@ async def start_bot() -> None:
     # Connect MT5 (only if not already connected)
     if not mt5_bridge.is_connected():
         logger.info("Connecting to MT5...")
-        if mt5_bridge.connect():
+        if mt5_bridge.ensure_connected():
             state.mt5_connected = True
             logger.success("MT5 connected.")
         else:
@@ -92,7 +92,10 @@ def main() -> None:
     logger.info("=" * 60)
     logger.info("  Trading Bot Starting")
     logger.info(f"  API: http://{config.API_HOST}:{config.API_PORT}")
-    logger.info(f"  MT5 Login: {config.MT5_LOGIN} @ {config.MT5_SERVER}")
+    if config.MT5_LOGIN > 0 and config.MT5_PASSWORD and config.MT5_SERVER:
+        logger.info(f"  MT5 Login: {config.MT5_LOGIN} @ {config.MT5_SERVER}")
+    else:
+        logger.info("  MT5 Login: none (using account registry only)")
     logger.info(f"  Channels: {', '.join(config.TG_CHANNELS) or 'none'}")
     logger.info("=" * 60)
 
