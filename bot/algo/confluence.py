@@ -539,9 +539,11 @@ def _scan_and_trade() -> None:
 
     candles_analysis = _get_candles(symbol, algo_config.analysis_timeframe, max(algo_config.breakout_lookback + 10, 80))
     if len(candles_analysis) < algo_config.breakout_lookback + 3:
+        logger.debug(f"[CONFLUENCE] Not enough candles for {symbol} on analysis timeframe")
         return
 
     new_setups = _detect_setups(candles_analysis, _bar_counter)
+    added_count = 0
     with _setup_lock:
         existing_ids = {setup.id for setup in _active_setups}
         for setup in new_setups:
@@ -552,6 +554,7 @@ def _scan_and_trade() -> None:
             if not _is_volatility_sufficient(candles_analysis):
                 continue
             _active_setups.append(setup)
+            added_count += 1
             logger.info(
                 f"[CONFLUENCE] New {setup.direction} setup | "
                 f"OB: {setup.ob_low:.5f}-{setup.ob_high:.5f} | Breakout: {setup.breakout_level:.5f}"
@@ -563,6 +566,11 @@ def _scan_and_trade() -> None:
             if (_bar_counter - s.created_bar) <= algo_config.max_setup_age_bars or s.trade_taken
         ]
         _active_setups = sorted(_active_setups, key=lambda item: item.time, reverse=True)[:algo_config.max_active_setups]
+
+    logger.debug(
+        f"[CONFLUENCE] Scan complete for {symbol} | "
+        f"detected={len(new_setups)} | added={added_count} | tracked={len(_active_setups)}"
+    )
 
     if not state.running or not algo_config.enabled or not can_trade():
         return

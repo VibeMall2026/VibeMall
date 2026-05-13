@@ -597,9 +597,11 @@ def _scan_and_trade(symbol: str = None) -> None:
 
     candles_analysis = _get_candles(symbol, algo_config.analysis_timeframe, algo_config.breakout_lookback + 60)
     if len(candles_analysis) < algo_config.breakout_lookback + 2:
+        logger.debug(f"[BREAKOUT] Not enough candles for {symbol} on analysis timeframe")
         return
 
     new_setups = _detect_breakouts(candles_analysis)
+    added_count = 0
     with _breakout_lock:
         existing_ids = {setup.id for setup in symbol_setups}
         for setup in new_setups:
@@ -611,6 +613,7 @@ def _scan_and_trade(symbol: str = None) -> None:
                 continue
             setup.symbol = symbol  # tag setup with its symbol
             symbol_setups.append(setup)
+            added_count += 1
             logger.info(
                 f"[BREAKOUT] New {setup.direction} breakout on {symbol} | "
                 f"Level: {setup.breakout_level:.5f} | Range: {setup.range_low:.5f}-{setup.range_high:.5f} | "
@@ -620,6 +623,11 @@ def _scan_and_trade(symbol: str = None) -> None:
         _active_breakouts[symbol] = [s for s in symbol_setups if s.active or s.trade_taken]
         _active_breakouts[symbol] = sorted(_active_breakouts[symbol], key=lambda item: item.time, reverse=True)[:algo_config.max_active_breakouts]
         symbol_setups = _active_breakouts[symbol]
+
+    logger.debug(
+        f"[BREAKOUT] Scan complete for {symbol} | "
+        f"detected={len(new_setups)} | added={added_count} | tracked={len(symbol_setups)}"
+    )
 
     if not state.running or not algo_config.enabled or not can_trade():
         return
