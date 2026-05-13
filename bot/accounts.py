@@ -300,7 +300,7 @@ def _cap_lot_by_pnl_limits(
     sl: float,
     tp: float,
     lot: float,
-) -> float:
+) -> float | None:
     """Cap lot by actual MT5 PnL estimate instead of only tick-value math."""
     from bot import config as cfg
     import math
@@ -323,10 +323,18 @@ def _cap_lot_by_pnl_limits(
     if caps:
         lot = min(lot, min(caps))
 
+    if cfg.MAX_LOT_PER_TRADE > 0:
+        lot = min(lot, cfg.MAX_LOT_PER_TRADE)
+
+    if lot < sym_info.volume_min:
+        return None
+
     lot = max(sym_info.volume_min, min(sym_info.volume_max, lot))
     step = sym_info.volume_step or sym_info.volume_min or 0.01
     lot = round(math.floor(lot / step) * step, 8)
-    return max(sym_info.volume_min, lot)
+    if lot < sym_info.volume_min:
+        return None
+    return lot
 
 
 def refresh_account_info() -> None:
@@ -552,6 +560,8 @@ def _execute_single(
         tp=tp,
         lot=lot,
     )
+    if lot is None:
+        return {"success": False, "message": "Trade blocked: broker minimum lot exceeds configured per-trade risk/lot caps"}
 
     request = {
         "action": action,

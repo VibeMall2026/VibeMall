@@ -38,6 +38,7 @@ MT5_MAGIC      = int(os.getenv("MT5_MAGIC_NUMBER", "550001"))
 RISK_PERCENT   = float(os.getenv("RISK_PERCENT", "0.1"))
 MAX_RISK_AMOUNT_USD = float(os.getenv("MAX_RISK_AMOUNT_USD", "30"))
 MAX_PROFIT_AMOUNT_USD = float(os.getenv("MAX_PROFIT_AMOUNT_USD", "50"))
+MAX_LOT_PER_TRADE = float(os.getenv("MAX_LOT_PER_TRADE", "0.02"))
 API_KEY        = os.getenv("API_KEY", "")
 BRIDGE_PORT    = int(os.getenv("BRIDGE_PORT", "8001"))
 
@@ -112,7 +113,7 @@ def _cap_lot_by_pnl_limits(
     sl: float,
     tp: float,
     lot: float,
-) -> float:
+) -> float | None:
     """Cap lot using actual estimated SL/TP dollars."""
     caps: list[float] = []
     order_type = mt5.ORDER_TYPE_BUY if side.lower() == "buy" else mt5.ORDER_TYPE_SELL
@@ -132,10 +133,18 @@ def _cap_lot_by_pnl_limits(
     if caps:
         lot = min(lot, min(caps))
 
+    if MAX_LOT_PER_TRADE > 0:
+        lot = min(lot, MAX_LOT_PER_TRADE)
+
+    if lot < sym.volume_min:
+        return None
+
     lot = max(sym.volume_min, min(sym.volume_max, lot))
     step = sym.volume_step or sym.volume_min or 0.01
     lot = round(math.floor(lot / step) * step, 8)
-    return max(sym.volume_min, lot)
+    if lot < sym.volume_min:
+        return None
+    return lot
 
 
 # ── Pydantic models ───────────────────────────────────────────────────────────
@@ -308,6 +317,8 @@ def open_trade(body: TradeRequest, _: str = Security(verify_api_key)):
         tp=body.tp,
         lot=lot,
     )
+    if lot is None:
+        raise HTTPException(400, "Trade blocked: broker minimum lot exceeds configured per-trade risk/lot caps")
 
     request = {
         "action":       action,

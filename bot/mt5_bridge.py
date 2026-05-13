@@ -246,7 +246,7 @@ def _cap_lot_by_pnl_limits(
     sl: float,
     tp: float,
     lot: float,
-) -> float:
+) -> float | None:
     """Cap lot using actual MT5 profit calculation so metals size safely."""
     order_type = mt5.ORDER_TYPE_BUY if side.lower() == "buy" else mt5.ORDER_TYPE_SELL
     caps: list[float] = []
@@ -266,10 +266,18 @@ def _cap_lot_by_pnl_limits(
     if caps:
         lot = min(lot, min(caps))
 
+    if config.MAX_LOT_PER_TRADE > 0:
+        lot = min(lot, config.MAX_LOT_PER_TRADE)
+
+    if lot < sym_info.volume_min:
+        return None
+
     lot = max(sym_info.volume_min, min(sym_info.volume_max, lot))
     step = sym_info.volume_step or sym_info.volume_min or 0.01
     lot = round(math.floor(lot / step) * step, 8)
-    return max(sym_info.volume_min, lot)
+    if lot < sym_info.volume_min:
+        return None
+    return lot
 
 
 # ── Open trade ────────────────────────────────────────────────────────────────
@@ -368,6 +376,8 @@ def open_trade(
         tp=tp,
         lot=lot,
     )
+    if lot is None:
+        return {"success": False, "message": "Trade blocked: broker minimum lot exceeds configured per-trade risk/lot caps"}
 
     request = {
         "action": action,
