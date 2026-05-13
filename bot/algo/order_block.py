@@ -142,9 +142,10 @@ def check_drawdown() -> bool:
     global _peak_equity, _dd_halted
     if _dd_halted:
         return True
-    # Use currently connected MT5 account equity (primary is always reconnected after multi-account ops)
+    # Use currently connected MT5 account equity
     account = mt5_bridge.get_account_info()
     equity = account.get('equity', 0)
+    balance = account.get('balance', 0)
     if equity <= 0:
         return False
     if equity > _peak_equity:
@@ -158,6 +159,46 @@ def check_drawdown() -> bool:
     return False
 
 
+def check_daily_loss_realtime() -> bool:
+    """
+    Real-time daily loss check using live floating PnL.
+    Returns True if daily loss limit exceeded (should halt trading).
+    Checks: closed PnL + open floating PnL combined.
+    """
+    global _daily_halted
+    _reset_daily_if_needed()
+    if _daily_halted:
+        return True
+
+    # Get floating PnL from open positions
+    try:
+        open_positions = mt5_bridge.get_open_positions()
+        floating_pnl = sum(float(p.get('pnl', 0)) for p in open_positions)
+    except Exception:
+        floating_pnl = 0.0
+
+    total_pnl = _daily_pnl + floating_pnl
+
+    if total_pnl <= -algo_config.daily_loss_limit:
+        _daily_halted = True
+        logger.warning(
+            f"[ALGO] ⛔ Daily loss limit ${algo_config.daily_loss_limit} reached "
+            f"(closed: ${_daily_pnl:.2f} + floating: ${floating_pnl:.2f} = ${total_pnl:.2f}) "
+            f"— halting trading for today"
+        )
+        return True
+
+    if total_pnl >= algo_config.daily_profit_limit:
+        _daily_halted = True
+        logger.warning(
+            f"[ALGO] ✅ Daily profit target ${algo_config.daily_profit_limit} reached "
+            f"(${total_pnl:.2f}) — halting trading for today"
+        )
+        return True
+
+    return False
+
+
 def can_trade() -> bool:
     """Return True if risk rules allow a new trade."""
     _reset_daily_if_needed()
@@ -166,6 +207,9 @@ def can_trade() -> bool:
         return False
     if _daily_halted:
         logger.debug("[ALGO] Trading halted: daily profit/loss limit reached")
+        return False
+    # Real-time check: floating + closed PnL
+    if check_daily_loss_realtime():
         return False
     return True
 
@@ -176,8 +220,15 @@ def get_risk_status() -> dict:
     account = mt5_bridge.get_account_info()
     equity = account.get('equity', 0)
     drawdown = (_peak_equity - equity) / _peak_equity if _peak_equity > 0 else 0.0
+    try:
+        open_positions = mt5_bridge.get_open_positions()
+        floating_pnl = sum(float(p.get('pnl', 0)) for p in open_positions)
+    except Exception:
+        floating_pnl = 0.0
     return {
         "daily_pnl": round(_daily_pnl, 2),
+        "floating_pnl": round(floating_pnl, 2),
+        "total_daily_pnl": round(_daily_pnl + floating_pnl, 2),
         "daily_profit_limit": algo_config.daily_profit_limit,
         "daily_loss_limit": algo_config.daily_loss_limit,
         "daily_halted": _daily_halted,
@@ -185,7 +236,7 @@ def get_risk_status() -> dict:
         "current_drawdown_pct": round(drawdown * 100, 2),
         "max_drawdown_pct": algo_config.max_drawdown_pct * 100,
         "peak_equity": round(_peak_equity, 2),
-        "can_trade": can_trade(),
+        "can_trade": not _dd_halted and not _daily_halted,
     }
 
 
