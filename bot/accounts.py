@@ -69,6 +69,13 @@ class MT5Account:
 _accounts: list[MT5Account] = []
 
 
+def _normalize_single_strategy(strategy) -> list[str]:
+    """Store exactly one strategy per account for predictable runner behavior."""
+    if isinstance(strategy, list):
+        strategy = strategy[0] if strategy else "order_block"
+    return [str(strategy or "order_block").strip()]
+
+
 def _load_default_account() -> None:
     """Load the primary account from config on startup."""
     if _config.MT5_LOGIN:
@@ -92,7 +99,7 @@ def _load_extra_accounts() -> None:
     without restarting the bot process.
 
     Format (semicolon-separated entries):
-        Label|login|password|server|strategy1+strategy2
+        Label|login|password|server|strategy
 
     Example:
         Range Breakout Demo|106903766|IbLcNr_4|MetaQuotes-Demo|breakout
@@ -134,7 +141,9 @@ def _load_extra_accounts() -> None:
             continue
         password = parts[2].strip()
         server = parts[3].strip()
-        strategies = [s.strip() for s in parts[4].split("+")] if len(parts) >= 5 else ["order_block"]
+        strategies = _normalize_single_strategy(
+            [s.strip() for s in parts[4].split("+")] if len(parts) >= 5 else ["order_block"]
+        )
 
         # Avoid duplicates — check by login number
         if any(a.login == login for a in _accounts):
@@ -200,10 +209,10 @@ def add_account(label: str, login: int, password: str, server: str, path: str = 
             server=server,
             path=path or _config.MT5_PATH,
             enabled=True,
-            strategy=strategy if isinstance(strategy, list) else [strategy],
+            strategy=_normalize_single_strategy(strategy),
         )
         _accounts.append(acc)
-        logger.info(f"[ACCOUNTS] Added account: {acc.label} ({acc.login}@{acc.server}) strategy={strategy}")
+        logger.info(f"[ACCOUNTS] Added account: {acc.label} ({acc.login}@{acc.server}) strategy={acc.strategy}")
         return acc
 
 
@@ -232,23 +241,17 @@ def toggle_account(account_id: str, enabled: bool) -> bool:
 
 
 def update_account_strategy(account_id: str, strategy) -> bool:
-    """Update the strategy/strategies assigned to an account. Accepts str or list."""
+    """Update the single strategy assigned to an account."""
     from bot.strategies import get_strategy
-    # Normalize to list
-    if isinstance(strategy, str):
-        strategies = [strategy]
-    else:
-        strategies = list(strategy)
-    # Validate all strategies
-    for s in strategies:
-        if not get_strategy(s):
-            logger.warning(f"[ACCOUNTS] Unknown strategy: {s}")
-            return False
+    strategies = _normalize_single_strategy(strategy)
+    if not get_strategy(strategies[0]):
+        logger.warning(f"[ACCOUNTS] Unknown strategy: {strategies[0]}")
+        return False
     acc = get_account(account_id)
     if acc:
         old = acc.strategy
         acc.strategy = strategies
-        logger.info(f"[ACCOUNTS] Account {account_id} strategies: {old} → {strategies}")
+        logger.info(f"[ACCOUNTS] Account {account_id} strategy updated: {old} -> {strategies}")
         return True
     return False
 

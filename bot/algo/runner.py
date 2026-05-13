@@ -95,7 +95,7 @@ def stop_all_strategies() -> None:
                 module = importlib.import_module(strat["module"])
                 module.stop_algo()
                 with _lock:
-                    _running_strategies[sid] = False
+                    _running_strategies.pop(sid, None)
                 logger.info(f"[RUNNER] Stopped strategy: {sid}")
         except Exception as exc:
             logger.error(f"[RUNNER] Failed to stop strategy '{sid}': {exc}")
@@ -108,7 +108,7 @@ def get_runner_status() -> dict:
 
     statuses = {}
     with _lock:
-        sids = list(_running_strategies.keys())
+        sids = [sid for sid, running in _running_strategies.items() if running]
 
     for sid in sids:
         try:

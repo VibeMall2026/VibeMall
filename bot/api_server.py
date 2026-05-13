@@ -465,7 +465,7 @@ class AccountAddRequest(BaseModel):
     password: str
     server: str
     path: Optional[str] = ""
-    strategy: Optional[list[str] | str] = ["order_block"]
+    strategy: Optional[str] = "order_block"
 
 
 @app.get("/strategies", dependencies=[Depends(verify_api_key)])
@@ -517,9 +517,7 @@ async def list_accounts():
 async def add_account(body: AccountAddRequest):
     """Add a new MT5 account."""
     from bot.accounts import add_account as _add
-    strategy = body.strategy or ["order_block"]
-    if isinstance(strategy, str):
-        strategy = [strategy]
+    strategy = body.strategy or "order_block"
     acc = _add(
         label=body.label,
         login=body.login,
@@ -565,26 +563,59 @@ async def refresh_accounts():
     return [acc.to_dict() for acc in get_all_accounts()]
 
 
+@app.get("/algo/runner-status", dependencies=[Depends(verify_api_key)])
+async def algo_runner_status():
+    """Return live status for all strategy threads managed by the parallel runner."""
+    from bot.algo.runner import get_runner_status
+    return get_runner_status()
+
+
 @app.get("/algo/status", dependencies=[Depends(verify_api_key)])
 async def algo_status():
     """Get current live algo strategy status."""
+    from bot.algo.runner import get_runner_status
+
     status = get_algo_status()
+    runner_status = get_runner_status()
+    running_strategies = runner_status.get("running_strategies", [])
+    status["running_strategies"] = running_strategies
+    status["strategy_statuses"] = runner_status.get("statuses", {})
+    status["active_strategy"] = get_active_strategy_id()
+    status["running"] = bool(running_strategies)
     status["risk"] = get_risk_status()
     return status
 
 
 @app.post("/algo/start", dependencies=[Depends(verify_api_key)])
 async def algo_start(body: dict = {}):
-    """Start the selected algo strategy thread."""
-    success = start_algo(body.get("strategy_id"))
-    return {"success": success, "message": "Algo started" if success else "Algo already running"}
+    """Start one strategy or all account-assigned strategies."""
+    strategy_id = body.get("strategy_id")
+    if strategy_id:
+        success = start_algo(strategy_id)
+        return {"success": success, "message": "Algo started" if success else "Algo already running"}
+
+    from bot.algo.runner import start_all_strategies
+
+    started = start_all_strategies()
+    return {
+        "success": bool(started),
+        "started": started,
+        "message": f"Started strategies: {', '.join(started)}" if started else "No new strategies started",
+    }
 
 
 @app.post("/algo/stop", dependencies=[Depends(verify_api_key)])
 async def algo_stop():
-    """Stop the active algo strategy thread."""
-    success = stop_algo()
-    return {"success": success, "message": "Algo stopped" if success else "Algo not running"}
+    """Stop all strategy threads managed by the parallel runner."""
+    from bot.algo.runner import get_runner_status, stop_all_strategies
+
+    before = get_runner_status().get("running_strategies", [])
+    stop_all_strategies()
+    return {
+        "success": bool(before),
+        "stopped": before,
+        "message": f"Stopped strategies: {', '.join(before)}" if before else "Algo not running",
+    }
 
 
 @app.put("/algo/strategy", dependencies=[Depends(verify_api_key)])

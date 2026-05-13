@@ -73,36 +73,36 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="background:#2b2c40;border:1px solid #3b3d52;color:#cdd0d6;">
       <div class="modal-header" style="border-bottom:1px solid #3b3d52;">
-        <h5 class="modal-title"><i class="bx bx-layer me-2" style="color:#696cff;"></i>Select Strategies</h5>
+        <h5 class="modal-title"><i class="bx bx-layer me-2" style="color:#696cff;"></i>Select Strategy</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="strategyAccountId">
-        <p style="color:#a8aaae;font-size:.85rem;">Select one or more strategies to run on this account:</p>
+        <p style="color:#a8aaae;font-size:.85rem;">Select exactly one strategy to run on this account:</p>
         <div class="d-flex flex-column gap-2">
           <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
-            <input type="checkbox" value="order_block" id="strat_order_block" class="form-check-input mt-1">
+            <input type="radio" name="account_strategy" value="order_block" id="strat_order_block" class="form-check-input mt-1">
             <div>
               <div style="font-weight:600;">⚡ Order Block + FVG</div>
               <small style="color:#a8aaae;">ICT/Smart Money — detects Order Blocks and Fair Value Gaps</small>
             </div>
           </label>
           <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
-            <input type="checkbox" value="breakout" id="strat_breakout" class="form-check-input mt-1">
+            <input type="radio" name="account_strategy" value="breakout" id="strat_breakout" class="form-check-input mt-1">
             <div>
               <div style="font-weight:600;">📈 Range Breakout Retest</div>
               <small style="color:#a8aaae;">Breakout + trend + ATR + volume + retest confirmation</small>
             </div>
           </label>
           <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
-            <input type="checkbox" value="confluence" id="strat_confluence" class="form-check-input mt-1">
+            <input type="radio" name="account_strategy" value="confluence" id="strat_confluence" class="form-check-input mt-1">
             <div>
               <div style="font-weight:600;">🧩 OB + FVG + Breakout</div>
               <small style="color:#a8aaae;">Order Block + Fair Value Gap with breakout confluence</small>
             </div>
           </label>
           <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
-            <input type="checkbox" value="telegram_signals" id="strat_telegram_signals" class="form-check-input mt-1">
+            <input type="radio" name="account_strategy" value="telegram_signals" id="strat_telegram_signals" class="form-check-input mt-1">
             <div>
               <div style="font-weight:600;">📡 Telegram Signals Only</div>
               <small style="color:#a8aaae;">Execute trades only from Telegram channel signals</small>
@@ -166,26 +166,26 @@
           <input type="text" id="accServer" class="form-control" style="background:#232333;border:1px solid #3b3d52;color:#cdd0d6;" placeholder="e.g. MetaQuotes-Demo">
         </div>
         <div class="mb-3">
-          <label class="form-label" style="color:#a8aaae;">Trading Strategies (select one or more)</label>
+          <label class="form-label" style="color:#a8aaae;">Trading Strategy</label>
           <div class="d-flex flex-column gap-2 p-2 rounded" style="background:#232333;border:1px solid #3b3d52;">
             <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
-              <input type="checkbox" value="order_block" id="newAccStrat_order_block" class="form-check-input" checked>
+              <input type="radio" name="new_account_strategy" value="order_block" id="newAccStrat_order_block" class="form-check-input" checked>
               <span>⚡ Order Block + FVG</span>
             </label>
             <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
-              <input type="checkbox" value="breakout" id="newAccStrat_breakout" class="form-check-input">
+              <input type="radio" name="new_account_strategy" value="breakout" id="newAccStrat_breakout" class="form-check-input">
               <span>📈 Range Breakout Retest</span>
             </label>
             <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
-              <input type="checkbox" value="confluence" id="newAccStrat_confluence" class="form-check-input">
+              <input type="radio" name="new_account_strategy" value="confluence" id="newAccStrat_confluence" class="form-check-input">
               <span>🧩 OB + FVG + Breakout</span>
             </label>
             <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
-              <input type="checkbox" value="telegram_signals" id="newAccStrat_telegram_signals" class="form-check-input">
+              <input type="radio" name="new_account_strategy" value="telegram_signals" id="newAccStrat_telegram_signals" class="form-check-input">
               <span>📡 Telegram Signals Only</span>
             </label>
           </div>
-          <small style="color:#a8aaae;">Selected strategies will run on this account</small>
+          <small style="color:#a8aaae;">Only one live strategy is allowed per account</small>
         </div>
         <div id="addAccountResult" class="mt-2" style="display:none;"></div>
       </div>
@@ -822,7 +822,7 @@
 
   function openStrategyModal(accountId, currentStrategies) {
     document.getElementById('strategyAccountId').value = accountId;
-    // Reset all checkboxes
+    // Reset all radio options
     ['order_block', 'breakout', 'confluence', 'telegram_signals'].forEach(s => {
       const el = document.getElementById(`strat_${s}`);
       if (el) el.checked = (currentStrategies || []).includes(s);
@@ -834,10 +834,10 @@
   function saveStrategies() {
     const accountId = document.getElementById('strategyAccountId').value;
     const selected = ['order_block', 'breakout', 'confluence', 'telegram_signals']
-      .filter(s => document.getElementById(`strat_${s}`)?.checked);
-    if (selected.length === 0) {
+      .find(s => document.getElementById(`strat_${s}`)?.checked);
+    if (!selected) {
       document.getElementById('strategyResult').style.display = 'block';
-      document.getElementById('strategyResult').innerHTML = '<div class="alert alert-warning py-2 mb-0">Select at least one strategy</div>';
+      document.getElementById('strategyResult').innerHTML = '<div class="alert alert-warning py-2 mb-0">Select one strategy</div>';
       return;
     }
     const csrfToken = getCookie('csrftoken');
@@ -851,7 +851,7 @@
     .then(data => {
       if (data.success) {
         bootstrap.Modal.getInstance(document.getElementById('strategyModal')).hide();
-        showToast('Strategies updated', true);
+        showToast('Strategy updated', true);
         loadAccounts();
       } else {
         document.getElementById('strategyResult').style.display = 'block';
@@ -869,7 +869,7 @@
       password: document.getElementById('accPassword').value,
       server: document.getElementById('accServer').value,
       strategy: ['order_block', 'breakout', 'confluence', 'telegram_signals']
-        .filter(s => document.getElementById(`newAccStrat_${s}`)?.checked),
+        .find(s => document.getElementById(`newAccStrat_${s}`)?.checked) || 'order_block',
     };
     const resultEl = document.getElementById('addAccountResult');
     fetch('/trading/api/accounts/', {

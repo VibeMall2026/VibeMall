@@ -101,6 +101,13 @@ class AlgoConfig:
 algo_config = AlgoConfig()
 algo_config.symbols = ["XAUUSD", "EURUSD", "USDJPY", "GBPUSD", "USDCHF"]
 
+
+def _normalize_symbols(symbol_value: Optional[str]) -> list[str]:
+    """Normalize a single symbol or comma-separated symbol list."""
+    if not symbol_value:
+        return []
+    return [part.strip().upper() for part in str(symbol_value).split(",") if part.strip()]
+
 # ── Daily Risk Tracking ───────────────────────────────────────────────────────
 from datetime import date as _date
 
@@ -1187,6 +1194,7 @@ def get_algo_status() -> dict:
         "running": _algo_running,
         "enabled": algo_config.enabled,
         "symbol": algo_config.symbol,
+        "symbols": algo_config.get_symbols(),
         "analysis_timeframe": algo_config.analysis_timeframe,
         "execution_timeframe": algo_config.execution_timeframe,
         "risk_reward": algo_config.risk_reward_ratio,
@@ -1206,7 +1214,10 @@ def update_algo_config(
 ) -> dict:
     """Update algo configuration at runtime."""
     if symbol is not None:
-        algo_config.symbol = symbol
+        normalized_symbols = _normalize_symbols(symbol)
+        if normalized_symbols:
+            algo_config.symbol = normalized_symbols[0]
+            algo_config.symbols = normalized_symbols
     if enabled is not None:
         algo_config.enabled = enabled
     if risk_reward is not None:

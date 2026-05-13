@@ -86,10 +86,10 @@
       <i class="bx bx-arrow-back me-1"></i>Main Dashboard
     </a>
     <button class="btn btn-success ctrl-btn" id="btnStartAlgo" onclick="algoAction('start')">
-      <i class="bx bx-play me-1"></i>Start Algo
+      <i class="bx bx-play me-1"></i>Start Assigned
     </button>
     <button class="btn btn-danger ctrl-btn" id="btnStopAlgo" onclick="algoAction('stop')">
-      <i class="bx bx-stop me-1"></i>Stop Algo
+      <i class="bx bx-stop me-1"></i>Stop All
     </button>
     <button class="btn btn-warning ctrl-btn" id="btnEnableTrading" onclick="algoAction('enable')">
       <i class="bx bx-check-shield me-1"></i>Enable Trading
@@ -105,7 +105,7 @@
   <div class="col-6 col-md-3">
     <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
       <div class="card-body py-3">
-        <div class="stat-label mb-1">Algo Thread</div>
+        <div class="stat-label mb-1">Runner</div>
         <div class="d-flex align-items-center">
           <span class="status-dot dot-grey" id="dotAlgoRunning"></span>
           <span class="stat-value" style="font-size:1rem;" id="lblAlgoRunning">Loading...</span>
@@ -129,6 +129,22 @@
       <div class="card-body py-3">
         <div class="stat-label mb-1">Symbol</div>
         <div class="stat-value" id="lblSymbol">-</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3">
+        <div class="stat-label mb-1">Selected Strategy</div>
+        <div class="stat-value" style="font-size:1rem;" id="lblActiveStrategy">-</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3">
+        <div class="stat-label mb-1">Running Strategies</div>
+        <div class="stat-value" style="font-size:1rem;" id="lblRunningStrategies">-</div>
       </div>
     </div>
   </div>
@@ -274,8 +290,16 @@
       <div class="card-body">
         <div class="row g-3">
           <div class="col-12">
+            <label class="stat-label">Strategy</label>
+            <select id="cfgStrategyId" class="form-select config-input mt-1">
+              <option value="order_block">Order Block + FVG</option>
+              <option value="breakout">Range Breakout Retest</option>
+              <option value="confluence">OB + FVG + Breakout</option>
+            </select>
+          </div>
+          <div class="col-12">
             <label class="stat-label">Symbol</label>
-            <input type="text" id="cfgSymbol" class="form-control config-input mt-1" placeholder="XAUUSD">
+            <input type="text" id="cfgSymbol" class="form-control config-input mt-1" placeholder="XAUUSD or XAUUSD,EURUSD">
           </div>
           <div class="col-6">
             <label class="stat-label">Analysis Timeframe (min)</label>
@@ -308,6 +332,9 @@
               <i class="bx bx-save me-1"></i>Apply Configuration
             </button>
           </div>
+        </div>
+        <div class="mt-3 small" style="color:#a8aaae;">
+          Config, enable, and disable apply to the selected strategy. Start and stop control the full assigned-strategy runner.
         </div>
         <div id="configResult" class="mt-3" style="display:none;"></div>
       </div>
@@ -398,6 +425,7 @@ function algoAction(action) {
 function updateConfig() {
   const csrfToken = getCookie('csrftoken');
   const payload = {
+    strategy_id: document.getElementById('cfgStrategyId').value || null,
     symbol:      document.getElementById('cfgSymbol').value || null,
     analysis_tf: parseInt(document.getElementById('cfgAnalysisTF').value) || null,
     execution_tf: parseInt(document.getElementById('cfgExecutionTF').value) || null,
@@ -443,18 +471,23 @@ function updateUI(data) {
   // Running status
   const running = data.running;
   const enabled = data.enabled;
+  const activeStrategy = data.active_strategy || '-';
+  const runningStrategies = Array.isArray(data.running_strategies) ? data.running_strategies : [];
 
   const dotRunning = document.getElementById('dotAlgoRunning');
   const lblRunning = document.getElementById('lblAlgoRunning');
   dotRunning.className = 'status-dot ' + (running ? 'dot-green pulse' : 'dot-red');
-  lblRunning.textContent = running ? 'Running' : 'Stopped';
+  lblRunning.textContent = running ? `${runningStrategies.length} Running` : 'Stopped';
 
   const dotEnabled = document.getElementById('dotTradingEnabled');
   const lblEnabled = document.getElementById('lblTradingEnabled');
   dotEnabled.className = 'status-dot ' + (enabled ? 'dot-green' : 'dot-orange');
   lblEnabled.textContent = enabled ? 'Live Trading' : 'Scan Only';
 
-  document.getElementById('lblSymbol').textContent = data.symbol || '-';
+  document.getElementById('lblActiveStrategy').textContent = activeStrategy;
+  document.getElementById('lblRunningStrategies').textContent = runningStrategies.length ? runningStrategies.join(', ') : '-';
+  const activeSymbols = Array.isArray(data.symbols) && data.symbols.length ? data.symbols.join(', ') : (data.symbol || '-');
+  document.getElementById('lblSymbol').textContent = activeSymbols;
   document.getElementById('lblActiveOBs').textContent = data.total_obs_tracked || 0;
   document.getElementById('lblAnalysisTF').textContent = (data.analysis_timeframe || '-') + 'm';
   document.getElementById('lblExecutionTF').textContent = (data.execution_timeframe || '-') + 'm';
@@ -462,6 +495,7 @@ function updateUI(data) {
   document.getElementById('lblRiskPct').textContent = (data.risk_percent || '-') + '%';
 
   // Populate config inputs
+  if (data.active_strategy) document.getElementById('cfgStrategyId').value = data.active_strategy;
   if (data.symbol) document.getElementById('cfgSymbol').value = data.symbol;
   if (data.analysis_timeframe) document.getElementById('cfgAnalysisTF').value = data.analysis_timeframe;
   if (data.execution_timeframe) document.getElementById('cfgExecutionTF').value = data.execution_timeframe;
