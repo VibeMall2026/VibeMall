@@ -237,6 +237,41 @@ def calculate_lot_with_risk(symbol: str, sl_points: float, risk_percent: Optiona
     return lot
 
 
+def _cap_lot_by_pnl_limits(
+    *,
+    sym_info,
+    symbol: str,
+    side: str,
+    price: float,
+    sl: float,
+    tp: float,
+    lot: float,
+) -> float:
+    """Cap lot using actual MT5 profit calculation so metals size safely."""
+    order_type = mt5.ORDER_TYPE_BUY if side.lower() == "buy" else mt5.ORDER_TYPE_SELL
+    caps: list[float] = []
+
+    if config.MAX_RISK_AMOUNT_USD > 0 and sl > 0:
+        loss_one_lot = mt5.order_calc_profit(order_type, symbol, 1.0, price, sl)
+        loss_one_lot_abs = abs(float(loss_one_lot or 0.0))
+        if loss_one_lot_abs > 0:
+            caps.append(config.MAX_RISK_AMOUNT_USD / loss_one_lot_abs)
+
+    if config.MAX_PROFIT_AMOUNT_USD > 0 and tp > 0:
+        profit_one_lot = mt5.order_calc_profit(order_type, symbol, 1.0, price, tp)
+        profit_one_lot_abs = abs(float(profit_one_lot or 0.0))
+        if profit_one_lot_abs > 0:
+            caps.append(config.MAX_PROFIT_AMOUNT_USD / profit_one_lot_abs)
+
+    if caps:
+        lot = min(lot, min(caps))
+
+    lot = max(sym_info.volume_min, min(sym_info.volume_max, lot))
+    step = sym_info.volume_step or sym_info.volume_min or 0.01
+    lot = round(math.floor(lot / step) * step, 8)
+    return max(sym_info.volume_min, lot)
+
+
 # ── Open trade ────────────────────────────────────────────────────────────────
 
 def open_trade(
@@ -323,6 +358,16 @@ def open_trade(
 
     sl_points = abs(price - sl)
     lot = calculate_lot_with_risk(symbol, sl_points, risk_percent=risk_percent)
+
+    lot = _cap_lot_by_pnl_limits(
+        sym_info=sym_info,
+        symbol=symbol,
+        side=side,
+        price=price,
+        sl=sl,
+        tp=tp,
+        lot=lot,
+    )
 
     request = {
         "action": action,

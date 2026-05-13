@@ -76,6 +76,8 @@ LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO").upper()
 # ── Risk management ───────────────────────────────────────────────────────────
 RISK_PERCENT: float = _float("RISK_PERCENT", 0.1)
 FIXED_REWARD_RATIO: float = _float("FIXED_REWARD_RATIO", 2.0)
+MAX_RISK_AMOUNT_USD: float = _float("MAX_RISK_AMOUNT_USD", 30.0)
+MAX_PROFIT_AMOUNT_USD: float = _float("MAX_PROFIT_AMOUNT_USD", 50.0)
 MAX_TRADES_PER_DAY: int = _int("MAX_TRADES_PER_DAY", 10)
 MAX_OPEN_POSITIONS: int = _int("MAX_OPEN_POSITIONS", 3)
 MAX_DAILY_LOSS_PERCENT: float = _float("MAX_DAILY_LOSS_PERCENT", 3.0)

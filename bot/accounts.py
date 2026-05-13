@@ -291,6 +291,44 @@ def _connect_account(acc: MT5Account) -> bool:
     return True
 
 
+def _cap_lot_by_pnl_limits(
+    *,
+    sym_info,
+    symbol: str,
+    side: str,
+    price: float,
+    sl: float,
+    tp: float,
+    lot: float,
+) -> float:
+    """Cap lot by actual MT5 PnL estimate instead of only tick-value math."""
+    from bot import config as cfg
+    import math
+
+    order_type = mt5.ORDER_TYPE_BUY if side.lower() == "buy" else mt5.ORDER_TYPE_SELL
+    caps: list[float] = []
+
+    if cfg.MAX_RISK_AMOUNT_USD > 0 and sl > 0:
+        loss_one_lot = mt5.order_calc_profit(order_type, symbol, 1.0, price, sl)
+        loss_one_lot_abs = abs(float(loss_one_lot or 0.0))
+        if loss_one_lot_abs > 0:
+            caps.append(cfg.MAX_RISK_AMOUNT_USD / loss_one_lot_abs)
+
+    if cfg.MAX_PROFIT_AMOUNT_USD > 0 and tp > 0:
+        profit_one_lot = mt5.order_calc_profit(order_type, symbol, 1.0, price, tp)
+        profit_one_lot_abs = abs(float(profit_one_lot or 0.0))
+        if profit_one_lot_abs > 0:
+            caps.append(cfg.MAX_PROFIT_AMOUNT_USD / profit_one_lot_abs)
+
+    if caps:
+        lot = min(lot, min(caps))
+
+    lot = max(sym_info.volume_min, min(sym_info.volume_max, lot))
+    step = sym_info.volume_step or sym_info.volume_min or 0.01
+    lot = round(math.floor(lot / step) * step, 8)
+    return max(sym_info.volume_min, lot)
+
+
 def refresh_account_info() -> None:
     """Refresh balance/equity for all enabled accounts."""
     if not MT5_AVAILABLE:
@@ -504,6 +542,16 @@ def _execute_single(
         lot = round(math.floor(lot / step) * step, 8)
     else:
         lot = sym_info.volume_min
+
+    lot = _cap_lot_by_pnl_limits(
+        sym_info=sym_info,
+        symbol=symbol,
+        side=side,
+        price=price,
+        sl=sl,
+        tp=tp,
+        lot=lot,
+    )
 
     request = {
         "action": action,

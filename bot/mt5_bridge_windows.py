@@ -36,6 +36,8 @@ MT5_TIMEOUT_MS = int(os.getenv("MT5_TIMEOUT_MS", "60000"))
 MT5_DEVIATION  = int(os.getenv("MT5_DEVIATION", "20"))
 MT5_MAGIC      = int(os.getenv("MT5_MAGIC_NUMBER", "550001"))
 RISK_PERCENT   = float(os.getenv("RISK_PERCENT", "0.1"))
+MAX_RISK_AMOUNT_USD = float(os.getenv("MAX_RISK_AMOUNT_USD", "30"))
+MAX_PROFIT_AMOUNT_USD = float(os.getenv("MAX_PROFIT_AMOUNT_USD", "50"))
 API_KEY        = os.getenv("API_KEY", "")
 BRIDGE_PORT    = int(os.getenv("BRIDGE_PORT", "8001"))
 
@@ -99,6 +101,41 @@ def calculate_lot_with_risk(symbol: str, sl_distance: float, risk_percent: Optio
     step = sym.volume_step
     lot = round(math.floor(lot / step) * step, 8)
     return lot
+
+
+def _cap_lot_by_pnl_limits(
+    *,
+    sym,
+    symbol: str,
+    side: str,
+    price: float,
+    sl: float,
+    tp: float,
+    lot: float,
+) -> float:
+    """Cap lot using actual estimated SL/TP dollars."""
+    caps: list[float] = []
+    order_type = mt5.ORDER_TYPE_BUY if side.lower() == "buy" else mt5.ORDER_TYPE_SELL
+
+    if MAX_RISK_AMOUNT_USD > 0 and sl > 0:
+        loss_one_lot = mt5.order_calc_profit(order_type, symbol, 1.0, price, sl)
+        loss_one_lot_abs = abs(float(loss_one_lot or 0.0))
+        if loss_one_lot_abs > 0:
+            caps.append(MAX_RISK_AMOUNT_USD / loss_one_lot_abs)
+
+    if MAX_PROFIT_AMOUNT_USD > 0 and tp > 0:
+        profit_one_lot = mt5.order_calc_profit(order_type, symbol, 1.0, price, tp)
+        profit_one_lot_abs = abs(float(profit_one_lot or 0.0))
+        if profit_one_lot_abs > 0:
+            caps.append(MAX_PROFIT_AMOUNT_USD / profit_one_lot_abs)
+
+    if caps:
+        lot = min(lot, min(caps))
+
+    lot = max(sym.volume_min, min(sym.volume_max, lot))
+    step = sym.volume_step or sym.volume_min or 0.01
+    lot = round(math.floor(lot / step) * step, 8)
+    return max(sym.volume_min, lot)
 
 
 # ── Pydantic models ───────────────────────────────────────────────────────────
@@ -261,6 +298,16 @@ def open_trade(body: TradeRequest, _: str = Security(verify_api_key)):
 
     sl_distance = abs(price - body.sl)
     lot = calculate_lot_with_risk(symbol, sl_distance, risk_percent=body.risk_percent)
+
+    lot = _cap_lot_by_pnl_limits(
+        sym=sym_info,
+        symbol=symbol,
+        side=side,
+        price=price,
+        sl=body.sl,
+        tp=body.tp,
+        lot=lot,
+    )
 
     request = {
         "action":       action,
