@@ -116,6 +116,8 @@ _daily_date: _date = _date.today()
 _peak_equity: float = 0.0
 _dd_halted: bool = False          # permanent halt on max drawdown
 _daily_halted: bool = False       # daily halt on profit/loss limit
+_last_scan_at: Optional[str] = None
+_last_scan_summary: dict[str, dict] = {}
 
 
 def _reset_daily_if_needed() -> None:
@@ -901,7 +903,7 @@ def _scan_and_trade(symbol: str = None) -> None:
     """
     Main algo loop for one symbol.
     """
-    global _active_obs
+    global _active_obs, _last_scan_at, _last_scan_summary
 
     if symbol is None:
         symbol = algo_config.symbol
@@ -973,6 +975,7 @@ def _scan_and_trade(symbol: str = None) -> None:
     # Detect new order blocks
     new_obs = _detect_order_blocks(candles_analysis)
 
+    added_count = 0
     with _obs_lock:
         # Add new OBs (avoid duplicates)
         existing_ids = {ob.id for ob in symbol_obs}
@@ -992,6 +995,7 @@ def _scan_and_trade(symbol: str = None) -> None:
                 ob.symbol = symbol  # tag OB with its symbol
                 ob.atr = current_atr  # store ATR for SL calculation
                 symbol_obs.append(ob)
+                added_count += 1
                 logger.info(
                     f"[ALGO] New {ob.direction} Order Block detected | "
                     f"Zone: {ob.low:.5f}-{ob.high:.5f} | 50%: {ob.midpoint:.5f} | "
@@ -1003,6 +1007,15 @@ def _scan_and_trade(symbol: str = None) -> None:
         symbol_obs = _active_obs[symbol]
         _active_obs[symbol] = sorted(symbol_obs, key=lambda x: x.time, reverse=True)[:algo_config.max_active_obs]
         symbol_obs = _active_obs[symbol]
+
+    _last_scan_at = datetime.now().isoformat()
+    _last_scan_summary[symbol] = {
+        "symbol": symbol,
+        "detected": len(new_obs),
+        "added": added_count,
+        "tracked": len(symbol_obs),
+        "at": _last_scan_at,
+    }
 
     # Check if bot is allowed to trade
     if not state.running:
@@ -1193,6 +1206,7 @@ def get_algo_status() -> dict:
     return {
         "running": _algo_running,
         "enabled": algo_config.enabled,
+        "strategy": "order_block",
         "symbol": algo_config.symbol,
         "symbols": algo_config.get_symbols(),
         "analysis_timeframe": algo_config.analysis_timeframe,
@@ -1201,6 +1215,8 @@ def get_algo_status() -> dict:
         "risk_percent": algo_config.risk_percent,
         "active_order_blocks": obs_data,
         "total_obs_tracked": sum(len(v) for v in _active_obs.values()),
+        "last_scan_at": _last_scan_at,
+        "scan_summary": list(_last_scan_summary.values()),
     }
 
 

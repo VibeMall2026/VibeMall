@@ -44,12 +44,12 @@ class AlgoConfig:
     breakout_lookback: int = 10
     trend_ema_period: int = 20
     atr_period: int = 14
-    atr_min_multiplier: float = 0.6
-    range_min_atr_multiplier: float = 1.2
-    breakout_buffer_atr: float = 0.10
-    min_breakout_body_ratio: float = 0.55
-    min_volume_multiplier: float = 1.20
-    retest_tolerance_atr: float = 0.15
+    atr_min_multiplier: float = 0.45
+    range_min_atr_multiplier: float = 0.8
+    breakout_buffer_atr: float = 0.05
+    min_breakout_body_ratio: float = 0.45
+    min_volume_multiplier: float = 1.00
+    retest_tolerance_atr: float = 0.25
     max_active_breakouts: int = 5
     scan_interval_seconds: int = 60
     risk_check_interval_seconds: int = 1
@@ -149,6 +149,8 @@ _breakout_lock = threading.Lock()
 _algo_thread: Optional[threading.Thread] = None
 _risk_thread: Optional[threading.Thread] = None
 _algo_running = False
+_last_scan_at: Optional[str] = None
+_last_scan_summary: dict[str, dict] = {}
 
 
 def _get_candles(symbol: str, timeframe_minutes: int, count: int) -> list[Candle]:
@@ -560,7 +562,7 @@ def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
 
 
 def _scan_and_trade(symbol: str = None) -> None:
-    global _active_breakouts
+    global _active_breakouts, _last_scan_at, _last_scan_summary
 
     if symbol is None:
         symbol = algo_config.symbol
@@ -628,6 +630,14 @@ def _scan_and_trade(symbol: str = None) -> None:
         f"[BREAKOUT] Scan complete for {symbol} | "
         f"detected={len(new_setups)} | added={added_count} | tracked={len(symbol_setups)}"
     )
+    _last_scan_at = datetime.now().isoformat()
+    _last_scan_summary[symbol] = {
+        "symbol": symbol,
+        "detected": len(new_setups),
+        "added": added_count,
+        "tracked": len(symbol_setups),
+        "at": _last_scan_at,
+    }
 
     if not state.running or not algo_config.enabled or not can_trade():
         return
@@ -774,6 +784,8 @@ def get_algo_status() -> dict:
         "active_breakouts": setups,
         "active_order_blocks": [],
         "total_breakouts_tracked": sum(len(v) for v in _active_breakouts.values()),
+        "last_scan_at": _last_scan_at,
+        "scan_summary": list(_last_scan_summary.values()),
     }
 
 

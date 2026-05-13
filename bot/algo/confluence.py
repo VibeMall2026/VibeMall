@@ -41,11 +41,11 @@ class AlgoConfig:
     breakout_lookback: int = 10
     trend_ema_period: int = 20
     atr_period: int = 14
-    atr_min_multiplier: float = 0.5
-    breakout_buffer_atr: float = 0.10
-    fvg_min_body_ratio: float = 0.60
+    atr_min_multiplier: float = 0.4
+    breakout_buffer_atr: float = 0.05
+    fvg_min_body_ratio: float = 0.5
     max_active_setups: int = 5
-    max_setup_age_bars: int = 20
+    max_setup_age_bars: int = 30
     scan_interval_seconds: int = 60
     risk_check_interval_seconds: int = 1
     max_trades_per_setup: int = 1
@@ -135,6 +135,8 @@ _algo_thread: Optional[threading.Thread] = None
 _risk_thread: Optional[threading.Thread] = None
 _algo_running = False
 _bar_counter = 0
+_last_scan_at: Optional[str] = None
+_last_scan_summary: dict[str, object] = {}
 
 
 def _get_candles(symbol: str, timeframe_minutes: int, count: int) -> list[Candle]:
@@ -509,7 +511,7 @@ def _manage_open_trade_risk(setup: ConfluenceSetup) -> None:
 
 
 def _scan_and_trade() -> None:
-    global _active_setups, _bar_counter
+    global _active_setups, _bar_counter, _last_scan_at, _last_scan_summary
     _bar_counter += 1
 
     symbol = algo_config.symbol
@@ -571,6 +573,14 @@ def _scan_and_trade() -> None:
         f"[CONFLUENCE] Scan complete for {symbol} | "
         f"detected={len(new_setups)} | added={added_count} | tracked={len(_active_setups)}"
     )
+    _last_scan_at = datetime.now().isoformat()
+    _last_scan_summary = {
+        "symbol": symbol,
+        "detected": len(new_setups),
+        "added": added_count,
+        "tracked": len(_active_setups),
+        "at": _last_scan_at,
+    }
 
     if not state.running or not algo_config.enabled or not can_trade():
         return
@@ -690,6 +700,7 @@ def get_algo_status() -> dict:
         "enabled": algo_config.enabled,
         "strategy": "confluence",
         "symbol": algo_config.symbol,
+        "symbols": algo_config.get_symbols(),
         "analysis_timeframe": algo_config.analysis_timeframe,
         "execution_timeframe": algo_config.execution_timeframe,
         "risk_reward": algo_config.risk_reward_ratio,
@@ -697,6 +708,8 @@ def get_algo_status() -> dict:
         "active_confluence_setups": setups,
         "active_order_blocks": [],
         "total_confluence_setups": len(_active_setups),
+        "last_scan_at": _last_scan_at,
+        "scan_summary": _last_scan_summary,
     }
 
 
