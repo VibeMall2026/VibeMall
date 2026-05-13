@@ -654,13 +654,7 @@
 <script>
   // ── MT5 Accounts ──────────────────────────────────────────────────────────
   function loadAccounts() {
-    fetch('/trading/api/accounts', { credentials: 'same-origin', headers: { 'X-CSRFToken': getCookie('csrftoken') } })
-      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(accounts => renderAccounts(accounts))
-      .catch(err => {
-        document.getElementById('accountsBody').innerHTML =
-          `<tr><td colspan="8" class="text-center text-muted py-3">Could not load accounts (${err})</td></tr>`;
-      });
+    refreshAccounts(false);
   }
 
   const STRATEGY_LABELS = {
@@ -776,12 +770,23 @@
     });
   }
 
-  function refreshAccounts() {
+  function refreshAccounts(showMessage = true) {
     const csrfToken = getCookie('csrftoken');
     fetch('/trading/api/accounts/refresh', { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRFToken': csrfToken } })
       .then(r => r.json())
-      .then(accounts => { renderAccounts(accounts); showToast('Accounts refreshed', true); })
-      .catch(() => showToast('Refresh failed', false));
+      .then(accounts => {
+        renderAccounts(accounts);
+        if (showMessage) {
+          showToast('Accounts refreshed', true);
+        }
+      })
+      .catch((err) => {
+        document.getElementById('accountsBody').innerHTML =
+          `<tr><td colspan="8" class="text-center text-muted py-3">Could not refresh accounts (${err})</td></tr>`;
+        if (showMessage) {
+          showToast('Refresh failed', false);
+        }
+      });
   }
 
   function openAddAccount() {
@@ -942,6 +947,9 @@
 
   // Load accounts on page load
   loadAccounts();
+
+  // Keep account connection status live for all MT5 accounts.
+  setInterval(() => refreshAccounts(false), 30000);
 
   // Event delegation for Edit button (avoids onclick in template literal)
   document.getElementById('accountsBody').addEventListener('click', function(e) {
