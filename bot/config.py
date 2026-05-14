@@ -72,6 +72,7 @@ API_CORS_ORIGINS: list[str] = _list(
 # ── Bot behaviour ─────────────────────────────────────────────────────────────
 AUTO_START: bool = _bool("AUTO_START", False)
 LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO").upper()
+OB_DEBUG_MODE: bool = _bool("OB_DEBUG_MODE", False)
 
 # ── Risk management ───────────────────────────────────────────────────────────
 RISK_PERCENT: float = _float("RISK_PERCENT", 0.1)

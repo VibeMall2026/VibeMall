@@ -53,6 +53,7 @@ except ImportError:
     MT5_AVAILABLE = False
 
 from bot import mt5_bridge
+from bot import config as _config
 from bot.state import state
 
 
@@ -118,6 +119,14 @@ _dd_halted: bool = False          # permanent halt on max drawdown
 _daily_halted: bool = False       # daily halt on profit/loss limit
 _last_scan_at: Optional[str] = None
 _last_scan_summary: dict[str, dict] = {}
+
+
+def _ob_debug(event: str, **payload) -> None:
+    """Structured debug logs gated by OB_DEBUG_MODE."""
+    if not getattr(_config, "OB_DEBUG_MODE", False):
+        return
+    bits = [f"{k}={v}" for k, v in payload.items()]
+    logger.info(f"[ALGO][{event}] " + " | ".join(bits))
 
 
 def _reset_daily_if_needed() -> None:
@@ -594,6 +603,16 @@ def _check_entry_signal(ob: OrderBlock, candles_exec: list[Candle]) -> Optional[
             f"| prev(c={prev.close:.5f}) | zone=({ob.low:.5f}-{ob.midpoint:.5f})"
         )
         if touched_zone and confirmed:
+            _ob_debug(
+                "ENTRY_DECISION",
+                symbol=ob.symbol,
+                ob_id=ob.id,
+                direction=ob.direction,
+                trend_ok="n/a",
+                touched=touched_zone,
+                confirmed=confirmed,
+                reject_reason="",
+            )
             return last.close
 
     elif ob.direction == "bearish":
@@ -607,8 +626,28 @@ def _check_entry_signal(ob: OrderBlock, candles_exec: list[Candle]) -> Optional[
             f"| prev(c={prev.close:.5f}) | zone=({ob.midpoint:.5f}-{ob.high:.5f})"
         )
         if touched_zone and confirmed:
+            _ob_debug(
+                "ENTRY_DECISION",
+                symbol=ob.symbol,
+                ob_id=ob.id,
+                direction=ob.direction,
+                trend_ok="n/a",
+                touched=touched_zone,
+                confirmed=confirmed,
+                reject_reason="",
+            )
             return last.close
 
+    _ob_debug(
+        "ENTRY_DECISION",
+        symbol=ob.symbol,
+        ob_id=ob.id,
+        direction=ob.direction,
+        trend_ok="n/a",
+        touched=touched_zone if "touched_zone" in locals() else False,
+        confirmed=confirmed if "confirmed" in locals() else False,
+        reject_reason="entry_condition_not_met",
+    )
     return None
 
 
@@ -642,6 +681,26 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
     logger.debug(
         f"[ALGO][ENTRY_EXEC] {ob.id} side={side} live_price={live_price} entry_price={entry_price:.5f} "
         f"direction={ob.direction} fvg={ob.fvg.direction}"
+    )
+    spread_points = "n/a"
+    try:
+        if MT5_AVAILABLE and mt5_bridge.is_connected():
+            tick = mt5.symbol_info_tick(ob.symbol)
+            sym = mt5.symbol_info(ob.symbol)
+            if tick and sym and getattr(sym, "trade_tick_size", 0):
+                spread_points = round((tick.ask - tick.bid) / sym.trade_tick_size, 2)
+    except Exception:
+        pass
+    _ob_debug(
+        "ENTRY_EXEC",
+        symbol=ob.symbol,
+        ob_id=ob.id,
+        side=side,
+        entry=round(entry_price, 5),
+        sl=round(sl, 5),
+        tp=round(tp, 5),
+        live_price=live_price,
+        spread=spread_points,
     )
 
     # Execute only on accounts that have 'order_block' strategy assigned
@@ -802,6 +861,7 @@ def _manage_open_trade_risk(ob: OrderBlock) -> None:
         f"entry={entry:.5f} one_r={one_r:.5f} profit_r={profit_r:.3f} "
         f"r_stage={ob.r_stage} sl={ob.initial_sl:.5f}"
     )
+    r_stage_before = ob.r_stage
 
     # ── Dollar-based profit lock (checked first, independent of R stages) ────
     if (
@@ -879,11 +939,29 @@ def _manage_open_trade_risk(ob: OrderBlock) -> None:
                 if new_sl is None or trail_sl > new_sl:
                     new_sl = trail_sl
                     ob.r_stage = 3
+                _ob_debug(
+                    "TRAIL_ATTEMPT",
+                    ticket=ob.ticket,
+                    side=side,
+                    atr=round(atr, 5),
+                    trail_mult=algo_config.trail_atr_mult,
+                    candidate_sl=round(trail_sl, 5),
+                    should_update=(new_sl is not None),
+                )
             else:
                 trail_sl = current_price + atr * algo_config.trail_atr_mult
                 if new_sl is None or trail_sl < new_sl:
                     new_sl = trail_sl
                     ob.r_stage = 3
+                _ob_debug(
+                    "TRAIL_ATTEMPT",
+                    ticket=ob.ticket,
+                    side=side,
+                    atr=round(atr, 5),
+                    trail_mult=algo_config.trail_atr_mult,
+                    candidate_sl=round(trail_sl, 5),
+                    should_update=(new_sl is not None),
+                )
 
     # Apply new SL if it improves position
     if new_sl is not None:
@@ -913,10 +991,30 @@ def _manage_open_trade_risk(ob: OrderBlock) -> None:
                         })
                         entry["sl_trail_log"] = trail_log
                         break
+                _ob_debug(
+                    "RISK_STAGE",
+                    ticket=ob.ticket,
+                    profit_r=round(profit_r, 3),
+                    r_stage_before=r_stage_before,
+                    r_stage_after=ob.r_stage,
+                    candidate_sl=round(new_sl, 5),
+                    applied_sl=round(ob.initial_sl, 5),
+                    modify_response="success",
+                )
             else:
                 logger.warning(
                     f"[ALGO][RISK] SL update failed | ticket={ob.ticket} "
                     f"requested_sl={new_sl:.5f} response={result}"
+                )
+                _ob_debug(
+                    "RISK_STAGE",
+                    ticket=ob.ticket,
+                    profit_r=round(profit_r, 3),
+                    r_stage_before=r_stage_before,
+                    r_stage_after=ob.r_stage,
+                    candidate_sl=round(new_sl, 5),
+                    applied_sl=round(ob.initial_sl, 5),
+                    modify_response=result,
                 )
         else:
             logger.debug(
@@ -926,6 +1024,16 @@ def _manage_open_trade_risk(ob: OrderBlock) -> None:
     else:
         logger.debug(
             f"[ALGO][RISK] No SL candidate | ticket={ob.ticket} profit_r={profit_r:.3f} r_stage={ob.r_stage}"
+        )
+        _ob_debug(
+            "RISK_STAGE",
+            ticket=ob.ticket,
+            profit_r=round(profit_r, 3),
+            r_stage_before=r_stage_before,
+            r_stage_after=ob.r_stage,
+            candidate_sl="none",
+            applied_sl=round(ob.initial_sl, 5),
+            modify_response="skipped",
         )
 
 
@@ -952,11 +1060,11 @@ def _scan_and_trade(symbol: str = None) -> None:
 
     # ── Check for closed trades and record PnL ────────────────────────────────
     open_positions = mt5_bridge.get_open_positions()
-    open_tickets = {p.get("id") for p in open_positions}
+    open_tickets = {str(p.get("id")) for p in open_positions if p.get("id") is not None}
 
     with _obs_lock:
         for ob in symbol_obs:
-            if ob.trade_taken and ob.ticket and ob.ticket not in open_tickets:
+            if ob.trade_taken and ob.ticket and str(ob.ticket) not in open_tickets:
                 # Reset OB for potential re-entry ONLY if trade was profitable
                 # (avoid re-entering same losing zone repeatedly)
                 pnl_val = 0.0
@@ -1021,6 +1129,16 @@ def _scan_and_trade(symbol: str = None) -> None:
                 # Apply trend filter
                 if not _is_trend_aligned(candles_analysis, ob.direction):
                     logger.debug(f"[ALGO] OB {ob.id} filtered out — against trend")
+                    _ob_debug(
+                        "ENTRY_DECISION",
+                        symbol=symbol,
+                        ob_id=ob.id,
+                        direction=ob.direction,
+                        trend_ok=False,
+                        touched=False,
+                        confirmed=False,
+                        reject_reason="trend_filter_failed",
+                    )
                     continue
                 # Apply volatility filter
                 if not _is_volatility_sufficient(candles_analysis):
@@ -1063,13 +1181,13 @@ def _scan_and_trade(symbol: str = None) -> None:
 
     # Check open positions — don't stack too many algo trades
     open_positions = mt5_bridge.get_open_positions()
-    open_tickets = {p.get("id") for p in open_positions}
+    open_tickets = {str(p.get("id")) for p in open_positions if p.get("id") is not None}
     algo_positions = [p for p in open_positions if "ALGO:OB" in p.get("comment", "")]
 
     # If a traded OB's position was manually closed, allow re-trading
     with _obs_lock:
         for ob in symbol_obs:
-            if ob.trade_taken and ob.ticket and ob.ticket not in open_tickets:
+            if ob.trade_taken and ob.ticket and str(ob.ticket) not in open_tickets:
                 # Position was manually closed — reset OB to allow new trade
                 logger.info(f"[ALGO] OB {ob.id} position manually closed — resetting for re-entry")
                 ob.trade_taken = False
@@ -1117,6 +1235,16 @@ def _scan_and_trade(symbol: str = None) -> None:
             entry = _check_entry_signal(ob, candles_exec)
             if entry:
                 logger.info(f"[ALGO] Entry signal confirmed for OB {ob.id} at {entry:.5f}")
+                _ob_debug(
+                    "ENTRY_DECISION",
+                    symbol=symbol,
+                    ob_id=ob.id,
+                    direction=ob.direction,
+                    trend_ok=True,
+                    touched=True,
+                    confirmed=True,
+                    reject_reason="",
+                )
                 _execute_ob_trade(ob, entry)
                 break  # one trade per scan
 
@@ -1131,30 +1259,100 @@ def _risk_check_loop() -> None:
     """
     global _algo_running
     logger.info("[ALGO] Risk check loop started (1s interval)")
+    last_snapshot_at = 0.0
+    snapshot_ttl_seconds = 3.0
+    cached_ticket_owner: dict[str, object] = {}
+    cached_ticket_raw: set = set()
 
     while _algo_running:
         try:
             if mt5_bridge.ensure_connected():
-                open_positions = mt5_bridge.get_open_positions()
-                open_tickets = {p.get("id") for p in open_positions}
-                logger.debug(
-                    f"[ALGO][RISK_LOOP] open_tickets={list(open_tickets)} "
-                    f"types={[type(t).__name__ for t in open_tickets]}"
-                )
+                from bot.accounts import get_all_accounts, _connect_account, _reconnect_primary
 
                 with _obs_lock:
                     all_obs = [ob for obs in _active_obs.values() for ob in obs]
-                    for ob in all_obs:
+                    tracked_open_obs = [ob for ob in all_obs if ob.ticket and ob.trade_taken]
+
+                # No active tracked OB tickets -> skip expensive account switching.
+                if not tracked_open_obs:
+                    logger.debug("[ALGO][RISK_LOOP] no tracked OB tickets; skipping snapshot")
+                    time.sleep(algo_config.risk_check_interval_seconds)
+                    continue
+
+                now = time.time()
+                if (now - last_snapshot_at) >= snapshot_ttl_seconds:
+                    # Build a cross-account open-ticket snapshot for all order_block accounts.
+                    ob_accounts = [
+                        acc for acc in get_all_accounts()
+                        if acc.enabled and "order_block" in (acc.strategy or [])
+                    ]
+                    ticket_owner: dict[str, object] = {}
+                    ticket_raw: set = set()
+
+                    if ob_accounts:
+                        for acc in ob_accounts:
+                            try:
+                                if _connect_account(acc):
+                                    positions = mt5_bridge.get_open_positions()
+                                    for p in positions:
+                                        tid = p.get("id", p.get("position_id"))
+                                        if tid is None:
+                                            continue
+                                        ticket_owner[str(tid)] = acc
+                                        ticket_raw.add(tid)
+                            except Exception as e:
+                                logger.warning(f"[ALGO][RISK_LOOP] account snapshot failed for {acc.label}: {e}")
+                        _reconnect_primary()
+                    else:
+                        # Fallback to current active connection
+                        positions = mt5_bridge.get_open_positions()
+                        for p in positions:
+                            tid = p.get("id", p.get("position_id"))
+                            if tid is None:
+                                continue
+                            ticket_owner[str(tid)] = None
+                            ticket_raw.add(tid)
+
+                    cached_ticket_owner = ticket_owner
+                    cached_ticket_raw = ticket_raw
+                    last_snapshot_at = now
+
+                open_ticket_strs = set(cached_ticket_owner.keys())
+                logger.debug(
+                    f"[ALGO][RISK_LOOP] open_tickets={list(cached_ticket_raw)} "
+                    f"types={[type(t).__name__ for t in cached_ticket_raw]}"
+                )
+
+                with _obs_lock:
+                    for ob in tracked_open_obs:
                         if ob.ticket and ob.trade_taken:
-                            in_open_set = ob.ticket in open_tickets
-                            in_open_set_str = str(ob.ticket) in {str(t) for t in open_tickets}
+                            ticket_key = str(ob.ticket)
+                            in_open_set = ob.ticket in cached_ticket_raw
+                            in_open_set_str = ticket_key in open_ticket_strs
                             logger.debug(
                                 f"[ALGO][RISK_LOOP] ticket_check ob_ticket={ob.ticket} "
                                 f"type={type(ob.ticket).__name__} strict_match={in_open_set} "
                                 f"string_match={in_open_set_str}"
                             )
-                        if ob.ticket and ob.ticket in open_tickets and ob.trade_taken:
+                            _ob_debug(
+                                "POSITION_MATCH",
+                                ob_ticket=ob.ticket,
+                                strict_match=in_open_set,
+                                string_match=in_open_set_str,
+                                open_ticket_count=len(open_ticket_strs),
+                            )
+                        if ob.ticket and ob.trade_taken and str(ob.ticket) in open_ticket_strs:
+                            owner = cached_ticket_owner.get(str(ob.ticket))
+                            if owner is not None:
+                                try:
+                                    _connect_account(owner)
+                                except Exception as e:
+                                    logger.warning(
+                                        f"[ALGO][RISK_LOOP] owner switch failed for ticket={ob.ticket}: {e}"
+                                    )
+                                    continue
                             _manage_open_trade_risk(ob)
+                    _reconnect_primary()
         except Exception as e:
             logger.error(f"[ALGO] Risk check error: {e}")
 
