@@ -149,10 +149,10 @@ def record_trade_pnl(pnl: float) -> None:
     _daily_pnl += pnl
     logger.info(f"[ALGO] Daily PnL updated: {_daily_pnl:.2f}")
 
-    if False and _daily_pnl >= algo_config.daily_profit_limit:
+    if _daily_pnl >= algo_config.daily_profit_limit:
         _daily_halted = True
         logger.warning(f"[ALGO] ✅ Daily profit limit ${algo_config.daily_profit_limit} reached — halting for today")
-    elif False and _daily_pnl <= -algo_config.daily_loss_limit:
+    elif _daily_pnl <= -algo_config.daily_loss_limit:
         _daily_halted = True
         logger.warning(f"[ALGO] ⛔ Daily loss limit ${algo_config.daily_loss_limit} reached — halting for today")
 
@@ -160,7 +160,7 @@ def record_trade_pnl(pnl: float) -> None:
 def check_drawdown() -> bool:
     """Check if max drawdown exceeded. Returns True if trading should halt."""
     global _peak_equity, _dd_halted
-    if False and _dd_halted:
+    if _dd_halted:
         return True
     # Use currently connected MT5 account equity
     account = mt5_bridge.get_account_info()
@@ -172,7 +172,7 @@ def check_drawdown() -> bool:
         _peak_equity = equity
     if _peak_equity > 0:
         drawdown = (_peak_equity - equity) / _peak_equity
-        if False and drawdown >= algo_config.max_drawdown_pct:
+        if drawdown >= algo_config.max_drawdown_pct:
             _dd_halted = True
             logger.error(f"[ALGO] ⛔ Max drawdown {drawdown:.1%} exceeded — trading halted permanently")
             return True
@@ -187,7 +187,7 @@ def check_daily_loss_realtime() -> bool:
     """
     global _daily_halted
     _reset_daily_if_needed()
-    if False and _daily_halted:
+    if _daily_halted:
         return True
 
     # Get floating PnL from open positions
@@ -199,7 +199,7 @@ def check_daily_loss_realtime() -> bool:
 
     total_pnl = _daily_pnl + floating_pnl
 
-    if False and total_pnl <= -algo_config.daily_loss_limit:
+    if total_pnl <= -algo_config.daily_loss_limit:
         _daily_halted = True
         logger.warning(
             f"[ALGO] ⛔ Daily loss limit ${algo_config.daily_loss_limit} reached "
@@ -208,7 +208,7 @@ def check_daily_loss_realtime() -> bool:
         )
         return True
 
-    if False and total_pnl >= algo_config.daily_profit_limit:
+    if total_pnl >= algo_config.daily_profit_limit:
         _daily_halted = True
         logger.warning(
             f"[ALGO] ✅ Daily profit target ${algo_config.daily_profit_limit} reached "
@@ -222,14 +222,14 @@ def check_daily_loss_realtime() -> bool:
 def can_trade() -> bool:
     """Return True if risk rules allow a new trade."""
     _reset_daily_if_needed()
-    if False and _dd_halted:
+    if _dd_halted:
         logger.debug("[ALGO] Trading halted: max drawdown exceeded")
         return False
-    if False and _daily_halted:
+    if _daily_halted:
         logger.debug("[ALGO] Trading halted: daily profit/loss limit reached")
         return False
     # Real-time check: floating + closed PnL
-    if False and check_daily_loss_realtime():
+    if check_daily_loss_realtime():
         return False
     return True
 
@@ -797,6 +797,8 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
     ob.active = False
     ob.trade_count += 1
     ob.entry_price = entry_price
+    ob._opened_at = datetime.utcnow()
+    ob._partial_closed = False
     ob.initial_sl = sl
     ob.one_r = one_r
     ob.r_stage = 0  # 0=initial, 1=breakeven, 2=locked, 3=trailing
@@ -863,14 +865,54 @@ def _manage_open_trade_risk(ob: OrderBlock) -> None:
     if not ob.ticket or not hasattr(ob, 'one_r') or ob.one_r <= 0:
         return
 
+    side = "buy" if ob.direction == "bullish" else "sell"
+    entry = ob.entry_price
+    one_r = ob.one_r
+
     # Get current price
     current_price = _get_current_price(getattr(ob, 'symbol', algo_config.symbol), side=side)
     if current_price is None:
         return
 
-    side = "buy" if ob.direction == "bullish" else "sell"
-    entry = ob.entry_price
-    one_r = ob.one_r
+    # ── Human Mind: partial close, early exit, time-based exit ───────────────
+    from bot.algo.human_mind import (
+        should_early_exit, should_time_exit, should_partial_close,
+        execute_partial_close, close_trade,
+    )
+    _ob_symbol = getattr(ob, 'symbol', algo_config.symbol)
+    candles_exec_hm = _get_candles(_ob_symbol, algo_config.execution_timeframe, 10)
+
+    # Partial close at 1R (only once per trade)
+    if not getattr(ob, '_partial_closed', False):
+        if should_partial_close(entry, current_price, one_r, side, False):
+            try:
+                _positions = mt5_bridge.get_open_positions()
+                for _pos in _positions:
+                    if _pos.get("id") == ob.ticket or _pos.get("position_id") == ob.ticket:
+                        _vol = float(_pos.get("volume", 0.01))
+                        if execute_partial_close(ob.ticket, _ob_symbol, _vol):
+                            ob._partial_closed = True
+                            logger.info(f"[ALGO] Partial close done on ticket {ob.ticket} at 1R")
+                        break
+            except Exception as _exc:
+                logger.warning(f"[ALGO] Partial close check failed: {_exc}")
+
+    # Early exit on strong reversal candle
+    if candles_exec_hm and should_early_exit(side, candles_exec_hm):
+        if close_trade(ob.ticket, _ob_symbol, side, "ALGO:REVERSAL_EXIT"):
+            ob.trade_taken = False
+            ob.active = False
+            ob.ticket = None
+            return
+
+    # Time-based exit — close stale trades with minimal profit
+    _opened_at = getattr(ob, '_opened_at', None)
+    if _opened_at and should_time_exit(_opened_at, entry, current_price, one_r, side):
+        if close_trade(ob.ticket, _ob_symbol, side, "ALGO:TIME_EXIT"):
+            ob.trade_taken = False
+            ob.active = False
+            ob.ticket = None
+            return
 
     if side == "buy":
         profit_r = (current_price - entry) / one_r
@@ -1096,6 +1138,11 @@ def _scan_and_trade(symbol: str = None) -> None:
                         if t.get("ticket") == ob.ticket or t.get("position_id") == ob.ticket:
                             pnl_val = float(t.get("pnl", 0))
                             record_trade_pnl(pnl_val)
+                            # Human mind: record result for consecutive loss tracking
+                            from bot.algo.human_mind import record_trade_result, record_sl_hit
+                            record_trade_result(pnl_val)
+                            if pnl_val < 0:
+                                record_sl_hit(ob.id)
                             logger.info(f"[ALGO] Trade {ob.ticket} closed | PnL={pnl_val:.2f}")
                             break
                 except Exception as e:
@@ -1258,6 +1305,17 @@ def _scan_and_trade(symbol: str = None) -> None:
             # Check entry signal
             entry = _check_entry_signal(ob, candles_exec)
             if entry:
+                # ── Human Mind gate ───────────────────────────────────────────
+                from bot.algo.human_mind import can_enter_trade, get_lot_multiplier
+                allowed, reason = can_enter_trade(
+                    symbol=symbol,
+                    direction=ob.direction,
+                    candles=candles_exec,
+                    open_positions=open_positions,
+                )
+                if not allowed:
+                    logger.info(f"[ALGO] Trade blocked by human_mind: {reason} | OB {ob.id}")
+                    continue
                 logger.info(f"[ALGO] Entry signal confirmed for OB {ob.id} at {entry:.5f}")
                 _ob_debug(
                     "ENTRY_DECISION",

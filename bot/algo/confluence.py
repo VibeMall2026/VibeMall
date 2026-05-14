@@ -409,6 +409,8 @@ def _execute_trade(setup: ConfluenceSetup, entry_price: float) -> bool:
     setup.active = False
     setup.trade_count += 1
     setup.entry_price = entry_price
+    setup._opened_at = datetime.utcnow()
+    setup._partial_closed = False
     setup.initial_sl = sl
     setup.one_r = one_r
     setup.r_stage = 0
@@ -461,6 +463,43 @@ def _manage_open_trade_risk(setup: ConfluenceSetup) -> None:
     side = "buy" if setup.direction == "bullish" else "sell"
     entry = setup.entry_price
     one_r = setup.one_r
+
+    # ── Human Mind: partial close, early exit, time-based exit ───────────────
+    from bot.algo.human_mind import (
+        should_early_exit, should_time_exit, should_partial_close,
+        execute_partial_close, close_trade,
+    )
+    _candles_hm = _get_candles(algo_config.symbol, algo_config.execution_timeframe, 10)
+
+    if not getattr(setup, '_partial_closed', False):
+        if should_partial_close(entry, current_price, one_r, side, False):
+            try:
+                _positions = mt5_bridge.get_open_positions()
+                for _pos in _positions:
+                    if _pos.get("id") == setup.ticket or _pos.get("position_id") == setup.ticket:
+                        _vol = float(_pos.get("volume", 0.01))
+                        if execute_partial_close(setup.ticket, algo_config.symbol, _vol):
+                            setup._partial_closed = True
+                            logger.info(f"[CONFLUENCE] Partial close done on ticket {setup.ticket} at 1R")
+                        break
+            except Exception as _exc:
+                logger.warning(f"[CONFLUENCE] Partial close check failed: {_exc}")
+
+    if _candles_hm and should_early_exit(side, _candles_hm):
+        if close_trade(setup.ticket, algo_config.symbol, side, "ALGO:REVERSAL_EXIT"):
+            setup.trade_taken = False
+            setup.active = False
+            setup.ticket = None
+            return
+
+    _opened_at = getattr(setup, '_opened_at', None)
+    if _opened_at and should_time_exit(_opened_at, entry, current_price, one_r, side):
+        if close_trade(setup.ticket, algo_config.symbol, side, "ALGO:TIME_EXIT"):
+            setup.trade_taken = False
+            setup.active = False
+            setup.ticket = None
+            return
+
     profit_r = (current_price - entry) / one_r if side == "buy" else (entry - current_price) / one_r
     new_sl = None
 
@@ -530,6 +569,10 @@ def _scan_and_trade() -> None:
                         if trade.get("ticket") == setup.ticket or trade.get("position_id") == setup.ticket:
                             pnl_val = float(trade.get("pnl", 0))
                             record_trade_pnl(pnl_val)
+                            from bot.algo.human_mind import record_trade_result, record_sl_hit
+                            record_trade_result(pnl_val)
+                            if pnl_val < 0:
+                                record_sl_hit(setup.id)
                             break
                 except Exception as exc:
                     logger.warning(f"[CONFLUENCE] Could not fetch PnL for ticket {setup.ticket}: {exc}")
@@ -613,6 +656,17 @@ def _scan_and_trade() -> None:
                 continue
             entry = _check_entry_signal(setup, candles_exec)
             if entry:
+                # ── Human Mind gate ───────────────────────────────────────────
+                from bot.algo.human_mind import can_enter_trade
+                allowed, reason = can_enter_trade(
+                    symbol=symbol,
+                    direction=setup.direction,
+                    candles=candles_exec,
+                    open_positions=open_positions,
+                )
+                if not allowed:
+                    logger.info(f"[CONFLUENCE] Trade blocked by human_mind: {reason} | {setup.id}")
+                    continue
                 _execute_trade(setup, entry)
                 break
 
