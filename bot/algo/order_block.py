@@ -70,6 +70,7 @@ class AlgoConfig:
     fvg_min_body_ratio: float = 0.6     # explosive candle body/range ratio
     ob_lookback: int = 50               # candles to scan for OBs
     trend_ema_period: int = 50          # EMA period for trend filter
+    trend_timeframe_minutes: int = 60   # higher timeframe for trend confirmation
     atr_period: int = 14                # ATR period for volatility filter
     atr_min_multiplier: float = 0.5     # min ATR as fraction of avg ATR
     max_active_obs: int = 10            # max order blocks tracked at once (2 per symbol)
@@ -85,6 +86,7 @@ class AlgoConfig:
     rr_breakeven: float = 1.0           # Move SL to breakeven at +1R
     rr_lock_profit: float = 1.5         # Lock +1R profit at +1.5R
     trail_atr_mult: float = 0.8         # ATR multiplier for trailing stop (tighter)
+    entry_max_mid_distance_atr: float = 0.35  # reject entries too far from OB midpoint
 
     # ── Dollar-Based Profit Lock ──────────────────────────────────────────────
     dollar_profit_trigger: float = 8.0   # When floating profit >= $8...
@@ -418,14 +420,22 @@ def _get_candles(symbol: str, timeframe_minutes: int, count: int) -> list[Candle
     return candles
 
 
-def _get_current_price(symbol: str) -> Optional[float]:
-    """Get current bid price from MT5 or via Windows bridge."""
+def _get_current_price(symbol: str, side: Optional[str] = None) -> Optional[float]:
+    """Get live price from MT5/bridge. side='buy' -> ask, side='sell' -> bid, else midpoint."""
     from bot import mt5_bridge as _bridge
 
     # Bridge mode
     if _bridge.USE_BRIDGE:
         try:
             response = _bridge._call_bridge(f"/price?symbol={symbol}")
+            if response and "bid" in response and "ask" in response:
+                bid = float(response["bid"])
+                ask = float(response["ask"])
+                if side == "buy":
+                    return ask
+                if side == "sell":
+                    return bid
+                return (bid + ask) / 2.0
             if response and "bid" in response:
                 return float(response["bid"])
         except Exception as e:
@@ -436,7 +446,13 @@ def _get_current_price(symbol: str) -> Optional[float]:
     if not MT5_AVAILABLE or not mt5_bridge.is_connected():
         return None
     tick = mt5.symbol_info_tick(symbol)
-    return tick.bid if tick else None
+    if not tick:
+        return None
+    if side == "buy":
+        return tick.ask
+    if side == "sell":
+        return tick.bid
+    return (tick.bid + tick.ask) / 2.0
 
 
 # ── Strategy logic ────────────────────────────────────────────────────────────
@@ -591,18 +607,22 @@ def _check_entry_signal(ob: OrderBlock, candles_exec: list[Candle]) -> Optional[
 
     last = candles_exec[-1]
     prev = candles_exec[-2]
+    atr_exec = _calculate_atr(candles_exec, min(algo_config.atr_period, max(2, len(candles_exec) - 1)))
+    max_mid_distance = (atr_exec * algo_config.entry_max_mid_distance_atr) if atr_exec else None
 
     if ob.direction == "bullish":
         # Price must have touched the OB zone
         touched_zone = last.low <= ob.midpoint and last.low >= ob.low
         # Confirmation: close above midpoint
         confirmed = last.close > ob.midpoint and prev.close <= ob.midpoint
+        momentum_ok = last.close > last.open
+        distance_ok = True if max_mid_distance is None else abs(last.close - ob.midpoint) <= max_mid_distance
         logger.debug(
             f"[ALGO][ENTRY_CHECK] {ob.id} bullish | touched={touched_zone} confirmed={confirmed} "
             f"| last(o={last.open:.5f} h={last.high:.5f} l={last.low:.5f} c={last.close:.5f}) "
             f"| prev(c={prev.close:.5f}) | zone=({ob.low:.5f}-{ob.midpoint:.5f})"
         )
-        if touched_zone and confirmed:
+        if touched_zone and confirmed and momentum_ok and distance_ok:
             _ob_debug(
                 "ENTRY_DECISION",
                 symbol=ob.symbol,
@@ -620,12 +640,14 @@ def _check_entry_signal(ob: OrderBlock, candles_exec: list[Candle]) -> Optional[
         touched_zone = last.high >= ob.midpoint and last.high <= ob.high
         # Confirmation: close below midpoint
         confirmed = last.close < ob.midpoint and prev.close >= ob.midpoint
+        momentum_ok = last.close < last.open
+        distance_ok = True if max_mid_distance is None else abs(last.close - ob.midpoint) <= max_mid_distance
         logger.debug(
             f"[ALGO][ENTRY_CHECK] {ob.id} bearish | touched={touched_zone} confirmed={confirmed} "
             f"| last(o={last.open:.5f} h={last.high:.5f} l={last.low:.5f} c={last.close:.5f}) "
             f"| prev(c={prev.close:.5f}) | zone=({ob.midpoint:.5f}-{ob.high:.5f})"
         )
-        if touched_zone and confirmed:
+        if touched_zone and confirmed and momentum_ok and distance_ok:
             _ob_debug(
                 "ENTRY_DECISION",
                 symbol=ob.symbol,
@@ -677,7 +699,7 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
         f"Entry: {entry_price:.5f} | SL: {sl:.5f} | TP: {tp:.5f} | "
         f"1R: {one_r:.5f} | OB zone: {ob.low:.5f}-{ob.high:.5f} | 50%: {ob.midpoint:.5f}"
     )
-    live_price = _get_current_price(ob.symbol)
+    live_price = _get_current_price(ob.symbol, side=side)
     logger.debug(
         f"[ALGO][ENTRY_EXEC] {ob.id} side={side} live_price={live_price} entry_price={entry_price:.5f} "
         f"direction={ob.direction} fvg={ob.fvg.direction}"
@@ -842,7 +864,7 @@ def _manage_open_trade_risk(ob: OrderBlock) -> None:
         return
 
     # Get current price
-    current_price = _get_current_price(getattr(ob, 'symbol', algo_config.symbol))
+    current_price = _get_current_price(getattr(ob, 'symbol', algo_config.symbol), side=side)
     if current_price is None:
         return
 
@@ -1110,6 +1132,7 @@ def _scan_and_trade(symbol: str = None) -> None:
 
     # Fetch analysis timeframe candles
     candles_analysis = _get_candles(symbol, algo_config.analysis_timeframe, algo_config.ob_lookback + 10)
+    candles_trend = _get_candles(symbol, algo_config.trend_timeframe_minutes, algo_config.trend_ema_period + 20)
     if len(candles_analysis) < algo_config.ob_lookback:
         logger.debug(f"[ALGO] Not enough candles for {symbol}")
         return
@@ -1127,7 +1150,8 @@ def _scan_and_trade(symbol: str = None) -> None:
         for ob in new_obs:
             if ob.id not in existing_ids:
                 # Apply trend filter
-                if not _is_trend_aligned(candles_analysis, ob.direction):
+                trend_candles = candles_trend if len(candles_trend) >= algo_config.trend_ema_period else candles_analysis
+                if not _is_trend_aligned(trend_candles, ob.direction):
                     logger.debug(f"[ALGO] OB {ob.id} filtered out — against trend")
                     _ob_debug(
                         "ENTRY_DECISION",
@@ -1218,7 +1242,7 @@ def _scan_and_trade(symbol: str = None) -> None:
                 continue
 
             # Invalidate OB if price has blown through it
-            current_price = _get_current_price(symbol)
+            current_price = _get_current_price(symbol, side="mid")
             if current_price is None:
                 continue
 
