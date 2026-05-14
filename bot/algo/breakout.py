@@ -381,17 +381,17 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
         f"Breakout level: {setup.breakout_level:.5f} | Range: {setup.range_low:.5f}-{setup.range_high:.5f}"
     )
 
-    # Execute on all accounts that have 'breakout' strategy assigned
-    from bot.accounts import get_all_accounts
+    # Execute on all accounts that have 'breakout' strategy assigned.
+    # If none are tagged 'breakout', fall back to ALL enabled accounts.
+    from bot.accounts import get_all_accounts, _connect_account, _reconnect_primary, _execute_single
 
-    breakout_accounts = [
-        acc for acc in get_all_accounts()
-        if acc.enabled and "breakout" in (acc.strategy or [])
-    ]
+    all_enabled = [acc for acc in get_all_accounts() if acc.enabled]
+    breakout_accounts = [acc for acc in all_enabled if "breakout" in (acc.strategy or [])]
+    target_accounts = breakout_accounts if breakout_accounts else all_enabled
 
-    if not breakout_accounts:
-        # Fallback: use primary mt5_bridge connection
-        logger.warning("[BREAKOUT] No accounts with 'breakout' strategy — using primary connection")
+    if not target_accounts:
+        # Last resort: use primary mt5_bridge connection
+        logger.warning("[BREAKOUT] No enabled accounts found — using primary bridge connection")
         result = mt5_bridge.open_trade(
             symbol=setup.symbol,
             side=side,
@@ -407,11 +407,10 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
             return False
         ticket = result.get("ticket")
     else:
-        # Execute on each breakout-assigned account
-        from bot.accounts import _connect_account, _reconnect_primary
-        from bot.accounts import _execute_single
+        if not breakout_accounts:
+            logger.info(f"[BREAKOUT] No 'breakout' accounts configured — executing on all {len(target_accounts)} enabled account(s)")
         results = []
-        for acc in breakout_accounts:
+        for acc in target_accounts:
             try:
                 if _connect_account(acc):
                     r = _execute_single(
@@ -432,12 +431,12 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
                 logger.error(f"[BREAKOUT] Trade error on {acc.label}: {_e}")
                 results.append({"success": False, "message": str(_e), "login": acc.login, "account_label": acc.label})
         _reconnect_primary()
-        breakout_logins = {acc.login for acc in breakout_accounts}
-        relevant = [r for r in results if r.get("login") in breakout_logins]
+        target_logins = {acc.login for acc in target_accounts}
+        relevant = [r for r in results if r.get("login") in target_logins]
         successes = [r for r in relevant if r.get("success")]
 
         if not successes:
-            logger.error(f"[BREAKOUT] Trade failed on all breakout accounts: {relevant}")
+            logger.error(f"[BREAKOUT] Trade failed on all accounts: {relevant}")
             return False
 
         ticket = successes[0].get("ticket")
@@ -538,7 +537,7 @@ def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
         new_sl = r_sl if new_sl is None else (max(new_sl, r_sl) if side == "buy" else min(new_sl, r_sl))
 
     if setup.r_stage >= 2:
-        candles = _get_candles(algo_config.symbol, algo_config.execution_timeframe, 20)
+        candles = _get_candles(setup.symbol, algo_config.execution_timeframe, 20)
         atr = _calculate_atr(candles, algo_config.atr_period) if candles else None
         if atr:
             trail_sl = current_price - atr * algo_config.trail_atr_mult if side == "buy" else current_price + atr * algo_config.trail_atr_mult
@@ -644,7 +643,11 @@ def _scan_and_trade(symbol: str = None) -> None:
 
     open_positions = mt5_bridge.get_open_positions()
     open_tickets = {p.get("id") for p in open_positions}
-    algo_positions = [p for p in open_positions if "ALGO:" in str(p.get("comment", ""))]
+    # Count algo positions for THIS symbol only — don't block other symbols
+    algo_positions = [
+        p for p in open_positions
+        if "ALGO:" in str(p.get("comment", "")) and p.get("symbol") == symbol
+    ]
 
     with _breakout_lock:
         for setup in symbol_setups:
