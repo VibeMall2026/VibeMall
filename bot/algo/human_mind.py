@@ -626,3 +626,40 @@ def get_status() -> dict:
             "cooldown_minutes": cfg.cooldown_after_loss_minutes,
             "consec_loss_pause_at": cfg.consec_loss_pause_at,
         }
+
+
+# ── Feature: Total portfolio profit close ────────────────────────────────────
+
+# Total combined floating profit threshold — close ALL trades when reached
+TOTAL_PROFIT_CLOSE_USD: float = 7.0   # Close all when combined profit >= $7
+
+
+def check_and_close_all_on_profit_target(open_positions: list) -> bool:
+    """
+    If total floating profit across ALL open positions >= TOTAL_PROFIT_CLOSE_USD,
+    close every open position immediately.
+    Returns True if trades were closed.
+    """
+    if not open_positions:
+        return False
+
+    total_floating = sum(float(p.get("pnl", 0)) for p in open_positions)
+    if total_floating < TOTAL_PROFIT_CLOSE_USD:
+        return False
+
+    logger.success(
+        f"[HUMAN_MIND] 🎯 Total profit ${total_floating:.2f} >= ${TOTAL_PROFIT_CLOSE_USD} "
+        f"— closing ALL {len(open_positions)} open trades"
+    )
+
+    closed_count = 0
+    for pos in open_positions:
+        ticket = pos.get("id") or pos.get("position_id")
+        symbol = pos.get("symbol", "")
+        side = pos.get("side", "buy")
+        if ticket and symbol:
+            if close_trade(int(ticket), symbol, side, "ALGO:PROFIT_TARGET"):
+                closed_count += 1
+
+    logger.info(f"[HUMAN_MIND] Closed {closed_count}/{len(open_positions)} trades on profit target")
+    return closed_count > 0

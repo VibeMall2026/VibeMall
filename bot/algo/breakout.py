@@ -373,6 +373,30 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
     sl = setup.sl_level
     tp = setup.tp_level(entry_price, algo_config.risk_reward_ratio)
     side = "buy" if setup.direction == "bullish" else "sell"
+
+    # ── $10 SL / $10 TP hard cap ──────────────────────────────────────────────
+    try:
+        _cap_usd = 10.0
+        if MT5_AVAILABLE and mt5_bridge.is_connected():
+            import MetaTrader5 as _mt5
+            _sym = _mt5.symbol_info(setup.symbol)
+            _tick = _mt5.symbol_info_tick(setup.symbol)
+            if _sym and _tick:
+                _price = _tick.ask if side == "buy" else _tick.bid
+                _lot = max(_sym.volume_min, 0.01)
+                _order_type = _mt5.ORDER_TYPE_BUY if side == "buy" else _mt5.ORDER_TYPE_SELL
+                _dollar_per_unit = abs(_mt5.order_calc_profit(_order_type, setup.symbol, _lot, _price, _price + _sym.trade_tick_size) or 0)
+                if _dollar_per_unit > 0:
+                    _max_dist = _cap_usd * (_sym.trade_tick_size / _dollar_per_unit)
+                    if abs(entry_price - sl) > _max_dist:
+                        sl = entry_price - _max_dist if side == "buy" else entry_price + _max_dist
+                        logger.info(f"[BREAKOUT] SL capped to ${_cap_usd}: {sl:.5f}")
+                    if abs(tp - entry_price) > _max_dist:
+                        tp = entry_price + _max_dist if side == "buy" else entry_price - _max_dist
+                        logger.info(f"[BREAKOUT] TP capped to ${_cap_usd}: {tp:.5f}")
+    except Exception as _cap_exc:
+        logger.warning(f"[BREAKOUT] $10 cap calculation failed: {_cap_exc}")
+
     one_r = abs(entry_price - sl)
 
     logger.info(
@@ -547,6 +571,21 @@ def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
 
     profit_r = (current_price - entry) / one_r if side == "buy" else (entry - current_price) / one_r
     new_sl = None
+
+    # ── SL Trail: starts from ANY positive profit ─────────────────────────────
+    _candles_trail = _get_candles(_sym, algo_config.execution_timeframe, 20)
+    _atr_trail = _calculate_atr(_candles_trail, algo_config.atr_period) if _candles_trail else None
+    if profit_r > 0 and _atr_trail:
+        if side == "buy":
+            _trail_sl = current_price - _atr_trail * algo_config.trail_atr_mult
+            if _trail_sl > setup.initial_sl:
+                new_sl = _trail_sl
+                setup.r_stage = 3
+        else:
+            _trail_sl = current_price + _atr_trail * algo_config.trail_atr_mult
+            if _trail_sl < setup.initial_sl:
+                new_sl = _trail_sl
+                setup.r_stage = 3
 
     if algo_config.dollar_lock_enabled and not setup.dollar_lock_applied:
         try:
@@ -751,6 +790,22 @@ def _risk_check_loop() -> None:
         try:
             if mt5_bridge.ensure_connected():
                 open_positions = mt5_bridge.get_open_positions()
+                # ── Total portfolio profit close check ────────────────────────
+                try:
+                    from bot.algo.human_mind import check_and_close_all_on_profit_target
+                    if check_and_close_all_on_profit_target(open_positions):
+                        with _breakout_lock:
+                            for _setups in _active_breakouts.values():
+                                for _s in _setups:
+                                    if _s.trade_taken:
+                                        _s.trade_taken = False
+                                        _s.active = False
+                                        _s.ticket = None
+                        time.sleep(algo_config.risk_check_interval_seconds)
+                        continue
+                except Exception as _pte:
+                    logger.warning(f"[BREAKOUT] Profit target close check failed: {_pte}")
+
                 open_tickets = {p.get("id") for p in open_positions}
                 with _breakout_lock:
                     all_setups = [s for setups in _active_breakouts.values() for s in setups]

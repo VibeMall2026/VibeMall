@@ -691,6 +691,43 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
     tp = ob.tp_level(entry_price, algo_config.risk_reward_ratio)
     side = "buy" if ob.direction == "bullish" else "sell"
 
+    # ── $10 SL / $10 TP hard cap ──────────────────────────────────────────────
+    # Cap SL and TP so that max loss = $10 and max profit = $10 per trade.
+    # We calculate the price distance that equals $10 using live account data.
+    try:
+        _cap_usd = 10.0
+        _account = mt5_bridge.get_account_info()
+        _balance = _account.get("balance", 1000.0)
+        # Use risk_percent to get lot size estimate, then derive $10 price distance
+        # Simpler: cap the SL/TP distance to a fixed pip equivalent
+        # We use the bridge/MT5 to get tick value if available, else use a safe fallback
+        _sl_dist = abs(entry_price - sl)
+        _tp_dist = abs(tp - entry_price)
+
+        # Get actual dollar value of 1 pip for this symbol via open_trade dry-run approach
+        # Fallback: use ratio of $10 / current SL dollar value to scale distances
+        if MT5_AVAILABLE and mt5_bridge.is_connected():
+            import MetaTrader5 as _mt5
+            _sym = _mt5.symbol_info(ob.symbol)
+            _tick = _mt5.symbol_info_tick(ob.symbol)
+            if _sym and _tick:
+                _price = _tick.ask if side == "buy" else _tick.bid
+                _lot = max(_sym.volume_min, 0.01)
+                _order_type = _mt5.ORDER_TYPE_BUY if side == "buy" else _mt5.ORDER_TYPE_SELL
+                # dollar per 1 price unit at min lot
+                _dollar_per_unit = abs(_mt5.order_calc_profit(_order_type, ob.symbol, _lot, _price, _price + _sym.trade_tick_size) or 0)
+                if _dollar_per_unit > 0:
+                    _units_per_dollar = _sym.trade_tick_size / _dollar_per_unit
+                    _max_dist = _cap_usd * _units_per_dollar
+                    if _sl_dist > _max_dist:
+                        sl = entry_price - _max_dist if side == "buy" else entry_price + _max_dist
+                        logger.info(f"[ALGO] SL capped to ${_cap_usd} distance: {sl:.5f}")
+                    if _tp_dist > _max_dist:
+                        tp = entry_price + _max_dist if side == "buy" else entry_price - _max_dist
+                        logger.info(f"[ALGO] TP capped to ${_cap_usd} distance: {tp:.5f}")
+    except Exception as _cap_exc:
+        logger.warning(f"[ALGO] $10 cap calculation failed, using OB levels: {_cap_exc}")
+
     # 1R = distance between entry and stop loss
     one_r = abs(entry_price - sl)
 
@@ -927,7 +964,27 @@ def _manage_open_trade_risk(ob: OrderBlock) -> None:
     )
     r_stage_before = ob.r_stage
 
-    # ── Dollar-based profit lock (checked first, independent of R stages) ────
+    # ── SL Trail: starts from ANY positive profit ─────────────────────────────
+    # As soon as floating profit > 0, trail SL using ATR.
+    # This replaces the old R-stage system with a continuous trail.
+    candles_trail = _get_candles(getattr(ob, 'symbol', algo_config.symbol), algo_config.execution_timeframe, 20)
+    atr_trail = _calculate_atr(candles_trail, algo_config.atr_period) if candles_trail else None
+
+    if profit_r > 0 and atr_trail:
+        if side == "buy":
+            trail_sl = current_price - atr_trail * algo_config.trail_atr_mult
+            # Only move SL up, never down
+            if trail_sl > ob.initial_sl:
+                new_sl = trail_sl
+                ob.r_stage = 3
+        else:
+            trail_sl = current_price + atr_trail * algo_config.trail_atr_mult
+            # Only move SL down, never up
+            if trail_sl < ob.initial_sl:
+                new_sl = trail_sl
+                ob.r_stage = 3
+
+    # ── Dollar-based profit lock (independent safety net) ────────────────────
     if (
         algo_config.dollar_lock_enabled
         and not ob.dollar_lock_applied
@@ -1334,6 +1391,7 @@ def _scan_and_trade(symbol: str = None) -> None:
 def _risk_check_loop() -> None:
     """
     High-frequency loop (every 1 second) for open trade risk management:
+    - Total portfolio profit close (all trades close when combined profit >= $7)
     - Dollar-based profit lock ($15 → lock $10)
     - R-multiple trailing stop updates (breakeven, lock, trail)
 
@@ -1350,6 +1408,24 @@ def _risk_check_loop() -> None:
         try:
             if mt5_bridge.ensure_connected():
                 from bot.accounts import get_all_accounts, _connect_account, _reconnect_primary
+
+                # ── Total portfolio profit close check ────────────────────────
+                try:
+                    from bot.algo.human_mind import check_and_close_all_on_profit_target
+                    _all_positions = mt5_bridge.get_open_positions()
+                    if check_and_close_all_on_profit_target(_all_positions):
+                        # All trades closed — reset all tracked OBs
+                        with _obs_lock:
+                            for _obs_list in _active_obs.values():
+                                for _ob in _obs_list:
+                                    if _ob.trade_taken:
+                                        _ob.trade_taken = False
+                                        _ob.active = False
+                                        _ob.ticket = None
+                        time.sleep(algo_config.risk_check_interval_seconds)
+                        continue
+                except Exception as _pte:
+                    logger.warning(f"[ALGO] Profit target close check failed: {_pte}")
 
                 with _obs_lock:
                     all_obs = [ob for obs in _active_obs.values() for ob in obs]
