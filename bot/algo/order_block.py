@@ -693,19 +693,12 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
 
     # ── $10 SL / $10 TP hard cap ──────────────────────────────────────────────
     # Cap SL and TP so that max loss = $10 and max profit = $10 per trade.
-    # We calculate the price distance that equals $10 using live account data.
     try:
         _cap_usd = 10.0
-        _account = mt5_bridge.get_account_info()
-        _balance = _account.get("balance", 1000.0)
-        # Use risk_percent to get lot size estimate, then derive $10 price distance
-        # Simpler: cap the SL/TP distance to a fixed pip equivalent
-        # We use the bridge/MT5 to get tick value if available, else use a safe fallback
         _sl_dist = abs(entry_price - sl)
         _tp_dist = abs(tp - entry_price)
+        _max_dist = None
 
-        # Get actual dollar value of 1 pip for this symbol via open_trade dry-run approach
-        # Fallback: use ratio of $10 / current SL dollar value to scale distances
         if MT5_AVAILABLE and mt5_bridge.is_connected():
             import MetaTrader5 as _mt5
             _sym = _mt5.symbol_info(ob.symbol)
@@ -714,17 +707,33 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
                 _price = _tick.ask if side == "buy" else _tick.bid
                 _lot = max(_sym.volume_min, 0.01)
                 _order_type = _mt5.ORDER_TYPE_BUY if side == "buy" else _mt5.ORDER_TYPE_SELL
-                # dollar per 1 price unit at min lot
                 _dollar_per_unit = abs(_mt5.order_calc_profit(_order_type, ob.symbol, _lot, _price, _price + _sym.trade_tick_size) or 0)
                 if _dollar_per_unit > 0:
-                    _units_per_dollar = _sym.trade_tick_size / _dollar_per_unit
-                    _max_dist = _cap_usd * _units_per_dollar
-                    if _sl_dist > _max_dist:
-                        sl = entry_price - _max_dist if side == "buy" else entry_price + _max_dist
-                        logger.info(f"[ALGO] SL capped to ${_cap_usd} distance: {sl:.5f}")
-                    if _tp_dist > _max_dist:
-                        tp = entry_price + _max_dist if side == "buy" else entry_price - _max_dist
-                        logger.info(f"[ALGO] TP capped to ${_cap_usd} distance: {tp:.5f}")
+                    _max_dist = _cap_usd * (_sym.trade_tick_size / _dollar_per_unit)
+        elif mt5_bridge.USE_BRIDGE:
+            # Bridge mode: use account balance + symbol tick info from bridge
+            _price_resp = mt5_bridge._call_bridge(f"/price?symbol={ob.symbol}")
+            if _price_resp:
+                _mid = (_price_resp.get("bid", 0) + _price_resp.get("ask", 0)) / 2
+                # Approximate: for XAUUSD $1 ≈ 0.01 price units at 0.01 lot
+                # Use a conservative fixed ratio per symbol
+                _symbol_dollar_per_point = {
+                    "XAUUSD": 0.01,   # $1 per $0.01 move at 0.01 lot
+                    "EURUSD": 0.1,    # $1 per 0.0001 move at 0.01 lot → 0.0001
+                    "USDJPY": 0.1,
+                    "GBPUSD": 0.1,
+                    "USDCHF": 0.1,
+                }
+                _ratio = _symbol_dollar_per_point.get(ob.symbol, 0.1)
+                _max_dist = _cap_usd * _ratio
+
+        if _max_dist and _max_dist > 0:
+            if _sl_dist > _max_dist:
+                sl = entry_price - _max_dist if side == "buy" else entry_price + _max_dist
+                logger.info(f"[ALGO] SL capped to ${_cap_usd}: {sl:.5f}")
+            if _tp_dist > _max_dist:
+                tp = entry_price + _max_dist if side == "buy" else entry_price - _max_dist
+                logger.info(f"[ALGO] TP capped to ${_cap_usd}: {tp:.5f}")
     except Exception as _cap_exc:
         logger.warning(f"[ALGO] $10 cap calculation failed, using OB levels: {_cap_exc}")
 

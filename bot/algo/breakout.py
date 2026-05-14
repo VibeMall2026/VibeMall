@@ -377,6 +377,10 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
     # ── $10 SL / $10 TP hard cap ──────────────────────────────────────────────
     try:
         _cap_usd = 10.0
+        _sl_dist = abs(entry_price - sl)
+        _tp_dist = abs(tp - entry_price)
+        _max_dist = None
+
         if MT5_AVAILABLE and mt5_bridge.is_connected():
             import MetaTrader5 as _mt5
             _sym = _mt5.symbol_info(setup.symbol)
@@ -388,12 +392,19 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
                 _dollar_per_unit = abs(_mt5.order_calc_profit(_order_type, setup.symbol, _lot, _price, _price + _sym.trade_tick_size) or 0)
                 if _dollar_per_unit > 0:
                     _max_dist = _cap_usd * (_sym.trade_tick_size / _dollar_per_unit)
-                    if abs(entry_price - sl) > _max_dist:
-                        sl = entry_price - _max_dist if side == "buy" else entry_price + _max_dist
-                        logger.info(f"[BREAKOUT] SL capped to ${_cap_usd}: {sl:.5f}")
-                    if abs(tp - entry_price) > _max_dist:
-                        tp = entry_price + _max_dist if side == "buy" else entry_price - _max_dist
-                        logger.info(f"[BREAKOUT] TP capped to ${_cap_usd}: {tp:.5f}")
+        elif mt5_bridge.USE_BRIDGE:
+            _symbol_dollar_per_point = {
+                "XAUUSD": 0.01, "EURUSD": 0.1, "USDJPY": 0.1, "GBPUSD": 0.1, "USDCHF": 0.1,
+            }
+            _max_dist = _cap_usd * _symbol_dollar_per_point.get(setup.symbol, 0.1)
+
+        if _max_dist and _max_dist > 0:
+            if _sl_dist > _max_dist:
+                sl = entry_price - _max_dist if side == "buy" else entry_price + _max_dist
+                logger.info(f"[BREAKOUT] SL capped to ${_cap_usd}: {sl:.5f}")
+            if _tp_dist > _max_dist:
+                tp = entry_price + _max_dist if side == "buy" else entry_price - _max_dist
+                logger.info(f"[BREAKOUT] TP capped to ${_cap_usd}: {tp:.5f}")
     except Exception as _cap_exc:
         logger.warning(f"[BREAKOUT] $10 cap calculation failed: {_cap_exc}")
 

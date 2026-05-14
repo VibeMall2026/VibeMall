@@ -42,8 +42,8 @@ class AlgoConfig:
     trend_ema_period: int = 20
     atr_period: int = 14
     atr_min_multiplier: float = 0.4
-    breakout_buffer_atr: float = 0.05
-    fvg_min_body_ratio: float = 0.5
+    breakout_buffer_atr: float = 0.02
+    fvg_min_body_ratio: float = 0.4
     max_active_setups: int = 5
     max_setup_age_bars: int = 30
     scan_interval_seconds: int = 60
@@ -256,81 +256,130 @@ def _is_volatility_sufficient(candles: list[Candle]) -> bool:
 
 
 def _detect_setups(candles: list[Candle], bar_index: int) -> list[ConfluenceSetup]:
+    """
+    Detect OB + FVG + Breakout confluence setups.
+
+    2-phase approach (realistic):
+    Phase 1 — Breakout: scan last N candles for a strong breakout above/below prior range.
+    Phase 2 — OB zone: the candle just before the explosive breakout candle is the Order Block.
+
+    Entry is triggered separately in _check_entry_signal when price retests the OB zone.
+    """
     setups: list[ConfluenceSetup] = []
     if len(candles) < max(algo_config.breakout_lookback + 3, algo_config.atr_period + 3):
         return setups
 
-    c1 = candles[-3]
-    c2 = candles[-2]
-    c3 = candles[-1]
     atr = _calculate_atr(candles, algo_config.atr_period)
     if atr is None:
         return setups
 
-    prior_window = candles[-(algo_config.breakout_lookback + 3):-3]
-    if len(prior_window) < algo_config.breakout_lookback:
-        return setups
-
-    prior_high = max(c.high for c in prior_window)
-    prior_low = min(c.low for c in prior_window)
     buffer = atr * algo_config.breakout_buffer_atr
 
-    if (
-        c2.is_bullish
-        and c2.body_ratio >= algo_config.fvg_min_body_ratio
-        and c3.low > c1.high
-        and c3.close > prior_high + buffer
-    ):
-        setups.append(
-            ConfluenceSetup(
-                id=f"bullish_{c3.time.strftime('%Y%m%d%H%M')}",
-                direction="bullish",
-                ob_high=c1.high,
-                ob_low=c1.low,
-                ob_mid=(c1.high + c1.low) / 2,
-                breakout_level=prior_high,
-                time=c3.time,
-                created_bar=bar_index,
-            )
-        )
+    # Scan last few candles for breakout (not just the last 3)
+    scan_start = max(algo_config.breakout_lookback + 2, len(candles) - 5)
+    for idx in range(scan_start, len(candles)):
+        c_break = candles[idx]          # breakout candle
+        c_ob = candles[idx - 1]         # order block = candle before breakout
+        prior_window = candles[max(0, idx - algo_config.breakout_lookback - 1):idx - 1]
 
-    if (
-        c2.is_bearish
-        and c2.body_ratio >= algo_config.fvg_min_body_ratio
-        and c3.high < c1.low
-        and c3.close < prior_low - buffer
-    ):
-        setups.append(
-            ConfluenceSetup(
-                id=f"bearish_{c3.time.strftime('%Y%m%d%H%M')}",
-                direction="bearish",
-                ob_high=c1.high,
-                ob_low=c1.low,
-                ob_mid=(c1.high + c1.low) / 2,
-                breakout_level=prior_low,
-                time=c3.time,
-                created_bar=bar_index,
+        if len(prior_window) < algo_config.breakout_lookback:
+            continue
+
+        prior_high = max(c.high for c in prior_window)
+        prior_low = min(c.low for c in prior_window)
+
+        # ── Bullish breakout ──────────────────────────────────────────────────
+        if (
+            c_break.is_bullish
+            and c_break.body_ratio >= algo_config.fvg_min_body_ratio
+            and c_break.close > prior_high + buffer
+        ):
+            setup_id = f"bullish_{c_break.time.strftime('%Y%m%d%H%M')}"
+            setups.append(
+                ConfluenceSetup(
+                    id=setup_id,
+                    direction="bullish",
+                    ob_high=c_ob.high,
+                    ob_low=c_ob.low,
+                    ob_mid=(c_ob.high + c_ob.low) / 2,
+                    breakout_level=prior_high,
+                    time=c_break.time,
+                    created_bar=bar_index,
+                )
             )
-        )
+            logger.debug(
+                f"[CONFLUENCE] Bullish breakout detected | "
+                f"OB: {c_ob.low:.5f}-{c_ob.high:.5f} | "
+                f"Breakout level: {prior_high:.5f} | "
+                f"Close: {c_break.close:.5f}"
+            )
+
+        # ── Bearish breakout ──────────────────────────────────────────────────
+        elif (
+            c_break.is_bearish
+            and c_break.body_ratio >= algo_config.fvg_min_body_ratio
+            and c_break.close < prior_low - buffer
+        ):
+            setup_id = f"bearish_{c_break.time.strftime('%Y%m%d%H%M')}"
+            setups.append(
+                ConfluenceSetup(
+                    id=setup_id,
+                    direction="bearish",
+                    ob_high=c_ob.high,
+                    ob_low=c_ob.low,
+                    ob_mid=(c_ob.high + c_ob.low) / 2,
+                    breakout_level=prior_low,
+                    time=c_break.time,
+                    created_bar=bar_index,
+                )
+            )
+            logger.debug(
+                f"[CONFLUENCE] Bearish breakout detected | "
+                f"OB: {c_ob.low:.5f}-{c_ob.high:.5f} | "
+                f"Breakout level: {prior_low:.5f} | "
+                f"Close: {c_break.close:.5f}"
+            )
 
     return setups
 
 
 def _check_entry_signal(setup: ConfluenceSetup, candles_exec: list[Candle]) -> Optional[float]:
+    """
+    Entry signal: price retraces into OB zone and shows rejection.
+
+    Bullish: price touches OB zone (between ob_low and ob_high) and closes bullish
+    Bearish: price touches OB zone and closes bearish
+
+    Relaxed from strict midpoint cross to zone touch + directional close.
+    """
     if len(candles_exec) < 2:
         return None
     last = candles_exec[-1]
     prev = candles_exec[-2]
 
     if setup.direction == "bullish":
-        touched = last.low <= setup.ob_mid and last.low >= setup.ob_low
-        confirmed = last.close > setup.ob_mid and prev.close <= setup.ob_mid
-        if touched and confirmed:
+        # Price must touch the OB zone (low dips into zone)
+        in_zone = last.low <= setup.ob_high and last.low >= setup.ob_low
+        # Confirmation: close above OB midpoint with bullish candle
+        confirmed = last.close >= setup.ob_mid and last.is_bullish
+        if in_zone and confirmed:
+            logger.debug(
+                f"[CONFLUENCE] Bullish entry signal | "
+                f"OB zone: {setup.ob_low:.5f}-{setup.ob_high:.5f} | "
+                f"last.low={last.low:.5f} last.close={last.close:.5f}"
+            )
             return last.close
     else:
-        touched = last.high >= setup.ob_mid and last.high <= setup.ob_high
-        confirmed = last.close < setup.ob_mid and prev.close >= setup.ob_mid
-        if touched and confirmed:
+        # Price must touch the OB zone (high reaches into zone)
+        in_zone = last.high >= setup.ob_low and last.high <= setup.ob_high
+        # Confirmation: close below OB midpoint with bearish candle
+        confirmed = last.close <= setup.ob_mid and last.is_bearish
+        if in_zone and confirmed:
+            logger.debug(
+                f"[CONFLUENCE] Bearish entry signal | "
+                f"OB zone: {setup.ob_low:.5f}-{setup.ob_high:.5f} | "
+                f"last.high={last.high:.5f} last.close={last.close:.5f}"
+            )
             return last.close
     return None
 
@@ -351,6 +400,10 @@ def _execute_trade(setup: ConfluenceSetup, entry_price: float) -> bool:
     # ── $10 SL / $10 TP hard cap ──────────────────────────────────────────────
     try:
         _cap_usd = 10.0
+        _sl_dist = abs(entry_price - sl)
+        _tp_dist = abs(tp - entry_price)
+        _max_dist = None
+
         if MT5_AVAILABLE and mt5_bridge.is_connected():
             import MetaTrader5 as _mt5
             _sym_info = _mt5.symbol_info(algo_config.symbol)
@@ -362,12 +415,19 @@ def _execute_trade(setup: ConfluenceSetup, entry_price: float) -> bool:
                 _dollar_per_unit = abs(_mt5.order_calc_profit(_order_type, algo_config.symbol, _lot, _price, _price + _sym_info.trade_tick_size) or 0)
                 if _dollar_per_unit > 0:
                     _max_dist = _cap_usd * (_sym_info.trade_tick_size / _dollar_per_unit)
-                    if abs(entry_price - sl) > _max_dist:
-                        sl = entry_price - _max_dist if side == "buy" else entry_price + _max_dist
-                        logger.info(f"[CONFLUENCE] SL capped to ${_cap_usd}: {sl:.5f}")
-                    if abs(tp - entry_price) > _max_dist:
-                        tp = entry_price + _max_dist if side == "buy" else entry_price - _max_dist
-                        logger.info(f"[CONFLUENCE] TP capped to ${_cap_usd}: {tp:.5f}")
+        elif mt5_bridge.USE_BRIDGE:
+            _symbol_dollar_per_point = {
+                "XAUUSD": 0.01, "EURUSD": 0.1, "USDJPY": 0.1, "GBPUSD": 0.1, "USDCHF": 0.1,
+            }
+            _max_dist = _cap_usd * _symbol_dollar_per_point.get(algo_config.symbol, 0.1)
+
+        if _max_dist and _max_dist > 0:
+            if _sl_dist > _max_dist:
+                sl = entry_price - _max_dist if side == "buy" else entry_price + _max_dist
+                logger.info(f"[CONFLUENCE] SL capped to ${_cap_usd}: {sl:.5f}")
+            if _tp_dist > _max_dist:
+                tp = entry_price + _max_dist if side == "buy" else entry_price - _max_dist
+                logger.info(f"[CONFLUENCE] TP capped to ${_cap_usd}: {tp:.5f}")
     except Exception as _cap_exc:
         logger.warning(f"[CONFLUENCE] $10 cap calculation failed: {_cap_exc}")
 
