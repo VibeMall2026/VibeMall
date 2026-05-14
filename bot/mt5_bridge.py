@@ -501,11 +501,16 @@ def get_trade_history(limit: int = 50) -> list[dict]:
     if not deals:
         return []
 
-    # Build map of position_id → comment from opening deals
+    # Build map of position_id → comment and side from opening deals
     position_comments: dict = {}
+    position_sides: dict = {}
     for d in deals:
-        if d.entry == mt5.DEAL_ENTRY_IN and d.comment:
-            position_comments[d.position_id] = d.comment
+        if d.entry == mt5.DEAL_ENTRY_IN:
+            if d.comment:
+                position_comments[d.position_id] = d.comment
+            # DEAL_TYPE_BUY (0) = opening a BUY position
+            # DEAL_TYPE_SELL (1) = opening a SELL position
+            position_sides[d.position_id] = "buy" if d.type == mt5.DEAL_TYPE_BUY else "sell"
 
     result = []
     for d in sorted(deals, key=lambda x: x.time, reverse=True):
@@ -544,7 +549,7 @@ def get_trade_history(limit: int = 50) -> list[dict]:
             "ticket": d.ticket,
             "position_id": d.position_id,
             "symbol": d.symbol,
-            "side": "buy" if d.type == mt5.DEAL_TYPE_BUY else "sell",
+            "side": position_sides.get(d.position_id, "buy" if d.type == mt5.DEAL_TYPE_SELL else "sell"),
             "volume": d.volume,
             "entry": d.price,
             "sl": "-",

@@ -355,6 +355,18 @@ def get_history(limit: int = 50, _: str = Security(verify_api_key)):
     deals = mt5.history_deals_get(from_date, datetime.now())
     if not deals:
         return []
+
+    # Build map of position_id → (comment, side) from opening deals
+    position_comments: dict = {}
+    position_sides: dict = {}
+    for d in deals:
+        if d.entry == mt5.DEAL_ENTRY_IN:
+            if d.comment:
+                position_comments[d.position_id] = d.comment
+            # DEAL_TYPE_BUY (0) = opening a BUY position
+            # DEAL_TYPE_SELL (1) = opening a SELL position
+            position_sides[d.position_id] = "buy" if d.type == mt5.DEAL_TYPE_BUY else "sell"
+
     result = []
     for d in sorted(deals, key=lambda x: x.time, reverse=True):
         if d.entry == mt5.DEAL_ENTRY_IN:
@@ -363,16 +375,19 @@ def get_history(limit: int = 50, _: str = Security(verify_api_key)):
             continue
         if d.profit == 0 and d.volume == 0:
             continue
+        comment = position_comments.get(d.position_id, "") or d.comment or ""
+        # Use opening deal side; fallback: closing DEAL_TYPE_SELL means it was a BUY position
+        side = position_sides.get(d.position_id, "buy" if d.type == mt5.DEAL_TYPE_SELL else "sell")
         result.append({
             "ticket": d.ticket,
             "symbol": d.symbol,
-            "side": "buy" if d.type == mt5.DEAL_TYPE_BUY else "sell",
+            "side": side,
             "volume": d.volume,
             "entry": d.price,
             "pnl": d.profit,
             "status": "win" if d.profit > 0 else "loss" if d.profit < 0 else "breakeven",
             "opened": datetime.utcfromtimestamp(d.time).strftime("%Y-%m-%d %H:%M:%S"),
-            "comment": d.comment,
+            "comment": comment,
         })
         if len(result) >= limit:
             break
