@@ -1,7 +1,7 @@
 """
 Risk manager — checks all limits before allowing a trade.
 """
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from loguru import logger
 from bot.state import state
@@ -9,7 +9,7 @@ from bot import config
 from bot import mt5_bridge
 
 
-def _trade_date(value) -> datetime.date | None:
+def _trade_date(value) -> date | None:
     """Parse trade timestamps from either formatted strings or unix seconds."""
     if value in (None, ""):
         return None
