@@ -9,6 +9,32 @@ from bot import config
 from bot import mt5_bridge
 
 
+def _trade_date(value) -> datetime.date | None:
+    """Parse trade timestamps from either formatted strings or unix seconds."""
+    if value in (None, ""):
+        return None
+
+    text = str(value).strip()
+    if not text:
+        return None
+
+    try:
+        if text.isdigit():
+            return datetime.fromtimestamp(int(text), tz=timezone.utc).date()
+    except Exception:
+        pass
+
+    for parser in (
+        lambda v: datetime.fromisoformat(v.replace("Z", "+00:00")),
+        lambda v: datetime.strptime(v, "%Y-%m-%d %H:%M:%S"),
+    ):
+        try:
+            return parser(text).date()
+        except Exception:
+            continue
+    return None
+
+
 def can_trade(symbol: str) -> tuple[bool, str]:
     """
     Returns (allowed, reason).
@@ -47,8 +73,8 @@ def can_trade(symbol: str) -> tuple[bool, str]:
             today = datetime.now(timezone.utc).date()
             today_pnl = 0.0
             for trade in recent_trades:
-                opened = str(trade.get("opened", ""))
-                if opened.startswith(str(today)):
+                trade_day = _trade_date(trade.get("opened"))
+                if trade_day == today:
                     today_pnl += float(trade.get("pnl", 0) or 0)
             loss_pct = abs(today_pnl) / balance * 100
             if today_pnl < 0 and loss_pct >= state.max_daily_loss_percent:

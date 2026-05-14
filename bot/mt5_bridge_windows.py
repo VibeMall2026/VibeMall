@@ -356,7 +356,13 @@ def get_history(limit: int = 50, _: str = Security(verify_api_key)):
     if not deals:
         return []
     result = []
-    for d in sorted(deals, key=lambda x: x.time, reverse=True)[:limit]:
+    for d in sorted(deals, key=lambda x: x.time, reverse=True):
+        if d.entry == mt5.DEAL_ENTRY_IN:
+            continue
+        if not d.symbol:
+            continue
+        if d.profit == 0 and d.volume == 0:
+            continue
         result.append({
             "ticket": d.ticket,
             "symbol": d.symbol,
@@ -365,9 +371,11 @@ def get_history(limit: int = 50, _: str = Security(verify_api_key)):
             "entry": d.price,
             "pnl": d.profit,
             "status": "win" if d.profit > 0 else "loss" if d.profit < 0 else "breakeven",
-            "opened": str(d.time),
+            "opened": datetime.utcfromtimestamp(d.time).strftime("%Y-%m-%d %H:%M:%S"),
             "comment": d.comment,
         })
+        if len(result) >= limit:
+            break
     return result
 
 

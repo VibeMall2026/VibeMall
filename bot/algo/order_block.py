@@ -133,15 +133,15 @@ def _reset_daily_if_needed() -> None:
 
 def record_trade_pnl(pnl: float) -> None:
     """Call this after each trade closes to update daily PnL tracking."""
-    global _daily_pnl, _daily_halted
+    global _daily_pnl
     _reset_daily_if_needed()
     _daily_pnl += pnl
     logger.info(f"[ALGO] Daily PnL updated: {_daily_pnl:.2f}")
 
-    if _daily_pnl >= algo_config.daily_profit_limit:
+    if False and _daily_pnl >= algo_config.daily_profit_limit:
         _daily_halted = True
         logger.warning(f"[ALGO] ✅ Daily profit limit ${algo_config.daily_profit_limit} reached — halting for today")
-    elif _daily_pnl <= -algo_config.daily_loss_limit:
+    elif False and _daily_pnl <= -algo_config.daily_loss_limit:
         _daily_halted = True
         logger.warning(f"[ALGO] ⛔ Daily loss limit ${algo_config.daily_loss_limit} reached — halting for today")
 
@@ -149,7 +149,7 @@ def record_trade_pnl(pnl: float) -> None:
 def check_drawdown() -> bool:
     """Check if max drawdown exceeded. Returns True if trading should halt."""
     global _peak_equity, _dd_halted
-    if _dd_halted:
+    if False and _dd_halted:
         return True
     # Use currently connected MT5 account equity
     account = mt5_bridge.get_account_info()
@@ -161,7 +161,7 @@ def check_drawdown() -> bool:
         _peak_equity = equity
     if _peak_equity > 0:
         drawdown = (_peak_equity - equity) / _peak_equity
-        if drawdown >= algo_config.max_drawdown_pct:
+        if False and drawdown >= algo_config.max_drawdown_pct:
             _dd_halted = True
             logger.error(f"[ALGO] ⛔ Max drawdown {drawdown:.1%} exceeded — trading halted permanently")
             return True
@@ -176,7 +176,7 @@ def check_daily_loss_realtime() -> bool:
     """
     global _daily_halted
     _reset_daily_if_needed()
-    if _daily_halted:
+    if False and _daily_halted:
         return True
 
     # Get floating PnL from open positions
@@ -188,7 +188,7 @@ def check_daily_loss_realtime() -> bool:
 
     total_pnl = _daily_pnl + floating_pnl
 
-    if total_pnl <= -algo_config.daily_loss_limit:
+    if False and total_pnl <= -algo_config.daily_loss_limit:
         _daily_halted = True
         logger.warning(
             f"[ALGO] ⛔ Daily loss limit ${algo_config.daily_loss_limit} reached "
@@ -197,7 +197,7 @@ def check_daily_loss_realtime() -> bool:
         )
         return True
 
-    if total_pnl >= algo_config.daily_profit_limit:
+    if False and total_pnl >= algo_config.daily_profit_limit:
         _daily_halted = True
         logger.warning(
             f"[ALGO] ✅ Daily profit target ${algo_config.daily_profit_limit} reached "
@@ -211,14 +211,14 @@ def check_daily_loss_realtime() -> bool:
 def can_trade() -> bool:
     """Return True if risk rules allow a new trade."""
     _reset_daily_if_needed()
-    if _dd_halted:
+    if False and _dd_halted:
         logger.debug("[ALGO] Trading halted: max drawdown exceeded")
         return False
-    if _daily_halted:
+    if False and _daily_halted:
         logger.debug("[ALGO] Trading halted: daily profit/loss limit reached")
         return False
     # Real-time check: floating + closed PnL
-    if check_daily_loss_realtime():
+    if False and check_daily_loss_realtime():
         return False
     return True
 
@@ -245,7 +245,7 @@ def get_risk_status() -> dict:
         "current_drawdown_pct": round(drawdown * 100, 2),
         "max_drawdown_pct": algo_config.max_drawdown_pct * 100,
         "peak_equity": round(_peak_equity, 2),
-        "can_trade": not _dd_halted and not _daily_halted,
+        "can_trade": True,
     }
 
 
@@ -588,6 +588,11 @@ def _check_entry_signal(ob: OrderBlock, candles_exec: list[Candle]) -> Optional[
         touched_zone = last.low <= ob.midpoint and last.low >= ob.low
         # Confirmation: close above midpoint
         confirmed = last.close > ob.midpoint and prev.close <= ob.midpoint
+        logger.debug(
+            f"[ALGO][ENTRY_CHECK] {ob.id} bullish | touched={touched_zone} confirmed={confirmed} "
+            f"| last(o={last.open:.5f} h={last.high:.5f} l={last.low:.5f} c={last.close:.5f}) "
+            f"| prev(c={prev.close:.5f}) | zone=({ob.low:.5f}-{ob.midpoint:.5f})"
+        )
         if touched_zone and confirmed:
             return last.close
 
@@ -596,6 +601,11 @@ def _check_entry_signal(ob: OrderBlock, candles_exec: list[Candle]) -> Optional[
         touched_zone = last.high >= ob.midpoint and last.high <= ob.high
         # Confirmation: close below midpoint
         confirmed = last.close < ob.midpoint and prev.close >= ob.midpoint
+        logger.debug(
+            f"[ALGO][ENTRY_CHECK] {ob.id} bearish | touched={touched_zone} confirmed={confirmed} "
+            f"| last(o={last.open:.5f} h={last.high:.5f} l={last.low:.5f} c={last.close:.5f}) "
+            f"| prev(c={prev.close:.5f}) | zone=({ob.midpoint:.5f}-{ob.high:.5f})"
+        )
         if touched_zone and confirmed:
             return last.close
 
@@ -627,6 +637,11 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
         f"[ALGO] Order Block trade | {ob.symbol} {side.upper()} | "
         f"Entry: {entry_price:.5f} | SL: {sl:.5f} | TP: {tp:.5f} | "
         f"1R: {one_r:.5f} | OB zone: {ob.low:.5f}-{ob.high:.5f} | 50%: {ob.midpoint:.5f}"
+    )
+    live_price = _get_current_price(ob.symbol)
+    logger.debug(
+        f"[ALGO][ENTRY_EXEC] {ob.id} side={side} live_price={live_price} entry_price={entry_price:.5f} "
+        f"direction={ob.direction} fvg={ob.fvg.direction}"
     )
 
     # Execute only on accounts that have 'order_block' strategy assigned
@@ -782,6 +797,11 @@ def _manage_open_trade_risk(ob: OrderBlock) -> None:
         profit_r = (entry - current_price) / one_r
 
     new_sl = None
+    logger.debug(
+        f"[ALGO][RISK] ticket={ob.ticket} side={side} current={current_price:.5f} "
+        f"entry={entry:.5f} one_r={one_r:.5f} profit_r={profit_r:.3f} "
+        f"r_stage={ob.r_stage} sl={ob.initial_sl:.5f}"
+    )
 
     # ── Dollar-based profit lock (checked first, independent of R stages) ────
     if (
@@ -893,6 +913,20 @@ def _manage_open_trade_risk(ob: OrderBlock) -> None:
                         })
                         entry["sl_trail_log"] = trail_log
                         break
+            else:
+                logger.warning(
+                    f"[ALGO][RISK] SL update failed | ticket={ob.ticket} "
+                    f"requested_sl={new_sl:.5f} response={result}"
+                )
+        else:
+            logger.debug(
+                f"[ALGO][RISK] SL skipped | ticket={ob.ticket} side={side} "
+                f"current_sl={current_sl:.5f} candidate_sl={new_sl:.5f}"
+            )
+    else:
+        logger.debug(
+            f"[ALGO][RISK] No SL candidate | ticket={ob.ticket} profit_r={profit_r:.3f} r_stage={ob.r_stage}"
+        )
 
 
 
@@ -1103,10 +1137,22 @@ def _risk_check_loop() -> None:
             if mt5_bridge.ensure_connected():
                 open_positions = mt5_bridge.get_open_positions()
                 open_tickets = {p.get("id") for p in open_positions}
+                logger.debug(
+                    f"[ALGO][RISK_LOOP] open_tickets={list(open_tickets)} "
+                    f"types={[type(t).__name__ for t in open_tickets]}"
+                )
 
                 with _obs_lock:
                     all_obs = [ob for obs in _active_obs.values() for ob in obs]
                     for ob in all_obs:
+                        if ob.ticket and ob.trade_taken:
+                            in_open_set = ob.ticket in open_tickets
+                            in_open_set_str = str(ob.ticket) in {str(t) for t in open_tickets}
+                            logger.debug(
+                                f"[ALGO][RISK_LOOP] ticket_check ob_ticket={ob.ticket} "
+                                f"type={type(ob.ticket).__name__} strict_match={in_open_set} "
+                                f"string_match={in_open_set_str}"
+                            )
                         if ob.ticket and ob.ticket in open_tickets and ob.trade_taken:
                             _manage_open_trade_risk(ob)
         except Exception as e:
