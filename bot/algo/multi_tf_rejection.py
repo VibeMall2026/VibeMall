@@ -195,7 +195,7 @@ def _get_candles(symbol: str, timeframe_minutes: int, count: int) -> list[Candle
             high=float(r["high"]),
             low=float(r["low"]),
             close=float(r["close"]),
-            volume=float(r.get("tick_volume", 0) or 0),
+            volume=float(r["tick_volume"] or 0),
         ))
     return out
 
@@ -662,4 +662,3 @@ def update_algo_config(
 
     logger.info(f"[MTF] Config updated: {algo_config}")
     return get_algo_status()
-
