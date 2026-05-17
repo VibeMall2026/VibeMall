@@ -88,10 +88,20 @@ class AlgoConfig:
     trail_atr_mult: float = 0.8         # ATR multiplier for trailing stop (tighter)
     entry_max_mid_distance_atr: float = 0.35  # reject entries too far from OB midpoint
 
+    # ── Strong Trailing Stop (recommended) ────────────────────────────────────
+    # Tight "smart" trailing that follows recent swing highs/lows with a small ATR buffer.
+    # Starts early to protect open profit, while still respecting a minimum step and cooldown.
+    strong_trailing_enabled: bool = True
+    strong_trailing_start_r: float = 0.30          # start trailing once trade is +0.3R
+    strong_trailing_swing_lookback: int = 3        # candles to use for swing high/low
+    strong_trailing_atr_buffer_mult: float = 0.15  # buffer = ATR * this
+    strong_trailing_min_step_r: float = 0.05       # only update if SL improves by >= 0.05R
+    strong_trailing_min_update_seconds: int = 5    # minimum seconds between SL updates
     # ── Dollar-Based Profit Lock ──────────────────────────────────────────────
     dollar_profit_trigger: float = 8.0   # When floating profit >= $8...
     dollar_profit_lock: float = 5.0      # ...move SL to lock in $5 profit
     dollar_lock_enabled: bool = True     # Enable/disable dollar profit lock
+
 
     def get_symbols(self) -> list:
         """Return list of symbols to trade."""
@@ -144,7 +154,7 @@ def _reset_daily_if_needed() -> None:
 
 def record_trade_pnl(pnl: float) -> None:
     """Call this after each trade closes to update daily PnL tracking."""
-    global _daily_pnl
+    global _daily_pnl, _daily_halted
     _reset_daily_if_needed()
     _daily_pnl += pnl
     logger.info(f"[ALGO] Daily PnL updated: {_daily_pnl:.2f}")
@@ -245,6 +255,7 @@ def get_risk_status() -> dict:
         floating_pnl = sum(float(p.get('pnl', 0)) for p in open_positions)
     except Exception:
         floating_pnl = 0.0
+    allowed = can_trade()
     return {
         "daily_pnl": round(_daily_pnl, 2),
         "floating_pnl": round(floating_pnl, 2),
@@ -256,7 +267,7 @@ def get_risk_status() -> dict:
         "current_drawdown_pct": round(drawdown * 100, 2),
         "max_drawdown_pct": algo_config.max_drawdown_pct * 100,
         "peak_equity": round(_peak_equity, 2),
-        "can_trade": True,
+        "can_trade": bool(allowed),
     }
 
 
@@ -502,7 +513,8 @@ def _detect_order_blocks(candles: list[Candle]) -> list[OrderBlock]:
     if len(candles) < 3:
         return obs
 
-    for i in range(len(candles) - 3):
+    # Need 3-candle windows: indices (i, i+1, i+2) => i in [0, len-3]
+    for i in range(len(candles) - 2):
         c1 = candles[i]
         c2 = candles[i + 1]
         c3 = candles[i + 2]
@@ -973,26 +985,6 @@ def _manage_open_trade_risk(ob: OrderBlock) -> None:
     )
     r_stage_before = ob.r_stage
 
-    # ── SL Trail: starts from ANY positive profit ─────────────────────────────
-    # As soon as floating profit > 0, trail SL using ATR.
-    # This replaces the old R-stage system with a continuous trail.
-    candles_trail = _get_candles(getattr(ob, 'symbol', algo_config.symbol), algo_config.execution_timeframe, 20)
-    atr_trail = _calculate_atr(candles_trail, algo_config.atr_period) if candles_trail else None
-
-    if profit_r > 0 and atr_trail:
-        if side == "buy":
-            trail_sl = current_price - atr_trail * algo_config.trail_atr_mult
-            # Only move SL up, never down
-            if trail_sl > ob.initial_sl:
-                new_sl = trail_sl
-                ob.r_stage = 3
-        else:
-            trail_sl = current_price + atr_trail * algo_config.trail_atr_mult
-            # Only move SL down, never up
-            if trail_sl < ob.initial_sl:
-                new_sl = trail_sl
-                ob.r_stage = 3
-
     # ── Dollar-based profit lock (independent safety net) ────────────────────
     if (
         algo_config.dollar_lock_enabled
@@ -1059,43 +1051,66 @@ def _manage_open_trade_risk(ob: OrderBlock) -> None:
         else:
             new_sl = max(new_sl, r_sl) if side == "buy" else min(new_sl, r_sl)
 
-    if ob.r_stage >= 2:
-        # Beyond +2R → trail by ATR
-        candles = _get_candles(getattr(ob, 'symbol', algo_config.symbol), algo_config.execution_timeframe, 20)
-        atr = _calculate_atr(candles, algo_config.atr_period) if candles else None
-        if atr:
+    # ── Strong trailing SL (swing-based + ATR buffer) ─────────────────────────
+    if algo_config.strong_trailing_enabled and profit_r >= algo_config.strong_trailing_start_r:
+        candles_trail = _get_candles(
+            getattr(ob, 'symbol', algo_config.symbol),
+            algo_config.execution_timeframe,
+            max(20, algo_config.strong_trailing_swing_lookback + 5),
+        )
+        atr_trail = _calculate_atr(candles_trail, algo_config.atr_period) if candles_trail else None
+        lookback = max(2, int(algo_config.strong_trailing_swing_lookback or 3))
+
+        if candles_trail and len(candles_trail) >= lookback:
+            recent = candles_trail[-lookback:]
+            buffer = (atr_trail or 0.0) * float(algo_config.strong_trailing_atr_buffer_mult or 0.0)
+
             if side == "buy":
-                trail_sl = current_price - atr * algo_config.trail_atr_mult
-                if new_sl is None or trail_sl > new_sl:
-                    new_sl = trail_sl
-                    ob.r_stage = 3
-                _ob_debug(
-                    "TRAIL_ATTEMPT",
-                    ticket=ob.ticket,
-                    side=side,
-                    atr=round(atr, 5),
-                    trail_mult=algo_config.trail_atr_mult,
-                    candidate_sl=round(trail_sl, 5),
-                    should_update=(new_sl is not None),
-                )
+                swing = min(c.low for c in recent)
+                candidate = swing - buffer
+                # Safety: SL must remain below current price
+                if atr_trail and candidate >= current_price:
+                    candidate = current_price - (atr_trail * 0.10)
+                if candidate > ob.initial_sl:
+                    new_sl = candidate if new_sl is None else max(new_sl, candidate)
+                    ob.r_stage = max(ob.r_stage, 3)
             else:
-                trail_sl = current_price + atr * algo_config.trail_atr_mult
-                if new_sl is None or trail_sl < new_sl:
-                    new_sl = trail_sl
-                    ob.r_stage = 3
+                swing = max(c.high for c in recent)
+                candidate = swing + buffer
+                # Safety: SL must remain above current price
+                if atr_trail and candidate <= current_price:
+                    candidate = current_price + (atr_trail * 0.10)
+                if candidate < ob.initial_sl:
+                    new_sl = candidate if new_sl is None else min(new_sl, candidate)
+                    ob.r_stage = max(ob.r_stage, 3)
+
+            if atr_trail:
                 _ob_debug(
-                    "TRAIL_ATTEMPT",
+                    "STRONG_TRAIL",
                     ticket=ob.ticket,
                     side=side,
-                    atr=round(atr, 5),
-                    trail_mult=algo_config.trail_atr_mult,
-                    candidate_sl=round(trail_sl, 5),
-                    should_update=(new_sl is not None),
+                    profit_r=round(profit_r, 3),
+                    lookback=lookback,
+                    atr=round(atr_trail, 5),
+                    buffer_mult=algo_config.strong_trailing_atr_buffer_mult,
+                    candidate_sl=round(new_sl, 5) if new_sl is not None else "none",
                 )
 
     # Apply new SL if it improves position
     if new_sl is not None:
         current_sl = ob.initial_sl
+        # Strong trailing: avoid spamming modify requests
+        min_step = float(getattr(algo_config, "strong_trailing_min_step_r", 0.0) or 0.0) * one_r
+        if min_step > 0 and abs(new_sl - current_sl) < min_step:
+            new_sl = None
+        else:
+            last_update = float(getattr(ob, "_last_sl_update_ts", 0.0) or 0.0)
+            if getattr(algo_config, "strong_trailing_min_update_seconds", 0) and last_update:
+                if (time.time() - last_update) < int(algo_config.strong_trailing_min_update_seconds):
+                    # Only skip if the improvement is not "big"
+                    big_step = max(min_step * 2, min_step)
+                    if big_step > 0 and abs(new_sl - current_sl) < big_step:
+                        new_sl = None
         should_update = (side == "buy" and new_sl > current_sl) or \
                         (side == "sell" and new_sl < current_sl)
         if should_update:
@@ -1103,6 +1118,7 @@ def _manage_open_trade_risk(ob: OrderBlock) -> None:
             if result.get("success"):
                 old_sl = ob.initial_sl
                 ob.initial_sl = new_sl
+                ob._last_sl_update_ts = time.time()
                 stage_names = {0: "initial", 1: "breakeven", 2: "profit_lock", 3: "trailing"}
                 stage_label = stage_names.get(ob.r_stage, str(ob.r_stage))
                 logger.info(f"[ALGO] SL updated to {new_sl:.5f} (stage={stage_label})")
@@ -1195,13 +1211,15 @@ def _scan_and_trade(symbol: str = None) -> None:
     with _obs_lock:
         for ob in symbol_obs:
             if ob.trade_taken and ob.ticket and str(ob.ticket) not in open_tickets:
+                closed_ticket = ob.ticket
+                closed_r_stage = ob.r_stage
                 # Reset OB for potential re-entry ONLY if trade was profitable
                 # (avoid re-entering same losing zone repeatedly)
                 pnl_val = 0.0
                 try:
                     history = mt5_bridge.get_trade_history(limit=10)
                     for t in history:
-                        if t.get("ticket") == ob.ticket or t.get("position_id") == ob.ticket:
+                        if t.get("ticket") == closed_ticket or t.get("position_id") == closed_ticket:
                             pnl_val = float(t.get("pnl", 0))
                             record_trade_pnl(pnl_val)
                             # Human mind: record result for consecutive loss tracking
@@ -1209,10 +1227,10 @@ def _scan_and_trade(symbol: str = None) -> None:
                             record_trade_result(pnl_val)
                             if pnl_val < 0:
                                 record_sl_hit(ob.id)
-                            logger.info(f"[ALGO] Trade {ob.ticket} closed | PnL={pnl_val:.2f}")
+                            logger.info(f"[ALGO] Trade {closed_ticket} closed | PnL={pnl_val:.2f}")
                             break
                 except Exception as e:
-                    logger.warning(f"[ALGO] Could not fetch PnL for ticket {ob.ticket}: {e}")
+                    logger.warning(f"[ALGO] Could not fetch PnL for ticket {closed_ticket}: {e}")
 
                 if pnl_val >= 0:
                     # Profitable/breakeven — allow re-entry on this OB
@@ -1224,16 +1242,13 @@ def _scan_and_trade(symbol: str = None) -> None:
                     logger.info(f"[ALGO] OB {ob.id} closed at loss (${pnl_val:.2f}) — deactivating zone")
                     ob.trade_taken = False
                     ob.active = False  # do NOT re-enter a losing OB zone
-                ob.ticket = None
-                ob.r_stage = 0
-                ob.dollar_lock_applied = False
                 # Record exit reason in signal_log
                 for entry in state.signal_log:
-                    if entry.get("ticket") == ob.ticket or entry.get("ob_id") == ob.id:
+                    if entry.get("ticket") == closed_ticket or entry.get("ob_id") == ob.id:
                         entry["final_pnl"] = round(pnl_val, 2)
                         entry["exit_price"] = None  # fetched from history if available
                         if pnl_val > 0:
-                            entry["exit_reason"] = "TP Hit" if ob.r_stage < 3 else "Trailing SL"
+                            entry["exit_reason"] = "Trailing SL" if closed_r_stage >= 3 else "TP Hit"
                             entry["status"] = "win"
                         elif pnl_val < 0:
                             entry["exit_reason"] = "SL Hit"
@@ -1242,6 +1257,11 @@ def _scan_and_trade(symbol: str = None) -> None:
                             entry["exit_reason"] = "Breakeven"
                             entry["status"] = "breakeven"
                         break
+
+                # Reset trade tracking fields last (after we log/annotate by ticket)
+                ob.ticket = None
+                ob.r_stage = 0
+                ob.dollar_lock_applied = False
 
     # Fetch analysis timeframe candles
     candles_analysis = _get_candles(symbol, algo_config.analysis_timeframe, algo_config.ob_lookback + 10)
