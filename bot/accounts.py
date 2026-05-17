@@ -140,6 +140,10 @@ def _load_extra_accounts() -> None:
             logger.warning(f"[ACCOUNTS] Invalid login in extra account entry: {entry!r}")
             continue
         password = parts[2].strip()
+        if password.startswith("${") and password.endswith("}"):
+            password = os.getenv(password[2:-1].strip(), password)
+        elif password.startswith("$"):
+            password = os.getenv(password[1:].strip(), password)
         server = parts[3].strip()
         strategies = _normalize_single_strategy(
             [s.strip() for s in parts[4].split("+")] if len(parts) >= 5 else ["order_block"]
@@ -413,6 +417,8 @@ def execute_on_all_accounts(
     order_type: str = "market",
     risk_percent=None,
     comment: str = "TG Signal",
+    strategy_id: str | None = None,
+    exclude_strategy_id: str | None = None,
 ) -> list[dict]:
     """
     Execute trade on ALL enabled accounts.
@@ -425,7 +431,11 @@ def execute_on_all_accounts(
     import math
 
     with _accounts_lock:
-        accounts_copy = [acc for acc in _accounts if acc.enabled]
+        accounts_copy = [
+            acc for acc in _accounts
+            if acc.enabled and (not strategy_id or strategy_id in (acc.strategy or []))
+            and (not exclude_strategy_id or exclude_strategy_id not in (acc.strategy or []))
+        ]
 
     results = []
 

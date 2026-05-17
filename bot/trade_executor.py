@@ -108,47 +108,39 @@ async def execute_signal(sig: ParsedSignal, channel: str = "") -> dict:
         result = await _execute_via_bridge(sig, channel)
         success = result.get("success")
     else:
-        # Execute on ALL enabled MT5 accounts
         from bot.accounts import execute_on_all_accounts, get_all_accounts
-        enabled_accounts = [a for a in get_all_accounts() if a.enabled]
+        eligible_accounts = [
+            a for a in get_all_accounts()
+            if a.enabled and "my_strategy" not in (a.strategy or [])
+        ]
+        if not eligible_accounts:
+            reason = "No eligible MT5 accounts enabled for signal execution"
+            logger.warning(reason)
+            _update_signal_log(symbol, "blocked", reason)
+            return {"success": False, "reason": reason}
 
-        if len(enabled_accounts) <= 1:
-            # Single account — use original mt5_bridge for compatibility
-            result = mt5_bridge.open_trade(
-                symbol=symbol,
-                side=side,
-                sl=sig.sl,
-                tp=tp,
-                entry=sig.entry,
-                order_type=sig.order_type,
-                risk_percent=state.risk_percent,
-                comment=comment,
-            )
-            success = result.get("success")
-        else:
-            # Multiple accounts — execute on all
-            results = execute_on_all_accounts(
-                symbol=symbol,
-                side=side,
-                sl=sig.sl,
-                tp=tp,
-                entry=sig.entry,
-                order_type=sig.order_type,
-                risk_percent=state.risk_percent,
-                comment=comment,
-            )
-            # Consider success if at least one account succeeded
-            success = any(r.get("success") for r in results)
-            succeeded = [r for r in results if r.get("success")]
-            failed = [r for r in results if not r.get("success")]
-            result = {
-                "success": success,
-                "message": f"Executed on {len(succeeded)}/{len(results)} accounts",
-                "ticket": succeeded[0].get("ticket") if succeeded else None,
-                "multi_results": results,
-            }
-            if failed:
-                logger.warning(f"[ACCOUNTS] Failed on: {[r['account_label'] for r in failed]}")
+        results = execute_on_all_accounts(
+            symbol=symbol,
+            side=side,
+            sl=sig.sl,
+            tp=tp,
+            entry=sig.entry,
+            order_type=sig.order_type,
+            risk_percent=state.risk_percent,
+            comment=comment,
+            exclude_strategy_id="my_strategy",
+        )
+        success = any(r.get("success") for r in results)
+        succeeded = [r for r in results if r.get("success")]
+        failed = [r for r in results if not r.get("success")]
+        result = {
+            "success": success,
+            "message": f"Executed on {len(succeeded)}/{len(results)} accounts",
+            "ticket": succeeded[0].get("ticket") if succeeded else None,
+            "multi_results": results,
+        }
+        if failed:
+            logger.warning(f"[ACCOUNTS] Failed on: {[r['account_label'] for r in failed]}")
 
     if result.get("success"):
         _last_trade_time[symbol] = datetime.now()

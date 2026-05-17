@@ -102,6 +102,13 @@
             </div>
           </label>
           <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
+            <input type="radio" name="account_strategy" value="my_strategy" id="strat_my_strategy" class="form-check-input mt-1">
+            <div>
+              <div style="font-weight:600;">🧱 MultiTF Rejection</div>
+              <small style="color:#a8aaae;">15m S/R levels + 5m rejection entry with BE + step trailing</small>
+            </div>
+          </label>
+          <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
             <input type="radio" name="account_strategy" value="telegram_signals" id="strat_telegram_signals" class="form-check-input mt-1">
             <div>
               <div style="font-weight:600;">📡 Telegram Signals Only</div>
@@ -179,6 +186,10 @@
             <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
               <input type="radio" name="new_account_strategy" value="confluence" id="newAccStrat_confluence" class="form-check-input">
               <span>🧩 OB + FVG + Breakout</span>
+            </label>
+            <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
+              <input type="radio" name="new_account_strategy" value="my_strategy" id="newAccStrat_my_strategy" class="form-check-input">
+              <span>🧱 MultiTF Rejection</span>
             </label>
             <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
               <input type="radio" name="new_account_strategy" value="telegram_signals" id="newAccStrat_telegram_signals" class="form-check-input">
@@ -661,6 +672,7 @@
     'order_block': '⚡ Order Block + FVG',
     'breakout': '📈 Range Breakout Retest',
     'confluence': '🧩 OB + FVG + Breakout',
+    'my_strategy': '🧱 MultiTF Rejection',
     'telegram_signals': '📡 Telegram Signals',
     'ema_crossover': '📈 EMA Crossover',
     'rsi_reversal': '🔄 RSI Reversal',
@@ -671,6 +683,7 @@
     <option value="order_block">Order Block + FVG</option>
     <option value="breakout">Range Breakout Retest</option>
     <option value="confluence">OB + FVG + Breakout</option>
+    <option value="my_strategy">MultiTF Rejection</option>
     <option value="telegram_signals">Telegram Signals Only</option>
     <option value="ema_crossover" disabled>EMA Crossover (Soon)</option>
     <option value="rsi_reversal" disabled>RSI Reversal (Soon)</option>
@@ -740,12 +753,14 @@
       'order_block': '⚡ Order Block + FVG',
       'breakout': '📈 Range Breakout Retest',
       'confluence': '🧩 OB + FVG + Breakout',
+      'my_strategy': '🧱 MultiTF Rejection',
       'telegram_signals': '📡 Telegram Signals',
     };
     const strategyColors = {
       'order_block': '#696cff',
       'breakout': '#28c76f',
       'confluence': '#ff9f43',
+      'my_strategy': '#9b59b6',
       'telegram_signals': '#29b6f6',
     };
 
@@ -828,7 +843,7 @@
   function openStrategyModal(accountId, currentStrategies) {
     document.getElementById('strategyAccountId').value = accountId;
     // Reset all radio options
-    ['order_block', 'breakout', 'confluence', 'telegram_signals'].forEach(s => {
+    ['order_block', 'breakout', 'confluence', 'my_strategy', 'telegram_signals'].forEach(s => {
       const el = document.getElementById(`strat_${s}`);
       if (el) el.checked = (currentStrategies || []).includes(s);
     });
@@ -838,7 +853,7 @@
 
   function saveStrategies() {
     const accountId = document.getElementById('strategyAccountId').value;
-    const selected = ['order_block', 'breakout', 'confluence', 'telegram_signals']
+    const selected = ['order_block', 'breakout', 'confluence', 'my_strategy', 'telegram_signals']
       .find(s => document.getElementById(`strat_${s}`)?.checked);
     if (!selected) {
       document.getElementById('strategyResult').style.display = 'block';
@@ -873,7 +888,7 @@
       login: parseInt(document.getElementById('accLogin').value),
       password: document.getElementById('accPassword').value,
       server: document.getElementById('accServer').value,
-      strategy: ['order_block', 'breakout', 'confluence', 'telegram_signals']
+      strategy: ['order_block', 'breakout', 'confluence', 'my_strategy', 'telegram_signals']
         .find(s => document.getElementById(`newAccStrat_${s}`)?.checked) || 'order_block',
     };
     const resultEl = document.getElementById('addAccountResult');

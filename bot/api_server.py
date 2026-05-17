@@ -368,6 +368,7 @@ async def strategy_stats(strategy_id: str):
         "order_block": "ALGO:OB",
         "breakout": "ALGO:BRK",
         "confluence": "ALGO:CONF",
+        "my_strategy": "ALGO:MTF",
     }
     comment_prefix = comment_map.get(strategy_id, f"ALGO:{strategy_id[:3].upper()}")
     assigned_logins = {acc.login for acc in assigned_accounts}
