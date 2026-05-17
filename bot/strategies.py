@@ -39,6 +39,13 @@ STRATEGIES: list[dict] = [
         "module": "bot.algo.confluence",
     },
     {
+        "id": "my_strategy",
+        "name": "MultiTF Rejection",
+        "description": "Multi-timeframe support/resistance rejection (15m levels, 5m confirmation) with BE + step trailing",
+        "status": "available",
+        "module": "bot.algo.multi_tf_rejection",
+    },
+    {
         "id": "ema_crossover",
         "name": "EMA Crossover",
         "description": "Classic EMA 9/21 crossover strategy with trend filter",

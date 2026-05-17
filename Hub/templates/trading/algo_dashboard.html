@@ -295,11 +295,8 @@
               <option value="order_block">Order Block + FVG</option>
               <option value="breakout">Range Breakout Retest</option>
               <option value="confluence">OB + FVG + Breakout</option>
-              <option value="my_strategy">My Strategy (setup pending)</option>
+              <option value="my_strategy">MultiTF Rejection</option>
             </select>
-            <div id="strategySetupHint" class="mt-2 small" style="color:#ff9f43;display:none;">
-              My Strategy is not installed yet. Please share your strategy script and I’ll connect it to the bot + dashboard.
-            </div>
           </div>
           <div class="col-12">
             <label class="stat-label">Symbol</label>
@@ -456,14 +453,9 @@ function algoAction(action) {
 }
 
 function updateConfig() {
-  const selectedStrategy = document.getElementById('cfgStrategyId').value || null;
-  if (selectedStrategy === 'my_strategy') {
-    showToast('My Strategy is not installed yet. Please provide the strategy script first.', false);
-    return;
-  }
   const csrfToken = getCookie('csrftoken');
   const payload = {
-    strategy_id: selectedStrategy,
+    strategy_id: document.getElementById('cfgStrategyId').value || null,
     symbol:      document.getElementById('cfgSymbol').value || null,
     analysis_tf: parseInt(document.getElementById('cfgAnalysisTF').value) || null,
     execution_tf: parseInt(document.getElementById('cfgExecutionTF').value) || null,
@@ -496,15 +488,6 @@ function updateConfig() {
   .catch(() => showToast('Bot is offline.', false));
 }
 
-function handleStrategySelection() {
-  const selected = document.getElementById('cfgStrategyId').value;
-  const hint = document.getElementById('strategySetupHint');
-  const btn = document.getElementById('btnApplyConfig');
-  const isPending = selected === 'my_strategy';
-  if (hint) hint.style.display = isPending ? 'block' : 'none';
-  if (btn) btn.disabled = isPending;
-}
-
 function refreshStatus() {
   fetch('/trading/algo/status/', {
     headers: { 'Content-Type': 'application/json' }
@@ -520,7 +503,13 @@ function formatScanTime(value) {
 }
 
 function normalizeStrategyRows(statuses) {
-  const ordered = ['order_block', 'breakout', 'confluence'];
+  const ordered = ['order_block', 'breakout', 'confluence', 'my_strategy'];
+  const labelMap = {
+    order_block: 'Order Block + FVG',
+    breakout: 'Range Breakout Retest',
+    confluence: 'OB + FVG + Breakout',
+    my_strategy: 'MultiTF Rejection'
+  };
   return ordered
     .filter(key => statuses && statuses[key])
     .map(key => {
@@ -536,7 +525,7 @@ function normalizeStrategyRows(statuses) {
         : (status.symbol || '-');
       return {
         id: key,
-        label: key.replaceAll('_', ' '),
+        label: labelMap[key] || key.replaceAll('_', ' '),
         running: !!status.running,
         symbols,
         lastScanAt: status.last_scan_at || (summaries[0] && summaries[0].at) || null,
@@ -700,12 +689,6 @@ function fetchAlgoTrades() {
   })
   .catch(() => {});
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-  const sel = document.getElementById('cfgStrategyId');
-  if (sel) sel.addEventListener('change', handleStrategySelection);
-  handleStrategySelection();
-});
 
 // Auto-refresh every 30 seconds
 refreshStatus();
