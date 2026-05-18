@@ -71,6 +71,7 @@ class AlgoConfig:
     ob_lookback: int = 50               # candles to scan for OBs
     trend_ema_period: int = 50          # EMA period for trend filter
     trend_timeframe_minutes: int = 60   # higher timeframe for trend confirmation
+    require_trend_alignment: bool = False
     atr_period: int = 14                # ATR period for volatility filter
     atr_min_multiplier: float = 0.5     # min ATR as fraction of avg ATR
     max_active_obs: int = 10            # max order blocks tracked at once (2 per symbol)
@@ -87,6 +88,8 @@ class AlgoConfig:
     rr_lock_profit: float = 1.5         # Lock +1R profit at +1.5R
     trail_atr_mult: float = 0.8         # ATR multiplier for trailing stop (tighter)
     entry_max_mid_distance_atr: float = 0.35  # reject entries too far from OB midpoint
+    require_entry_momentum: bool = False
+    require_entry_distance_check: bool = False
 
     # ── Strong Trailing Stop (recommended) ────────────────────────────────────
     # Tight "smart" trailing that follows recent swing highs/lows with a small ATR buffer.
@@ -627,8 +630,12 @@ def _check_entry_signal(ob: OrderBlock, candles_exec: list[Candle]) -> Optional[
         touched_zone = last.low <= ob.midpoint and last.low >= ob.low
         # Confirmation: close above midpoint
         confirmed = last.close > ob.midpoint and prev.close <= ob.midpoint
-        momentum_ok = last.close > last.open
-        distance_ok = True if max_mid_distance is None else abs(last.close - ob.midpoint) <= max_mid_distance
+        momentum_ok = (last.close > last.open) if algo_config.require_entry_momentum else True
+        distance_ok = (
+            True
+            if (not algo_config.require_entry_distance_check or max_mid_distance is None)
+            else abs(last.close - ob.midpoint) <= max_mid_distance
+        )
         logger.debug(
             f"[ALGO][ENTRY_CHECK] {ob.id} bullish | touched={touched_zone} confirmed={confirmed} "
             f"| last(o={last.open:.5f} h={last.high:.5f} l={last.low:.5f} c={last.close:.5f}) "
@@ -652,8 +659,12 @@ def _check_entry_signal(ob: OrderBlock, candles_exec: list[Candle]) -> Optional[
         touched_zone = last.high >= ob.midpoint and last.high <= ob.high
         # Confirmation: close below midpoint
         confirmed = last.close < ob.midpoint and prev.close >= ob.midpoint
-        momentum_ok = last.close < last.open
-        distance_ok = True if max_mid_distance is None else abs(last.close - ob.midpoint) <= max_mid_distance
+        momentum_ok = (last.close < last.open) if algo_config.require_entry_momentum else True
+        distance_ok = (
+            True
+            if (not algo_config.require_entry_distance_check or max_mid_distance is None)
+            else abs(last.close - ob.midpoint) <= max_mid_distance
+        )
         logger.debug(
             f"[ALGO][ENTRY_CHECK] {ob.id} bearish | touched={touched_zone} confirmed={confirmed} "
             f"| last(o={last.open:.5f} h={last.high:.5f} l={last.low:.5f} c={last.close:.5f}) "
@@ -1284,7 +1295,7 @@ def _scan_and_trade(symbol: str = None) -> None:
             if ob.id not in existing_ids:
                 # Apply trend filter
                 trend_candles = candles_trend if len(candles_trend) >= algo_config.trend_ema_period else candles_analysis
-                if not _is_trend_aligned(trend_candles, ob.direction):
+                if algo_config.require_trend_alignment and not _is_trend_aligned(trend_candles, ob.direction):
                     logger.debug(f"[ALGO] OB {ob.id} filtered out — against trend")
                     _ob_debug(
                         "ENTRY_DECISION",
