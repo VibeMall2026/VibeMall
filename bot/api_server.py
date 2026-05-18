@@ -21,6 +21,7 @@ from bot.algo.manager import (
     get_active_strategy_id,
     get_algo_status,
     get_risk_status,
+    reset_risk_halts,
     select_strategy,
     start_algo,
     stop_algo,
@@ -595,6 +596,10 @@ class AlgoConfigUpdate(BaseModel):
     execution_tf: Optional[int] = None
 
 
+class AlgoRiskResetRequest(BaseModel):
+    reset_peak_equity: Optional[bool] = False
+
+
 # ── MT5 Accounts Endpoints ────────────────────────────────────────────────────
 
 class AccountAddRequest(BaseModel):
@@ -826,6 +831,18 @@ async def algo_update_config(body: AlgoConfigUpdate):
         execution_tf=body.execution_tf,
     )
     return {"success": True, "config": status}
+
+
+@app.post("/algo/reset-risk", dependencies=[Depends(verify_api_key)])
+async def algo_reset_risk(body: AlgoRiskResetRequest):
+    """
+    Manually clear algo risk halt flags (daily halt and drawdown halt).
+    """
+    try:
+        status = reset_risk_halts(reset_peak_equity=bool(body.reset_peak_equity))
+        return {"success": True, "message": "Risk halts reset", "risk": status}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @app.get("/algo/trades", dependencies=[Depends(verify_api_key)])

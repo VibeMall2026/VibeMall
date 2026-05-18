@@ -89,3 +89,10 @@ def get_risk_status() -> dict:
     if hasattr(module, "get_risk_status"):
         return module.get_risk_status()
     return {}
+
+
+def reset_risk_halts(reset_peak_equity: bool = False) -> dict:
+    module = _get_strategy_module()
+    if hasattr(module, "reset_risk_halts"):
+        return module.reset_risk_halts(reset_peak_equity=reset_peak_equity)
+    raise ValueError(f"Strategy '{_active_strategy_id}' does not support risk reset")

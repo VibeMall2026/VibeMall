@@ -337,6 +337,25 @@ def get_risk_status() -> dict:
     }
 
 
+def reset_risk_halts(reset_peak_equity: bool = False) -> dict:
+    """
+    Manually clear risk halts so trading can resume.
+    Use with care: this overrides automatic protections.
+    """
+    global _daily_halted, _dd_halted, _daily_pnl, _daily_date, _peak_equity
+    _daily_halted = False
+    _dd_halted = False
+    _daily_pnl = 0.0
+    _daily_date = _date.today()
+    if reset_peak_equity:
+        _peak_equity = 0.0
+    logger.warning(
+        "[ALGO] Manual risk reset applied | daily_halted=False dd_halted=False "
+        f"reset_peak_equity={reset_peak_equity}"
+    )
+    return get_risk_status()
+
+
 
 # ── Data structures ───────────────────────────────────────────────────────────
 
