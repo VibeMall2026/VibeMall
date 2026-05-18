@@ -24,6 +24,7 @@
   .refresh-indicator { font-size: .75rem; color: #a8aaae; }
   .empty-row td { color: #a8aaae; font-style: italic; }
   .mini-stat { font-size: .82rem; color: #a8aaae; }
+  .selected-period-card .stat-value { font-size:1.2rem; }
   .graph-wrap {
     background:#232333;
     border:1px solid #3b3d52;
@@ -146,41 +147,19 @@
   </div>
 </div>
 
-<!-- Period Performance -->
-<div class="row g-3 mb-4">
-  <div class="col-12 col-md-6 col-xl-3">
-    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
-      <div class="card-body py-3">
-        <div class="stat-label mb-1">Today</div>
-        <div class="mini-stat">Trades: <span id="pTodayTrades">—</span></div>
-        <div class="mini-stat">Return: <span id="pTodayReturn">—</span></div>
+<!-- Selected Period Summary -->
+<div class="card mb-4 selected-period-card" style="background:#2b2c40;border:1px solid #3b3d52;">
+  <div class="card-body py-3">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+      <div>
+        <div class="stat-label mb-1" id="selectedPeriodTitle">TODAY</div>
+        <div class="mini-stat">Range: <span id="selectedPeriodRange">—</span></div>
       </div>
-    </div>
-  </div>
-  <div class="col-12 col-md-6 col-xl-3">
-    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
-      <div class="card-body py-3">
-        <div class="stat-label mb-1">Yesterday</div>
-        <div class="mini-stat">Trades: <span id="pYesterdayTrades">—</span></div>
-        <div class="mini-stat">Return: <span id="pYesterdayReturn">—</span></div>
-      </div>
-    </div>
-  </div>
-  <div class="col-12 col-md-6 col-xl-3">
-    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
-      <div class="card-body py-3">
-        <div class="stat-label mb-1">This Month</div>
-        <div class="mini-stat">Trades: <span id="pThisMonthTrades">—</span></div>
-        <div class="mini-stat">Return: <span id="pThisMonthReturn">—</span></div>
-      </div>
-    </div>
-  </div>
-  <div class="col-12 col-md-6 col-xl-3">
-    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
-      <div class="card-body py-3">
-        <div class="stat-label mb-1">Last Month</div>
-        <div class="mini-stat">Trades: <span id="pLastMonthTrades">—</span></div>
-        <div class="mini-stat">Return: <span id="pLastMonthReturn">—</span></div>
+      <div class="d-flex gap-4 flex-wrap">
+        <div><div class="mini-stat">Trades</div><div class="stat-value" id="spTrades">—</div></div>
+        <div><div class="mini-stat">Wins / Losses</div><div class="stat-value" id="spWL">—</div></div>
+        <div><div class="mini-stat">Return</div><div class="stat-value" id="spReturn">—</div></div>
+        <div><div class="mini-stat">PnL</div><div class="stat-value" id="spPnl">—</div></div>
       </div>
     </div>
   </div>
@@ -193,7 +172,7 @@
     <span class="section-header mb-0">
       <i class="bx bx-line-chart me-2" style="color:#28c76f;"></i>Performance Graph
     </span>
-    <small style="color:#a8aaae;">Cumulative PnL (last 30 days)</small>
+    <small style="color:#a8aaae;" id="graphSubtitle">Cumulative PnL</small>
   </div>
   <div class="card-body">
     <div class="graph-wrap">
@@ -347,29 +326,28 @@ function renderStats(stats) {
 
 function renderPeriodStats(periodStats) {
   const p = periodStats || {};
-  const map = [
-    ['today', 'Today'],
-    ['yesterday', 'Yesterday'],
-    ['this_month', 'ThisMonth'],
-    ['last_month', 'LastMonth'],
-  ];
-  map.forEach(function(item) {
-    const key = item[0];
-    const suffix = item[1];
-    const row = p[key] || {};
-    const tradesEl = document.getElementById('p' + suffix + 'Trades');
-    const returnEl = document.getElementById('p' + suffix + 'Return');
-    if (tradesEl) tradesEl.textContent = row.trades != null ? row.trades : '—';
-    if (returnEl) {
-      if (row.return_pct == null) {
-        returnEl.textContent = '—';
-      } else {
-        const v = parseFloat(row.return_pct || 0);
-        returnEl.textContent = (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
-        returnEl.className = v >= 0 ? 'pnl-pos' : 'pnl-neg';
-      }
-    }
-  });
+  const row = p[SELECTED_PERIOD] || {};
+  const labels = {
+    today: 'TODAY',
+    yesterday: 'YESTERDAY',
+    this_week: 'THIS WEEK',
+    last_week: 'LAST WEEK',
+    this_month: 'THIS MONTH',
+    last_month: 'LAST MONTH',
+    last_6_months: 'LAST 6 MONTHS',
+  };
+  document.getElementById('selectedPeriodTitle').textContent = labels[SELECTED_PERIOD] || SELECTED_PERIOD.toUpperCase();
+  document.getElementById('selectedPeriodRange').textContent = (row.start && row.end) ? (row.start + ' to ' + row.end) : '—';
+  document.getElementById('spTrades').textContent = row.trades != null ? row.trades : '—';
+  document.getElementById('spWL').textContent = (row.wins != null && row.losses != null) ? (row.wins + ' / ' + row.losses) : '—';
+  const ret = parseFloat(row.return_pct || 0);
+  const pnl = parseFloat(row.pnl || 0);
+  const retEl = document.getElementById('spReturn');
+  retEl.textContent = row.return_pct == null ? '—' : ((ret >= 0 ? '+' : '') + ret.toFixed(2) + '%');
+  retEl.className = 'stat-value ' + (ret >= 0 ? 'pnl-pos' : 'pnl-neg');
+  const pnlEl = document.getElementById('spPnl');
+  pnlEl.textContent = row.pnl == null ? '—' : ((pnl >= 0 ? '+' : '') + pnl.toFixed(2));
+  pnlEl.className = 'stat-value ' + (pnl >= 0 ? 'pnl-pos' : 'pnl-neg');
 }
 
 function renderPnlGraph(graph) {
@@ -380,11 +358,12 @@ function renderPnlGraph(graph) {
     el.innerHTML = '';
     return;
   }
-  const w = 800, h = 220, pad = 18;
+  const w = 800, h = 220, pad = 22;
   const minV = Math.min.apply(null, values);
   const maxV = Math.max.apply(null, values);
   const span = Math.max(0.0001, maxV - minV);
-  function x(i) { return pad + (i * (w - pad * 2) / (values.length - 1)); }
+  const denom = Math.max(1, values.length - 1);
+  function x(i) { return pad + (i * (w - pad * 2) / denom); }
   function y(v) { return h - pad - ((v - minV) * (h - pad * 2) / span); }
 
   const linePts = values.map(function(v, i) { return x(i) + ',' + y(v); }).join(' ');
@@ -396,6 +375,10 @@ function renderPnlGraph(graph) {
     (zeroY !== null ? '<line class="graph-zero" x1="' + pad + '" y1="' + zeroY + '" x2="' + (w - pad) + '" y2="' + zeroY + '"></line>' : '') +
     '<polygon class="graph-fill" points="' + areaPts + '"></polygon>' +
     '<polyline class="graph-line" points="' + linePts + '"></polyline>';
+  const gSub = document.getElementById('graphSubtitle');
+  if (gSub && graph && graph.labels && graph.labels.length) {
+    gSub.textContent = 'Cumulative PnL (' + graph.labels[0] + ' to ' + graph.labels[graph.labels.length - 1] + ')';
+  }
 }
 
 function renderAccounts(accounts) {
