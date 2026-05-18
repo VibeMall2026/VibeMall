@@ -42,6 +42,25 @@
     padding:.35rem .7rem; border-radius:999px; font-size:.8rem; cursor:pointer;
   }
   .period-btn.active { background:#696cff; border-color:#696cff; color:#fff; }
+  .the5ers-mode .period-btn.active { background:#ccf35c; border-color:#ccf35c; color:#0e0f14; }
+  .the5ers-hero {
+    display:none;
+    background: radial-gradient(1200px 300px at 70% 0%, rgba(110,65,255,.25), rgba(0,0,0,0)) , #0d0f14;
+    border:1px solid #2a2f3a; border-radius:16px; padding:16px 18px; color:#dce1eb;
+  }
+  .the5ers-mode .the5ers-hero { display:block; }
+  .t5-title { font-size:2rem; font-weight:800; color:#f4f7ff; letter-spacing:.2px; }
+  .t5-accent { color:#ccf35c; }
+  .t5-grid { display:grid; grid-template-columns:repeat(4,minmax(130px,1fr)); gap:10px; margin-top:10px; }
+  .t5-actions { display:flex; gap:8px; align-items:center; }
+  .t5-pill { border-radius:999px; padding:.35rem .8rem; font-size:.78rem; border:1px solid #2a2f3a; }
+  .t5-kpi { background:#141822; border:1px solid #2a2f3a; border-radius:12px; padding:10px; }
+  .t5-kpi .k { font-size:.72rem; color:#95a1b8; text-transform:uppercase; }
+  .t5-kpi .v { font-size:1.15rem; font-weight:700; color:#f4f7ff; }
+  .the5ers-mode .status-card,
+  .the5ers-mode .selected-period-card,
+  .the5ers-mode .card { border-radius:14px !important; }
+  .the5ers-mode .section-header { color:#f4f7ff; }
   #loadingOverlay {
     position: fixed; inset: 0; background: rgba(35,35,51,.6);
     display: flex; align-items: center; justify-content: center;
@@ -108,6 +127,33 @@
     <button class="btn btn-sm btn-outline-info" onclick="loadStrategyData()">
       <i class="bx bx-refresh me-1"></i>Refresh
     </button>
+  </div>
+</div>
+
+<!-- The5ers Hero -->
+<div id="the5ersHero" class="the5ers-hero mb-4">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <div class="t5-accent" style="font-size:1.2rem;font-weight:700;">The5ers Funded</div>
+      <div class="t5-title">1-Step Program <span class="t5-accent">Dashboard</span></div>
+    </div>
+    <div class="t5-actions">
+      <span id="t5TradeModeBadge" class="t5-pill" style="background:#132013;color:#66e08a;border-color:#254a30;">● Trading ON</span>
+      <button type="button" class="btn btn-sm btn-outline-danger" onclick="setThe5ersTradeMode('stop_today')">Stop Today</button>
+      <button type="button" class="btn btn-sm btn-outline-success" onclick="setThe5ersTradeMode('start_now')">Start Now</button>
+    </div>
+  </div>
+  <div class="t5-grid">
+    <div class="t5-kpi"><div class="k">Starting Balance</div><div id="t5StartBalance" class="v">—</div></div>
+    <div class="t5-kpi"><div class="k">Current Equity</div><div id="t5Equity" class="v">—</div></div>
+    <div class="t5-kpi"><div class="k">Recognized Profit</div><div id="t5Profit" class="v">—</div></div>
+    <div class="t5-kpi"><div class="k">Profit Goal (5%)</div><div id="t5Goal" class="v">—</div></div>
+  </div>
+  <div class="t5-grid mt-2">
+    <div class="t5-kpi"><div class="k">Max Loss Level</div><div class="v">$2,250</div></div>
+    <div class="t5-kpi"><div class="k">Daily Loss Level</div><div class="v">$125</div></div>
+    <div class="t5-kpi"><div class="k">Max Trades/Day</div><div class="v">15</div></div>
+    <div class="t5-kpi"><div class="k">Min Holding Time</div><div class="v">1 minute</div></div>
   </div>
 </div>
 
@@ -313,6 +359,57 @@ function renderHeader(data) {
   badge.textContent = '● Active';
 }
 
+function applyThe5ersMode(data) {
+  const accounts = (data && data.accounts) ? data.accounts : [];
+  const isThe5ers = accounts.some(function(a) { return String(a.login || '') === '26259636'; });
+  document.body.classList.toggle('the5ers-mode', isThe5ers);
+  if (!isThe5ers) return;
+
+  const acc = accounts.find(function(a) { return String(a.login || '') === '26259636'; }) || accounts[0] || {};
+  const startBal = 2500.0;
+  const eq = parseFloat(acc.equity || 0);
+  const recognized = eq > 0 ? (eq - startBal) : parseFloat((data.stats && data.stats.total_pnl) || 0);
+  const goal = startBal * 1.05;
+  document.getElementById('t5StartBalance').textContent = '$' + startBal.toFixed(2);
+  document.getElementById('t5Equity').textContent = '$' + (isNaN(eq) ? '0.00' : eq.toFixed(2));
+  document.getElementById('t5Profit').textContent = (recognized >= 0 ? '+' : '') + '$' + recognized.toFixed(2);
+  document.getElementById('t5Goal').textContent = '$' + goal.toFixed(2);
+  refreshThe5ersTradeMode();
+}
+
+function refreshThe5ersTradeMode() {
+  fetch('/trading/api/accounts/26259636/trade-mode', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      const badge = document.getElementById('t5TradeModeBadge');
+      if (!badge || !d) return;
+      if (d.allowed) {
+        badge.textContent = '● Trading ON';
+        badge.style.background = '#132013';
+        badge.style.color = '#66e08a';
+        badge.style.borderColor = '#254a30';
+      } else {
+        badge.textContent = '● Stopped for Today';
+        badge.style.background = '#2a1518';
+        badge.style.color = '#ff8a9e';
+        badge.style.borderColor = '#4d1d27';
+      }
+    })
+    .catch(function() {});
+}
+
+function setThe5ersTradeMode(action) {
+  fetch('/trading/api/accounts/26259636/trade-mode', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+    body: JSON.stringify({ action: action }),
+  })
+  .then(function(r) { return r.json(); })
+  .then(function() { refreshThe5ersTradeMode(); loadStrategyData(); })
+  .catch(function() {});
+}
+
 function renderStats(stats) {
   if (!stats) return;
   document.getElementById('statWins').textContent    = stats.wins != null ? stats.wins : '—';
@@ -460,6 +557,7 @@ function renderRecentTrades(trades) {
 
 function renderStrategyDashboard(data) {
   if (!data || data.error) return;
+  applyThe5ersMode(data);
   SELECTED_PERIOD = data.selected_period || SELECTED_PERIOD;
   document.querySelectorAll('.period-btn').forEach(function(btn) {
     btn.classList.toggle('active', btn.getAttribute('data-period') === SELECTED_PERIOD);

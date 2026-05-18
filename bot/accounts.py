@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date as _date
 from dataclasses import dataclass, field
 from typing import Optional
 from loguru import logger
@@ -27,6 +27,7 @@ from bot import config as _config
 
 _accounts_lock = threading.Lock()
 _mt5_op_lock = threading.RLock()
+_account_trade_halts: dict[int, str] = {}  # login -> YYYY-MM-DD (halt day)
 
 # The5ers funded-account policy (applies only to the specific breakout account)
 THE5ERS_FUNDED_LOGIN = 26259636
@@ -203,6 +204,42 @@ _load_extra_accounts()
 def get_all_accounts() -> list[MT5Account]:
     with _accounts_lock:
         return list(_accounts)
+
+
+def stop_account_for_today(login: int) -> None:
+    """Stop trade execution for this account for the current UTC day."""
+    _account_trade_halts[int(login)] = _date.today().isoformat()
+
+
+def start_account_now(login: int) -> None:
+    """Manually resume trading for this account immediately."""
+    _account_trade_halts.pop(int(login), None)
+
+
+def is_account_trade_allowed_today(login: int) -> tuple[bool, str]:
+    """
+    Returns (allowed, reason).
+    Auto-resets on next day.
+    """
+    key = int(login)
+    halted_day = _account_trade_halts.get(key)
+    if not halted_day:
+        return True, "allowed"
+    today = _date.today().isoformat()
+    if halted_day != today:
+        # Auto-reset on next day.
+        _account_trade_halts.pop(key, None)
+        return True, "auto_resumed_new_day"
+    return False, "manually_stopped_for_today"
+
+
+def get_account_trade_mode(login: int) -> dict:
+    allowed, reason = is_account_trade_allowed_today(login)
+    return {
+        "login": int(login),
+        "allowed": allowed,
+        "reason": reason,
+    }
 
 
 def get_account(account_id: str) -> Optional[MT5Account]:
@@ -483,6 +520,19 @@ def execute_on_all_accounts(
                         "account_label": acc.label,
                         "login": acc.login,
                     })
+                    continue
+
+                # Manual per-account stop-for-today gate.
+                allowed_today, halt_reason = is_account_trade_allowed_today(acc.login)
+                if not allowed_today:
+                    results.append({
+                        "success": False,
+                        "message": f"Account paused for today ({halt_reason})",
+                        "account_id": acc.id,
+                        "account_label": acc.label,
+                        "login": acc.login,
+                    })
+                    logger.warning(f"[ACCOUNTS] Trade skipped for {acc.label}: {halt_reason}")
                     continue
 
                 # Account-specific prop-firm compliance guard (only this one account).

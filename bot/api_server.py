@@ -606,6 +606,10 @@ class AccountAddRequest(BaseModel):
     strategy: Optional[str] = "order_block"
 
 
+class AccountTradeModeRequest(BaseModel):
+    action: str  # stop_today | start_now
+
+
 @app.get("/strategies", dependencies=[Depends(verify_api_key)])
 async def list_strategies():
     """List all available strategies."""
@@ -699,6 +703,29 @@ async def refresh_accounts():
     from bot.accounts import refresh_account_info, get_all_accounts
     refresh_account_info()
     return [acc.to_dict() for acc in get_all_accounts()]
+
+
+@app.get("/accounts/{login}/trade-mode", dependencies=[Depends(verify_api_key)])
+async def get_account_trade_mode(login: int):
+    from bot.accounts import get_account_trade_mode as _get_mode
+    return _get_mode(login)
+
+
+@app.post("/accounts/{login}/trade-mode", dependencies=[Depends(verify_api_key)])
+async def set_account_trade_mode(login: int, body: AccountTradeModeRequest):
+    from bot.accounts import (
+        get_account_trade_mode as _get_mode,
+        start_account_now as _start_now,
+        stop_account_for_today as _stop_today,
+    )
+    action = (body.action or "").strip().lower()
+    if action == "stop_today":
+        _stop_today(login)
+    elif action == "start_now":
+        _start_now(login)
+    else:
+        raise HTTPException(status_code=400, detail="action must be stop_today or start_now")
+    return {"success": True, **_get_mode(login)}
 
 
 @app.get("/algo/runner-status", dependencies=[Depends(verify_api_key)])
