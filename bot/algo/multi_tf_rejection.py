@@ -58,6 +58,18 @@ class AlgoConfig:
     risk_percent: float = 1.0
     enabled: bool = True
 
+    trend_filter_enabled: bool = True
+    trend_ema_period: int = 50
+
+    atr_filter_enabled: bool = True
+    atr_period: int = 14
+    atr_min_multiplier: float = 0.7
+
+    max_spread_pips: float = 60.0
+    min_rejection_close_pips: float = 5.0
+    require_confirmation_candle_direction: bool = True
+    min_minutes_between_trades: int = 20
+
     # SL rules
     special_sl_trigger_pips: float = 20.0
     special_sl_fixed_pips: float = 50.0
@@ -143,6 +155,7 @@ _algo_running: bool = False
 
 _last_scan_at: Optional[str] = None
 _last_scan_summary: dict[str, dict] = {}
+_last_trade_at: dict[str, datetime] = {}
 
 
 # ── MT5 / bridge helpers (same pattern as order_block.py) ─────────────────────
@@ -203,17 +216,28 @@ def _get_candles(symbol: str, timeframe_minutes: int, count: int) -> list[Candle
 def _get_current_price(symbol: str, side: Optional[str] = None) -> Optional[float]:
     from bot import mt5_bridge as _bridge
 
+    bid_ask = _get_bid_ask(symbol)
+    if not bid_ask:
+        return None
+    bid, ask = bid_ask
+
+    if side == "buy":
+        return ask
+    if side == "sell":
+        return bid
+    return (bid + ask) / 2.0
+
+
+def _get_bid_ask(symbol: str) -> Optional[tuple[float, float]]:
+    from bot import mt5_bridge as _bridge
+
     if _bridge.USE_BRIDGE:
         try:
             response = _bridge._call_bridge(f"/price?symbol={symbol}")
             if response and "bid" in response and "ask" in response:
                 bid = float(response["bid"])
                 ask = float(response["ask"])
-                if side == "buy":
-                    return ask
-                if side == "sell":
-                    return bid
-                return (bid + ask) / 2.0
+                return bid, ask
         except Exception as exc:
             logger.warning(f"[MTF] Bridge price fetch failed: {exc}")
         return None
@@ -223,11 +247,38 @@ def _get_current_price(symbol: str, side: Optional[str] = None) -> Optional[floa
     tick = mt5.symbol_info_tick(symbol)
     if not tick:
         return None
-    if side == "buy":
-        return tick.ask
-    if side == "sell":
-        return tick.bid
-    return (tick.bid + tick.ask) / 2.0
+    return float(tick.bid), float(tick.ask)
+
+
+def _calculate_ema(values: list[float], period: int) -> Optional[float]:
+    p = int(period or 0)
+    if p <= 1 or len(values) < p:
+        return None
+    k = 2.0 / (p + 1.0)
+    ema = sum(values[:p]) / float(p)
+    for v in values[p:]:
+        ema = (float(v) * k) + (ema * (1.0 - k))
+    return float(ema)
+
+
+def _calculate_atr(candles: list[Candle], period: int) -> Optional[float]:
+    p = int(period or 0)
+    if p <= 1 or len(candles) < (p + 1):
+        return None
+    trs: list[float] = []
+    for i in range(1, len(candles)):
+        c = candles[i]
+        prev = candles[i - 1]
+        tr = max(
+            float(c.high - c.low),
+            abs(float(c.high - prev.close)),
+            abs(float(c.low - prev.close)),
+        )
+        trs.append(tr)
+    window = trs[-p:]
+    if len(window) < p:
+        return None
+    return float(sum(window) / float(p))
 
 
 # ── S/R detection ─────────────────────────────────────────────────────────────
@@ -411,12 +462,95 @@ def _maybe_open_trade(symbol: str) -> None:
     if len(candles_15) < 20 or len(candles_5) < 3:
         return
 
+    if candles_15 and candles_15[0].time > candles_15[-1].time:
+        candles_15 = list(reversed(candles_15))
+
     # Normalize 5m candles to chronological
     if candles_5 and candles_5[0].time > candles_5[-1].time:
         candles_5 = list(reversed(candles_5))
 
-    current_price = _get_current_price(symbol, side="mid")
-    if current_price is None:
+    bid_ask = _get_bid_ask(symbol)
+    if not bid_ask:
+        return
+    bid, ask = bid_ask
+    pip = _pip_size(symbol)
+    spread_pips = (ask - bid) / pip if pip > 0 else 0.0
+    if algo_config.max_spread_pips and spread_pips > float(algo_config.max_spread_pips):
+        _last_scan_at = datetime.now().isoformat()
+        _last_scan_summary[symbol] = {
+            "symbol": symbol,
+            "detected": 0,
+            "added": 0,
+            "tracked": 0,
+            "at": _last_scan_at,
+            "opened_trade": False,
+            "reason": "spread",
+            "spread_pips": round(spread_pips, 2),
+        }
+        return
+
+    current_price = (bid + ask) / 2.0
+
+    if algo_config.min_minutes_between_trades and symbol in _last_trade_at:
+        elapsed = (datetime.now() - _last_trade_at[symbol]).total_seconds() / 60.0
+        if elapsed < float(algo_config.min_minutes_between_trades):
+            _last_scan_at = datetime.now().isoformat()
+            _last_scan_summary[symbol] = {
+                "symbol": symbol,
+                "detected": 0,
+                "added": 0,
+                "tracked": 0,
+                "at": _last_scan_at,
+                "opened_trade": False,
+                "reason": "cooldown",
+                "cooldown_left_min": round(float(algo_config.min_minutes_between_trades) - elapsed, 2),
+            }
+            return
+
+    closes_15 = [c.close for c in candles_15]
+    ema = _calculate_ema(closes_15, algo_config.trend_ema_period) if algo_config.trend_filter_enabled else None
+    buy_allowed = True
+    sell_allowed = True
+    if algo_config.trend_filter_enabled and ema is not None:
+        buy_allowed = current_price >= ema
+        sell_allowed = current_price <= ema
+
+    atr = _calculate_atr(candles_15, algo_config.atr_period) if algo_config.atr_filter_enabled else None
+    atr_ok = True
+    if algo_config.atr_filter_enabled and atr is not None:
+        mult = float(algo_config.atr_min_multiplier or 1.0)
+        lookback = int(algo_config.atr_period) * 3
+        if len(candles_15) >= (lookback + 1) and lookback > 0:
+            atr_ref = _calculate_atr(candles_15[-(lookback + 1):], lookback) or atr
+        else:
+            atr_ref = atr
+        atr_ok = atr >= (atr_ref * mult)
+
+    if (algo_config.trend_filter_enabled and ema is None) or (algo_config.atr_filter_enabled and atr is None):
+        _last_scan_at = datetime.now().isoformat()
+        _last_scan_summary[symbol] = {
+            "symbol": symbol,
+            "detected": 0,
+            "added": 0,
+            "tracked": 0,
+            "at": _last_scan_at,
+            "opened_trade": False,
+            "reason": "indicators_unavailable",
+        }
+        return
+
+    if not atr_ok:
+        _last_scan_at = datetime.now().isoformat()
+        _last_scan_summary[symbol] = {
+            "symbol": symbol,
+            "detected": 0,
+            "added": 0,
+            "tracked": 0,
+            "at": _last_scan_at,
+            "opened_trade": False,
+            "reason": "atr_filter",
+            "atr": atr,
+        }
         return
 
     supports, resistances = _build_sr_levels(symbol, candles_15)
@@ -430,51 +564,61 @@ def _maybe_open_trade(symbol: str) -> None:
     prev = candles_5[-2]   # previous candle (SL reference)
 
     opened = False
-    if support and last.low <= support.price and last.close > support.price:
-        side = "buy"
-        entry = last.close
-        sl, tp, risk_pips = _calc_initial_sl_tp(symbol, side, entry, prev.close, last.open)
-        ticket = _execute_trade(symbol, side, entry, sl, tp, support)
-        if ticket:
-            _open_trades[ticket] = TradeState(ticket=ticket, symbol=symbol, side=side, entry=entry, sl=sl, tp=tp, risk_pips=risk_pips)
-            opened = True
-            state.signal_log.insert(0, {
-                "time": datetime.now().isoformat(),
-                "symbol": symbol,
-                "side": side,
-                "entry": entry,
-                "sl": sl,
-                "tp": tp,
-                "status": "executed",
-                "source": "ALGO:MultiTF",
-                "strategy": "my_strategy",
-                "level": {"kind": "support", "price": support.price},
-                "ticket": ticket,
-            })
-            logger.success(f"[MTF] BUY opened | {symbol} | entry={entry:.5f} sl={sl:.5f} tp={tp:.5f}")
+    min_close_pips = float(algo_config.min_rejection_close_pips or 0.0)
+    min_close_dist = min_close_pips * pip
+    if support and buy_allowed and last.low <= support.price and last.close > (support.price + min_close_dist):
+        if algo_config.require_confirmation_candle_direction and not (last.close > last.open):
+            pass
+        else:
+            side = "buy"
+            entry = last.close
+            sl, tp, risk_pips = _calc_initial_sl_tp(symbol, side, entry, prev.close, last.open)
+            ticket = _execute_trade(symbol, side, entry, sl, tp, support)
+            if ticket:
+                _open_trades[ticket] = TradeState(ticket=ticket, symbol=symbol, side=side, entry=entry, sl=sl, tp=tp, risk_pips=risk_pips)
+                opened = True
+                _last_trade_at[symbol] = datetime.now()
+                state.signal_log.insert(0, {
+                    "time": datetime.now().isoformat(),
+                    "symbol": symbol,
+                    "side": side,
+                    "entry": entry,
+                    "sl": sl,
+                    "tp": tp,
+                    "status": "executed",
+                    "source": "ALGO:MultiTF",
+                    "strategy": "my_strategy",
+                    "level": {"kind": "support", "price": support.price},
+                    "ticket": ticket,
+                })
+                logger.success(f"[MTF] BUY opened | {symbol} | entry={entry:.5f} sl={sl:.5f} tp={tp:.5f}")
 
-    elif resistance and last.high >= resistance.price and last.close < resistance.price:
-        side = "sell"
-        entry = last.close
-        sl, tp, risk_pips = _calc_initial_sl_tp(symbol, side, entry, prev.close, last.open)
-        ticket = _execute_trade(symbol, side, entry, sl, tp, resistance)
-        if ticket:
-            _open_trades[ticket] = TradeState(ticket=ticket, symbol=symbol, side=side, entry=entry, sl=sl, tp=tp, risk_pips=risk_pips)
-            opened = True
-            state.signal_log.insert(0, {
-                "time": datetime.now().isoformat(),
-                "symbol": symbol,
-                "side": side,
-                "entry": entry,
-                "sl": sl,
-                "tp": tp,
-                "status": "executed",
-                "source": "ALGO:MultiTF",
-                "strategy": "my_strategy",
-                "level": {"kind": "resistance", "price": resistance.price},
-                "ticket": ticket,
-            })
-            logger.success(f"[MTF] SELL opened | {symbol} | entry={entry:.5f} sl={sl:.5f} tp={tp:.5f}")
+    elif resistance and sell_allowed and last.high >= resistance.price and last.close < (resistance.price - min_close_dist):
+        if algo_config.require_confirmation_candle_direction and not (last.close < last.open):
+            pass
+        else:
+            side = "sell"
+            entry = last.close
+            sl, tp, risk_pips = _calc_initial_sl_tp(symbol, side, entry, prev.close, last.open)
+            ticket = _execute_trade(symbol, side, entry, sl, tp, resistance)
+            if ticket:
+                _open_trades[ticket] = TradeState(ticket=ticket, symbol=symbol, side=side, entry=entry, sl=sl, tp=tp, risk_pips=risk_pips)
+                opened = True
+                _last_trade_at[symbol] = datetime.now()
+                state.signal_log.insert(0, {
+                    "time": datetime.now().isoformat(),
+                    "symbol": symbol,
+                    "side": side,
+                    "entry": entry,
+                    "sl": sl,
+                    "tp": tp,
+                    "status": "executed",
+                    "source": "ALGO:MultiTF",
+                    "strategy": "my_strategy",
+                    "level": {"kind": "resistance", "price": resistance.price},
+                    "ticket": ticket,
+                })
+                logger.success(f"[MTF] SELL opened | {symbol} | entry={entry:.5f} sl={sl:.5f} tp={tp:.5f}")
 
     _last_scan_at = datetime.now().isoformat()
     _last_scan_summary[symbol] = {
@@ -484,6 +628,12 @@ def _maybe_open_trade(symbol: str) -> None:
         "tracked": len(supports) + len(resistances),
         "at": _last_scan_at,
         "opened_trade": opened,
+        "spread_pips": round(spread_pips, 2),
+        "ema": ema,
+        "buy_allowed": buy_allowed,
+        "sell_allowed": sell_allowed,
+        "atr": atr,
+        "atr_ok": atr_ok,
     }
 
 
