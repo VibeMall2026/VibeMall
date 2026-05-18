@@ -58,11 +58,22 @@ def _period_bounds_utc(today_utc: date) -> dict[str, tuple[date, date]]:
     month_start = today_utc.replace(day=1)
     prev_month_end = month_start - timedelta(days=1)
     prev_month_start = prev_month_end.replace(day=1)
+    week_start = today_utc - timedelta(days=today_utc.weekday())  # Monday
+    last_week_end = week_start - timedelta(days=1)
+    last_week_start = last_week_end - timedelta(days=6)
+
+    # Last 6 calendar months including current month.
+    six_month_start = month_start
+    for _ in range(5):
+        six_month_start = (six_month_start - timedelta(days=1)).replace(day=1)
     return {
         "today": (today_utc, today_utc),
         "yesterday": (yesterday, yesterday),
+        "this_week": (week_start, today_utc),
+        "last_week": (last_week_start, last_week_end),
         "this_month": (month_start, today_utc),
         "last_month": (prev_month_start, prev_month_end),
+        "last_6_months": (six_month_start, today_utc),
     }
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
@@ -386,7 +397,7 @@ async def stop_bot():
 
 
 @app.get("/strategy/{strategy_id}/stats", dependencies=[Depends(verify_api_key)])
-async def strategy_stats(strategy_id: str):
+async def strategy_stats(strategy_id: str, period: str = "today"):
     """Return per-strategy dashboard stats — fetches history from ALL assigned accounts."""
     from bot.accounts import get_all_accounts, _connect_account, _reconnect_primary
     from bot.strategies import get_strategy
@@ -458,14 +469,10 @@ async def strategy_stats(strategy_id: str):
             unique_history.append(t)
     history = unique_history
 
-    wins = sum(1 for t in history if t.get("status") == "win")
-    losses = sum(1 for t in history if t.get("status") == "loss")
-    total_pnl = sum(float(t.get("pnl", 0)) for t in history)
-    total = wins + losses
-
-    # Period stats: today / yesterday / this month / last month
+    # Period stats + selected-period filtering
     today_utc = datetime.now(timezone.utc).date()
     periods = _period_bounds_utc(today_utc)
+    selected_period = period if period in periods else "today"
     trade_rows = []
     for t in history:
         trade_date = (
@@ -511,18 +518,27 @@ async def strategy_stats(strategy_id: str):
             "end": end_d.isoformat(),
         }
 
-    # Graph: daily cumulative pnl (last 30 days)
-    graph_start = today_utc - timedelta(days=29)
+    selected_start, selected_end = periods[selected_period]
+    selected_rows = [r for r in trade_rows if selected_start <= r["date"] <= selected_end]
+    selected_wins = sum(1 for r in selected_rows if r["pnl"] > 0 or r["status"] == "win")
+    selected_losses = sum(1 for r in selected_rows if r["pnl"] < 0 or r["status"] == "loss")
+    selected_total = len(selected_rows)
+    selected_pnl = round(sum(r["pnl"] for r in selected_rows), 2)
+
+    # Graph: selected period cumulative pnl
+    graph_start = selected_start
+    graph_end = selected_end
     daily_pnl = {}
     for r in trade_rows:
-        if graph_start <= r["date"] <= today_utc:
+        if graph_start <= r["date"] <= graph_end:
             key = r["date"].isoformat()
             daily_pnl[key] = daily_pnl.get(key, 0.0) + r["pnl"]
     labels = []
     daily_values = []
     cumulative_values = []
     running = 0.0
-    for i in range(30):
+    day_count = (graph_end - graph_start).days + 1
+    for i in range(day_count):
         d = graph_start + timedelta(days=i)
         k = d.isoformat()
         day_pnl = round(daily_pnl.get(k, 0.0), 2)
@@ -531,18 +547,29 @@ async def strategy_stats(strategy_id: str):
         daily_values.append(day_pnl)
         cumulative_values.append(running)
 
+    filtered_recent = []
+    for t in history:
+        t_date = (
+            _parse_trade_date(t.get("closed"))
+            or _parse_trade_date(t.get("opened"))
+            or _parse_trade_date(t.get("time"))
+        )
+        if t_date and selected_start <= t_date <= selected_end:
+            filtered_recent.append(t)
+
     return {
         "strategy": strat,
         "accounts": [acc.to_dict() for acc in assigned_accounts],
         "open_trades": open_trades,
-        "recent_trades": history[:50],
+        "recent_trades": filtered_recent[:50],
         "stats": {
-            "wins": wins,
-            "losses": losses,
-            "total": total,
-            "win_rate": round(wins / total * 100, 1) if total > 0 else 0,
-            "total_pnl": round(total_pnl, 2),
+            "wins": selected_wins,
+            "losses": selected_losses,
+            "total": selected_total,
+            "win_rate": round(selected_wins / selected_total * 100, 1) if selected_total > 0 else 0,
+            "total_pnl": selected_pnl,
         },
+        "selected_period": selected_period,
         "period_stats": period_stats,
         "pnl_graph": {
             "labels": labels,

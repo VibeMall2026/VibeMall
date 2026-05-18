@@ -35,6 +35,12 @@
   .graph-line { fill:none; stroke:#28c76f; stroke-width:2.5; }
   .graph-fill { fill:rgba(40,199,111,.12); }
   .graph-zero { stroke:#ea5455; stroke-width:1; stroke-dasharray:4 4; opacity:.8; }
+  .period-tabs { display:flex; flex-wrap:wrap; gap:8px; }
+  .period-btn {
+    border:1px solid #3b3d52; background:#232333; color:#cdd0d6;
+    padding:.35rem .7rem; border-radius:999px; font-size:.8rem; cursor:pointer;
+  }
+  .period-btn.active { background:#696cff; border-color:#696cff; color:#fff; }
   #loadingOverlay {
     position: fixed; inset: 0; background: rgba(35,35,51,.6);
     display: flex; align-items: center; justify-content: center;
@@ -51,6 +57,21 @@
   <div class="text-center">
     <div class="spinner-border text-primary mb-3" style="width:3rem;height:3rem;"></div>
     <div style="color:#cdd0d6;">Loading strategy data…</div>
+  </div>
+</div>
+
+<!-- Period Filters -->
+<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
+  <div class="card-body">
+    <div class="period-tabs" id="periodTabs">
+      <button class="period-btn active" data-period="today">Today</button>
+      <button class="period-btn" data-period="yesterday">Yesterday</button>
+      <button class="period-btn" data-period="this_week">This Week</button>
+      <button class="period-btn" data-period="last_week">Last Week</button>
+      <button class="period-btn" data-period="this_month">This Month</button>
+      <button class="period-btn" data-period="last_month">Last Month</button>
+      <button class="period-btn" data-period="last_6_months">Last 6 Months</button>
+    </div>
   </div>
 </div>
 
@@ -255,6 +276,7 @@
 {% block extra_js %}
 <script>
 const STRATEGY_ID = "{{ strategy_id }}";
+let SELECTED_PERIOD = 'today';
 
 const STRATEGY_META = {
   order_block:      { name: 'Order Block + FVG',       icon: '⚡', color: '#696cff' },
@@ -445,6 +467,10 @@ function renderRecentTrades(trades) {
 
 function renderStrategyDashboard(data) {
   if (!data || data.error) return;
+  SELECTED_PERIOD = data.selected_period || SELECTED_PERIOD;
+  document.querySelectorAll('.period-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.getAttribute('data-period') === SELECTED_PERIOD);
+  });
   renderHeader(data);
   renderStats(data.stats);
   renderPeriodStats(data.period_stats);
@@ -457,7 +483,7 @@ function renderStrategyDashboard(data) {
 }
 
 function loadStrategyData() {
-  fetch('/trading/strategy/' + STRATEGY_ID + '/stats/', {
+  fetch('/trading/strategy/' + STRATEGY_ID + '/stats/?period=' + encodeURIComponent(SELECTED_PERIOD), {
     credentials: 'same-origin',
     headers: { 'X-CSRFToken': getCookie('csrftoken') },
   })
@@ -476,6 +502,13 @@ function loadStrategyData() {
     if (overlay) overlay.classList.add('hidden');
   });
 }
+
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.period-btn');
+  if (!btn) return;
+  SELECTED_PERIOD = btn.getAttribute('data-period') || 'today';
+  loadStrategyData();
+});
 
 loadStrategyData();
 setInterval(loadStrategyData, 30000);
