@@ -787,9 +787,24 @@
 
   function refreshAccounts(showMessage = true) {
     const csrfToken = getCookie('csrftoken');
-    fetch('/trading/api/accounts/refresh', { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRFToken': csrfToken } })
-      .then(r => r.json())
+    fetch('/trading/api/accounts/refresh', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+      body: '{}'
+    })
+      .then(async (r) => {
+        const text = await r.text();
+        try {
+          return JSON.parse(text || '[]');
+        } catch (e) {
+          throw new Error(`HTTP ${r.status} ${r.statusText} | ${text.slice(0, 160)}`);
+        }
+      })
       .then(accounts => {
+        if (!Array.isArray(accounts)) {
+          throw new Error(accounts && (accounts.error || accounts.detail || JSON.stringify(accounts)));
+        }
         renderAccounts(accounts);
         if (showMessage) {
           showToast('Accounts refreshed', true);

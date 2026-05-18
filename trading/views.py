@@ -441,7 +441,16 @@ def bot_api_proxy(request, endpoint):
             resp = requests.delete(url, **kwargs)
         else:
             return JsonResponse({"error": "Method not allowed"}, status=405)
-
-        return JsonResponse(resp.json(), safe=False, status=resp.status_code)
+        try:
+            payload = resp.json()
+        except Exception:
+            payload = {
+                "success": False,
+                "error": "Non-JSON response from bot API",
+                "status_code": resp.status_code,
+                "body_preview": (resp.text or "")[:500],
+            }
+            return JsonResponse(payload, status=502)
+        return JsonResponse(payload, safe=False, status=resp.status_code)
     except Exception as exc:
         return JsonResponse({"error": str(exc)}, status=503)
