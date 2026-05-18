@@ -134,6 +134,7 @@ _dd_halted: bool = False          # permanent halt on max drawdown
 _daily_halted: bool = False       # daily halt on profit/loss limit
 _last_scan_at: Optional[str] = None
 _last_scan_summary: dict[str, dict] = {}
+_last_recovery_at: float = 0.0
 
 
 def _ob_debug(event: str, **payload) -> None:
@@ -142,6 +143,68 @@ def _ob_debug(event: str, **payload) -> None:
         return
     bits = [f"{k}={v}" for k, v in payload.items()]
     logger.info(f"[ALGO][{event}] " + " | ".join(bits))
+
+
+def _recover_tracked_ob_positions() -> int:
+    """
+    Rebuild minimal tracked OB objects from currently open ALGO:OB positions.
+    This allows risk/trailing management to continue after bot restart.
+    """
+    recovered = 0
+    try:
+        open_positions = mt5_bridge.get_open_positions()
+    except Exception:
+        return 0
+
+    with _obs_lock:
+        for pos in open_positions:
+            comment = str(pos.get("comment", "") or "")
+            if "ALGO:OB" not in comment:
+                continue
+            ticket = pos.get("id", pos.get("position_id"))
+            symbol = str(pos.get("symbol", "") or "").upper()
+            side = str(pos.get("side", "") or "").lower()
+            entry_price = float(pos.get("entry", 0) or 0)
+            sl = float(pos.get("sl", 0) or 0)
+            if not ticket or not symbol or entry_price <= 0 or sl <= 0:
+                continue
+
+            # Already tracked?
+            existing = _active_obs.get(symbol, [])
+            if any(ob.ticket == ticket and ob.trade_taken for ob in existing):
+                continue
+
+            direction = "bullish" if side == "buy" else "bearish"
+            one_r = abs(entry_price - sl)
+            if one_r <= 0:
+                continue
+
+            # Minimal synthetic OB for risk-management continuity.
+            fake = OrderBlock(
+                id=f"recovered_{ticket}",
+                direction=direction,
+                high=entry_price,
+                low=entry_price,
+                midpoint=entry_price,
+                time=datetime.utcnow(),
+                fvg=FairValueGap(direction=direction, top=entry_price, bottom=entry_price, time=datetime.utcnow()),
+                symbol=symbol,
+                active=False,
+                trade_taken=True,
+                ticket=ticket,
+            )
+            fake.entry_price = entry_price
+            fake.initial_sl = sl
+            fake.one_r = one_r
+            fake.r_stage = 0
+            fake.dollar_lock_applied = False
+
+            _active_obs.setdefault(symbol, []).append(fake)
+            recovered += 1
+
+    if recovered:
+        logger.info(f"[ALGO] Recovered {recovered} open ALGO:OB position(s) after restart")
+    return recovered
 
 
 def _reset_daily_if_needed() -> None:
@@ -1437,7 +1500,7 @@ def _risk_check_loop() -> None:
 
     Kept separate from OB scan loop to avoid heavy candle fetches every second.
     """
-    global _algo_running
+    global _algo_running, _last_recovery_at
     logger.info("[ALGO] Risk check loop started (1s interval)")
     last_snapshot_at = 0.0
     snapshot_ttl_seconds = 3.0
@@ -1473,6 +1536,14 @@ def _risk_check_loop() -> None:
 
                 # No active tracked OB tickets -> skip expensive account switching.
                 if not tracked_open_obs:
+                    now_recover = time.time()
+                    if (now_recover - _last_recovery_at) >= 10.0:
+                        recovered = _recover_tracked_ob_positions()
+                        _last_recovery_at = now_recover
+                        if recovered > 0:
+                            logger.info(
+                                f"[ALGO][RISK_LOOP] Recovered {recovered} OB position(s); resuming risk tracking"
+                            )
                     logger.debug("[ALGO][RISK_LOOP] no tracked OB tickets; skipping snapshot")
                     time.sleep(algo_config.risk_check_interval_seconds)
                     continue
@@ -1603,6 +1674,9 @@ def start_algo() -> bool:
     # Risk check thread — runs every 1s for SL/profit-lock management
     _risk_thread = threading.Thread(target=_risk_check_loop, daemon=True, name="AlgoRiskThread")
     _risk_thread.start()
+
+    # Recover already-open OB trades so trailing/risk management keeps working after restart.
+    _recover_tracked_ob_positions()
 
     logger.success(
         f"[ALGO] Order Block strategy started | "
