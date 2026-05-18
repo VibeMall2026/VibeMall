@@ -8,7 +8,7 @@ REM Edit the variables below to match your VPS configuration before running.
 set VPS_USER=root
 set VPS_HOST=187.124.98.177
 set VPS_PORT=22
-set TUNNEL_PORT=2223
+set TUNNEL_PORT=2222
 set LOCAL_PORT=8001
 set KEY_FILE=%USERPROFILE%\.ssh\id_rsa
 
@@ -17,9 +17,6 @@ echo   VPS:  %VPS_USER%@%VPS_HOST%:%VPS_PORT%
 echo   Tunnel: remote %TUNNEL_PORT% -> localhost:%LOCAL_PORT%
 echo   Key:  %KEY_FILE%
 echo.
-
-REM Cleanup any stale SSH tunnel clients so we do not stack duplicate reverse forwards.
-taskkill /IM ssh.exe /F >nul 2>&1
 
 :loop
 ssh -4 -N -R 127.0.0.1:%TUNNEL_PORT%:127.0.0.1:%LOCAL_PORT% ^
