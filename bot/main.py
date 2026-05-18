@@ -126,6 +126,11 @@ def main() -> None:
     time.sleep(1)  # Give uvicorn time to bind before proceeding
     logger.info(f"API server started on port {config.API_PORT}")
 
+    if api_only:
+        logger.info("Running in API-only mode (no strategies, no Telegram listener).")
+        api_thread.join()
+        return
+
     # Start ALL algo strategies assigned to accounts (parallel execution)
     from bot.algo.runner import start_all_strategies
     started = start_all_strategies()
@@ -136,11 +141,6 @@ def main() -> None:
         target=_mt5_reconnect_loop, daemon=True, name="MT5ReconnectMonitor"
     )
     reconnect_thread.start()
-
-    if api_only:
-        logger.info("Running in API-only mode (no Telegram listener).")
-        api_thread.join()
-        return
 
     # Run bot (blocking)
     asyncio.run(start_bot())
