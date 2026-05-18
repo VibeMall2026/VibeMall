@@ -50,6 +50,9 @@ class AlgoConfig:
     min_breakout_body_ratio: float = 0.45
     min_volume_multiplier: float = 1.00
     retest_tolerance_atr: float = 0.25
+    require_trend_alignment: bool = False
+    require_volatility_filter: bool = False
+    use_human_mind_gate: bool = False
     max_active_breakouts: int = 5
     scan_interval_seconds: int = 60
     risk_check_interval_seconds: int = 1
@@ -675,9 +678,9 @@ def _scan_and_trade(symbol: str = None) -> None:
         for setup in new_setups:
             if setup.id in existing_ids:
                 continue
-            if not _is_trend_aligned(candles_analysis, setup.direction):
+            if algo_config.require_trend_alignment and not _is_trend_aligned(candles_analysis, setup.direction):
                 continue
-            if not _is_volatility_sufficient(candles_analysis):
+            if algo_config.require_volatility_filter and not _is_volatility_sufficient(candles_analysis):
                 continue
             setup.symbol = symbol  # tag setup with its symbol
             symbol_setups.append(setup)
@@ -753,16 +756,17 @@ def _scan_and_trade(symbol: str = None) -> None:
             entry = _check_entry_signal(setup, candles_exec)
             if entry:
                 # ── Human Mind gate ───────────────────────────────────────────
-                from bot.algo.human_mind import can_enter_trade
-                allowed, reason = can_enter_trade(
-                    symbol=symbol,
-                    direction=setup.direction,
-                    candles=candles_exec,
-                    open_positions=open_positions,
-                )
-                if not allowed:
-                    logger.info(f"[BREAKOUT] Trade blocked by human_mind: {reason} | {setup.id}")
-                    continue
+                if algo_config.use_human_mind_gate:
+                    from bot.algo.human_mind import can_enter_trade
+                    allowed, reason = can_enter_trade(
+                        symbol=symbol,
+                        direction=setup.direction,
+                        candles=candles_exec,
+                        open_positions=open_positions,
+                    )
+                    if not allowed:
+                        logger.info(f"[BREAKOUT] Trade blocked by human_mind: {reason} | {setup.id}")
+                        continue
                 _execute_breakout_trade(setup, entry)
                 break
 
