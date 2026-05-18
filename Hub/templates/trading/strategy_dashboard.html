@@ -359,8 +359,14 @@ function renderPnlGraph(graph) {
     return;
   }
   const w = 800, h = 220, pad = 22;
-  const minV = Math.min.apply(null, values);
-  const maxV = Math.max.apply(null, values);
+  let minV = Math.min.apply(null, values);
+  let maxV = Math.max.apply(null, values);
+  // If all values are equal, create a visual band so the line is visible.
+  if (Math.abs(maxV - minV) < 1e-9) {
+    const padV = Math.max(0.5, Math.abs(maxV) * 0.05);
+    minV -= padV;
+    maxV += padV;
+  }
   const span = Math.max(0.0001, maxV - minV);
   const denom = Math.max(1, values.length - 1);
   function x(i) { return pad + (i * (w - pad * 2) / denom); }
@@ -369,12 +375,16 @@ function renderPnlGraph(graph) {
   const linePts = values.map(function(v, i) { return x(i) + ',' + y(v); }).join(' ');
   const areaPts = linePts + ' ' + x(values.length - 1) + ',' + (h - pad) + ' ' + x(0) + ',' + (h - pad);
   const zeroY = (minV <= 0 && maxV >= 0) ? y(0) : null;
+  const dots = values.map(function(v, i) {
+    return '<circle cx="' + x(i) + '" cy="' + y(v) + '" r="3.2" fill="#28c76f"></circle>';
+  }).join('');
 
   el.innerHTML =
     '<line class="graph-axis" x1="' + pad + '" y1="' + (h - pad) + '" x2="' + (w - pad) + '" y2="' + (h - pad) + '"></line>' +
     (zeroY !== null ? '<line class="graph-zero" x1="' + pad + '" y1="' + zeroY + '" x2="' + (w - pad) + '" y2="' + zeroY + '"></line>' : '') +
     '<polygon class="graph-fill" points="' + areaPts + '"></polygon>' +
-    '<polyline class="graph-line" points="' + linePts + '"></polyline>';
+    '<polyline class="graph-line" points="' + linePts + '"></polyline>' +
+    dots;
   const gSub = document.getElementById('graphSubtitle');
   if (gSub && graph && graph.labels && graph.labels.length) {
     gSub.textContent = 'Cumulative PnL (' + graph.labels[0] + ' to ' + graph.labels[graph.labels.length - 1] + ')';
