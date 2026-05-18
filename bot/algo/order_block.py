@@ -1410,10 +1410,13 @@ def _scan_and_trade(symbol: str = None) -> None:
     if not can_trade():
         return
 
-    # Check open positions — don't stack too many algo trades
+    # Check open positions — limit per symbol (not global across all symbols)
     open_positions = mt5_bridge.get_open_positions()
     open_tickets = {str(p.get("id")) for p in open_positions if p.get("id") is not None}
-    algo_positions = [p for p in open_positions if "ALGO:OB" in p.get("comment", "")]
+    algo_positions = [
+        p for p in open_positions
+        if "ALGO:OB" in str(p.get("comment", "")) and str(p.get("symbol", "")).upper() == symbol.upper()
+    ]
 
     # If a traded OB's position was manually closed, allow re-trading
     with _obs_lock:
@@ -1428,7 +1431,7 @@ def _scan_and_trade(symbol: str = None) -> None:
                 ob.r_stage = 0
 
     if len(algo_positions) >= 2:
-        logger.debug(f"[ALGO] Max algo positions reached ({len(algo_positions)})")
+        logger.debug(f"[ALGO] Max algo positions reached for {symbol} ({len(algo_positions)})")
         return
 
     # Fetch execution timeframe candles
