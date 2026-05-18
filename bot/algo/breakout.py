@@ -512,11 +512,11 @@ def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
     if not setup.ticket or setup.one_r <= 0:
         return
 
-    current_price = _get_current_price(getattr(setup, 'symbol', algo_config.symbol), side=side)
+    side = "buy" if setup.direction == "bullish" else "sell"
+    current_price = _get_current_price(getattr(setup, "symbol", algo_config.symbol), side=side)
     if current_price is None:
         return
 
-    side = "buy" if setup.direction == "bullish" else "sell"
     entry = setup.entry_price
     one_r = setup.one_r
 
