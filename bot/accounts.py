@@ -319,17 +319,25 @@ def _connect_account(acc: MT5Account) -> bool:
     if not MT5_AVAILABLE:
         return False
     with _mt5_op_lock:
+        connect_timeout_ms = _config.MT5_TIMEOUT_MS
+        attempts = (1, 2)
+        # Funded account can intermittently hang the MT5 IPC channel.
+        # Keep this probe short so dashboard refresh doesn't block for minutes.
+        if acc.login == THE5ERS_FUNDED_LOGIN:
+            connect_timeout_ms = min(connect_timeout_ms, 8000)
+            attempts = (1,)
+
         kwargs = {
             "login": acc.login,
             "password": acc.password,
             "server": acc.server,
-            "timeout": _config.MT5_TIMEOUT_MS,
+            "timeout": connect_timeout_ms,
         }
         if acc.path:
             kwargs["path"] = acc.path
 
         last_err = ""
-        for attempt in (1, 2):
+        for attempt in attempts:
             # Shutdown existing connection first
             mt5.shutdown()
 
@@ -346,7 +354,7 @@ def _connect_account(acc: MT5Account) -> bool:
                 return True
 
             last_err = str(mt5.last_error())
-            if attempt == 1:
+            if attempt == 1 and len(attempts) > 1:
                 time.sleep(0.4)
 
         acc.connected = False
