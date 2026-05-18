@@ -586,6 +586,12 @@ def _execute_single(
     if lot is None:
         return {"success": False, "message": "Trade blocked: broker minimum lot exceeds configured per-trade risk/lot caps"}
 
+    preferred_filling = getattr(sym_info, "filling_mode", mt5.ORDER_FILLING_IOC)
+    fill_candidates = []
+    for mode in (preferred_filling, mt5.ORDER_FILLING_RETURN, mt5.ORDER_FILLING_IOC, mt5.ORDER_FILLING_FOK):
+        if mode not in fill_candidates:
+            fill_candidates.append(mode)
+
     request = {
         "action": action,
         "symbol": symbol,
@@ -598,14 +604,22 @@ def _execute_single(
         "magic": cfg.MT5_MAGIC_NUMBER,
         "comment": comment,
         "type_time": mt5.ORDER_TIME_GTC,
-        "type_filling": mt5.ORDER_FILLING_IOC,
     }
-
-    result = mt5.order_send(request)
-    if result is None:
-        return {"success": False, "message": f"order_send None: {mt5.last_error()}"}
-
-    if result.retcode == mt5.TRADE_RETCODE_DONE:
-        return {"success": True, "ticket": result.order, "lot": lot, "message": "Trade opened"}
-    else:
+    last_result = None
+    for fill_mode in fill_candidates:
+        req = dict(request)
+        req["type_filling"] = fill_mode
+        result = mt5.order_send(req)
+        last_result = result
+        if result and result.retcode == mt5.TRADE_RETCODE_DONE:
+            return {"success": True, "ticket": result.order, "lot": lot, "message": "Trade opened"}
+        # 10030 = Unsupported filling mode; try next candidate
+        if result and result.retcode == 10030:
+            continue
+        if result is None:
+            continue
         return {"success": False, "message": f"retcode={result.retcode} {result.comment}"}
+
+    if last_result is None:
+        return {"success": False, "message": f"order_send None: {mt5.last_error()}"}
+    return {"success": False, "message": f"retcode={last_result.retcode} {last_result.comment}"}

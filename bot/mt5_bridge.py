@@ -389,6 +389,12 @@ def open_trade(
         if lot is None:
             return {"success": False, "message": "Trade blocked: broker minimum lot exceeds configured per-trade risk/lot caps"}
 
+        preferred_filling = getattr(sym_info, "filling_mode", mt5.ORDER_FILLING_IOC)
+        fill_candidates = []
+        for mode in (preferred_filling, mt5.ORDER_FILLING_RETURN, mt5.ORDER_FILLING_IOC, mt5.ORDER_FILLING_FOK):
+            if mode not in fill_candidates:
+                fill_candidates.append(mode)
+
         request = {
             "action": action,
             "symbol": symbol,
@@ -401,22 +407,31 @@ def open_trade(
             "magic": config.MT5_MAGIC_NUMBER,
             "comment": comment,
             "type_time": mt5.ORDER_TIME_GTC,
-            "type_filling": mt5.ORDER_FILLING_IOC,
         }
-
-        result = mt5.order_send(request)
-        if result is None:
-            return {"success": False, "message": f"order_send returned None: {mt5.last_error()}"}
-
-        if result.retcode == mt5.TRADE_RETCODE_DONE:
-            logger.success(
-                f"Trade opened | {symbol} {side.upper()} | Type: {normalized_order_type} | Lot: {lot} | Ticket: {result.order}"
-            )
-            return {"success": True, "ticket": result.order, "lot": lot, "message": "Trade opened"}
-        else:
+        last_result = None
+        for fill_mode in fill_candidates:
+            req = dict(request)
+            req["type_filling"] = fill_mode
+            result = mt5.order_send(req)
+            last_result = result
+            if result and result.retcode == mt5.TRADE_RETCODE_DONE:
+                logger.success(
+                    f"Trade opened | {symbol} {side.upper()} | Type: {normalized_order_type} | Lot: {lot} | Ticket: {result.order}"
+                )
+                return {"success": True, "ticket": result.order, "lot": lot, "message": "Trade opened"}
+            if result and result.retcode == 10030:
+                continue
+            if result is None:
+                continue
             msg = f"Order failed: retcode={result.retcode} comment={result.comment}"
             logger.error(msg)
             return {"success": False, "message": msg}
+
+        if last_result is None:
+            return {"success": False, "message": f"order_send returned None: {mt5.last_error()}"}
+        msg = f"Order failed: retcode={last_result.retcode} comment={last_result.comment}"
+        logger.error(msg)
+        return {"success": False, "message": msg}
 
 
 # ── Modify position ───────────────────────────────────────────────────────────
