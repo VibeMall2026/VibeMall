@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import threading
 import time
+from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from typing import Optional
 from loguru import logger
@@ -26,6 +27,16 @@ from bot import config as _config
 
 _accounts_lock = threading.Lock()
 _mt5_op_lock = threading.RLock()
+
+# The5ers funded-account policy (applies only to the specific breakout account)
+THE5ERS_FUNDED_LOGIN = 26259636
+THE5ERS_ACCOUNT_SIZE = 2500.0
+THE5ERS_MAX_DAILY_LOSS_PCT = 5.0
+THE5ERS_MAX_TOTAL_LOSS_PCT = 10.0
+THE5ERS_EQUITY_FLOOR = 2250.0
+THE5ERS_MAX_TRADES_PER_DAY = 15
+THE5ERS_MIN_SECONDS_BETWEEN_BREAKOUT_ENTRIES = 65
+THE5ERS_MAX_SIMULTANEOUS_BREAKOUT_TRADES = 2
 
 
 def get_mt5_lock() -> threading.RLock:
@@ -474,6 +485,20 @@ def execute_on_all_accounts(
                     })
                     continue
 
+                # Account-specific prop-firm compliance guard (only this one account).
+                if strategy_id == "breakout" and acc.login == THE5ERS_FUNDED_LOGIN:
+                    allowed, reason = _check_the5ers_breakout_policy(acc)
+                    if not allowed:
+                        results.append({
+                            "success": False,
+                            "message": f"The5ers policy block: {reason}",
+                            "account_id": acc.id,
+                            "account_label": acc.label,
+                            "login": acc.login,
+                        })
+                        logger.warning(f"[ACCOUNTS] The5ers policy blocked breakout trade: {reason}")
+                        continue
+
                 # Execute trade on this account
                 result = _execute_single(
                     symbol=symbol,
@@ -512,6 +537,79 @@ def execute_on_all_accounts(
     _reconnect_primary()
 
     return results
+
+
+def _check_the5ers_breakout_policy(acc: MT5Account) -> tuple[bool, str]:
+    """Compliance/risk checks for The5ers funded breakout account only."""
+    try:
+        from bot import mt5_bridge as _bridge
+        info = mt5.account_info()
+        if not info:
+            return False, "could not read account info"
+
+        balance = float(getattr(info, "balance", 0.0) or 0.0)
+        equity = float(getattr(info, "equity", 0.0) or 0.0)
+
+        # Maximum total loss protection (equity floor).
+        pct_floor = THE5ERS_ACCOUNT_SIZE * (1.0 - THE5ERS_MAX_TOTAL_LOSS_PCT / 100.0)
+        hard_floor = max(THE5ERS_EQUITY_FLOOR, pct_floor)
+        if equity <= hard_floor:
+            return False, f"equity floor reached (equity={equity:.2f}, floor={hard_floor:.2f})"
+
+        # Daily realized loss check.
+        history = _bridge.get_trade_history(limit=2000)
+        today = datetime.now(timezone.utc).date().isoformat()
+        daily_realized = 0.0
+        breakout_trades_today = 0
+        last_breakout_open_ts = None
+        for t in history:
+            comment = str(t.get("comment", "") or "")
+            opened = str(t.get("opened", "") or "")
+            if len(opened) < 10 or opened[:10] != today:
+                continue
+            pnl = float(t.get("pnl", 0) or 0)
+            daily_realized += pnl
+            if "ALGO:BRK" in comment:
+                breakout_trades_today += 1
+                try:
+                    dt = datetime.fromisoformat(opened.replace("Z", "+00:00").replace(" ", "T"))
+                    if last_breakout_open_ts is None or dt > last_breakout_open_ts:
+                        last_breakout_open_ts = dt
+                except Exception:
+                    pass
+
+        max_daily_loss_usd = THE5ERS_ACCOUNT_SIZE * (THE5ERS_MAX_DAILY_LOSS_PCT / 100.0)
+        if daily_realized <= -max_daily_loss_usd:
+            return False, f"daily loss limit reached ({daily_realized:.2f} <= -{max_daily_loss_usd:.2f})"
+
+        # Hard cap: max trades/day.
+        if breakout_trades_today >= THE5ERS_MAX_TRADES_PER_DAY:
+            return False, f"max trades/day reached ({breakout_trades_today}/{THE5ERS_MAX_TRADES_PER_DAY})"
+
+        # Anti-HFT / no ultra-fast repetitive entries.
+        if last_breakout_open_ts is not None:
+            now_utc = datetime.now(timezone.utc)
+            seconds_since_last = (now_utc - last_breakout_open_ts).total_seconds()
+            if seconds_since_last < THE5ERS_MIN_SECONDS_BETWEEN_BREAKOUT_ENTRIES:
+                return False, (
+                    "entry frequency too high "
+                    f"({seconds_since_last:.0f}s < {THE5ERS_MIN_SECONDS_BETWEEN_BREAKOUT_ENTRIES}s)"
+                )
+
+        # No bulk trading: cap simultaneous breakout positions on this account.
+        open_positions = _bridge.get_open_positions()
+        open_breakout_positions = [
+            p for p in open_positions if "ALGO:BRK" in str(p.get("comment", "") or "")
+        ]
+        if len(open_breakout_positions) >= THE5ERS_MAX_SIMULTANEOUS_BREAKOUT_TRADES:
+            return False, (
+                "simultaneous breakout position cap reached "
+                f"({len(open_breakout_positions)}/{THE5ERS_MAX_SIMULTANEOUS_BREAKOUT_TRADES})"
+            )
+
+        return True, "ok"
+    except Exception as exc:
+        return False, f"policy-check error: {exc}"
 
 
 def _execute_single(
