@@ -205,12 +205,20 @@ def _get_candles(symbol: str, timeframe_minutes: int, count: int) -> list[Candle
     ]
 
 
-def _get_current_price(symbol: str) -> Optional[float]:
+def _get_current_price(symbol: str, side: Optional[str] = None) -> Optional[float]:
     from bot import mt5_bridge as _bridge
 
     if _bridge.USE_BRIDGE:
         try:
             response = _bridge._call_bridge(f"/price?symbol={symbol}")
+            if response and "bid" in response and "ask" in response:
+                bid = float(response["bid"])
+                ask = float(response["ask"])
+                if side == "buy":
+                    return ask
+                if side == "sell":
+                    return bid
+                return (bid + ask) / 2.0
             if response and "bid" in response:
                 return float(response["bid"])
         except Exception as exc:
@@ -220,7 +228,13 @@ def _get_current_price(symbol: str) -> Optional[float]:
     if not MT5_AVAILABLE or not mt5_bridge.is_connected():
         return None
     tick = mt5.symbol_info_tick(symbol)
-    return tick.bid if tick else None
+    if not tick:
+        return None
+    if side == "buy":
+        return tick.ask
+    if side == "sell":
+        return tick.bid
+    return (tick.bid + tick.ask) / 2.0
 
 
 def _calculate_ema(candles: list[Candle], period: int) -> Optional[float]:
@@ -416,70 +430,29 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
         f"Breakout level: {setup.breakout_level:.5f} | Range: {setup.range_low:.5f}-{setup.range_high:.5f}"
     )
 
-    # Execute on all accounts that have 'breakout' strategy assigned.
-    # If none are tagged 'breakout', fall back to ALL enabled accounts.
-    from bot.accounts import get_all_accounts, _connect_account, _reconnect_primary, _execute_single
-
-    all_enabled = [acc for acc in get_all_accounts() if acc.enabled]
-    breakout_accounts = [acc for acc in all_enabled if "breakout" in (acc.strategy or [])]
-    target_accounts = breakout_accounts if breakout_accounts else all_enabled
-
-    if not target_accounts:
-        # Last resort: use primary mt5_bridge connection
-        logger.warning("[BREAKOUT] No enabled accounts found — using primary bridge connection")
-        result = mt5_bridge.open_trade(
-            symbol=setup.symbol,
-            side=side,
-            sl=sl,
-            tp=tp,
-            entry=entry_price,
-            order_type="market",
-            risk_percent=algo_config.risk_percent,
-            comment=f"ALGO:BRK:{setup.id[:8]}",
+    # Execute via centralized multi-account engine (now supports filling-mode fallback).
+    from bot.accounts import execute_on_all_accounts
+    results = execute_on_all_accounts(
+        symbol=setup.symbol,
+        side=side,
+        sl=sl,
+        tp=tp,
+        entry=entry_price,
+        order_type="market",
+        risk_percent=algo_config.risk_percent,
+        comment=f"ALGO:BRK:{setup.id[:8]}",
+        strategy_id="breakout",
+    )
+    successes = [r for r in results if r.get("success")]
+    if not successes:
+        logger.error(f"[BREAKOUT] Trade failed on all breakout accounts: {results}")
+        return False
+    ticket = successes[0].get("ticket")
+    for r in successes:
+        logger.success(
+            f"[BREAKOUT] Trade on {r.get('account_label')} ({r.get('login')}) | "
+            f"Ticket: {r.get('ticket')} | {setup.symbol} {side.upper()}"
         )
-        if not result.get("success"):
-            logger.error(f"[BREAKOUT] Trade failed: {result.get('message')}")
-            return False
-        ticket = result.get("ticket")
-    else:
-        if not breakout_accounts:
-            logger.info(f"[BREAKOUT] No 'breakout' accounts configured — executing on all {len(target_accounts)} enabled account(s)")
-        results = []
-        for acc in target_accounts:
-            try:
-                if _connect_account(acc):
-                    r = _execute_single(
-                        symbol=setup.symbol,
-                        side=side,
-                        sl=sl,
-                        tp=tp,
-                        entry=entry_price,
-                        order_type="market",
-                        risk_percent=algo_config.risk_percent,
-                        comment=f"ALGO:BRK:{setup.id[:8]}",
-                    )
-                    r["account_id"] = acc.id
-                    r["account_label"] = acc.label
-                    r["login"] = acc.login
-                    results.append(r)
-            except Exception as _e:
-                logger.error(f"[BREAKOUT] Trade error on {acc.label}: {_e}")
-                results.append({"success": False, "message": str(_e), "login": acc.login, "account_label": acc.label})
-        _reconnect_primary()
-        target_logins = {acc.login for acc in target_accounts}
-        relevant = [r for r in results if r.get("login") in target_logins]
-        successes = [r for r in relevant if r.get("success")]
-
-        if not successes:
-            logger.error(f"[BREAKOUT] Trade failed on all accounts: {relevant}")
-            return False
-
-        ticket = successes[0].get("ticket")
-        for r in successes:
-            logger.success(
-                f"[BREAKOUT] Trade on {r.get('account_label')} ({r.get('login')}) | "
-                f"Ticket: {r.get('ticket')} | {setup.symbol} {side.upper()}"
-            )
 
     setup.trade_taken = True
     setup.ticket = ticket
@@ -535,7 +508,7 @@ def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
     if not setup.ticket or setup.one_r <= 0:
         return
 
-    current_price = _get_current_price(getattr(setup, 'symbol', algo_config.symbol))
+    current_price = _get_current_price(getattr(setup, 'symbol', algo_config.symbol), side=side)
     if current_price is None:
         return
 
@@ -664,11 +637,11 @@ def _scan_and_trade(symbol: str = None) -> None:
     check_drawdown()
 
     open_positions = mt5_bridge.get_open_positions()
-    open_tickets = {p.get("id") for p in open_positions}
+    open_tickets = {str(p.get("id")) for p in open_positions if p.get("id") is not None}
 
     with _breakout_lock:
         for setup in symbol_setups:
-            if setup.trade_taken and setup.ticket and setup.ticket not in open_tickets:
+            if setup.trade_taken and setup.ticket and str(setup.ticket) not in open_tickets:
                 pnl_val = 0.0
                 try:
                     history = mt5_bridge.get_trade_history(limit=10)
@@ -736,7 +709,7 @@ def _scan_and_trade(symbol: str = None) -> None:
         return
 
     open_positions = mt5_bridge.get_open_positions()
-    open_tickets = {p.get("id") for p in open_positions}
+    open_tickets = {str(p.get("id")) for p in open_positions if p.get("id") is not None}
     # Count algo positions for THIS symbol only — don't block other symbols
     algo_positions = [
         p for p in open_positions
@@ -745,7 +718,7 @@ def _scan_and_trade(symbol: str = None) -> None:
 
     with _breakout_lock:
         for setup in symbol_setups:
-            if setup.trade_taken and setup.ticket and setup.ticket not in open_tickets:
+            if setup.trade_taken and setup.ticket and str(setup.ticket) not in open_tickets:
                 setup.trade_taken = False
                 setup.active = True
                 setup.ticket = None
@@ -759,7 +732,7 @@ def _scan_and_trade(symbol: str = None) -> None:
     if len(candles_exec) < 5:
         return
 
-    current_price = _get_current_price(symbol)
+    current_price = _get_current_price(symbol, side="mid")
     if current_price is None:
         return
 
@@ -817,11 +790,11 @@ def _risk_check_loop() -> None:
                 except Exception as _pte:
                     logger.warning(f"[BREAKOUT] Profit target close check failed: {_pte}")
 
-                open_tickets = {p.get("id") for p in open_positions}
+                open_tickets = {str(p.get("id")) for p in open_positions if p.get("id") is not None}
                 with _breakout_lock:
                     all_setups = [s for setups in _active_breakouts.values() for s in setups]
                     for setup in all_setups:
-                        if setup.trade_taken and setup.ticket in open_tickets:
+                        if setup.trade_taken and setup.ticket and str(setup.ticket) in open_tickets:
                             _manage_open_trade_risk(setup)
         except Exception as exc:
             logger.error(f"[BREAKOUT] Risk check error: {exc}")
