@@ -118,10 +118,10 @@ def _load_extra_accounts() -> None:
     without restarting the bot process.
 
     Format (semicolon-separated entries):
-        Label|login|password|server|strategy
+        Label|login|password|server|strategy|path
 
     Example:
-        Range Breakout Demo|106903766|IbLcNr_4|MetaQuotes-Demo|breakout
+        Range Breakout Demo|106903766|IbLcNr_4|MetaQuotes-Demo|breakout|C:\MT5\terminal64.exe
     """
     # Read directly from .env file so live changes are picked up without restart
     import os
@@ -167,6 +167,7 @@ def _load_extra_accounts() -> None:
         strategies = _normalize_single_strategy(
             [s.strip() for s in parts[4].split("+")] if len(parts) >= 5 else ["order_block"]
         )
+        account_path = parts[5].strip() if len(parts) >= 6 else _config.MT5_PATH
 
         # Avoid duplicates — check by login number
         if any(a.login == login for a in _accounts):
@@ -186,7 +187,7 @@ def _load_extra_accounts() -> None:
             login=login,
             password=password,
             server=server,
-            path=_config.MT5_PATH,
+            path=account_path,
             enabled=True,
             strategy=strategies,
         )
