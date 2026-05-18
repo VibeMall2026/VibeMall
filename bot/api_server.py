@@ -3,7 +3,7 @@ FastAPI server — exposes bot control & data endpoints.
 Called by the Django dashboard (trading/ app).
 """
 import asyncio
-from datetime import datetime
+from datetime import datetime, date, timedelta, timezone
 from typing import Optional
 
 from loguru import logger
@@ -28,6 +28,42 @@ from bot.algo.manager import (
 )
 
 app = FastAPI(title="Trading Bot API", version="1.0.0")
+
+
+def _parse_trade_date(raw_value) -> date | None:
+    """Parse trade datetime/date strings from MT5 payload."""
+    if raw_value is None:
+        return None
+    text = str(raw_value).strip()
+    if not text:
+        return None
+    try:
+        # Handle plain YYYY-MM-DD quickly.
+        if len(text) >= 10 and text[4] == "-" and text[7] == "-":
+            d = datetime.strptime(text[:10], "%Y-%m-%d").date()
+            return d
+    except Exception:
+        pass
+    try:
+        # Handle common "YYYY-MM-DD HH:MM:SS" and ISO.
+        iso = text.replace("Z", "+00:00").replace(" ", "T")
+        return datetime.fromisoformat(iso).date()
+    except Exception:
+        return None
+
+
+def _period_bounds_utc(today_utc: date) -> dict[str, tuple[date, date]]:
+    """Inclusive date windows."""
+    yesterday = today_utc - timedelta(days=1)
+    month_start = today_utc.replace(day=1)
+    prev_month_end = month_start - timedelta(days=1)
+    prev_month_start = prev_month_end.replace(day=1)
+    return {
+        "today": (today_utc, today_utc),
+        "yesterday": (yesterday, yesterday),
+        "this_month": (month_start, today_utc),
+        "last_month": (prev_month_start, prev_month_end),
+    }
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
 app.add_middleware(
@@ -427,6 +463,74 @@ async def strategy_stats(strategy_id: str):
     total_pnl = sum(float(t.get("pnl", 0)) for t in history)
     total = wins + losses
 
+    # Period stats: today / yesterday / this month / last month
+    today_utc = datetime.now(timezone.utc).date()
+    periods = _period_bounds_utc(today_utc)
+    trade_rows = []
+    for t in history:
+        trade_date = (
+            _parse_trade_date(t.get("closed"))
+            or _parse_trade_date(t.get("opened"))
+            or _parse_trade_date(t.get("time"))
+        )
+        if not trade_date:
+            continue
+        trade_rows.append(
+            {
+                "date": trade_date,
+                "pnl": float(t.get("pnl", 0) or 0),
+                "status": str(t.get("status", "")).lower(),
+            }
+        )
+
+    # Approx baseline for return %, using currently assigned account balances.
+    balance_base = sum(float((acc.balance or 0)) for acc in assigned_accounts) if assigned_accounts else 0.0
+    if balance_base <= 0:
+        try:
+            acc = mt5_bridge.get_account_info() or {}
+            balance_base = float(acc.get("balance", 0) or 0)
+        except Exception:
+            balance_base = 0.0
+    if balance_base <= 0:
+        balance_base = 1.0
+
+    period_stats = {}
+    for period_key, (start_d, end_d) in periods.items():
+        rows = [r for r in trade_rows if start_d <= r["date"] <= end_d]
+        p_wins = sum(1 for r in rows if r["pnl"] > 0 or r["status"] == "win")
+        p_losses = sum(1 for r in rows if r["pnl"] < 0 or r["status"] == "loss")
+        p_trades = len(rows)
+        p_pnl = round(sum(r["pnl"] for r in rows), 2)
+        period_stats[period_key] = {
+            "trades": p_trades,
+            "wins": p_wins,
+            "losses": p_losses,
+            "pnl": p_pnl,
+            "return_pct": round((p_pnl / balance_base) * 100.0, 2),
+            "start": start_d.isoformat(),
+            "end": end_d.isoformat(),
+        }
+
+    # Graph: daily cumulative pnl (last 30 days)
+    graph_start = today_utc - timedelta(days=29)
+    daily_pnl = {}
+    for r in trade_rows:
+        if graph_start <= r["date"] <= today_utc:
+            key = r["date"].isoformat()
+            daily_pnl[key] = daily_pnl.get(key, 0.0) + r["pnl"]
+    labels = []
+    daily_values = []
+    cumulative_values = []
+    running = 0.0
+    for i in range(30):
+        d = graph_start + timedelta(days=i)
+        k = d.isoformat()
+        day_pnl = round(daily_pnl.get(k, 0.0), 2)
+        running = round(running + day_pnl, 2)
+        labels.append(k)
+        daily_values.append(day_pnl)
+        cumulative_values.append(running)
+
     return {
         "strategy": strat,
         "accounts": [acc.to_dict() for acc in assigned_accounts],
@@ -438,6 +542,12 @@ async def strategy_stats(strategy_id: str):
             "total": total,
             "win_rate": round(wins / total * 100, 1) if total > 0 else 0,
             "total_pnl": round(total_pnl, 2),
+        },
+        "period_stats": period_stats,
+        "pnl_graph": {
+            "labels": labels,
+            "daily_pnl": daily_values,
+            "cumulative_pnl": cumulative_values,
         },
     }
 

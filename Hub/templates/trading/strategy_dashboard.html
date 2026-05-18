@@ -23,6 +23,18 @@
   .strat-icon { font-size: 2rem; line-height: 1; }
   .refresh-indicator { font-size: .75rem; color: #a8aaae; }
   .empty-row td { color: #a8aaae; font-style: italic; }
+  .mini-stat { font-size: .82rem; color: #a8aaae; }
+  .graph-wrap {
+    background:#232333;
+    border:1px solid #3b3d52;
+    border-radius:10px;
+    padding:12px;
+  }
+  .graph-svg { width:100%; height:220px; display:block; }
+  .graph-axis { stroke:#4a4c65; stroke-width:1; }
+  .graph-line { fill:none; stroke:#28c76f; stroke-width:2.5; }
+  .graph-fill { fill:rgba(40,199,111,.12); }
+  .graph-zero { stroke:#ea5455; stroke-width:1; stroke-dasharray:4 4; opacity:.8; }
   #loadingOverlay {
     position: fixed; inset: 0; background: rgba(35,35,51,.6);
     display: flex; align-items: center; justify-content: center;
@@ -109,6 +121,62 @@
         <div class="stat-label mb-1">Total PnL</div>
         <div class="stat-value" id="statPnl">—</div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Period Performance -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3">
+        <div class="stat-label mb-1">Today</div>
+        <div class="mini-stat">Trades: <span id="pTodayTrades">—</span></div>
+        <div class="mini-stat">Return: <span id="pTodayReturn">—</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3">
+        <div class="stat-label mb-1">Yesterday</div>
+        <div class="mini-stat">Trades: <span id="pYesterdayTrades">—</span></div>
+        <div class="mini-stat">Return: <span id="pYesterdayReturn">—</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3">
+        <div class="stat-label mb-1">This Month</div>
+        <div class="mini-stat">Trades: <span id="pThisMonthTrades">—</span></div>
+        <div class="mini-stat">Return: <span id="pThisMonthReturn">—</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
+      <div class="card-body py-3">
+        <div class="stat-label mb-1">Last Month</div>
+        <div class="mini-stat">Trades: <span id="pLastMonthTrades">—</span></div>
+        <div class="mini-stat">Return: <span id="pLastMonthReturn">—</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Performance Graph -->
+<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
+  <div class="card-header d-flex justify-content-between align-items-center"
+       style="background:#232333;border-bottom:1px solid #3b3d52;">
+    <span class="section-header mb-0">
+      <i class="bx bx-line-chart me-2" style="color:#28c76f;"></i>Performance Graph
+    </span>
+    <small style="color:#a8aaae;">Cumulative PnL (last 30 days)</small>
+  </div>
+  <div class="card-body">
+    <div class="graph-wrap">
+      <svg id="pnlGraph" class="graph-svg" viewBox="0 0 800 220" preserveAspectRatio="none"></svg>
     </div>
   </div>
 </div>
@@ -255,6 +323,59 @@ function renderStats(stats) {
   pnlEl.className = 'stat-value ' + (pnl >= 0 ? 'pnl-pos' : 'pnl-neg');
 }
 
+function renderPeriodStats(periodStats) {
+  const p = periodStats || {};
+  const map = [
+    ['today', 'Today'],
+    ['yesterday', 'Yesterday'],
+    ['this_month', 'ThisMonth'],
+    ['last_month', 'LastMonth'],
+  ];
+  map.forEach(function(item) {
+    const key = item[0];
+    const suffix = item[1];
+    const row = p[key] || {};
+    const tradesEl = document.getElementById('p' + suffix + 'Trades');
+    const returnEl = document.getElementById('p' + suffix + 'Return');
+    if (tradesEl) tradesEl.textContent = row.trades != null ? row.trades : '—';
+    if (returnEl) {
+      if (row.return_pct == null) {
+        returnEl.textContent = '—';
+      } else {
+        const v = parseFloat(row.return_pct || 0);
+        returnEl.textContent = (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+        returnEl.className = v >= 0 ? 'pnl-pos' : 'pnl-neg';
+      }
+    }
+  });
+}
+
+function renderPnlGraph(graph) {
+  const el = document.getElementById('pnlGraph');
+  if (!el) return;
+  const values = (graph && graph.cumulative_pnl) ? graph.cumulative_pnl : [];
+  if (!values.length) {
+    el.innerHTML = '';
+    return;
+  }
+  const w = 800, h = 220, pad = 18;
+  const minV = Math.min.apply(null, values);
+  const maxV = Math.max.apply(null, values);
+  const span = Math.max(0.0001, maxV - minV);
+  function x(i) { return pad + (i * (w - pad * 2) / (values.length - 1)); }
+  function y(v) { return h - pad - ((v - minV) * (h - pad * 2) / span); }
+
+  const linePts = values.map(function(v, i) { return x(i) + ',' + y(v); }).join(' ');
+  const areaPts = linePts + ' ' + x(values.length - 1) + ',' + (h - pad) + ' ' + x(0) + ',' + (h - pad);
+  const zeroY = (minV <= 0 && maxV >= 0) ? y(0) : null;
+
+  el.innerHTML =
+    '<line class="graph-axis" x1="' + pad + '" y1="' + (h - pad) + '" x2="' + (w - pad) + '" y2="' + (h - pad) + '"></line>' +
+    (zeroY !== null ? '<line class="graph-zero" x1="' + pad + '" y1="' + zeroY + '" x2="' + (w - pad) + '" y2="' + zeroY + '"></line>' : '') +
+    '<polygon class="graph-fill" points="' + areaPts + '"></polygon>' +
+    '<polyline class="graph-line" points="' + linePts + '"></polyline>';
+}
+
 function renderAccounts(accounts) {
   const tbody = document.getElementById('accountsBody');
   document.getElementById('accountsBadge').textContent = accounts ? accounts.length : 0;
@@ -326,6 +447,8 @@ function renderStrategyDashboard(data) {
   if (!data || data.error) return;
   renderHeader(data);
   renderStats(data.stats);
+  renderPeriodStats(data.period_stats);
+  renderPnlGraph(data.pnl_graph);
   renderAccounts(data.accounts);
   renderOpenTrades(data.open_trades);
   renderRecentTrades(data.recent_trades);
