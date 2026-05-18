@@ -449,6 +449,16 @@ def execute_on_all_accounts(
             and (not exclude_strategy_id or exclude_strategy_id not in (acc.strategy or []))
         ]
 
+    # Strict strategy routing: when strategy_id is provided, do not fallback.
+    if strategy_id and not accounts_copy:
+        return [{
+            "success": False,
+            "message": f"No enabled accounts mapped to strategy '{strategy_id}'",
+            "account_id": None,
+            "account_label": None,
+            "login": None,
+        }]
+
     results = []
 
     for acc in accounts_copy:

@@ -50,9 +50,10 @@ class AlgoConfig:
     min_breakout_body_ratio: float = 0.45
     min_volume_multiplier: float = 1.00
     retest_tolerance_atr: float = 0.25
-    require_trend_alignment: bool = False
-    require_volatility_filter: bool = False
-    use_human_mind_gate: bool = False
+    # Keep Friday (15-05-2026) strict behavior by default
+    require_trend_alignment: bool = True
+    require_volatility_filter: bool = True
+    use_human_mind_gate: bool = True
     max_active_breakouts: int = 5
     scan_interval_seconds: int = 60
     risk_check_interval_seconds: int = 1
