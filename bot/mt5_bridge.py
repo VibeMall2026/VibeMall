@@ -104,29 +104,35 @@ def connect() -> bool:
         from bot.accounts import ensure_any_account_connected
         return ensure_any_account_connected()
 
-    if not mt5.initialize(**kwargs):
-        logger.error(f"MT5 initialize failed: {mt5.last_error()}")
-        from bot.accounts import ensure_any_account_connected
-        if ensure_any_account_connected():
-            logger.warning("MT5 primary connect failed; using enabled account fallback")
-            return True
-        return False
-    info = mt5.account_info()
-    logger.info(f"MT5 connected | Account: {info.login} | Balance: {info.balance} {info.currency}")
-    return True
+    from bot.accounts import get_mt5_lock
+    with get_mt5_lock():
+        if not mt5.initialize(**kwargs):
+            logger.error(f"MT5 initialize failed: {mt5.last_error()}")
+            from bot.accounts import ensure_any_account_connected
+            if ensure_any_account_connected():
+                logger.warning("MT5 primary connect failed; using enabled account fallback")
+                return True
+            return False
+        info = mt5.account_info()
+        logger.info(f"MT5 connected | Account: {info.login} | Balance: {info.balance} {info.currency}")
+        return True
 
 
 def disconnect() -> None:
     if MT5_AVAILABLE:
-        mt5.shutdown()
-        logger.info("MT5 disconnected.")
+        from bot.accounts import get_mt5_lock
+        with get_mt5_lock():
+            mt5.shutdown()
+            logger.info("MT5 disconnected.")
 
 
 def is_connected() -> bool:
     if not MT5_AVAILABLE:
         return False
+    from bot.accounts import get_mt5_lock
     try:
-        return mt5.terminal_info() is not None
+        with get_mt5_lock():
+            return mt5.terminal_info() is not None
     except Exception:
         return False
 
@@ -162,18 +168,20 @@ def get_account_info() -> dict:
     # Direct MT5 mode (existing code)
     if not MT5_AVAILABLE or not ensure_connected():
         return {}
-    info = mt5.account_info()
-    if not info:
-        return {}
-    return {
-        "balance": info.balance,
-        "equity": info.equity,
-        "margin_free": info.margin_free,
-        "currency": info.currency,
-        "leverage": info.leverage,
-        "login": info.login,
-        "server": info.server,
-    }
+    from bot.accounts import get_mt5_lock
+    with get_mt5_lock():
+        info = mt5.account_info()
+        if not info:
+            return {}
+        return {
+            "balance": info.balance,
+            "equity": info.equity,
+            "margin_free": info.margin_free,
+            "currency": info.currency,
+            "leverage": info.leverage,
+            "login": info.login,
+            "server": info.server,
+        }
 
 
 # ── Lot size calculation ───────────────────────────────────────────────────────
@@ -317,96 +325,98 @@ def open_trade(
     if not MT5_AVAILABLE or not ensure_connected():
         return {"success": False, "message": "MT5 not connected"}
 
-    sym_info = mt5.symbol_info(symbol)
-    if not sym_info:
-        return {"success": False, "message": f"Symbol {symbol} not found"}
+    from bot.accounts import get_mt5_lock
+    with get_mt5_lock():
+        sym_info = mt5.symbol_info(symbol)
+        if not sym_info:
+            return {"success": False, "message": f"Symbol {symbol} not found"}
 
-    if not sym_info.visible:
-        mt5.symbol_select(symbol, True)
+        if not sym_info.visible:
+            mt5.symbol_select(symbol, True)
 
-    tick = mt5.symbol_info_tick(symbol)
-    if not tick:
-        return {"success": False, "message": f"No tick data for {symbol}"}
+        tick = mt5.symbol_info_tick(symbol)
+        if not tick:
+            return {"success": False, "message": f"No tick data for {symbol}"}
 
-    market_type_map = {
-        "buy": mt5.ORDER_TYPE_BUY,
-        "sell": mt5.ORDER_TYPE_SELL,
-    }
-    pending_type_map = {
-        "buylimit": mt5.ORDER_TYPE_BUY_LIMIT,
-        "buystop": mt5.ORDER_TYPE_BUY_STOP,
-        "selllimit": mt5.ORDER_TYPE_SELL_LIMIT,
-        "sellstop": mt5.ORDER_TYPE_SELL_STOP,
-    }
+        market_type_map = {
+            "buy": mt5.ORDER_TYPE_BUY,
+            "sell": mt5.ORDER_TYPE_SELL,
+        }
+        pending_type_map = {
+            "buylimit": mt5.ORDER_TYPE_BUY_LIMIT,
+            "buystop": mt5.ORDER_TYPE_BUY_STOP,
+            "selllimit": mt5.ORDER_TYPE_SELL_LIMIT,
+            "sellstop": mt5.ORDER_TYPE_SELL_STOP,
+        }
 
-    normalized_order_type = (order_type or "market").lower().replace(" ", "_")
-    normalized_order_type = normalized_order_type.replace("_", "")
+        normalized_order_type = (order_type or "market").lower().replace(" ", "_")
+        normalized_order_type = normalized_order_type.replace("_", "")
 
-    if normalized_order_type == "market":
-        mt5_order_type = market_type_map.get(side.lower())
-        action = mt5.TRADE_ACTION_DEAL
-        price = tick.ask if side.lower() == "buy" else tick.bid
-    else:
-        mt5_order_type = pending_type_map.get(normalized_order_type)
-        action = mt5.TRADE_ACTION_PENDING
-        price = entry
-        if price is None:
-            return {"success": False, "message": "Pending order requires an entry price"}
-        if normalized_order_type == "buylimit" and price >= tick.ask:
-            return {"success": False, "message": "BUY LIMIT entry must be below current ask"}
-        if normalized_order_type == "buystop" and price <= tick.ask:
-            return {"success": False, "message": "BUY STOP entry must be above current ask"}
-        if normalized_order_type == "selllimit" and price <= tick.bid:
-            return {"success": False, "message": "SELL LIMIT entry must be above current bid"}
-        if normalized_order_type == "sellstop" and price >= tick.bid:
-            return {"success": False, "message": "SELL STOP entry must be below current bid"}
+        if normalized_order_type == "market":
+            mt5_order_type = market_type_map.get(side.lower())
+            action = mt5.TRADE_ACTION_DEAL
+            price = tick.ask if side.lower() == "buy" else tick.bid
+        else:
+            mt5_order_type = pending_type_map.get(normalized_order_type)
+            action = mt5.TRADE_ACTION_PENDING
+            price = entry
+            if price is None:
+                return {"success": False, "message": "Pending order requires an entry price"}
+            if normalized_order_type == "buylimit" and price >= tick.ask:
+                return {"success": False, "message": "BUY LIMIT entry must be below current ask"}
+            if normalized_order_type == "buystop" and price <= tick.ask:
+                return {"success": False, "message": "BUY STOP entry must be above current ask"}
+            if normalized_order_type == "selllimit" and price <= tick.bid:
+                return {"success": False, "message": "SELL LIMIT entry must be above current bid"}
+            if normalized_order_type == "sellstop" and price >= tick.bid:
+                return {"success": False, "message": "SELL STOP entry must be below current bid"}
 
-    if mt5_order_type is None:
-        return {"success": False, "message": f"Unknown order type: {order_type}"}
+        if mt5_order_type is None:
+            return {"success": False, "message": f"Unknown order type: {order_type}"}
 
-    sl_points = abs(price - sl)
-    lot = calculate_lot_with_risk(symbol, sl_points, risk_percent=risk_percent)
+        sl_points = abs(price - sl)
+        lot = calculate_lot_with_risk(symbol, sl_points, risk_percent=risk_percent)
 
-    lot = _cap_lot_by_pnl_limits(
-        sym_info=sym_info,
-        symbol=symbol,
-        side=side,
-        price=price,
-        sl=sl,
-        tp=tp,
-        lot=lot,
-    )
-    if lot is None:
-        return {"success": False, "message": "Trade blocked: broker minimum lot exceeds configured per-trade risk/lot caps"}
-
-    request = {
-        "action": action,
-        "symbol": symbol,
-        "volume": lot,
-        "type": mt5_order_type,
-        "price": price,
-        "sl": sl,
-        "tp": tp,
-        "deviation": config.MT5_DEVIATION,
-        "magic": config.MT5_MAGIC_NUMBER,
-        "comment": comment,
-        "type_time": mt5.ORDER_TIME_GTC,
-        "type_filling": mt5.ORDER_FILLING_IOC,
-    }
-
-    result = mt5.order_send(request)
-    if result is None:
-        return {"success": False, "message": f"order_send returned None: {mt5.last_error()}"}
-
-    if result.retcode == mt5.TRADE_RETCODE_DONE:
-        logger.success(
-            f"Trade opened | {symbol} {side.upper()} | Type: {normalized_order_type} | Lot: {lot} | Ticket: {result.order}"
+        lot = _cap_lot_by_pnl_limits(
+            sym_info=sym_info,
+            symbol=symbol,
+            side=side,
+            price=price,
+            sl=sl,
+            tp=tp,
+            lot=lot,
         )
-        return {"success": True, "ticket": result.order, "lot": lot, "message": "Trade opened"}
-    else:
-        msg = f"Order failed: retcode={result.retcode} comment={result.comment}"
-        logger.error(msg)
-        return {"success": False, "message": msg}
+        if lot is None:
+            return {"success": False, "message": "Trade blocked: broker minimum lot exceeds configured per-trade risk/lot caps"}
+
+        request = {
+            "action": action,
+            "symbol": symbol,
+            "volume": lot,
+            "type": mt5_order_type,
+            "price": price,
+            "sl": sl,
+            "tp": tp,
+            "deviation": config.MT5_DEVIATION,
+            "magic": config.MT5_MAGIC_NUMBER,
+            "comment": comment,
+            "type_time": mt5.ORDER_TIME_GTC,
+            "type_filling": mt5.ORDER_FILLING_IOC,
+        }
+
+        result = mt5.order_send(request)
+        if result is None:
+            return {"success": False, "message": f"order_send returned None: {mt5.last_error()}"}
+
+        if result.retcode == mt5.TRADE_RETCODE_DONE:
+            logger.success(
+                f"Trade opened | {symbol} {side.upper()} | Type: {normalized_order_type} | Lot: {lot} | Ticket: {result.order}"
+            )
+            return {"success": True, "ticket": result.order, "lot": lot, "message": "Trade opened"}
+        else:
+            msg = f"Order failed: retcode={result.retcode} comment={result.comment}"
+            logger.error(msg)
+            return {"success": False, "message": msg}
 
 
 # ── Modify position ───────────────────────────────────────────────────────────
@@ -459,26 +469,28 @@ def get_open_positions() -> list[dict]:
     # Direct MT5 mode (existing code)
     if not MT5_AVAILABLE or not ensure_connected():
         return []
-    positions = mt5.positions_get()
-    if not positions:
-        return []
-    result = []
-    for p in positions:
-        result.append({
-            "id": p.ticket,
-            "position_id": p.ticket,
-            "symbol": p.symbol,
-            "side": "buy" if p.type == mt5.ORDER_TYPE_BUY else "sell",
-            "volume": p.volume,
-            "entry": p.price_open,
-            "sl": p.sl,
-            "tp": p.tp,
-            "pnl": p.profit,
-            "opened": str(p.time),
-            "magic": p.magic,
-            "comment": p.comment,
-        })
-    return result
+    from bot.accounts import get_mt5_lock
+    with get_mt5_lock():
+        positions = mt5.positions_get()
+        if not positions:
+            return []
+        result = []
+        for p in positions:
+            result.append({
+                "id": p.ticket,
+                "position_id": p.ticket,
+                "symbol": p.symbol,
+                "side": "buy" if p.type == mt5.ORDER_TYPE_BUY else "sell",
+                "volume": p.volume,
+                "entry": p.price_open,
+                "sl": p.sl,
+                "tp": p.tp,
+                "pnl": p.profit,
+                "opened": str(p.time),
+                "magic": p.magic,
+                "comment": p.comment,
+            })
+        return result
 
 
 # ── Get trade history ─────────────────────────────────────────────────────────

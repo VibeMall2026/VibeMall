@@ -11,6 +11,7 @@ NOTE: MT5 Python library supports only ONE active connection per process.
 from __future__ import annotations
 
 import threading
+import time
 from dataclasses import dataclass, field
 from typing import Optional
 from loguru import logger
@@ -24,6 +25,12 @@ except ImportError:
 from bot import config as _config
 
 _accounts_lock = threading.Lock()
+_mt5_op_lock = threading.RLock()
+
+
+def get_mt5_lock() -> threading.RLock:
+    """Global MT5 operation lock shared across modules."""
+    return _mt5_op_lock
 
 
 @dataclass
@@ -263,36 +270,41 @@ def _connect_account(acc: MT5Account) -> bool:
     """Connect to a specific MT5 account (switches active connection)."""
     if not MT5_AVAILABLE:
         return False
+    with _mt5_op_lock:
+        kwargs = {
+            "login": acc.login,
+            "password": acc.password,
+            "server": acc.server,
+            "timeout": _config.MT5_TIMEOUT_MS,
+        }
+        if acc.path:
+            kwargs["path"] = acc.path
 
-    kwargs = {
-        "login": acc.login,
-        "password": acc.password,
-        "server": acc.server,
-        "timeout": _config.MT5_TIMEOUT_MS,
-    }
-    if acc.path:
-        kwargs["path"] = acc.path
+        last_err = ""
+        for attempt in (1, 2):
+            # Shutdown existing connection first
+            mt5.shutdown()
 
-    # Shutdown existing connection first
-    mt5.shutdown()
+            if mt5.initialize(**kwargs):
+                info = mt5.account_info()
+                if info:
+                    acc.balance = info.balance
+                    acc.equity = info.equity
+                    acc.currency = info.currency
+                    acc.leverage = info.leverage
+                acc.connected = True
+                acc.error = ""
+                logger.success(f"[ACCOUNTS] Connected: {acc.label} | Balance: {acc.balance} {acc.currency}")
+                return True
 
-    if not mt5.initialize(**kwargs):
-        err = str(mt5.last_error())
+            last_err = str(mt5.last_error())
+            if attempt == 1:
+                time.sleep(0.4)
+
         acc.connected = False
-        acc.error = err
-        logger.error(f"[ACCOUNTS] Failed to connect {acc.label}: {err}")
+        acc.error = last_err
+        logger.error(f"[ACCOUNTS] Failed to connect {acc.label}: {last_err}")
         return False
-
-    info = mt5.account_info()
-    if info:
-        acc.balance = info.balance
-        acc.equity = info.equity
-        acc.currency = info.currency
-        acc.leverage = info.leverage
-        acc.connected = True
-        acc.error = ""
-        logger.success(f"[ACCOUNTS] Connected: {acc.label} | Balance: {acc.balance} {acc.currency}")
-    return True
 
 
 def _cap_lot_by_pnl_limits(
@@ -441,39 +453,40 @@ def execute_on_all_accounts(
 
     for acc in accounts_copy:
         try:
-            if not _connect_account(acc):
-                results.append({
-                    "success": False,
-                    "message": f"Could not connect to {acc.label}",
-                    "account_id": acc.id,
-                    "account_label": acc.label,
-                    "login": acc.login,
-                })
-                continue
+            with _mt5_op_lock:
+                if not _connect_account(acc):
+                    results.append({
+                        "success": False,
+                        "message": f"Could not connect to {acc.label}",
+                        "account_id": acc.id,
+                        "account_label": acc.label,
+                        "login": acc.login,
+                    })
+                    continue
 
-            # Execute trade on this account
-            result = _execute_single(
-                symbol=symbol,
-                side=side,
-                sl=sl,
-                tp=tp,
-                entry=entry,
-                order_type=order_type,
-                risk_percent=risk_percent,
-                comment=comment,
-            )
-            result["account_id"] = acc.id
-            result["account_label"] = acc.label
-            result["login"] = acc.login
-            results.append(result)
-
-            if result.get("success"):
-                logger.success(
-                    f"[ACCOUNTS] Trade on {acc.label} ({acc.login}) | "
-                    f"Ticket: {result.get('ticket')} | {symbol} {side.upper()}"
+                # Execute trade on this account
+                result = _execute_single(
+                    symbol=symbol,
+                    side=side,
+                    sl=sl,
+                    tp=tp,
+                    entry=entry,
+                    order_type=order_type,
+                    risk_percent=risk_percent,
+                    comment=comment,
                 )
-            else:
-                logger.error(f"[ACCOUNTS] Trade failed on {acc.label}: {result.get('message')}")
+                result["account_id"] = acc.id
+                result["account_label"] = acc.label
+                result["login"] = acc.login
+                results.append(result)
+
+                if result.get("success"):
+                    logger.success(
+                        f"[ACCOUNTS] Trade on {acc.label} ({acc.login}) | "
+                        f"Ticket: {result.get('ticket')} | {symbol} {side.upper()}"
+                    )
+                else:
+                    logger.error(f"[ACCOUNTS] Trade failed on {acc.label}: {result.get('message')}")
 
         except Exception as e:
             logger.error(f"[ACCOUNTS] Exception on {acc.label}: {e}")
