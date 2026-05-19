@@ -131,6 +131,8 @@ _daily_pnl: float = 0.0
 _daily_date: _date = _date.today()
 _peak_equity: float = 0.0
 _dd_halted: bool = False          # permanent halt on max drawdown
+_peak_equity_by_account: dict[str, float] = {}
+_dd_halted_by_account: dict[str, bool] = {}
 _daily_halted: bool = False       # daily halt on profit/loss limit
 _last_scan_at: Optional[str] = None
 _last_scan_summary: dict[str, dict] = {}
@@ -236,24 +238,35 @@ def record_trade_pnl(pnl: float) -> None:
 def check_drawdown() -> bool:
     """Check if max drawdown exceeded. Returns True if trading should halt."""
     global _peak_equity, _dd_halted
-    if _dd_halted:
-        return True
-    # Use currently connected MT5 account equity
     account = mt5_bridge.get_account_info()
+    account_key = str(account.get("login") or account.get("account") or "global")
+    peak_equity = float(_peak_equity_by_account.get(account_key, 0.0) or 0.0)
+    dd_halted = bool(_dd_halted_by_account.get(account_key, False))
+    if dd_halted:
+        _peak_equity = peak_equity
+        _dd_halted = True
+        return True
+
     equity = account.get('equity', 0)
-    balance = account.get('balance', 0)
     if equity <= 0:
         return False
-    if equity > _peak_equity:
-        _peak_equity = equity
-    if _peak_equity > 0:
-        drawdown = (_peak_equity - equity) / _peak_equity
-        if drawdown >= algo_config.max_drawdown_pct:
-            _dd_halted = True
-            logger.error(f"[ALGO] ⛔ Max drawdown {drawdown:.1%} exceeded — trading halted permanently")
-            return True
-    return False
 
+    if equity > peak_equity:
+        peak_equity = float(equity)
+        _peak_equity_by_account[account_key] = peak_equity
+
+    if peak_equity > 0:
+        drawdown = (peak_equity - equity) / peak_equity
+        if drawdown >= algo_config.max_drawdown_pct:
+            _dd_halted_by_account[account_key] = True
+            _peak_equity = peak_equity
+            _dd_halted = True
+            logger.error(f"[ALGO] Max drawdown {drawdown:.1%} exceeded on account={account_key} - trading halted")
+            return True
+
+    _peak_equity = peak_equity
+    _dd_halted = bool(_dd_halted_by_account.get(account_key, False))
+    return False
 
 def check_daily_loss_realtime() -> bool:
     """
@@ -298,7 +311,7 @@ def check_daily_loss_realtime() -> bool:
 def can_trade() -> bool:
     """Return True if risk rules allow a new trade."""
     _reset_daily_if_needed()
-    if _dd_halted:
+    if check_drawdown():
         logger.debug("[ALGO] Trading halted: max drawdown exceeded")
         return False
     if _daily_halted:
@@ -314,11 +327,14 @@ def get_risk_status() -> dict:
     """Return current risk management status."""
     _reset_daily_if_needed()
     account = mt5_bridge.get_account_info()
+    account_key = str(account.get("login") or account.get("account") or "global")
     equity = account.get('equity', 0)
     balance = account.get('balance', 0)
-    drawdown = (_peak_equity - equity) / _peak_equity if _peak_equity > 0 else 0.0
-    drawdown_amount = max(_peak_equity - equity, 0.0) if _peak_equity > 0 else 0.0
-    max_dd_amount = (_peak_equity * algo_config.max_drawdown_pct) if _peak_equity > 0 else 0.0
+    peak_equity = float(_peak_equity_by_account.get(account_key, _peak_equity) or 0.0)
+    dd_halted = bool(_dd_halted_by_account.get(account_key, _dd_halted))
+    drawdown = (peak_equity - equity) / peak_equity if peak_equity > 0 else 0.0
+    drawdown_amount = max(peak_equity - equity, 0.0) if peak_equity > 0 else 0.0
+    max_dd_amount = (peak_equity * algo_config.max_drawdown_pct) if peak_equity > 0 else 0.0
     remaining_dd_amount = max(max_dd_amount - drawdown_amount, 0.0)
     remaining_dd_pct = max((algo_config.max_drawdown_pct - drawdown) * 100, 0.0)
     dd_used_pct_of_limit = min((drawdown / algo_config.max_drawdown_pct) * 100, 100.0) if algo_config.max_drawdown_pct > 0 else 0.0
@@ -335,7 +351,7 @@ def get_risk_status() -> dict:
         "daily_profit_limit": algo_config.daily_profit_limit,
         "daily_loss_limit": algo_config.daily_loss_limit,
         "daily_halted": _daily_halted,
-        "dd_halted": _dd_halted,
+        "dd_halted": dd_halted,
         "balance": round(balance, 2),
         "equity": round(equity, 2),
         "current_drawdown_pct": round(drawdown * 100, 2),
@@ -345,7 +361,8 @@ def get_risk_status() -> dict:
         "remaining_drawdown_pct": round(remaining_dd_pct, 2),
         "remaining_drawdown_amount": round(remaining_dd_amount, 2),
         "drawdown_used_pct_of_limit": round(dd_used_pct_of_limit, 2),
-        "peak_equity": round(_peak_equity, 2),
+        "peak_equity": round(peak_equity, 2),
+        "account_key": account_key,
         "can_trade": bool(allowed),
     }
 
@@ -357,10 +374,14 @@ def reset_risk_halts(reset_peak_equity: bool = False) -> dict:
     """
     global _daily_halted, _dd_halted, _daily_pnl, _daily_date, _peak_equity
     _daily_halted = False
-    _dd_halted = False
     _daily_pnl = 0.0
     _daily_date = _date.today()
+    account = mt5_bridge.get_account_info()
+    account_key = str(account.get("login") or account.get("account") or "global")
+    _dd_halted_by_account[account_key] = False
+    _dd_halted = False
     if reset_peak_equity:
+        _peak_equity_by_account[account_key] = 0.0
         _peak_equity = 0.0
     logger.warning(
         "[ALGO] Manual risk reset applied | daily_halted=False dd_halted=False "
@@ -1803,3 +1824,4 @@ def update_algo_config(
 
     logger.info(f"[ALGO] Config updated: {algo_config}")
     return get_algo_status()
+
