@@ -322,6 +322,14 @@
               <button class="btn btn-primary" type="button" onclick="saveMaxDD()">Update Limit %</button>
             </div>
           </div>
+          <div class="col-12 col-md-8">
+            <div class="input-group">
+              <button class="btn btn-outline-secondary" type="button" onclick="stepDailyDD(-0.25)">-</button>
+              <input id="dailyDdLimitInput" type="number" min="0.1" max="100" step="0.1" class="form-control text-center" style="background:#232333;border-color:#3b3d52;color:#cdd0d6;">
+              <button class="btn btn-outline-secondary" type="button" onclick="stepDailyDD(0.25)">+</button>
+              <button class="btn btn-info" type="button" onclick="saveDailyDD()">Update Daily %</button>
+            </div>
+          </div>
           <div class="col-12 col-md-4 d-grid gap-2">
             <button class="btn btn-warning btn-sm" onclick="resetDD(false)">Reset Halt</button>
             <button class="btn btn-danger btn-sm" onclick="resetDD(true)">Reset + New Peak</button>
@@ -716,6 +724,27 @@ function saveMaxDD() {
   }).then(function() { loadStrategyData(); });
 }
 
+function stepDailyDD(delta) {
+  const el = document.getElementById('dailyDdLimitInput');
+  const cur = parseFloat(el.value || '1');
+  const next = Math.max(0.1, Math.min(100, cur + delta));
+  el.value = next.toFixed(2);
+}
+
+function saveDailyDD() {
+  const csrf = getCookie('csrftoken');
+  const dailyPct = parseFloat(document.getElementById('dailyDdLimitInput').value || '0');
+  const peak = parseFloat(document.getElementById('ddPeak').textContent.replace('$', '') || '0');
+  if (!dailyPct || dailyPct <= 0 || !peak || peak <= 0) return;
+  const dailyLossLimitDollar = peak * (dailyPct / 100.0);
+  fetch('/trading/algo/config/', {
+    method: 'PUT',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+    body: JSON.stringify({ daily_loss_limit: dailyLossLimitDollar }),
+  }).then(function() { loadStrategyData(); });
+}
+
 function resetDD(resetPeak) {
   const csrf = getCookie('csrftoken');
   fetch('/trading/api/algo/reset-risk', {
@@ -754,6 +783,9 @@ function renderRiskPanel(risk) {
   document.getElementById('dailyDdUsed').textContent = dailyUsed.toFixed(1) + '%';
   document.getElementById('dailyDdCur').textContent = dailyCur.toFixed(2) + '% / ' + dailyLimit.toFixed(2) + '%';
   document.getElementById('dailyDdRem').textContent = dailyRem.toFixed(2) + '%';
+  if (document.activeElement !== document.getElementById('dailyDdLimitInput') && dailyLimit > 0) {
+    document.getElementById('dailyDdLimitInput').value = dailyLimit.toFixed(2);
+  }
   if (document.activeElement !== document.getElementById('ddLimitInput') && limit > 0) {
     document.getElementById('ddLimitInput').value = limit.toFixed(1);
   }

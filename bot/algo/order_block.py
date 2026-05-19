@@ -1798,6 +1798,7 @@ def update_algo_config(
     risk_reward: Optional[float] = None,
     risk_percent: Optional[float] = None,
     max_drawdown_pct: Optional[float] = None,
+    daily_loss_limit: Optional[float] = None,
     analysis_tf: Optional[int] = None,
     execution_tf: Optional[int] = None,
 ) -> dict:
@@ -1817,6 +1818,8 @@ def update_algo_config(
         # Accept either decimal form (0.10) or percent form (10).
         parsed = float(max_drawdown_pct)
         algo_config.max_drawdown_pct = (parsed / 100.0) if parsed > 1 else parsed
+    if daily_loss_limit is not None:
+        algo_config.daily_loss_limit = float(daily_loss_limit)
     if analysis_tf is not None:
         algo_config.analysis_timeframe = analysis_tf
     if execution_tf is not None:
