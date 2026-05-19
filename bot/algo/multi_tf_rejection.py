@@ -382,7 +382,8 @@ def _calc_initial_sl_tp(symbol: str, side: str, entry: float, prev_close: float,
     risk_dist = abs(entry - sl)
     risk_pips = risk_dist / pip if pip > 0 else 0.0
     if str(symbol).upper() != "XAUUSD":
-        tp = entry + (300 * pip) if side == "buy" else entry - (300 * pip)
+        point = pip / 10.0
+        tp = entry + (100 * point) if side == "buy" else entry - (100 * point)
     else:
         rr = float(algo_config.risk_reward_ratio or 2.0)
         tp = entry + (risk_dist * rr) if side == "buy" else entry - (risk_dist * rr)
