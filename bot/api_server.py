@@ -457,14 +457,22 @@ async def strategy_stats(strategy_id: str, period: str = "today", account_login:
         all_history = mt5_bridge.get_trade_history(limit=500)
         all_positions = mt5_bridge.get_open_positions()
 
-    history = [t for t in all_history if comment_prefix in str(t.get("comment", ""))]
-    if not history and assigned_logins:
-        history = all_history
+    def _matches_selected_account(row: dict) -> bool:
+        if not selected_account_login:
+            return True
+        return str(row.get("account_login", "")) == selected_account_login
+
+    # Strict strategy + account filtering (prevents cross-strategy/cross-account mixing)
+    history = [
+        t for t in all_history
+        if comment_prefix in str(t.get("comment", ""))
+        and _matches_selected_account(t)
+    ]
 
     open_trades = [
         p for p in all_positions
         if comment_prefix in str(p.get("comment", ""))
-        or p.get("account_login") in assigned_logins
+        and _matches_selected_account(p)
     ]
 
     seen = set()
