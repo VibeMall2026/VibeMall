@@ -161,6 +161,33 @@ _last_scan_at: Optional[str] = None
 _last_scan_summary: dict[str, dict] = {}
 
 
+def _find_live_position_for_setup(setup: BreakoutSetup, open_positions: list[dict]) -> dict | None:
+    """
+    Resolve the current live MT5 position for this setup.
+    Ticket mapping can differ across brokers/accounts, so we match by:
+    1) ticket/position_id exact
+    2) ALGO comment prefix + symbol fallback
+    """
+    expected_tag = f"ALGO:BRK:{setup.id[:8]}"
+    for pos in open_positions:
+        pid = pos.get("id")
+        ppid = pos.get("position_id")
+        if setup.ticket and (pid == setup.ticket or ppid == setup.ticket):
+            return pos
+
+    # Fallback by comment+symbol when ticket mismatch happens.
+    matches = [
+        p for p in open_positions
+        if str(p.get("symbol", "")) == str(getattr(setup, "symbol", ""))
+        and expected_tag in str(p.get("comment", "") or "")
+    ]
+    if matches:
+        # Most recent first if timestamp available.
+        matches = sorted(matches, key=lambda p: str(p.get("opened", "") or ""), reverse=True)
+        return matches[0]
+    return None
+
+
 def _get_candles(symbol: str, timeframe_minutes: int, count: int) -> list[Candle]:
     from bot import mt5_bridge as _bridge
 
@@ -525,6 +552,15 @@ def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
         return
 
     side = "buy" if setup.direction == "bullish" else "sell"
+    open_positions = mt5_bridge.get_open_positions()
+    live_pos = _find_live_position_for_setup(setup, open_positions)
+    if not live_pos:
+        return
+    live_ticket = live_pos.get("id") or live_pos.get("position_id") or setup.ticket
+    if live_ticket != setup.ticket:
+        logger.info(f"[BREAKOUT] Ticket realigned for setup {setup.id}: {setup.ticket} -> {live_ticket}")
+        setup.ticket = live_ticket
+
     current_price = _get_current_price(getattr(setup, "symbol", algo_config.symbol), side=side)
     if current_price is None:
         return
@@ -543,14 +579,10 @@ def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
     if not getattr(setup, '_partial_closed', False):
         if should_partial_close(entry, current_price, one_r, side, False):
             try:
-                _positions = mt5_bridge.get_open_positions()
-                for _pos in _positions:
-                    if _pos.get("id") == setup.ticket or _pos.get("position_id") == setup.ticket:
-                        _vol = float(_pos.get("volume", 0.01))
-                        if execute_partial_close(setup.ticket, _sym, _vol):
-                            setup._partial_closed = True
-                            logger.info(f"[BREAKOUT] Partial close done on ticket {setup.ticket} at 1R")
-                        break
+                _vol = float(live_pos.get("volume", 0.01))
+                if execute_partial_close(setup.ticket, _sym, _vol):
+                    setup._partial_closed = True
+                    logger.info(f"[BREAKOUT] Partial close done on ticket {setup.ticket} at 1R")
             except Exception as _exc:
                 logger.warning(f"[BREAKOUT] Partial close check failed: {_exc}")
 
@@ -579,14 +611,8 @@ def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
 
     continuation_bias = _has_continuation_bias(_candles_hm or [], side)
     floating_pnl = None
-    current_pos = None
     try:
-        open_positions = mt5_bridge.get_open_positions()
-        for pos in open_positions:
-            if pos.get("id") == setup.ticket or pos.get("position_id") == setup.ticket:
-                current_pos = pos
-                floating_pnl = float(pos.get("pnl", 0) or 0)
-                break
+        floating_pnl = float(live_pos.get("pnl", 0) or 0)
     except Exception as exc:
         logger.warning(f"[BREAKOUT] Could not read floating pnl for ticket {setup.ticket}: {exc}")
 
@@ -653,20 +679,16 @@ def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
 
     if algo_config.dollar_lock_enabled and not setup.dollar_lock_applied:
         try:
-            open_positions = mt5_bridge.get_open_positions()
-            for pos in open_positions:
-                if pos.get("id") == setup.ticket or pos.get("position_id") == setup.ticket:
-                    floating_pnl = float(pos.get("pnl", 0))
-                    current_offset = abs(current_price - entry)
-                    if floating_pnl >= algo_config.dollar_profit_trigger and current_offset > 0:
-                        lock_offset = current_offset * (algo_config.dollar_profit_lock / floating_pnl)
-                        dollar_lock_sl = entry + lock_offset if side == "buy" else entry - lock_offset
-                        current_sl = setup.initial_sl
-                        is_better = (side == "buy" and dollar_lock_sl > current_sl) or (side == "sell" and dollar_lock_sl < current_sl)
-                        if is_better:
-                            new_sl = dollar_lock_sl
-                            setup.dollar_lock_applied = True
-                    break
+            floating_pnl = float(live_pos.get("pnl", 0))
+            current_offset = abs(current_price - entry)
+            if floating_pnl >= algo_config.dollar_profit_trigger and current_offset > 0:
+                lock_offset = current_offset * (algo_config.dollar_profit_lock / floating_pnl)
+                dollar_lock_sl = entry + lock_offset if side == "buy" else entry - lock_offset
+                current_sl = setup.initial_sl
+                is_better = (side == "buy" and dollar_lock_sl > current_sl) or (side == "sell" and dollar_lock_sl < current_sl)
+                if is_better:
+                    new_sl = dollar_lock_sl
+                    setup.dollar_lock_applied = True
         except Exception as exc:
             logger.warning(f"[BREAKOUT] Dollar lock check failed: {exc}")
 
@@ -717,7 +739,12 @@ def _scan_and_trade(symbol: str = None) -> None:
     check_drawdown()
 
     open_positions = mt5_bridge.get_open_positions()
-    open_tickets = {str(p.get("id")) for p in open_positions if p.get("id") is not None}
+    open_tickets = set()
+    for p in open_positions:
+        if p.get("id") is not None:
+            open_tickets.add(str(p.get("id")))
+        if p.get("position_id") is not None:
+            open_tickets.add(str(p.get("position_id")))
 
     with _breakout_lock:
         for setup in symbol_setups:
@@ -792,7 +819,12 @@ def _scan_and_trade(symbol: str = None) -> None:
         return
 
     open_positions = mt5_bridge.get_open_positions()
-    open_tickets = {str(p.get("id")) for p in open_positions if p.get("id") is not None}
+    open_tickets = set()
+    for p in open_positions:
+        if p.get("id") is not None:
+            open_tickets.add(str(p.get("id")))
+        if p.get("position_id") is not None:
+            open_tickets.add(str(p.get("position_id")))
     # Count algo positions for THIS symbol only — don't block other symbols
     algo_positions = [
         p for p in open_positions
@@ -874,7 +906,12 @@ def _risk_check_loop() -> None:
                 except Exception as _pte:
                     logger.warning(f"[BREAKOUT] Profit target close check failed: {_pte}")
 
-                open_tickets = {str(p.get("id")) for p in open_positions if p.get("id") is not None}
+                open_tickets = set()
+                for p in open_positions:
+                    if p.get("id") is not None:
+                        open_tickets.add(str(p.get("id")))
+                    if p.get("position_id") is not None:
+                        open_tickets.add(str(p.get("position_id")))
                 with _breakout_lock:
                     all_setups = [s for setups in _active_breakouts.values() for s in setups]
                     for setup in all_setups:
