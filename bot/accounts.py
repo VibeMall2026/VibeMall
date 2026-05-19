@@ -722,6 +722,43 @@ def _execute_single(
         candidates = sorted(candidates, key=lambda x: (len(x), x))
         return candidates[0]
 
+    def _today_realized_pnl_usd() -> float:
+        """
+        Calculate today's realized PnL for the CURRENT connected account.
+        Uses MT5 deal history (profit + commission + swap).
+        """
+        try:
+            from datetime import datetime, timezone
+            start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+            end = datetime.now(timezone.utc)
+            deals = mt5.history_deals_get(start, end)
+            if not deals:
+                return 0.0
+            total = 0.0
+            for d in deals:
+                profit = float(getattr(d, "profit", 0.0) or 0.0)
+                commission = float(getattr(d, "commission", 0.0) or 0.0)
+                swap = float(getattr(d, "swap", 0.0) or 0.0)
+                total += (profit + commission + swap)
+            return total
+        except Exception:
+            return 0.0
+
+    def _risk_scale_for_today_pnl(today_pnl: float) -> float:
+        """
+        Per-account dynamic risk scaling:
+        - >= $10 profit: reduce slightly
+        - >= $20 profit: reduce more
+        - >= $30 profit: reduce further
+        """
+        if today_pnl >= 30.0:
+            return 0.50
+        if today_pnl >= 20.0:
+            return 0.65
+        if today_pnl >= 10.0:
+            return 0.80
+        return 1.0
+
     resolved_symbol = _resolve_symbol_name(symbol)
     if not resolved_symbol:
         return {"success": False, "message": f"Symbol {symbol} not found"}
@@ -770,6 +807,14 @@ def _execute_single(
     info = mt5.account_info()
     balance = info.balance if info else 0
     eff_risk = cfg.RISK_PERCENT if risk_percent is None else risk_percent
+    today_realized = _today_realized_pnl_usd()
+    risk_scale = _risk_scale_for_today_pnl(today_realized)
+    eff_risk *= risk_scale
+    if risk_scale < 1.0:
+        logger.info(
+            f"[ACCOUNTS] Dynamic risk reduce active | today_pnl={today_realized:.2f} | "
+            f"scale={risk_scale:.2f} | eff_risk={eff_risk:.4f}%"
+        )
     risk_amount = balance * (eff_risk / 100.0)
     sl_points = abs(price - sl)
 

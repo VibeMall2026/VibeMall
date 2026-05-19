@@ -692,6 +692,14 @@ class AlgoConfigUpdate(BaseModel):
     daily_loss_limit: Optional[float] = None
     analysis_tf: Optional[int] = None
     execution_tf: Optional[int] = None
+    trail_atr_mult: Optional[float] = None
+    rr_breakeven: Optional[float] = None
+    rr_lock_profit: Optional[float] = None
+    use_human_mind_gate: Optional[bool] = None
+    quick_book_profit_usd: Optional[float] = None
+    extended_profit_min_usd: Optional[float] = None
+    extended_profit_max_usd: Optional[float] = None
+    early_sl_avoid_ratio: Optional[float] = None
 
 
 class AlgoRiskResetRequest(BaseModel):
@@ -919,17 +927,27 @@ async def algo_disable():
 @app.put("/algo/config", dependencies=[Depends(verify_api_key)])
 async def algo_update_config(body: AlgoConfigUpdate):
     """Update algo strategy configuration at runtime."""
-    status = update_algo_config(
-        strategy_id=body.strategy_id,
-        symbol=body.symbol,
-        enabled=body.enabled,
-        risk_reward=body.risk_reward,
-        risk_percent=body.risk_percent,
-        max_drawdown_pct=body.max_drawdown_pct,
-        daily_loss_limit=body.daily_loss_limit,
-        analysis_tf=body.analysis_tf,
-        execution_tf=body.execution_tf,
-    )
+    payload = {
+        "strategy_id": body.strategy_id,
+        "symbol": body.symbol,
+        "enabled": body.enabled,
+        "risk_reward": body.risk_reward,
+        "risk_percent": body.risk_percent,
+        "max_drawdown_pct": body.max_drawdown_pct,
+        "daily_loss_limit": body.daily_loss_limit,
+        "analysis_tf": body.analysis_tf,
+        "execution_tf": body.execution_tf,
+        "trail_atr_mult": body.trail_atr_mult,
+        "rr_breakeven": body.rr_breakeven,
+        "rr_lock_profit": body.rr_lock_profit,
+        "use_human_mind_gate": body.use_human_mind_gate,
+        "quick_book_profit_usd": body.quick_book_profit_usd,
+        "extended_profit_min_usd": body.extended_profit_min_usd,
+        "extended_profit_max_usd": body.extended_profit_max_usd,
+        "early_sl_avoid_ratio": body.early_sl_avoid_ratio,
+    }
+    payload = {k: v for k, v in payload.items() if v is not None}
+    status = update_algo_config(**payload)
     return {"success": True, "config": status}
 
 

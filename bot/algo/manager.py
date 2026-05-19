@@ -7,6 +7,7 @@ underlying live algo module to be switched between different strategies.
 from __future__ import annotations
 
 import importlib
+import inspect
 from typing import Optional
 
 from loguru import logger
@@ -81,7 +82,11 @@ def update_algo_config(**kwargs) -> dict:
     if strategy_id:
         select_strategy(strategy_id)
     module = _get_strategy_module()
-    return module.update_algo_config(**kwargs)
+    # Forward only parameters supported by the active strategy module.
+    sig = inspect.signature(module.update_algo_config)
+    accepted = set(sig.parameters.keys())
+    filtered = {k: v for k, v in kwargs.items() if k in accepted}
+    return module.update_algo_config(**filtered)
 
 
 def get_risk_status() -> dict:

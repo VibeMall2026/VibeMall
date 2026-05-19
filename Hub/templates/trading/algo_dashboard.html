@@ -437,9 +437,22 @@
               <i class="bx bx-save me-1"></i>Apply Configuration
             </button>
           </div>
+          <div class="col-12 mt-2">
+            <div class="d-grid gap-2">
+              <button class="btn btn-outline-warning" type="button" onclick="applyBreakoutPreset('aggressive')">
+                <i class="bx bx-trending-up me-1"></i>Breakout Preset: Aggressive Trail
+              </button>
+              <button class="btn btn-outline-info" type="button" onclick="applyBreakoutPreset('conservative')">
+                <i class="bx bx-line-chart-down me-1"></i>Breakout Preset: Conservative Trail
+              </button>
+            </div>
+          </div>
         </div>
         <div class="mt-3 small" style="color:#a8aaae;">
           Config, enable, and disable apply to the selected strategy. Start and stop control the full assigned-strategy runner.
+        </div>
+        <div class="mt-2 small" style="color:#b6b9c3;">
+          XAUUSD guideline: London/NY volatile session ma <strong>Aggressive</strong> better. Slow market ma <strong>Conservative</strong> better.
         </div>
         <div id="configResult" class="mt-3" style="display:none;"></div>
       </div>
@@ -588,6 +601,67 @@ function updateConfig() {
       el.innerHTML = '<div class="alert alert-danger py-2 mb-0">Error: ' + (data.error || 'Failed') + '</div>';
     }
     setTimeout(() => { el.style.display = 'none'; }, 3000);
+  })
+  .catch(() => showToast('Bot is offline.', false));
+}
+
+function applyBreakoutPreset(mode) {
+  const csrfToken = getCookie('csrftoken');
+  let payload = { strategy_id: 'breakout' };
+
+  if (mode === 'aggressive') {
+    payload = {
+      ...payload,
+      analysis_tf: 15,
+      execution_tf: 5,
+      risk_reward: 1.8,
+      trail_atr_mult: 0.55,
+      rr_breakeven: 0.8,
+      rr_lock_profit: 1.2,
+      use_human_mind_gate: true,
+      quick_book_profit_usd: 5.0,
+      extended_profit_min_usd: 7.0,
+      extended_profit_max_usd: 10.0,
+      early_sl_avoid_ratio: 0.82
+    };
+  } else {
+    payload = {
+      ...payload,
+      analysis_tf: 15,
+      execution_tf: 15,
+      risk_reward: 2.2,
+      trail_atr_mult: 1.05,
+      rr_breakeven: 1.1,
+      rr_lock_profit: 1.8,
+      use_human_mind_gate: true,
+      quick_book_profit_usd: 5.0,
+      extended_profit_min_usd: 7.0,
+      extended_profit_max_usd: 10.0,
+      early_sl_avoid_ratio: 0.88
+    };
+  }
+
+  fetch('/trading/algo/config/', {
+    method: 'PUT',
+    headers: {
+      'X-CSRFToken': csrfToken,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  })
+  .then(r => r.json())
+  .then(data => {
+    const ok = !!data.success;
+    showToast(
+      ok
+        ? `Breakout ${mode === 'aggressive' ? 'Aggressive' : 'Conservative'} preset applied`
+        : (data.error || 'Preset apply failed'),
+      ok
+    );
+    if (ok) {
+      document.getElementById('cfgStrategyId').value = 'breakout';
+      setTimeout(refreshStatus, 500);
+    }
   })
   .catch(() => showToast('Bot is offline.', false));
 }

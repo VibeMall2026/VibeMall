@@ -65,6 +65,10 @@ class AlgoConfig:
     dollar_profit_trigger: float = 8.0  # Trigger at $8 floating profit
     dollar_profit_lock: float = 5.0     # Lock $5 profit
     dollar_lock_enabled: bool = True
+    quick_book_profit_usd: float = 5.0
+    extended_profit_min_usd: float = 7.0
+    extended_profit_max_usd: float = 10.0
+    early_sl_avoid_ratio: float = 0.85
 
     def get_symbols(self) -> list:
         """Return list of symbols to trade."""
@@ -565,6 +569,70 @@ def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
             setup.ticket = None
             return
 
+    def _has_continuation_bias(candles: list[Candle], trade_side: str) -> bool:
+        if len(candles) < 3:
+            return False
+        c1, c2, c3 = candles[-3], candles[-2], candles[-1]
+        if trade_side == "buy":
+            return c2.is_bullish and c3.is_bullish and c3.close >= c2.close >= c1.close
+        return c2.is_bearish and c3.is_bearish and c3.close <= c2.close <= c1.close
+
+    continuation_bias = _has_continuation_bias(_candles_hm or [], side)
+    floating_pnl = None
+    current_pos = None
+    try:
+        open_positions = mt5_bridge.get_open_positions()
+        for pos in open_positions:
+            if pos.get("id") == setup.ticket or pos.get("position_id") == setup.ticket:
+                current_pos = pos
+                floating_pnl = float(pos.get("pnl", 0) or 0)
+                break
+    except Exception as exc:
+        logger.warning(f"[BREAKOUT] Could not read floating pnl for ticket {setup.ticket}: {exc}")
+
+    # Human-style profit booking:
+    # - At +$5 book quickly if momentum looks weak.
+    # - If momentum is strong, hold for +$7 to +$10 zone then book.
+    if floating_pnl is not None:
+        if floating_pnl >= algo_config.quick_book_profit_usd and not continuation_bias:
+            if close_trade(setup.ticket, _sym, side, "ALGO:BOOK_5_WEAK_MOMENTUM"):
+                setup.trade_taken = False
+                setup.active = False
+                setup.ticket = None
+                return
+        if continuation_bias and floating_pnl >= algo_config.extended_profit_max_usd:
+            if close_trade(setup.ticket, _sym, side, "ALGO:BOOK_10_STRONG_RUN"):
+                setup.trade_taken = False
+                setup.active = False
+                setup.ticket = None
+                return
+        if (not continuation_bias) and floating_pnl >= algo_config.extended_profit_min_usd:
+            if close_trade(setup.ticket, _sym, side, "ALGO:BOOK_7_NO_FOLLOWTHROUGH"):
+                setup.trade_taken = False
+                setup.active = False
+                setup.ticket = None
+                return
+
+    # Human-style SL avoidance:
+    # If price has moved too close to SL and opposite candles are strong, exit early.
+    try:
+        sl_dist = abs(entry - setup.initial_sl)
+        if sl_dist > 0 and _candles_hm and len(_candles_hm) >= 2:
+            if side == "buy":
+                adverse_ratio = max(0.0, (entry - current_price) / sl_dist)
+                opposite_pressure = _candles_hm[-1].is_bearish and _candles_hm[-2].is_bearish
+            else:
+                adverse_ratio = max(0.0, (current_price - entry) / sl_dist)
+                opposite_pressure = _candles_hm[-1].is_bullish and _candles_hm[-2].is_bullish
+            if adverse_ratio >= algo_config.early_sl_avoid_ratio and opposite_pressure:
+                if close_trade(setup.ticket, _sym, side, "ALGO:EARLY_SL_AVOID"):
+                    setup.trade_taken = False
+                    setup.active = False
+                    setup.ticket = None
+                    return
+    except Exception as exc:
+        logger.warning(f"[BREAKOUT] Early SL avoid check failed: {exc}")
+
     profit_r = (current_price - entry) / one_r if side == "buy" else (entry - current_price) / one_r
     new_sl = None
 
@@ -894,6 +962,14 @@ def get_algo_status() -> dict:
         "execution_timeframe": algo_config.execution_timeframe,
         "risk_reward": algo_config.risk_reward_ratio,
         "risk_percent": algo_config.risk_percent,
+        "trail_atr_mult": algo_config.trail_atr_mult,
+        "rr_breakeven": algo_config.rr_breakeven,
+        "rr_lock_profit": algo_config.rr_lock_profit,
+        "use_human_mind_gate": algo_config.use_human_mind_gate,
+        "quick_book_profit_usd": algo_config.quick_book_profit_usd,
+        "extended_profit_min_usd": algo_config.extended_profit_min_usd,
+        "extended_profit_max_usd": algo_config.extended_profit_max_usd,
+        "early_sl_avoid_ratio": algo_config.early_sl_avoid_ratio,
         "active_breakouts": setups,
         "active_order_blocks": [],
         "total_breakouts_tracked": sum(len(v) for v in _active_breakouts.values()),
@@ -911,6 +987,14 @@ def update_algo_config(
     daily_loss_limit: Optional[float] = None,
     analysis_tf: Optional[int] = None,
     execution_tf: Optional[int] = None,
+    trail_atr_mult: Optional[float] = None,
+    rr_breakeven: Optional[float] = None,
+    rr_lock_profit: Optional[float] = None,
+    use_human_mind_gate: Optional[bool] = None,
+    quick_book_profit_usd: Optional[float] = None,
+    extended_profit_min_usd: Optional[float] = None,
+    extended_profit_max_usd: Optional[float] = None,
+    early_sl_avoid_ratio: Optional[float] = None,
 ) -> dict:
     if symbol is not None:
         normalized_symbols = _normalize_symbols(symbol)
@@ -927,6 +1011,22 @@ def update_algo_config(
         algo_config.analysis_timeframe = analysis_tf
     if execution_tf is not None:
         algo_config.execution_timeframe = execution_tf
+    if trail_atr_mult is not None:
+        algo_config.trail_atr_mult = float(trail_atr_mult)
+    if rr_breakeven is not None:
+        algo_config.rr_breakeven = float(rr_breakeven)
+    if rr_lock_profit is not None:
+        algo_config.rr_lock_profit = float(rr_lock_profit)
+    if use_human_mind_gate is not None:
+        algo_config.use_human_mind_gate = bool(use_human_mind_gate)
+    if quick_book_profit_usd is not None:
+        algo_config.quick_book_profit_usd = float(quick_book_profit_usd)
+    if extended_profit_min_usd is not None:
+        algo_config.extended_profit_min_usd = float(extended_profit_min_usd)
+    if extended_profit_max_usd is not None:
+        algo_config.extended_profit_max_usd = float(extended_profit_max_usd)
+    if early_sl_avoid_ratio is not None:
+        algo_config.early_sl_avoid_ratio = float(early_sl_avoid_ratio)
 
     logger.info(f"[BREAKOUT] Config updated: {algo_config}")
     return get_algo_status()
