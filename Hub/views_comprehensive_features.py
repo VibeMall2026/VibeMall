@@ -675,6 +675,56 @@ def admin_user_sessions(request):
 @staff_member_required(login_url='login')
 def admin_blog_management(request):
     """Blog post management"""
+    def _ensure_default_blog_seed_for_admin() -> None:
+        if BlogPost.objects.exists():
+            return
+        default_categories = [
+            ("Fashion Trends", "fashion-trends", "#f97316"),
+            ("Shopping Guide", "shopping-guide", "#db2777"),
+            ("Style Tips", "style-tips", "#0ea5e9"),
+            ("Budget Styling", "budget-styling", "#16a34a"),
+            ("Festive Edit", "festive-edit", "#f59e0b"),
+            ("Creator Stories", "creator-stories", "#6366f1"),
+        ]
+        category_map = {}
+        for idx, (name, slug, color) in enumerate(default_categories, start=1):
+            cat, _ = BlogCategory.objects.get_or_create(
+                slug=slug,
+                defaults={
+                    "name": name,
+                    "description": f"{name} articles",
+                    "color": color,
+                    "is_active": True,
+                    "sort_order": idx,
+                },
+            )
+            category_map[slug] = cat
+
+        author = User.objects.filter(is_staff=True).order_by("id").first()
+        now = timezone.now()
+        default_posts = [
+            ("Top 10 Fashion Picks Everyone Is Adding to Cart This Month", "top-10-fashion-picks-this-month", "fashion-trends"),
+            ("How to Choose the Right Fit When You Shop Online", "how-to-choose-the-right-fit-online", "shopping-guide"),
+            ("5 Easy Weekend Looks You Can Build From Basics", "5-easy-weekend-looks-from-basics", "style-tips"),
+            ("Affordable Luxury: Look Premium Without Overspending", "affordable-luxury-look-premium", "budget-styling"),
+            ("Festive Edit: Statement Pieces to Book Early", "festive-edit-statement-pieces", "festive-edit"),
+            ("Inside VibeMall Reels: How We Build Shopper-First Content", "inside-vibemall-reels-shopper-first-content", "creator-stories"),
+        ]
+        for idx, (title, slug, cat_slug) in enumerate(default_posts):
+            BlogPost.objects.create(
+                title=title,
+                slug=slug,
+                excerpt=title,
+                content=f"{title} - default starter content.",
+                category=category_map.get(cat_slug),
+                post_type="ARTICLE",
+                status="PUBLISHED",
+                author=author,
+                published_at=now - timedelta(days=(len(default_posts) - idx)),
+            )
+
+    _ensure_default_blog_seed_for_admin()
+
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'add_post':
