@@ -704,6 +704,61 @@ def admin_blog_management(request):
             else:
                 messages.error(request, 'Title and content are required.')
             return redirect('admin_blog_management')
+        if action == 'edit_post':
+            post = get_object_or_404(BlogPost, id=request.POST.get('post_id'))
+            title = (request.POST.get('title') or '').strip()
+            content = (request.POST.get('content') or '').strip()
+            if not title or not content:
+                messages.error(request, 'Title and content are required for update.')
+                return redirect('admin_blog_management')
+            old_slug = post.slug
+            post.title = title
+            post.content = content
+            post.excerpt = (request.POST.get('excerpt') or content[:280]).strip()
+            post.category_id = request.POST.get('category_id') or None
+            post.post_type = request.POST.get('post_type', post.post_type)
+            post.status = request.POST.get('status', post.status)
+            if request.FILES.get('featured_image'):
+                post.featured_image = request.FILES.get('featured_image')
+            # Keep slug stable unless explicitly requested.
+            regenerate_slug = request.POST.get('regenerate_slug') == 'on'
+            if regenerate_slug:
+                base_slug = slugify(title)[:200] or f'post-{timezone.now().strftime("%Y%m%d%H%M%S")}'
+                slug = base_slug
+                idx = 1
+                while BlogPost.objects.exclude(id=post.id).filter(slug=slug).exists():
+                    idx += 1
+                    slug = f"{base_slug[:190]}-{idx}"
+                post.slug = slug
+            if post.status == 'PUBLISHED' and not post.published_at:
+                post.published_at = timezone.now()
+            if post.status != 'PUBLISHED':
+                post.published_at = None
+            post.save()
+            log_activity(request.user, 'UPDATE', 'BlogPost', post.id, f'{old_slug} -> {post.slug}', request=request)
+            messages.success(request, f'Blog post "{post.title}" updated.')
+            return redirect('admin_blog_management')
+        if action == 'toggle_publish':
+            post = get_object_or_404(BlogPost, id=request.POST.get('post_id'))
+            if post.status == 'PUBLISHED':
+                post.status = 'DRAFT'
+                post.published_at = None
+                msg = f'Post "{post.title}" moved to Draft.'
+            else:
+                post.status = 'PUBLISHED'
+                post.published_at = timezone.now()
+                msg = f'Post "{post.title}" published.'
+            post.save(update_fields=['status', 'published_at', 'updated_at'])
+            log_activity(request.user, 'UPDATE', 'BlogPost', post.id, f'Status={post.status}', request=request)
+            messages.success(request, msg)
+            return redirect('admin_blog_management')
+        if action == 'delete_post':
+            post = get_object_or_404(BlogPost, id=request.POST.get('post_id'))
+            title = post.title
+            post.delete()
+            log_activity(request.user, 'DELETE', 'BlogPost', post.id, title, request=request)
+            messages.success(request, f'Blog post "{title}" deleted.')
+            return redirect('admin_blog_management')
 
     posts = BlogPost.objects.all().order_by('-created_at')
     
