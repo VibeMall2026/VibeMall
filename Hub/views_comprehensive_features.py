@@ -696,6 +696,7 @@ def admin_blog_management(request):
                     post_type=request.POST.get('post_type', 'ARTICLE'),
                     status=request.POST.get('status', 'DRAFT'),
                     author=request.user,
+                    featured_image=request.FILES.get('featured_image'),
                     published_at=timezone.now() if request.POST.get('status') == 'PUBLISHED' else None,
                 )
                 log_activity(request.user, 'CREATE', 'BlogPost', post.id, post.title, request=request)

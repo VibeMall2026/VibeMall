@@ -26,7 +26,7 @@ except ImportError:
 from bot import mt5_bridge
 from bot.state import state
 from bot.algo.order_block import (
-    can_trade,
+    can_trade_with_reason,
     check_drawdown,
     get_risk_status,
     record_trade_pnl,
@@ -380,8 +380,9 @@ def _check_entry_signal(setup: BreakoutSetup, candles_exec: list[Candle]) -> Opt
 
 
 def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
-    if not can_trade():
-        logger.info("[BREAKOUT] Trade blocked by risk management rules")
+    allowed, block_reason = can_trade_with_reason()
+    if not allowed:
+        logger.info(f"[BREAKOUT] Trade blocked by risk management | reason={block_reason} | symbol={setup.symbol}")
         return False
 
     if check_drawdown():
@@ -716,7 +717,10 @@ def _scan_and_trade(symbol: str = None) -> None:
         "at": _last_scan_at,
     }
 
-    if not state.running or not algo_config.enabled or not can_trade():
+    allowed, block_reason = can_trade_with_reason()
+    if not state.running or not algo_config.enabled or not allowed:
+        if state.running and algo_config.enabled and not allowed:
+            logger.debug(f"[BREAKOUT] Scan gate blocked | reason={block_reason} | symbol={symbol}")
         return
 
     open_positions = mt5_bridge.get_open_positions()

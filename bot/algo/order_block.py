@@ -308,19 +308,25 @@ def check_daily_loss_realtime() -> bool:
     return False
 
 
-def can_trade() -> bool:
-    """Return True if risk rules allow a new trade."""
+def can_trade_with_reason() -> tuple[bool, str]:
+    """Return (allowed, reason) for risk gate checks."""
     _reset_daily_if_needed()
     if check_drawdown():
         logger.debug("[ALGO] Trading halted: max drawdown exceeded")
-        return False
+        return False, "max_drawdown_exceeded"
     if _daily_halted:
         logger.debug("[ALGO] Trading halted: daily profit/loss limit reached")
-        return False
+        return False, "daily_halt_active"
     # Real-time check: floating + closed PnL
     if check_daily_loss_realtime():
-        return False
-    return True
+        return False, "daily_limit_reached_realtime"
+    return True, "ok"
+
+
+def can_trade() -> bool:
+    """Return True if risk rules allow a new trade."""
+    allowed, _ = can_trade_with_reason()
+    return allowed
 
 
 def get_risk_status() -> dict:
@@ -343,7 +349,7 @@ def get_risk_status() -> dict:
         floating_pnl = sum(float(p.get('pnl', 0)) for p in open_positions)
     except Exception:
         floating_pnl = 0.0
-    allowed = can_trade()
+    allowed, reason = can_trade_with_reason()
     return {
         "daily_pnl": round(_daily_pnl, 2),
         "floating_pnl": round(floating_pnl, 2),
@@ -364,6 +370,7 @@ def get_risk_status() -> dict:
         "peak_equity": round(peak_equity, 2),
         "account_key": account_key,
         "can_trade": bool(allowed),
+        "trade_block_reason": reason if not allowed else "ok",
     }
 
 
@@ -818,8 +825,9 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
     """Execute trade for confirmed Order Block setup with full risk management."""
 
     # ── Risk management gate ──────────────────────────────────────────────────
-    if not can_trade():
-        logger.info("[ALGO] Trade blocked by risk management rules")
+    allowed, block_reason = can_trade_with_reason()
+    if not allowed:
+        logger.info(f"[ALGO] Trade blocked by risk management | reason={block_reason} | symbol={ob.symbol}")
         return False
 
     if check_drawdown():
@@ -1467,7 +1475,9 @@ def _scan_and_trade(symbol: str = None) -> None:
     # Check risk management rules before entering new trades
     if not algo_config.enabled:
         return
-    if not can_trade():
+    allowed, block_reason = can_trade_with_reason()
+    if not allowed:
+        logger.debug(f"[ALGO] Scan gate blocked | reason={block_reason} | symbol={symbol}")
         return
 
     # Check open positions — limit per symbol (not global across all symbols)

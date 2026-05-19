@@ -141,11 +141,14 @@
 
   {% if title == 'Blog Management' %}
   <div class="card mb-3"><div class="card-body">
-    <form method="post" class="row g-2">{% csrf_token %}
+    <form method="post" enctype="multipart/form-data" class="row g-2">{% csrf_token %}
       <input type="hidden" name="action" value="add_post">
       <div class="col-md-4"><input class="form-control" name="title" placeholder="Title" required></div>
       <div class="col-md-3"><select class="form-select" name="category_id"><option value="">Category</option>{% for category in categories %}<option value="{{ category.id }}">{{ category.name }}</option>{% endfor %}</select></div>
-      <div class="col-md-3"><select class="form-select" name="status">{% for code, label in status_choices %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+      <div class="col-md-2"><select class="form-select" name="post_type">{% for code, label in post_types %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+      <div class="col-md-2"><select class="form-select" name="status">{% for code, label in status_choices %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+      <div class="col-md-3"><input class="form-control" name="excerpt" placeholder="Short excerpt (optional)"></div>
+      <div class="col-md-3"><input class="form-control" type="file" name="featured_image" accept="image/*"></div>
       <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Create</button></div>
       <div class="col-md-12"><textarea class="form-control" name="content" rows="3" placeholder="Content" required></textarea></div>
     </form>

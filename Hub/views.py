@@ -194,7 +194,7 @@ def _log_rto_history(rto_case: 'RTOCase', old_status: str, new_status: str, user
     )
 
 from .models import CategoryIcon, SubCategory, Slider, Feature, Banner, Product, DealCountdown, UserProfile, Address, Cart, Wishlist, ProductImage, ProductReview, ReviewImage, ReviewVote, ProductQuestion, Order, OrderItem, OrderStatusHistory, OrderCancellationRequest, ReturnRequest, ReturnItem, ReturnHistory, ReturnAttachment, ReturnLabel, RTOCase, RTOHistory, AdminEmailSettings, ProductStockNotification, BrandPartner, SiteSettings, LoyaltyPoints, PointsTransaction, MainPageProduct, MainPageSubCategoryBanner, MainPageBanner, ChatThread, ChatMessage, ChatAttachment, NewsletterSubscription, Coupon, CouponUsage
-from .models_content_management import FAQCategory, FAQ
+from .models_content_management import FAQCategory, FAQ, BlogCategory, BlogPost, BlogComment
 from .email_utils import send_order_confirmation_email, send_order_status_update_email, send_admin_order_notification, build_invoice_context
 from .view_helpers import (
     _split_full_name,
@@ -5959,8 +5959,75 @@ def about(request):
     }
 
     return render(request, 'about.html', context)
-def blog(request): return render(request, 'blog.html')
-def blog_details(request): return render(request, 'blog-details.html')
+def blog(request):
+    category_slug = (request.GET.get('category') or '').strip()
+    search_query = (request.GET.get('q') or '').strip()
+
+    posts = BlogPost.objects.filter(status='PUBLISHED').select_related('category', 'author')
+    if category_slug:
+        posts = posts.filter(category__slug=category_slug)
+    if search_query:
+        posts = posts.filter(Q(title__icontains=search_query) | Q(excerpt__icontains=search_query) | Q(content__icontains=search_query))
+
+    posts = posts.order_by('-published_at', '-created_at')
+    paginator = Paginator(posts, 9)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    categories = (
+        BlogCategory.objects.filter(is_active=True)
+        .annotate(post_count=Count('posts', filter=Q(posts__status='PUBLISHED')))
+        .order_by('sort_order', 'name')
+    )
+
+    context = {
+        'page_obj': page_obj,
+        'posts': page_obj.object_list,
+        'categories': categories,
+        'selected_category': category_slug,
+        'search_query': search_query,
+    }
+    return render(request, 'blog.html', context)
+
+
+def blog_details(request, slug=None):
+    if slug:
+        post = get_object_or_404(
+            BlogPost.objects.select_related('category', 'author'),
+            slug=slug,
+            status='PUBLISHED'
+        )
+    else:
+        post = (
+            BlogPost.objects.filter(status='PUBLISHED')
+            .select_related('category', 'author')
+            .order_by('-published_at', '-created_at')
+            .first()
+        )
+        if not post:
+            return render(request, 'blog-details.html', {'post': None, 'recent_posts': [], 'categories': []})
+
+    BlogPost.objects.filter(pk=post.pk).update(view_count=F('view_count') + 1)
+    post.refresh_from_db(fields=['view_count'])
+
+    recent_posts = (
+        BlogPost.objects.filter(status='PUBLISHED')
+        .exclude(pk=post.pk)
+        .order_by('-published_at', '-created_at')[:4]
+    )
+    categories = (
+        BlogCategory.objects.filter(is_active=True)
+        .annotate(post_count=Count('posts', filter=Q(posts__status='PUBLISHED')))
+        .order_by('sort_order', 'name')
+    )
+    comments = post.comments.filter(status='APPROVED').select_related('user').order_by('created_at')
+
+    context = {
+        'post': post,
+        'recent_posts': recent_posts,
+        'categories': categories,
+        'comments': comments,
+    }
+    return render(request, 'blog-details.html', context)
 
 
 def _get_request_ip(request: HttpRequest) -> str:

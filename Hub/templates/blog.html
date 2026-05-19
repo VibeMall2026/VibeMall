@@ -25,96 +25,56 @@
     </section>
 
     <section class="vm-journal-grid-wrap">
+        <form method="get" class="mb-30 d-flex flex-wrap gap-2 align-items-center">
+            <input type="text" name="q" value="{{ search_query }}" placeholder="Search blog..." class="form-control" style="max-width: 320px;">
+            <select name="category" class="form-control" style="max-width: 240px;">
+                <option value="">All Categories</option>
+                {% for category in categories %}
+                    <option value="{{ category.slug }}" {% if selected_category == category.slug %}selected{% endif %}>
+                        {{ category.name }} ({{ category.post_count }})
+                    </option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="tp-btn">Filter</button>
+        </form>
+
         <div class="vm-journal-grid">
-            <article class="vm-journal-card">
-                <div class="vm-journal-media">
-                    <img src="{% static 'assets/img/product/tp-12.jpg' %}" alt="Top fashion picks for this season">
-                    <span class="vm-journal-date">18 Mar 2026</span>
-                </div>
-                <div class="vm-journal-copy">
-                    <small>Fashion Trends</small>
-                    <h2><a href="{% url 'blog-details' %}">Top 10 Fashion Picks Everyone Is Adding to Cart This Month</a></h2>
-                    <p>From statement tops to everyday denim, explore the products our shoppers are loving right now on VibeMall.</p>
-                    <a class="vm-journal-read" href="{% url 'blog-details' %}">Read More <i class="far fa-arrow-right"></i></a>
-                </div>
-            </article>
-
-            <article class="vm-journal-card">
-                <div class="vm-journal-media">
-                    <img src="{% static 'assets/img/product/tp-10.jpg' %}" alt="How to choose the right outfit online">
-                    <span class="vm-journal-date">12 Mar 2026</span>
-                </div>
-                <div class="vm-journal-copy">
-                    <small>Shopping Guide</small>
-                    <h2><a href="{% url 'blog-details' %}">How to Choose the Right Fit When You Shop Online</a></h2>
-                    <p>A practical guide to size charts, fabric checks, and styling hacks so your next order feels made for you.</p>
-                    <a class="vm-journal-read" href="{% url 'blog-details' %}">Read More <i class="far fa-arrow-right"></i></a>
-                </div>
-            </article>
-
-            <article class="vm-journal-card">
-                <div class="vm-journal-media">
-                    <img src="{% static 'assets/img/product/tp-14.jpg' %}" alt="Weekend wardrobe ideas">
-                    <span class="vm-journal-date">05 Mar 2026</span>
-                </div>
-                <div class="vm-journal-copy">
-                    <small>Style Tips</small>
-                    <h2><a href="{% url 'blog-details' %}">5 Easy Weekend Looks You Can Build From Basics</a></h2>
-                    <p>Use simple staples from your closet and add one trend item to create polished looks without overthinking.</p>
-                    <a class="vm-journal-read" href="{% url 'blog-details' %}">Read More <i class="far fa-arrow-right"></i></a>
-                </div>
-            </article>
-
-            <article class="vm-journal-card vm-journal-card-offset">
-                <div class="vm-journal-media">
-                    <img src="{% static 'assets/img/product/tp-15.jpg' %}" alt="Affordable luxury fashion guide">
-                    <span class="vm-journal-date">27 Feb 2026</span>
-                </div>
-                <div class="vm-journal-copy">
-                    <small>Budget Styling</small>
-                    <h2><a href="{% url 'blog-details' %}">Affordable Luxury: Look Premium Without Overspending</a></h2>
-                    <p>Learn how to mix value picks with standout pieces and create high-end looks that stay within budget.</p>
-                    <a class="vm-journal-read" href="{% url 'blog-details' %}">Read More <i class="far fa-arrow-right"></i></a>
-                </div>
-            </article>
-
-            <article class="vm-journal-card vm-journal-card-offset">
-                <div class="vm-journal-media">
-                    <img src="{% static 'assets/img/product/tp-16.jpg' %}" alt="Festive collection preview">
-                    <span class="vm-journal-date">18 Feb 2026</span>
-                </div>
-                <div class="vm-journal-copy">
-                    <small>Festive Edit</small>
-                    <h2><a href="{% url 'blog-details' %}">Festive Edit 2026: Statement Pieces to Book Early</a></h2>
-                    <p>Our curated festive shortlist includes dresses, accessories, and footwear that sell out fast every season.</p>
-                    <a class="vm-journal-read" href="{% url 'blog-details' %}">Read More <i class="far fa-arrow-right"></i></a>
-                </div>
-            </article>
-
-            <article class="vm-journal-card vm-journal-card-offset">
-                <div class="vm-journal-media">
-                    <img src="{% static 'assets/img/banner/banner-10.jpg' %}" alt="Behind the scenes of VibeMall reels">
-                    <span class="vm-journal-date">09 Feb 2026</span>
-                </div>
-                <div class="vm-journal-copy">
-                    <small>Creator Stories</small>
-                    <h2><a href="{% url 'blog-details' %}">Inside VibeMall Reels: How We Build Shopper-First Content</a></h2>
-                    <p>Go behind the scenes with our creative team to see how product storytelling turns into high-performing reels.</p>
-                    <a class="vm-journal-read" href="{% url 'blog-details' %}">Read More <i class="far fa-arrow-right"></i></a>
-                </div>
-            </article>
+            {% for post in posts %}
+                <article class="vm-journal-card {% if forloop.counter > 3 %}vm-journal-card-offset{% endif %}">
+                    <div class="vm-journal-media">
+                        {% if post.featured_image %}
+                            <img src="{{ post.featured_image.url }}" alt="{{ post.title }}">
+                        {% else %}
+                            <img src="{% static 'assets/img/blog/blog-thumb.jpg' %}" alt="{{ post.title }}">
+                        {% endif %}
+                        <span class="vm-journal-date">{{ post.published_at|default:post.created_at|date:"d M Y" }}</span>
+                    </div>
+                    <div class="vm-journal-copy">
+                        <small>{{ post.category.name|default:"VibeMall Blog" }}</small>
+                        <h2><a href="{% url 'blog_detail_slug' post.slug %}">{{ post.title }}</a></h2>
+                        <p>{{ post.excerpt|default:post.content|truncatechars:170 }}</p>
+                        <a class="vm-journal-read" href="{% url 'blog_detail_slug' post.slug %}">Read More <i class="far fa-arrow-right"></i></a>
+                    </div>
+                </article>
+            {% empty %}
+                <p>No blog posts published yet.</p>
+            {% endfor %}
         </div>
 
         <nav class="vm-journal-pagination" aria-label="Blog pagination">
-            <a href="#" class="vm-journal-page-link">Previous</a>
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="vm-journal-page-link">Previous</a>
+            {% else %}
+                <span class="vm-journal-page-link">Previous</span>
+            {% endif %}
             <div>
-                <a href="#" class="active">01</a>
-                <a href="#">02</a>
-                <a href="#">03</a>
-                <span>...</span>
-                <a href="#">08</a>
+                <a href="#" class="active">{{ page_obj.number|stringformat:"02d" }}</a>
             </div>
-            <a href="#" class="vm-journal-page-link">Next</a>
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="vm-journal-page-link">Next</a>
+            {% else %}
+                <span class="vm-journal-page-link">Next</span>
+            {% endif %}
         </nav>
     </section>
 </section>
