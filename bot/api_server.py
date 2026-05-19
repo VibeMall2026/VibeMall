@@ -409,9 +409,23 @@ async def strategy_stats(strategy_id: str, period: str = "today", account_login:
     if not strat:
         raise HTTPException(status_code=404, detail=f"Strategy '{strategy_id}' not found")
 
+    def _strategy_values(acc) -> list[str]:
+        raw = getattr(acc, "strategy", None)
+        if raw is None:
+            return []
+        if isinstance(raw, (list, tuple, set)):
+            return [str(x).strip() for x in raw if str(x).strip()]
+        # Backward-compat: legacy single-string value
+        val = str(raw).strip()
+        if not val:
+            return []
+        if "," in val:
+            return [p.strip() for p in val.split(",") if p.strip()]
+        return [val]
+
     assigned_accounts = [
         acc for acc in get_all_accounts()
-        if strategy_id in (acc.strategy or [])
+        if strategy_id in _strategy_values(acc)
     ]
     all_assigned_accounts = list(assigned_accounts)
     selected_account_login = str(account_login).strip() if account_login is not None else ""
