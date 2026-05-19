@@ -40,6 +40,7 @@ THE5ERS_MAX_TRADES_PER_DAY = 15
 THE5ERS_MIN_SECONDS_BETWEEN_BREAKOUT_ENTRIES = 65
 THE5ERS_MAX_SIMULTANEOUS_BREAKOUT_TRADES = 2
 THE5ERS_POLICY_ENFORCED = os.getenv("THE5ERS_POLICY_ENFORCED", "false").strip().lower() in {"1", "true", "yes", "on"}
+DAILY_PROFIT_STOP_USD = 45.0
 
 
 def get_mt5_lock() -> threading.RLock:
@@ -559,6 +560,39 @@ def execute_on_all_accounts(
                         })
                         logger.warning(f"[ACCOUNTS] The5ers policy blocked breakout trade: {reason}")
                         continue
+
+                # Hard daily profit stop per account:
+                # once realized PnL reaches +$45, stop opening new trades for today.
+                try:
+                    from datetime import datetime, timezone
+                    start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+                    end = datetime.now(timezone.utc)
+                    deals = mt5.history_deals_get(start, end) or []
+                    today_realized = sum(
+                        float(getattr(d, "profit", 0.0) or 0.0)
+                        + float(getattr(d, "commission", 0.0) or 0.0)
+                        + float(getattr(d, "swap", 0.0) or 0.0)
+                        for d in deals
+                    )
+                except Exception:
+                    today_realized = 0.0
+
+                if today_realized >= DAILY_PROFIT_STOP_USD:
+                    results.append({
+                        "success": False,
+                        "message": (
+                            f"Daily profit stop reached (${today_realized:.2f} >= ${DAILY_PROFIT_STOP_USD:.2f}); "
+                            "no more trades today"
+                        ),
+                        "account_id": acc.id,
+                        "account_label": acc.label,
+                        "login": acc.login,
+                    })
+                    logger.warning(
+                        f"[ACCOUNTS] Daily profit stop block on {acc.label}: "
+                        f"${today_realized:.2f} >= ${DAILY_PROFIT_STOP_USD:.2f}"
+                    )
+                    continue
 
                 # Execute trade on this account
                 result = _execute_single(
