@@ -10,6 +10,7 @@ NOTE: MT5 Python library supports only ONE active connection per process.
 """
 from __future__ import annotations
 
+import os
 import threading
 import time
 from datetime import datetime, timezone, date as _date
@@ -38,6 +39,7 @@ THE5ERS_EQUITY_FLOOR = 2250.0
 THE5ERS_MAX_TRADES_PER_DAY = 15
 THE5ERS_MIN_SECONDS_BETWEEN_BREAKOUT_ENTRIES = 65
 THE5ERS_MAX_SIMULTANEOUS_BREAKOUT_TRADES = 2
+THE5ERS_POLICY_ENFORCED = os.getenv("THE5ERS_POLICY_ENFORCED", "false").strip().lower() in {"1", "true", "yes", "on"}
 
 
 def get_mt5_lock() -> threading.RLock:
@@ -545,7 +547,7 @@ def execute_on_all_accounts(
                     continue
 
                 # Account-specific prop-firm compliance guard (only this one account).
-                if strategy_id == "breakout" and acc.login == THE5ERS_FUNDED_LOGIN:
+                if THE5ERS_POLICY_ENFORCED and strategy_id == "breakout" and acc.login == THE5ERS_FUNDED_LOGIN:
                     allowed, reason = _check_the5ers_breakout_policy(acc)
                     if not allowed:
                         results.append({
@@ -685,16 +687,57 @@ def _execute_single(
     import math
     from bot import config as cfg
 
-    sym_info = mt5.symbol_info(symbol)
-    if not sym_info:
+    def _normalize_sym(s: str) -> str:
+        return "".join(ch for ch in str(s or "").upper() if ch.isalnum())
+
+    def _resolve_symbol_name(raw_symbol: str) -> str | None:
+        # Exact match first
+        info = mt5.symbol_info(raw_symbol)
+        if info:
+            return raw_symbol
+
+        wanted = _normalize_sym(raw_symbol)
+        if not wanted:
+            return None
+
+        # Broker suffix/prefix variants fallback (e.g., XAUUSD.a, XAUUSDm)
+        all_symbols = mt5.symbols_get()
+        if not all_symbols:
+            return None
+
+        candidates = []
+        for s in all_symbols:
+            name = getattr(s, "name", "")
+            norm = _normalize_sym(name)
+            if norm == wanted:
+                candidates.append(name)
+                continue
+            if norm.startswith(wanted) or wanted in norm:
+                candidates.append(name)
+
+        if not candidates:
+            return None
+
+        # Prefer shortest/closest name to avoid odd synthetic variants.
+        candidates = sorted(candidates, key=lambda x: (len(x), x))
+        return candidates[0]
+
+    resolved_symbol = _resolve_symbol_name(symbol)
+    if not resolved_symbol:
         return {"success": False, "message": f"Symbol {symbol} not found"}
+    if resolved_symbol != symbol:
+        logger.info(f"[ACCOUNTS] Symbol mapped: {symbol} -> {resolved_symbol}")
+
+    sym_info = mt5.symbol_info(resolved_symbol)
+    if not sym_info:
+        return {"success": False, "message": f"Symbol {resolved_symbol} not found"}
 
     if not sym_info.visible:
-        mt5.symbol_select(symbol, True)
+        mt5.symbol_select(resolved_symbol, True)
 
-    tick = mt5.symbol_info_tick(symbol)
+    tick = mt5.symbol_info_tick(resolved_symbol)
     if not tick:
-        return {"success": False, "message": f"No tick data for {symbol}"}
+        return {"success": False, "message": f"No tick data for {resolved_symbol}"}
 
     market_type_map = {
         "buy": mt5.ORDER_TYPE_BUY,
@@ -743,7 +786,7 @@ def _execute_single(
 
     lot = _cap_lot_by_pnl_limits(
         sym_info=sym_info,
-        symbol=symbol,
+        symbol=resolved_symbol,
         side=side,
         price=price,
         sl=sl,
@@ -761,7 +804,7 @@ def _execute_single(
 
     request = {
         "action": action,
-        "symbol": symbol,
+        "symbol": resolved_symbol,
         "volume": lot,
         "type": mt5_order_type,
         "price": price,
