@@ -5960,6 +5960,95 @@ def about(request):
 
     return render(request, 'about.html', context)
 def blog(request):
+    def _ensure_default_blog_seed() -> None:
+        # Create starter content only once for fresh setups.
+        if BlogPost.objects.exists():
+            return
+
+        default_categories = [
+            ("Fashion Trends", "fashion-trends", "#f97316"),
+            ("Shopping Guide", "shopping-guide", "#db2777"),
+            ("Style Tips", "style-tips", "#0ea5e9"),
+            ("Budget Styling", "budget-styling", "#16a34a"),
+            ("Festive Edit", "festive-edit", "#f59e0b"),
+            ("Creator Stories", "creator-stories", "#6366f1"),
+        ]
+        category_map = {}
+        for idx, (name, slug, color) in enumerate(default_categories, start=1):
+            cat, _ = BlogCategory.objects.get_or_create(
+                slug=slug,
+                defaults={
+                    "name": name,
+                    "description": f"{name} articles",
+                    "color": color,
+                    "is_active": True,
+                    "sort_order": idx,
+                },
+            )
+            category_map[slug] = cat
+
+        author = User.objects.filter(is_staff=True).order_by("id").first()
+        now = timezone.now()
+        default_posts = [
+            {
+                "title": "Top 10 Fashion Picks Everyone Is Adding to Cart This Month",
+                "slug": "top-10-fashion-picks-this-month",
+                "excerpt": "From statement tops to everyday denim, explore the products our shoppers are loving right now.",
+                "content": "This month, shoppers are choosing comfort-first fashion with elevated textures and wearable silhouettes.",
+                "category_slug": "fashion-trends",
+            },
+            {
+                "title": "How to Choose the Right Fit When You Shop Online",
+                "slug": "how-to-choose-the-right-fit-online",
+                "excerpt": "A practical guide to size charts, fabric checks, and styling hacks so your next order fits beautifully.",
+                "content": "Use shoulder width, inseam, and stretch factor checks before checkout to reduce returns and improve fit confidence.",
+                "category_slug": "shopping-guide",
+            },
+            {
+                "title": "5 Easy Weekend Looks You Can Build From Basics",
+                "slug": "5-easy-weekend-looks-from-basics",
+                "excerpt": "Use simple staples from your closet and add one trend item to create polished looks without overthinking.",
+                "content": "Start with denim, neutral tee, and layer with accessories to create versatile looks for brunch and evening plans.",
+                "category_slug": "style-tips",
+            },
+            {
+                "title": "Affordable Luxury: Look Premium Without Overspending",
+                "slug": "affordable-luxury-look-premium",
+                "excerpt": "Learn how to mix value picks with standout pieces and create high-end looks that stay within budget.",
+                "content": "Prioritize quality fabrics, timeless cuts, and one hero accessory to unlock a premium look at controlled spend.",
+                "category_slug": "budget-styling",
+            },
+            {
+                "title": "Festive Edit: Statement Pieces to Book Early",
+                "slug": "festive-edit-statement-pieces",
+                "excerpt": "Our curated festive shortlist includes dresses, accessories, and footwear that sell out fast every season.",
+                "content": "Plan festive outfits early with coordinated sets, metallic accents, and occasion-ready layering options.",
+                "category_slug": "festive-edit",
+            },
+            {
+                "title": "Inside VibeMall Reels: How We Build Shopper-First Content",
+                "slug": "inside-vibemall-reels-shopper-first-content",
+                "excerpt": "Behind the scenes with our creative team to see how product storytelling turns into high-performing reels.",
+                "content": "We design reels around shopper intent: quick hooks, practical use-cases, and direct product value in under 20 seconds.",
+                "category_slug": "creator-stories",
+            },
+        ]
+
+        for idx, item in enumerate(default_posts):
+            BlogPost.objects.create(
+                title=item["title"],
+                slug=item["slug"],
+                excerpt=item["excerpt"],
+                content=item["content"],
+                category=category_map.get(item["category_slug"]),
+                post_type="ARTICLE",
+                status="PUBLISHED",
+                author=author,
+                published_at=now - timedelta(days=(len(default_posts) - idx)),
+            )
+
+    _ensure_default_blog_seed()
+
     category_slug = (request.GET.get('category') or '').strip()
     search_query = (request.GET.get('q') or '').strip()
 
