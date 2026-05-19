@@ -401,6 +401,8 @@ async def stop_bot():
 async def strategy_stats(strategy_id: str, period: str = "today", account_login: str = ""):
     """Return per-strategy dashboard stats — fetches history from ALL assigned accounts."""
     from bot.accounts import get_all_accounts, _connect_account, _reconnect_primary
+    from bot.accounts import THE5ERS_FUNDED_LOGIN, THE5ERS_ACCOUNT_SIZE
+    from bot.algo.manager import get_risk_status as get_active_risk_status
     from bot.strategies import get_strategy
 
     strat = get_strategy(strategy_id)
@@ -506,6 +508,35 @@ async def strategy_stats(strategy_id: str, period: str = "today", account_login:
     if balance_base <= 0:
         balance_base = 1.0
 
+    # Account-size-based drawdown model for dashboard risk card.
+    # Prevents cross-account peak mixing and keeps DD tied to selected account size.
+    active_risk = get_active_risk_status() or {}
+    limit_pct = float(active_risk.get("max_drawdown_pct", 10.0) or 10.0)
+
+    def _account_size(acc) -> float:
+        if int(acc.login) == int(THE5ERS_FUNDED_LOGIN):
+            return float(THE5ERS_ACCOUNT_SIZE)
+        bal = float(acc.balance or 0.0)
+        eq = float(acc.equity or 0.0)
+        if bal > 0:
+            return bal
+        if eq > 0:
+            return eq
+        return 0.0
+
+    selected_accounts_for_risk = assigned_accounts if assigned_accounts else all_assigned_accounts
+    reference_size = sum(_account_size(acc) for acc in selected_accounts_for_risk)
+    current_equity = sum(float(acc.equity or 0.0) for acc in selected_accounts_for_risk)
+    if reference_size <= 0:
+        reference_size = max(current_equity, 1.0)
+    dd_amount = max(reference_size - current_equity, 0.0)
+    dd_pct = (dd_amount / reference_size) * 100.0 if reference_size > 0 else 0.0
+    dd_used_pct = min((dd_pct / limit_pct) * 100.0, 100.0) if limit_pct > 0 else 0.0
+    remaining_pct = max(limit_pct - dd_pct, 0.0)
+    max_dd_amount = reference_size * (limit_pct / 100.0)
+    remaining_amount = max(max_dd_amount - dd_amount, 0.0)
+    dd_halted = bool(dd_pct >= limit_pct)
+
     period_stats = {}
     for period_key, (start_d, end_d) in periods.items():
         rows = [r for r in trade_rows if start_d <= r["date"] <= end_d]
@@ -567,6 +598,18 @@ async def strategy_stats(strategy_id: str, period: str = "today", account_login:
         "all_accounts": [acc.to_dict() for acc in all_assigned_accounts],
         "accounts": [acc.to_dict() for acc in assigned_accounts],
         "selected_account_login": selected_account_login or None,
+        "risk": {
+            "dd_halted": dd_halted,
+            "peak_equity": round(reference_size, 2),
+            "equity": round(current_equity, 2),
+            "current_drawdown_pct": round(dd_pct, 2),
+            "current_drawdown_amount": round(dd_amount, 2),
+            "max_drawdown_pct": round(limit_pct, 2),
+            "max_drawdown_amount": round(max_dd_amount, 2),
+            "remaining_drawdown_pct": round(remaining_pct, 2),
+            "remaining_drawdown_amount": round(remaining_amount, 2),
+            "drawdown_used_pct_of_limit": round(dd_used_pct, 2),
+        },
         "open_trades": open_trades,
         "recent_trades": filtered_recent[:50],
         "stats": {

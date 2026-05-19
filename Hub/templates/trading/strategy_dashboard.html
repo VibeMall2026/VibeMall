@@ -396,6 +396,7 @@
 const STRATEGY_ID = "{{ strategy_id }}";
 let SELECTED_PERIOD = 'today';
 let SELECTED_ACCOUNT_LOGIN = '';
+let CURRENT_STRATEGY_DATA = null;
 
 const STRATEGY_META = {
   order_block:      { name: 'Order Block + FVG',       icon: '⚡', color: '#696cff' },
@@ -665,6 +666,7 @@ function renderRecentTrades(trades) {
 
 function renderStrategyDashboard(data) {
   if (!data || data.error) return;
+  CURRENT_STRATEGY_DATA = data;
   renderAccountTabs(data);
   applyThe5ersMode(data);
   SELECTED_PERIOD = data.selected_period || SELECTED_PERIOD;
@@ -678,6 +680,7 @@ function renderStrategyDashboard(data) {
   renderAccounts(data.accounts);
   renderOpenTrades(data.open_trades);
   renderRecentTrades(data.recent_trades);
+  renderRiskPanel(data.risk || {});
   const now = new Date();
   document.getElementById('lastRefreshed').textContent = 'Updated ' + now.toLocaleTimeString();
 }
@@ -698,7 +701,7 @@ function saveMaxDD() {
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
     body: JSON.stringify({ max_drawdown_pct: v }),
-  }).then(function() { refreshRiskPanel(); });
+  }).then(function() { loadStrategyData(); });
 }
 
 function resetDD(resetPeak) {
@@ -708,37 +711,32 @@ function resetDD(resetPeak) {
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
     body: JSON.stringify({ reset_peak_equity: !!resetPeak }),
-  }).then(function() { refreshRiskPanel(); });
+  }).then(function() { loadStrategyData(); });
 }
 
-function refreshRiskPanel() {
-  fetch('/trading/algo/status/', { credentials: 'same-origin' })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      const risk = d.risk || {};
-      const used = parseFloat(risk.drawdown_used_pct_of_limit || 0);
-      const limit = parseFloat(risk.max_drawdown_pct || 0);
-      const cur = parseFloat(risk.current_drawdown_pct || 0);
-      const rem = parseFloat(risk.remaining_drawdown_pct || 0);
-      const halted = !!risk.dd_halted;
+function renderRiskPanel(risk) {
+  risk = risk || {};
+  const used = parseFloat(risk.drawdown_used_pct_of_limit || 0);
+  const limit = parseFloat(risk.max_drawdown_pct || 0);
+  const cur = parseFloat(risk.current_drawdown_pct || 0);
+  const rem = parseFloat(risk.remaining_drawdown_pct || 0);
+  const halted = !!risk.dd_halted;
 
-      const safeUsed = Math.max(0, Math.min(100, used));
-      const deg = safeUsed * 3.6;
-      const color = safeUsed >= 100 ? '#ea5455' : (safeUsed >= 75 ? '#ff9f43' : '#28c76f');
-      document.getElementById('ddRing').style.background = 'conic-gradient(' + color + ' 0deg ' + deg + 'deg, #3b3d52 ' + deg + 'deg 360deg)';
-      document.getElementById('ddUsed').textContent = safeUsed.toFixed(1) + '%';
-      document.getElementById('ddPeak').textContent = '$' + Number(risk.peak_equity || 0).toFixed(2);
-      document.getElementById('ddEq').textContent = '$' + Number(risk.equity || 0).toFixed(2);
-      document.getElementById('ddCur').textContent = cur.toFixed(2) + '% / ' + limit.toFixed(2) + '%';
-      document.getElementById('ddRem').textContent = rem.toFixed(2) + '%';
-      if (document.activeElement !== document.getElementById('ddLimitInput') && limit > 0) {
-        document.getElementById('ddLimitInput').value = limit.toFixed(1);
-      }
-      const b = document.getElementById('ddHaltBadge');
-      b.className = 'badge ' + (halted ? 'bg-label-danger' : 'bg-label-success');
-      b.textContent = halted ? 'Halted' : 'Active';
-    })
-    .catch(function() {});
+  const safeUsed = Math.max(0, Math.min(100, used));
+  const deg = safeUsed * 3.6;
+  const color = safeUsed >= 100 ? '#ea5455' : (safeUsed >= 75 ? '#ff9f43' : '#28c76f');
+  document.getElementById('ddRing').style.background = 'conic-gradient(' + color + ' 0deg ' + deg + 'deg, #3b3d52 ' + deg + 'deg 360deg)';
+  document.getElementById('ddUsed').textContent = safeUsed.toFixed(1) + '%';
+  document.getElementById('ddPeak').textContent = '$' + Number(risk.peak_equity || 0).toFixed(2);
+  document.getElementById('ddEq').textContent = '$' + Number(risk.equity || 0).toFixed(2);
+  document.getElementById('ddCur').textContent = cur.toFixed(2) + '% / ' + limit.toFixed(2) + '%';
+  document.getElementById('ddRem').textContent = rem.toFixed(2) + '%';
+  if (document.activeElement !== document.getElementById('ddLimitInput') && limit > 0) {
+    document.getElementById('ddLimitInput').value = limit.toFixed(1);
+  }
+  const b = document.getElementById('ddHaltBadge');
+  b.className = 'badge ' + (halted ? 'bg-label-danger' : 'bg-label-success');
+  b.textContent = halted ? 'Halted' : 'Active';
 }
 
 function loadStrategyData() {
@@ -784,8 +782,6 @@ document.addEventListener('click', function(e) {
 });
 
 loadStrategyData();
-refreshRiskPanel();
 setInterval(loadStrategyData, 30000);
-setInterval(refreshRiskPanel, 15000);
 </script>
 {% endblock %}
