@@ -192,14 +192,24 @@ document.addEventListener('DOMContentLoaded', function () {
         // Close menu when a link is clicked
         const menuLinks = document.querySelectorAll('.vm-mobile-side-menu__link:not([data-vm-mobile-submenu-toggle]), .vm-mobile-side-menu__sublink');
         menuLinks.forEach(function (link) {
-            link.addEventListener('click', function () {
+            link.addEventListener('click', function (event) {
                 if (link.tagName === 'BUTTON') {
                     return;
                 }
 
-                // Give the browser a moment to complete the tap/navigation first.
+                const href = link.getAttribute('href');
+                const shouldNavigate = !!href && href !== '#' && !href.startsWith('javascript:');
+
+                // Force-close menu and explicitly navigate to avoid "close only" behavior on some mobiles.
+                if (shouldNavigate) {
+                    event.preventDefault();
+                }
+
                 window.setTimeout(function () {
                     closeMenu({ restoreScroll: false });
+                    if (shouldNavigate) {
+                        window.location.href = href;
+                    }
                 }, 180);
             });
         });
