@@ -398,7 +398,7 @@ async def stop_bot():
 
 
 @app.get("/strategy/{strategy_id}/stats", dependencies=[Depends(verify_api_key)])
-async def strategy_stats(strategy_id: str, period: str = "today"):
+async def strategy_stats(strategy_id: str, period: str = "today", account_login: str = ""):
     """Return per-strategy dashboard stats — fetches history from ALL assigned accounts."""
     from bot.accounts import get_all_accounts, _connect_account, _reconnect_primary
     from bot.strategies import get_strategy
@@ -411,6 +411,10 @@ async def strategy_stats(strategy_id: str, period: str = "today"):
         acc for acc in get_all_accounts()
         if strategy_id in (acc.strategy or [])
     ]
+    all_assigned_accounts = list(assigned_accounts)
+    selected_account_login = str(account_login).strip() if account_login is not None else ""
+    if selected_account_login:
+        assigned_accounts = [acc for acc in assigned_accounts if str(acc.login) == selected_account_login]
 
     comment_map = {
         "order_block": "ALGO:OB",
@@ -560,7 +564,9 @@ async def strategy_stats(strategy_id: str, period: str = "today"):
 
     return {
         "strategy": strat,
+        "all_accounts": [acc.to_dict() for acc in all_assigned_accounts],
         "accounts": [acc.to_dict() for acc in assigned_accounts],
+        "selected_account_login": selected_account_login or None,
         "open_trades": open_trades,
         "recent_trades": filtered_recent[:50],
         "stats": {

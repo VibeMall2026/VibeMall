@@ -348,7 +348,13 @@ def strategy_stats(request, strategy_id):
     if not api_reachable:
         return JsonResponse({"success": False, "error": api_error_msg}, status=503)
     period = (request.GET.get("period") or "").strip()
-    params = {"period": period} if period else None
+    account_login = (request.GET.get("account_login") or "").strip()
+    params = {}
+    if period:
+        params["period"] = period
+    if account_login:
+        params["account_login"] = account_login
+    params = params or None
     data = _get(bot_api_url, f"/strategy/{strategy_id}/stats", {}, params=params)
     return JsonResponse(data, safe=False)
 

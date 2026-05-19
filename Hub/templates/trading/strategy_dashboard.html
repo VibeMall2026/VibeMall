@@ -42,6 +42,45 @@
     padding:.35rem .7rem; border-radius:999px; font-size:.8rem; cursor:pointer;
   }
   .period-btn.active { background:#696cff; border-color:#696cff; color:#fff; }
+  .account-switch { display:flex; flex-wrap:wrap; gap:8px; }
+  .account-btn {
+    border:1px solid #3b3d52; background:#232333; color:#cdd0d6;
+    padding:.35rem .7rem; border-radius:999px; font-size:.8rem; cursor:pointer;
+    transition: all .2s ease;
+  }
+  .account-btn.active { background:#00cfe8; border-color:#00cfe8; color:#0f172a; font-weight:600; }
+  .slide-swap { animation: slideSwap .32s ease; }
+  @keyframes slideSwap {
+    0% { opacity: .45; transform: translateX(16px); }
+    100% { opacity: 1; transform: translateX(0); }
+  }
+  .dd-ring {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: conic-gradient(#28c76f 0deg, #28c76f 0deg, #3b3d52 0deg 360deg);
+    position: relative;
+    margin: 0 auto;
+  }
+  .dd-ring::after {
+    content: "";
+    position: absolute;
+    inset: 12px;
+    border-radius: 50%;
+    background: #232333;
+    border: 1px solid #3b3d52;
+  }
+  .dd-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    z-index: 2;
+  }
+  .dd-center .p { font-size: 1.35rem; font-weight: 700; color: #cdd0d6; }
+  .dd-center .s { font-size: .7rem; color: #a8aaae; text-transform: uppercase; letter-spacing: .4px; }
   .the5ers-mode .period-btn.active { background:#ccf35c; border-color:#ccf35c; color:#0e0f14; }
   .the5ers-hero {
     display:none;
@@ -127,6 +166,18 @@
     <button class="btn btn-sm btn-outline-info" onclick="loadStrategyData()">
       <i class="bx bx-refresh me-1"></i>Refresh
     </button>
+  </div>
+</div>
+
+<!-- Account Switch -->
+<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
+  <div class="card-body py-3">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div class="stat-label mb-0">Account View</div>
+      <div class="account-switch" id="accountSwitchTabs">
+        <button class="account-btn active">All Accounts</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -227,6 +278,48 @@
   </div>
 </div>
 
+<!-- Max Drawdown Control -->
+<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
+  <div class="card-header d-flex justify-content-between align-items-center" style="background:#232333;border-bottom:1px solid #3b3d52;">
+    <span class="section-header mb-0">
+      <i class="bx bx-doughnut-chart me-2" style="color:#ff9f43;"></i>Max Drawdown Control
+    </span>
+    <span class="badge bg-label-secondary" id="ddHaltBadge">Loading</span>
+  </div>
+  <div class="card-body">
+    <div class="row g-3 align-items-center">
+      <div class="col-12 col-lg-3 text-center">
+        <div class="dd-ring" id="ddRing">
+          <div class="dd-center">
+            <div class="p" id="ddUsed">0%</div>
+            <div class="s">Used</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-9">
+        <div class="row g-3">
+          <div class="col-6 col-md-3"><div class="mini-stat">Peak Equity</div><div class="stat-value" style="font-size:1rem;" id="ddPeak">$0.00</div></div>
+          <div class="col-6 col-md-3"><div class="mini-stat">Current Equity</div><div class="stat-value" style="font-size:1rem;" id="ddEq">$0.00</div></div>
+          <div class="col-6 col-md-3"><div class="mini-stat">Current DD</div><div class="stat-value pnl-neg" style="font-size:1rem;" id="ddCur">0%</div></div>
+          <div class="col-6 col-md-3"><div class="mini-stat">DD Remaining</div><div class="stat-value pnl-pos" style="font-size:1rem;" id="ddRem">0%</div></div>
+          <div class="col-12 col-md-8">
+            <div class="input-group">
+              <button class="btn btn-outline-secondary" type="button" onclick="stepMaxDD(-0.5)">-</button>
+              <input id="ddLimitInput" type="number" min="0.1" max="100" step="0.1" class="form-control text-center" style="background:#232333;border-color:#3b3d52;color:#cdd0d6;">
+              <button class="btn btn-outline-secondary" type="button" onclick="stepMaxDD(0.5)">+</button>
+              <button class="btn btn-primary" type="button" onclick="saveMaxDD()">Update Limit %</button>
+            </div>
+          </div>
+          <div class="col-12 col-md-4 d-grid gap-2">
+            <button class="btn btn-warning btn-sm" onclick="resetDD(false)">Reset Halt</button>
+            <button class="btn btn-danger btn-sm" onclick="resetDD(true)">Reset + New Peak</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Assigned Accounts -->
 <div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
   <div class="card-header d-flex justify-content-between align-items-center"
@@ -302,6 +395,7 @@
 <script>
 const STRATEGY_ID = "{{ strategy_id }}";
 let SELECTED_PERIOD = 'today';
+let SELECTED_ACCOUNT_LOGIN = '';
 
 const STRATEGY_META = {
   order_block:      { name: 'Order Block + FVG',       icon: '⚡', color: '#696cff' },
@@ -375,6 +469,20 @@ function applyThe5ersMode(data) {
   document.getElementById('t5Profit').textContent = (recognized >= 0 ? '+' : '') + '$' + recognized.toFixed(2);
   document.getElementById('t5Goal').textContent = '$' + goal.toFixed(2);
   refreshThe5ersTradeMode();
+}
+
+function renderAccountTabs(data) {
+  const wrap = document.getElementById('accountSwitchTabs');
+  const accounts = (data && data.all_accounts && data.all_accounts.length) ? data.all_accounts : (data.accounts || []);
+  const selected = (data && data.selected_account_login) ? String(data.selected_account_login) : (SELECTED_ACCOUNT_LOGIN || '');
+  const allBtn = '<button class="account-btn ' + (!selected ? 'active' : '') + '" data-login="">All Accounts</button>';
+  const accBtns = accounts.map(function(acc) {
+    const login = String(acc.login || '');
+    const label = (acc.label || 'Account') + ' (' + login + ')';
+    const active = (selected && selected === login) ? 'active' : '';
+    return '<button class="account-btn ' + active + '" data-login="' + login + '">' + label + '</button>';
+  }).join('');
+  wrap.innerHTML = allBtn + accBtns;
 }
 
 function refreshThe5ersTradeMode() {
@@ -557,6 +665,7 @@ function renderRecentTrades(trades) {
 
 function renderStrategyDashboard(data) {
   if (!data || data.error) return;
+  renderAccountTabs(data);
   applyThe5ersMode(data);
   SELECTED_PERIOD = data.selected_period || SELECTED_PERIOD;
   document.querySelectorAll('.period-btn').forEach(function(btn) {
@@ -573,8 +682,70 @@ function renderStrategyDashboard(data) {
   document.getElementById('lastRefreshed').textContent = 'Updated ' + now.toLocaleTimeString();
 }
 
+function stepMaxDD(delta) {
+  const el = document.getElementById('ddLimitInput');
+  const cur = parseFloat(el.value || '10');
+  const next = Math.max(0.1, Math.min(100, cur + delta));
+  el.value = next.toFixed(1);
+}
+
+function saveMaxDD() {
+  const csrf = getCookie('csrftoken');
+  const v = parseFloat(document.getElementById('ddLimitInput').value || '0');
+  if (!v || v <= 0) return;
+  fetch('/trading/algo/config/', {
+    method: 'PUT',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+    body: JSON.stringify({ max_drawdown_pct: v }),
+  }).then(function() { refreshRiskPanel(); });
+}
+
+function resetDD(resetPeak) {
+  const csrf = getCookie('csrftoken');
+  fetch('/trading/api/algo/reset-risk', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+    body: JSON.stringify({ reset_peak_equity: !!resetPeak }),
+  }).then(function() { refreshRiskPanel(); });
+}
+
+function refreshRiskPanel() {
+  fetch('/trading/algo/status/', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      const risk = d.risk || {};
+      const used = parseFloat(risk.drawdown_used_pct_of_limit || 0);
+      const limit = parseFloat(risk.max_drawdown_pct || 0);
+      const cur = parseFloat(risk.current_drawdown_pct || 0);
+      const rem = parseFloat(risk.remaining_drawdown_pct || 0);
+      const halted = !!risk.dd_halted;
+
+      const safeUsed = Math.max(0, Math.min(100, used));
+      const deg = safeUsed * 3.6;
+      const color = safeUsed >= 100 ? '#ea5455' : (safeUsed >= 75 ? '#ff9f43' : '#28c76f');
+      document.getElementById('ddRing').style.background = 'conic-gradient(' + color + ' 0deg ' + deg + 'deg, #3b3d52 ' + deg + 'deg 360deg)';
+      document.getElementById('ddUsed').textContent = safeUsed.toFixed(1) + '%';
+      document.getElementById('ddPeak').textContent = '$' + Number(risk.peak_equity || 0).toFixed(2);
+      document.getElementById('ddEq').textContent = '$' + Number(risk.equity || 0).toFixed(2);
+      document.getElementById('ddCur').textContent = cur.toFixed(2) + '% / ' + limit.toFixed(2) + '%';
+      document.getElementById('ddRem').textContent = rem.toFixed(2) + '%';
+      if (document.activeElement !== document.getElementById('ddLimitInput') && limit > 0) {
+        document.getElementById('ddLimitInput').value = limit.toFixed(1);
+      }
+      const b = document.getElementById('ddHaltBadge');
+      b.className = 'badge ' + (halted ? 'bg-label-danger' : 'bg-label-success');
+      b.textContent = halted ? 'Halted' : 'Active';
+    })
+    .catch(function() {});
+}
+
 function loadStrategyData() {
-  fetch('/trading/strategy/' + STRATEGY_ID + '/stats/?period=' + encodeURIComponent(SELECTED_PERIOD), {
+  const params = new URLSearchParams();
+  params.set('period', SELECTED_PERIOD);
+  if (SELECTED_ACCOUNT_LOGIN) params.set('account_login', SELECTED_ACCOUNT_LOGIN);
+  fetch('/trading/strategy/' + STRATEGY_ID + '/stats/?' + params.toString(), {
     credentials: 'same-origin',
     headers: { 'X-CSRFToken': getCookie('csrftoken') },
   })
@@ -583,6 +754,10 @@ function loadStrategyData() {
     return r.json();
   })
   .then(function(data) {
+    document.querySelectorAll('.card').forEach(function(el) { el.classList.add('slide-swap'); });
+    setTimeout(function() {
+      document.querySelectorAll('.card.slide-swap').forEach(function(el) { el.classList.remove('slide-swap'); });
+    }, 340);
     renderStrategyDashboard(data);
     const overlay = document.getElementById('loadingOverlay');
     if (overlay) overlay.classList.add('hidden');
@@ -596,12 +771,21 @@ function loadStrategyData() {
 
 document.addEventListener('click', function(e) {
   const btn = e.target.closest('.period-btn');
-  if (!btn) return;
-  SELECTED_PERIOD = btn.getAttribute('data-period') || 'today';
-  loadStrategyData();
+  if (btn) {
+    SELECTED_PERIOD = btn.getAttribute('data-period') || 'today';
+    loadStrategyData();
+    return;
+  }
+  const accBtn = e.target.closest('.account-btn');
+  if (accBtn) {
+    SELECTED_ACCOUNT_LOGIN = accBtn.getAttribute('data-login') || '';
+    loadStrategyData();
+  }
 });
 
 loadStrategyData();
+refreshRiskPanel();
 setInterval(loadStrategyData, 30000);
+setInterval(refreshRiskPanel, 15000);
 </script>
 {% endblock %}
