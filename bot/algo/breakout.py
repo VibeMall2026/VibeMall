@@ -426,6 +426,12 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
     except Exception as _cap_exc:
         logger.warning(f"[BREAKOUT] $10 cap calculation failed: {_cap_exc}")
 
+    # Non-XAU pairs: force fixed 300-pip target.
+    if str(setup.symbol).upper() != "XAUUSD":
+        pip_size = 0.01 if str(setup.symbol).upper().endswith("JPY") else 0.0001
+        tp = entry_price + (300 * pip_size) if side == "buy" else entry_price - (300 * pip_size)
+        logger.info(f"[BREAKOUT] Non-XAU fixed TP applied: 300 pips -> TP={tp:.5f}")
+
     one_r = abs(entry_price - sl)
 
     logger.info(

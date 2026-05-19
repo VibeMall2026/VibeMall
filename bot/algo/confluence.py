@@ -431,6 +431,13 @@ def _execute_trade(setup: ConfluenceSetup, entry_price: float) -> bool:
     except Exception as _cap_exc:
         logger.warning(f"[CONFLUENCE] $10 cap calculation failed: {_cap_exc}")
 
+    # Non-XAU pairs: force fixed 300-pip target.
+    _sym = str(getattr(setup, "symbol", "") or algo_config.symbol).upper()
+    if _sym != "XAUUSD":
+        pip_size = 0.01 if _sym.endswith("JPY") else 0.0001
+        tp = entry_price + (300 * pip_size) if side == "buy" else entry_price - (300 * pip_size)
+        logger.info(f"[CONFLUENCE] Non-XAU fixed TP applied: 300 pips -> TP={tp:.5f}")
+
     one_r = abs(entry_price - sl)
 
     # Execute only on accounts with 'confluence' strategy assigned
