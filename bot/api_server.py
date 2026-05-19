@@ -537,6 +537,23 @@ async def strategy_stats(strategy_id: str, period: str = "today", account_login:
     remaining_amount = max(max_dd_amount - dd_amount, 0.0)
     dd_halted = bool(dd_pct >= limit_pct)
 
+    # Daily drawdown (account-size based)
+    today_rows = [r for r in trade_rows if r["date"] == today_utc]
+    today_pnl_total = round(sum(r["pnl"] for r in today_rows), 2)
+    daily_dd_amount = max(-today_pnl_total, 0.0)
+
+    selected_single_login = int(selected_accounts_for_risk[0].login) if len(selected_accounts_for_risk) == 1 else None
+    if selected_single_login == int(THE5ERS_FUNDED_LOGIN):
+        daily_limit_pct = 5.0
+    else:
+        daily_limit_amount = float(active_risk.get("daily_loss_limit", 0.0) or 0.0)
+        daily_limit_pct = (daily_limit_amount / reference_size) * 100.0 if (reference_size > 0 and daily_limit_amount > 0) else 5.0
+    daily_dd_pct = (daily_dd_amount / reference_size) * 100.0 if reference_size > 0 else 0.0
+    daily_used_pct = min((daily_dd_pct / daily_limit_pct) * 100.0, 100.0) if daily_limit_pct > 0 else 0.0
+    daily_remaining_pct = max(daily_limit_pct - daily_dd_pct, 0.0)
+    daily_limit_amount = reference_size * (daily_limit_pct / 100.0)
+    daily_remaining_amount = max(daily_limit_amount - daily_dd_amount, 0.0)
+
     period_stats = {}
     for period_key, (start_d, end_d) in periods.items():
         rows = [r for r in trade_rows if start_d <= r["date"] <= end_d]
@@ -609,6 +626,14 @@ async def strategy_stats(strategy_id: str, period: str = "today", account_login:
             "remaining_drawdown_pct": round(remaining_pct, 2),
             "remaining_drawdown_amount": round(remaining_amount, 2),
             "drawdown_used_pct_of_limit": round(dd_used_pct, 2),
+            "daily_drawdown_pct": round(daily_dd_pct, 2),
+            "daily_drawdown_amount": round(daily_dd_amount, 2),
+            "daily_limit_pct": round(daily_limit_pct, 2),
+            "daily_limit_amount": round(daily_limit_amount, 2),
+            "daily_remaining_pct": round(daily_remaining_pct, 2),
+            "daily_remaining_amount": round(daily_remaining_amount, 2),
+            "daily_used_pct_of_limit": round(daily_used_pct, 2),
+            "today_pnl": round(today_pnl_total, 2),
         },
         "open_trades": open_trades,
         "recent_trades": filtered_recent[:50],
