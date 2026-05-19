@@ -896,6 +896,7 @@ def update_algo_config(
     enabled: Optional[bool] = None,
     risk_reward: Optional[float] = None,
     risk_percent: Optional[float] = None,
+    max_drawdown_pct: Optional[float] = None,
     analysis_tf: Optional[int] = None,
     execution_tf: Optional[int] = None,
 ) -> dict:

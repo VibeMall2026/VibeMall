@@ -46,6 +46,43 @@
   .algo-enabled { border-left: 3px solid #28c76f; }
   .algo-disabled { border-left: 3px solid #a8aaae; }
   .pulse { animation: pulse 2s infinite; }
+  .dd-ring {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: conic-gradient(#28c76f 0deg, #28c76f 0deg, #3b3d52 0deg 360deg);
+    position: relative;
+    margin: 0 auto;
+  }
+  .dd-ring::after {
+    content: "";
+    position: absolute;
+    inset: 14px;
+    border-radius: 50%;
+    background: #232333;
+    border: 1px solid #3b3d52;
+  }
+  .dd-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    z-index: 2;
+    color: #cdd0d6;
+  }
+  .dd-percent {
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+  .dd-subtext {
+    font-size: 0.72rem;
+    color: #a8aaae;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
   @keyframes pulse {
     0%   { box-shadow: 0 0 0 0 rgba(40,199,111,.4); }
     70%  { box-shadow: 0 0 0 8px rgba(40,199,111,0); }
@@ -237,6 +274,73 @@
       <div class="card-body py-3 text-center">
         <div class="stat-label mb-1">OBs Detected</div>
         <div class="stat-value" id="lblOBsDetected">0</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Drawdown Control -->
+<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
+  <div class="card-header d-flex justify-content-between align-items-center" style="background:#232333;border-bottom:1px solid #3b3d52;">
+    <span class="section-header mb-0">
+      <i class="bx bx-doughnut-chart me-2" style="color:#ff9f43;"></i>Max Drawdown Control (Account Based)
+    </span>
+    <span class="badge bg-label-warning" id="ddHaltBadge">Active</span>
+  </div>
+  <div class="card-body">
+    <div class="row g-4 align-items-center">
+      <div class="col-12 col-lg-4 text-center">
+        <div class="dd-ring" id="ddRing">
+          <div class="dd-center">
+            <div class="dd-percent" id="ddUsedPercent">0%</div>
+            <div class="dd-subtext">Used Of Limit</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-8">
+        <div class="row g-3">
+          <div class="col-6 col-md-4">
+            <div class="stat-label">Peak Equity</div>
+            <div class="stat-value" style="font-size:1rem;" id="ddPeakEquity">0</div>
+          </div>
+          <div class="col-6 col-md-4">
+            <div class="stat-label">Current Equity</div>
+            <div class="stat-value" style="font-size:1rem;" id="ddEquity">0</div>
+          </div>
+          <div class="col-6 col-md-4">
+            <div class="stat-label">Current DD</div>
+            <div class="stat-value pnl-neg" style="font-size:1rem;" id="ddCurrent">0%</div>
+          </div>
+          <div class="col-6 col-md-4">
+            <div class="stat-label">DD Remaining</div>
+            <div class="stat-value pnl-pos" style="font-size:1rem;" id="ddRemaining">0%</div>
+          </div>
+          <div class="col-6 col-md-4">
+            <div class="stat-label">DD Amount</div>
+            <div class="stat-value" style="font-size:1rem;" id="ddAmount">$0</div>
+          </div>
+          <div class="col-6 col-md-4">
+            <div class="stat-label">Remaining Amount</div>
+            <div class="stat-value" style="font-size:1rem;" id="ddRemainingAmount">$0</div>
+          </div>
+          <div class="col-12 col-md-8">
+            <label class="stat-label">Max Drawdown Limit (%)</label>
+            <div class="input-group mt-1">
+              <button class="btn btn-outline-secondary" type="button" onclick="stepMaxDrawdown(-0.5)">-</button>
+              <input type="number" step="0.1" min="0.1" max="100" id="cfgMaxDrawdown" class="form-control config-input text-center" placeholder="10">
+              <button class="btn btn-outline-secondary" type="button" onclick="stepMaxDrawdown(0.5)">+</button>
+              <button class="btn btn-primary" type="button" onclick="updateMaxDrawdown()">Update</button>
+            </div>
+          </div>
+          <div class="col-12 col-md-4 d-grid gap-2">
+            <button class="btn btn-warning" onclick="resetRisk(false)">
+              <i class="bx bx-reset me-1"></i>Reset Halt
+            </button>
+            <button class="btn btn-danger" onclick="resetRisk(true)">
+              <i class="bx bx-refresh me-1"></i>Reset + New Peak
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -488,6 +592,55 @@ function updateConfig() {
   .catch(() => showToast('Bot is offline.', false));
 }
 
+function stepMaxDrawdown(delta) {
+  const input = document.getElementById('cfgMaxDrawdown');
+  const curr = parseFloat(input.value || '10');
+  const next = Math.max(0.1, Math.min(100, curr + delta));
+  input.value = next.toFixed(1);
+}
+
+function updateMaxDrawdown() {
+  const csrfToken = getCookie('csrftoken');
+  const maxDrawdown = parseFloat(document.getElementById('cfgMaxDrawdown').value || '0');
+  if (!maxDrawdown || maxDrawdown <= 0) {
+    showToast('Please enter a valid max drawdown %.', false);
+    return;
+  }
+  fetch('/trading/algo/config/', {
+    method: 'PUT',
+    headers: {
+      'X-CSRFToken': csrfToken,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ max_drawdown_pct: maxDrawdown })
+  })
+  .then(r => r.json())
+  .then(data => {
+    showToast(data.success ? `Max drawdown set to ${maxDrawdown}%` : (data.error || 'Failed to update max drawdown'), !!data.success);
+    setTimeout(refreshStatus, 600);
+  })
+  .catch(() => showToast('Bot is offline.', false));
+}
+
+function resetRisk(resetPeakEquity) {
+  const csrfToken = getCookie('csrftoken');
+  fetch('/trading/api/algo/reset-risk', {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': csrfToken,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ reset_peak_equity: !!resetPeakEquity })
+  })
+  .then(r => r.json())
+  .then(data => {
+    const ok = !!data.success;
+    showToast(ok ? 'Risk halt reset completed.' : (data.error || data.detail || 'Risk reset failed'), ok);
+    setTimeout(refreshStatus, 600);
+  })
+  .catch(() => showToast('Bot is offline.', false));
+}
+
 function refreshStatus() {
   fetch('/trading/algo/status/', {
     headers: { 'Content-Type': 'application/json' }
@@ -597,6 +750,38 @@ function updateUI(data) {
   if (data.execution_timeframe) document.getElementById('cfgExecutionTF').value = data.execution_timeframe;
   if (data.risk_reward) document.getElementById('cfgRR').value = data.risk_reward;
   if (data.risk_percent) document.getElementById('cfgRiskPct').value = data.risk_percent;
+
+  const risk = data.risk || {};
+  const ddCurrent = parseFloat(risk.current_drawdown_pct || 0);
+  const ddLimit = parseFloat(risk.max_drawdown_pct || 0);
+  const ddRemaining = parseFloat(risk.remaining_drawdown_pct || 0);
+  const ddUsed = parseFloat(risk.drawdown_used_pct_of_limit || 0);
+  const ddAmount = parseFloat(risk.current_drawdown_amount || 0);
+  const ddRemainingAmount = parseFloat(risk.remaining_drawdown_amount || 0);
+  const ddHalted = !!risk.dd_halted;
+
+  const ringUsed = Math.max(0, Math.min(100, ddUsed));
+  const ringDegrees = (ringUsed / 100) * 360;
+  let ringColor = '#28c76f';
+  if (ringUsed >= 100) ringColor = '#ea5455';
+  else if (ringUsed >= 75) ringColor = '#ff9f43';
+  document.getElementById('ddRing').style.background =
+    `conic-gradient(${ringColor} 0deg ${ringDegrees}deg, #3b3d52 ${ringDegrees}deg 360deg)`;
+
+  document.getElementById('ddUsedPercent').textContent = `${ringUsed.toFixed(1)}%`;
+  document.getElementById('ddPeakEquity').textContent = `$${Number(risk.peak_equity || 0).toFixed(2)}`;
+  document.getElementById('ddEquity').textContent = `$${Number(risk.equity || 0).toFixed(2)}`;
+  document.getElementById('ddCurrent').textContent = `${ddCurrent.toFixed(2)}% / ${ddLimit.toFixed(2)}%`;
+  document.getElementById('ddRemaining').textContent = `${ddRemaining.toFixed(2)}%`;
+  document.getElementById('ddAmount').textContent = `$${ddAmount.toFixed(2)}`;
+  document.getElementById('ddRemainingAmount').textContent = `$${ddRemainingAmount.toFixed(2)}`;
+  if (ddLimit > 0 && document.activeElement !== document.getElementById('cfgMaxDrawdown')) {
+    document.getElementById('cfgMaxDrawdown').value = ddLimit.toFixed(1);
+  }
+
+  const haltBadge = document.getElementById('ddHaltBadge');
+  haltBadge.className = `badge ${ddHalted ? 'bg-label-danger' : 'bg-label-success'}`;
+  haltBadge.textContent = ddHalted ? 'Halted' : 'Active';
 
   renderStrategyActivity(data.strategy_statuses || {});
 

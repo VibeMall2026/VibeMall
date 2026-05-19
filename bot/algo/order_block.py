@@ -315,7 +315,13 @@ def get_risk_status() -> dict:
     _reset_daily_if_needed()
     account = mt5_bridge.get_account_info()
     equity = account.get('equity', 0)
+    balance = account.get('balance', 0)
     drawdown = (_peak_equity - equity) / _peak_equity if _peak_equity > 0 else 0.0
+    drawdown_amount = max(_peak_equity - equity, 0.0) if _peak_equity > 0 else 0.0
+    max_dd_amount = (_peak_equity * algo_config.max_drawdown_pct) if _peak_equity > 0 else 0.0
+    remaining_dd_amount = max(max_dd_amount - drawdown_amount, 0.0)
+    remaining_dd_pct = max((algo_config.max_drawdown_pct - drawdown) * 100, 0.0)
+    dd_used_pct_of_limit = min((drawdown / algo_config.max_drawdown_pct) * 100, 100.0) if algo_config.max_drawdown_pct > 0 else 0.0
     try:
         open_positions = mt5_bridge.get_open_positions()
         floating_pnl = sum(float(p.get('pnl', 0)) for p in open_positions)
@@ -330,8 +336,15 @@ def get_risk_status() -> dict:
         "daily_loss_limit": algo_config.daily_loss_limit,
         "daily_halted": _daily_halted,
         "dd_halted": _dd_halted,
+        "balance": round(balance, 2),
+        "equity": round(equity, 2),
         "current_drawdown_pct": round(drawdown * 100, 2),
+        "current_drawdown_amount": round(drawdown_amount, 2),
         "max_drawdown_pct": algo_config.max_drawdown_pct * 100,
+        "max_drawdown_amount": round(max_dd_amount, 2),
+        "remaining_drawdown_pct": round(remaining_dd_pct, 2),
+        "remaining_drawdown_amount": round(remaining_dd_amount, 2),
+        "drawdown_used_pct_of_limit": round(dd_used_pct_of_limit, 2),
         "peak_equity": round(_peak_equity, 2),
         "can_trade": bool(allowed),
     }
@@ -1763,6 +1776,7 @@ def update_algo_config(
     enabled: Optional[bool] = None,
     risk_reward: Optional[float] = None,
     risk_percent: Optional[float] = None,
+    max_drawdown_pct: Optional[float] = None,
     analysis_tf: Optional[int] = None,
     execution_tf: Optional[int] = None,
 ) -> dict:
@@ -1778,6 +1792,10 @@ def update_algo_config(
         algo_config.risk_reward_ratio = risk_reward
     if risk_percent is not None:
         algo_config.risk_percent = risk_percent
+    if max_drawdown_pct is not None:
+        # Accept either decimal form (0.10) or percent form (10).
+        parsed = float(max_drawdown_pct)
+        algo_config.max_drawdown_pct = (parsed / 100.0) if parsed > 1 else parsed
     if analysis_tf is not None:
         algo_config.analysis_timeframe = analysis_tf
     if execution_tf is not None:

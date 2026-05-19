@@ -592,6 +592,7 @@ class AlgoConfigUpdate(BaseModel):
     enabled: Optional[bool] = None
     risk_reward: Optional[float] = None
     risk_percent: Optional[float] = None
+    max_drawdown_pct: Optional[float] = None
     analysis_tf: Optional[int] = None
     execution_tf: Optional[int] = None
 
@@ -827,6 +828,7 @@ async def algo_update_config(body: AlgoConfigUpdate):
         enabled=body.enabled,
         risk_reward=body.risk_reward,
         risk_percent=body.risk_percent,
+        max_drawdown_pct=body.max_drawdown_pct,
         analysis_tf=body.analysis_tf,
         execution_tf=body.execution_tf,
     )
