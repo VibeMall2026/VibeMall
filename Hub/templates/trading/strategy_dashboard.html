@@ -315,6 +315,7 @@
           <div class="col-6 col-md-6"><div class="mini-stat">Daily DD</div><div class="stat-value pnl-neg" style="font-size:1rem;" id="dailyDdCur">0%</div></div>
           <div class="col-6 col-md-6"><div class="mini-stat">Daily Remaining</div><div class="stat-value pnl-pos" style="font-size:1rem;" id="dailyDdRem">0%</div></div>
           <div class="col-12 col-md-8">
+            <div class="mini-stat mb-1">Max DD Limit (Current: <span id="maxLimitCurrent">0.00%</span>)</div>
             <div class="input-group">
               <button class="btn btn-outline-secondary" type="button" onclick="stepMaxDD(-0.5)">-</button>
               <input id="ddLimitInput" type="number" min="0.1" max="100" step="0.1" class="form-control text-center" style="background:#232333;border-color:#3b3d52;color:#cdd0d6;">
@@ -323,6 +324,7 @@
             </div>
           </div>
           <div class="col-12 col-md-8">
+            <div class="mini-stat mb-1">Daily DD Limit (Current: <span id="dailyLimitCurrent">0.00%</span>)</div>
             <div class="input-group">
               <button class="btn btn-outline-secondary" type="button" onclick="stepDailyDD(-0.25)">-</button>
               <input id="dailyDdLimitInput" type="number" min="0.1" max="100" step="0.1" class="form-control text-center" style="background:#232333;border-color:#3b3d52;color:#cdd0d6;">
@@ -772,6 +774,7 @@ function renderRiskPanel(risk) {
   document.getElementById('ddEq').textContent = '$' + Number(risk.equity || 0).toFixed(2);
   document.getElementById('ddCur').textContent = cur.toFixed(2) + '% / ' + limit.toFixed(2) + '%';
   document.getElementById('ddRem').textContent = rem.toFixed(2) + '%';
+  document.getElementById('maxLimitCurrent').textContent = limit.toFixed(2) + '%';
 
   const dailyUsed = Math.max(0, Math.min(100, parseFloat(risk.daily_used_pct_of_limit || 0)));
   const dailyLimit = parseFloat(risk.daily_limit_pct || 0);
@@ -783,6 +786,7 @@ function renderRiskPanel(risk) {
   document.getElementById('dailyDdUsed').textContent = dailyUsed.toFixed(1) + '%';
   document.getElementById('dailyDdCur').textContent = dailyCur.toFixed(2) + '% / ' + dailyLimit.toFixed(2) + '%';
   document.getElementById('dailyDdRem').textContent = dailyRem.toFixed(2) + '%';
+  document.getElementById('dailyLimitCurrent').textContent = dailyLimit.toFixed(2) + '%';
   if (document.activeElement !== document.getElementById('dailyDdLimitInput') && dailyLimit > 0) {
     document.getElementById('dailyDdLimitInput').value = dailyLimit.toFixed(2);
   }
