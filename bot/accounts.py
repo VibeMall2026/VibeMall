@@ -816,6 +816,14 @@ def _execute_single(
             f"scale={risk_scale:.2f} | eff_risk={eff_risk:.4f}%"
         )
     risk_amount = balance * (eff_risk / 100.0)
+    # Daily target rule:
+    # After +$30 realized on this account, cap next-trade risk to max $15.
+    if today_realized >= 30.0:
+        risk_amount = min(risk_amount, 15.0)
+        logger.info(
+            f"[ACCOUNTS] Daily target reached on account (+${today_realized:.2f}); "
+            f"risk amount capped to ${risk_amount:.2f} for next trades"
+        )
     sl_points = abs(price - sl)
 
     tick_value = sym_info.trade_tick_value

@@ -425,9 +425,11 @@ def should_partial_close(entry: float, current_price: float, one_r: float, side:
     return profit_r >= cfg.partial_close_at_r
 
 
-def execute_partial_close(ticket: int, symbol: str, current_volume: float) -> bool:
-    """Close partial_close_pct of the position."""
-    close_volume = round(current_volume * cfg.partial_close_pct, 2)
+def execute_partial_close(ticket: int, symbol: str, current_volume: float, close_fraction: Optional[float] = None) -> bool:
+    """Close provided fraction (or default partial_close_pct) of the position."""
+    fraction = cfg.partial_close_pct if close_fraction is None else float(close_fraction)
+    fraction = max(0.05, min(0.95, fraction))
+    close_volume = round(current_volume * fraction, 2)
     if close_volume <= 0:
         return False
     try:

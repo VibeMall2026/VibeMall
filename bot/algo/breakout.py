@@ -69,6 +69,8 @@ class AlgoConfig:
     extended_profit_min_usd: float = 7.0
     extended_profit_max_usd: float = 10.0
     early_sl_avoid_ratio: float = 0.85
+    staged_book_level_1_pct: float = 0.40
+    staged_book_level_2_pct: float = 0.30
 
     def get_symbols(self) -> list:
         """Return list of symbols to trade."""
@@ -136,6 +138,8 @@ class BreakoutSetup:
     one_r: float = 0.0
     r_stage: int = 0
     dollar_lock_applied: bool = False
+    staged_book_1_done: bool = False
+    staged_book_2_done: bool = False
 
     @property
     def sl_level(self) -> float:
@@ -616,24 +620,31 @@ def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
     except Exception as exc:
         logger.warning(f"[BREAKOUT] Could not read floating pnl for ticket {setup.ticket}: {exc}")
 
-    # Human-style profit booking:
-    # - At +$5 book quickly if momentum looks weak.
-    # - If momentum is strong, hold for +$7 to +$10 zone then book.
+    # Human-style staged booking:
+    # +$5 partial, +$7 partial, +$10 close remaining.
     if floating_pnl is not None:
-        if floating_pnl >= algo_config.quick_book_profit_usd and not continuation_bias:
-            if close_trade(setup.ticket, _sym, side, "ALGO:BOOK_5_WEAK_MOMENTUM"):
+        _vol = float(live_pos.get("volume", 0.0) or 0.0)
+        if (not setup.staged_book_1_done) and floating_pnl >= algo_config.quick_book_profit_usd and _vol > 0:
+            if execute_partial_close(setup.ticket, _sym, _vol, close_fraction=algo_config.staged_book_level_1_pct):
+                setup.staged_book_1_done = True
+                logger.info(f"[BREAKOUT] Stage-1 partial book at +${algo_config.quick_book_profit_usd:.2f}")
+                return
+
+        if (not setup.staged_book_2_done) and floating_pnl >= algo_config.extended_profit_min_usd and _vol > 0:
+            if execute_partial_close(setup.ticket, _sym, _vol, close_fraction=algo_config.staged_book_level_2_pct):
+                setup.staged_book_2_done = True
+                logger.info(f"[BREAKOUT] Stage-2 partial book at +${algo_config.extended_profit_min_usd:.2f}")
+                return
+
+        # If momentum weak after +$7, exit remaining. Otherwise hold till +$10.
+        if floating_pnl >= algo_config.extended_profit_min_usd and not continuation_bias:
+            if close_trade(setup.ticket, _sym, side, "ALGO:BOOK_7_WEAK"):
                 setup.trade_taken = False
                 setup.active = False
                 setup.ticket = None
                 return
-        if continuation_bias and floating_pnl >= algo_config.extended_profit_max_usd:
-            if close_trade(setup.ticket, _sym, side, "ALGO:BOOK_10_STRONG_RUN"):
-                setup.trade_taken = False
-                setup.active = False
-                setup.ticket = None
-                return
-        if (not continuation_bias) and floating_pnl >= algo_config.extended_profit_min_usd:
-            if close_trade(setup.ticket, _sym, side, "ALGO:BOOK_7_NO_FOLLOWTHROUGH"):
+        if floating_pnl >= algo_config.extended_profit_max_usd:
+            if close_trade(setup.ticket, _sym, side, "ALGO:BOOK_10_STAGED"):
                 setup.trade_taken = False
                 setup.active = False
                 setup.ticket = None
@@ -768,6 +779,8 @@ def _scan_and_trade(symbol: str = None) -> None:
                 setup.ticket = None
                 setup.r_stage = 0
                 setup.dollar_lock_applied = False
+                setup.staged_book_1_done = False
+                setup.staged_book_2_done = False
                 setup.active = pnl_val >= 0
 
     candles_analysis = _get_candles(symbol, algo_config.analysis_timeframe, algo_config.breakout_lookback + 60)
@@ -839,6 +852,8 @@ def _scan_and_trade(symbol: str = None) -> None:
                 setup.ticket = None
                 setup.dollar_lock_applied = False
                 setup.r_stage = 0
+                setup.staged_book_1_done = False
+                setup.staged_book_2_done = False
 
     if len(algo_positions) >= 2:
         return
@@ -1007,6 +1022,8 @@ def get_algo_status() -> dict:
         "extended_profit_min_usd": algo_config.extended_profit_min_usd,
         "extended_profit_max_usd": algo_config.extended_profit_max_usd,
         "early_sl_avoid_ratio": algo_config.early_sl_avoid_ratio,
+        "staged_book_level_1_pct": algo_config.staged_book_level_1_pct,
+        "staged_book_level_2_pct": algo_config.staged_book_level_2_pct,
         "active_breakouts": setups,
         "active_order_blocks": [],
         "total_breakouts_tracked": sum(len(v) for v in _active_breakouts.values()),
