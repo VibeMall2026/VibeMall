@@ -44,7 +44,7 @@ _reentry_tracker: dict[str, dict] = {}
 
 class HumanMindConfig:
     # --- Session filter ---
-    session_filter_enabled: bool = True
+    session_filter_enabled: bool = False
     # UTC hours for allowed trading sessions (London + NY overlap)
     allowed_sessions: list[tuple[int, int]] = [
         (7, 17),   # London: 07:00–17:00 UTC
