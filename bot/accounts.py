@@ -850,6 +850,26 @@ def _execute_single(
             f"scale={risk_scale:.2f} | eff_risk={eff_risk:.4f}%"
         )
     risk_amount = balance * (eff_risk / 100.0)
+    # Daily drawdown-safe risk cap:
+    # Keep per-trade risk low enough so even multiple SL hits should stay within
+    # today's remaining daily loss budget.
+    daily_loss_budget_usd = max(0.0, balance * (cfg.MAX_DAILY_LOSS_PERCENT / 100.0))
+    loss_used_today_usd = max(0.0, -float(today_realized))
+    remaining_daily_loss_budget_usd = max(0.0, daily_loss_budget_usd - loss_used_today_usd)
+    if remaining_daily_loss_budget_usd <= 0:
+        return {"success": False, "message": "Trade blocked: daily drawdown budget exhausted"}
+
+    # Conservative split of remaining drawdown budget across potential SL events.
+    # We use the tighter of max open positions and max trades/day as risk slots.
+    risk_slots = max(1, min(int(cfg.MAX_OPEN_POSITIONS or 1), int(cfg.MAX_TRADES_PER_DAY or 1)))
+    dd_safe_risk_cap = remaining_daily_loss_budget_usd / risk_slots
+    if dd_safe_risk_cap > 0:
+        risk_amount = min(risk_amount, dd_safe_risk_cap)
+        logger.info(
+            f"[ACCOUNTS] DD-safe cap applied | remaining_dd_budget=${remaining_daily_loss_budget_usd:.2f} | "
+            f"slots={risk_slots} | per_trade_cap=${dd_safe_risk_cap:.2f}"
+        )
+
     # Daily target rule:
     # After +$30 realized on this account, cap next-trade risk to max $15.
     if today_realized >= 30.0:
