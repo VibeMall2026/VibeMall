@@ -497,15 +497,21 @@ function applyThe5ersMode(data) {
 function renderAccountTabs(data) {
   const wrap = document.getElementById('accountSwitchTabs');
   const accounts = (data && data.all_accounts && data.all_accounts.length) ? data.all_accounts : (data.accounts || []);
-  const selected = (data && data.selected_account_login) ? String(data.selected_account_login) : (SELECTED_ACCOUNT_LOGIN || '');
-  const allBtn = '<button class="account-btn ' + (!selected ? 'active' : '') + '" data-login="">All Accounts</button>';
+  // Drawdown is per-account. We do NOT support a combined "All Accounts" drawdown view.
+  // If no account is selected yet, default to the first account.
+  const selectedFromApi = (data && data.selected_account_login) ? String(data.selected_account_login) : '';
+  if (!SELECTED_ACCOUNT_LOGIN) {
+    SELECTED_ACCOUNT_LOGIN = selectedFromApi || (accounts[0] ? String(accounts[0].login || '') : '');
+  }
+  const selected = SELECTED_ACCOUNT_LOGIN || selectedFromApi || '';
+
   const accBtns = accounts.map(function(acc) {
     const login = String(acc.login || '');
     const label = (acc.label || 'Account') + ' (' + login + ')';
     const active = (selected && selected === login) ? 'active' : '';
     return '<button class="account-btn ' + active + '" data-login="' + login + '">' + label + '</button>';
   }).join('');
-  wrap.innerHTML = allBtn + accBtns;
+  wrap.innerHTML = accBtns || '<span class="text-muted">No accounts</span>';
 }
 
 function refreshThe5ersTradeMode() {

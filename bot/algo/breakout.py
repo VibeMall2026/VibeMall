@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import threading
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
 
@@ -27,7 +27,6 @@ from bot import mt5_bridge
 from bot.state import state
 from bot.algo.order_block import (
     can_trade_with_reason,
-    check_drawdown,
     get_risk_status,
     record_trade_pnl,
 )
@@ -141,6 +140,11 @@ class BreakoutSetup:
     dollar_lock_applied: bool = False
     staged_book_1_done: bool = False
     staged_book_2_done: bool = False
+    # Multi-account support:
+    # breakout strategy can be mapped to multiple MT5 accounts. Execution returns
+    # one ticket per account. Risk management MUST operate per-account.
+    account_tickets: list[dict] = field(default_factory=list)  # [{"login":int,"ticket":int,"label":str}]
+    account_state: dict[str, dict] = field(default_factory=dict)  # login -> per-account state dict
 
     @property
     def sl_level(self) -> float:
@@ -164,6 +168,35 @@ _risk_thread: Optional[threading.Thread] = None
 _algo_running = False
 _last_scan_at: Optional[str] = None
 _last_scan_summary: dict[str, dict] = {}
+
+
+def _get_open_positions_all_breakout_accounts() -> list[dict]:
+    """
+    Return open positions across ALL breakout-mapped accounts (direct MT5 mode).
+    In bridge mode (single account), falls back to mt5_bridge.get_open_positions().
+    Each returned position is enriched with account_login/account_label when possible.
+    """
+    # Bridge mode cannot iterate multiple accounts.
+    if mt5_bridge.USE_BRIDGE or not MT5_AVAILABLE:
+        return mt5_bridge.get_open_positions()
+
+    try:
+        from bot.accounts import get_accounts_for_strategy, connect_account_by_login, reconnect_primary
+        accounts = get_accounts_for_strategy("breakout")
+        all_positions: list[dict] = []
+        for acc in accounts:
+            if not connect_account_by_login(acc.login):
+                continue
+            positions = mt5_bridge.get_open_positions()
+            for p in positions:
+                p["account_login"] = acc.login
+                p["account_label"] = acc.label
+            all_positions.extend(positions)
+        reconnect_primary()
+        return all_positions
+    except Exception as exc:
+        logger.warning(f"[BREAKOUT] Could not collect multi-account open positions: {exc}")
+        return mt5_bridge.get_open_positions()
 
 
 def _find_live_position_for_setup(setup: BreakoutSetup, open_positions: list[dict]) -> dict | None:
@@ -416,13 +449,11 @@ def _check_entry_signal(setup: BreakoutSetup, candles_exec: list[Candle]) -> Opt
 
 
 def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
-    allowed, block_reason = can_trade_with_reason()
+    # Breakout strategy can run on multiple accounts; drawdown must be evaluated
+    # per-account (handled separately). Avoid a wrong-account drawdown block here.
+    allowed, block_reason = can_trade_with_reason(skip_drawdown=True)
     if not allowed:
         logger.info(f"[BREAKOUT] Trade blocked by risk management | reason={block_reason} | symbol={setup.symbol}")
-        return False
-
-    if check_drawdown():
-        logger.info("[BREAKOUT] Trade blocked: max drawdown exceeded")
         return False
 
     sl = setup.sl_level
@@ -504,6 +535,15 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
 
     setup.trade_taken = True
     setup.ticket = ticket
+    setup.account_tickets = [
+        {
+            "login": int(r.get("login")) if r.get("login") is not None else None,
+            "ticket": int(r.get("ticket")) if r.get("ticket") is not None else None,
+            "label": r.get("account_label") or "",
+        }
+        for r in successes
+        if r.get("login") is not None and r.get("ticket") is not None
+    ]
     setup.active = False
     setup.trade_count += 1
     setup.entry_price = entry_price
@@ -512,6 +552,23 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
     setup.initial_sl = sl
     setup.one_r = one_r
     setup.r_stage = 0
+
+    # Per-account management state (required for staged booking, early SL avoid, trailing).
+    setup.account_state = {}
+    for item in setup.account_tickets:
+        login = str(item.get("login"))
+        setup.account_state[login] = {
+            "ticket": int(item.get("ticket")),
+            "entry_price": float(entry_price),
+            "one_r": float(one_r),
+            "initial_sl": float(sl),
+            "r_stage": 0,
+            "dollar_lock_applied": False,
+            "staged_book_1_done": False,
+            "staged_book_2_done": False,
+            "partial_closed": False,
+            "opened_at": setup._opened_at,
+        }
 
     state.signal_log.insert(0, {
         "time": datetime.now().isoformat(),
@@ -552,63 +609,60 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
     return True
 
 
-def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
-    if not setup.ticket or setup.one_r <= 0:
+def _manage_open_trade_risk_for_account(
+    *,
+    setup: BreakoutSetup,
+    live_pos: dict,
+    ticket: int,
+    account_state: dict,
+) -> None:
+    """
+    Manage one open position (one account) for this setup.
+    NOTE: Caller must ensure correct MT5 account connection is active.
+    """
+    if not ticket:
+        return
+    one_r = float(account_state.get("one_r") or 0.0)
+    if one_r <= 0:
         return
 
     side = "buy" if setup.direction == "bullish" else "sell"
-    open_positions = mt5_bridge.get_open_positions()
-    live_pos = _find_live_position_for_setup(setup, open_positions)
-    if not live_pos:
-        return
-    live_ticket = live_pos.get("id") or live_pos.get("position_id") or setup.ticket
-    if live_ticket != setup.ticket:
-        logger.info(f"[BREAKOUT] Ticket realigned for setup {setup.id}: {setup.ticket} -> {live_ticket}")
-        setup.ticket = live_ticket
-
-    current_price = _get_current_price(getattr(setup, "symbol", algo_config.symbol), side=side)
+    _sym = getattr(setup, "symbol", algo_config.symbol)
+    current_price = _get_current_price(_sym, side=side)
     if current_price is None:
         return
 
-    entry = setup.entry_price
-    one_r = setup.one_r
+    entry = float(account_state.get("entry_price") or setup.entry_price or 0.0)
 
     # ── Human Mind: partial close, early exit, time-based exit ───────────────
     from bot.algo.human_mind import (
         should_early_exit, should_time_exit, should_partial_close,
         execute_partial_close, close_trade,
     )
-    _sym = getattr(setup, 'symbol', algo_config.symbol)
     _candles_hm = _get_candles(_sym, algo_config.execution_timeframe, 10)
 
-    if not getattr(setup, '_partial_closed', False):
+    if not bool(account_state.get("partial_closed")):
         if should_partial_close(entry, current_price, one_r, side, False):
             try:
                 _vol = float(live_pos.get("volume", 0.01))
-                if execute_partial_close(setup.ticket, _sym, _vol):
-                    setup._partial_closed = True
-                    logger.info(f"[BREAKOUT] Partial close done on ticket {setup.ticket} at 1R")
+                if execute_partial_close(ticket, _sym, _vol):
+                    account_state["partial_closed"] = True
+                    logger.info(f"[BREAKOUT] Partial close done on ticket {ticket} at 1R")
             except Exception as _exc:
                 logger.warning(f"[BREAKOUT] Partial close check failed: {_exc}")
 
     if _candles_hm and should_early_exit(side, _candles_hm):
-        logger.info(f"[BREAKOUT][EXIT_SIGNAL] ticket={setup.ticket} reason=REVERSAL_EXIT symbol={_sym} side={side}")
-        if close_trade(setup.ticket, _sym, side, "ALGO:REVERSAL_EXIT"):
-            setup.trade_taken = False
-            setup.active = False
-            setup.ticket = None
+        logger.info(f"[BREAKOUT][EXIT_SIGNAL] ticket={ticket} reason=REVERSAL_EXIT symbol={_sym} side={side}")
+        if close_trade(ticket, _sym, side, "ALGO:REVERSAL_EXIT"):
             return
-        logger.warning(f"[BREAKOUT][EXIT_FAIL] ticket={setup.ticket} reason=REVERSAL_EXIT symbol={_sym}")
+        logger.warning(f"[BREAKOUT][EXIT_FAIL] ticket={ticket} reason=REVERSAL_EXIT symbol={_sym}")
 
-    _opened_at = getattr(setup, '_opened_at', None)
+    _opened_at = account_state.get("opened_at") or getattr(setup, "_opened_at", None)
     if _opened_at and should_time_exit(_opened_at, entry, current_price, one_r, side):
-        logger.info(f"[BREAKOUT][EXIT_SIGNAL] ticket={setup.ticket} reason=TIME_EXIT symbol={_sym} side={side}")
-        if close_trade(setup.ticket, _sym, side, "ALGO:TIME_EXIT"):
-            setup.trade_taken = False
-            setup.active = False
-            setup.ticket = None
+        logger.info(f"[BREAKOUT][EXIT_SIGNAL] ticket={ticket} reason=TIME_EXIT symbol={_sym} side={side}")
+        if close_trade(ticket, _sym, side, "ALGO:TIME_EXIT"):
             return
-        logger.warning(f"[BREAKOUT][EXIT_FAIL] ticket={setup.ticket} reason=TIME_EXIT symbol={_sym}")
+        logger.warning(f"[BREAKOUT][EXIT_FAIL] ticket={ticket} reason=TIME_EXIT symbol={_sym}")
 
     def _has_continuation_bias(candles: list[Candle], trade_side: str) -> bool:
         if len(candles) < 3:
@@ -638,43 +692,35 @@ def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
                 opposite_pressure_now = _candles_hm[-1].is_bullish and _candles_hm[-2].is_bullish
 
         if floating_pnl >= algo_config.risky_quick_book_profit_usd and (not continuation_bias) and opposite_pressure_now:
-            if close_trade(setup.ticket, _sym, side, "ALGO:BOOK_3_RISKY"):
-                setup.trade_taken = False
-                setup.active = False
-                setup.ticket = None
+            if close_trade(ticket, _sym, side, "ALGO:BOOK_3_RISKY"):
                 return
 
         _vol = float(live_pos.get("volume", 0.0) or 0.0)
-        if (not setup.staged_book_1_done) and floating_pnl >= algo_config.quick_book_profit_usd and _vol > 0:
-            if execute_partial_close(setup.ticket, _sym, _vol, close_fraction=algo_config.staged_book_level_1_pct):
-                setup.staged_book_1_done = True
+        if (not bool(account_state.get("staged_book_1_done"))) and floating_pnl >= algo_config.quick_book_profit_usd and _vol > 0:
+            if execute_partial_close(ticket, _sym, _vol, close_fraction=algo_config.staged_book_level_1_pct):
+                account_state["staged_book_1_done"] = True
                 logger.info(f"[BREAKOUT] Stage-1 partial book at +${algo_config.quick_book_profit_usd:.2f}")
                 return
 
-        if (not setup.staged_book_2_done) and floating_pnl >= algo_config.extended_profit_min_usd and _vol > 0:
-            if execute_partial_close(setup.ticket, _sym, _vol, close_fraction=algo_config.staged_book_level_2_pct):
-                setup.staged_book_2_done = True
+        if (not bool(account_state.get("staged_book_2_done"))) and floating_pnl >= algo_config.extended_profit_min_usd and _vol > 0:
+            if execute_partial_close(ticket, _sym, _vol, close_fraction=algo_config.staged_book_level_2_pct):
+                account_state["staged_book_2_done"] = True
                 logger.info(f"[BREAKOUT] Stage-2 partial book at +${algo_config.extended_profit_min_usd:.2f}")
                 return
 
         # If momentum weak after +$7, exit remaining. Otherwise hold till +$10.
         if floating_pnl >= algo_config.extended_profit_min_usd and not continuation_bias:
-            if close_trade(setup.ticket, _sym, side, "ALGO:BOOK_7_WEAK"):
-                setup.trade_taken = False
-                setup.active = False
-                setup.ticket = None
+            if close_trade(ticket, _sym, side, "ALGO:BOOK_7_WEAK"):
                 return
         if floating_pnl >= algo_config.extended_profit_max_usd:
-            if close_trade(setup.ticket, _sym, side, "ALGO:BOOK_10_STAGED"):
-                setup.trade_taken = False
-                setup.active = False
-                setup.ticket = None
+            if close_trade(ticket, _sym, side, "ALGO:BOOK_10_STAGED"):
                 return
 
     # Human-style SL avoidance:
     # If price has moved too close to SL, exit early (with/without strong opposite candles).
     try:
-        sl_dist = abs(entry - setup.initial_sl)
+        initial_sl = float(account_state.get("initial_sl") or setup.initial_sl or 0.0)
+        sl_dist = abs(entry - initial_sl)
         if sl_dist > 0 and _candles_hm and len(_candles_hm) >= 2:
             if side == "buy":
                 adverse_ratio = max(0.0, (entry - current_price) / sl_dist)
@@ -684,10 +730,7 @@ def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
                 opposite_pressure = _candles_hm[-1].is_bullish and _candles_hm[-2].is_bullish
             if adverse_ratio >= algo_config.early_sl_avoid_ratio:
                 reason = "ALGO:EARLY_SL_AVOID_STRONG" if opposite_pressure else "ALGO:EARLY_SL_NEAR"
-                if close_trade(setup.ticket, _sym, side, reason):
-                    setup.trade_taken = False
-                    setup.active = False
-                    setup.ticket = None
+                if close_trade(ticket, _sym, side, reason):
                     return
     except Exception as exc:
         logger.warning(f"[BREAKOUT] Early SL avoid check failed: {exc}")
@@ -699,63 +742,65 @@ def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
     _candles_trail = _get_candles(_sym, algo_config.execution_timeframe, 20)
     _atr_trail = _calculate_atr(_candles_trail, algo_config.atr_period) if _candles_trail else None
     if profit_r > 0 and _atr_trail:
+        initial_sl = float(account_state.get("initial_sl") or setup.initial_sl or 0.0)
         if side == "buy":
             _trail_sl = current_price - _atr_trail * algo_config.trail_atr_mult
-            if _trail_sl > setup.initial_sl:
+            if _trail_sl > initial_sl:
                 new_sl = _trail_sl
-                setup.r_stage = 3
+                account_state["r_stage"] = 3
         else:
             _trail_sl = current_price + _atr_trail * algo_config.trail_atr_mult
-            if _trail_sl < setup.initial_sl:
+            if _trail_sl < initial_sl:
                 new_sl = _trail_sl
-                setup.r_stage = 3
+                account_state["r_stage"] = 3
 
-    if algo_config.dollar_lock_enabled and not setup.dollar_lock_applied:
+    if algo_config.dollar_lock_enabled and not bool(account_state.get("dollar_lock_applied")):
         try:
             floating_pnl = float(live_pos.get("pnl", 0))
             current_offset = abs(current_price - entry)
             if floating_pnl >= algo_config.dollar_profit_trigger and current_offset > 0:
                 lock_offset = current_offset * (algo_config.dollar_profit_lock / floating_pnl)
                 dollar_lock_sl = entry + lock_offset if side == "buy" else entry - lock_offset
-                current_sl = setup.initial_sl
+                current_sl = float(account_state.get("initial_sl") or setup.initial_sl or 0.0)
                 is_better = (side == "buy" and dollar_lock_sl > current_sl) or (side == "sell" and dollar_lock_sl < current_sl)
                 if is_better:
                     new_sl = dollar_lock_sl
-                    setup.dollar_lock_applied = True
+                    account_state["dollar_lock_applied"] = True
         except Exception as exc:
             logger.warning(f"[BREAKOUT] Dollar lock check failed: {exc}")
 
-    if profit_r >= algo_config.rr_lock_profit and setup.r_stage < 2:
+    if profit_r >= algo_config.rr_lock_profit and int(account_state.get("r_stage", 0)) < 2:
         r_sl = entry + one_r if side == "buy" else entry - one_r
-        setup.r_stage = 2
+        account_state["r_stage"] = 2
         new_sl = r_sl if new_sl is None else (max(new_sl, r_sl) if side == "buy" else min(new_sl, r_sl))
-    elif profit_r >= algo_config.rr_breakeven and setup.r_stage < 1:
+    elif profit_r >= algo_config.rr_breakeven and int(account_state.get("r_stage", 0)) < 1:
         r_sl = entry
-        setup.r_stage = 1
+        account_state["r_stage"] = 1
         new_sl = r_sl if new_sl is None else (max(new_sl, r_sl) if side == "buy" else min(new_sl, r_sl))
 
-    if setup.r_stage >= 2:
+    if int(account_state.get("r_stage", 0)) >= 2:
         candles = _get_candles(setup.symbol, algo_config.execution_timeframe, 20)
         atr = _calculate_atr(candles, algo_config.atr_period) if candles else None
         if atr:
             trail_sl = current_price - atr * algo_config.trail_atr_mult if side == "buy" else current_price + atr * algo_config.trail_atr_mult
             new_sl = trail_sl if new_sl is None else (max(new_sl, trail_sl) if side == "buy" else min(new_sl, trail_sl))
-            setup.r_stage = 3
+            account_state["r_stage"] = 3
 
     if new_sl is not None:
-        current_sl = setup.initial_sl
+        current_sl = float(account_state.get("initial_sl") or setup.initial_sl or 0.0)
         should_update = (side == "buy" and new_sl > current_sl) or (side == "sell" and new_sl < current_sl)
         if should_update:
-            result = mt5_bridge.modify_position(setup.ticket, sl=new_sl)
+            result = mt5_bridge.modify_position(ticket, sl=new_sl)
             if result.get("success"):
-                old_sl = setup.initial_sl
-                setup.initial_sl = new_sl
+                old_sl = current_sl
+                account_state["initial_sl"] = new_sl
                 stage_names = {0: "initial", 1: "breakeven", 2: "profit_lock", 3: "trailing"}
-                stage_label = stage_names.get(setup.r_stage, str(setup.r_stage))
+                stage = int(account_state.get("r_stage", 0))
+                stage_label = stage_names.get(stage, str(stage))
                 logger.info(f"[BREAKOUT] SL updated to {new_sl:.5f} (stage={stage_label})")
                 # Persist to journal
                 from bot.trade_journal import record_sl_trail
-                record_sl_trail(setup.ticket, old_sl, new_sl, stage_label)
+                record_sl_trail(ticket, old_sl, new_sl, stage_label)
 
 
 def _scan_and_trade(symbol: str = None) -> None:
@@ -769,9 +814,7 @@ def _scan_and_trade(symbol: str = None) -> None:
         _active_breakouts[symbol] = []
     symbol_setups = _active_breakouts[symbol]
 
-    check_drawdown()
-
-    open_positions = mt5_bridge.get_open_positions()
+    open_positions = _get_open_positions_all_breakout_accounts()
     open_tickets = set()
     for p in open_positions:
         if p.get("id") is not None:
@@ -781,6 +824,10 @@ def _scan_and_trade(symbol: str = None) -> None:
 
     with _breakout_lock:
         for setup in symbol_setups:
+            # Multi-account positions are managed in the risk loop. Avoid
+            # incorrectly marking a trade closed based on a single account snapshot.
+            if setup.account_state:
+                continue
             if setup.trade_taken and setup.ticket and str(setup.ticket) not in open_tickets:
                 pnl_val = 0.0
                 try:
@@ -926,34 +973,115 @@ def _risk_check_loop() -> None:
     while _algo_running:
         try:
             if mt5_bridge.ensure_connected():
-                open_positions = mt5_bridge.get_open_positions()
-                # ── Total portfolio profit close check ────────────────────────
-                try:
-                    from bot.algo.human_mind import check_and_close_all_on_profit_target
-                    if check_and_close_all_on_profit_target(open_positions):
-                        with _breakout_lock:
-                            for _setups in _active_breakouts.values():
-                                for _s in _setups:
-                                    if _s.trade_taken:
-                                        _s.trade_taken = False
-                                        _s.active = False
-                                        _s.ticket = None
-                        time.sleep(algo_config.risk_check_interval_seconds)
-                        continue
-                except Exception as _pte:
-                    logger.warning(f"[BREAKOUT] Profit target close check failed: {_pte}")
+                # Multi-account management (direct MT5)
+                if not mt5_bridge.USE_BRIDGE and MT5_AVAILABLE:
+                    from bot.accounts import get_accounts_for_strategy, connect_account_by_login, reconnect_primary
+                    accounts = get_accounts_for_strategy("breakout")
+                    for acc in accounts:
+                        if not connect_account_by_login(acc.login):
+                            continue
+                        open_positions = mt5_bridge.get_open_positions()
 
-                open_tickets = set()
-                for p in open_positions:
-                    if p.get("id") is not None:
-                        open_tickets.add(str(p.get("id")))
-                    if p.get("position_id") is not None:
-                        open_tickets.add(str(p.get("position_id")))
-                with _breakout_lock:
-                    all_setups = [s for setups in _active_breakouts.values() for s in setups]
-                    for setup in all_setups:
-                        if setup.trade_taken and setup.ticket and str(setup.ticket) in open_tickets:
-                            _manage_open_trade_risk(setup)
+                        # Per-account "non-xau basket" profit close
+                        try:
+                            from bot.algo.human_mind import check_and_close_all_on_profit_target
+                            check_and_close_all_on_profit_target(open_positions)
+                        except Exception as _pte:
+                            logger.warning(f"[BREAKOUT] Profit target close check failed: {_pte}")
+
+                        open_tickets = set()
+                        for p in open_positions:
+                            if p.get("id") is not None:
+                                open_tickets.add(str(p.get("id")))
+                            if p.get("position_id") is not None:
+                                open_tickets.add(str(p.get("position_id")))
+
+                        with _breakout_lock:
+                            all_setups = [s for setups in _active_breakouts.values() for s in setups]
+                            for setup in all_setups:
+                                st = setup.account_state.get(str(acc.login)) if getattr(setup, "account_state", None) else None
+                                if not st:
+                                    continue
+                                ticket = int(st.get("ticket") or 0)
+                                if not ticket:
+                                    continue
+                                # Closed?
+                                if str(ticket) not in open_tickets:
+                                    pnl_val = 0.0
+                                    try:
+                                        history = mt5_bridge.get_trade_history(limit=50)
+                                        for trade in history:
+                                            if trade.get("ticket") == ticket or trade.get("position_id") == ticket:
+                                                pnl_val = float(trade.get("pnl", 0))
+                                                record_trade_pnl(pnl_val)
+                                                from bot.algo.human_mind import record_trade_result, record_sl_hit
+                                                record_trade_result(pnl_val)
+                                                if pnl_val < 0:
+                                                    record_sl_hit(setup.id)
+                                                break
+                                    except Exception as exc:
+                                        logger.warning(f"[BREAKOUT] Could not fetch PnL for ticket {ticket}: {exc}")
+                                    # Remove per-account state
+                                    try:
+                                        setup.account_state.pop(str(acc.login), None)
+                                    except Exception:
+                                        pass
+                                    # If all accounts closed, reset setup flags
+                                    if not setup.account_state:
+                                        setup.trade_taken = False
+                                        setup.ticket = None
+                                        setup.r_stage = 0
+                                        setup.dollar_lock_applied = False
+                                        setup.staged_book_1_done = False
+                                        setup.staged_book_2_done = False
+                                        setup.active = pnl_val >= 0
+                                    continue
+
+                                # Still open: manage risk for THIS account/ticket
+                                expected_tag = f"ALGO:BRK:{setup.id[:8]}"
+                                live_pos = None
+                                for pos in open_positions:
+                                    pid = pos.get("id") or pos.get("position_id")
+                                    if pid == ticket:
+                                        live_pos = pos
+                                        break
+                                if live_pos is None:
+                                    # Fallback by comment+symbol
+                                    for pos in open_positions:
+                                        if (
+                                            str(pos.get("symbol", "")) == str(getattr(setup, "symbol", ""))
+                                            and expected_tag in str(pos.get("comment", "") or "")
+                                        ):
+                                            live_pos = pos
+                                            break
+                                if live_pos:
+                                    _manage_open_trade_risk_for_account(
+                                        setup=setup,
+                                        live_pos=live_pos,
+                                        ticket=ticket,
+                                        account_state=st,
+                                    )
+                    reconnect_primary()
+                else:
+                    # Bridge mode: single-account management (legacy)
+                    open_positions = mt5_bridge.get_open_positions()
+                    open_tickets = set()
+                    for p in open_positions:
+                        if p.get("id") is not None:
+                            open_tickets.add(str(p.get("id")))
+                        if p.get("position_id") is not None:
+                            open_tickets.add(str(p.get("position_id")))
+                    with _breakout_lock:
+                        all_setups = [s for setups in _active_breakouts.values() for s in setups]
+                        for setup in all_setups:
+                            if setup.trade_taken and setup.ticket and str(setup.ticket) in open_tickets:
+                                st = setup.account_state.get("global") if getattr(setup, "account_state", None) else {}
+                                _manage_open_trade_risk_for_account(
+                                    setup=setup,
+                                    live_pos=_find_live_position_for_setup(setup, open_positions) or {},
+                                    ticket=int(setup.ticket),
+                                    account_state=st,
+                                )
         except Exception as exc:
             logger.error(f"[BREAKOUT] Risk check error: {exc}")
         time.sleep(algo_config.risk_check_interval_seconds)

@@ -308,10 +308,17 @@ def check_daily_loss_realtime() -> bool:
     return False
 
 
-def can_trade_with_reason() -> tuple[bool, str]:
-    """Return (allowed, reason) for risk gate checks."""
+def can_trade_with_reason(*, skip_drawdown: bool = False) -> tuple[bool, str]:
+    """
+    Return (allowed, reason) for risk gate checks.
+
+    NOTE:
+    Some strategies (e.g., multi-account breakout) handle drawdown checks per-account.
+    For those cases, set skip_drawdown=True to avoid a false "combined" / wrong-account
+    drawdown block caused by whatever MT5 account is currently connected.
+    """
     _reset_daily_if_needed()
-    if check_drawdown():
+    if not skip_drawdown and check_drawdown():
         logger.debug("[ALGO] Trading halted: max drawdown exceeded")
         return False, "max_drawdown_exceeded"
     if _daily_halted:

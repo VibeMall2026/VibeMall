@@ -254,6 +254,42 @@ def get_account(account_id: str) -> Optional[MT5Account]:
     return None
 
 
+def get_accounts_for_strategy(strategy_id: str) -> list[MT5Account]:
+    """
+    Return enabled accounts that have the given strategy assigned.
+    Strategy assignment is stored as a list of strategy IDs in acc.strategy.
+    """
+    sid = str(strategy_id or "").strip()
+    if not sid:
+        return []
+    with _accounts_lock:
+        return [
+            acc for acc in _accounts
+            if acc.enabled and sid in (acc.strategy or [])
+        ]
+
+
+def connect_account_by_login(login: int) -> bool:
+    """
+    Switch the active MT5 connection to the account with the given login.
+    Returns True on successful connection.
+    """
+    try:
+        target_login = int(login)
+    except Exception:
+        return False
+    with _accounts_lock:
+        acc = next((a for a in _accounts if int(a.login) == target_login), None)
+    if not acc:
+        return False
+    return _connect_account(acc)
+
+
+def reconnect_primary() -> None:
+    """Public wrapper to restore primary account connection after account switching."""
+    _reconnect_primary()
+
+
 def add_account(label: str, login: int, password: str, server: str, path: str = "", strategy: str = "order_block") -> MT5Account:
     """Add a new MT5 account."""
     with _accounts_lock:

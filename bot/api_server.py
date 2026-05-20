@@ -429,6 +429,12 @@ async def strategy_stats(strategy_id: str, period: str = "today", account_login:
     ]
     all_assigned_accounts = list(assigned_accounts)
     selected_account_login = str(account_login).strip() if account_login is not None else ""
+    # IMPORTANT:
+    # Drawdown / daily drawdown limits are enforced per-account, not combined.
+    # If no explicit account is selected, default to the first assigned account
+    # so the dashboard never shows a "combined" drawdown across multiple accounts.
+    if not selected_account_login and assigned_accounts:
+        selected_account_login = str(assigned_accounts[0].login)
     if selected_account_login:
         assigned_accounts = [acc for acc in assigned_accounts if str(acc.login) == selected_account_login]
 
