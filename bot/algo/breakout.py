@@ -1213,6 +1213,18 @@ def update_algo_config(
         algo_config.risk_reward_ratio = risk_reward
     if risk_percent is not None:
         algo_config.risk_percent = risk_percent
+    # Risk configuration is centralized in bot.algo.order_block (shared risk engine).
+    # Strategy dashboard updates call /algo/config with these fields; ensure they
+    # actually take effect even when "breakout" is the active strategy module.
+    if (max_drawdown_pct is not None) or (daily_loss_limit is not None):
+        try:
+            from bot.algo import order_block as _risk
+            _risk.update_algo_config(
+                max_drawdown_pct=max_drawdown_pct,
+                daily_loss_limit=daily_loss_limit,
+            )
+        except Exception as exc:
+            logger.warning(f"[BREAKOUT] Could not update shared risk config: {exc}")
     if analysis_tf is not None:
         algo_config.analysis_timeframe = analysis_tf
     if execution_tf is not None:
