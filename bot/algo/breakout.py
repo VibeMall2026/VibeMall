@@ -69,7 +69,7 @@ class AlgoConfig:
     risky_quick_book_profit_usd: float = 3.0
     extended_profit_min_usd: float = 7.0
     extended_profit_max_usd: float = 10.0
-    early_sl_avoid_ratio: float = 0.85
+    early_sl_avoid_ratio: float = 0.65
     staged_book_level_1_pct: float = 0.40
     staged_book_level_2_pct: float = 0.30
 
