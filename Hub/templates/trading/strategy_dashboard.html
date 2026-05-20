@@ -419,6 +419,7 @@ const STRATEGY_ID = "{{ strategy_id }}";
 let SELECTED_PERIOD = 'today';
 let SELECTED_ACCOUNT_LOGIN = '';
 let CURRENT_STRATEGY_DATA = null;
+let _AUTO_ACCOUNT_BOOTSTRAPPED = false;
 
 const STRATEGY_META = {
   order_block:      { name: 'Order Block + FVG',       icon: '⚡', color: '#696cff' },
@@ -512,6 +513,15 @@ function renderAccountTabs(data) {
     return '<button class="account-btn ' + active + '" data-login="' + login + '">' + label + '</button>';
   }).join('');
   wrap.innerHTML = accBtns || '<span class="text-muted">No accounts</span>';
+
+  // Backward-compat / cache-safe:
+  // If backend still returns combined stats (no selected_account_login),
+  // force one refresh after we auto-select the first account so request
+  // includes ?account_login=... and UI becomes per-account.
+  if (!_AUTO_ACCOUNT_BOOTSTRAPPED && !selectedFromApi && SELECTED_ACCOUNT_LOGIN) {
+    _AUTO_ACCOUNT_BOOTSTRAPPED = true;
+    setTimeout(function() { loadStrategyData(); }, 50);
+  }
 }
 
 function refreshThe5ersTradeMode() {
