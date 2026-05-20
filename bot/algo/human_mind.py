@@ -648,37 +648,45 @@ def get_status() -> dict:
 
 # ── Feature: Total portfolio profit close ────────────────────────────────────
 
-# Total combined floating profit threshold — close ALL trades when reached
-TOTAL_PROFIT_CLOSE_USD: float = 7.0   # Close all when combined profit >= $7
+# Total combined floating profit threshold for NON-XAU portfolio close
+NON_XAU_TOTAL_PROFIT_CLOSE_USD: float = 1.0   # Close non-XAU basket when combined profit >= $1
 
 
 def check_and_close_all_on_profit_target(open_positions: list) -> bool:
     """
-    If total floating profit across ALL open positions >= TOTAL_PROFIT_CLOSE_USD,
-    close every open position immediately.
+    If total floating profit across NON-XAU open positions >= NON_XAU_TOTAL_PROFIT_CLOSE_USD,
+    close all NON-XAU open positions immediately.
+    XAUUSD positions are intentionally excluded and continue with normal strategy rules.
     Returns True if trades were closed.
     """
     if not open_positions:
         return False
 
-    total_floating = sum(float(p.get("pnl", 0)) for p in open_positions)
-    if total_floating < TOTAL_PROFIT_CLOSE_USD:
+    non_xau_positions = [
+        p for p in open_positions
+        if not str(p.get("symbol", "")).upper().startswith("XAUUSD")
+    ]
+    if not non_xau_positions:
+        return False
+
+    total_floating = sum(float(p.get("pnl", 0)) for p in non_xau_positions)
+    if total_floating < NON_XAU_TOTAL_PROFIT_CLOSE_USD:
         return False
 
     logger.success(
-        f"[HUMAN_MIND] 🎯 Total profit ${total_floating:.2f} >= ${TOTAL_PROFIT_CLOSE_USD} "
-        f"— closing ALL {len(open_positions)} open trades"
+        f"[HUMAN_MIND] 🎯 Non-XAU total profit ${total_floating:.2f} >= "
+        f"${NON_XAU_TOTAL_PROFIT_CLOSE_USD} — closing {len(non_xau_positions)} non-XAU trades"
     )
 
     closed_count = 0
-    for pos in open_positions:
+    for pos in non_xau_positions:
         ticket = pos.get("id") or pos.get("position_id")
         symbol = pos.get("symbol", "")
         side = pos.get("side", "buy")
         if ticket and symbol:
-            if close_trade(int(ticket), symbol, side, "ALGO:PROFIT_TARGET"):
+            if close_trade(int(ticket), symbol, side, "ALGO:NON_XAU_PROFIT_TARGET"):
                 closed_count += 1
 
-    logger.info(f"[HUMAN_MIND] Closed {closed_count}/{len(open_positions)} trades on profit target")
+    logger.info(f"[HUMAN_MIND] Closed {closed_count}/{len(non_xau_positions)} non-XAU trades on profit target")
     return closed_count > 0
 

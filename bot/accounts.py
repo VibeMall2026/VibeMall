@@ -610,13 +610,19 @@ def execute_on_all_accounts(
                 result["login"] = acc.login
                 results.append(result)
 
+                strategy_label = strategy_id or "generic"
                 if result.get("success"):
                     logger.success(
-                        f"[ACCOUNTS] Trade on {acc.label} ({acc.login}) | "
-                        f"Ticket: {result.get('ticket')} | {symbol} {side.upper()}"
+                        f"[EXECUTION][UNIFIED] strategy={strategy_label} account={acc.label} "
+                        f"login={acc.login} status=SUCCESS ticket={result.get('ticket')} "
+                        f"symbol={symbol} side={side.upper()} order_type={order_type}"
                     )
                 else:
-                    logger.error(f"[ACCOUNTS] Trade failed on {acc.label}: {result.get('message')}")
+                    logger.error(
+                        f"[EXECUTION][UNIFIED] strategy={strategy_label} account={acc.label} "
+                        f"login={acc.login} status=FAILED symbol={symbol} side={side.upper()} "
+                        f"order_type={order_type} reason={result.get('message')}"
+                    )
 
         except Exception as e:
             logger.error(f"[ACCOUNTS] Exception on {acc.label}: {e}")
