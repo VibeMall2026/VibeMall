@@ -66,6 +66,7 @@ class AlgoConfig:
     dollar_profit_lock: float = 5.0     # Lock $5 profit
     dollar_lock_enabled: bool = True
     quick_book_profit_usd: float = 5.0
+    risky_quick_book_profit_usd: float = 3.0
     extended_profit_min_usd: float = 7.0
     extended_profit_max_usd: float = 10.0
     early_sl_avoid_ratio: float = 0.85
@@ -462,12 +463,12 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
     except Exception as _cap_exc:
         logger.warning(f"[BREAKOUT] $10 cap calculation failed: {_cap_exc}")
 
-    # Non-XAU pairs: force fixed 100-point target.
+    # Non-XAU pairs: force fixed 40-point target.
     if str(setup.symbol).upper() != "XAUUSD":
         pip_size = 0.01 if str(setup.symbol).upper().endswith("JPY") else 0.0001
         point_size = pip_size / 10.0
-        tp = entry_price + (100 * point_size) if side == "buy" else entry_price - (100 * point_size)
-        logger.info(f"[BREAKOUT] Non-XAU fixed TP applied: 100 points -> TP={tp:.5f}")
+        tp = entry_price + (40 * point_size) if side == "buy" else entry_price - (40 * point_size)
+        logger.info(f"[BREAKOUT] Non-XAU fixed TP applied: 40 points -> TP={tp:.5f}")
 
     one_r = abs(entry_price - sl)
 
@@ -623,6 +624,22 @@ def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
     # Human-style staged booking:
     # +$5 partial, +$7 partial, +$10 close remaining.
     if floating_pnl is not None:
+        # Risky condition quick-book: lock small gain at +$3
+        # Risky signal = no continuation + opposite pressure seen.
+        opposite_pressure_now = False
+        if _candles_hm and len(_candles_hm) >= 2:
+            if side == "buy":
+                opposite_pressure_now = _candles_hm[-1].is_bearish and _candles_hm[-2].is_bearish
+            else:
+                opposite_pressure_now = _candles_hm[-1].is_bullish and _candles_hm[-2].is_bullish
+
+        if floating_pnl >= algo_config.risky_quick_book_profit_usd and (not continuation_bias) and opposite_pressure_now:
+            if close_trade(setup.ticket, _sym, side, "ALGO:BOOK_3_RISKY"):
+                setup.trade_taken = False
+                setup.active = False
+                setup.ticket = None
+                return
+
         _vol = float(live_pos.get("volume", 0.0) or 0.0)
         if (not setup.staged_book_1_done) and floating_pnl >= algo_config.quick_book_profit_usd and _vol > 0:
             if execute_partial_close(setup.ticket, _sym, _vol, close_fraction=algo_config.staged_book_level_1_pct):
@@ -651,7 +668,7 @@ def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
                 return
 
     # Human-style SL avoidance:
-    # If price has moved too close to SL and opposite candles are strong, exit early.
+    # If price has moved too close to SL, exit early (with/without strong opposite candles).
     try:
         sl_dist = abs(entry - setup.initial_sl)
         if sl_dist > 0 and _candles_hm and len(_candles_hm) >= 2:
@@ -661,8 +678,9 @@ def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
             else:
                 adverse_ratio = max(0.0, (current_price - entry) / sl_dist)
                 opposite_pressure = _candles_hm[-1].is_bullish and _candles_hm[-2].is_bullish
-            if adverse_ratio >= algo_config.early_sl_avoid_ratio and opposite_pressure:
-                if close_trade(setup.ticket, _sym, side, "ALGO:EARLY_SL_AVOID"):
+            if adverse_ratio >= algo_config.early_sl_avoid_ratio:
+                reason = "ALGO:EARLY_SL_AVOID_STRONG" if opposite_pressure else "ALGO:EARLY_SL_NEAR"
+                if close_trade(setup.ticket, _sym, side, reason):
                     setup.trade_taken = False
                     setup.active = False
                     setup.ticket = None
@@ -1019,6 +1037,7 @@ def get_algo_status() -> dict:
         "rr_lock_profit": algo_config.rr_lock_profit,
         "use_human_mind_gate": algo_config.use_human_mind_gate,
         "quick_book_profit_usd": algo_config.quick_book_profit_usd,
+        "risky_quick_book_profit_usd": algo_config.risky_quick_book_profit_usd,
         "extended_profit_min_usd": algo_config.extended_profit_min_usd,
         "extended_profit_max_usd": algo_config.extended_profit_max_usd,
         "early_sl_avoid_ratio": algo_config.early_sl_avoid_ratio,
@@ -1046,6 +1065,7 @@ def update_algo_config(
     rr_lock_profit: Optional[float] = None,
     use_human_mind_gate: Optional[bool] = None,
     quick_book_profit_usd: Optional[float] = None,
+    risky_quick_book_profit_usd: Optional[float] = None,
     extended_profit_min_usd: Optional[float] = None,
     extended_profit_max_usd: Optional[float] = None,
     early_sl_avoid_ratio: Optional[float] = None,
@@ -1075,6 +1095,8 @@ def update_algo_config(
         algo_config.use_human_mind_gate = bool(use_human_mind_gate)
     if quick_book_profit_usd is not None:
         algo_config.quick_book_profit_usd = float(quick_book_profit_usd)
+    if risky_quick_book_profit_usd is not None:
+        algo_config.risky_quick_book_profit_usd = float(risky_quick_book_profit_usd)
     if extended_profit_min_usd is not None:
         algo_config.extended_profit_min_usd = float(extended_profit_min_usd)
     if extended_profit_max_usd is not None:
