@@ -528,22 +528,32 @@ def close_trade(ticket: int, symbol: str, side: str, reason: str = "ALGO:EXIT") 
     """Close a full position."""
     try:
         from bot import mt5_bridge as _bridge
+        logger.info(
+            f"[HUMAN_MIND][CLOSE_ATTEMPT] ticket={ticket} symbol={symbol} side={side} "
+            f"reason={reason} mode={'bridge' if _bridge.USE_BRIDGE else 'direct_mt5'}"
+        )
+
         if _bridge.USE_BRIDGE:
             result = _bridge._call_bridge(
                 f"/positions/{ticket}/close",
                 method="POST",
                 json_data={"reason": reason},
             )
+            logger.info(f"[HUMAN_MIND][CLOSE_BRIDGE_RESP] ticket={ticket} response={result}")
             success = bool(result and result.get("success"))
         else:
             try:
                 import MetaTrader5 as mt5
                 pos = mt5.positions_get(ticket=ticket)
                 if not pos:
+                    logger.warning(f"[HUMAN_MIND][CLOSE_FAIL] ticket={ticket} reason=position_not_found")
                     return False
                 p = pos[0]
                 order_type = mt5.ORDER_TYPE_SELL if p.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY
                 tick = mt5.symbol_info_tick(symbol)
+                if not tick:
+                    logger.warning(f"[HUMAN_MIND][CLOSE_FAIL] ticket={ticket} reason=no_tick_data symbol={symbol}")
+                    return False
                 price = tick.bid if p.type == mt5.ORDER_TYPE_BUY else tick.ask
                 req = {
                     "action": mt5.TRADE_ACTION_DEAL,
@@ -559,17 +569,23 @@ def close_trade(ticket: int, symbol: str, side: str, reason: str = "ALGO:EXIT") 
                     "type_filling": mt5.ORDER_FILLING_IOC,
                 }
                 result = mt5.order_send(req)
-                success = result and result.retcode == mt5.TRADE_RETCODE_DONE
+                logger.info(
+                    f"[HUMAN_MIND][CLOSE_MT5_RESP] ticket={ticket} "
+                    f"retcode={getattr(result, 'retcode', None)} comment={getattr(result, 'comment', None)}"
+                )
+                success = bool(result and result.retcode == mt5.TRADE_RETCODE_DONE)
             except Exception as exc:
                 logger.error(f"[HUMAN_MIND] Close trade MT5 error: {exc}")
                 return False
+
         if success:
-            logger.success(f"[HUMAN_MIND] Trade {ticket} closed — reason: {reason}")
+            logger.success(f"[HUMAN_MIND] Trade {ticket} closed - reason: {reason}")
+        else:
+            logger.warning(f"[HUMAN_MIND][CLOSE_FAIL] ticket={ticket} reason={reason}")
         return success
     except Exception as exc:
         logger.error(f"[HUMAN_MIND] Close trade error: {exc}")
         return False
-
 
 # ── Master gate: can_enter_trade ──────────────────────────────────────────────
 
@@ -665,3 +681,4 @@ def check_and_close_all_on_profit_target(open_positions: list) -> bool:
 
     logger.info(f"[HUMAN_MIND] Closed {closed_count}/{len(open_positions)} trades on profit target")
     return closed_count > 0
+

@@ -592,19 +592,23 @@ def _manage_open_trade_risk(setup: BreakoutSetup) -> None:
                 logger.warning(f"[BREAKOUT] Partial close check failed: {_exc}")
 
     if _candles_hm and should_early_exit(side, _candles_hm):
+        logger.info(f"[BREAKOUT][EXIT_SIGNAL] ticket={setup.ticket} reason=REVERSAL_EXIT symbol={_sym} side={side}")
         if close_trade(setup.ticket, _sym, side, "ALGO:REVERSAL_EXIT"):
             setup.trade_taken = False
             setup.active = False
             setup.ticket = None
             return
+        logger.warning(f"[BREAKOUT][EXIT_FAIL] ticket={setup.ticket} reason=REVERSAL_EXIT symbol={_sym}")
 
     _opened_at = getattr(setup, '_opened_at', None)
     if _opened_at and should_time_exit(_opened_at, entry, current_price, one_r, side):
+        logger.info(f"[BREAKOUT][EXIT_SIGNAL] ticket={setup.ticket} reason=TIME_EXIT symbol={_sym} side={side}")
         if close_trade(setup.ticket, _sym, side, "ALGO:TIME_EXIT"):
             setup.trade_taken = False
             setup.active = False
             setup.ticket = None
             return
+        logger.warning(f"[BREAKOUT][EXIT_FAIL] ticket={setup.ticket} reason=TIME_EXIT symbol={_sym}")
 
     def _has_continuation_bias(candles: list[Candle], trade_side: str) -> bool:
         if len(candles) < 3:
