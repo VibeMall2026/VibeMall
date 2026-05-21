@@ -594,9 +594,21 @@ function setThe5ersTradeMode(action, untilIso) {
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
     body: JSON.stringify({ action: action, until: untilIso || null }),
   })
-  .then(function(r) { return r.json(); })
-  .then(function() { refreshThe5ersTradeMode(); loadStrategyData(); })
-  .catch(function() {});
+  .then(function(r) {
+    return r.json().then(function(j) { return { ok: r.ok, status: r.status, json: j }; });
+  })
+  .then(function(res) {
+    if (!res.ok) {
+      const msg = (res.json && (res.json.detail || res.json.message)) ? (res.json.detail || res.json.message) : ('HTTP ' + res.status);
+      alert('Trade mode update failed: ' + msg + '\\n\\n(If you just updated code, please restart the Bot API service.)');
+      return;
+    }
+    refreshThe5ersTradeMode();
+    loadStrategyData();
+  })
+  .catch(function(err) {
+    alert('Trade mode update failed: ' + (err && err.message ? err.message : 'unknown error'));
+  });
 }
 
 function _toDatetimeLocalValue(d) {
@@ -612,6 +624,7 @@ function openThe5ersStopUntil() {
   const d = new Date(Date.now() + 60 * 60 * 1000); // default +1h
   input.value = _toDatetimeLocalValue(d);
   overlay.classList.remove('hidden');
+  setTimeout(function() { try { input.focus(); } catch(e) {} }, 0);
 }
 
 function closeThe5ersStopUntil() {
@@ -630,6 +643,16 @@ function submitThe5ersStopUntil() {
   closeThe5ersStopUntil();
   setThe5ersTradeMode('stop_until', dt.toISOString());
 }
+
+// Allow Enter key to submit stop-until.
+document.addEventListener('keydown', function(e) {
+  const overlay = document.getElementById('t5StopUntilOverlay');
+  if (!overlay || overlay.classList.contains('hidden')) return;
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    submitThe5ersStopUntil();
+  }
+});
 
 function renderStats(stats) {
   if (!stats) return;
