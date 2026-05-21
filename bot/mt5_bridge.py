@@ -259,11 +259,22 @@ def _cap_lot_by_pnl_limits(
     order_type = mt5.ORDER_TYPE_BUY if side.lower() == "buy" else mt5.ORDER_TYPE_SELL
     caps: list[float] = []
 
-    if config.MAX_RISK_AMOUNT_USD > 0 and sl > 0:
+    # Symbol-specific risk cap (XAUUSD tends to need tighter safety defaults).
+    max_risk_usd = float(getattr(config, "MAX_RISK_AMOUNT_USD", 0.0) or 0.0)
+    try:
+        sym_norm = str(symbol or "").upper().replace("/", "").replace(" ", "")
+        if sym_norm.startswith("XAUUSD"):
+            xau_cap = float(getattr(config, "XAUUSD_MAX_RISK_USD", 10.0) or 10.0)
+            if xau_cap > 0:
+                max_risk_usd = xau_cap if max_risk_usd <= 0 else min(max_risk_usd, xau_cap)
+    except Exception:
+        pass
+
+    if max_risk_usd > 0 and sl > 0:
         loss_one_lot = mt5.order_calc_profit(order_type, symbol, 1.0, price, sl)
         loss_one_lot_abs = abs(float(loss_one_lot or 0.0))
         if loss_one_lot_abs > 0:
-            caps.append(config.MAX_RISK_AMOUNT_USD / loss_one_lot_abs)
+            caps.append(max_risk_usd / loss_one_lot_abs)
 
     if config.MAX_PROFIT_AMOUNT_USD > 0 and tp > 0:
         profit_one_lot = mt5.order_calc_profit(order_type, symbol, 1.0, price, tp)

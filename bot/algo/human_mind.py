@@ -448,12 +448,23 @@ def execute_partial_close(ticket: int, symbol: str, current_volume: float, close
                 if not pos:
                     return False
                 p = pos[0]
+                pos_symbol = getattr(p, "symbol", symbol) or symbol
                 order_type = mt5.ORDER_TYPE_SELL if p.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY
-                tick = mt5.symbol_info_tick(symbol)
+                tick = mt5.symbol_info_tick(pos_symbol)
+                if not tick:
+                    return False
                 price = tick.bid if p.type == mt5.ORDER_TYPE_BUY else tick.ask
-                req = {
+
+                sym_info = mt5.symbol_info(pos_symbol)
+                preferred_filling = getattr(sym_info, "filling_mode", mt5.ORDER_FILLING_IOC) if sym_info else mt5.ORDER_FILLING_IOC
+                fill_candidates = []
+                for mode in (preferred_filling, mt5.ORDER_FILLING_RETURN, mt5.ORDER_FILLING_IOC, mt5.ORDER_FILLING_FOK):
+                    if mode not in fill_candidates:
+                        fill_candidates.append(mode)
+
+                base_req = {
                     "action": mt5.TRADE_ACTION_DEAL,
-                    "symbol": symbol,
+                    "symbol": pos_symbol,
                     "volume": close_volume,
                     "type": order_type,
                     "position": ticket,
@@ -462,10 +473,21 @@ def execute_partial_close(ticket: int, symbol: str, current_volume: float, close
                     "magic": p.magic,
                     "comment": "ALGO:PARTIAL",
                     "type_time": mt5.ORDER_TIME_GTC,
-                    "type_filling": mt5.ORDER_FILLING_IOC,
                 }
-                result = mt5.order_send(req)
-                success = result and result.retcode == mt5.TRADE_RETCODE_DONE
+                last_result = None
+                success = False
+                for fill_mode in fill_candidates:
+                    req = dict(base_req)
+                    req["type_filling"] = fill_mode
+                    result = mt5.order_send(req)
+                    last_result = result
+                    if result and result.retcode == mt5.TRADE_RETCODE_DONE:
+                        success = True
+                        break
+                    # 10030 = Unsupported filling mode; try next candidate
+                    if result and result.retcode == 10030:
+                        continue
+                    break
             except Exception as exc:
                 logger.error(f"[HUMAN_MIND] Partial close MT5 error: {exc}")
                 return False
@@ -549,15 +571,24 @@ def close_trade(ticket: int, symbol: str, side: str, reason: str = "ALGO:EXIT") 
                     logger.warning(f"[HUMAN_MIND][CLOSE_FAIL] ticket={ticket} reason=position_not_found")
                     return False
                 p = pos[0]
+                pos_symbol = getattr(p, "symbol", symbol) or symbol
                 order_type = mt5.ORDER_TYPE_SELL if p.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY
-                tick = mt5.symbol_info_tick(symbol)
+                tick = mt5.symbol_info_tick(pos_symbol)
                 if not tick:
-                    logger.warning(f"[HUMAN_MIND][CLOSE_FAIL] ticket={ticket} reason=no_tick_data symbol={symbol}")
+                    logger.warning(f"[HUMAN_MIND][CLOSE_FAIL] ticket={ticket} reason=no_tick_data symbol={pos_symbol}")
                     return False
                 price = tick.bid if p.type == mt5.ORDER_TYPE_BUY else tick.ask
-                req = {
+
+                sym_info = mt5.symbol_info(pos_symbol)
+                preferred_filling = getattr(sym_info, "filling_mode", mt5.ORDER_FILLING_IOC) if sym_info else mt5.ORDER_FILLING_IOC
+                fill_candidates = []
+                for mode in (preferred_filling, mt5.ORDER_FILLING_RETURN, mt5.ORDER_FILLING_IOC, mt5.ORDER_FILLING_FOK):
+                    if mode not in fill_candidates:
+                        fill_candidates.append(mode)
+
+                base_req = {
                     "action": mt5.TRADE_ACTION_DEAL,
-                    "symbol": symbol,
+                    "symbol": pos_symbol,
                     "volume": p.volume,
                     "type": order_type,
                     "position": ticket,
@@ -566,14 +597,26 @@ def close_trade(ticket: int, symbol: str, side: str, reason: str = "ALGO:EXIT") 
                     "magic": p.magic,
                     "comment": reason,
                     "type_time": mt5.ORDER_TIME_GTC,
-                    "type_filling": mt5.ORDER_FILLING_IOC,
                 }
-                result = mt5.order_send(req)
-                logger.info(
-                    f"[HUMAN_MIND][CLOSE_MT5_RESP] ticket={ticket} "
-                    f"retcode={getattr(result, 'retcode', None)} comment={getattr(result, 'comment', None)}"
-                )
-                success = bool(result and result.retcode == mt5.TRADE_RETCODE_DONE)
+
+                last_result = None
+                success = False
+                for fill_mode in fill_candidates:
+                    req = dict(base_req)
+                    req["type_filling"] = fill_mode
+                    result = mt5.order_send(req)
+                    last_result = result
+                    logger.info(
+                        f"[HUMAN_MIND][CLOSE_MT5_RESP] ticket={ticket} fill={fill_mode} "
+                        f"retcode={getattr(result, 'retcode', None)} comment={getattr(result, 'comment', None)}"
+                    )
+                    if result and result.retcode == mt5.TRADE_RETCODE_DONE:
+                        success = True
+                        break
+                    # 10030 = Unsupported filling mode; try next candidate
+                    if result and result.retcode == 10030:
+                        continue
+                    break
             except Exception as exc:
                 logger.error(f"[HUMAN_MIND] Close trade MT5 error: {exc}")
                 return False

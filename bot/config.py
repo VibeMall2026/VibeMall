@@ -85,6 +85,12 @@ MAX_OPEN_POSITIONS: int = _int("MAX_OPEN_POSITIONS", 3)
 MAX_DAILY_LOSS_PERCENT: float = _float("MAX_DAILY_LOSS_PERCENT", 3.0)
 MAX_CONSECUTIVE_LOSSES: int = _int("MAX_CONSECUTIVE_LOSSES", 3)
 
+# ── Symbol-specific safety caps ────────────────────────────────────────────────
+# For XAUUSD (gold), enforce a tighter per-trade loss cap by default.
+# NOTE: This is an estimate (uses MT5 order_calc_profit), so slippage can still
+# cause small deviations. Override in bot/.env if needed.
+XAUUSD_MAX_RISK_USD: float = _float("XAUUSD_MAX_RISK_USD", 10.0)
+
 # ── Trade management ──────────────────────────────────────────────────────────
 BREAKEVEN_TRIGGER_R: float = _float("BREAKEVEN_TRIGGER_R", 1.0)
 PARTIAL_CLOSE_TRIGGER_R: float = _float("PARTIAL_CLOSE_TRIGGER_R", 1.5)
