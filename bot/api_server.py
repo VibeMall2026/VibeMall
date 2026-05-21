@@ -724,7 +724,8 @@ class AccountAddRequest(BaseModel):
 
 
 class AccountTradeModeRequest(BaseModel):
-    action: str  # stop_today | start_now
+    action: str  # stop_today | stop_until | start_now
+    until: Optional[str] = None  # ISO datetime (browser sends UTC ISO via toISOString)
 
 
 @app.get("/strategies", dependencies=[Depends(verify_api_key)])
@@ -834,14 +835,26 @@ async def set_account_trade_mode(login: int, body: AccountTradeModeRequest):
         get_account_trade_mode as _get_mode,
         start_account_now as _start_now,
         stop_account_for_today as _stop_today,
+        stop_account_until as _stop_until,
     )
     action = (body.action or "").strip().lower()
     if action == "stop_today":
         _stop_today(login)
+    elif action == "stop_until":
+        if not body.until:
+            raise HTTPException(status_code=400, detail="until is required for stop_until")
+        try:
+            until_dt = datetime.fromisoformat(str(body.until).replace("Z", "+00:00"))
+            if until_dt.tzinfo is None:
+                until_dt = until_dt.replace(tzinfo=timezone.utc)
+            until_dt = until_dt.astimezone(timezone.utc)
+        except Exception:
+            raise HTTPException(status_code=400, detail="until must be an ISO datetime string")
+        _stop_until(login, until_dt)
     elif action == "start_now":
         _start_now(login)
     else:
-        raise HTTPException(status_code=400, detail="action must be stop_today or start_now")
+        raise HTTPException(status_code=400, detail="action must be stop_today, stop_until, or start_now")
     return {"success": True, **_get_mode(login)}
 
 

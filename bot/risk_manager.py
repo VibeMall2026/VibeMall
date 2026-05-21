@@ -42,6 +42,11 @@ def can_trade(symbol: str) -> tuple[bool, str]:
     """
     state.reset_daily_if_needed()
 
+    # Manual pause (blocks NEW trades only)
+    paused, until = state.is_trading_paused()
+    if paused:
+        return False, f"Trading paused until {until.isoformat()}"
+
     # Daily trade limit
     if state.daily_trades >= state.max_trades_per_day:
         return False, f"Daily trade limit reached ({state.max_trades_per_day})"

@@ -106,6 +106,21 @@
     z-index: 9999; transition: opacity .3s;
   }
   #loadingOverlay.hidden { opacity: 0; pointer-events: none; }
+
+  #t5StopUntilOverlay {
+    position: fixed; inset: 0; background: rgba(35,35,51,.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10000; transition: opacity .2s;
+  }
+  #t5StopUntilOverlay.hidden { opacity: 0; pointer-events: none; }
+  .t5-stop-until-card {
+    width: min(520px, calc(100vw - 32px));
+    background: #2b2c40;
+    border: 1px solid #3b3d52;
+    border-radius: 14px;
+    padding: 14px;
+    color: #cdd0d6;
+  }
 </style>
 {% endblock %}
 
@@ -191,6 +206,7 @@
     <div class="t5-actions">
       <span id="t5TradeModeBadge" class="t5-pill" style="background:#132013;color:#66e08a;border-color:#254a30;">● Trading ON</span>
       <button type="button" class="btn btn-sm btn-outline-danger" onclick="setThe5ersTradeMode('stop_today')">Stop Today</button>
+      <button type="button" class="btn btn-sm btn-outline-warning" onclick="openThe5ersStopUntil()">Stop Until</button>
       <button type="button" class="btn btn-sm btn-outline-success" onclick="setThe5ersTradeMode('start_now')">Start Now</button>
     </div>
   </div>
@@ -205,6 +221,27 @@
     <div class="t5-kpi"><div class="k">Daily Loss Level</div><div class="v">$125</div></div>
     <div class="t5-kpi"><div class="k">Max Trades/Day</div><div class="v">15</div></div>
     <div class="t5-kpi"><div class="k">Min Holding Time</div><div class="v">1 minute</div></div>
+  </div>
+</div>
+
+<!-- The5ers Stop Until overlay -->
+<div id="t5StopUntilOverlay" class="hidden">
+  <div class="t5-stop-until-card">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <div style="font-weight:700;">Stop trading until</div>
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeThe5ersStopUntil()">Close</button>
+    </div>
+    <div style="color:#a8aaae;font-size:.85rem;margin-bottom:10px;">
+      Date/time select karo. Aa time sudhi bot new trades place nahi kare.
+    </div>
+    <div class="d-flex flex-column gap-2">
+      <input id="t5StopUntilInput" type="datetime-local" class="form-control"
+             style="background:#232333;border:1px solid #3b3d52;color:#cdd0d6;" />
+      <div class="d-flex gap-2 justify-content-end">
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeThe5ersStopUntil()">Cancel</button>
+        <button type="button" class="btn btn-sm btn-warning" onclick="submitThe5ersStopUntil()">Stop Until</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -536,7 +573,12 @@ function refreshThe5ersTradeMode() {
         badge.style.color = '#66e08a';
         badge.style.borderColor = '#254a30';
       } else {
-        badge.textContent = '● Stopped for Today';
+        if (d.halt_until) {
+          const local = new Date(d.halt_until).toLocaleString();
+          badge.textContent = '● Stopped until ' + local;
+        } else {
+          badge.textContent = '● Stopped for Today';
+        }
         badge.style.background = '#2a1518';
         badge.style.color = '#ff8a9e';
         badge.style.borderColor = '#4d1d27';
@@ -545,16 +587,48 @@ function refreshThe5ersTradeMode() {
     .catch(function() {});
 }
 
-function setThe5ersTradeMode(action) {
+function setThe5ersTradeMode(action, untilIso) {
   fetch('/trading/api/accounts/26259636/trade-mode', {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-    body: JSON.stringify({ action: action }),
+    body: JSON.stringify({ action: action, until: untilIso || null }),
   })
   .then(function(r) { return r.json(); })
   .then(function() { refreshThe5ersTradeMode(); loadStrategyData(); })
   .catch(function() {});
+}
+
+function _toDatetimeLocalValue(d) {
+  // yyyy-MM-ddTHH:mm (local)
+  function pad(n) { return String(n).padStart(2, '0'); }
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+
+function openThe5ersStopUntil() {
+  const overlay = document.getElementById('t5StopUntilOverlay');
+  const input = document.getElementById('t5StopUntilInput');
+  if (!overlay || !input) return;
+  const d = new Date(Date.now() + 60 * 60 * 1000); // default +1h
+  input.value = _toDatetimeLocalValue(d);
+  overlay.classList.remove('hidden');
+}
+
+function closeThe5ersStopUntil() {
+  const overlay = document.getElementById('t5StopUntilOverlay');
+  if (overlay) overlay.classList.add('hidden');
+}
+
+function submitThe5ersStopUntil() {
+  const input = document.getElementById('t5StopUntilInput');
+  if (!input || !input.value) return;
+  const dt = new Date(input.value);
+  if (isNaN(dt.getTime())) {
+    alert('Invalid date/time');
+    return;
+  }
+  closeThe5ersStopUntil();
+  setThe5ersTradeMode('stop_until', dt.toISOString());
 }
 
 function renderStats(stats) {

@@ -74,6 +74,11 @@ AUTO_START: bool = _bool("AUTO_START", False)
 LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO").upper()
 OB_DEBUG_MODE: bool = _bool("OB_DEBUG_MODE", False)
 
+# ── Trading pause (manual override) ───────────────────────────────────────────
+# If set to a YYYY-MM-DD date, the bot will block opening NEW trades until the
+# end of that date (UTC). Existing open trades can still be managed/closed.
+PAUSED_UNTIL: str = os.getenv("PAUSED_UNTIL", "").strip()
+
 # ── Risk management ───────────────────────────────────────────────────────────
 RISK_PERCENT: float = _float("RISK_PERCENT", 0.1)
 FIXED_REWARD_RATIO: float = _float("FIXED_REWARD_RATIO", 2.0)

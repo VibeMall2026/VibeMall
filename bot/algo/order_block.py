@@ -318,6 +318,10 @@ def can_trade_with_reason(*, skip_drawdown: bool = False) -> tuple[bool, str]:
     drawdown block caused by whatever MT5 account is currently connected.
     """
     _reset_daily_if_needed()
+    # Manual pause (blocks NEW trades only)
+    paused, until = state.is_trading_paused()
+    if paused:
+        return False, f"paused_until_{until.isoformat()}"
     if not skip_drawdown and check_drawdown():
         logger.debug("[ALGO] Trading halted: max drawdown exceeded")
         return False, "max_drawdown_exceeded"

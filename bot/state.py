@@ -3,7 +3,7 @@ Shared in-memory state for the bot.
 All modules read/write this single object.
 """
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Optional
 import threading
 
@@ -45,6 +45,10 @@ class BotState:
     min_seconds_between_trades: int = 5
     allow_pending_orders: bool = True
 
+    # Manual trading pause (blocks NEW trades only).
+    # Stored as a date (UTC). Trading resumes automatically after that date passes.
+    paused_until: Optional[date] = None
+
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     def reset_daily_if_needed(self) -> None:
@@ -56,6 +60,28 @@ class BotState:
             self.daily_trades = 0
             self.daily_net_pnl = 0.0
             self.consecutive_losses = 0
+
+    def _utc_today(self) -> date:
+        return datetime.now(timezone.utc).date()
+
+    def is_trading_paused(self) -> tuple[bool, Optional[date]]:
+        """
+        Returns (paused, paused_until).
+        Auto-clears pause after it expires.
+        """
+        with self._lock:
+            if not self.paused_until:
+                return False, None
+            if self._utc_today() > self.paused_until:
+                # Auto-resume after date passes.
+                self.paused_until = None
+                return False, None
+            return True, self.paused_until
+
+    def set_pause_until(self, until: Optional[date]) -> None:
+        """Pause trading until end of given UTC date (inclusive). Set None to clear."""
+        with self._lock:
+            self.paused_until = until
 
     def add_signal(self, entry: dict) -> None:
         with self._lock:
@@ -92,3 +118,10 @@ state.max_spread_points = _config.MAX_SPREAD_POINTS
 state.duplicate_window_minutes = _config.DUPLICATE_WINDOW_MINUTES
 state.min_seconds_between_trades = _config.MIN_SECONDS_BETWEEN_TRADES
 state.allow_pending_orders = _config.ALLOW_PENDING_ORDERS
+
+# Initialize paused-until from config if provided.
+if getattr(_config, "PAUSED_UNTIL", ""):
+    try:
+        state.paused_until = datetime.strptime(_config.PAUSED_UNTIL[:10], "%Y-%m-%d").date()
+    except Exception:
+        state.paused_until = None
