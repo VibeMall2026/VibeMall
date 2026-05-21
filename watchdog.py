@@ -43,6 +43,7 @@ class WatchdogState:
     process: subprocess.Popen | None = None
     consecutive_failures: int = 0
     restart_count: int = 0
+    bot_log_handle: object | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -141,9 +142,24 @@ def run_watchdog() -> None:
 
     def _launch() -> subprocess.Popen:
         logger.info("Launching bot: %s", " ".join(BOT_MODULE))
+        # Capture bot stdout/stderr so crashes/hangs are diagnosable.
+        # (watchdog.log only contains health status, not bot tracebacks.)
+        try:
+            bot_log_path = PROJECT_ROOT / "bot_process.log"
+            state.bot_log_handle = open(bot_log_path, "a", encoding="utf-8", errors="ignore")  # noqa: SIM115
+            state.bot_log_handle.write(
+                f"\n\n==== BOT LAUNCH {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())} ====\n"
+            )
+            state.bot_log_handle.flush()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Could not open bot_process.log for capture: %s", exc)
+            state.bot_log_handle = None
+
         return subprocess.Popen(
             BOT_MODULE,
             cwd=str(PROJECT_ROOT),
+            stdout=state.bot_log_handle or None,
+            stderr=state.bot_log_handle or None,
         )
 
     def _restart(reason: str) -> None:
@@ -159,6 +175,16 @@ def run_watchdog() -> None:
                 state.process.wait(timeout=5)
             except Exception:  # noqa: BLE001
                 pass
+        if state.bot_log_handle is not None:
+            try:
+                state.bot_log_handle.write(
+                    f"==== BOT STOP {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())} | reason={reason} ====\n"
+                )
+                state.bot_log_handle.flush()
+                state.bot_log_handle.close()
+            except Exception:  # noqa: BLE001
+                pass
+            state.bot_log_handle = None
         kill_port(8001)
         state.consecutive_failures = 0
         state.process = _launch()
@@ -169,6 +195,15 @@ def run_watchdog() -> None:
             try:
                 state.process.terminate()
                 state.process.wait(timeout=5)
+            except Exception:  # noqa: BLE001
+                pass
+        if state.bot_log_handle is not None:
+            try:
+                state.bot_log_handle.write(
+                    f"==== BOT STOP {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())} | reason=watchdog_shutdown ====\n"
+                )
+                state.bot_log_handle.flush()
+                state.bot_log_handle.close()
             except Exception:  # noqa: BLE001
                 pass
         sys.exit(0)
