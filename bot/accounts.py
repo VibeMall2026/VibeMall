@@ -29,6 +29,7 @@ from bot import config as _config
 _accounts_lock = threading.Lock()
 _mt5_op_lock = threading.RLock()
 _account_trade_halts: dict[int, str] = {}  # login -> YYYY-MM-DD (halt day)
+_account_trade_halts_until: dict[int, str] = {}  # login -> ISO UTC datetime (halt until)
 
 # The5ers funded-account policy (applies only to the specific breakout account)
 THE5ERS_FUNDED_LOGIN = 26259636
@@ -213,11 +214,30 @@ def get_all_accounts() -> list[MT5Account]:
 def stop_account_for_today(login: int) -> None:
     """Stop trade execution for this account for the current UTC day."""
     _account_trade_halts[int(login)] = _date.today().isoformat()
+    # Clear any stop-until when explicit stop-today is set.
+    _account_trade_halts_until.pop(int(login), None)
+
+
+def stop_account_until(login: int, until_utc: datetime) -> None:
+    """
+    Stop trade execution for this account until a specific UTC datetime.
+    If until_utc is in the past, this clears the stop.
+    """
+    key = int(login)
+    now = datetime.now(timezone.utc)
+    if until_utc <= now:
+        _account_trade_halts_until.pop(key, None)
+        return
+    # Use a stable ISO format so it can round-trip safely through APIs.
+    _account_trade_halts_until[key] = until_utc.astimezone(timezone.utc).isoformat()
+    # Clear stop-today so we only have one active halt source.
+    _account_trade_halts.pop(key, None)
 
 
 def start_account_now(login: int) -> None:
     """Manually resume trading for this account immediately."""
     _account_trade_halts.pop(int(login), None)
+    _account_trade_halts_until.pop(int(login), None)
 
 
 def is_account_trade_allowed_today(login: int) -> tuple[bool, str]:
@@ -226,6 +246,24 @@ def is_account_trade_allowed_today(login: int) -> tuple[bool, str]:
     Auto-resets on next day.
     """
     key = int(login)
+
+    # Priority 1: stop-until (datetime-based).
+    until_iso = _account_trade_halts_until.get(key)
+    if until_iso:
+        try:
+            until_dt = datetime.fromisoformat(until_iso)
+            if until_dt.tzinfo is None:
+                until_dt = until_dt.replace(tzinfo=timezone.utc)
+            now = datetime.now(timezone.utc)
+            if now < until_dt.astimezone(timezone.utc):
+                return False, f"stopped_until_{until_dt.astimezone(timezone.utc).isoformat()}"
+            # Expired → auto-resume.
+            _account_trade_halts_until.pop(key, None)
+        except Exception:
+            # If stored value is corrupted, fail open and clear it.
+            _account_trade_halts_until.pop(key, None)
+
+    # Priority 2: stop-today (date-based).
     halted_day = _account_trade_halts.get(key)
     if not halted_day:
         return True, "allowed"
@@ -239,10 +277,14 @@ def is_account_trade_allowed_today(login: int) -> tuple[bool, str]:
 
 def get_account_trade_mode(login: int) -> dict:
     allowed, reason = is_account_trade_allowed_today(login)
+    until_iso = _account_trade_halts_until.get(int(login))
+    halted_day = _account_trade_halts.get(int(login))
     return {
         "login": int(login),
         "allowed": allowed,
         "reason": reason,
+        "halt_until": until_iso,
+        "halt_day": halted_day,
     }
 
 
