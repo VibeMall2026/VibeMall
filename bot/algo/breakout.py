@@ -634,6 +634,13 @@ def _manage_open_trade_risk_for_account(
 
     entry = float(account_state.get("entry_price") or setup.entry_price or 0.0)
 
+    # Read floating PnL early so we can avoid micro-profit exits/partials.
+    floating_pnl = None
+    try:
+        floating_pnl = float(live_pos.get("pnl", 0) or 0)
+    except Exception as exc:
+        logger.warning(f"[BREAKOUT] Could not read floating pnl for ticket {setup.ticket}: {exc}")
+
     # ── Human Mind: partial close, early exit, time-based exit ───────────────
     from bot.algo.human_mind import (
         should_early_exit, should_time_exit, should_partial_close,
@@ -642,7 +649,11 @@ def _manage_open_trade_risk_for_account(
     _candles_hm = _get_candles(_sym, algo_config.execution_timeframe, 10)
 
     if not bool(account_state.get("partial_closed")):
-        if should_partial_close(entry, current_price, one_r, side, False):
+        # Avoid "micro" partial closes on small lot sizes (e.g., The5ers 0.01 lot)
+        # that can book ~$0.5–$1 and look like the bot is closing too early.
+        _min_partial_usd = float(getattr(algo_config, "risky_quick_book_profit_usd", 3.0) or 0.0)
+        _pnl_ok_for_partial = (floating_pnl is None) or (floating_pnl >= _min_partial_usd)
+        if _pnl_ok_for_partial and should_partial_close(entry, current_price, one_r, side, False):
             try:
                 _vol = float(live_pos.get("volume", 0.01))
                 if execute_partial_close(ticket, _sym, _vol):
@@ -652,10 +663,18 @@ def _manage_open_trade_risk_for_account(
                 logger.warning(f"[BREAKOUT] Partial close check failed: {_exc}")
 
     if _candles_hm and should_early_exit(side, _candles_hm):
-        logger.info(f"[BREAKOUT][EXIT_SIGNAL] ticket={ticket} reason=REVERSAL_EXIT symbol={_sym} side={side}")
-        if close_trade(ticket, _sym, side, "ALGO:REVERSAL_EXIT"):
-            return
-        logger.warning(f"[BREAKOUT][EXIT_FAIL] ticket={ticket} reason=REVERSAL_EXIT symbol={_sym}")
+        # Prevent reversal exits from booking tiny profits (e.g. $1) on small lots.
+        _min_exit_usd = float(getattr(algo_config, "risky_quick_book_profit_usd", 3.0) or 0.0)
+        if floating_pnl is not None and floating_pnl < _min_exit_usd:
+            logger.info(
+                f"[BREAKOUT][EXIT_SKIP] ticket={ticket} reason=REVERSAL_EXIT pnl=${floating_pnl:.2f} "
+                f"< ${_min_exit_usd:.2f} symbol={_sym} side={side}"
+            )
+        else:
+            logger.info(f"[BREAKOUT][EXIT_SIGNAL] ticket={ticket} reason=REVERSAL_EXIT symbol={_sym} side={side}")
+            if close_trade(ticket, _sym, side, "ALGO:REVERSAL_EXIT"):
+                return
+            logger.warning(f"[BREAKOUT][EXIT_FAIL] ticket={ticket} reason=REVERSAL_EXIT symbol={_sym}")
 
     _opened_at = account_state.get("opened_at") or getattr(setup, "_opened_at", None)
     if _opened_at and should_time_exit(_opened_at, entry, current_price, one_r, side):
@@ -673,11 +692,6 @@ def _manage_open_trade_risk_for_account(
         return c2.is_bearish and c3.is_bearish and c3.close <= c2.close <= c1.close
 
     continuation_bias = _has_continuation_bias(_candles_hm or [], side)
-    floating_pnl = None
-    try:
-        floating_pnl = float(live_pos.get("pnl", 0) or 0)
-    except Exception as exc:
-        logger.warning(f"[BREAKOUT] Could not read floating pnl for ticket {setup.ticket}: {exc}")
 
     # Human-style staged booking:
     # +$5 partial, +$7 partial, +$10 close remaining.
@@ -717,17 +731,19 @@ def _manage_open_trade_risk_for_account(
                 return
 
     # Human-style SL avoidance:
-    # If price has moved too close to SL, exit early (with/without strong opposite candles).
+    # If price has moved too close to SL, exit early.
+    # IMPORTANT: Do NOT depend on candle fetch — on some brokers/accounts candles can fail,
+    # but we still want the loss-protection behavior to work.
     try:
         initial_sl = float(account_state.get("initial_sl") or setup.initial_sl or 0.0)
         sl_dist = abs(entry - initial_sl)
-        if sl_dist > 0 and _candles_hm and len(_candles_hm) >= 2:
+        if sl_dist > 0:
             if side == "buy":
                 adverse_ratio = max(0.0, (entry - current_price) / sl_dist)
-                opposite_pressure = _candles_hm[-1].is_bearish and _candles_hm[-2].is_bearish
+                opposite_pressure = bool(_candles_hm and len(_candles_hm) >= 2 and _candles_hm[-1].is_bearish and _candles_hm[-2].is_bearish)
             else:
                 adverse_ratio = max(0.0, (current_price - entry) / sl_dist)
-                opposite_pressure = _candles_hm[-1].is_bullish and _candles_hm[-2].is_bullish
+                opposite_pressure = bool(_candles_hm and len(_candles_hm) >= 2 and _candles_hm[-1].is_bullish and _candles_hm[-2].is_bullish)
             if adverse_ratio >= algo_config.early_sl_avoid_ratio:
                 reason = "ALGO:EARLY_SL_AVOID_STRONG" if opposite_pressure else "ALGO:EARLY_SL_NEAR"
                 if close_trade(ticket, _sym, side, reason):
