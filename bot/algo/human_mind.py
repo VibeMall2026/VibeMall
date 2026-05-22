@@ -444,50 +444,98 @@ def execute_partial_close(ticket: int, symbol: str, current_volume: float, close
         else:
             try:
                 import MetaTrader5 as mt5
-                pos = mt5.positions_get(ticket=ticket)
-                if not pos:
-                    return False
-                p = pos[0]
-                pos_symbol = getattr(p, "symbol", symbol) or symbol
-                order_type = mt5.ORDER_TYPE_SELL if p.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY
-                tick = mt5.symbol_info_tick(pos_symbol)
-                if not tick:
-                    return False
-                price = tick.bid if p.type == mt5.ORDER_TYPE_BUY else tick.ask
+                from bot.accounts import get_mt5_lock, get_all_accounts, _connect_account, connect_account_by_login
 
-                sym_info = mt5.symbol_info(pos_symbol)
-                preferred_filling = getattr(sym_info, "filling_mode", mt5.ORDER_FILLING_IOC) if sym_info else mt5.ORDER_FILLING_IOC
-                fill_candidates = []
-                for mode in (preferred_filling, mt5.ORDER_FILLING_RETURN, mt5.ORDER_FILLING_IOC, mt5.ORDER_FILLING_FOK):
-                    if mode not in fill_candidates:
-                        fill_candidates.append(mode)
+                with get_mt5_lock():
+                    current_login = None
+                    try:
+                        info = mt5.account_info()
+                        current_login = int(getattr(info, "login", 0) or 0) if info else None
+                    except Exception:
+                        current_login = None
 
-                base_req = {
-                    "action": mt5.TRADE_ACTION_DEAL,
-                    "symbol": pos_symbol,
-                    "volume": close_volume,
-                    "type": order_type,
-                    "position": ticket,
-                    "price": price,
-                    "deviation": 20,
-                    "magic": p.magic,
-                    "comment": "ALGO:PARTIAL",
-                    "type_time": mt5.ORDER_TIME_GTC,
-                }
-                last_result = None
-                success = False
-                for fill_mode in fill_candidates:
-                    req = dict(base_req)
-                    req["type_filling"] = fill_mode
-                    result = mt5.order_send(req)
-                    last_result = result
-                    if result and result.retcode == mt5.TRADE_RETCODE_DONE:
-                        success = True
+                    pos = mt5.positions_get(ticket=ticket)
+                    switched = False
+                    if not pos:
+                        # Multi-account safety: ticket may belong to a different MT5 account.
+                        for acc in get_all_accounts():
+                            try:
+                                if not getattr(acc, "enabled", False):
+                                    continue
+                                if _connect_account(acc):
+                                    switched = True
+                                    pos = mt5.positions_get(ticket=ticket)
+                                    if pos:
+                                        break
+                            except Exception:
+                                continue
+
+                    if not pos:
+                        logger.warning(f"[HUMAN_MIND][PARTIAL_CLOSE_FAIL] ticket={ticket} reason=position_not_found")
+                        # Best-effort restore previous connection.
+                        if switched and current_login:
+                            try:
+                                connect_account_by_login(current_login)
+                            except Exception:
+                                pass
+                        return False
+
+                    p = pos[0]
+                    pos_symbol = getattr(p, "symbol", symbol) or symbol
+                    order_type = mt5.ORDER_TYPE_SELL if p.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY
+                    tick = mt5.symbol_info_tick(pos_symbol)
+                    if not tick:
+                        logger.warning(
+                            f"[HUMAN_MIND][PARTIAL_CLOSE_FAIL] ticket={ticket} reason=no_tick_data symbol={pos_symbol}"
+                        )
+                        if switched and current_login:
+                            try:
+                                connect_account_by_login(current_login)
+                            except Exception:
+                                pass
+                        return False
+                    price = tick.bid if p.type == mt5.ORDER_TYPE_BUY else tick.ask
+
+                    sym_info = mt5.symbol_info(pos_symbol)
+                    preferred_filling = getattr(sym_info, "filling_mode", mt5.ORDER_FILLING_IOC) if sym_info else mt5.ORDER_FILLING_IOC
+                    fill_candidates = []
+                    for mode in (preferred_filling, mt5.ORDER_FILLING_RETURN, mt5.ORDER_FILLING_IOC, mt5.ORDER_FILLING_FOK):
+                        if mode not in fill_candidates:
+                            fill_candidates.append(mode)
+
+                    base_req = {
+                        "action": mt5.TRADE_ACTION_DEAL,
+                        "symbol": pos_symbol,
+                        "volume": close_volume,
+                        "type": order_type,
+                        "position": ticket,
+                        "price": price,
+                        "deviation": 20,
+                        "magic": p.magic,
+                        "comment": "ALGO:PARTIAL",
+                        "type_time": mt5.ORDER_TIME_GTC,
+                    }
+                    last_result = None
+                    success = False
+                    for fill_mode in fill_candidates:
+                        req = dict(base_req)
+                        req["type_filling"] = fill_mode
+                        result = mt5.order_send(req)
+                        last_result = result
+                        if result and result.retcode == mt5.TRADE_RETCODE_DONE:
+                            success = True
+                            break
+                        # 10030 = Unsupported filling mode; try next candidate
+                        if result and result.retcode == 10030:
+                            continue
                         break
-                    # 10030 = Unsupported filling mode; try next candidate
-                    if result and result.retcode == 10030:
-                        continue
-                    break
+
+                    # Best-effort restore previous connection (don't force primary).
+                    if switched and current_login:
+                        try:
+                            connect_account_by_login(current_login)
+                        except Exception:
+                            pass
             except Exception as exc:
                 logger.error(f"[HUMAN_MIND] Partial close MT5 error: {exc}")
                 return False
@@ -566,57 +614,100 @@ def close_trade(ticket: int, symbol: str, side: str, reason: str = "ALGO:EXIT") 
         else:
             try:
                 import MetaTrader5 as mt5
-                pos = mt5.positions_get(ticket=ticket)
-                if not pos:
-                    logger.warning(f"[HUMAN_MIND][CLOSE_FAIL] ticket={ticket} reason=position_not_found")
-                    return False
-                p = pos[0]
-                pos_symbol = getattr(p, "symbol", symbol) or symbol
-                order_type = mt5.ORDER_TYPE_SELL if p.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY
-                tick = mt5.symbol_info_tick(pos_symbol)
-                if not tick:
-                    logger.warning(f"[HUMAN_MIND][CLOSE_FAIL] ticket={ticket} reason=no_tick_data symbol={pos_symbol}")
-                    return False
-                price = tick.bid if p.type == mt5.ORDER_TYPE_BUY else tick.ask
+                from bot.accounts import get_mt5_lock, get_all_accounts, _connect_account, connect_account_by_login
 
-                sym_info = mt5.symbol_info(pos_symbol)
-                preferred_filling = getattr(sym_info, "filling_mode", mt5.ORDER_FILLING_IOC) if sym_info else mt5.ORDER_FILLING_IOC
-                fill_candidates = []
-                for mode in (preferred_filling, mt5.ORDER_FILLING_RETURN, mt5.ORDER_FILLING_IOC, mt5.ORDER_FILLING_FOK):
-                    if mode not in fill_candidates:
-                        fill_candidates.append(mode)
+                with get_mt5_lock():
+                    current_login = None
+                    try:
+                        info = mt5.account_info()
+                        current_login = int(getattr(info, "login", 0) or 0) if info else None
+                    except Exception:
+                        current_login = None
 
-                base_req = {
-                    "action": mt5.TRADE_ACTION_DEAL,
-                    "symbol": pos_symbol,
-                    "volume": p.volume,
-                    "type": order_type,
-                    "position": ticket,
-                    "price": price,
-                    "deviation": 20,
-                    "magic": p.magic,
-                    "comment": reason,
-                    "type_time": mt5.ORDER_TIME_GTC,
-                }
+                    pos = mt5.positions_get(ticket=ticket)
+                    switched = False
+                    if not pos:
+                        # Multi-account safety: ticket may belong to a different MT5 account.
+                        for acc in get_all_accounts():
+                            try:
+                                if not getattr(acc, "enabled", False):
+                                    continue
+                                if _connect_account(acc):
+                                    switched = True
+                                    pos = mt5.positions_get(ticket=ticket)
+                                    if pos:
+                                        break
+                            except Exception:
+                                continue
 
-                last_result = None
-                success = False
-                for fill_mode in fill_candidates:
-                    req = dict(base_req)
-                    req["type_filling"] = fill_mode
-                    result = mt5.order_send(req)
-                    last_result = result
-                    logger.info(
-                        f"[HUMAN_MIND][CLOSE_MT5_RESP] ticket={ticket} fill={fill_mode} "
-                        f"retcode={getattr(result, 'retcode', None)} comment={getattr(result, 'comment', None)}"
-                    )
-                    if result and result.retcode == mt5.TRADE_RETCODE_DONE:
-                        success = True
+                    if not pos:
+                        logger.warning(f"[HUMAN_MIND][CLOSE_FAIL] ticket={ticket} reason=position_not_found")
+                        if switched and current_login:
+                            try:
+                                connect_account_by_login(current_login)
+                            except Exception:
+                                pass
+                        return False
+
+                    p = pos[0]
+                    pos_symbol = getattr(p, "symbol", symbol) or symbol
+                    order_type = mt5.ORDER_TYPE_SELL if p.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY
+                    tick = mt5.symbol_info_tick(pos_symbol)
+                    if not tick:
+                        logger.warning(f"[HUMAN_MIND][CLOSE_FAIL] ticket={ticket} reason=no_tick_data symbol={pos_symbol}")
+                        if switched and current_login:
+                            try:
+                                connect_account_by_login(current_login)
+                            except Exception:
+                                pass
+                        return False
+                    price = tick.bid if p.type == mt5.ORDER_TYPE_BUY else tick.ask
+
+                    sym_info = mt5.symbol_info(pos_symbol)
+                    preferred_filling = getattr(sym_info, "filling_mode", mt5.ORDER_FILLING_IOC) if sym_info else mt5.ORDER_FILLING_IOC
+                    fill_candidates = []
+                    for mode in (preferred_filling, mt5.ORDER_FILLING_RETURN, mt5.ORDER_FILLING_IOC, mt5.ORDER_FILLING_FOK):
+                        if mode not in fill_candidates:
+                            fill_candidates.append(mode)
+
+                    base_req = {
+                        "action": mt5.TRADE_ACTION_DEAL,
+                        "symbol": pos_symbol,
+                        "volume": p.volume,
+                        "type": order_type,
+                        "position": ticket,
+                        "price": price,
+                        "deviation": 20,
+                        "magic": p.magic,
+                        "comment": reason,
+                        "type_time": mt5.ORDER_TIME_GTC,
+                    }
+
+                    last_result = None
+                    success = False
+                    for fill_mode in fill_candidates:
+                        req = dict(base_req)
+                        req["type_filling"] = fill_mode
+                        result = mt5.order_send(req)
+                        last_result = result
+                        logger.info(
+                            f"[HUMAN_MIND][CLOSE_MT5_RESP] ticket={ticket} fill={fill_mode} "
+                            f"retcode={getattr(result, 'retcode', None)} comment={getattr(result, 'comment', None)}"
+                        )
+                        if result and result.retcode == mt5.TRADE_RETCODE_DONE:
+                            success = True
+                            break
+                        # 10030 = Unsupported filling mode; try next candidate
+                        if result and result.retcode == 10030:
+                            continue
                         break
-                    # 10030 = Unsupported filling mode; try next candidate
-                    if result and result.retcode == 10030:
-                        continue
-                    break
+
+                    # Best-effort restore previous connection (don't force primary).
+                    if switched and current_login:
+                        try:
+                            connect_account_by_login(current_login)
+                        except Exception:
+                            pass
             except Exception as exc:
                 logger.error(f"[HUMAN_MIND] Close trade MT5 error: {exc}")
                 return False

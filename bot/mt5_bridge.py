@@ -464,24 +464,27 @@ def modify_position(position_id: int, sl: Optional[float] = None, tp: Optional[f
     if not MT5_AVAILABLE or not ensure_connected():
         return {"success": False, "message": "MT5 not connected"}
 
-    positions = mt5.positions_get(ticket=position_id)
-    if not positions:
-        return {"success": False, "message": f"Position {position_id} not found"}
+    # Guard against account-switch races in multi-thread + multi-account mode.
+    from bot.accounts import get_mt5_lock
+    with get_mt5_lock():
+        positions = mt5.positions_get(ticket=position_id)
+        if not positions:
+            return {"success": False, "message": f"Position {position_id} not found"}
 
-    pos = positions[0]
-    request = {
-        "action": mt5.TRADE_ACTION_SLTP,
-        "position": position_id,
-        "symbol": pos.symbol,
-        "sl": sl if sl is not None else pos.sl,
-        "tp": tp if tp is not None else pos.tp,
-        "magic": config.MT5_MAGIC_NUMBER,
-    }
-    result = mt5.order_send(request)
-    if result and result.retcode == mt5.TRADE_RETCODE_DONE:
-        return {"success": True, "message": "Position modified"}
-    err = result.comment if result else str(mt5.last_error())
-    return {"success": False, "message": f"Modify failed: {err}"}
+        pos = positions[0]
+        request = {
+            "action": mt5.TRADE_ACTION_SLTP,
+            "position": position_id,
+            "symbol": pos.symbol,
+            "sl": sl if sl is not None else pos.sl,
+            "tp": tp if tp is not None else pos.tp,
+            "magic": config.MT5_MAGIC_NUMBER,
+        }
+        result = mt5.order_send(request)
+        if result and result.retcode == mt5.TRADE_RETCODE_DONE:
+            return {"success": True, "message": "Position modified"}
+        err = result.comment if result else str(mt5.last_error())
+        return {"success": False, "message": f"Modify failed: {err}"}
 
 
 # ── Get open positions ────────────────────────────────────────────────────────

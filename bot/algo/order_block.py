@@ -936,8 +936,13 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
         spread=spread_points,
     )
 
-    # Execute only on accounts that have 'order_block' strategy assigned
-    from bot.accounts import get_all_accounts, execute_on_all_accounts
+    # Execute only on accounts that have 'order_block' strategy assigned.
+    #
+    # IMPORTANT: Always route via accounts.execute_on_all_accounts so that:
+    # - per-account trade-mode (stop_today / stop_until) is enforced
+    # - allowed_symbols gate is enforced
+    # - MT5 account switching is protected by the global MT5 lock
+    from bot.accounts import get_all_accounts, execute_on_all_accounts, is_account_trade_allowed_today
 
     ob_accounts = [
         acc for acc in get_all_accounts()
@@ -945,8 +950,23 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
     ]
 
     ticket = None
+    comment_tag = f"ALGO:OB:{ob.id[:8]}"
     if not ob_accounts:
-        # Fallback: use primary mt5_bridge connection
+        # Fallback: use current MT5 connection (single-account mode).
+        # Respect per-account trade-mode even in fallback.
+        try:
+            if MT5_AVAILABLE:
+                info = mt5.account_info()
+                login = int(getattr(info, "login", 0) or 0) if info else 0
+                if login:
+                    allowed_today, halt_reason = is_account_trade_allowed_today(login)
+                    if not allowed_today:
+                        logger.warning(f"[ALGO] Trade blocked (trade-mode): login={login} reason={halt_reason}")
+                        return False
+        except Exception:
+            # If we cannot read login info, fail open (legacy behavior).
+            pass
+
         logger.warning("[ALGO] No accounts with 'order_block' strategy — using primary connection")
         result = mt5_bridge.open_trade(
             symbol=ob.symbol,
@@ -956,44 +976,27 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
             entry=entry_price,
             order_type="market",
             risk_percent=algo_config.risk_percent,
-            comment=f"ALGO:OB:{ob.id[:8]}",
+            comment=comment_tag,
         )
         if not result.get("success"):
             logger.error(f"[ALGO] Trade failed: {result.get('message')}")
             return False
         ticket = result.get("ticket")
     else:
-        from bot.accounts import _connect_account, _reconnect_primary
-        import math as _math
-        results = []
-        for acc in ob_accounts:
-            try:
-                if _connect_account(acc):
-                    from bot.accounts import _execute_single
-                    r = _execute_single(
-                        symbol=ob.symbol,
-                        side=side,
-                        sl=sl,
-                        tp=tp,
-                        entry=entry_price,
-                        order_type="market",
-                        risk_percent=algo_config.risk_percent,
-                        comment=f"ALGO:OB:{ob.id[:8]}",
-                    )
-                    r["account_id"] = acc.id
-                    r["account_label"] = acc.label
-                    r["login"] = acc.login
-                    results.append(r)
-            except Exception as _e:
-                logger.error(f"[ALGO] OB trade error on {acc.label}: {_e}")
-                results.append({"success": False, "message": str(_e), "login": acc.login, "account_label": acc.label})
-        _reconnect_primary()
-        ob_logins = {acc.login for acc in ob_accounts}
-        relevant = [r for r in results if r.get("login") in ob_logins]
-        successes = [r for r in relevant if r.get("success")]
-
+        results = execute_on_all_accounts(
+            symbol=ob.symbol,
+            side=side,
+            sl=sl,
+            tp=tp,
+            entry=entry_price,
+            order_type="market",
+            risk_percent=algo_config.risk_percent,
+            comment=comment_tag,
+            strategy_id="order_block",
+        )
+        successes = [r for r in (results or []) if r.get("success")]
         if not successes:
-            logger.error(f"[ALGO] Trade failed on all order_block accounts: {relevant}")
+            logger.error(f"[ALGO] Trade failed on all order_block accounts: {results}")
             return False
 
         ticket = successes[0].get("ticket")
@@ -1597,20 +1600,25 @@ def _risk_check_loop() -> None:
                 from bot.accounts import get_all_accounts, _connect_account, _reconnect_primary
 
                 # ── Total portfolio profit close check ────────────────────────
+                # Run under global MT5 lock to prevent account-switch races that
+                # cause "position_not_found" during close attempts.
                 try:
+                    from bot.accounts import get_mt5_lock
                     from bot.algo.human_mind import check_and_close_all_on_profit_target
-                    _all_positions = mt5_bridge.get_open_positions()
-                    if check_and_close_all_on_profit_target(_all_positions):
-                        # All trades closed — reset all tracked OBs
-                        with _obs_lock:
-                            for _obs_list in _active_obs.values():
-                                for _ob in _obs_list:
-                                    if _ob.trade_taken:
-                                        _ob.trade_taken = False
-                                        _ob.active = False
-                                        _ob.ticket = None
-                        time.sleep(algo_config.risk_check_interval_seconds)
-                        continue
+
+                    with get_mt5_lock():
+                        _all_positions = mt5_bridge.get_open_positions()
+                        if check_and_close_all_on_profit_target(_all_positions):
+                            # All trades closed — reset all tracked OBs
+                            with _obs_lock:
+                                for _obs_list in _active_obs.values():
+                                    for _ob in _obs_list:
+                                        if _ob.trade_taken:
+                                            _ob.trade_taken = False
+                                            _ob.active = False
+                                            _ob.ticket = None
+                            time.sleep(algo_config.risk_check_interval_seconds)
+                            continue
                 except Exception as _pte:
                     logger.warning(f"[ALGO] Profit target close check failed: {_pte}")
 
