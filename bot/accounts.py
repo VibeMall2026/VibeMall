@@ -11,11 +11,13 @@ NOTE: MT5 Python library supports only ONE active connection per process.
 from __future__ import annotations
 
 import os
+import json
 import threading
 import time
 from datetime import datetime, timezone, date as _date
 from dataclasses import dataclass, field
 from typing import Optional
+from pathlib import Path
 from loguru import logger
 
 try:
@@ -30,6 +32,51 @@ _accounts_lock = threading.Lock()
 _mt5_op_lock = threading.RLock()
 _account_trade_halts: dict[int, str] = {}  # login -> YYYY-MM-DD (halt day)
 _account_trade_halts_until: dict[int, str] = {}  # login -> ISO UTC datetime (halt until)
+_trade_mode_persist_lock = threading.Lock()
+
+# Persist per-account trade-mode so it survives bot restarts and avoids
+# "Trading: ON again after refresh" when FastAPI process reloads / API URL changes.
+_TRADE_MODE_STORE_PATH = Path(__file__).resolve().parent / "sessions" / "account_trade_modes.json"
+
+
+def _load_trade_modes_from_disk() -> None:
+    """Best-effort load of persisted trade-mode state into memory."""
+    global _account_trade_halts, _account_trade_halts_until
+    try:
+        if not _TRADE_MODE_STORE_PATH.exists():
+            return
+        raw = _TRADE_MODE_STORE_PATH.read_text(encoding="utf-8")
+        if not raw.strip():
+            return
+        data = json.loads(raw)
+        if not isinstance(data, dict):
+            return
+        halts = data.get("halts", {})
+        halts_until = data.get("halts_until", {})
+        if isinstance(halts, dict):
+            _account_trade_halts = {int(k): str(v) for k, v in halts.items() if str(k).strip()}
+        if isinstance(halts_until, dict):
+            _account_trade_halts_until = {int(k): str(v) for k, v in halts_until.items() if str(k).strip()}
+        logger.info(
+            f"[ACCOUNTS] Loaded trade-modes from disk: "
+            f"halts={len(_account_trade_halts)} halts_until={len(_account_trade_halts_until)}"
+        )
+    except Exception as exc:
+        logger.warning(f"[ACCOUNTS] Could not load trade-modes: {exc}")
+
+
+def _persist_trade_modes_to_disk() -> None:
+    """Best-effort persist of in-memory trade-mode state to disk."""
+    try:
+        _TRADE_MODE_STORE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "halts": {str(k): v for k, v in (_account_trade_halts or {}).items()},
+            "halts_until": {str(k): v for k, v in (_account_trade_halts_until or {}).items()},
+        }
+        _TRADE_MODE_STORE_PATH.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    except Exception as exc:
+        logger.warning(f"[ACCOUNTS] Could not persist trade-modes: {exc}")
 
 # The5ers funded-account policy (applies only to the specific breakout account)
 THE5ERS_FUNDED_LOGIN = 26259636
@@ -230,6 +277,7 @@ def _load_extra_accounts() -> None:
 
 _load_default_account()
 _load_extra_accounts()
+_load_trade_modes_from_disk()
 
 
 def get_all_accounts() -> list[MT5Account]:
@@ -239,9 +287,11 @@ def get_all_accounts() -> list[MT5Account]:
 
 def stop_account_for_today(login: int) -> None:
     """Stop trade execution for this account for the current UTC day."""
-    _account_trade_halts[int(login)] = _date.today().isoformat()
-    # Clear any stop-until when explicit stop-today is set.
-    _account_trade_halts_until.pop(int(login), None)
+    with _trade_mode_persist_lock:
+        _account_trade_halts[int(login)] = _date.today().isoformat()
+        # Clear any stop-until when explicit stop-today is set.
+        _account_trade_halts_until.pop(int(login), None)
+        _persist_trade_modes_to_disk()
 
 
 def stop_account_until(login: int, until_utc: datetime) -> None:
@@ -250,20 +300,25 @@ def stop_account_until(login: int, until_utc: datetime) -> None:
     If until_utc is in the past, this clears the stop.
     """
     key = int(login)
-    now = datetime.now(timezone.utc)
-    if until_utc <= now:
-        _account_trade_halts_until.pop(key, None)
-        return
-    # Use a stable ISO format so it can round-trip safely through APIs.
-    _account_trade_halts_until[key] = until_utc.astimezone(timezone.utc).isoformat()
-    # Clear stop-today so we only have one active halt source.
-    _account_trade_halts.pop(key, None)
+    with _trade_mode_persist_lock:
+        now = datetime.now(timezone.utc)
+        if until_utc <= now:
+            _account_trade_halts_until.pop(key, None)
+            _persist_trade_modes_to_disk()
+            return
+        # Use a stable ISO format so it can round-trip safely through APIs.
+        _account_trade_halts_until[key] = until_utc.astimezone(timezone.utc).isoformat()
+        # Clear stop-today so we only have one active halt source.
+        _account_trade_halts.pop(key, None)
+        _persist_trade_modes_to_disk()
 
 
 def start_account_now(login: int) -> None:
     """Manually resume trading for this account immediately."""
-    _account_trade_halts.pop(int(login), None)
-    _account_trade_halts_until.pop(int(login), None)
+    with _trade_mode_persist_lock:
+        _account_trade_halts.pop(int(login), None)
+        _account_trade_halts_until.pop(int(login), None)
+        _persist_trade_modes_to_disk()
 
 
 def is_account_trade_allowed_today(login: int) -> tuple[bool, str]:
@@ -284,10 +339,14 @@ def is_account_trade_allowed_today(login: int) -> tuple[bool, str]:
             if now < until_dt.astimezone(timezone.utc):
                 return False, f"stopped_until_{until_dt.astimezone(timezone.utc).isoformat()}"
             # Expired → auto-resume.
-            _account_trade_halts_until.pop(key, None)
+            with _trade_mode_persist_lock:
+                _account_trade_halts_until.pop(key, None)
+                _persist_trade_modes_to_disk()
         except Exception:
             # If stored value is corrupted, fail open and clear it.
-            _account_trade_halts_until.pop(key, None)
+            with _trade_mode_persist_lock:
+                _account_trade_halts_until.pop(key, None)
+                _persist_trade_modes_to_disk()
 
     # Priority 2: stop-today (date-based).
     halted_day = _account_trade_halts.get(key)
@@ -296,7 +355,9 @@ def is_account_trade_allowed_today(login: int) -> tuple[bool, str]:
     today = _date.today().isoformat()
     if halted_day != today:
         # Auto-reset on next day.
-        _account_trade_halts.pop(key, None)
+        with _trade_mode_persist_lock:
+            _account_trade_halts.pop(key, None)
+            _persist_trade_modes_to_disk()
         return True, "auto_resumed_new_day"
     return False, "manually_stopped_for_today"
 
