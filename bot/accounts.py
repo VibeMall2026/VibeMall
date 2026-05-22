@@ -65,10 +65,22 @@ class MT5Account:
     leverage: int = 100
     error: str = ""
     strategy: list = None   # list of strategy IDs assigned to this account
+    allowed_symbols: Optional[list[str]] = None  # None = all symbols; otherwise whitelist
 
     def __post_init__(self):
         if self.strategy is None:
             self.strategy = ["order_block"]
+        # Normalize allowed_symbols.
+        if self.allowed_symbols is not None:
+            try:
+                cleaned: list[str] = []
+                for s in list(self.allowed_symbols):
+                    ss = str(s or "").strip()
+                    if ss and ss not in cleaned:
+                        cleaned.append(ss)
+                self.allowed_symbols = cleaned or None
+            except Exception:
+                self.allowed_symbols = None
 
     def to_dict(self) -> dict:
         return {
@@ -84,6 +96,7 @@ class MT5Account:
             "leverage": self.leverage,
             "error": self.error,
             "strategy": self.strategy if isinstance(self.strategy, list) else [self.strategy],
+            "allowed_symbols": self.allowed_symbols,
         }
 
 
@@ -97,6 +110,19 @@ def _normalize_single_strategy(strategy) -> list[str]:
     if isinstance(strategy, list):
         strategy = strategy[0] if strategy else "order_block"
     return [str(strategy or "order_block").strip()]
+
+
+def _normalize_strategies(strategy) -> list[str]:
+    """Accept string or list[str] and return normalized list[str] (deduped)."""
+    if strategy is None:
+        return ["order_block"]
+    raw = list(strategy) if isinstance(strategy, (list, tuple, set)) else [strategy]
+    cleaned: list[str] = []
+    for s in raw:
+        sid = str(s or "").strip()
+        if sid and sid not in cleaned:
+            cleaned.append(sid)
+    return cleaned or ["order_block"]
 
 
 def _load_default_account() -> None:
@@ -332,7 +358,15 @@ def reconnect_primary() -> None:
     _reconnect_primary()
 
 
-def add_account(label: str, login: int, password: str, server: str, path: str = "", strategy: str = "order_block") -> MT5Account:
+def add_account(
+    label: str,
+    login: int,
+    password: str,
+    server: str,
+    path: str = "",
+    strategy="order_block",
+    allowed_symbols: Optional[list[str]] = None,
+) -> MT5Account:
     """Add a new MT5 account."""
     with _accounts_lock:
         # Generate unique ID
@@ -350,7 +384,8 @@ def add_account(label: str, login: int, password: str, server: str, path: str = 
             server=server,
             path=path or _config.MT5_PATH,
             enabled=True,
-            strategy=_normalize_single_strategy(strategy),
+            strategy=_normalize_strategies(strategy),
+            allowed_symbols=allowed_symbols,
         )
         _accounts.append(acc)
         logger.info(f"[ACCOUNTS] Added account: {acc.label} ({acc.login}@{acc.server}) strategy={acc.strategy}")
@@ -392,6 +427,35 @@ def update_account_strategy(account_id: str, strategy) -> bool:
         logger.info(f"[ACCOUNTS] Account {account_id} strategy updated: {old} -> {strategies}")
         return True
     return False
+
+
+def update_account_strategies(account_id: str, strategies) -> bool:
+    """Update MULTIPLE strategies assigned to an account."""
+    from bot.strategies import get_strategy
+    sids = _normalize_strategies(strategies)
+    for sid in sids:
+        if not get_strategy(sid):
+            logger.warning(f"[ACCOUNTS] Unknown strategy: {sid}")
+            return False
+    acc = get_account(account_id)
+    if acc:
+        old = acc.strategy
+        acc.strategy = sids
+        logger.info(f"[ACCOUNTS] Account {account_id} strategies updated: {old} -> {sids}")
+        return True
+    return False
+
+
+def update_account_allowed_symbols(account_id: str, allowed_symbols: Optional[list[str]]) -> bool:
+    """Set allowed symbols (None = all)."""
+    acc = get_account(account_id)
+    if not acc:
+        return False
+    acc.allowed_symbols = allowed_symbols
+    # Normalize via __post_init logic
+    acc.__post_init__()
+    logger.info(f"[ACCOUNTS] Account {account_id} allowed_symbols updated: {acc.allowed_symbols}")
+    return True
 
 
 # ── Connection management ─────────────────────────────────────────────────────
@@ -530,6 +594,46 @@ def refresh_account_info() -> None:
     _reconnect_primary()
 
 
+def probe_marketwatch_symbols(login: int, password: str, server: str, path: str = "") -> list[str]:
+    """
+    Temporarily connect to the given account and return visible MarketWatch symbols.
+    Reconnects the primary account at the end.
+    """
+    if not MT5_AVAILABLE:
+        return []
+    temp = MT5Account(
+        id="probe",
+        label="Probe",
+        login=int(login),
+        password=str(password or ""),
+        server=str(server or ""),
+        path=str(path or ""),
+        enabled=True,
+        strategy=["order_block"],
+    )
+    symbols: list[str] = []
+    with _mt5_op_lock:
+        try:
+            if _connect_account(temp):
+                rows = mt5.symbols_get() or []
+                for s in rows:
+                    try:
+                        if getattr(s, "visible", False):
+                            name = str(getattr(s, "name", "") or "").strip()
+                            if name:
+                                symbols.append(name)
+                    except Exception:
+                        continue
+        finally:
+            _reconnect_primary()
+    # Deduplicate + sort.
+    out: list[str] = []
+    for s in symbols:
+        if s not in out:
+            out.append(s)
+    return sorted(out)
+
+
 def _reconnect_primary() -> None:
     """Reconnect to primary account after multi-account operations, if configured."""
     primary = get_account("acc_1")
@@ -635,6 +739,20 @@ def execute_on_all_accounts(
                     })
                     logger.warning(f"[ACCOUNTS] Trade skipped for {acc.label}: {halt_reason}")
                     continue
+
+                # Per-account allowed symbols gate.
+                if acc.allowed_symbols:
+                    sym = str(symbol or "").strip()
+                    if sym and sym not in acc.allowed_symbols:
+                        results.append({
+                            "success": False,
+                            "message": f"Symbol not allowed for this account ({sym})",
+                            "account_id": acc.id,
+                            "account_label": acc.label,
+                            "login": acc.login,
+                        })
+                        logger.warning(f"[ACCOUNTS] Trade skipped for {acc.label}: symbol_not_allowed {sym}")
+                        continue
 
                 # Account-specific prop-firm compliance guard (only this one account).
                 if THE5ERS_POLICY_ENFORCED and strategy_id == "breakout" and acc.login == THE5ERS_FUNDED_LOGIN:

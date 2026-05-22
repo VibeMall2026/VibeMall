@@ -78,38 +78,38 @@
       </div>
       <div class="modal-body">
         <input type="hidden" id="strategyAccountId">
-        <p style="color:#a8aaae;font-size:.85rem;">Select exactly one strategy to run on this account:</p>
+        <p style="color:#a8aaae;font-size:.85rem;">Tame multiple strategies select kari shako (multi-select):</p>
         <div class="d-flex flex-column gap-2">
           <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
-            <input type="radio" name="account_strategy" value="order_block" id="strat_order_block" class="form-check-input mt-1">
+            <input type="checkbox" name="account_strategy" value="order_block" id="strat_order_block" class="form-check-input mt-1">
             <div>
               <div style="font-weight:600;">⚡ Order Block + FVG</div>
               <small style="color:#a8aaae;">ICT/Smart Money — detects Order Blocks and Fair Value Gaps</small>
             </div>
           </label>
           <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
-            <input type="radio" name="account_strategy" value="breakout" id="strat_breakout" class="form-check-input mt-1">
+            <input type="checkbox" name="account_strategy" value="breakout" id="strat_breakout" class="form-check-input mt-1">
             <div>
               <div style="font-weight:600;">📈 Range Breakout Retest</div>
               <small style="color:#a8aaae;">Breakout + trend + ATR + volume + retest confirmation</small>
             </div>
           </label>
           <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
-            <input type="radio" name="account_strategy" value="confluence" id="strat_confluence" class="form-check-input mt-1">
+            <input type="checkbox" name="account_strategy" value="confluence" id="strat_confluence" class="form-check-input mt-1">
             <div>
               <div style="font-weight:600;">🧩 OB + FVG + Breakout</div>
               <small style="color:#a8aaae;">Order Block + Fair Value Gap with breakout confluence</small>
             </div>
           </label>
           <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
-            <input type="radio" name="account_strategy" value="my_strategy" id="strat_my_strategy" class="form-check-input mt-1">
+            <input type="checkbox" name="account_strategy" value="my_strategy" id="strat_my_strategy" class="form-check-input mt-1">
             <div>
               <div style="font-weight:600;">🧱 MultiTF Rejection</div>
               <small style="color:#a8aaae;">15m S/R levels + 5m rejection entry with BE + step trailing</small>
             </div>
           </label>
           <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
-            <input type="radio" name="account_strategy" value="telegram_signals" id="strat_telegram_signals" class="form-check-input mt-1">
+            <input type="checkbox" name="account_strategy" value="telegram_signals" id="strat_telegram_signals" class="form-check-input mt-1">
             <div>
               <div style="font-weight:600;">📡 Telegram Signals Only</div>
               <small style="color:#a8aaae;">Execute trades only from Telegram channel signals</small>
@@ -173,36 +173,90 @@
           <input type="text" id="accServer" class="form-control" style="background:#232333;border:1px solid #3b3d52;color:#cdd0d6;" placeholder="e.g. MetaQuotes-Demo">
         </div>
         <div class="mb-3">
-          <label class="form-label" style="color:#a8aaae;">Trading Strategy</label>
+          <label class="form-label" style="color:#a8aaae;">Trading Strategy (multi-select)</label>
           <div class="d-flex flex-column gap-2 p-2 rounded" style="background:#232333;border:1px solid #3b3d52;">
             <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
-              <input type="radio" name="new_account_strategy" value="order_block" id="newAccStrat_order_block" class="form-check-input" checked>
+              <input type="checkbox" value="order_block" id="newAccStrat_order_block" class="form-check-input" checked>
               <span>⚡ Order Block + FVG</span>
             </label>
             <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
-              <input type="radio" name="new_account_strategy" value="breakout" id="newAccStrat_breakout" class="form-check-input">
+              <input type="checkbox" value="breakout" id="newAccStrat_breakout" class="form-check-input">
               <span>📈 Range Breakout Retest</span>
             </label>
             <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
-              <input type="radio" name="new_account_strategy" value="confluence" id="newAccStrat_confluence" class="form-check-input">
+              <input type="checkbox" value="confluence" id="newAccStrat_confluence" class="form-check-input">
               <span>🧩 OB + FVG + Breakout</span>
             </label>
             <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
-              <input type="radio" name="new_account_strategy" value="my_strategy" id="newAccStrat_my_strategy" class="form-check-input">
+              <input type="checkbox" value="my_strategy" id="newAccStrat_my_strategy" class="form-check-input">
               <span>🧱 MultiTF Rejection</span>
             </label>
             <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
-              <input type="radio" name="new_account_strategy" value="telegram_signals" id="newAccStrat_telegram_signals" class="form-check-input">
+              <input type="checkbox" value="telegram_signals" id="newAccStrat_telegram_signals" class="form-check-input">
               <span>📡 Telegram Signals Only</span>
             </label>
           </div>
-          <small style="color:#a8aaae;">Only one live strategy is allowed per account</small>
+          <small style="color:#a8aaae;">Tame multiple strategies select kari shako</small>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" style="color:#a8aaae;">Only Trade (Pairs)</label>
+          <div class="p-2 rounded" style="background:#232333;border:1px solid #3b3d52;">
+            <div class="d-flex flex-wrap gap-3 align-items-center">
+              <label class="d-flex align-items-center gap-2 mb-0" style="cursor:pointer;">
+                <input type="radio" name="onlyTradeMode" id="onlyTradeAll" class="form-check-input" checked>
+                <span>All pairs</span>
+              </label>
+              <label class="d-flex align-items-center gap-2 mb-0" style="cursor:pointer;">
+                <input type="radio" name="onlyTradeMode" id="onlyTradeSelected" class="form-check-input">
+                <span>Selected pairs</span>
+              </label>
+              <button type="button" class="btn btn-sm btn-outline-info ms-auto" onclick="loadMarketwatchSymbols(this)">
+                <i class="bx bx-download me-1"></i>Load MarketWatch
+              </button>
+            </div>
+            <div id="onlyTradeSelectedWrap" style="display:none;margin-top:10px;">
+              <input type="text" id="symbolSearch" class="form-control form-control-sm mb-2"
+                     style="background:#1f2030;border:1px solid #3b3d52;color:#cdd0d6;"
+                     placeholder="Search symbol (e.g. EURUSD, XAUUSD)..." oninput="filterSymbols()" />
+              <div id="symbolsList"
+                   style="max-height:160px;overflow:auto;border:1px solid #3b3d52;border-radius:10px;padding:8px;background:#1f2030;">
+                <div class="text-muted" style="font-size:.85rem;">Load MarketWatch symbols first</div>
+              </div>
+              <small style="color:#a8aaae;display:block;margin-top:6px;">Multiple select supported</small>
+            </div>
+          </div>
         </div>
         <div id="addAccountResult" class="mt-2" style="display:none;"></div>
       </div>
       <div class="modal-footer" style="border-top:1px solid #3b3d52;">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         <button type="button" class="btn btn-success" onclick="submitAddAccount()"><i class="bx bx-save me-1"></i>Add Account</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Trade Mode (Stop Until) Modal -->
+<div class="modal fade" id="tradeModeModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background:#2b2c40;border:1px solid #3b3d52;color:#cdd0d6;">
+      <div class="modal-header" style="border-bottom:1px solid #3b3d52;">
+        <h5 class="modal-title"><i class="bx bx-pause-circle me-2" style="color:#ff9f43;"></i>Stop Until</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="tradeModeLogin">
+        <div style="color:#a8aaae;font-size:.85rem;margin-bottom:10px;" id="tradeModeInfo"></div>
+        <input id="tradeModeUntilInput" type="datetime-local" class="form-control"
+               style="background:#232333;border:1px solid #3b3d52;color:#cdd0d6;" />
+        <div id="tradeModeResult" class="mt-2" style="display:none;"></div>
+      </div>
+      <div class="modal-footer" style="border-top:1px solid #3b3d52;">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-warning" onclick="submitStopUntil()">
+          <i class="bx bx-timer me-1"></i>Stop Until
+        </button>
       </div>
     </div>
   </div>
@@ -723,12 +777,17 @@
           ${acc.error ? `<small class="text-danger d-block" style="font-size:.7rem;">${acc.error}</small>` : ''}
         </td>
         <td>
-          <div class="d-flex gap-1">
+          <div class="d-flex gap-1 flex-wrap">
             <button class="btn btn-sm ${acc.enabled ? 'btn-outline-warning' : 'btn-outline-success'}"
               onclick="toggleAccount('${acc.id}', ${!acc.enabled})">
               ${acc.enabled ? 'Disable' : 'Enable'}
             </button>
             ${acc.id !== 'acc_1' ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteAccount('${acc.id}', '${acc.label}')">Remove</button>` : ''}
+          </div>
+          <div class="d-flex gap-1 flex-wrap mt-1">
+            <button class="btn btn-sm btn-outline-danger" onclick="setAccountTradeMode(${acc.login}, 'stop_today')">Stop Today</button>
+            <button class="btn btn-sm btn-outline-warning" onclick="openStopUntilModal(${acc.login})">Stop Until</button>
+            <button class="btn btn-sm btn-outline-success" onclick="setAccountTradeMode(${acc.login}, 'start_now')">Start</button>
           </div>
         </td>
       </tr>
@@ -824,6 +883,17 @@
     document.getElementById('accLogin').value = '';
     document.getElementById('accPassword').value = '';
     document.getElementById('accServer').value = '';
+    // reset strategies
+    ['order_block', 'breakout', 'confluence', 'my_strategy', 'telegram_signals'].forEach(s => {
+      const el = document.getElementById(`newAccStrat_${s}`);
+      if (el) el.checked = (s === 'order_block');
+    });
+    // reset only-trade
+    const all = document.getElementById('onlyTradeAll');
+    if (all) all.checked = true;
+    toggleOnlyTradeUI();
+    window._marketwatchSymbols = [];
+    renderSymbolsList();
     const resultEl = document.getElementById('addAccountResult');
     resultEl.style.display = 'none';
 
@@ -843,6 +913,88 @@
       });
   }
 
+  function toggleOnlyTradeUI() {
+    const wrap = document.getElementById('onlyTradeSelectedWrap');
+    const selected = document.getElementById('onlyTradeSelected');
+    if (!wrap || !selected) return;
+    wrap.style.display = selected.checked ? 'block' : 'none';
+  }
+
+  document.addEventListener('change', function(e) {
+    if (e.target && (e.target.id === 'onlyTradeAll' || e.target.id === 'onlyTradeSelected')) {
+      toggleOnlyTradeUI();
+    }
+  });
+
+  window._marketwatchSymbols = window._marketwatchSymbols || [];
+
+  function renderSymbolsList(filtered) {
+    const listEl = document.getElementById('symbolsList');
+    if (!listEl) return;
+    const symbols = filtered || window._marketwatchSymbols || [];
+    if (!symbols.length) {
+      listEl.innerHTML = '<div class="text-muted" style="font-size:.85rem;">Load MarketWatch symbols first</div>';
+      return;
+    }
+    listEl.innerHTML = symbols.map(s => {
+      const id = 'sym_' + s.replace(/[^a-zA-Z0-9_]+/g, '_');
+      return `
+        <label class="d-flex align-items-center gap-2 mb-1" style="cursor:pointer;">
+          <input type="checkbox" class="form-check-input sym-check" data-symbol="${s}" id="${id}">
+          <span style="font-size:.9rem;">${s}</span>
+        </label>
+      `;
+    }).join('');
+  }
+
+  function filterSymbols() {
+    const q = (document.getElementById('symbolSearch')?.value || '').trim().toUpperCase();
+    if (!q) {
+      renderSymbolsList();
+      return;
+    }
+    const filtered = (window._marketwatchSymbols || []).filter(s => String(s).toUpperCase().includes(q));
+    renderSymbolsList(filtered);
+  }
+
+  function loadMarketwatchSymbols(btnEl) {
+    const login = parseInt(document.getElementById('accLogin').value);
+    const password = document.getElementById('accPassword').value;
+    const server = document.getElementById('accServer').value;
+    if (!login || !password || !server) {
+      alert('Login, Password, Server fill karo pachi Load MarketWatch karo');
+      return;
+    }
+    const csrfToken = getCookie('csrftoken');
+    const btn = btnEl || null;
+    if (btn) btn.disabled = true;
+    fetch('/trading/api/accounts/probe-marketwatch', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ login, password, server, path: '' }),
+    })
+    .then(async r => {
+      const raw = await r.text();
+      let data = {};
+      try { data = raw ? JSON.parse(raw) : {}; } catch(e) { data = { success:false, message: raw || ('HTTP ' + r.status) }; }
+      return { ok: r.ok, status: r.status, data };
+    })
+    .then(res => {
+      if (!res.ok || !res.data || !res.data.success) {
+        const msg = res.data?.detail || res.data?.message || ('HTTP ' + res.status);
+        alert('MarketWatch load failed: ' + msg);
+        return;
+      }
+      window._marketwatchSymbols = Array.isArray(res.data.symbols) ? res.data.symbols : [];
+      renderSymbolsList();
+      document.getElementById('onlyTradeSelected').checked = true;
+      toggleOnlyTradeUI();
+    })
+    .catch(err => alert('MarketWatch load failed: ' + (err && err.message ? err.message : 'unknown')))
+    .finally(() => { if (btn) btn.disabled = false; });
+  }
+
   function changeStrategy(accountId, strategy) {
     const csrfToken = getCookie('csrftoken');
     fetch(`/trading/api/accounts/${accountId}/strategy/`, {
@@ -857,7 +1009,7 @@
 
   function openStrategyModal(accountId, currentStrategies) {
     document.getElementById('strategyAccountId').value = accountId;
-    // Reset all radio options
+    // Reset all checkbox options
     ['order_block', 'breakout', 'confluence', 'my_strategy', 'telegram_signals'].forEach(s => {
       const el = document.getElementById(`strat_${s}`);
       if (el) el.checked = (currentStrategies || []).includes(s);
@@ -869,10 +1021,10 @@
   function saveStrategies() {
     const accountId = document.getElementById('strategyAccountId').value;
     const selected = ['order_block', 'breakout', 'confluence', 'my_strategy', 'telegram_signals']
-      .find(s => document.getElementById(`strat_${s}`)?.checked);
-    if (!selected) {
+      .filter(s => document.getElementById(`strat_${s}`)?.checked);
+    if (!selected || selected.length === 0) {
       document.getElementById('strategyResult').style.display = 'block';
-      document.getElementById('strategyResult').innerHTML = '<div class="alert alert-warning py-2 mb-0">Select one strategy</div>';
+      document.getElementById('strategyResult').innerHTML = '<div class="alert alert-warning py-2 mb-0">At least 1 strategy select karo</div>';
       return;
     }
     const csrfToken = getCookie('csrftoken');
@@ -898,13 +1050,30 @@
 
   function submitAddAccount() {
     const csrfToken = getCookie('csrftoken');
+    const strategies = ['order_block', 'breakout', 'confluence', 'my_strategy', 'telegram_signals']
+      .filter(s => document.getElementById(`newAccStrat_${s}`)?.checked);
+    if (!strategies.length) {
+      alert('At least 1 strategy select karo');
+      return;
+    }
+    let allowed_symbols = null;
+    if (document.getElementById('onlyTradeSelected')?.checked) {
+      const selectedSyms = Array.from(document.querySelectorAll('#symbolsList .sym-check:checked'))
+        .map(el => el.getAttribute('data-symbol'))
+        .filter(Boolean);
+      if (!selectedSyms.length) {
+        alert('Selected pairs mode ma at least 1 symbol select karo');
+        return;
+      }
+      allowed_symbols = selectedSyms;
+    }
     const payload = {
       label: document.getElementById('accLabel').value,
       login: parseInt(document.getElementById('accLogin').value),
       password: document.getElementById('accPassword').value,
       server: document.getElementById('accServer').value,
-      strategy: ['order_block', 'breakout', 'confluence', 'my_strategy', 'telegram_signals']
-        .find(s => document.getElementById(`newAccStrat_${s}`)?.checked) || 'order_block',
+      strategy: strategies,
+      allowed_symbols: allowed_symbols,
     };
     const resultEl = document.getElementById('addAccountResult');
     fetch('/trading/api/accounts/', {
@@ -947,6 +1116,63 @@
         <small style="opacity:.7;">Make sure the bot is running on Windows PC (port 8001)</small>
       </div>`;
     });
+  }
+
+  // ── Per-account trade mode controls ───────────────────────────────────────
+  function _toDatetimeLocalValue(d) {
+    function pad(n) { return String(n).padStart(2, '0'); }
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  function setAccountTradeMode(login, action, untilIso) {
+    const csrfToken = getCookie('csrftoken');
+    fetch(`/trading/api/accounts/${login}/trade-mode`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: action, until: untilIso || null }),
+    })
+    .then(async r => {
+      const raw = await r.text();
+      let data = {};
+      try { data = raw ? JSON.parse(raw) : {}; } catch(e) { data = { detail: raw || ('HTTP ' + r.status) }; }
+      return { ok: r.ok, status: r.status, data };
+    })
+    .then(res => {
+      if (!res.ok) {
+        const msg = res.data?.detail || res.data?.message || ('HTTP ' + res.status);
+        showToast(`Trade mode failed: ${msg}`, false);
+        return;
+      }
+      showToast('Trade mode updated', true);
+      refreshAccounts(false);
+    })
+    .catch(err => showToast(`Trade mode failed: ${err && err.message ? err.message : 'unknown'}`, false));
+  }
+
+  function openStopUntilModal(login) {
+    document.getElementById('tradeModeLogin').value = String(login || '');
+    document.getElementById('tradeModeInfo').textContent = `Account login: ${login}`;
+    const input = document.getElementById('tradeModeUntilInput');
+    const d = new Date(Date.now() + 60 * 60 * 1000);
+    input.value = _toDatetimeLocalValue(d);
+    document.getElementById('tradeModeResult').style.display = 'none';
+    new bootstrap.Modal(document.getElementById('tradeModeModal')).show();
+    setTimeout(() => { try { input.focus(); } catch(e) {} }, 0);
+  }
+
+  function submitStopUntil() {
+    const login = parseInt(document.getElementById('tradeModeLogin').value);
+    const val = document.getElementById('tradeModeUntilInput').value;
+    if (!login || !val) return;
+    const dt = new Date(val);
+    if (isNaN(dt.getTime())) {
+      document.getElementById('tradeModeResult').style.display = 'block';
+      document.getElementById('tradeModeResult').innerHTML = '<div class="alert alert-warning py-2 mb-0">Invalid date/time</div>';
+      return;
+    }
+    bootstrap.Modal.getInstance(document.getElementById('tradeModeModal')).hide();
+    setAccountTradeMode(login, 'stop_until', dt.toISOString());
   }
 
   function toggleAccount(accountId, enabled) {

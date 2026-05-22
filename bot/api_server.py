@@ -720,7 +720,17 @@ class AccountAddRequest(BaseModel):
     password: str
     server: str
     path: Optional[str] = ""
-    strategy: Optional[str] = "order_block"
+    # Can be a string or a list of strings (multi-strategy per account).
+    strategy: Optional[object] = "order_block"
+    # None/empty = all symbols; otherwise whitelist.
+    allowed_symbols: Optional[list[str]] = None
+
+
+class ProbeMarketwatchRequest(BaseModel):
+    login: int
+    password: str
+    server: str
+    path: Optional[str] = ""
 
 
 class AccountTradeModeRequest(BaseModel):
@@ -785,6 +795,7 @@ async def add_account(body: AccountAddRequest):
         server=body.server,
         path=body.path or "",
         strategy=strategy,
+        allowed_symbols=body.allowed_symbols,
     )
     return {"success": True, "account": acc.to_dict()}
 
@@ -809,10 +820,43 @@ async def toggle_account(account_id: str, body: dict = {}):
 @app.put("/accounts/{account_id}/strategy", dependencies=[Depends(verify_api_key)])
 async def update_strategy(account_id: str, body: dict = {}):
     """Update strategy for an account."""
-    from bot.accounts import update_account_strategy
+    from bot.accounts import update_account_strategy, update_account_strategies
     strategy = body.get("strategy", "order_block")
-    success = update_account_strategy(account_id, strategy)
+    if isinstance(strategy, list):
+        success = update_account_strategies(account_id, strategy)
+    else:
+        success = update_account_strategy(account_id, strategy)
     return {"success": success}
+
+
+@app.put("/accounts/{account_id}/symbols", dependencies=[Depends(verify_api_key)])
+async def update_account_symbols(account_id: str, body: dict = {}):
+    """Update allowed symbols (whitelist) for an account. Set null/[] for all."""
+    from bot.accounts import update_account_allowed_symbols
+    allowed = body.get("allowed_symbols")
+    if allowed is None:
+        allowed_symbols = None
+    elif isinstance(allowed, list):
+        allowed_symbols = [str(s).strip() for s in allowed if str(s).strip()]
+        if not allowed_symbols:
+            allowed_symbols = None
+    else:
+        raise HTTPException(status_code=400, detail="allowed_symbols must be a list or null")
+    success = update_account_allowed_symbols(account_id, allowed_symbols)
+    return {"success": success}
+
+
+@app.post("/accounts/probe-marketwatch", dependencies=[Depends(verify_api_key)])
+async def probe_marketwatch(body: ProbeMarketwatchRequest):
+    """Return visible MarketWatch symbols for the provided account credentials."""
+    from bot.accounts import probe_marketwatch_symbols
+    syms = probe_marketwatch_symbols(
+        login=body.login,
+        password=body.password,
+        server=body.server,
+        path=body.path or "",
+    )
+    return {"success": True, "symbols": syms}
 
 
 @app.post("/accounts/refresh", dependencies=[Depends(verify_api_key)])
