@@ -996,7 +996,15 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
         )
         successes = [r for r in (results or []) if r.get("success")]
         if not successes:
-            logger.error(f"[ALGO] Trade failed on all order_block accounts: {results}")
+            # If every account failed only due to trade-mode pause, keep this as INFO.
+            try:
+                _all_msgs = " | ".join(str(r.get("message", "")) for r in (results or []))
+                if "Account paused for today" in _all_msgs or "manually_stopped_for_today" in _all_msgs or "stopped_until_" in _all_msgs:
+                    logger.info(f"[ALGO] Trade skipped (trade-mode): {results}")
+                else:
+                    logger.error(f"[ALGO] Trade failed on all order_block accounts: {results}")
+            except Exception:
+                logger.error(f"[ALGO] Trade failed on all order_block accounts: {results}")
             return False
 
         ticket = successes[0].get("ticket")
@@ -1563,6 +1571,32 @@ def _scan_and_trade(symbol: str = None) -> None:
                 if not allowed:
                     logger.info(f"[ALGO] Trade blocked by human_mind: {reason} | OB {ob.id}")
                     continue
+
+                # ── Per-account trade-mode gate (stop_today / stop_until) ─────
+                # If ALL accounts assigned to this strategy are paused, do not
+                # attempt to execute (avoids noisy "trade failed" logs).
+                try:
+                    from bot.accounts import get_accounts_for_strategy, is_account_trade_allowed_today
+                    eligible_accounts = []
+                    for _acc in get_accounts_for_strategy("order_block"):
+                        ok_today, _halt_reason = is_account_trade_allowed_today(_acc.login)
+                        if not ok_today:
+                            continue
+                        # Respect per-account allowed symbols (if configured).
+                        if getattr(_acc, "allowed_symbols", None):
+                            _sym = str(symbol or "").strip()
+                            if _sym and _sym not in (_acc.allowed_symbols or []):
+                                continue
+                        eligible_accounts.append(_acc)
+                    if not eligible_accounts:
+                        logger.info(
+                            f"[ALGO] Entry skipped (trade-mode): no eligible order_block accounts for {symbol}"
+                        )
+                        continue
+                except Exception:
+                    # If anything goes wrong in gate, fail open (legacy behavior).
+                    pass
+
                 logger.info(f"[ALGO] Entry signal confirmed for OB {ob.id} at {entry:.5f}")
                 _ob_debug(
                     "ENTRY_DECISION",
