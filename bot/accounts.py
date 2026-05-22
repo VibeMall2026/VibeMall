@@ -408,6 +408,14 @@ def toggle_account(account_id: str, enabled: bool) -> bool:
     acc = get_account(account_id)
     if acc:
         acc.enabled = enabled
+        if not enabled:
+            # When an account is disabled, treat it as offline in UI.
+            acc.connected = False
+            if not acc.error:
+                acc.error = "Disabled"
+        else:
+            if acc.error == "Disabled":
+                acc.error = ""
         logger.info(f"[ACCOUNTS] Account {account_id} {'enabled' if enabled else 'disabled'}")
         return True
     return False
@@ -576,6 +584,7 @@ def refresh_account_info() -> None:
 
     for acc in accounts_copy:
         if not acc.enabled:
+            acc.connected = False
             continue
         try:
             if _connect_account(acc):
