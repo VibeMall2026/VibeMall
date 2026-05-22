@@ -8,6 +8,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
+from time import time as _time
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,11 @@ API_KEY = os.environ.get("BOT_API_KEY") or os.environ.get("API_KEY") or BOT_ENV.
 HEADERS = {"X-API-Key": API_KEY} if API_KEY else {}
 TIMEOUT = 3  # Reduced from 5s to 3s for faster failover
 
+# Cache the last working bot API URL to avoid "flip-flopping" between multiple
+# reachable candidates (which would reset in-memory controls like trade-mode).
+_BOT_API_URL_CACHE: dict[str, object] = {"url": None, "ts": 0.0}
+_BOT_API_URL_CACHE_TTL_SEC = 120.0
+
 
 def _candidate_bot_api_urls():
     urls = []
@@ -55,6 +61,23 @@ def _check_api_health():
     errors = []
     candidates = _candidate_bot_api_urls()
 
+    # 1) Prefer cached URL first (stability).
+    cached_url = _BOT_API_URL_CACHE.get("url")
+    cached_ts = float(_BOT_API_URL_CACHE.get("ts") or 0.0)
+    if cached_url and (_time() - cached_ts) < _BOT_API_URL_CACHE_TTL_SEC:
+        try:
+            health_resp = requests.get(f"{cached_url}/health", timeout=TIMEOUT)
+            health_resp.raise_for_status()
+
+            status_resp = requests.get(f"{cached_url}/status", headers=HEADERS, timeout=TIMEOUT)
+            if status_resp.status_code != 403:
+                status_resp.raise_for_status()
+                return True, str(cached_url), None
+            errors.append(f"{cached_url}: rejected API key or client IP")
+        except Exception:
+            # Ignore and fall back to full scan below.
+            pass
+
     for base_url in candidates:
         try:
             health_resp = requests.get(f"{base_url}/health", timeout=TIMEOUT)
@@ -65,6 +88,8 @@ def _check_api_health():
                 errors.append(f"{base_url}: rejected API key or client IP")
                 continue
             status_resp.raise_for_status()
+            _BOT_API_URL_CACHE["url"] = base_url
+            _BOT_API_URL_CACHE["ts"] = _time()
             return True, base_url, None
         except requests.exceptions.ConnectionError:
             errors.append(f"{base_url}: connection refused")
