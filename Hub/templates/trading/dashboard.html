@@ -137,6 +137,34 @@
             </div>
           </label>
         </div>
+        <div class="mt-3">
+          <label class="form-label" style="color:#a8aaae;">Only Trade (Pairs)</label>
+          <div class="p-2 rounded" style="background:#232333;border:1px solid #3b3d52;">
+            <div class="d-flex flex-wrap gap-3 align-items-center">
+              <label class="d-flex align-items-center gap-2 mb-0" style="cursor:pointer;">
+                <input type="radio" name="editOnlyTradeMode" id="editOnlyTradeAll" class="form-check-input" checked>
+                <span>All pairs</span>
+              </label>
+              <label class="d-flex align-items-center gap-2 mb-0" style="cursor:pointer;">
+                <input type="radio" name="editOnlyTradeMode" id="editOnlyTradeSelected" class="form-check-input">
+                <span>Selected pairs</span>
+              </label>
+              <button type="button" class="btn btn-sm btn-outline-info ms-auto" onclick="loadMarketwatchSymbolsForEdit(this)">
+                <i class="bx bx-download me-1"></i>Load MarketWatch
+              </button>
+            </div>
+            <div id="editOnlyTradeSelectedWrap" style="display:none;margin-top:10px;">
+              <input type="text" id="editSymbolSearch" class="form-control form-control-sm mb-2"
+                     style="background:#1f2030;border:1px solid #3b3d52;color:#cdd0d6;"
+                     placeholder="Search symbol..." oninput="filterSymbolsEdit()" />
+              <div id="editSymbolsList"
+                   style="max-height:160px;overflow:auto;border:1px solid #3b3d52;border-radius:10px;padding:8px;background:#1f2030;">
+                <div class="text-muted" style="font-size:.85rem;">Load MarketWatch symbols first</div>
+              </div>
+              <small style="color:#a8aaae;display:block;margin-top:6px;">Current select unselect + new select kari shako</small>
+            </div>
+          </div>
+        </div>
         <div id="strategyResult" class="mt-2" style="display:none;"></div>
       </div>
       <div class="modal-footer" style="border-top:1px solid #3b3d52;">
@@ -762,7 +790,8 @@
           <div class="d-flex flex-wrap gap-1">
             <button class="btn btn-sm btn-outline-info bo-edit-btn"
               data-account-id="${acc.id}"
-              data-strategies="${(Array.isArray(acc.strategy) ? acc.strategy : [acc.strategy]).join(',')}">
+              data-strategies="${(Array.isArray(acc.strategy) ? acc.strategy : [acc.strategy]).join(',')}"
+              data-allowed-symbols="${(Array.isArray(acc.allowed_symbols) ? acc.allowed_symbols : (acc.allowed_symbols ? [acc.allowed_symbols] : [])).join(',')}">
               <i class="bx bx-edit me-1"></i>Edit
             </button>
             <small class="text-muted d-block w-100" style="font-size:.75rem;">
@@ -772,8 +801,9 @@
         </td>
         <td>
           <span class="badge ${acc.connected ? 'bg-label-success' : 'bg-label-danger'}">
-            ${acc.connected ? '● Online' : '● Offline'}
+            ${acc.connected ? '● MT5 Online' : '● MT5 Offline'}
           </span>
+          <span class="badge bg-label-secondary ms-1" id="tradeModeBadge_${acc.login}">Trading: —</span>
           ${acc.error ? `<small class="text-danger d-block" style="font-size:.7rem;">${acc.error}</small>` : ''}
         </td>
         <td>
@@ -793,6 +823,7 @@
       </tr>
     `).join('');
     renderStrategyButtons(accounts);
+    refreshTradeModes(accounts);
   }
 
   function hexToRgb(hex) {
@@ -1007,16 +1038,7 @@
     .catch(() => showToast('Request failed', false));
   }
 
-  function openStrategyModal(accountId, currentStrategies) {
-    document.getElementById('strategyAccountId').value = accountId;
-    // Reset all checkbox options
-    ['order_block', 'breakout', 'confluence', 'my_strategy', 'telegram_signals'].forEach(s => {
-      const el = document.getElementById(`strat_${s}`);
-      if (el) el.checked = (currentStrategies || []).includes(s);
-    });
-    document.getElementById('strategyResult').style.display = 'none';
-    new bootstrap.Modal(document.getElementById('strategyModal')).show();
-  }
+  // NOTE: openStrategyModal is defined later (with allowedSymbols support).
 
   function saveStrategies() {
     const accountId = document.getElementById('strategyAccountId').value;
@@ -1028,6 +1050,7 @@
       return;
     }
     const csrfToken = getCookie('csrftoken');
+    // 1) Save strategies
     fetch(`/trading/api/accounts/${accountId}/strategy`, {
       method: 'PUT',
       credentials: 'same-origin',
@@ -1036,16 +1059,36 @@
     })
     .then(r => r.json())
     .then(data => {
-      if (data.success) {
+      if (!data.success) throw new Error(data.message || 'Strategy update failed');
+      // 2) Save allowed symbols
+      let allowed_symbols = null;
+      if (document.getElementById('editOnlyTradeSelected')?.checked) {
+        const selectedSyms = Array.from(document.querySelectorAll('#editSymbolsList .sym-check-edit:checked'))
+          .map(el => el.getAttribute('data-symbol'))
+          .filter(Boolean);
+        if (!selectedSyms.length) throw new Error('Selected pairs mode ma at least 1 symbol select karo');
+        allowed_symbols = selectedSyms;
+      }
+      return fetch(`/trading/api/accounts/${accountId}/symbols`, {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ allowed_symbols: allowed_symbols }),
+      }).then(r2 => r2.json());
+    })
+    .then(data2 => {
+      if (data2 && data2.success) {
         bootstrap.Modal.getInstance(document.getElementById('strategyModal')).hide();
-        showToast('Strategy updated', true);
+        showToast('Account updated', true);
         loadAccounts();
       } else {
-        document.getElementById('strategyResult').style.display = 'block';
-        document.getElementById('strategyResult').innerHTML = `<div class="alert alert-danger py-2 mb-0">Error: ${data.message || 'Failed'}</div>`;
+        throw new Error((data2 && (data2.message || data2.detail)) || 'Pairs update failed');
       }
     })
-    .catch(() => showToast('Request failed', false));
+    .catch((err) => {
+      document.getElementById('strategyResult').style.display = 'block';
+      document.getElementById('strategyResult').innerHTML = `<div class="alert alert-danger py-2 mb-0">Error: ${err && err.message ? err.message : err}</div>`;
+    });
   }
 
   function submitAddAccount() {
@@ -1213,9 +1256,143 @@
     if (btn) {
       const accountId = btn.dataset.accountId;
       const strategies = btn.dataset.strategies ? btn.dataset.strategies.split(',').filter(Boolean) : [];
-      openStrategyModal(accountId, strategies);
+      const allowedSymbols = btn.dataset.allowedSymbols ? btn.dataset.allowedSymbols.split(',').filter(Boolean) : [];
+      openStrategyModal(accountId, strategies, allowedSymbols);
     }
   });
+
+  // ── Trading status (separate from MT5 online/offline) ──────────────────────
+  function refreshTradeModes(accounts) {
+    if (!accounts || !accounts.length) return;
+    accounts.forEach(acc => {
+      const badge = document.getElementById(`tradeModeBadge_${acc.login}`);
+      if (!badge) return;
+      badge.textContent = 'Trading: ...';
+      fetch(`/trading/api/accounts/${acc.login}/trade-mode`, { credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(d => {
+          if (!d) return;
+          if (d.allowed) {
+            badge.textContent = 'Trading: ON';
+            badge.className = 'badge bg-label-success ms-1';
+          } else {
+            if (d.halt_until) {
+              badge.textContent = 'Trading: OFF (until ' + new Date(d.halt_until).toLocaleString() + ')';
+            } else {
+              badge.textContent = 'Trading: OFF (today)';
+            }
+            badge.className = 'badge bg-label-danger ms-1';
+          }
+        })
+        .catch(() => {
+          badge.textContent = 'Trading: ?';
+          badge.className = 'badge bg-label-secondary ms-1';
+        });
+    });
+  }
+
+  // ── Edit modal: pairs UI helpers ───────────────────────────────────────────
+  function toggleOnlyTradeEditUI() {
+    const wrap = document.getElementById('editOnlyTradeSelectedWrap');
+    const selected = document.getElementById('editOnlyTradeSelected');
+    if (!wrap || !selected) return;
+    wrap.style.display = selected.checked ? 'block' : 'none';
+  }
+
+  document.addEventListener('change', function(e) {
+    if (e.target && (e.target.id === 'editOnlyTradeAll' || e.target.id === 'editOnlyTradeSelected')) {
+      toggleOnlyTradeEditUI();
+    }
+  });
+
+  window._editMarketwatchSymbols = window._editMarketwatchSymbols || [];
+
+  function renderSymbolsListEdit(filtered, preselected) {
+    const listEl = document.getElementById('editSymbolsList');
+    if (!listEl) return;
+    const symbols = filtered || window._editMarketwatchSymbols || [];
+    const sel = Array.isArray(preselected) ? preselected : [];
+    if (!symbols.length) {
+      listEl.innerHTML = '<div class="text-muted" style="font-size:.85rem;">Load MarketWatch symbols first</div>';
+      return;
+    }
+    listEl.innerHTML = symbols.map(s => {
+      const id = 'edit_sym_' + s.replace(/[^a-zA-Z0-9_]+/g, '_');
+      const checked = sel.includes(s) ? 'checked' : '';
+      return `
+        <label class="d-flex align-items-center gap-2 mb-1" style="cursor:pointer;">
+          <input type="checkbox" class="form-check-input sym-check-edit" data-symbol="${s}" id="${id}" ${checked}>
+          <span style="font-size:.9rem;">${s}</span>
+        </label>
+      `;
+    }).join('');
+  }
+
+  function filterSymbolsEdit() {
+    const q = (document.getElementById('editSymbolSearch')?.value || '').trim().toUpperCase();
+    if (!q) {
+      renderSymbolsListEdit();
+      return;
+    }
+    const filtered = (window._editMarketwatchSymbols || []).filter(s => String(s).toUpperCase().includes(q));
+    renderSymbolsListEdit(filtered);
+  }
+
+  function loadMarketwatchSymbolsForEdit(btnEl) {
+    const accountId = document.getElementById('strategyAccountId').value;
+    if (!accountId) return;
+    const csrfToken = getCookie('csrftoken');
+    const btn = btnEl || null;
+    if (btn) btn.disabled = true;
+    fetch(`/trading/api/accounts/${accountId}/marketwatch`, {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: { 'X-CSRFToken': csrfToken },
+    })
+    .then(async r => {
+      const raw = await r.text();
+      let data = {};
+      try { data = raw ? JSON.parse(raw) : {}; } catch(e) { data = { success:false, message: raw || ('HTTP ' + r.status) }; }
+      return { ok: r.ok, status: r.status, data };
+    })
+    .then(res => {
+      if (!res.ok || !res.data || !res.data.success) {
+        const msg = res.data?.detail || res.data?.message || ('HTTP ' + res.status);
+        alert('MarketWatch load failed: ' + msg);
+        return;
+      }
+      window._editMarketwatchSymbols = Array.isArray(res.data.symbols) ? res.data.symbols : [];
+      renderSymbolsListEdit(undefined, window._editCurrentAllowedSymbols || []);
+      document.getElementById('editOnlyTradeSelected').checked = true;
+      toggleOnlyTradeEditUI();
+    })
+    .catch(err => alert('MarketWatch load failed: ' + (err && err.message ? err.message : 'unknown')))
+    .finally(() => { if (btn) btn.disabled = false; });
+  }
+
+  // Overload openStrategyModal to also accept current allowed symbols.
+  function openStrategyModal(accountId, currentStrategies, allowedSymbols) {
+    document.getElementById('strategyAccountId').value = accountId;
+    ['order_block', 'breakout', 'confluence', 'my_strategy', 'telegram_signals'].forEach(s => {
+      const el = document.getElementById(`strat_${s}`);
+      if (el) el.checked = (currentStrategies || []).includes(s);
+    });
+    document.getElementById('strategyResult').style.display = 'none';
+    // Pre-fill pairs
+    const hasAllowed = Array.isArray(allowedSymbols) && allowedSymbols.length > 0;
+    document.getElementById('editOnlyTradeSelected').checked = hasAllowed;
+    document.getElementById('editOnlyTradeAll').checked = !hasAllowed;
+    toggleOnlyTradeEditUI();
+    // Keep list empty until MarketWatch load; but preserve current selections so user can unselect/reselect after load.
+    window._editCurrentAllowedSymbols = allowedSymbols || [];
+    // If user has already loaded marketwatch once (in this session), render list with preselection.
+    if (window._editMarketwatchSymbols && window._editMarketwatchSymbols.length) {
+      renderSymbolsListEdit(undefined, window._editCurrentAllowedSymbols || []);
+    } else {
+      renderSymbolsListEdit([], window._editCurrentAllowedSymbols || []);
+    }
+    new bootstrap.Modal(document.getElementById('strategyModal')).show();
+  }
 
   function showTradeDetail(ticket) {
     const body = document.getElementById('tradeDetailBody');

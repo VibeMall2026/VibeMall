@@ -859,6 +859,22 @@ async def probe_marketwatch(body: ProbeMarketwatchRequest):
     return {"success": True, "symbols": syms}
 
 
+@app.get("/accounts/{account_id}/marketwatch", dependencies=[Depends(verify_api_key)])
+async def account_marketwatch(account_id: str):
+    """Return visible MarketWatch symbols for an existing configured account."""
+    from bot.accounts import get_account, probe_marketwatch_symbols
+    acc = get_account(account_id)
+    if not acc:
+        raise HTTPException(status_code=404, detail="account not found")
+    syms = probe_marketwatch_symbols(
+        login=int(acc.login),
+        password=str(acc.password or ""),
+        server=str(acc.server or ""),
+        path=str(acc.path or ""),
+    )
+    return {"success": True, "symbols": syms}
+
+
 @app.post("/accounts/refresh", dependencies=[Depends(verify_api_key)])
 async def refresh_accounts():
     """Refresh balance/equity for all accounts."""
