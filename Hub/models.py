@@ -1028,6 +1028,14 @@ class Order(models.Model):
     
     def auto_process_approval(self) -> None:
         """Automatically approve/flag order based on rules"""
+        # Never auto-approve unpaid orders. Keep them in manual review queue
+        # until payment is marked as PAID.
+        if self.payment_status != 'PAID':
+            self.risk_score = self.calculate_risk_score()
+            self.approval_status = 'PENDING_APPROVAL'
+            self.save()
+            return
+
         self.risk_score = self.calculate_risk_score()
         
         # Flag suspicious orders
