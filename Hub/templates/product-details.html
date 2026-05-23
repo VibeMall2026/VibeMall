@@ -735,14 +735,18 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.pddx-thumb').forEach(function(thumb) {
         thumb.addEventListener('click', function() {
             const src = this.getAttribute('data-image-src');
+            var thumbColor = this.getAttribute('data-image-color') || '';
+
+            // Use unified color/image sync if available (avoids "click 2nd image but last color shows").
+            if (typeof window._vmApplyColorSelection === 'function') {
+                window._vmApplyColorSelection(thumbColor, src);
+                return;
+            }
+
+            // Fallback (should rarely happen)
             if (pddxMainImg && src) pddxMainImg.src = src;
             document.querySelectorAll('.pddx-thumb').forEach(function(t) { t.classList.remove('is-active'); });
             this.classList.add('is-active');
-            // When a colored thumb is clicked, also sync the color swatch
-            var thumbColor = this.getAttribute('data-image-color') || '';
-            if (thumbColor && typeof window._vmApplyColorSelection === 'function') {
-                window._vmApplyColorSelection(thumbColor);
-            }
         });
     });
 
@@ -806,6 +810,14 @@ document.addEventListener('DOMContentLoaded', function() {
     vmThumbs.forEach(function(btn) {
         btn.addEventListener('click', function() {
             const src = this.getAttribute('data-image-src');
+            const thumbColor = this.getAttribute('data-image-color') || '';
+
+            if (typeof window._vmApplyColorSelection === 'function') {
+                window._vmApplyColorSelection(thumbColor, src);
+                return;
+            }
+
+            // Fallback
             if (vmMainImage && src) vmMainImage.src = src;
             vmThumbs.forEach(function(el) { el.classList.remove('is-active'); });
             this.classList.add('is-active');
@@ -1331,12 +1343,13 @@ function initProductColorImageSync() {
         applyFilter('.vm-pd-m-thumb');
     }
 
-    function applyColorSelection(colorValue) {
+    function applyColorSelection(colorValue, preferredSrc) {
         // 0. Filter thumbnails — show only matching color thumbs
         filterThumbsByColor(colorValue);
 
-        // 1. Try exact match from hidden variant data
-        var mappedImageSrc = findMainImageByColor(colorValue);
+        // 1. Prefer the exact thumb the user clicked (prevents wrong image swapping),
+        //    otherwise try exact match from hidden variant data.
+        var mappedImageSrc = preferredSrc || findMainImageByColor(colorValue);
 
         // 2. If no match in variant data, try finding a thumb with matching color directly
         var desktopThumb = null;
@@ -1365,44 +1378,19 @@ function initProductColorImageSync() {
             if (mobileMainImage)  mobileMainImage.src  = mappedImageSrc;
         }
 
-        // 4. Highlight the active thumb
+        // 4. Highlight the active thumb (prefer the clicked thumb by src if provided)
+        if (preferredSrc) {
+            desktopThumb = desktopThumb || findThumbBySrc('.pddx-thumb', preferredSrc);
+            mobileThumb  = mobileThumb  || findThumbBySrc('.vm-pd-m-thumb', preferredSrc);
+        }
         if (desktopThumb) setActiveThumb('.pddx-thumb', '#pddxMainImage', desktopThumb);
         if (mobileThumb)  setActiveThumb('.vm-pd-m-thumb', '#vmPdMainImage', mobileThumb);
 
         syncDesktopColorSelection(colorValue);
         setDescriptionImageByColor(colorValue);
     }
+    // Expose globally so swatches + thumb clicks can use the same logic.
     window._vmApplyColorSelection = applyColorSelection;
-
-    document.querySelectorAll('.pddx-thumb[data-image-color]').forEach(function(thumb) {
-        thumb.addEventListener('click', function() {
-            const thumbColor = thumb.getAttribute('data-image-color') || '';
-            if (thumbColor) {
-                // Apply full color selection to sync swatches, filter thumbnails, and update images
-                applyColorSelection(thumbColor);
-            } else {
-                // Reset to default when clicking main image (no color)
-                syncDesktopColorSelection('');
-                setDescriptionImageByColor('');
-                filterThumbsByColor('');
-            }
-        });
-    });
-
-    document.querySelectorAll('.vm-pd-m-thumb[data-image-color]').forEach(function(thumb) {
-        thumb.addEventListener('click', function() {
-            const thumbColor = thumb.getAttribute('data-image-color') || '';
-            if (thumbColor) {
-                // Apply full color selection to sync swatches, filter thumbnails, and update images
-                applyColorSelection(thumbColor);
-            } else {
-                // Reset to default when clicking main image (no color)
-                syncDesktopColorSelection('');
-                setDescriptionImageByColor('');
-                filterThumbsByColor('');
-            }
-        });
-    });
 
     const initiallySelectedColor = colorRoot.querySelector('.pddx-swatch.is-active');
     if (initiallySelectedColor) {
