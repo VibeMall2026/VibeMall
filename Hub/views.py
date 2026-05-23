@@ -6667,7 +6667,7 @@ def checkout_confirm(request):
     if request.method == 'POST':
         first_name = checkout_form.get('first_name')
         last_name = checkout_form.get('last_name')
-        email = checkout_form.get('email')
+        email = (checkout_form.get('email') or '').strip().lower()
         phone = checkout_form.get('phone')
         country = checkout_form.get('country')
         address = checkout_form.get('address')
@@ -6684,6 +6684,12 @@ def checkout_confirm(request):
             messages.error(request, 'Please fill all required fields')
             return redirect('checkout')
 
+        try:
+            validate_email(email)
+        except ValidationError:
+            messages.error(request, 'Please enter a valid email address.')
+            return redirect('checkout')
+
         if (country or '').strip().lower() == 'india':
             if not re.fullmatch(r"[0-9]{6}", postcode or ''):
                 messages.error(request, 'Please enter a valid 6-digit pincode.')
@@ -6693,6 +6699,12 @@ def checkout_confirm(request):
                 return redirect('checkout')
 
         try:
+            # Keep account email in sync with checkout email so order emails go to
+            # the exact address entered during checkout.
+            if request.user.email.strip().lower() != email:
+                request.user.email = email
+                request.user.save(update_fields=['email'])
+
             shipping_address = f"{first_name} {last_name}\n{address}\n{city}, {state} {postcode}\n{country}"
             
             # Check for resell link in session
