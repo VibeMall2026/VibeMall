@@ -225,21 +225,86 @@ def _validate_upi_format(upi_id: Optional[str]) -> bool:
 
 
 def _validate_indian_pincode(pincode: Optional[str]) -> bool:
-    """Validate an Indian pincode using external postal API."""
-    if not re.fullmatch(r"[0-9]{6}", pincode or ''):
+    """
+    Validate an Indian pincode using the external postal API.
+
+    Important production behavior:
+    - If the API is unreachable (network/DNS/TLS), we FAIL OPEN (return True)
+      so checkout is not blocked for valid-looking 6-digit pincodes.
+    - If the API responds but says "Error", we FAIL CLOSED (return False).
+    """
+    raw = (pincode or '').strip()
+    if not re.fullmatch(r"[0-9]{6}", raw):
         return False
 
-    url = f"https://api.postalpincode.in/pincode/{pincode}"
-    request = Request(url, method='GET')
+    # Cache results to reduce dependency on the external API.
     try:
+        from django.core.cache import cache
+        cache_key = f"vm_pincode_valid:{raw}"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return bool(cached)
+    except Exception:
+        cache = None
+        cache_key = None
+
+    url = f"https://api.postalpincode.in/pincode/{raw}"
+
+    def _store(value: bool) -> bool:
+        try:
+            if cache is not None and cache_key is not None:
+                # 30 days
+                cache.set(cache_key, bool(value), 60 * 60 * 24 * 30)
+        except Exception:
+            pass
+        return bool(value)
+
+    # Attempt 1: urllib (no extra deps).
+    try:
+        request = Request(
+            url,
+            method='GET',
+            headers={
+                # Some networks/proxies block "empty" user agents.
+                "User-Agent": "VibeMall/1.0 (+https://vibemall)",
+                "Accept": "application/json,text/plain,*/*",
+            },
+        )
         with urlopen(request, timeout=8) as response:
             data = json.loads(response.read().decode('utf-8'))
         result = data[0] if isinstance(data, list) and data else None
-        if not result or result.get('Status') != 'Success':
-            return False
-        return True
+        ok = bool(result and result.get('Status') == 'Success')
+        return _store(ok)
     except Exception:
-        return False
+        pass
+
+    # Attempt 2: requests (often more reliable in some hosting environments).
+    try:
+        import requests
+        resp = requests.get(
+            url,
+            timeout=8,
+            headers={"User-Agent": "VibeMall/1.0 (+https://vibemall)", "Accept": "application/json"},
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        result = data[0] if isinstance(data, list) and data else None
+        ok = bool(result and result.get('Status') == 'Success')
+        return _store(ok)
+    except Exception as exc:
+        # Fail open so real customers are not blocked if the API is down.
+        try:
+            from django.utils import timezone
+            logger = getattr(settings, 'LOGGER', None)
+        except Exception:
+            logger = None
+        # Use module-level print-free behavior (no logger requirement).
+        try:
+            import logging
+            logging.getLogger(__name__).warning("Pincode API unreachable; allowing %s (%s)", raw, exc)
+        except Exception:
+            pass
+        return _store(True)
 
 
 def _lookup_ifsc_details(ifsc_code: Optional[str]) -> Tuple[bool, str, str, str]:
