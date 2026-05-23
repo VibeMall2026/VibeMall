@@ -34,8 +34,22 @@ def _validate_email_settings() -> str:
     if not configured_host_user and not default_from_email:
         raise ValueError('Email sender is not configured. Set EMAIL_HOST_USER or DEFAULT_FROM_EMAIL in environment settings.')
 
-    if configured_host_user.startswith('replace_with_') or configured_host_password.startswith('replace_with_'):
-        raise ValueError('Email SMTP is using placeholder values. Please set EMAIL_HOST_USER and EMAIL_HOST_PASSWORD in .env.')
+    # Detect common placeholder patterns so we fail loudly (instead of silently "sending" nothing).
+    placeholder_prefixes = (
+        'replace_with_',
+        'your-',
+        'your_',
+        'change_this',
+        'example',
+        'test_',
+    )
+    if (
+        configured_host_user.lower().startswith(placeholder_prefixes)
+        or configured_host_password.lower().startswith(placeholder_prefixes)
+        or 'your-brevo' in configured_host_password.lower()
+        or 'your-smtp' in configured_host_password.lower()
+    ):
+        raise ValueError('Email SMTP is using placeholder values. Please set real EMAIL_HOST_USER and EMAIL_HOST_PASSWORD in environment settings.')
 
     if email_backend == 'django.core.mail.backends.smtp.EmailBackend':
         if not configured_host_user or not configured_host_password:
@@ -544,18 +558,11 @@ def send_order_status_update_email(order, old_status, new_status):
             logger.warning(f"Skipping status email for order {order.order_number}: user has no email")
             return False
 
-        configured_host_user = getattr(settings, 'EMAIL_HOST_USER', '')
-        configured_host_password = getattr(settings, 'EMAIL_HOST_PASSWORD', '')
-        default_from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', '').strip()
-        if str(configured_host_user).startswith('replace_with_') or str(configured_host_password).startswith('replace_with_'):
-            raise ValueError("Email SMTP is using placeholder values. Please set EMAIL_HOST_USER and EMAIL_HOST_PASSWORD in .env")
-
-        from_email = default_from_email or configured_host_user
-        if not from_email:
-            raise ValueError("Email sender is not configured. Set EMAIL_HOST_USER or DEFAULT_FROM_EMAIL.")
+        # Validate email configuration before sending (shared validator used by confirmation/admin emails too)
+        from_email = _validate_email_settings()
 
         # Get site URL from settings
-        site_url = getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000')
+        site_url = getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000').rstrip('/')
 
         # Build email-friendly order items (with absolute image URLs)
         order_items = []

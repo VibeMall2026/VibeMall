@@ -472,7 +472,19 @@
     margin-top: 20px;
     border-radius: 22px;
     overflow: hidden;
-    aspect-ratio: 16 / 10;
+    /* Previously fixed aspect-ratio caused portrait images to look "half/zoomed".
+       Let the image decide height so full photo is visible. */
+    aspect-ratio: auto;
+    background: #f4efe6;
+}
+
+.vm-pd-legacy-content .pddx-detail-image img {
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    object-fit: contain;
+    object-position: center;
+    display: block;
 }
 
 .vm-pd-legacy-content .pddx-editorial-note {
