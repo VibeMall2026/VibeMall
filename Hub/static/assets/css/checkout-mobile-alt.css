@@ -28,7 +28,9 @@ body.vm-page-mobile-checkout {
     .vm-checkout-mobile-only {
         display: block;
         min-height: 100vh;
-        padding-bottom: calc(248px + env(safe-area-max-inset-bottom, env(safe-area-inset-bottom, 0px)));
+        /* Only reserve space for the fixed bottom nav on mobile.
+           The "Continue to Payment" section should sit at the end of the page (not fixed). */
+        padding-bottom: calc(110px + env(safe-area-max-inset-bottom, env(safe-area-inset-bottom, 0px)));
         background:
             radial-gradient(circle at top right, rgba(250, 223, 177, 0.45), transparent 28%),
             linear-gradient(180deg, #fbf9f4 0%, #f4f1ea 100%);
@@ -689,12 +691,10 @@ body.vm-page-mobile-checkout {
     }
 
     .vm-checkout-mobile-fixed {
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: calc(78px + env(safe-area-max-inset-bottom, env(safe-area-inset-bottom, 0px)));
-        z-index: 70;
+        /* Mobile: keep it at the end of the page (not fixed) so it doesn't block scroll/clicks */
+        position: static;
         padding: 18px 24px 18px;
+        margin: 18px 0 calc(96px + env(safe-area-max-inset-bottom, env(safe-area-inset-bottom, 0px)));
         background: rgba(255, 255, 255, 0.92);
         backdrop-filter: blur(18px);
         border-top: 1px solid rgba(228, 226, 221, 0.94);

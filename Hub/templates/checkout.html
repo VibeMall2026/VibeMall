@@ -1212,9 +1212,21 @@
                 throw new Error('Invalid pincode. Please enter a valid 6-digit pincode.');
             })
             .catch(function (error) {
-                setHint(error.message === 'Unable to validate pincode right now.' ? error.message : '', !!error.message);
-                setPincodeError(error.message || 'Unable to validate pincode right now.');
-                updateSubmitState(false);
+                const message = (error && error.message) ? String(error.message) : '';
+                const looksInvalid = message.toLowerCase().includes('invalid pincode');
+
+                // If validation service fails (network/CORS/etc.), don't block checkout in mobile.
+                // Still block only when pincode is clearly invalid.
+                if (looksInvalid) {
+                    setHint('', true);
+                    setPincodeError(message || 'Invalid pincode. Please enter a valid 6-digit pincode.');
+                    updateSubmitState(false);
+                    return;
+                }
+
+                setHint('Unable to validate pincode right now. You can continue.', false);
+                setPincodeError('');
+                updateSubmitState(true);
             });
     }
 
@@ -1362,7 +1374,8 @@
     });
     form.addEventListener('submit', function (event) {
         syncSplitName();
-        if (isIndia() && pincodeValidField && pincodeValidField.value !== '1') {
+        const pin = (postcodeField && postcodeField.value || '').trim();
+        if (isIndia() && !/^[0-9]{6}$/.test(pin)) {
             event.preventDefault();
             setHint('Please enter a valid pincode before submitting.', true);
             setPincodeError('Invalid pincode. Please enter a valid 6-digit pincode.');
