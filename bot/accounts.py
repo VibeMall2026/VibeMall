@@ -909,12 +909,31 @@ def execute_on_all_accounts(
                     start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
                     end = datetime.now(timezone.utc)
                     deals = mt5.history_deals_get(start, end) or []
-                    today_realized = sum(
-                        float(getattr(d, "profit", 0.0) or 0.0)
-                        + float(getattr(d, "commission", 0.0) or 0.0)
-                        + float(getattr(d, "swap", 0.0) or 0.0)
-                        for d in deals
-                    )
+                    # IMPORTANT:
+                    # MT5 history_deals_get returns not only trade deals, but also BALANCE/CREDIT
+                    # operations (deposits/withdrawals) where `profit` can equal the deposited amount.
+                    # That can falsely trigger the "daily profit stop" (e.g. profit shows $3000).
+                    #
+                    # So we count ONLY trade-related, realized deals:
+                    # - position_id must be present (>0)  -> excludes balance operations
+                    # - entry must NOT be DEAL_ENTRY_IN    -> only realized/closing legs
+                    today_realized = 0.0
+                    deal_entry_in = getattr(mt5, "DEAL_ENTRY_IN", None)
+                    for d in deals:
+                        try:
+                            position_id = int(getattr(d, "position_id", 0) or 0)
+                            if position_id <= 0:
+                                continue
+                            entry = getattr(d, "entry", None)
+                            if deal_entry_in is not None and entry == deal_entry_in:
+                                continue
+                            today_realized += (
+                                float(getattr(d, "profit", 0.0) or 0.0)
+                                + float(getattr(d, "commission", 0.0) or 0.0)
+                                + float(getattr(d, "swap", 0.0) or 0.0)
+                            )
+                        except Exception:
+                            continue
                 except Exception:
                     today_realized = 0.0
 
