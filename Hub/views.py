@@ -1167,9 +1167,10 @@ def crop_image_height(file_obj, target_height=738):
         file_obj.seek(0)
         image = PILImage.open(file_obj)
         image.load()
-        # Standardized product frame (4:5) without cropping important content.
-        target_width = 320
-        frame_height = 400
+        # Standardized high-res product frame (4:5) without cropping important content.
+        # UI can still render at 320x400 while source remains crisp.
+        target_width = 960
+        frame_height = 1200
 
         has_alpha = image.mode in ('RGBA', 'LA') or (image.mode == 'P' and 'transparency' in image.info)
         working = image.convert('RGBA') if has_alpha else image.convert('RGB')
@@ -1195,7 +1196,7 @@ def crop_image_height(file_obj, target_height=738):
             content_type = 'image/png'
             ext = 'png'
         else:
-            canvas.save(output, format='JPEG', optimize=True, quality=86)
+            canvas.save(output, format='JPEG', optimize=True, quality=92)
             content_type = 'image/jpeg'
             ext = 'jpg'
         output.seek(0)

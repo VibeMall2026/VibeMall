@@ -85,10 +85,10 @@ def _compress_image_field(instance, field_name, max_width=1200, quality=82):
 def _fit_image_field_to_frame(
     instance,
     field_name,
-    target_width=320,
-    target_height=400,
+    target_width=960,
+    target_height=1200,
     background_rgba=(246, 244, 239, 255),
-    quality=86,
+    quality=92,
 ):
     """
     Normalize product/gallery images to a consistent 4:5 frame without cropping.
@@ -511,8 +511,8 @@ class Product(models.Model):
 
         super().save(*args, **kwargs)
 
-        # Normalize to a standard 4:5 frame (320x400) for consistent storefront cards
-        _fit_image_field_to_frame(self, 'image', target_width=320, target_height=400)
+        # Normalize to high-res 4:5 frame (display remains 320x400 via CSS)
+        _fit_image_field_to_frame(self, 'image', target_width=960, target_height=1200)
 
         # Compress main product image after save
         _compress_image_field(self, 'image', max_width=1200, quality=82)
@@ -593,7 +593,7 @@ class ProductImage(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        _fit_image_field_to_frame(self, 'image', target_width=320, target_height=400)
+        _fit_image_field_to_frame(self, 'image', target_width=960, target_height=1200)
         _compress_image_field(self, 'image', max_width=1200, quality=82)
 
 
