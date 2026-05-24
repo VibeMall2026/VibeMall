@@ -195,10 +195,14 @@ def _load_extra_accounts() -> None:
     without restarting the bot process.
 
     Format (semicolon-separated entries):
-        Label|login|password|server|strategy|path
+        Label|login|password|server|strategy|path|allowed_symbols
+
+    allowed_symbols is optional and can be comma-separated, e.g.:
+        XAUUSD
+        XAUUSD,BTCUSD
 
     Example:
-        Range Breakout Demo|106903766|IbLcNr_4|MetaQuotes-Demo|breakout|C:\MT5\terminal64.exe
+        Range Breakout Demo|106903766|IbLcNr_4|MetaQuotes-Demo|breakout|C:\MT5\terminal64.exe|XAUUSD
     """
     # Read directly from .env file so live changes are picked up without restart
     import os
@@ -245,6 +249,13 @@ def _load_extra_accounts() -> None:
             [s.strip() for s in parts[4].split("+")] if len(parts) >= 5 else ["order_block"]
         )
         account_path = parts[5].strip() if len(parts) >= 6 else _config.MT5_PATH
+        allowed_symbols = None
+        if len(parts) >= 7 and str(parts[6]).strip():
+            allowed_symbols = [
+                s.strip().upper()
+                for s in str(parts[6]).split(",")
+                if s and s.strip()
+            ] or None
 
         # Avoid duplicates — check by login number
         if any(a.login == login for a in _accounts):
@@ -267,6 +278,7 @@ def _load_extra_accounts() -> None:
             path=account_path,
             enabled=True,
             strategy=strategies,
+            allowed_symbols=allowed_symbols,
         )
         _accounts.append(acc)
         logger.info(
