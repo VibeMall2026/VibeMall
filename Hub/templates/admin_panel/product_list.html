@@ -129,6 +129,9 @@
                 <a href="{% url 'admin_main_page_products' %}?section=categories" class="btn btn-outline-info me-2">
                     <i class='bx bx-home-alt'></i> Homepage Sections
                 </a>
+                <button type="button" class="btn btn-outline-warning me-2" id="toggleTempEditPhotosBtn">
+                    <i class='bx bx-image-alt'></i> Temporary Edit Photos
+                </button>
                 <a href="{% url 'admin_add_product' %}" class="btn btn-primary">
                     <i class='bx bx-plus'></i> Add Product
                 </a>
@@ -297,6 +300,28 @@
     {% endif %}
 </div>
 
+<div class="card mb-4 d-none" id="tempEditPhotosPanel">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Quick Edit Photos (Temporary)</h6>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="closeTempEditPhotosPanel">Close</button>
+        </div>
+        <p class="text-muted mb-3">You can directly open product edit screen from here.</p>
+        <div class="row g-2">
+            {% for product in products %}
+            <div class="col-md-4 col-lg-3">
+                <div class="border rounded p-2 h-100 bg-light">
+                    <div class="small fw-semibold mb-2">{{ product.name|truncatechars:42 }}</div>
+                    <a class="btn btn-sm btn-dark w-100" href="{% url 'admin_edit_product' product.id %}">
+                        Edit Product Photos
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -355,6 +380,25 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    const tempEditBtn = document.getElementById('toggleTempEditPhotosBtn');
+    const tempPanel = document.getElementById('tempEditPhotosPanel');
+    const closeTempPanelBtn = document.getElementById('closeTempEditPhotosPanel');
+
+    if (tempEditBtn && tempPanel) {
+        tempEditBtn.addEventListener('click', function() {
+            tempPanel.classList.toggle('d-none');
+            if (!tempPanel.classList.contains('d-none')) {
+                tempPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    }
+
+    if (closeTempPanelBtn && tempPanel) {
+        closeTempPanelBtn.addEventListener('click', function() {
+            tempPanel.classList.add('d-none');
+        });
+    }
 });
 </script>
 {% endblock %}
