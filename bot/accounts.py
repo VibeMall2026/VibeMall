@@ -1134,13 +1134,30 @@ def _execute_single(
             deals = mt5.history_deals_get(start, end)
             if not deals:
                 return 0.0
+            # IMPORTANT:
+            # history_deals_get includes BALANCE/CREDIT operations (deposits/withdrawals)
+            # which can appear as "profit" and falsely trigger daily target/profit-stop logic.
+            #
+            # We count ONLY realized trade deals:
+            # - position_id must exist (>0) -> excludes balance operations
+            # - entry must NOT be DEAL_ENTRY_IN -> exclude opening legs; keep closes/outs
             total = 0.0
+            deal_entry_in = getattr(mt5, "DEAL_ENTRY_IN", None)
             for d in deals:
-                profit = float(getattr(d, "profit", 0.0) or 0.0)
-                commission = float(getattr(d, "commission", 0.0) or 0.0)
-                swap = float(getattr(d, "swap", 0.0) or 0.0)
-                total += (profit + commission + swap)
-            return total
+                try:
+                    position_id = int(getattr(d, "position_id", 0) or 0)
+                    if position_id <= 0:
+                        continue
+                    entry = getattr(d, "entry", None)
+                    if deal_entry_in is not None and entry == deal_entry_in:
+                        continue
+                    profit = float(getattr(d, "profit", 0.0) or 0.0)
+                    commission = float(getattr(d, "commission", 0.0) or 0.0)
+                    swap = float(getattr(d, "swap", 0.0) or 0.0)
+                    total += (profit + commission + swap)
+                except Exception:
+                    continue
+            return float(total or 0.0)
         except Exception:
             return 0.0
 
