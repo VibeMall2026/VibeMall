@@ -15,6 +15,26 @@
     background: #f6f4ef;
 }
 
+/* Remove fixed crop frames where legacy CSS forces ratio-based clipping */
+.vm-shop-m-thumb,
+.vm-shop-t-thumb,
+.vm-shop-d-thumb,
+.product__thumb,
+.card-media,
+.vm-home-mobile-product-card__media,
+.vm-home-tablet-product__media {
+    overflow: hidden;
+}
+
+/* Remove fixed-ratio clipping on shop cards so full image can render */
+.vm-shop-m-thumb,
+.vm-shop-t-thumb,
+.vm-shop-d-thumb {
+    aspect-ratio: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+}
+
 .product__thumb img,
 .product__thumb .product-image img,
 .card-media img,
@@ -45,6 +65,15 @@
 .product__thumb img,
 .product__thumb .product-image img {
     height: auto !important;
+}
+
+/* For shop grids, force full image visibility even if parent rules changed elsewhere */
+.vm-shop-m-thumb img,
+.vm-shop-t-thumb img,
+.vm-shop-d-thumb img {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
 }
 
 /* Kill hover zoom rules from legacy styles */
