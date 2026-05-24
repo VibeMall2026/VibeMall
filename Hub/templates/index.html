@@ -487,7 +487,7 @@
                 </div>
             </div>
             <div class="vm-home-mobile-series__track">
-                    {% for reel in watch_shop_reels|slice:":3" %}
+                    {% for reel in watch_shop_reels %}
                     <article class="vm-home-mobile-series__card">
                         {% if reel.product and reel.product.slug %}<a href="{% url 'product_detail' reel.product.slug %}">{% endif %}
                         {% if reel.video_file %}
