@@ -112,9 +112,9 @@
 .vm-pd-legacy-content .pddx-stage__image,
 .vm-pd-legacy-content .pddx-detail-image img {
     width: 100%;
-    height: 100%;
+    height: auto;
     display: block;
-    object-fit: cover;
+    object-fit: contain;
 }
 
 .vm-pd-legacy-content .pddx-stage__frame {
@@ -125,7 +125,7 @@
     background:
         radial-gradient(circle at top right, rgba(250, 223, 177, 0.8), transparent 28%),
         linear-gradient(180deg, #faf7f1 0%, #f2ede3 100%);
-    aspect-ratio: 4 / 5;
+    aspect-ratio: auto;
     box-shadow: 0 28px 50px -32px rgba(23, 24, 24, 0.35);
 }
 
@@ -133,6 +133,12 @@
     object-fit: contain;
     padding: 34px;
     mix-blend-mode: multiply;
+}
+
+/* Keep thumbnail buttons visually filled while main/detail images stay uncropped */
+.vm-pd-legacy-content .pddx-thumb img {
+    height: 100%;
+    object-fit: contain;
 }
 
 .vm-pd-legacy-content .pddx-stage__zoom {
