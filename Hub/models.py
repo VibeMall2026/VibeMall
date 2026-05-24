@@ -81,6 +81,79 @@ def _compress_image_field(instance, field_name, max_width=1200, quality=82):
     except Exception as exc:
         logger.warning('Image compression skipped for %s.%s: %s', type(instance).__name__, field_name, exc)
 
+
+def _fit_image_field_to_frame(
+    instance,
+    field_name,
+    target_width=320,
+    target_height=400,
+    background_rgba=(246, 244, 239, 255),
+    quality=86,
+):
+    """
+    Normalize product/gallery images to a consistent 4:5 frame without cropping.
+    This keeps full image visible (contain behavior) and avoids distortion.
+    """
+    try:
+        from PIL import Image
+        import io
+        from django.core.files.base import ContentFile
+
+        field = getattr(instance, field_name, None)
+        if not field or not field.name:
+            return
+
+        try:
+            field.open('rb')
+            img = Image.open(field)
+            img.load()
+            field.close()
+        except Exception:
+            return
+
+        if img.format not in ('JPEG', 'PNG', 'WEBP'):
+            return
+
+        # Preserve transparency when available
+        has_alpha = img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info)
+        working = img.convert('RGBA') if has_alpha else img.convert('RGB')
+
+        # If already correct size and mode, skip rewrite
+        if working.width == target_width and working.height == target_height:
+            return
+
+        # Fit image inside frame (no crop), centered
+        fitted = working.copy()
+        fitted.thumbnail((target_width, target_height), Image.LANCZOS)
+
+        if has_alpha:
+            canvas = Image.new('RGBA', (target_width, target_height), background_rgba)
+        else:
+            canvas = Image.new('RGB', (target_width, target_height), background_rgba[:3])
+
+        x = (target_width - fitted.width) // 2
+        y = (target_height - fitted.height) // 2
+        canvas.paste(fitted, (x, y), fitted if has_alpha else None)
+
+        output_format = 'PNG' if has_alpha else 'JPEG'
+        buffer = io.BytesIO()
+        save_kwargs = {'format': output_format, 'optimize': True}
+        if output_format == 'JPEG':
+            save_kwargs['quality'] = quality
+        canvas.save(buffer, **save_kwargs)
+        buffer.seek(0)
+
+        original_name = field.name.split('/')[-1]
+        if output_format == 'JPEG' and not original_name.lower().endswith(('.jpg', '.jpeg')):
+            original_name = original_name.rsplit('.', 1)[0] + '.jpg'
+        if output_format == 'PNG' and not original_name.lower().endswith('.png'):
+            original_name = original_name.rsplit('.', 1)[0] + '.png'
+
+        field.save(original_name, ContentFile(buffer.read()), save=False)
+        type(instance).objects.filter(pk=instance.pk).update(**{field_name: field.name})
+    except Exception as exc:
+        logger.warning('Image frame fit skipped for %s.%s: %s', type(instance).__name__, field_name, exc)
+
 class PasswordResetLog(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     email = models.EmailField()
@@ -438,6 +511,9 @@ class Product(models.Model):
 
         super().save(*args, **kwargs)
 
+        # Normalize to a standard 4:5 frame (320x400) for consistent storefront cards
+        _fit_image_field_to_frame(self, 'image', target_width=320, target_height=400)
+
         # Compress main product image after save
         _compress_image_field(self, 'image', max_width=1200, quality=82)
         _compress_image_field(self, 'descriptionImage', max_width=1400, quality=80)
@@ -517,6 +593,7 @@ class ProductImage(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
+        _fit_image_field_to_frame(self, 'image', target_width=320, target_height=400)
         _compress_image_field(self, 'image', max_width=1200, quality=82)
 
 

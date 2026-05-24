@@ -1167,24 +1167,47 @@ def crop_image_height(file_obj, target_height=738):
         file_obj.seek(0)
         image = PILImage.open(file_obj)
         image.load()
-        width, height = image.size
+        # Standardized product frame (4:5) without cropping important content.
+        target_width = 320
+        frame_height = 400
 
-        if height > target_height:
-            image = image.crop((0, 0, width, target_height))
+        has_alpha = image.mode in ('RGBA', 'LA') or (image.mode == 'P' and 'transparency' in image.info)
+        working = image.convert('RGBA') if has_alpha else image.convert('RGB')
 
-        image = image.convert('RGBA')
+        # Resize to fit inside frame while preserving aspect ratio
+        fitted = working.copy()
+        try:
+            resample_filter = PILImage.Resampling.LANCZOS
+        except AttributeError:
+            resample_filter = PILImage.LANCZOS
+        fitted.thumbnail((target_width, frame_height), resample_filter)
+
+        canvas_mode = 'RGBA' if has_alpha else 'RGB'
+        canvas_bg = (246, 244, 239, 255) if has_alpha else (246, 244, 239)
+        canvas = PILImage.new(canvas_mode, (target_width, frame_height), canvas_bg)
+        offset_x = (target_width - fitted.width) // 2
+        offset_y = (frame_height - fitted.height) // 2
+        canvas.paste(fitted, (offset_x, offset_y), fitted if has_alpha else None)
+
         output = BytesIO()
-        image.save(output, format='PNG')
+        if has_alpha:
+            canvas.save(output, format='PNG', optimize=True)
+            content_type = 'image/png'
+            ext = 'png'
+        else:
+            canvas.save(output, format='JPEG', optimize=True, quality=86)
+            content_type = 'image/jpeg'
+            ext = 'jpg'
         output.seek(0)
 
         base_name, _ = os.path.splitext(file_obj.name)
-        png_name = f"{base_name}.png"
+        normalized_name = f"{base_name}.{ext}"
 
         return InMemoryUploadedFile(
             output,
             'ImageField',
-            png_name,
-            'image/png',
+            normalized_name,
+            content_type,
             output.getbuffer().nbytes,
             None,
         )
