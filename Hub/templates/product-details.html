@@ -100,6 +100,35 @@
   display: block;
 }
 
+.pddx-image-resize-toggle {
+  margin-top: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.92rem;
+  color: #2e2f2f;
+}
+
+.pddx-image-resize-toggle input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+}
+
+body.vm-pd-original-card-image .pddx-reco__image {
+  aspect-ratio: auto;
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.vm-pd-original-card-image .pddx-reco__image img {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  object-fit: initial;
+}
+
 .pddx-reco__body {
   padding: 1rem 1rem 1.1rem;
 }
@@ -730,6 +759,15 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const resizeToggle = document.getElementById('resizeProductCardImagesToggle');
+    if (resizeToggle) {
+        const syncProductCardImageSizing = function() {
+            document.body.classList.toggle('vm-pd-original-card-image', !resizeToggle.checked);
+        };
+        resizeToggle.addEventListener('change', syncProductCardImageSizing);
+        syncProductCardImageSizing();
+    }
+
     /* ── Desktop image switcher ── */
     const pddxMainImg = document.getElementById('pddxMainImage');
     document.querySelectorAll('.pddx-thumb').forEach(function(thumb) {
@@ -1638,6 +1676,10 @@ function openDesktopProductImage() {
                                              style="display: block !important; width: 100% !important; height: auto !important; max-height: 500px !important; object-fit: contain !important; background-color: #f0f0f0;">
                                     {% endif %}
                                 </div>
+                                <label class="pddx-image-resize-toggle" for="resizeProductCardImagesToggle">
+                                    <input type="checkbox" id="resizeProductCardImagesToggle" checked>
+                                    <span>Resize product card images</span>
+                                </label>
                             </div>
                         </div>
                     </div>

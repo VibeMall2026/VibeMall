@@ -182,6 +182,72 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     .product-toolbar { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px 16px; box-shadow: 0 8px 24px rgba(15,23,42,0.08); }
     .rating-inline i { color: #f59e0b; }
+    .vm-shop-d-admin-tools {
+        margin: 14px 0 0;
+        padding: 12px 14px;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        background: #ffffff;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    .vm-shop-d-resize-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        color: #111827;
+    }
+    .vm-shop-d-resize-toggle input { width: 16px; height: 16px; }
+    .vm-shop-d-photo-tools {
+        margin: 12px 0 18px;
+        padding: 14px;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        background: #fff;
+    }
+    .vm-shop-d-photo-tools[hidden] { display: none !important; }
+    .vm-shop-d-photo-grid {
+        margin-top: 10px;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+    }
+    .vm-shop-d-photo-item {
+        border: 1px solid #eceff3;
+        border-radius: 10px;
+        padding: 10px;
+        background: #fbfcfe;
+    }
+    .vm-shop-d-photo-item strong {
+        display: block;
+        font-size: 13px;
+        margin-bottom: 8px;
+        line-height: 1.35;
+        color: #111827;
+    }
+    .vm-shop-d-photo-item a {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 8px;
+        background: #111827;
+        color: #fff;
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    body.vm-shop-original-image .vm-shop-d-thumb img {
+        object-fit: contain !important;
+        background: #fff;
+        padding: 10px;
+    }
+    @media (max-width: 1399.98px) {
+        .vm-shop-d-photo-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
 
     /* Shop grid card alignment */
     .product__item {
@@ -645,7 +711,33 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
             </div>
         </div>
+        <div class="vm-shop-d-toolbar-inner">
+            <div class="vm-shop-d-admin-tools">
+                <label class="vm-shop-d-resize-toggle" for="vmShopResizeImagesToggle">
+                    <input type="checkbox" id="vmShopResizeImagesToggle" checked>
+                    <span>Resize product images</span>
+                </label>
+                {% if user.is_authenticated and user.is_staff %}
+                <button type="button" id="vmShopTogglePhotoTools" class="vm-shop-d-filter-apply">Temporary Edit Photos</button>
+                {% endif %}
+            </div>
+        </div>
     </section>
+
+    {% if user.is_authenticated and user.is_staff %}
+    <section class="vm-shop-d-photo-tools" id="vmShopPhotoToolsPanel" hidden>
+        <h3 style="margin:0; font-size:16px; color:#111827;">Quick Edit Photos (Temporary)</h3>
+        <p style="margin:6px 0 0; color:#4b5563; font-size:13px;">Each card opens product edit directly, so you do not need to go deep in admin every time.</p>
+        <div class="vm-shop-d-photo-grid">
+            {% for product in products %}
+            <div class="vm-shop-d-photo-item">
+                <strong>{{ product.name|truncatechars:42 }}</strong>
+                <a href="{% url 'admin_edit_product' product.id %}">Edit Product Photos</a>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
 
     <section class="vm-shop-d-shell">
         <aside class="vm-shop-d-sidebar">
@@ -848,6 +940,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const listBtn = document.getElementById('vmShopViewList');
     const desktopSearch = document.getElementById('vmShopDesktopSearch');
     const desktopRangeInputs = document.querySelectorAll('.vm-shop-d-range-input');
+    const resizeImagesToggle = document.getElementById('vmShopResizeImagesToggle');
+    const photoToolsToggle = document.getElementById('vmShopTogglePhotoTools');
+    const photoToolsPanel = document.getElementById('vmShopPhotoToolsPanel');
 
     const renderDesktopListRatings = () => {
         const ratingRows = document.querySelectorAll('.vm-shop-d-list-rating[data-product-rating]');
@@ -882,6 +977,25 @@ document.addEventListener('DOMContentLoaded', function() {
     if (desktopShell && desktopGrid && desktopFilterBtn) {
         desktopFilterBtn.addEventListener('click', function () {
             desktopShell.classList.toggle('sidebar-collapsed');
+        });
+    }
+
+    if (resizeImagesToggle) {
+        const syncImageResizeMode = () => {
+            document.body.classList.toggle('vm-shop-original-image', !resizeImagesToggle.checked);
+        };
+        resizeImagesToggle.addEventListener('change', syncImageResizeMode);
+        syncImageResizeMode();
+    }
+
+    if (photoToolsToggle && photoToolsPanel) {
+        photoToolsToggle.addEventListener('click', function () {
+            const isHidden = photoToolsPanel.hasAttribute('hidden');
+            if (isHidden) {
+                photoToolsPanel.removeAttribute('hidden');
+            } else {
+                photoToolsPanel.setAttribute('hidden', '');
+            }
         });
     }
 
