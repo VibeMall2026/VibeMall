@@ -292,6 +292,8 @@ def stop_account_for_today(login: int) -> None:
         # Clear any stop-until when explicit stop-today is set.
         _account_trade_halts_until.pop(int(login), None)
         _persist_trade_modes_to_disk()
+    # Prevent delayed fills from already-placed pending orders.
+    _cancel_pending_orders_for_login(int(login))
 
 
 def stop_account_until(login: int, until_utc: datetime) -> None:
@@ -311,6 +313,8 @@ def stop_account_until(login: int, until_utc: datetime) -> None:
         # Clear stop-today so we only have one active halt source.
         _account_trade_halts.pop(key, None)
         _persist_trade_modes_to_disk()
+    # Prevent delayed fills from already-placed pending orders.
+    _cancel_pending_orders_for_login(int(login))
 
 
 def start_account_now(login: int) -> None:
@@ -711,6 +715,54 @@ def _reconnect_primary() -> None:
         _connect_account(primary)
     else:
         ensure_any_account_connected()
+
+
+def _cancel_pending_orders_for_login(login: int) -> int:
+    """
+    Best-effort cancel all pending orders for a specific account login.
+    Returns number of successfully canceled orders.
+    """
+    if not MT5_AVAILABLE:
+        return 0
+
+    target = None
+    with _accounts_lock:
+        for acc in _accounts:
+            if int(getattr(acc, "login", 0) or 0) == int(login) and acc.enabled:
+                target = acc
+                break
+    if target is None:
+        return 0
+
+    canceled = 0
+    with _mt5_op_lock:
+        try:
+            if not _connect_account(target):
+                return 0
+            pending_orders = mt5.orders_get() or []
+            for order in pending_orders:
+                try:
+                    ticket = int(getattr(order, "ticket", 0) or 0)
+                    if not ticket:
+                        continue
+                    req = {
+                        "action": mt5.TRADE_ACTION_REMOVE,
+                        "order": ticket,
+                        "comment": "MANUAL_STOP_CANCEL_PENDING",
+                    }
+                    result = mt5.order_send(req)
+                    if result and getattr(result, "retcode", None) == mt5.TRADE_RETCODE_DONE:
+                        canceled += 1
+                except Exception:
+                    continue
+        except Exception as exc:
+            logger.warning(f"[ACCOUNTS] Pending cancel failed for login={login}: {exc}")
+        finally:
+            _reconnect_primary()
+
+    if canceled:
+        logger.warning(f"[ACCOUNTS] Canceled {canceled} pending order(s) for login={login} after manual stop")
+    return canceled
 
 
 def ensure_any_account_connected() -> bool:

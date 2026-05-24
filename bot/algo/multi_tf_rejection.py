@@ -392,12 +392,25 @@ def _calc_initial_sl_tp(symbol: str, side: str, entry: float, prev_close: float,
 
 def _execute_trade(symbol: str, side: str, entry: float, sl: float, tp: float, level: SRLevel) -> Optional[int]:
     # Execute only on accounts that have 'my_strategy' assigned
-    from bot.accounts import get_all_accounts, _connect_account, _reconnect_primary
+    from bot.accounts import get_all_accounts, execute_on_all_accounts, is_account_trade_allowed_today
 
     accounts = [acc for acc in get_all_accounts() if acc.enabled and "my_strategy" in (acc.strategy or [])]
     comment = f"ALGO:MTF:{level.kind[:1].upper()}:{int(level.price * 100):d}"
 
     if not accounts:
+        # Fallback (single-account mode): still enforce per-account trade halt.
+        try:
+            if MT5_AVAILABLE:
+                info = mt5.account_info()
+                login = int(getattr(info, "login", 0) or 0) if info else 0
+                if login:
+                    allowed_today, halt_reason = is_account_trade_allowed_today(login)
+                    if not allowed_today:
+                        logger.warning(f"[MTF] Trade blocked (trade-mode): login={login} reason={halt_reason}")
+                        return None
+        except Exception:
+            pass
+
         logger.warning("[MTF] No accounts with 'my_strategy' assigned — using primary connection")
         result = mt5_bridge.open_trade(
             symbol=symbol,
@@ -415,28 +428,17 @@ def _execute_trade(symbol: str, side: str, entry: float, sl: float, tp: float, l
         return result.get("ticket")
 
     # Multi-account execution
-    results = []
-    for acc in accounts:
-        try:
-            if _connect_account(acc):
-                from bot.accounts import _execute_single
-                r = _execute_single(
-                    symbol=symbol,
-                    side=side,
-                    sl=sl,
-                    tp=tp,
-                    entry=entry,
-                    order_type="market",
-                    risk_percent=algo_config.risk_percent,
-                    comment=comment,
-                )
-                r["account_label"] = acc.label
-                r["login"] = acc.login
-                results.append(r)
-        except Exception as exc:
-            results.append({"success": False, "message": str(exc), "account_label": acc.label, "login": acc.login})
-
-    _reconnect_primary()
+    results = execute_on_all_accounts(
+        symbol=symbol,
+        side=side,
+        sl=sl,
+        tp=tp,
+        entry=entry,
+        order_type="market",
+        risk_percent=algo_config.risk_percent,
+        comment=comment,
+        strategy_id="my_strategy",
+    )
     successes = [r for r in results if r.get("success")]
     if not successes:
         logger.error(f"[MTF] Trade failed on all my_strategy accounts: {results}")

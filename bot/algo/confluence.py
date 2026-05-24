@@ -442,9 +442,9 @@ def _execute_trade(setup: ConfluenceSetup, entry_price: float) -> bool:
 
     one_r = abs(entry_price - sl)
 
-    # Execute only on accounts with 'confluence' strategy assigned
-    from bot.accounts import get_all_accounts, _connect_account, _reconnect_primary
-    from bot.accounts import _execute_single
+    # Execute only on accounts with 'confluence' strategy assigned.
+    # Route through unified executor so stop_today/stop_until is enforced.
+    from bot.accounts import get_all_accounts, execute_on_all_accounts, is_account_trade_allowed_today
 
     conf_accounts = [
         acc for acc in get_all_accounts()
@@ -453,6 +453,19 @@ def _execute_trade(setup: ConfluenceSetup, entry_price: float) -> bool:
 
     ticket = None
     if not conf_accounts:
+        # Fallback (single-account mode): still enforce per-account trade halt.
+        try:
+            if MT5_AVAILABLE:
+                info = mt5.account_info()
+                login = int(getattr(info, "login", 0) or 0) if info else 0
+                if login:
+                    allowed_today, halt_reason = is_account_trade_allowed_today(login)
+                    if not allowed_today:
+                        logger.warning(f"[CONFLUENCE] Trade blocked (trade-mode): login={login} reason={halt_reason}")
+                        return False
+        except Exception:
+            pass
+
         logger.warning("[CONFLUENCE] No accounts with 'confluence' strategy — using primary")
         result = mt5_bridge.open_trade(
             symbol=algo_config.symbol,
@@ -469,26 +482,17 @@ def _execute_trade(setup: ConfluenceSetup, entry_price: float) -> bool:
             return False
         ticket = result.get("ticket")
     else:
-        results = []
-        for acc in conf_accounts:
-            try:
-                if _connect_account(acc):
-                    r = _execute_single(
-                        symbol=algo_config.symbol,
-                        side=side,
-                        sl=sl,
-                        tp=tp,
-                        entry=entry_price,
-                        order_type="market",
-                        risk_percent=algo_config.risk_percent,
-                        comment=f"ALGO:CONF:{setup.id[:8]}",
-                    )
-                    r["account_label"] = acc.label
-                    r["login"] = acc.login
-                    results.append(r)
-            except Exception as _e:
-                logger.error(f"[CONFLUENCE] Trade error on {acc.label}: {_e}")
-        _reconnect_primary()
+        results = execute_on_all_accounts(
+            symbol=algo_config.symbol,
+            side=side,
+            sl=sl,
+            tp=tp,
+            entry=entry_price,
+            order_type="market",
+            risk_percent=algo_config.risk_percent,
+            comment=f"ALGO:CONF:{setup.id[:8]}",
+            strategy_id="confluence",
+        )
         successes = [r for r in results if r.get("success")]
         if not successes:
             logger.error(f"[CONFLUENCE] Trade failed on all confluence accounts: {results}")
