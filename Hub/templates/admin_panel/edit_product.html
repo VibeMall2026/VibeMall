@@ -4,6 +4,18 @@
 {% block title %}Edit Product - FashioHub Admin{% endblock %}
 
 {% block content %}
+<style>
+    .admin-preview-thumb {
+        width: 100%;
+        height: 120px;
+        border-radius: 8px;
+        object-fit: cover;
+    }
+    .admin-preview-thumb.is-original {
+        object-fit: contain;
+        background: #fff;
+    }
+</style>
 <h4 class="fw-bold py-3 mb-4">
     <span class="text-muted fw-light">Products /</span> Edit Product
     <a href="{% url 'admin_product_list' %}" class="btn btn-sm btn-secondary float-end">
@@ -145,11 +157,15 @@
                         <label class="form-label" for="image">Main Product Image</label>
                         {% if product.image %}
                             <div class="mb-2">
-                                <img src="{{ product.image.url }}" alt="{{ product.name }}" style="max-width: 200px; border-radius: 8px;">
+                                <img src="{{ product.image.url }}" alt="{{ product.name }}" class="admin-preview-thumb admin-resize-target" style="max-width: 200px; height: 200px;">
                             </div>
                         {% endif %}
                         <input class="form-control" type="file" id="image" name="image" accept="image/*" />
                         <small class="text-muted">Leave empty to keep current image</small>
+                        <div class="form-check form-switch mt-2">
+                            <input class="form-check-input" type="checkbox" id="adminImageResizeToggle" checked>
+                            <label class="form-check-label" for="adminImageResizeToggle">Resize Images (Default ON)</label>
+                        </div>
                     </div>
                     
                     <div class="mb-3">
@@ -173,7 +189,7 @@
                                 <div class="card">
                                     <div class="card-body p-2 text-center">
                                         <img src="{{ gallery_img.image.url }}" alt="Gallery image" 
-                                             style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px;">
+                                             class="admin-preview-thumb admin-resize-target">
                                         <div class="mt-2">
                                             <div class="mb-2 text-start">
                                                 <label class="form-label small mb-1">Color</label>
@@ -566,6 +582,17 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
+        const resizeToggle = document.getElementById('adminImageResizeToggle');
+        const resizeTargets = document.querySelectorAll('.admin-resize-target');
+        const syncPreviewResizeMode = () => {
+            const useResize = !resizeToggle || resizeToggle.checked;
+            resizeTargets.forEach((img) => img.classList.toggle('is-original', !useResize));
+        };
+        if (resizeToggle) {
+            resizeToggle.addEventListener('change', syncPreviewResizeMode);
+        }
+        syncPreviewResizeMode();
+
         const categorySelect = document.getElementById('category');
         const subCategorySelect = document.getElementById('sub_category');
         if (!categorySelect || !subCategorySelect) return;
