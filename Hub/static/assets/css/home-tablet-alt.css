@@ -298,13 +298,14 @@
   .vm-home-tablet-product__media img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     object-position: center;
-    transition: transform 0.4s ease;
+    transition: none;
+    background: #f6f4ef;
   }
 
   .vm-home-tablet-product:hover .vm-home-tablet-product__media img {
-    transform: scale(1.03);
+    transform: none;
   }
 
   .vm-home-tablet-product__wish {

@@ -405,3 +405,11 @@
         aspect-ratio: 4 / 5;
     }
 }
+
+/* Global product-image safety: prevent crop/zoom across shop breakpoints */
+.shop-area .product__thumb img {
+    object-fit: contain !important;
+    object-position: center center !important;
+    background: #f6f4ef;
+}
+

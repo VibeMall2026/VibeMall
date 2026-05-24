@@ -8,9 +8,9 @@
 
 {% block extra_css %}
 {% if home_variant == 'mobile' %}
-<link rel="stylesheet" href="{% static 'assets/css/home-mobile-alt.css' %}?v=20260329-01">
+<link rel="stylesheet" href="{% static 'assets/css/home-mobile-alt.css' %}?v=20260524-02">
 {% elif home_variant == 'tablet' %}
-<link rel="stylesheet" href="{% static 'assets/css/home-tablet-alt.css' %}?v=20260329-01">
+<link rel="stylesheet" href="{% static 'assets/css/home-tablet-alt.css' %}?v=20260524-02">
 {% else %}
 <style>
   .vm-copy-section-head h2 {
@@ -75,20 +75,14 @@
   .vm-copy-product-grid article img {
     width: 100% !important;
     aspect-ratio: 4 / 5;
-    object-fit: cover !important;
-    object-position: center !important;
+    object-fit: contain !important;
+    object-position: center center !important;
     display: block !important;
+    background: #f5f3ee;
   }
 
-  @media (max-width: 768px) {
-    .vm-copy-product-grid .vm-copy-product-card__media {
-      background: #f7f7f5;
-    }
-
-    .vm-copy-product-grid article img {
-      object-fit: contain !important;
-      object-position: center !important;
-    }
+  .vm-copy-product-grid .vm-copy-product-card__media {
+    background: #f7f7f5;
   }
 
   .vm-copy-product-grid h4 a {

@@ -385,9 +385,10 @@
     .vm-shop-m-thumb img {
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain;
         object-position: center;
-        transition: transform 0.28s ease;
+        transition: none;
+        background: #f6f4ef;
     }
 
     .vm-shop-m-thumb-actions {
@@ -413,7 +414,7 @@
     .vm-shop-m-card:hover .vm-shop-m-thumb img,
     .vm-shop-m-card:focus-within .vm-shop-m-thumb img,
     .vm-shop-m-thumb-wrap:active .vm-shop-m-thumb img {
-        transform: scale(1.03);
+        transform: none;
     }
 
     .vm-shop-m-thumb-action {

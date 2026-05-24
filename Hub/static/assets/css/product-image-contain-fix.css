@@ -1,0 +1,60 @@
+/*
+ * Global product image safety fix
+ * Prevent product thumbnails from being cropped/zoomed across layouts.
+ */
+
+/* Core product card/thumb selectors used across storefront templates */
+.product__thumb,
+.card-media,
+.vm-shop-m-thumb,
+.vm-shop-t-thumb,
+.vm-shop-d-thumb,
+.vm-copy-product-card__media,
+.vm-home-mobile-product-card__media,
+.vm-home-tablet-product__media {
+    background: #f6f4ef;
+}
+
+.product__thumb img,
+.product__thumb .product-image img,
+.card-media img,
+.vm-shop-m-thumb img,
+.vm-shop-t-thumb img,
+.vm-shop-d-thumb img,
+.vm-copy-product-grid article img,
+.vm-home-mobile-product-card__media img,
+.vm-home-tablet-product__media img {
+    width: 100% !important;
+    object-fit: contain !important;
+    object-position: center center !important;
+    transform: none !important;
+    transition: none !important;
+    background: #f6f4ef !important;
+}
+
+.vm-shop-m-thumb img,
+.vm-shop-t-thumb img,
+.vm-shop-d-thumb img,
+.card-media img,
+.vm-home-mobile-product-card__media img,
+.vm-home-tablet-product__media img {
+    height: 100% !important;
+}
+
+.vm-copy-product-grid article img,
+.product__thumb img,
+.product__thumb .product-image img {
+    height: auto !important;
+}
+
+/* Kill hover zoom rules from legacy styles */
+.product__item:hover .product-image img,
+.product__item-d:hover .product-image img,
+.vm-shop-m-card:hover .vm-shop-m-thumb img,
+.vm-shop-m-card:focus-within .vm-shop-m-thumb img,
+.vm-shop-m-thumb-wrap:active .vm-shop-m-thumb img,
+.vm-shop-d-card:hover .vm-shop-d-thumb img,
+.vm-home-tablet-product:hover .vm-home-tablet-product__media img,
+.vm-copy-product-card:hover .vm-copy-product-grid article img {
+    transform: none !important;
+}
