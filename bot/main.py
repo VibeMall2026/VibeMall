@@ -12,6 +12,10 @@ import threading
 import uvicorn
 from loguru import logger
 
+# Ensure loguru is configured (console + logs/bot.log).
+# Without importing bot.logger, loguru may keep default handlers and file logs won't be created.
+import bot.logger  # noqa: F401
+
 from bot import config
 from bot.state import state
 from bot import mt5_bridge

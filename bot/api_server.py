@@ -16,6 +16,9 @@ from pydantic import BaseModel
 from bot import config
 from bot.state import state
 from bot import mt5_bridge
+
+# Ensure loguru is configured (console + logs/bot.log) even when running API-only.
+import bot.logger  # noqa: F401
 from bot.signal_parser import parse_signal
 from bot.algo.manager import (
     get_active_strategy_id,
