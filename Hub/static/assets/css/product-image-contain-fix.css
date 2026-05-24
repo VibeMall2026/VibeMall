@@ -1,9 +1,11 @@
 /*
- * Global product image safety fix
- * Prevent product thumbnails from being cropped/zoomed across layouts.
+ * Product image rendering standard:
+ * - keep cards aligned (stable media frame)
+ * - never crop critical content
+ * - never stretch
  */
 
-/* Core product card/thumb selectors used across storefront templates */
+/* Uniform media containers across storefront cards */
 .product__thumb,
 .card-media,
 .vm-shop-m-thumb,
@@ -12,29 +14,16 @@
 .vm-copy-product-card__media,
 .vm-home-mobile-product-card__media,
 .vm-home-tablet-product__media {
-    background: #f6f4ef;
+    overflow: hidden !important;
+    background: #f6f4ef !important;
 }
 
-/* Remove fixed crop frames where legacy CSS forces ratio-based clipping */
-.vm-shop-m-thumb,
-.vm-shop-t-thumb,
-.vm-shop-d-thumb,
-.product__thumb,
-.card-media,
-.vm-home-mobile-product-card__media,
-.vm-home-tablet-product__media {
-    overflow: hidden;
-}
+/* Keep responsive, consistent card heights while showing full image */
+.vm-shop-m-thumb { aspect-ratio: 4 / 5 !important; }
+.vm-shop-t-thumb { aspect-ratio: 3 / 4 !important; }
+.vm-shop-d-thumb { aspect-ratio: 4 / 5 !important; }
 
-/* Remove fixed-ratio clipping on shop cards so full image can render */
-.vm-shop-m-thumb,
-.vm-shop-t-thumb,
-.vm-shop-d-thumb {
-    aspect-ratio: auto !important;
-    height: auto !important;
-    min-height: 0 !important;
-}
-
+/* Core no-crop image behavior */
 .product__thumb img,
 .product__thumb .product-image img,
 .card-media img,
@@ -45,38 +34,24 @@
 .vm-home-mobile-product-card__media img,
 .vm-home-tablet-product__media img {
     width: 100% !important;
+    height: 100% !important;
+    display: block !important;
     object-fit: contain !important;
     object-position: center center !important;
+    background: #f6f4ef !important;
     transform: none !important;
     transition: none !important;
-    background: #f6f4ef !important;
 }
 
-.vm-shop-m-thumb img,
-.vm-shop-t-thumb img,
-.vm-shop-d-thumb img,
-.card-media img,
-.vm-home-mobile-product-card__media img,
-.vm-home-tablet-product__media img {
-    height: 100% !important;
-}
-
+/* Legacy layouts where image height should flow naturally */
 .vm-copy-product-grid article img,
 .product__thumb img,
 .product__thumb .product-image img {
     height: auto !important;
-}
-
-/* For shop grids, force full image visibility even if parent rules changed elsewhere */
-.vm-shop-m-thumb img,
-.vm-shop-t-thumb img,
-.vm-shop-d-thumb img {
-    height: auto !important;
     max-height: none !important;
-    min-height: 0 !important;
 }
 
-/* Kill hover zoom rules from legacy styles */
+/* Disable legacy hover zoom effects */
 .product__item:hover .product-image img,
 .product__item-d:hover .product-image img,
 .vm-shop-m-card:hover .vm-shop-m-thumb img,
