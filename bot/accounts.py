@@ -640,12 +640,20 @@ def _cap_lot_by_pnl_limits(
     if cfg.MAX_LOT_PER_TRADE > 0:
         lot = min(lot, cfg.MAX_LOT_PER_TRADE)
 
+    # If caps would require a volume smaller than broker's minimum, return None
+    # (caller may choose to override to min lot if within policy).
     if lot < sym_info.volume_min:
         return None
 
     lot = max(sym_info.volume_min, min(sym_info.volume_max, lot))
     step = sym_info.volume_step or sym_info.volume_min or 0.01
-    lot = round(math.floor(lot / step) * step, 8)
+
+    # Avoid float edge cases: when lot is ~0.01 but represented as 0.009999999,
+    # floor() can drop it to 0.00 and incorrectly fail.
+    eps = step * 1e-6
+    lot = round(math.floor((lot + eps) / step) * step, 8)
+    lot = max(sym_info.volume_min, lot)
+
     if lot < sym_info.volume_min:
         return None
     return lot
@@ -1270,7 +1278,10 @@ def _execute_single(
         lot = risk_amount / (sl_ticks * tick_value)
         lot = max(sym_info.volume_min, min(sym_info.volume_max, lot))
         step = sym_info.volume_step
-        lot = round(math.floor(lot / step) * step, 8)
+        # Avoid float edge cases near volume_min/step.
+        eps = (step or sym_info.volume_min or 0.01) * 1e-6
+        lot = round(math.floor((lot + eps) / step) * step, 8)
+        lot = max(sym_info.volume_min, lot)
     else:
         lot = sym_info.volume_min
 
