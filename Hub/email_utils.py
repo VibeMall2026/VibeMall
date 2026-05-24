@@ -1,4 +1,4 @@
-"""
+﻿"""
 Email utility functions for VibeMall
 Handles sending order confirmations, status updates, and other notifications
 """
@@ -310,7 +310,7 @@ def send_order_confirmation_email(order):
             'You will receive shipping updates as soon as your package is dispatched.'
         )
 
-        shipping_cost_display = 'Complimentary' if float(order.shipping_cost or 0) == 0 else f"₹{order.shipping_cost:.2f}"
+        shipping_cost_display = 'Complimentary' if float(order.shipping_cost or 0) == 0 else f"â‚¹{order.shipping_cost:.2f}"
 
         try:
             order_details_path = reverse('order_details', args=[order.order_number])
@@ -358,7 +358,7 @@ def send_order_confirmation_email(order):
             dispatch_base = dispatch_base.date()
         estimated_dispatch_date = (dispatch_base + timedelta(days=1)).strftime('%B %d, %Y')
 
-        # Route to correct template: pending/processing → order_received, else → order_confirmation
+        # Route to correct template: pending/processing â†’ order_received, else â†’ order_confirmation
         email_template = 'emails/order_received.html' if is_review_state else 'emails/order_confirmation.html'
 
         # Render HTML email template
@@ -395,7 +395,7 @@ def send_order_confirmation_email(order):
         Order Details:
         - Order Number: {order.order_number}
         - Order Date: {order.order_date.strftime('%B %d, %Y')}
-        - Total Amount: ₹{order.total_amount}
+        - Total Amount: â‚¹{order.total_amount}
         - Payment Method: {order.get_payment_method_display()}
 
         View your order: {site_url}{order_path}
@@ -438,7 +438,7 @@ def send_order_confirmation_email(order):
             except Exception as pdf_error:
                 logger.error(f"PDF generation failed for order {order.order_number}: {pdf_error}", exc_info=True)
         else:
-            # WeasyPrint not available — use ReportLab directly
+            # WeasyPrint not available â€” use ReportLab directly
             try:
                 from reportlab.lib.pagesizes import A4
                 from reportlab.pdfgen import canvas
@@ -501,7 +501,7 @@ def send_order_confirmation_email(order):
             user=order.user,
             notification_type='ORDER_PLACED',
             title=f'Order #{order.order_number} Confirmed',
-            message=f'Your order of ₹{order.total_amount} has been confirmed and is being processed.',
+            message=f'Your order of â‚¹{order.total_amount} has been confirmed and is being processed.',
             link=f'/orders/{order.id}/'
         )
         
@@ -543,11 +543,11 @@ def send_order_status_update_email(order, old_status, new_status):
         # Award loyalty points when order is delivered
         if new_status == 'DELIVERED' and old_status != 'DELIVERED':
             try:
-                # Calculate points: ₹1 = 33 points (1 point = ₹0.03)
+                # Calculate points: â‚¹1 = 33 points (1 point = â‚¹0.03)
                 points_earned = int(order.total_amount * 33)
                 
                 loyalty, _ = LoyaltyPoints.objects.get_or_create(user=order.user)
-                loyalty.add_points(points_earned, f"Order #{order.order_number} delivered - ₹{order.total_amount}")
+                loyalty.add_points(points_earned, f"Order #{order.order_number} delivered - â‚¹{order.total_amount}")
                 
                 logger.info(f"Awarded {points_earned} loyalty points to {order.user.username} for order #{order.order_number}")
             except Exception as e:
@@ -591,7 +591,7 @@ def send_order_status_update_email(order, old_status, new_status):
                 'variant_text': ' / '.join([part for part in [item.color, item.size] if part]) or '',
             })
         
-        # ── Status config for all 7 states ──────────────────────────────────
+        # â”€â”€ Status config for all 7 states â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         status_config = {
             # Existing statuses
             'PROCESSING': {
@@ -682,7 +682,7 @@ def send_order_status_update_email(order, old_status, new_status):
 
         status_info = status_config[new_status]
 
-        # ── URLs ─────────────────────────────────────────────────────────────
+        # â”€â”€ URLs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         try:
             tracking_url = f"{site_url}{reverse('order_tracking', args=[order.order_number])}"
         except Exception:
@@ -710,7 +710,7 @@ def send_order_status_update_email(order, old_status, new_status):
 
         payment_url = order_details_url  # override if dedicated payment URL exists
 
-        # ── Delivery timeline ─────────────────────────────────────────────────
+        # â”€â”€ Delivery timeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if order.delivery_date:
             timeline_value = order.delivery_date.strftime('%B %d, %Y')
         elif new_status in ('SHIPPED', 'OUT_FOR_DELIVERY'):
@@ -720,12 +720,12 @@ def send_order_status_update_email(order, old_status, new_status):
         else:
             timeline_value = 'To Be Confirmed'
 
-        # ── Primary CTA URL ───────────────────────────────────────────────────
+        # â”€â”€ Primary CTA URL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         primary_cta_url = tracking_url if new_status in ('SHIPPED', 'OUT_FOR_DELIVERY') else order_details_url
         if new_status == 'PROCEED_TO_PAYMENT':
             primary_cta_url = payment_url
 
-        # ── Return / pickup context ───────────────────────────────────────────
+        # â”€â”€ Return / pickup context â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         return_obj = getattr(order, 'return_request', None)
         return_request_id = getattr(return_obj, 'id', '') or ''
         return_reason     = getattr(return_obj, 'reason', '') or ''
@@ -735,19 +735,19 @@ def send_order_status_update_email(order, old_status, new_status):
         pickup_window  = getattr(return_obj, 'pickup_window', '') or ''
         pickup_partner = getattr(return_obj, 'pickup_partner', '') or order.courier_name or 'VibeMall Logistics'
 
-        # ── Payment context ───────────────────────────────────────────────────
+        # â”€â”€ Payment context â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         payment_amount   = order.total_amount
         payment_due_date = ''
         if hasattr(order, 'payment_due_date') and order.payment_due_date:
             payment_due_date = order.payment_due_date.strftime('%B %d, %Y')
 
-        # ── Shipping cost display ─────────────────────────────────────────────
+        # â”€â”€ Shipping cost display â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         shipping_cost_display = (
             'Complimentary' if float(order.shipping_cost or 0) == 0
-            else f"₹{order.shipping_cost:.2f}"
+            else f"â‚¹{order.shipping_cost:.2f}"
         )
 
-        # ── Block visibility flags ────────────────────────────────────────────
+        # â”€â”€ Block visibility flags â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         show_tracking = new_status in ('SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED')
         show_return   = new_status in ('RETURN_SUBMITTED', 'RETURN_ACCEPTED', 'PICKUP_SCHEDULED', 'PICKUP_DONE')
         show_pickup   = new_status in ('PICKUP_SCHEDULED', 'PICKUP_DONE')
@@ -756,7 +756,7 @@ def send_order_status_update_email(order, old_status, new_status):
         from datetime import datetime as _dt
         event_date = _dt.now().strftime('%b %d, %Y').upper()
 
-        # ── Render ────────────────────────────────────────────────────────────
+        # â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         html_content = render_to_string('emails/order_status_update.html', {
             'order': order,
             'order_items': order_items,
@@ -807,7 +807,7 @@ def send_order_status_update_email(order, old_status, new_status):
         {status_info['message']}
         
         Order Number: {order.order_number}
-        Total Amount: ₹{order.total_amount}
+        Total Amount: â‚¹{order.total_amount}
         """
         
         if order.tracking_number:
@@ -918,7 +918,7 @@ New Order Received - #{order.order_number}
 
 Customer: {order.user.get_full_name() or order.user.username}
 Email: {order.user.email}
-Total Amount: ₹{order.total_amount}
+Total Amount: â‚¹{order.total_amount}
 Payment Method: {order.get_payment_method_display()}
 Payment Status: {order.payment_status}
 
@@ -933,7 +933,7 @@ VibeMall System
         """
         
         # Create and send email
-        subject = f'🔔 New Order #{order.order_number} - ₹{order.total_amount}'
+        subject = f'ðŸ”” New Order #{order.order_number} - â‚¹{order.total_amount}'
         
         email = EmailMultiAlternatives(
             subject=subject,
@@ -973,109 +973,15 @@ VibeMall System
 def send_order_approval_email(order, request=None, approved_by=None):
     """
     Send order approval email to customer
-    
-    Args:
-        order: Order instance
-        request: Django request object (optional) for building absolute URLs
-        approved_by: Admin user who approved (optional)
-    
+
     Returns:
         bool: True if email sent successfully, False otherwise
     """
-    try:
-        if not order.user.email:
-            logger.warning(f"Cannot send approval email: User {order.user.username} has no email")
-            return False
-        
-        # Build site URL
-        if request:
-            site_url = request.build_absolute_uri('/').rstrip('/')
-        else:
-            site_url = getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000')
-        
-        # Get from email
-        from_email = _get_from_email()
-        to_email = order.user.email
-        
-        # Render HTML email
-        html_content = render_to_string('emails/order_approved.html', {
-            'order': order,
-            'approved_by': approved_by.get_full_name() or approved_by.username if approved_by else 'Admin',
-            'site_url': site_url,
-        })
-        
-        # Plain text version
-        text_content = f"""Dear {order.user.get_full_name() or order.user.username},
+    # Use the modern project status-update template so approval emails match
+    # the latest branded format instead of the legacy approval template.
+    return send_order_status_update_email(order, old_status='PENDING_APPROVAL', new_status='PROCESSING')
 
-Good news! Your order {order.order_number} has been approved and is now being processed.
 
-Order Details:
-- Order Number: {order.order_number}
-- Total Amount: ₹{order.total_amount}
-- Status: Processing
-- Approved on: {order.approved_at.strftime("%B %d, %Y") if order.approved_at else "Today"}
-
-You can track your order here: {site_url}/orders/{order.id}/
-
-Thank you for shopping with us!
-
-Best regards,
-VibeMall Team
-        """
-        
-        # Create email
-        subject = f'Order Approved - #{order.order_number} - VibeMall'
-        
-        email = EmailMultiAlternatives(
-            subject=subject,
-            body=text_content,
-            from_email=from_email,
-            to=[to_email]
-        )
-        email.attach_alternative(html_content, "text/html")
-        
-        # Send email
-        email.send(fail_silently=False)
-        
-        # Log successful email
-        EmailLog.objects.create(
-            user=order.user,
-            email_to=to_email,
-            email_type='ORDER_APPROVED',
-            subject=subject,
-            order=order,
-            sent_successfully=True
-        )
-        
-        # Create in-app notification
-        Notification.objects.create(
-            user=order.user,
-            notification_type='ORDER_APPROVED',
-            title=f'Order #{order.order_number} Approved!',
-            message=f'Your order for ₹{order.total_amount} has been approved and is being processed.',
-            link=f'/orders/{order.id}/'
-        )
-        
-        logger.info(f"Order approval email sent successfully to {to_email} for order {order.order_number}")
-        return True
-        
-    except Exception as e:
-        logger.error(f"Failed to send order approval email for order {order.order_number}: {str(e)}", exc_info=True)
-        
-        try:
-            EmailLog.objects.create(
-                user=order.user,
-                email_to=order.user.email if order.user.email else 'unknown',
-                email_type='ORDER_APPROVED',
-                subject=f'Order Approved - #{order.order_number}',
-                order=order,
-                sent_successfully=False,
-                error_message=str(e)[:500]
-            )
-        except:
-            pass
-        
-        return False
 
 
 
@@ -1248,7 +1154,7 @@ def _generate_terms_pdf_bytes(context):
 
         story.extend([
             Spacer(1, 12),
-            Paragraph(f"© {context['current_year']} VIBEMALL ATELIER. All rights reserved.", styles['VmFooter']),
+            Paragraph(f"Â© {context['current_year']} VIBEMALL ATELIER. All rights reserved.", styles['VmFooter']),
             Paragraph('By registering on VIBEMALL, you acknowledge and accept these Terms and Conditions.', styles['VmFooter']),
         ])
 
@@ -1294,7 +1200,7 @@ def send_welcome_email_with_terms(user, request=None):
             "Our Terms & Conditions PDF is attached to this email for your records.\n\n"
             "With gratitude,\n"
             "The Curators of VIBEMALL ATELIER\n"
-            f"© {context['current_year']} VibeMall. All rights reserved."
+            f"Â© {context['current_year']} VibeMall. All rights reserved."
         )
 
         subject = 'Welcome to the Atelier | VibeMall'
@@ -1325,7 +1231,7 @@ def send_welcome_email_with_terms(user, request=None):
         Notification.objects.create(
             user=user,
             notification_type='WELCOME',
-            title='Welcome to VibeMall! 🎉',
+            title='Welcome to VibeMall! ðŸŽ‰',
             message='Thank you for registering. Start exploring the atelier collection now!',
             link='/shop/',
         )
