@@ -211,6 +211,8 @@ urlpatterns = [
 
     # Email Verification URLs
     path('verify-email/', views.verify_email_sent, name='verify_email_sent'),
+    path('verify-email/otp/', views.verify_email_otp, name='verify_email_otp'),
+    path('verify-email/resend-otp/', views.resend_email_otp, name='resend_email_otp'),
     path('verify-email/<uidb64>/<token>/', views.verify_email, name='verify_email'),
     
     # Coupon System URLs

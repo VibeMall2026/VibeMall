@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your OTP - VibeMall</title>
+</head>
+<body style="margin:0;padding:20px;background:#f5f7fa;font-family:Arial,sans-serif;color:#1f2937;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:10px;overflow:hidden;">
+    <tr>
+      <td style="padding:28px 24px;background:#111827;color:#ffffff;text-align:center;">
+        <h1 style="margin:0;font-size:24px;">Email Verification OTP</h1>
+        <p style="margin:8px 0 0;font-size:14px;opacity:.9;">VibeMall account activation</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:24px;">
+        <p style="margin:0 0 14px;">Hello {{ user.first_name|default:user.username }},</p>
+        <p style="margin:0 0 16px;">Use this OTP to verify your email and activate your VibeMall account:</p>
+        <p style="margin:0 0 16px;text-align:center;">
+          <span style="display:inline-block;padding:12px 18px;border:1px dashed #9ca3af;border-radius:8px;font-size:28px;letter-spacing:6px;font-weight:700;color:#111827;">
+            {{ otp_code }}
+          </span>
+        </p>
+        <p style="margin:0 0 10px;">This OTP will expire in {{ expiry_minutes }} minutes.</p>
+        <p style="margin:0;color:#6b7280;">If you did not create this account, you can safely ignore this email.</p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

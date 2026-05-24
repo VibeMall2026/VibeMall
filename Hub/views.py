@@ -48,6 +48,7 @@ from PIL import Image as PILImage, UnidentifiedImageError
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 import logging
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -8016,26 +8017,55 @@ def register_view(request: HttpRequest) -> HttpResponse:
                 profile.profile_image = profile_image
             profile.save()
 
-            # Send verification email
-            send_verification_email(user, request)
-            
-            # Send welcome email with Terms & Conditions PDF
-            from .email_utils import send_welcome_email_with_terms
-            try:
-                send_welcome_email_with_terms(user, request)
-            except Exception as email_error:
-                # Log error but don't fail registration
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f"Failed to send welcome email: {str(email_error)}")
-            
-            messages.success(request, "Account created! Please verify your email to activate your account.", extra_tags='success')
+            # Send OTP verification email and keep pending user in session.
+            send_registration_email_otp(user, request)
+            request.session['pending_verification_user_id'] = user.id
+            request.session['pending_verification_email'] = user.email
+
+            messages.success(request, "Account created! OTP sent to your email. Please verify to activate your account.", extra_tags='success')
             return redirect("verify_email_sent")
         except Exception as e:
             messages.error(request, f"An error occurred during registration: {str(e)}")
             return redirect("register")
 
     return render(request, "register.html")
+
+
+def _email_otp_cache_key(user_id: int) -> str:
+    return f"email_otp_register_{int(user_id)}"
+
+
+def _issue_registration_email_otp(user) -> str:
+    otp_code = str(random.randint(100000, 999999))
+    ttl_seconds = 10 * 60  # 10 minutes
+    cache.set(
+        _email_otp_cache_key(user.id),
+        {
+            "otp": otp_code,
+            "attempts": 0,
+        },
+        ttl_seconds,
+    )
+    return otp_code
+
+
+def send_registration_email_otp(user, request):
+    """Send 6-digit OTP for registration email verification."""
+    otp_code = _issue_registration_email_otp(user)
+    subject = "Your VibeMall Email Verification OTP"
+    message = render_to_string('emails/verify_email_otp.html', {
+        'user': user,
+        'otp_code': otp_code,
+        'expiry_minutes': 10,
+    })
+    send_mail(
+        subject,
+        message,
+        settings.DEFAULT_FROM_EMAIL,
+        [user.email],
+        fail_silently=False,
+        html_message=message,
+    )
 
 
 def send_verification_email(user, request):
@@ -8064,7 +8094,87 @@ def send_verification_email(user, request):
 
 def verify_email_sent(request):
     """Show verification sent page"""
-    return render(request, 'verify_email_sent.html')
+    pending_email = request.session.get('pending_verification_email')
+    if not pending_email:
+        messages.info(request, "Please register first to receive an email OTP.")
+        return redirect('register')
+    return render(request, 'verify_email_sent.html', {'pending_email': pending_email})
+
+
+@require_POST
+def verify_email_otp(request):
+    """Verify email OTP and activate account."""
+    pending_user_id = request.session.get('pending_verification_user_id')
+    pending_email = request.session.get('pending_verification_email')
+    otp_input = (request.POST.get('otp') or '').strip()
+
+    if not pending_user_id or not pending_email:
+        messages.error(request, "Verification session expired. Please register again.")
+        return redirect('register')
+
+    if not (otp_input.isdigit() and len(otp_input) == 6):
+        messages.error(request, "Please enter a valid 6-digit OTP.")
+        return redirect('verify_email_sent')
+
+    cached = cache.get(_email_otp_cache_key(pending_user_id))
+    if not cached:
+        messages.error(request, "OTP expired. Please request a new OTP.")
+        return redirect('verify_email_sent')
+
+    attempts = int(cached.get('attempts', 0))
+    if attempts >= 5:
+        cache.delete(_email_otp_cache_key(pending_user_id))
+        messages.error(request, "Too many invalid attempts. Please request a new OTP.")
+        return redirect('verify_email_sent')
+
+    expected = str(cached.get('otp') or '')
+    if otp_input != expected:
+        cached['attempts'] = attempts + 1
+        cache.set(_email_otp_cache_key(pending_user_id), cached, 10 * 60)
+        messages.error(request, "Invalid OTP. Please try again.")
+        return redirect('verify_email_sent')
+
+    try:
+        user = User.objects.get(pk=int(pending_user_id), email=pending_email)
+    except User.DoesNotExist:
+        messages.error(request, "Account not found. Please register again.")
+        return redirect('register')
+
+    user.is_active = True
+    user.save(update_fields=['is_active'])
+    cache.delete(_email_otp_cache_key(pending_user_id))
+    request.session.pop('pending_verification_user_id', None)
+    request.session.pop('pending_verification_email', None)
+
+    # Send welcome email only after successful verification.
+    from .email_utils import send_welcome_email_with_terms
+    try:
+        send_welcome_email_with_terms(user, request)
+    except Exception as email_error:
+        logger.error(f"Failed to send welcome email after verification: {str(email_error)}")
+
+    messages.success(request, "Email verified successfully! You can log in now.")
+    return redirect('login')
+
+
+@require_POST
+def resend_email_otp(request):
+    """Resend registration email OTP for pending user."""
+    pending_user_id = request.session.get('pending_verification_user_id')
+    pending_email = request.session.get('pending_verification_email')
+    if not pending_user_id or not pending_email:
+        messages.error(request, "Verification session expired. Please register again.")
+        return redirect('register')
+
+    try:
+        user = User.objects.get(pk=int(pending_user_id), email=pending_email, is_active=False)
+    except User.DoesNotExist:
+        messages.error(request, "Pending account not found. Please register again.")
+        return redirect('register')
+
+    send_registration_email_otp(user, request)
+    messages.success(request, "A new OTP has been sent to your email.")
+    return redirect('verify_email_sent')
 
 
 def verify_email(request, uidb64, token):

@@ -11,11 +11,28 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-lg-6 col-md-8">
-                <div class="basic-login text-center">
-                    <h5 class="mb-30">Check Your Email</h5>
-                    <p>We sent a verification link to your email address. Please check your inbox and spam folder.</p>
-                    <div class="mt-30">
-                        <a href="{% url 'login' %}" class="tp-in-btn w-100">Back to Login</a>
+                <div class="basic-login">
+                    <h5 class="mb-20 text-center">Verify Email OTP</h5>
+                    <p class="text-center mb-25">
+                        We sent a 6-digit OTP to
+                        <strong>{{ pending_email }}</strong>.
+                        Please enter it below to activate your account.
+                    </p>
+
+                    <form method="post" action="{% url 'verify_email_otp' %}">
+                        {% csrf_token %}
+                        <label for="id_otp">Email OTP</label>
+                        <input id="id_otp" type="text" name="otp" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="Enter 6-digit OTP" required>
+                        <button type="submit" class="tp-in-btn w-100">Verify OTP</button>
+                    </form>
+
+                    <form method="post" action="{% url 'resend_email_otp' %}" class="mt-15">
+                        {% csrf_token %}
+                        <button type="submit" class="tp-btn-border w-100">Resend OTP</button>
+                    </form>
+
+                    <div class="mt-20 text-center">
+                        <a href="{% url 'register' %}">Back to Register</a>
                     </div>
                 </div>
             </div>

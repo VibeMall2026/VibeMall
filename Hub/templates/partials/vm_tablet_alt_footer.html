@@ -9,7 +9,7 @@
                 <a href="{% url 'index' %}" class="vm-tablet-alt-footer__logo">VibeMall</a>
                 <p class="vm-tablet-alt-footer__tagline">Curating modern fashion and lifestyle with trusted brands, elevated discovery, and a seamless experience across every category.</p>
                 <div class="vm-tablet-alt-footer__socials">
-                    <a href="{{ site_settings.instagram_url|default:'#' }}" aria-label="Instagram" {% if site_settings.instagram_url %}target="_blank" rel="noopener noreferrer"{% endif %}><i class="fab fa-instagram"></i></a>
+                    <a href="{{ site_settings.instagram_url|default:'https://www.instagram.com/vibemall.in/' }}" aria-label="Instagram" target="_blank" rel="noopener noreferrer"><i class="fab fa-instagram"></i></a>
                     <a href="{{ site_settings.facebook_url|default:'#' }}" aria-label="Facebook" {% if site_settings.facebook_url %}target="_blank" rel="noopener noreferrer"{% endif %}><i class="fab fa-facebook-f"></i></a>
                     <a href="{{ site_settings.twitter_url|default:'#' }}" aria-label="Twitter" {% if site_settings.twitter_url %}target="_blank" rel="noopener noreferrer"{% endif %}><i class="fab fa-twitter"></i></a>
                     <a href="{{ site_settings.youtube_url|default:'#' }}" aria-label="YouTube" {% if site_settings.youtube_url %}target="_blank" rel="noopener noreferrer"{% endif %}><i class="fab fa-youtube"></i></a>

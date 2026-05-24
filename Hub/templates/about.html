@@ -311,7 +311,7 @@
             <div class="vm-about-d-wrap">
                 <p>{{ site_settings.site_name|default:'VibeMall' }}. Curated for the modern connoisseur.</p>
                 <div class="vm-about-d-social-links">
-                    <a href="{{ site_settings.instagram_url|default:'#' }}" {% if site_settings.instagram_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                    <a href="{{ site_settings.instagram_url|default:'https://www.instagram.com/vibemall.in/' }}" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
                     <a href="{{ site_settings.twitter_url|default:'#' }}" {% if site_settings.twitter_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="Twitter"><i class="fab fa-twitter"></i></a>
                     <a href="{{ site_settings.facebook_url|default:'#' }}" {% if site_settings.facebook_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
                 </div>
