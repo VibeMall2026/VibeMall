@@ -50,19 +50,21 @@ class Command(BaseCommand):
             return
 
         media_root = Path(str(settings.MEDIA_ROOT))
-        target_dirs = [media_root / "products", media_root / "products" / "gallery"]
-        if include_descriptions:
-            target_dirs.append(media_root / "products" / "descriptions")
+        # Use only top-level products dir to avoid duplicate traversal of subfolders.
+        target_dirs = [media_root / "products"]
 
-        image_paths: list[Path] = []
+        image_paths_set: set[Path] = set()
         for d in target_dirs:
             if not d.exists():
                 continue
             for p in d.rglob("*"):
+                if not include_descriptions and "descriptions" in p.parts:
+                    continue
                 if p.is_file() and p.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"}:
-                    image_paths.append(p)
+                    image_paths_set.add(p)
 
-        image_paths.sort()
+        image_paths = sorted(image_paths_set)
+
         if limit:
             image_paths = image_paths[:limit]
 
@@ -95,9 +97,12 @@ class Command(BaseCommand):
                 working = img.convert("RGBA") if has_alpha else img.convert("RGB")
 
                 # Fit entire image into a 4:5 frame without cropping.
+                # Upscale small images too, so they don't appear tiny.
                 target_width, target_height = 960, 1200
-                fitted = working.copy()
-                fitted.thumbnail((target_width, target_height), Image.LANCZOS)
+                scale = min(target_width / working.width, target_height / working.height)
+                new_width = max(1, int(round(working.width * scale)))
+                new_height = max(1, int(round(working.height * scale)))
+                fitted = working.resize((new_width, new_height), Image.LANCZOS)
 
                 if has_alpha:
                     canvas = Image.new("RGBA", (target_width, target_height), (246, 244, 239, 255))

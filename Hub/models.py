@@ -122,9 +122,12 @@ def _fit_image_field_to_frame(
         if working.width == target_width and working.height == target_height:
             return
 
-        # Fit image inside frame (no crop), centered
-        fitted = working.copy()
-        fitted.thumbnail((target_width, target_height), Image.LANCZOS)
+        # Fit image inside frame (no crop), centered.
+        # Upscale small images too, so they don't appear tiny in the card.
+        scale = min(target_width / working.width, target_height / working.height)
+        new_width = max(1, int(round(working.width * scale)))
+        new_height = max(1, int(round(working.height * scale)))
+        fitted = working.resize((new_width, new_height), Image.LANCZOS)
 
         if has_alpha:
             canvas = Image.new('RGBA', (target_width, target_height), background_rgba)
