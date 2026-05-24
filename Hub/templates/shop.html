@@ -711,17 +711,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
             </div>
         </div>
-        <div class="vm-shop-d-toolbar-inner">
-            <div class="vm-shop-d-admin-tools">
-                <label class="vm-shop-d-resize-toggle" for="vmShopResizeImagesToggle">
-                    <input type="checkbox" id="vmShopResizeImagesToggle" checked>
-                    <span>Resize product images</span>
-                </label>
-                {% if user.is_authenticated and user.is_staff %}
-                <button type="button" id="vmShopTogglePhotoTools" class="vm-shop-d-filter-apply">Temporary Edit Photos</button>
-                {% endif %}
-            </div>
-        </div>
     </section>
 
     {% if user.is_authenticated and user.is_staff %}
@@ -940,9 +929,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const listBtn = document.getElementById('vmShopViewList');
     const desktopSearch = document.getElementById('vmShopDesktopSearch');
     const desktopRangeInputs = document.querySelectorAll('.vm-shop-d-range-input');
-    const resizeImagesToggle = document.getElementById('vmShopResizeImagesToggle');
-    const photoToolsToggle = document.getElementById('vmShopTogglePhotoTools');
-    const photoToolsPanel = document.getElementById('vmShopPhotoToolsPanel');
 
     const renderDesktopListRatings = () => {
         const ratingRows = document.querySelectorAll('.vm-shop-d-list-rating[data-product-rating]');
@@ -977,25 +963,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (desktopShell && desktopGrid && desktopFilterBtn) {
         desktopFilterBtn.addEventListener('click', function () {
             desktopShell.classList.toggle('sidebar-collapsed');
-        });
-    }
-
-    if (resizeImagesToggle) {
-        const syncImageResizeMode = () => {
-            document.body.classList.toggle('vm-shop-original-image', !resizeImagesToggle.checked);
-        };
-        resizeImagesToggle.addEventListener('change', syncImageResizeMode);
-        syncImageResizeMode();
-    }
-
-    if (photoToolsToggle && photoToolsPanel) {
-        photoToolsToggle.addEventListener('click', function () {
-            const isHidden = photoToolsPanel.hasAttribute('hidden');
-            if (isHidden) {
-                photoToolsPanel.removeAttribute('hidden');
-            } else {
-                photoToolsPanel.setAttribute('hidden', '');
-            }
         });
     }
 

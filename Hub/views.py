@@ -7541,7 +7541,8 @@ def product_details(request: HttpRequest, product_id: Optional[int] = None) -> H
     else:
         return render(request, '404.html', status=404)
 def shop(request):
-    products = Product.objects.filter(is_active=True)
+    # Shop page should only show active products that are currently in stock.
+    products = Product.objects.filter(is_active=True, stock__gt=0)
     
     # Get banners for shop page
     banners = Banner.objects.filter(is_active=True).filter(
@@ -7581,7 +7582,7 @@ def shop(request):
             Q(tags__icontains=search_query)
         )
 
-    special_offers = Product.objects.filter(is_active=True).order_by('-discount_percent', '-id')[:5]
+    special_offers = Product.objects.filter(is_active=True, stock__gt=0).order_by('-discount_percent', '-id')[:5]
 
     # Get categories from CategoryIcon (dynamic admin-managed categories)
     category_icons = CategoryIcon.objects.filter(is_active=True).order_by('order', 'id')
@@ -7607,7 +7608,7 @@ def shop(request):
     if selected_sub_category:
         selected_sub_category = normalize_category_key(selected_sub_category)
         selected_sub_category_norm = normalize_for_compare(selected_sub_category)
-        valid_sub_category_qs = Product.objects.filter(is_active=True)
+        valid_sub_category_qs = Product.objects.filter(is_active=True, stock__gt=0)
         if selected_category_norm:
             valid_sub_category_qs = valid_sub_category_qs.annotate(
                 _category_norm=Lower(Trim(Coalesce('category', Value(''))))
