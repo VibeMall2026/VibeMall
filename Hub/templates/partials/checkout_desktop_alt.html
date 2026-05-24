@@ -41,7 +41,7 @@
                                     type="checkbox"
                                     name="use_default_address"
                                     id="useDefaultAddress"
-                                    {% if checkout_form.use_default_address %}checked{% endif %}
+                                    {% if checkout_form.use_default_address or not checkout_form.address %}checked{% endif %}
                                     data-full-name="{{ default_address.full_name }}"
                                     data-phone="{{ default_address.mobile_number }}"
                                     data-address1="{{ default_address.address_line1 }}"
@@ -72,35 +72,35 @@
                             <label for="phoneField">Phone Number</label>
                             <div class="vm-checkout-d-phone">
                                 <span class="vm-checkout-d-country-prefix">+91</span>
-                                <input type="text" id="phoneField" name="phone" value="{{ checkout_form.phone|default:user_profile.mobile_number|default:'' }}" placeholder="98765 43210" required>
+                                <input type="text" id="phoneField" name="phone" value="{{ checkout_form.phone|default:default_address.mobile_number|default:user_profile.mobile_number|default:'' }}" placeholder="98765 43210" required>
                             </div>
                         </div>
                         <div class="vm-checkout-d-field vm-checkout-d-field--full">
                             <label for="addressField">Complete Address</label>
-                            <input type="text" id="addressField" name="address" value="{{ checkout_form.address|default:'' }}" placeholder="Flat/House No., Street, Landmark" required>
+                            <input type="text" id="addressField" name="address" value="{{ checkout_form.address|default:default_address.address_line1|default:'' }}" placeholder="Flat/House No., Street, Landmark" required>
                         </div>
                         <div class="vm-checkout-d-field">
                             <label for="cityField">City</label>
-                            <input type="text" id="cityField" name="city" value="{{ checkout_form.city|default:'' }}" placeholder="New Delhi" required>
+                            <input type="text" id="cityField" name="city" value="{{ checkout_form.city|default:default_address.city|default:'' }}" placeholder="New Delhi" required>
                             <small class="text-muted" id="cityHint"></small>
                         </div>
                         <div class="vm-checkout-d-field">
                             <label for="postcodeField">Pincode</label>
-                            <input type="text" id="postcodeField" name="postcode" value="{{ checkout_form.postcode|default:'' }}" placeholder="110001" required>
+                            <input type="text" id="postcodeField" name="postcode" value="{{ checkout_form.postcode|default:default_address.pincode|default:'' }}" placeholder="110001" required>
                             <small class="text-danger" id="pincodeError"></small>
                         </div>
                         <div class="vm-checkout-d-field">
                             <label for="stateField">State</label>
-                            <input type="text" id="stateField" name="state" value="{{ checkout_form.state|default:'' }}" placeholder="Delhi" required>
+                            <input type="text" id="stateField" name="state" value="{{ checkout_form.state|default:default_address.state|default:'' }}" placeholder="Delhi" required>
                         </div>
                         <div class="vm-checkout-d-field">
                             <label for="countrySelect">Country</label>
                             <select name="country" id="countrySelect" required>
-                                <option value="India" {% if checkout_form.country == 'India' or not checkout_form.country %}selected{% endif %}>India</option>
-                                <option value="USA" {% if checkout_form.country == 'USA' %}selected{% endif %}>USA</option>
-                                <option value="UK" {% if checkout_form.country == 'UK' %}selected{% endif %}>UK</option>
-                                <option value="Canada" {% if checkout_form.country == 'Canada' %}selected{% endif %}>Canada</option>
-                                <option value="Australia" {% if checkout_form.country == 'Australia' %}selected{% endif %}>Australia</option>
+                                <option value="India" {% if checkout_form.country == 'India' or default_address.country == 'India' or not checkout_form.country and not default_address.country %}selected{% endif %}>India</option>
+                                <option value="USA" {% if checkout_form.country == 'USA' or default_address.country == 'USA' %}selected{% endif %}>USA</option>
+                                <option value="UK" {% if checkout_form.country == 'UK' or default_address.country == 'UK' %}selected{% endif %}>UK</option>
+                                <option value="Canada" {% if checkout_form.country == 'Canada' or default_address.country == 'Canada' %}selected{% endif %}>Canada</option>
+                                <option value="Australia" {% if checkout_form.country == 'Australia' or default_address.country == 'Australia' %}selected{% endif %}>Australia</option>
                             </select>
                         </div>
                         <div class="vm-checkout-d-field vm-checkout-d-field--full">
