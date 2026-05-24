@@ -82,6 +82,7 @@
 </section>
 
 <div class="d-md-none">
-    {% include 'partials/vm_mobile_alt_bottom_nav.html' %}
+    {% include 'partials/vm_mobile_alt_footer.html' with newsletter_source='blog-mobile' %}
+    {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='home' %}
 </div>
 {% endblock %}

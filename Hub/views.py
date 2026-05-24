@@ -6680,7 +6680,7 @@ def checkout_confirm(request):
             # Verify user has enough points (non-atomic check for display)
             loyalty_account = LoyaltyPoints.objects.get(user=request.user)
             if points_to_redeem <= loyalty_account.points_available:
-                # Calculate rupee value (1 point = ₹1)
+                # Calculate rupee value (1 coin = Rs.10)
                 points_discount = LoyaltyPointsManager.calculate_rupee_value(points_to_redeem)
         except LoyaltyPoints.DoesNotExist:
             redeem_points = False
@@ -6891,7 +6891,7 @@ def checkout_confirm(request):
                 from .loyalty_manager import LoyaltyPointsManager
                 # Use atomic transaction to redeem points
                 try:
-                    success = LoyaltyPointsManager.redeem_points(
+                    success, _, _, _ = LoyaltyPointsManager.redeem_points(
                         user=request.user,
                         points=points_to_redeem,
                         order=order,
@@ -9652,8 +9652,9 @@ def order_confirmation(request, order_id):
         messages.warning(request, 'Please complete your payment to confirm the order.')
         return redirect('razorpay_payment', order_id=order.id)
     
-    # Calculate loyalty points earned (₹1 = 33 points, 1 point = ₹0.03)
-    loyalty_points_earned = int(order.total_amount * 33)
+    # Display estimated loyalty coins based on current rule: Rs.100 = 1 coin
+    from .loyalty_manager import LoyaltyPointsManager
+    loyalty_points_earned = LoyaltyPointsManager.calculate_points_earned(order.total_amount)
 
     context = {
         'order': order,

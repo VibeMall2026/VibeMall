@@ -316,6 +316,37 @@
             letter-spacing: 0.14em;
             color: #1b1c19;
         }
+
+        .brand-connect {
+            margin-top: 12px;
+            padding: 12px 14px;
+            border: 1px solid #e7e1d8;
+            background: #faf7f2;
+        }
+
+        .brand-connect-title {
+            margin: 0 0 5px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            color: #6f5c37;
+            font-weight: 700;
+        }
+
+        .brand-connect-copy {
+            margin: 0;
+            font-size: 11px;
+            color: #5f5a53;
+            line-height: 1.45;
+        }
+
+        .brand-connect-links {
+            margin-top: 7px;
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #1b1c19;
+        }
     </style>
 </head>
 <body>
@@ -466,6 +497,18 @@
                 Razorpay ID:
                 <span class="status-chip">{{ order.razorpay_payment_id }}</span>
                 {% endif %}
+            </div>
+
+            <div class="brand-connect">
+                <p class="brand-connect-title">Stay Connected With VibeMall</p>
+                <p class="brand-connect-copy">
+                    Discover new drops, styling stories, and curated collections directly on our digital storefront.
+                </p>
+                <div class="brand-connect-links">
+                    Web: {{ site_host }} |
+                    Instagram: instagram.com/vibemall.in |
+                    Support: info.vibemall@gmail.com
+                </div>
             </div>
         </div>
     </div>

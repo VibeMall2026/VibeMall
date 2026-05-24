@@ -141,71 +141,26 @@ def auto_cancel_reseller_earnings(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=Order)
 def award_loyalty_points_on_delivery(sender, instance, created, update_fields=None, **kwargs):
-    """
-    Award loyalty points when order status changes to DELIVERED.
-    Uses LoyaltyPointsManager for atomic, consistent point operations.
-    
-    Award formula: ₹1 spent = 33 points earned
-    Only awards on first delivery (checks delivery_points_awarded flag)
-    """
+    """Attempt loyalty settlement for delivered orders."""
     import logging
     logger = logging.getLogger(__name__)
-    
-    # Only process existing orders (not newly created)
+
     if created:
         return
-    
-    # Only process if order_status was actually updated
-    if update_fields and 'order_status' not in update_fields:
-        return
-    
-    # Only award points on DELIVERED status
     if instance.order_status != 'DELIVERED':
         return
-    
-    # Don't re-process orders that already awarded delivery points
-    if instance.delivery_points_awarded:
-        return
-    
+
     try:
         from .loyalty_manager import LoyaltyPointsManager
-        from .models import Order
-        from django.core.exceptions import ObjectDoesNotExist
-        
-        # Refresh to ensure we have latest data
-        order = Order.objects.get(id=instance.id)
-        
-        # Calculate points based on order amount (excluding discounts)
-        # Use base_amount for resell orders, subtotal for regular orders
-        if order.is_resell and order.base_amount:
-            order_amount = float(order.base_amount)
-        else:
-            order_amount = float(order.subtotal)
-        
-        # Calculate points earned (₹1 = 33 points)
-        points_earned = LoyaltyPointsManager.calculate_points_earned(order_amount)
-        
-        if points_earned > 0:
-            # Award points using centralized manager with atomic transaction
-            success = LoyaltyPointsManager.add_points(
-                user=order.user,
-                points=points_earned,
-                transaction_type='EARNED',
-                description=f"Delivery bonus on Order #{order.order_number}",
-                order=order
+        success, points_earned, reason = LoyaltyPointsManager.process_order_delivery_points(instance)
+        if success:
+            logger.info(
+                "Awarded %s loyalty points to user %s for order %s",
+                points_earned,
+                instance.user.id,
+                instance.order_number,
             )
-            
-            if success:
-                # Mark that delivery points have been awarded
-                order.delivery_points_awarded = True
-                order.admin_notes += f"\n[AUTO] Loyalty Points Awarded: {points_earned} points (Order delivered)"
-                order.save(update_fields=['delivery_points_awarded', 'admin_notes'])
-                
-                logger.info(f"✓ Awarded {points_earned} loyalty points to user {order.user.id} for order {order.order_number}")
-            else:
-                logger.warning(f"✗ Failed to award loyalty points for order {order.order_number}")
-                
-    except ObjectDoesNotExist:
-        logger.warning(f"Order or User not found when trying to award loyalty points")
+        elif reason:
+            logger.debug("Loyalty points not awarded for order %s: %s", instance.order_number, reason)
     except Exception as e:
         logger.error(f"Error awarding loyalty points on delivery: {str(e)}", exc_info=True)

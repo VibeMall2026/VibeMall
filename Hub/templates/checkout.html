@@ -940,7 +940,7 @@
             points = 0;
         }
         pointsInput.value = points;
-        const discount = points * 1.00;  // 1 point = ₹1
+        const discount = points * 10.00;  // 1 coin = Rs.10
         pointsRow.style.display = points > 0 ? 'flex' : 'none';
         pointsAmount.textContent = `-${formatCurrency(discount)}`;
         return discount;
@@ -1868,7 +1868,7 @@ function updateFinalTotal() {
     const pointsInput = document.getElementById('points_to_redeem');
     if (redeemCheckbox && redeemCheckbox.checked && pointsInput) {
         const points = parseInt(pointsInput.value) || 0;
-        const pointsDiscount = points * 1.00;  // 1 point = ₹1
+        const pointsDiscount = points * 10.00;  // 1 coin = Rs.10
         total -= pointsDiscount;
     }
     {% endif %}
@@ -1885,7 +1885,7 @@ function updateFinalTotal() {
     const pointsDiscountAmount = document.getElementById('points_discount_amount');
     if (pointsToRedeemInputFinal && pointsDiscountAmount) {
         const points = parseInt(pointsToRedeemInputFinal.value) || 0;
-        const pointsDiscount = points * 1.00;  // 1 point = ₹1
+        const pointsDiscount = points * 10.00;  // 1 coin = Rs.10
         pointsDiscountAmount.textContent = `-₹${pointsDiscount.toFixed(2)}`;
     }
     {% endif %}

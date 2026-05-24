@@ -489,13 +489,27 @@ body .vm-floating-alert {
         top: 6px !important;
     }
 
-    /* Keep support chat button above fixed mobile bottom nav to avoid icon overlap. */
+    #supportChatPanel {
+        width: min(320px, calc(100vw - 24px));
+    }
+}
+
+@media (max-width: 767.98px) {
+    /* Keep support chat button above fixed mobile bottom nav to avoid overlap on all phones. */
     #supportChatWidget {
-        right: 16px;
-        bottom: calc(94px + env(safe-area-inset-bottom));
+        right: 14px;
+        bottom: calc(98px + env(safe-area-inset-bottom));
+        z-index: 1201;
+    }
+
+    #supportChatToggle {
+        padding: 10px 14px;
+        border-radius: 999px;
+        font-size: 14px;
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.22);
     }
 
     #supportChatPanel {
-        width: min(320px, calc(100vw - 24px));
+        width: min(320px, calc(100vw - 20px));
     }
 }

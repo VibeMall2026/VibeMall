@@ -254,11 +254,11 @@
                             <tr class="loyalty-redeem-row">
                                 <th colspan="2">
                                     <label class="vm-checkout-d-inline-check">
-                                        <input type="checkbox" name="redeem_points" id="redeem_points" value="1">
+                                        <input type="checkbox" name="redeem_points" id="redeem_points" value="1" {% if checkout_form.redeem_points %}checked{% endif %}>
                                         <span>Use loyalty points for this order</span>
                                     </label>
                                     <div class="mt-2">
-                                        <input type="number" name="points_to_redeem" id="points_to_redeem" min="0" max="{{ loyalty_account.points_available }}" value="0" style="width:120px; border:1px solid rgba(196, 199, 199, 0.42); padding:8px 10px; border-radius:6px; background:#fff;">
+                                        <input type="number" name="points_to_redeem" id="points_to_redeem" min="0" max="{{ loyalty_account.points_available }}" value="{{ checkout_form.points_to_redeem|default:'0' }}" style="width:120px; border:1px solid rgba(196, 199, 199, 0.42); padding:8px 10px; border-radius:6px; background:#fff;">
                                     </div>
                                 </th>
                             </tr>
@@ -293,7 +293,7 @@
                                 <button type="button" id="removeCoupon">Remove</button>
                             </div>
                         </div>
-                        <input type="hidden" id="appliedCouponId" name="coupon_id" value="">
+                        <input type="hidden" id="appliedCouponId" name="coupon_id" value="{{ checkout_form.coupon_id|default:'' }}">
                     </div>
 
                     <div class="vm-checkout-d-side-note">

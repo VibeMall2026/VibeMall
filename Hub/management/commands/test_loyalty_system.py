@@ -53,13 +53,13 @@ class Command(BaseCommand):
         # Test 4: Calculate redemption value
         self.stdout.write('\nTest 4: Calculating redemption value...')
         rupee_value = LoyaltyPointsManager.calculate_rupee_value(100)
-        self.stdout.write(self.style.SUCCESS(f'  ✓ 100 points = ₹{rupee_value} (expected: ₹3.00)'))
+        self.stdout.write(self.style.SUCCESS(f'  ✓ 100 points = ₹{rupee_value} (expected: ₹1000.00)'))
         
         # Test 5: Calculate earned points
         self.stdout.write('\nTest 5: Calculating earned points...')
         order_amount = Decimal('1000')
         points_earned = LoyaltyPointsManager.calculate_points_earned(order_amount)
-        self.stdout.write(self.style.SUCCESS(f'  ✓ ₹{order_amount} = {points_earned} points (expected: 33000)'))
+        self.stdout.write(self.style.SUCCESS(f'  ✓ ₹{order_amount} = {points_earned} points (expected: 10)'))
         
         # Test 6: Redeem points
         self.stdout.write('\nTest 6: Redeeming 100 points...')
