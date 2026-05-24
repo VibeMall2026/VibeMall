@@ -488,4 +488,14 @@ body .vm-floating-alert {
         left: calc(50% + 12px) !important;
         top: 6px !important;
     }
+
+    /* Keep support chat button above fixed mobile bottom nav to avoid icon overlap. */
+    #supportChatWidget {
+        right: 16px;
+        bottom: calc(94px + env(safe-area-inset-bottom));
+    }
+
+    #supportChatPanel {
+        width: min(320px, calc(100vw - 24px));
+    }
 }
