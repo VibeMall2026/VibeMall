@@ -373,7 +373,13 @@ async def control_bot(body: ControlRequest):
 
     elif action == "weekend_shutdown":
         state.running = False
-        return {"success": True, "message": "Weekend shutdown initiated", "status": "stopped"}
+        weekend_close = mt5_bridge.close_positions_for_weekend(exempt_symbols={"BTCUSD"})
+        return {
+            "success": weekend_close.get("success", True),
+            "message": "Weekend shutdown initiated (non-BTCUSD positions close attempted)",
+            "status": "stopped",
+            "weekend_close": weekend_close,
+        }
 
     else:
         raise HTTPException(status_code=400, detail=f"Unknown action: {action}")

@@ -91,12 +91,14 @@
 .pddx-reco__image {
   aspect-ratio: 4 / 5;
   background: #f7f1e8;
+  overflow: hidden;
 }
 
 .pddx-reco__image img {
   width: 100%;
-  height: auto;
-  object-fit: contain;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
   display: block;
 }
 
@@ -115,18 +117,18 @@
 }
 
 body.vm-pd-original-card-image .pddx-reco__image {
-  aspect-ratio: auto;
-  min-height: 220px;
+  aspect-ratio: 4 / 5;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
 body.vm-pd-original-card-image .pddx-reco__image img {
-  width: auto;
+  width: 100%;
   max-width: 100%;
-  height: auto;
-  object-fit: initial;
+  height: 100%;
+  object-fit: contain;
 }
 
 .pddx-reco__body {

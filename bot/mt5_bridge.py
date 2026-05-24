@@ -8,6 +8,7 @@ NOTE: MetaTrader5 Python library only works on Windows.
 import os
 import sys
 import math
+from datetime import datetime
 from typing import Optional
 import requests
 from loguru import logger
@@ -520,6 +521,96 @@ def get_open_positions() -> list[dict]:
                 "comment": p.comment,
             })
         return result
+
+
+def close_position(position_id: int) -> dict:
+    """Fully close an open position by ticket/position id."""
+    # Bridge delegation mode
+    if USE_BRIDGE:
+        response = _call_bridge(f"/positions/{position_id}/close", method="POST", json_data={})
+        if response is None:
+            return {"success": False, "message": "Bridge request failed"}
+        return response
+
+    # Direct MT5 mode
+    if not MT5_AVAILABLE or not ensure_connected():
+        return {"success": False, "message": "MT5 not connected"}
+
+    from bot.accounts import get_mt5_lock
+    with get_mt5_lock():
+        positions = mt5.positions_get(ticket=position_id)
+        if not positions:
+            return {"success": False, "message": f"Position {position_id} not found"}
+
+        pos = positions[0]
+        order_type = mt5.ORDER_TYPE_SELL if pos.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY
+        tick = mt5.symbol_info_tick(pos.symbol)
+        if not tick:
+            return {"success": False, "message": f"No tick data for {pos.symbol}"}
+        price = tick.bid if pos.type == mt5.ORDER_TYPE_BUY else tick.ask
+
+        request = {
+            "action": mt5.TRADE_ACTION_DEAL,
+            "symbol": pos.symbol,
+            "volume": pos.volume,
+            "type": order_type,
+            "position": position_id,
+            "price": price,
+            "deviation": config.MT5_DEVIATION,
+            "magic": config.MT5_MAGIC_NUMBER,
+            "comment": "ALGO:WEEKEND_CLOSE",
+            "type_time": mt5.ORDER_TIME_GTC,
+            "type_filling": mt5.ORDER_FILLING_IOC,
+        }
+        result = mt5.order_send(request)
+        if result and result.retcode == mt5.TRADE_RETCODE_DONE:
+            return {"success": True, "message": "Position closed"}
+        err = result.comment if result else str(mt5.last_error())
+        return {"success": False, "message": f"Close failed: {err}"}
+
+
+def close_positions_for_weekend(exempt_symbols: Optional[set[str]] = None) -> dict:
+    """
+    Close all open positions except exempt symbols (default: BTCUSD variants).
+    Intended for Friday pre-close safety.
+    """
+    exempt = {s.upper().replace("/", "").replace(" ", "") for s in (exempt_symbols or {"BTCUSD"})}
+    positions = get_open_positions()
+    closed = []
+    skipped = []
+    failed = []
+
+    for p in positions:
+        pid = p.get("id") or p.get("position_id")
+        symbol = str(p.get("symbol") or "").strip()
+        symbol_norm = symbol.upper().replace("/", "").replace(" ", "")
+        # Allow common broker suffix/prefix variants like BTCUSDm, xBTCUSD.
+        if any(ex in symbol_norm for ex in exempt):
+            skipped.append({"position_id": pid, "symbol": symbol, "reason": "exempt_symbol"})
+            continue
+
+        result = close_position(int(pid)) if pid is not None else {"success": False, "message": "missing_position_id"}
+        if result.get("success"):
+            closed.append({"position_id": pid, "symbol": symbol})
+        else:
+            failed.append({"position_id": pid, "symbol": symbol, "error": result.get("message", "unknown_error")})
+
+    summary = {
+        "success": len(failed) == 0,
+        "timestamp": datetime.utcnow().isoformat(),
+        "total_open": len(positions),
+        "closed_count": len(closed),
+        "skipped_count": len(skipped),
+        "failed_count": len(failed),
+        "closed": closed,
+        "skipped": skipped,
+        "failed": failed,
+    }
+    logger.info(
+        f"[WEEKEND] Close non-exempt positions done | open={summary['total_open']} "
+        f"closed={summary['closed_count']} skipped={summary['skipped_count']} failed={summary['failed_count']}"
+    )
+    return summary
 
 
 # ── Get trade history ─────────────────────────────────────────────────────────
