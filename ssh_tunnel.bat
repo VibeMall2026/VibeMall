@@ -8,7 +8,7 @@ REM Edit the variables below to match your VPS configuration before running.
 set VPS_USER=root
 set VPS_HOST=187.124.98.177
 set VPS_PORT=22
-set TUNNEL_PORT=2222
+set TUNNEL_PORT=2223
 set LOCAL_PORT=8001
 set KEY_FILE=%USERPROFILE%\.ssh\id_rsa
 

@@ -44,7 +44,7 @@ Register-ScheduledTask `
     -Trigger   $Trigger `
     -Settings  $Settings `
     -Principal $Principal `
-    -Description "SSH reverse tunnel: Windows localhost:8001 → VPS localhost:2222 (Trading Bot API)" `
+    -Description "SSH reverse tunnel: Windows localhost:8001 → VPS localhost:2223 (Trading Bot API)" `
     -Force
 
 Write-Host ""
