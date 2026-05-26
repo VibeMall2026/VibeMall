@@ -838,7 +838,10 @@
       badge.textContent = 'Trading: ON';
       badge.className = 'badge bg-label-success ms-1';
     } else {
-      if (d.halt_until) {
+      const reason = String(d.reason || '');
+      if (reason === 'manually_stopped_for_today') {
+        badge.textContent = 'HARD STOP TODAY';
+      } else if (d.halt_until) {
         badge.textContent = 'Trading: OFF (until ' + new Date(d.halt_until).toLocaleString() + ')';
       } else {
         badge.textContent = 'Trading: OFF (today)';

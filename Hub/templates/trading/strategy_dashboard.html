@@ -573,7 +573,10 @@ function refreshThe5ersTradeMode() {
         badge.style.color = '#66e08a';
         badge.style.borderColor = '#254a30';
       } else {
-        if (d.halt_until) {
+        const reason = String(d.reason || '');
+        if (reason === 'manually_stopped_for_today') {
+          badge.textContent = 'HARD STOP TODAY';
+        } else if (d.halt_until) {
           const local = new Date(d.halt_until).toLocaleString();
           badge.textContent = '● Stopped until ' + local;
         } else {
@@ -957,3 +960,5 @@ loadStrategyData();
 setInterval(loadStrategyData, 30000);
 </script>
 {% endblock %}
+
+
