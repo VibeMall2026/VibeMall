@@ -73,7 +73,7 @@ class AlgoConfig:
     trend_timeframe_minutes: int = 60   # higher timeframe for trend confirmation
     require_trend_alignment: bool = False
     atr_period: int = 14                # ATR period for volatility filter
-    atr_min_multiplier: float = 0.5     # min ATR as fraction of avg ATR
+    atr_min_multiplier: float = 0.45    # soft-relaxed: allow slightly lower volatility setups
     max_active_obs: int = 10            # max order blocks tracked at once (2 per symbol)
     scan_interval_seconds: int = 60     # how often to scan for new OB setups
     risk_check_interval_seconds: int = 1  # how often to check SL/profit lock on open trades

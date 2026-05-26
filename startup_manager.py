@@ -9,6 +9,7 @@ bot API is healthy before exiting.
 from __future__ import annotations
 
 import logging
+import os
 import subprocess
 import sys
 import time
@@ -39,6 +40,7 @@ LOG_BACKUP_COUNT: int = 2
 
 # Windows process creation flag — start process detached from the current console
 DETACHED_PROCESS: int = 0x00000008
+VISIBLE_MODE: bool = str(os.environ.get("WATCHDOG_VISIBLE", "0")).lower() in {"1", "true", "yes", "on"}
 
 
 # ---------------------------------------------------------------------------
@@ -123,15 +125,21 @@ def start_watchdog() -> subprocess.Popen:
     startup_manager exits.
     """
     logger = logging.getLogger("startup_manager")
-    cmd = [str(PYTHON_EXE), str(WATCHDOG_SCRIPT)]
+    cmd = [str(PYTHON_EXE), "-u", str(WATCHDOG_SCRIPT)]
     logger.info("Starting watchdog: %s", " ".join(cmd))
-
-    proc = subprocess.Popen(
-        cmd,
-        cwd=str(PROJECT_ROOT),
-        creationflags=DETACHED_PROCESS,
-        close_fds=True,
-    )
+    if VISIBLE_MODE:
+        proc = subprocess.Popen(
+            cmd,
+            cwd=str(PROJECT_ROOT),
+            close_fds=True,
+        )
+    else:
+        proc = subprocess.Popen(
+            cmd,
+            cwd=str(PROJECT_ROOT),
+            creationflags=DETACHED_PROCESS,
+            close_fds=True,
+        )
     logger.info("Watchdog started with PID %d", proc.pid)
     return proc
 

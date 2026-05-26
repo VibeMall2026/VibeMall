@@ -54,7 +54,7 @@ class HumanMindConfig:
     # --- Spread filter ---
     spread_filter_enabled: bool = True
     max_spread_pips: dict[str, float] = {
-        "XAUUSD": 0.50,   # $0.50 for gold
+        "XAUUSD": 0.65,   # soft-relaxed for gold to reduce overblocking in normal spread expansion
         "EURUSD": 0.0003, # 3 pips
         "USDJPY": 0.04,   # 4 pips
         "GBPUSD": 0.0004, # 4 pips

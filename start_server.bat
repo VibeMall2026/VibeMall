@@ -1,7 +1,9 @@
 @echo off
-REM start_server.bat — Launch the trading bot startup manager in the background.
-REM The startup manager waits 60 s, checks internet, then spawns watchdog.py.
+setlocal
+REM start_server.bat - launch startup_manager in always-visible console mode.
+REM WATCHDOG_VISIBLE=1 keeps watchdog and bot logs visible in this same window.
 
-echo Starting trading bot server...
-start "TradingBot" /B python startup_manager.py
-echo Startup manager launched. Check startup_manager.log for progress.
+cd /d "%~dp0"
+echo Starting trading bot server (visible mode)...
+set "WATCHDOG_VISIBLE=1"
+python -u startup_manager.py

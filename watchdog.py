@@ -8,6 +8,7 @@ and restarts the process on 3 consecutive failures or unexpected exit.
 from __future__ import annotations
 
 import logging
+import os
 import signal
 import subprocess
 import sys
@@ -24,7 +25,7 @@ import requests
 
 PROJECT_ROOT: Path = Path(__file__).parent.resolve()
 PYTHON_EXE: Path = Path(r"C:\Users\ADMIN\AppData\Local\Programs\Python\Python311\python.exe")
-BOT_MODULE: list[str] = [str(PYTHON_EXE), "-m", "bot.main"]
+BOT_MODULE: list[str] = [str(PYTHON_EXE), "-u", "-m", "bot.main"]
 HEALTH_URL: str = "http://localhost:8001/health"
 POLL_INTERVAL: int = 15        # seconds between health checks
 FAIL_THRESHOLD: int = 3        # consecutive failures before restart
@@ -32,6 +33,7 @@ HEALTH_TIMEOUT: int = 10       # seconds before a health request times out
 LOG_FILE: Path = PROJECT_ROOT / "watchdog.log"
 LOG_MAX_BYTES: int = 10 * 1024 * 1024   # 10 MB
 LOG_BACKUP_COUNT: int = 3
+VISIBLE_MODE: bool = str(os.environ.get("WATCHDOG_VISIBLE", "0")).lower() in {"1", "true", "yes", "on"}
 
 
 # ---------------------------------------------------------------------------
@@ -142,8 +144,14 @@ def run_watchdog() -> None:
 
     def _launch() -> subprocess.Popen:
         logger.info("Launching bot: %s", " ".join(BOT_MODULE))
-        # Capture bot stdout/stderr so crashes/hangs are diagnosable.
-        # (watchdog.log only contains health status, not bot tracebacks.)
+        # Visible mode: inherit current console so logs are always visible.
+        # Background mode: keep redirect to bot_process.log for later inspection.
+        if VISIBLE_MODE:
+            return subprocess.Popen(
+                BOT_MODULE,
+                cwd=str(PROJECT_ROOT),
+            )
+
         try:
             bot_log_path = PROJECT_ROOT / "bot_process.log"
             state.bot_log_handle = open(bot_log_path, "a", encoding="utf-8", errors="ignore")  # noqa: SIM115
