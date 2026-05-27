@@ -25,7 +25,7 @@ import requests
 
 PROJECT_ROOT: Path = Path(__file__).parent.resolve()
 PYTHON_EXE: Path = Path(r"C:\Users\ADMIN\AppData\Local\Programs\Python\Python311\python.exe")
-BOT_MODULE: list[str] = [str(PYTHON_EXE), "-u", "-m", "bot.main"]
+BOT_MODULE: list[str] = [str(PYTHON_EXE), "-X", "utf8", "-u", "-m", "bot.main"]
 HEALTH_URL: str = "http://localhost:8001/health"
 POLL_INTERVAL: int = 15        # seconds between health checks
 FAIL_THRESHOLD: int = 3        # consecutive failures before restart

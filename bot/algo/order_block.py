@@ -90,6 +90,7 @@ class AlgoConfig:
     entry_max_mid_distance_atr: float = 0.35  # reject entries too far from OB midpoint
     require_entry_momentum: bool = False
     require_entry_distance_check: bool = False
+    require_midpoint_cross_confirmation: bool = False
 
     # ── Strong Trailing Stop (recommended) ────────────────────────────────────
     # Tight "smart" trailing that follows recent swing highs/lows with a small ATR buffer.
@@ -764,6 +765,12 @@ def _check_entry_signal(ob: OrderBlock, candles_exec: list[Candle]) -> Optional[
         touched_zone = last.low <= ob.midpoint and last.low >= ob.low
         # Confirmation: close above midpoint
         confirmed = last.close > ob.midpoint and prev.close <= ob.midpoint
+        soft_confirmed = confirmed or (last.close > last.open and last.close >= ob.low)
+        confirm_ok = (
+            confirmed
+            if algo_config.require_midpoint_cross_confirmation
+            else soft_confirmed
+        )
         momentum_ok = (last.close > last.open) if algo_config.require_entry_momentum else True
         distance_ok = (
             True
@@ -772,10 +779,11 @@ def _check_entry_signal(ob: OrderBlock, candles_exec: list[Candle]) -> Optional[
         )
         logger.debug(
             f"[ALGO][ENTRY_CHECK] {ob.id} bullish | touched={touched_zone} confirmed={confirmed} "
+            f"| confirm_ok={confirm_ok} strict_mid_cross={algo_config.require_midpoint_cross_confirmation} "
             f"| last(o={last.open:.5f} h={last.high:.5f} l={last.low:.5f} c={last.close:.5f}) "
             f"| prev(c={prev.close:.5f}) | zone=({ob.low:.5f}-{ob.midpoint:.5f})"
         )
-        if touched_zone and confirmed and momentum_ok and distance_ok:
+        if touched_zone and confirm_ok and momentum_ok and distance_ok:
             _ob_debug(
                 "ENTRY_DECISION",
                 symbol=ob.symbol,
@@ -793,6 +801,12 @@ def _check_entry_signal(ob: OrderBlock, candles_exec: list[Candle]) -> Optional[
         touched_zone = last.high >= ob.midpoint and last.high <= ob.high
         # Confirmation: close below midpoint
         confirmed = last.close < ob.midpoint and prev.close >= ob.midpoint
+        soft_confirmed = confirmed or (last.close < last.open and last.close <= ob.high)
+        confirm_ok = (
+            confirmed
+            if algo_config.require_midpoint_cross_confirmation
+            else soft_confirmed
+        )
         momentum_ok = (last.close < last.open) if algo_config.require_entry_momentum else True
         distance_ok = (
             True
@@ -801,10 +815,11 @@ def _check_entry_signal(ob: OrderBlock, candles_exec: list[Candle]) -> Optional[
         )
         logger.debug(
             f"[ALGO][ENTRY_CHECK] {ob.id} bearish | touched={touched_zone} confirmed={confirmed} "
+            f"| confirm_ok={confirm_ok} strict_mid_cross={algo_config.require_midpoint_cross_confirmation} "
             f"| last(o={last.open:.5f} h={last.high:.5f} l={last.low:.5f} c={last.close:.5f}) "
             f"| prev(c={prev.close:.5f}) | zone=({ob.midpoint:.5f}-{ob.high:.5f})"
         )
-        if touched_zone and confirmed and momentum_ok and distance_ok:
+        if touched_zone and confirm_ok and momentum_ok and distance_ok:
             _ob_debug(
                 "ENTRY_DECISION",
                 symbol=ob.symbol,

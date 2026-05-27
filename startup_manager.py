@@ -120,7 +120,7 @@ def start_watchdog() -> subprocess.Popen:
     startup_manager exits.
     """
     logger = logging.getLogger("startup_manager")
-    cmd = [str(PYTHON_EXE), "-u", str(WATCHDOG_SCRIPT)]
+    cmd = [str(PYTHON_EXE), "-X", "utf8", "-u", str(WATCHDOG_SCRIPT)]
     logger.info("Starting watchdog: %s", " ".join(cmd))
     if VISIBLE_MODE:
         proc = subprocess.Popen(

@@ -33,6 +33,14 @@ _mt5_op_lock = threading.RLock()
 _account_trade_halts: dict[int, str] = {}  # login -> YYYY-MM-DD (halt day)
 _account_trade_halts_until: dict[int, str] = {}  # login -> ISO UTC datetime (halt until)
 _trade_mode_persist_lock = threading.Lock()
+_active_login: int | None = None
+_last_connect_attempt_ts: dict[int, float] = {}
+_last_connect_fail_ts: dict[int, float] = {}
+_last_connect_success_ts: dict[int, float] = {}
+
+# Connection-throttle tuning to reduce MT5 authorization flapping during rapid account switching.
+CONNECT_MIN_RETRY_SECONDS = 3.0
+CONNECT_RECENT_OK_SECONDS = 1.5
 
 # Persist per-account trade-mode so it survives bot restarts and avoids
 # "Trading: ON again after refresh" when FastAPI process reloads / API URL changes.
@@ -547,9 +555,39 @@ def update_account_allowed_symbols(account_id: str, allowed_symbols: Optional[li
 
 def _connect_account(acc: MT5Account) -> bool:
     """Connect to a specific MT5 account (switches active connection)."""
+    global _active_login
     if not MT5_AVAILABLE:
         return False
     with _mt5_op_lock:
+        now_ts = time.monotonic()
+        target_login = int(acc.login)
+
+        # If we recently failed this login, back off briefly to avoid rapid auth flapping.
+        last_fail = _last_connect_fail_ts.get(target_login, 0.0)
+        if last_fail and (now_ts - last_fail) < CONNECT_MIN_RETRY_SECONDS:
+            wait_left = CONNECT_MIN_RETRY_SECONDS - (now_ts - last_fail)
+            acc.connected = False
+            acc.error = f"Backoff active ({wait_left:.1f}s) after recent auth/connect failure"
+            return False
+
+        # Fast path: if current MT5 session is already on this login and alive, skip re-init.
+        try:
+            info = mt5.account_info()
+            current_login = int(getattr(info, "login", 0) or 0) if info else 0
+            if current_login == target_login and mt5.terminal_info() is not None:
+                acc.connected = True
+                acc.error = ""
+                if info:
+                    acc.balance = getattr(info, "balance", acc.balance)
+                    acc.equity = getattr(info, "equity", acc.equity)
+                    acc.currency = getattr(info, "currency", acc.currency)
+                    acc.leverage = getattr(info, "leverage", acc.leverage)
+                _active_login = target_login
+                _last_connect_success_ts[target_login] = now_ts
+                return True
+        except Exception:
+            pass
+
         connect_timeout_ms = _config.MT5_TIMEOUT_MS
         attempts = (1, 2)
         # Funded account can intermittently hang the MT5 IPC channel.
@@ -569,6 +607,7 @@ def _connect_account(acc: MT5Account) -> bool:
 
         last_err = ""
         for attempt in attempts:
+            _last_connect_attempt_ts[target_login] = time.monotonic()
             # Shutdown existing connection first
             mt5.shutdown()
 
@@ -581,10 +620,14 @@ def _connect_account(acc: MT5Account) -> bool:
                     acc.leverage = info.leverage
                 acc.connected = True
                 acc.error = ""
+                _active_login = target_login
+                _last_connect_success_ts[target_login] = time.monotonic()
+                _last_connect_fail_ts.pop(target_login, None)
                 logger.success(f"[ACCOUNTS] Connected: {acc.label} | Balance: {acc.balance} {acc.currency}")
                 return True
 
             last_err = str(mt5.last_error())
+            _last_connect_fail_ts[target_login] = time.monotonic()
             if attempt == 1 and len(attempts) > 1:
                 time.sleep(0.4)
 
