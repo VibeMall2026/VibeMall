@@ -37,10 +37,12 @@ _active_login: int | None = None
 _last_connect_attempt_ts: dict[int, float] = {}
 _last_connect_fail_ts: dict[int, float] = {}
 _last_connect_success_ts: dict[int, float] = {}
+_last_connect_success_log_ts: dict[int, float] = {}
 
 # Connection-throttle tuning to reduce MT5 authorization flapping during rapid account switching.
 CONNECT_MIN_RETRY_SECONDS = 3.0
 CONNECT_RECENT_OK_SECONDS = 1.5
+CONNECT_SUCCESS_LOG_INTERVAL_SECONDS = 60.0
 
 # Persist per-account trade-mode so it survives bot restarts and avoids
 # "Trading: ON again after refresh" when FastAPI process reloads / API URL changes.
@@ -623,7 +625,13 @@ def _connect_account(acc: MT5Account) -> bool:
                 _active_login = target_login
                 _last_connect_success_ts[target_login] = time.monotonic()
                 _last_connect_fail_ts.pop(target_login, None)
-                logger.success(f"[ACCOUNTS] Connected: {acc.label} | Balance: {acc.balance} {acc.currency}")
+                now_log_ts = time.monotonic()
+                last_log_ts = _last_connect_success_log_ts.get(target_login, 0.0)
+                if (now_log_ts - last_log_ts) >= CONNECT_SUCCESS_LOG_INTERVAL_SECONDS:
+                    logger.success(
+                        f"[ACCOUNTS] Connected: {acc.label} | Balance: {acc.balance} {acc.currency}"
+                    )
+                    _last_connect_success_log_ts[target_login] = now_log_ts
                 return True
 
             last_err = str(mt5.last_error())

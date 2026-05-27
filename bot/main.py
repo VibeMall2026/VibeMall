@@ -9,6 +9,7 @@ import asyncio
 import os
 import sys
 import threading
+import re
 import uvicorn
 from loguru import logger
 
@@ -76,6 +77,19 @@ async def start_bot() -> None:
         state.mt5_connected = True
         logger.info("MT5 already connected.")
 
+    # Telegram disabled mode (keep MT5 strategies running without Telegram).
+    if not config.TG_ENABLED:
+        logger.warning("Telegram listener is disabled via TG_ENABLED=false.")
+        state.running = True
+        try:
+            while True:
+                await asyncio.sleep(3600)
+        finally:
+            state.running = False
+            state.telegram_connected = False
+            mt5_bridge.disconnect()
+        return
+
     # Start Telegram listener with retry loop so the bot keeps running
     # even if Telegram auth/session is temporarily unavailable.
     logger.info("Starting Telegram listener...")
@@ -89,10 +103,24 @@ async def start_bot() -> None:
                     "Telegram listener stopped. Retrying in %ss...",
                     config.TG_RECONNECT_DELAY,
                 )
+                retry_delay = max(3, int(config.TG_RECONNECT_DELAY))
             except Exception as e:
-                logger.error(f"Telegram listener error: {e}")
+                msg = str(e)
+                # Telethon FloodWait-like message:
+                # "A wait of 82759 seconds is required (caused by SendCodeRequest)"
+                m = re.search(r"wait of\s+(\d+)\s+seconds", msg, re.IGNORECASE)
+                if m:
+                    wait_s = max(30, int(m.group(1)))
+                    retry_delay = wait_s + 5
+                    logger.error(
+                        "Telegram listener flood-wait detected. Sleeping %ss before retry.",
+                        retry_delay,
+                    )
+                else:
+                    retry_delay = max(3, int(config.TG_RECONNECT_DELAY))
+                    logger.error(f"Telegram listener error: {e}")
             state.telegram_connected = False
-            await asyncio.sleep(max(3, int(config.TG_RECONNECT_DELAY)))
+            await asyncio.sleep(retry_delay)
     finally:
         state.running = False
         state.telegram_connected = False

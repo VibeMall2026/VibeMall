@@ -41,6 +41,7 @@ TG_SESSION_DIR: str = os.getenv("TG_SESSION_DIR", "sessions")
 TG_SESSION_STRING: str = os.getenv("TG_SESSION_STRING", "")
 TG_CHANNELS: list[str] = _list("TG_CHANNELS")
 TG_RECONNECT_DELAY: int = _int("TG_RECONNECT_DELAY_SECONDS", 10)
+TG_ENABLED: bool = _bool("TG_ENABLED", True)
 
 # ── MT5 ───────────────────────────────────────────────────────────────────────
 MT5_LOGIN: int = _int("MT5_LOGIN", 0)
