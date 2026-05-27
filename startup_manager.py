@@ -191,8 +191,10 @@ def main() -> None:
 
     logger.info("Checking internet connectivity…")
     if not wait_for_internet():
-        logger.error("Cannot reach internet. Aborting startup.")
-        sys.exit(1)
+        logger.warning(
+            "Internet not confirmed during startup window. "
+            "Continuing anyway so watchdog can handle retries."
+        )
 
     logger.info("Spawning watchdog…")
     try:
