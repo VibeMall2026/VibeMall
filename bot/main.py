@@ -76,14 +76,23 @@ async def start_bot() -> None:
         state.mt5_connected = True
         logger.info("MT5 already connected.")
 
-    # Start Telegram listener
+    # Start Telegram listener with retry loop so the bot keeps running
+    # even if Telegram auth/session is temporarily unavailable.
     logger.info("Starting Telegram listener...")
     from bot.telegram_listener import start_listener
     state.running = True
     try:
-        await start_listener()
-    except Exception as e:
-        logger.error(f"Telegram listener error: {e}")
+        while True:
+            try:
+                await start_listener()
+                logger.warning(
+                    "Telegram listener stopped. Retrying in %ss...",
+                    config.TG_RECONNECT_DELAY,
+                )
+            except Exception as e:
+                logger.error(f"Telegram listener error: {e}")
+            state.telegram_connected = False
+            await asyncio.sleep(max(3, int(config.TG_RECONNECT_DELAY)))
     finally:
         state.running = False
         state.telegram_connected = False
