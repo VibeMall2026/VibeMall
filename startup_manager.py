@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import os
+import socket
 import subprocess
 import sys
 import time
@@ -27,7 +28,6 @@ PYTHON_EXE: Path = Path(r"C:\Users\ADMIN\AppData\Local\Programs\Python\Python311
 WATCHDOG_SCRIPT: Path = PROJECT_ROOT / "watchdog.py"
 
 STARTUP_DELAY: int = 60          # seconds to wait after login before doing anything
-CONNECTIVITY_URL: str = "https://www.google.com"
 MAX_RETRIES: int = 5
 RETRY_INTERVAL: int = 10         # seconds between connectivity retries
 HEALTH_URL: str = "http://localhost:8001/health"
@@ -80,25 +80,20 @@ def setup_logger() -> logging.Logger:
 # ---------------------------------------------------------------------------
 
 def wait_for_internet(
-    url: str = CONNECTIVITY_URL,
     retries: int = MAX_RETRIES,
     interval: int = RETRY_INTERVAL,
 ) -> bool:
     """
-    Attempt an HTTP GET to *url* up to *retries* times.
+    Attempt a direct TCP connect up to *retries* times.
 
-    Returns True on the first 2xx response, False if all attempts fail.
+    We avoid DNS/SSL checks here because they can hang on some boot sequences.
+    Returns True on the first successful socket connection, False otherwise.
     """
     logger = logging.getLogger("startup_manager")
     for attempt in range(1, retries + 1):
         try:
-            response = requests.get(url, timeout=10)
-            if response.status_code < 300:
-                logger.info(
-                    "Internet connectivity confirmed on attempt %d/%d",
-                    attempt,
-                    retries,
-                )
+            with socket.create_connection(("1.1.1.1", 53), timeout=5):
+                logger.info("Internet connectivity confirmed on attempt %d/%d", attempt, retries)
                 return True
         except Exception as exc:  # noqa: BLE001
             logger.warning(
