@@ -105,6 +105,14 @@ class AlgoConfig:
     dollar_profit_trigger: float = 8.0   # When floating profit >= $8...
     dollar_profit_lock: float = 5.0      # ...move SL to lock in $5 profit
     dollar_lock_enabled: bool = True     # Enable/disable dollar profit lock
+    # Partial close tuning
+    partial_close_r: float = 0.7         # trigger partial at +0.7R
+    partial_close_fraction: float = 0.5  # close 50% position
+    # Adverse momentum protection: close if price keeps pushing toward SL
+    adverse_exit_enabled: bool = True
+    adverse_candle_count: int = 3
+    adverse_min_r: float = -0.15         # only when trade is at least -0.15R
+    adverse_sl_proximity_r: float = 0.35 # and current price is within 0.35R of SL
 
 
     def get_symbols(self) -> list:
@@ -1114,12 +1122,16 @@ def _manage_open_trade_risk(ob: OrderBlock) -> None:
     # ── Human Mind: partial close, early exit, time-based exit ───────────────
     from bot.algo.human_mind import (
         should_early_exit, should_time_exit, should_partial_close,
-        execute_partial_close, close_trade,
+        execute_partial_close, close_trade, cfg as _hm_cfg,
     )
     _ob_symbol = getattr(ob, 'symbol', algo_config.symbol)
     candles_exec_hm = _get_candles(_ob_symbol, algo_config.execution_timeframe, 10)
 
-    # Partial close at 1R (only once per trade)
+    # Keep Human Mind thresholds aligned with Order Block config.
+    _hm_cfg.partial_close_at_r = float(getattr(algo_config, "partial_close_r", 1.0) or 1.0)
+    _hm_cfg.partial_close_pct = float(getattr(algo_config, "partial_close_fraction", 0.5) or 0.5)
+
+    # Partial close (only once per trade)
     if not getattr(ob, '_partial_closed', False):
         if should_partial_close(entry, current_price, one_r, side, False):
             try:
@@ -1127,9 +1139,12 @@ def _manage_open_trade_risk(ob: OrderBlock) -> None:
                 for _pos in _positions:
                     if _pos.get("id") == ob.ticket or _pos.get("position_id") == ob.ticket:
                         _vol = float(_pos.get("volume", 0.01))
-                        if execute_partial_close(ob.ticket, _ob_symbol, _vol):
+                        if execute_partial_close(ob.ticket, _ob_symbol, _vol, close_fraction=_hm_cfg.partial_close_pct):
                             ob._partial_closed = True
-                            logger.info(f"[ALGO] Partial close done on ticket {ob.ticket} at 1R")
+                            logger.info(
+                                f"[ALGO] Partial close done on ticket {ob.ticket} "
+                                f"at +{_hm_cfg.partial_close_at_r:.2f}R (fraction={_hm_cfg.partial_close_pct:.2f})"
+                            )
                         break
             except Exception as _exc:
                 logger.warning(f"[ALGO] Partial close check failed: {_exc}")
@@ -1155,6 +1170,35 @@ def _manage_open_trade_risk(ob: OrderBlock) -> None:
         profit_r = (current_price - entry) / one_r
     else:
         profit_r = (entry - current_price) / one_r
+
+    # Continuous adverse move protection:
+    # if multiple candles move against the position and price is near SL, force-close.
+    if algo_config.adverse_exit_enabled and candles_exec_hm and len(candles_exec_hm) >= max(2, int(algo_config.adverse_candle_count)):
+        try:
+            recent = candles_exec_hm[-int(algo_config.adverse_candle_count):]
+            adverse_count = 0
+            for c in recent:
+                if side == "buy" and c.close < c.open:
+                    adverse_count += 1
+                elif side == "sell" and c.close > c.open:
+                    adverse_count += 1
+            sl_distance_r = abs(ob.initial_sl - current_price) / one_r if one_r > 0 else 999.0
+            if (
+                adverse_count >= int(algo_config.adverse_candle_count)
+                and profit_r <= float(algo_config.adverse_min_r)
+                and sl_distance_r <= float(algo_config.adverse_sl_proximity_r)
+            ):
+                logger.warning(
+                    f"[ALGO] Adverse momentum exit | ticket={ob.ticket} side={side} "
+                    f"profit_r={profit_r:.3f} sl_distance_r={sl_distance_r:.3f} candles={adverse_count}"
+                )
+                if close_trade(ob.ticket, _ob_symbol, side, "ALGO:ADVERSE_MOMENTUM_EXIT"):
+                    ob.trade_taken = False
+                    ob.active = False
+                    ob.ticket = None
+                    return
+        except Exception as _exc:
+            logger.warning(f"[ALGO] Adverse momentum check failed: {_exc}")
 
     new_sl = None
     logger.debug(
