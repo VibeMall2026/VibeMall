@@ -138,6 +138,8 @@ from datetime import date as _date
 
 _daily_pnl: float = 0.0
 _daily_date: _date = _date.today()
+_daily_pnl_by_account: dict[str, float] = {}
+_daily_halted_by_account: dict[str, bool] = {}
 _peak_equity: float = 0.0
 _dd_halted: bool = False          # permanent halt on max drawdown
 _peak_equity_by_account: dict[str, float] = {}
@@ -220,28 +222,52 @@ def _recover_tracked_ob_positions() -> int:
 
 def _reset_daily_if_needed() -> None:
     """Reset daily counters at start of new day."""
-    global _daily_pnl, _daily_date, _daily_halted
+    global _daily_pnl, _daily_date, _daily_halted, _daily_pnl_by_account, _daily_halted_by_account
     today = _date.today()
     if _daily_date != today:
         _daily_date = today
         _daily_pnl = 0.0
         _daily_halted = False
+        _daily_pnl_by_account = {}
+        _daily_halted_by_account = {}
         logger.info("[ALGO] Daily counters reset for new day")
 
 
 def record_trade_pnl(pnl: float) -> None:
     """Call this after each trade closes to update daily PnL tracking."""
-    global _daily_pnl, _daily_halted
+    global _daily_pnl, _daily_halted, _daily_pnl_by_account, _daily_halted_by_account
     _reset_daily_if_needed()
+    account = mt5_bridge.get_account_info() or {}
+    login = int(account.get("login") or 0)
+    account_key = str(login or account.get("account") or "global")
     _daily_pnl += pnl
+    _daily_pnl_by_account[account_key] = float(_daily_pnl_by_account.get(account_key, 0.0) + pnl)
     logger.info(f"[ALGO] Daily PnL updated: {_daily_pnl:.2f}")
-
-    if _daily_pnl >= algo_config.daily_profit_limit:
-        _daily_halted = True
-        logger.warning(f"[ALGO] ✅ Daily profit limit ${algo_config.daily_profit_limit} reached — halting for today")
-    elif _daily_pnl <= -algo_config.daily_loss_limit:
-        _daily_halted = True
-        logger.warning(f"[ALGO] ⛔ Daily loss limit ${algo_config.daily_loss_limit} reached — halting for today")
+    acc_pnl = float(_daily_pnl_by_account.get(account_key, 0.0))
+    if acc_pnl >= algo_config.daily_profit_limit:
+        _daily_halted_by_account[account_key] = True
+        if login > 0:
+            try:
+                from bot.accounts import stop_account_for_today
+                stop_account_for_today(login)
+            except Exception as exc:
+                logger.warning(f"[ALGO] Could not pause account {login} for today: {exc}")
+        logger.warning(
+            f"[ALGO] ✅ Daily profit limit ${algo_config.daily_profit_limit} reached "
+            f"for account={account_key} — halting this account for today"
+        )
+    elif acc_pnl <= -algo_config.daily_loss_limit:
+        _daily_halted_by_account[account_key] = True
+        if login > 0:
+            try:
+                from bot.accounts import stop_account_for_today
+                stop_account_for_today(login)
+            except Exception as exc:
+                logger.warning(f"[ALGO] Could not pause account {login} for today: {exc}")
+        logger.warning(
+            f"[ALGO] ⛔ Daily loss limit ${algo_config.daily_loss_limit} reached "
+            f"for account={account_key} — halting this account for today"
+        )
 
 
 def check_drawdown() -> bool:
@@ -283,9 +309,12 @@ def check_daily_loss_realtime() -> bool:
     Returns True if daily loss limit exceeded (should halt trading).
     Checks: closed PnL + open floating PnL combined.
     """
-    global _daily_halted
+    global _daily_halted, _daily_pnl_by_account, _daily_halted_by_account
     _reset_daily_if_needed()
-    if _daily_halted:
+    account = mt5_bridge.get_account_info() or {}
+    login = int(account.get("login") or 0)
+    account_key = str(login or account.get("account") or "global")
+    if _daily_halted_by_account.get(account_key, False):
         return True
 
     # Get floating PnL from open positions
@@ -295,22 +324,36 @@ def check_daily_loss_realtime() -> bool:
     except Exception:
         floating_pnl = 0.0
 
-    total_pnl = _daily_pnl + floating_pnl
+    closed_pnl = float(_daily_pnl_by_account.get(account_key, 0.0))
+    total_pnl = closed_pnl + floating_pnl
 
     if total_pnl <= -algo_config.daily_loss_limit:
-        _daily_halted = True
+        _daily_halted_by_account[account_key] = True
+        if login > 0:
+            try:
+                from bot.accounts import stop_account_for_today
+                stop_account_for_today(login)
+            except Exception:
+                pass
         logger.warning(
             f"[ALGO] ⛔ Daily loss limit ${algo_config.daily_loss_limit} reached "
-            f"(closed: ${_daily_pnl:.2f} + floating: ${floating_pnl:.2f} = ${total_pnl:.2f}) "
-            f"— halting trading for today"
+            f"for account={account_key} "
+            f"(closed: ${closed_pnl:.2f} + floating: ${floating_pnl:.2f} = ${total_pnl:.2f}) "
+            f"— halting this account for today"
         )
         return True
 
     if total_pnl >= algo_config.daily_profit_limit:
-        _daily_halted = True
+        _daily_halted_by_account[account_key] = True
+        if login > 0:
+            try:
+                from bot.accounts import stop_account_for_today
+                stop_account_for_today(login)
+            except Exception:
+                pass
         logger.warning(
             f"[ALGO] ✅ Daily profit target ${algo_config.daily_profit_limit} reached "
-            f"(${total_pnl:.2f}) — halting trading for today"
+            f"for account={account_key} (${total_pnl:.2f}) — halting this account for today"
         )
         return True
 
@@ -334,9 +377,10 @@ def can_trade_with_reason(*, skip_drawdown: bool = False) -> tuple[bool, str]:
     if not skip_drawdown and check_drawdown():
         logger.debug("[ALGO] Trading halted: max drawdown exceeded")
         return False, "max_drawdown_exceeded"
-    if _daily_halted:
-        logger.debug("[ALGO] Trading halted: daily profit/loss limit reached")
-        return False, "daily_halt_active"
+    # NOTE:
+    # Daily halt is enforced per-account at execution time through accounts trade-mode.
+    # Do not globally block scan/entry generation here, otherwise one account halt
+    # would incorrectly stop trading on all other accounts.
     # Real-time check: floating + closed PnL
     if check_daily_loss_realtime():
         return False, "daily_limit_reached_realtime"
