@@ -27,6 +27,7 @@ PROJECT_ROOT: Path = Path(__file__).parent.resolve()
 PYTHON_EXE: Path = Path(r"C:\Users\ADMIN\AppData\Local\Programs\Python\Python311\python.exe")
 BOT_MODULE: list[str] = [str(PYTHON_EXE), "-X", "utf8", "-u", "-m", "bot.main"]
 HEALTH_URL: str = "http://localhost:8001/health"
+INSTANCE_PIDS_PATH: Path = PROJECT_ROOT / "bot" / "sessions" / "instance_pids.json"
 POLL_INTERVAL: int = 15        # seconds between health checks
 FAIL_THRESHOLD: int = 3        # consecutive failures before restart
 HEALTH_TIMEOUT: int = 10       # seconds before a health request times out
@@ -141,6 +142,17 @@ def run_watchdog() -> None:
     """Launch the bot and keep it alive indefinitely."""
     logger = setup_logger()
     state = WatchdogState()
+
+    # Multi-instance launcher is active: do not start legacy single bot.main process.
+    try:
+        if INSTANCE_PIDS_PATH.exists() and INSTANCE_PIDS_PATH.stat().st_size > 2:
+            logger.info(
+                "Detected multi-instance pid registry at %s; skipping legacy watchdog launch.",
+                INSTANCE_PIDS_PATH,
+            )
+            return
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Could not check multi-instance pid registry: %s", exc)
 
     def _launch() -> subprocess.Popen:
         logger.info("Launching bot: %s", " ".join(BOT_MODULE))
