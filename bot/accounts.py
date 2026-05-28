@@ -1103,7 +1103,8 @@ def execute_on_all_accounts(
                     logger.success(
                         f"[EXECUTION][UNIFIED] strategy={strategy_label} account={acc.label} "
                         f"login={acc.login} status=SUCCESS ticket={result.get('ticket')} "
-                        f"symbol={symbol} side={side.upper()} order_type={order_type}"
+                        f"symbol={symbol} side={side.upper()} order_type={order_type} "
+                        f"lot={result.get('lot')}"
                     )
                 else:
                     logger.error(
@@ -1217,6 +1218,9 @@ def _execute_single(
 
     def _normalize_sym(s: str) -> str:
         return "".join(ch for ch in str(s or "").upper() if ch.isalnum())
+
+    def _is_xau_symbol(raw_symbol: str) -> bool:
+        return str(raw_symbol or "").upper().startswith("XAUUSD")
 
     def _resolve_symbol_name(raw_symbol: str) -> str | None:
         # Exact match first
@@ -1416,6 +1420,23 @@ def _execute_single(
     )
     if lot is None:
         return {"success": False, "message": "Trade blocked: broker minimum lot exceeds configured per-trade risk/lot caps"}
+
+    try:
+        _c = str(comment or "").upper()
+        _is_ob_or_brk = ("ALGO:OB" in _c) or ("ALGO:BRK" in _c)
+        if _is_ob_or_brk and (not _is_xau_symbol(resolved_symbol)):
+            non_xau_cap = max(sym_info.volume_min, float(cfg.MAX_LOT_PER_TRADE) * 0.5)
+            if lot > non_xau_cap:
+                step = sym_info.volume_step or sym_info.volume_min or 0.01
+                eps = step * 1e-6
+                lot = round(math.floor((non_xau_cap + eps) / step) * step, 8)
+                lot = max(sym_info.volume_min, lot)
+                logger.info(
+                    f"[ACCOUNTS][RISK] Non-XAU hard lot cap applied | symbol={resolved_symbol} "
+                    f"lot={lot:.2f} cap={non_xau_cap:.2f} strategy_comment={comment}"
+                )
+    except Exception as _lot_cap_exc:
+        logger.warning(f"[ACCOUNTS] Non-XAU hard cap guard failed: {_lot_cap_exc}")
 
     preferred_filling = getattr(sym_info, "filling_mode", mt5.ORDER_FILLING_IOC)
     fill_candidates = []
