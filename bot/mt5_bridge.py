@@ -114,7 +114,20 @@ def connect() -> bool:
                 logger.warning("MT5 primary connect failed; using enabled account fallback")
                 return True
             return False
+        # Enforce explicit login so terminal's previously saved account is not reused silently.
+        if not mt5.login(config.MT5_LOGIN, password=config.MT5_PASSWORD, server=config.MT5_SERVER):
+            logger.error(f"MT5 login failed for {config.MT5_LOGIN}@{config.MT5_SERVER}: {mt5.last_error()}")
+            mt5.shutdown()
+            return False
+
         info = mt5.account_info()
+        if not info or int(getattr(info, "login", 0) or 0) != int(config.MT5_LOGIN):
+            actual_login = getattr(info, "login", "unknown") if info else "none"
+            logger.error(
+                f"MT5 login mismatch: expected {config.MT5_LOGIN}, got {actual_login}"
+            )
+            mt5.shutdown()
+            return False
         logger.info(f"MT5 connected | Account: {info.login} | Balance: {info.balance} {info.currency}")
         return True
 
@@ -148,7 +161,22 @@ def ensure_connected() -> bool:
     if not MT5_AVAILABLE:
         return False
     if is_connected():
-        return True
+        # If explicit credentials are configured, verify the active MT5 session
+        # belongs to that login; otherwise reconnect with requested account.
+        if config.MT5_LOGIN:
+            from bot.accounts import get_mt5_lock
+            with get_mt5_lock():
+                info = mt5.account_info()
+            active_login = int(getattr(info, "login", 0) or 0) if info else 0
+            if active_login != int(config.MT5_LOGIN):
+                logger.warning(
+                    f"MT5 connected with different login (active={active_login}, expected={config.MT5_LOGIN}); reconnecting"
+                )
+                disconnect()
+            else:
+                return True
+        else:
+            return True
 
     logger.warning("MT5 connection inactive. Attempting reconnect...")
     if connect():
