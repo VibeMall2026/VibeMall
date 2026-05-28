@@ -127,6 +127,10 @@ algo_config = AlgoConfig()
 algo_config.symbols = ["XAUUSD", "EURUSD", "USDJPY", "GBPUSD", "USDCHF"]
 
 
+def _is_xau_symbol(symbol: str) -> bool:
+    return str(symbol or "").upper().startswith("XAUUSD")
+
+
 def _normalize_symbols(symbol_value: Optional[str]) -> list[str]:
     """Normalize a single symbol or comma-separated symbol list."""
     if not symbol_value:
@@ -836,6 +840,16 @@ def _check_entry_signal(ob: OrderBlock, candles_exec: list[Candle]) -> Optional[
             f"| prev(c={prev.close:.5f}) | zone=({ob.low:.5f}-{ob.midpoint:.5f})"
         )
         if touched_zone and confirm_ok and momentum_ok and distance_ok:
+            if not _is_xau_symbol(ob.symbol):
+                body_ok = last.body_ratio >= 0.55
+                structure_ok = last.close > prev.high
+                if not (confirmed and momentum_ok and distance_ok and body_ok and structure_ok):
+                    logger.debug(
+                        f"[ALGO][CONFIDENCE] Non-XAU long rejected | symbol={ob.symbol} "
+                        f"confirmed={confirmed} momentum_ok={momentum_ok} distance_ok={distance_ok} "
+                        f"body_ok={body_ok} structure_ok={structure_ok}"
+                    )
+                    return None
             _ob_debug(
                 "ENTRY_DECISION",
                 symbol=ob.symbol,
@@ -872,6 +886,16 @@ def _check_entry_signal(ob: OrderBlock, candles_exec: list[Candle]) -> Optional[
             f"| prev(c={prev.close:.5f}) | zone=({ob.midpoint:.5f}-{ob.high:.5f})"
         )
         if touched_zone and confirm_ok and momentum_ok and distance_ok:
+            if not _is_xau_symbol(ob.symbol):
+                body_ok = last.body_ratio >= 0.55
+                structure_ok = last.close < prev.low
+                if not (confirmed and momentum_ok and distance_ok and body_ok and structure_ok):
+                    logger.debug(
+                        f"[ALGO][CONFIDENCE] Non-XAU short rejected | symbol={ob.symbol} "
+                        f"confirmed={confirmed} momentum_ok={momentum_ok} distance_ok={distance_ok} "
+                        f"body_ok={body_ok} structure_ok={structure_ok}"
+                    )
+                    return None
             _ob_debug(
                 "ENTRY_DECISION",
                 symbol=ob.symbol,
@@ -977,6 +1001,12 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
         f"Entry: {entry_price:.5f} | SL: {sl:.5f} | TP: {tp:.5f} | "
         f"1R: {one_r:.5f} | OB zone: {ob.low:.5f}-{ob.high:.5f} | 50%: {ob.midpoint:.5f}"
     )
+    effective_risk_percent = algo_config.risk_percent if _is_xau_symbol(ob.symbol) else (algo_config.risk_percent * 0.5)
+    if not _is_xau_symbol(ob.symbol):
+        logger.info(
+            f"[ALGO][RISK] Non-XAU half lot rule applied | symbol={ob.symbol} "
+            f"risk_percent={effective_risk_percent:.4f}"
+        )
     live_price = _get_current_price(ob.symbol, side=side)
     logger.debug(
         f"[ALGO][ENTRY_EXEC] {ob.id} side={side} live_price={live_price} entry_price={entry_price:.5f} "
@@ -1042,7 +1072,7 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
             tp=tp,
             entry=entry_price,
             order_type="market",
-            risk_percent=algo_config.risk_percent,
+            risk_percent=effective_risk_percent,
             comment=comment_tag,
         )
         if not result.get("success"):
@@ -1057,7 +1087,7 @@ def _execute_ob_trade(ob: OrderBlock, entry_price: float) -> bool:
             tp=tp,
             entry=entry_price,
             order_type="market",
-            risk_percent=algo_config.risk_percent,
+            risk_percent=effective_risk_percent,
             comment=comment_tag,
             strategy_id="order_block",
         )

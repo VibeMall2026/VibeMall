@@ -83,6 +83,10 @@ algo_config = AlgoConfig()
 algo_config.symbols = ["XAUUSD", "EURUSD", "USDJPY", "GBPUSD", "USDCHF"]
 
 
+def _is_xau_symbol(symbol: str) -> bool:
+    return str(symbol or "").upper().startswith("XAUUSD")
+
+
 def _normalize_symbols(symbol_value: Optional[str]) -> list[str]:
     """Normalize a single symbol or comma-separated symbol list."""
     if not symbol_value:
@@ -438,11 +442,31 @@ def _check_entry_signal(setup: BreakoutSetup, candles_exec: list[Candle]) -> Opt
         touched = last.low <= setup.breakout_level + tolerance
         confirmed = last.close > setup.breakout_level and last.is_bullish and last.close >= prev.close
         if touched and confirmed:
+            if not _is_xau_symbol(setup.symbol):
+                body_ok = last.body_ratio >= 0.55
+                impulse_ok = True if not atr else (last.close - setup.breakout_level) >= (atr * 0.12)
+                structure_ok = last.close > prev.high
+                if not (body_ok and impulse_ok and structure_ok):
+                    logger.debug(
+                        f"[BREAKOUT][CONFIDENCE] Non-XAU long rejected | symbol={setup.symbol} "
+                        f"body_ok={body_ok} impulse_ok={impulse_ok} structure_ok={structure_ok}"
+                    )
+                    return None
             return last.close
     else:
         touched = last.high >= setup.breakout_level - tolerance
         confirmed = last.close < setup.breakout_level and last.is_bearish and last.close <= prev.close
         if touched and confirmed:
+            if not _is_xau_symbol(setup.symbol):
+                body_ok = last.body_ratio >= 0.55
+                impulse_ok = True if not atr else (setup.breakout_level - last.close) >= (atr * 0.12)
+                structure_ok = last.close < prev.low
+                if not (body_ok and impulse_ok and structure_ok):
+                    logger.debug(
+                        f"[BREAKOUT][CONFIDENCE] Non-XAU short rejected | symbol={setup.symbol} "
+                        f"body_ok={body_ok} impulse_ok={impulse_ok} structure_ok={structure_ok}"
+                    )
+                    return None
             return last.close
 
     return None
@@ -508,6 +532,12 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
         f"Entry: {entry_price:.5f} | SL: {sl:.5f} | TP: {tp:.5f} | "
         f"Breakout level: {setup.breakout_level:.5f} | Range: {setup.range_low:.5f}-{setup.range_high:.5f}"
     )
+    effective_risk_percent = algo_config.risk_percent if _is_xau_symbol(setup.symbol) else (algo_config.risk_percent * 0.5)
+    if not _is_xau_symbol(setup.symbol):
+        logger.info(
+            f"[BREAKOUT][RISK] Non-XAU half lot rule applied | symbol={setup.symbol} "
+            f"risk_percent={effective_risk_percent:.4f}"
+        )
 
     # Execute via centralized multi-account engine (now supports filling-mode fallback).
     from bot.accounts import execute_on_all_accounts
@@ -518,7 +548,7 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
         tp=tp,
         entry=entry_price,
         order_type="market",
-        risk_percent=algo_config.risk_percent,
+        risk_percent=effective_risk_percent,
         comment=f"ALGO:BRK:{setup.id[:8]}",
         strategy_id="breakout",
     )
