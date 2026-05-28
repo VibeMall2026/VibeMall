@@ -1,4 +1,5 @@
 """Centralised logging using loguru."""
+import os
 import sys
 from pathlib import Path
 
@@ -28,14 +29,31 @@ def setup_logger() -> None:
     root_dir = Path(__file__).resolve().parents[1]
     log_dir = root_dir / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
+    default_log_file = log_dir / "bot.log"
+    instance_log_file = Path(os.getenv("BOT_LOG_FILE", str(default_log_file)))
+    shared_log_file_raw = os.getenv("BOT_SHARED_LOG_FILE", "").strip()
+    shared_log_file = Path(shared_log_file_raw) if shared_log_file_raw else None
+
+    instance_log_file.parent.mkdir(parents=True, exist_ok=True)
     logger.add(
-        str(log_dir / "bot.log"),
+        str(instance_log_file),
         level=config.LOG_LEVEL,
         rotation="10 MB",
         retention="14 days",
         compression="zip",
         format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{line} - {message}",
     )
+
+    if shared_log_file:
+        shared_log_file.parent.mkdir(parents=True, exist_ok=True)
+        logger.add(
+            str(shared_log_file),
+            level=config.LOG_LEVEL,
+            rotation="25 MB",
+            retention="14 days",
+            compression="zip",
+            format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{line} - {message}",
+        )
 
 
 setup_logger()

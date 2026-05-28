@@ -193,6 +193,11 @@ def _load_default_account() -> None:
             server=_config.MT5_SERVER,
             path=_config.MT5_PATH,
             enabled=True,
+            strategy=_normalize_single_strategy(getattr(_config, "MT5_PRIMARY_STRATEGY", "order_block")),
+            allowed_symbols=(
+                [s.strip().upper() for s in getattr(_config, "MT5_PRIMARY_ALLOWED_SYMBOLS", []) if str(s).strip()]
+                or None
+            ),
         )
         _accounts.append(primary)
 
