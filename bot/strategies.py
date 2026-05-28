@@ -53,6 +53,13 @@ STRATEGIES: list[dict] = [
         "module": "bot.algo.volume_bubbles",
     },
     {
+        "id": "signal_forge",
+        "name": "Signal Forge",
+        "description": "Modular 11-indicator confluence engine with fresh-signal entries and ATR-based exits",
+        "status": "available",
+        "module": "bot.algo.signal_forge",
+    },
+    {
         "id": "ema_crossover",
         "name": "EMA Crossover",
         "description": "Classic EMA 9/21 crossover strategy with trend filter",
