@@ -40,24 +40,52 @@ def _mt5_reconnect_loop() -> None:
     """
     import time
     logger.info("[MT5] Auto-reconnect monitor started (10s interval)")
+    hb_every_seconds = 30
+    last_hb_ts = 0.0
     while True:
         try:
-            # Use get_account_info() as health check — returns {} if disconnected
+            # Use get_account_info() as health check - returns {} if disconnected
             account = mt5_bridge.get_account_info()
             if account and account.get("balance") is not None:
                 # Connected and returning data
                 if not state.mt5_connected:
-                    logger.success("[MT5] Connection confirmed — marking online")
+                    logger.success("[MT5] Connection confirmed - marking online")
                 state.mt5_connected = True
             else:
-                # No data — try reconnect
-                logger.warning("[MT5] No account data — attempting reconnect...")
+                # No data - try reconnect
+                logger.warning("[MT5] No account data - attempting reconnect...")
                 if mt5_bridge.ensure_connected():
                     state.mt5_connected = True
                     logger.success("[MT5] Reconnected successfully.")
                 else:
                     state.mt5_connected = False
-                    logger.error("[MT5] Reconnect failed — will retry in 10s")
+                    logger.error("[MT5] Reconnect failed - will retry in 10s")
+
+            # Per-account heartbeat for clear ON/OFF visibility in logs.
+            now_ts = time.monotonic()
+            if (now_ts - last_hb_ts) >= hb_every_seconds:
+                try:
+                    from bot.accounts import get_accounts_runtime_status
+
+                    statuses = get_accounts_runtime_status()
+                    enabled_count = sum(1 for s in statuses if s.get("enabled"))
+                    connected_count = sum(1 for s in statuses if s.get("enabled") and s.get("connected"))
+                    parts = []
+                    for s in statuses:
+                        mode = "HALT" if (s.get("enabled") and not s.get("trade_allowed")) else "RUN"
+                        conn = "ON" if s.get("connected") else "OFF"
+                        reason = s.get("halt_reason") or s.get("error") or ""
+                        if reason:
+                            parts.append(f"{s['label']}({s['login']}):{conn}/{mode}:{reason}")
+                        else:
+                            parts.append(f"{s['label']}({s['login']}):{conn}/{mode}")
+                    logger.info(
+                        f"[HEARTBEAT] Accounts {connected_count}/{enabled_count} connected | "
+                        + " | ".join(parts)
+                    )
+                except Exception as hb_exc:
+                    logger.warning(f"[HEARTBEAT] status log failed: {hb_exc}")
+                last_hb_ts = now_ts
         except Exception as e:
             logger.error(f"[MT5] Reconnect monitor error: {e}")
         time.sleep(10)
@@ -72,7 +100,7 @@ async def start_bot() -> None:
             state.mt5_connected = True
             logger.success("MT5 connected.")
         else:
-            logger.warning("MT5 not connected — running without trade execution.")
+            logger.warning("MT5 not connected - running without trade execution.")
     else:
         state.mt5_connected = True
         logger.info("MT5 already connected.")

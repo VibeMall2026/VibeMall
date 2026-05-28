@@ -307,6 +307,35 @@ def get_all_accounts() -> list[MT5Account]:
         return list(_accounts)
 
 
+def get_accounts_runtime_status() -> list[dict]:
+    """
+    Return lightweight runtime status for each account for heartbeat logging.
+    """
+    now_ts = time.monotonic()
+    rows: list[dict] = []
+    with _accounts_lock:
+        snapshot = list(_accounts)
+    for acc in snapshot:
+        allowed, halt_reason = is_account_trade_allowed_today(acc.login)
+        last_ok = _last_connect_success_ts.get(int(acc.login), 0.0)
+        last_fail = _last_connect_fail_ts.get(int(acc.login), 0.0)
+        rows.append(
+            {
+                "label": acc.label,
+                "login": int(acc.login),
+                "enabled": bool(acc.enabled),
+                "connected": bool(acc.connected),
+                "error": str(acc.error or ""),
+                "strategy": list(acc.strategy or []),
+                "trade_allowed": bool(allowed),
+                "halt_reason": str(halt_reason or ""),
+                "last_ok_s": round(now_ts - last_ok, 1) if last_ok else None,
+                "last_fail_s": round(now_ts - last_fail, 1) if last_fail else None,
+            }
+        )
+    return rows
+
+
 def stop_account_for_today(login: int) -> None:
     """Stop trade execution for this account for the current UTC day."""
     with _trade_mode_persist_lock:
