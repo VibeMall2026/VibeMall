@@ -46,6 +46,13 @@ STRATEGIES: list[dict] = [
         "module": "bot.algo.multi_tf_rejection",
     },
     {
+        "id": "volume_bubbles",
+        "name": "Volume Bubbles",
+        "description": "Volume/Delta percentile cluster detection with consensus windows (QuantAlgo-style scanner)",
+        "status": "available",
+        "module": "bot.algo.volume_bubbles",
+    },
+    {
         "id": "ema_crossover",
         "name": "EMA Crossover",
         "description": "Classic EMA 9/21 crossover strategy with trend filter",
