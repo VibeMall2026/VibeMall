@@ -219,8 +219,13 @@ def _load_extra_accounts() -> None:
     Example:
         Range Breakout Demo|106903766|IbLcNr_4|MetaQuotes-Demo|breakout|C:\MT5\terminal64.exe|XAUUSD
     """
+    # In one-account-per-process mode, skip loading shared extra accounts from .env.
+    # Each process should only run its own primary account credentials.
+    if str(os.getenv("BOT_SINGLE_ACCOUNT_MODE", "")).strip().lower() in {"1", "true", "yes", "on"}:
+        logger.info("[ACCOUNTS] BOT_SINGLE_ACCOUNT_MODE=on -> skipping MT5_EXTRA_ACCOUNTS load")
+        return
+
     # Read directly from .env file so live changes are picked up without restart
-    import os
     from pathlib import Path
 
     raw = ""
@@ -339,6 +344,36 @@ def get_accounts_runtime_status() -> list[dict]:
             }
         )
     return rows
+
+
+def sync_account_runtime(
+    *,
+    login: int | None,
+    connected: bool,
+    balance: float | None = None,
+    equity: float | None = None,
+    currency: str | None = None,
+    error: str | None = None,
+) -> None:
+    """
+    Update in-memory account runtime flags for heartbeat visibility.
+    Safe no-op when login is not found.
+    """
+    key = int(login or 0)
+    with _accounts_lock:
+        for acc in _accounts:
+            if key and int(acc.login) != key:
+                continue
+            acc.connected = bool(connected)
+            if balance is not None:
+                acc.balance = float(balance)
+            if equity is not None:
+                acc.equity = float(equity)
+            if currency:
+                acc.currency = str(currency)
+            acc.error = str(error or "")
+            if key:
+                break
 
 
 def stop_account_for_today(login: int) -> None:

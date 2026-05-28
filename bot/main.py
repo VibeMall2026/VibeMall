@@ -51,6 +51,18 @@ def _mt5_reconnect_loop() -> None:
                 if not state.mt5_connected:
                     logger.success("[MT5] Connection confirmed - marking online")
                 state.mt5_connected = True
+                try:
+                    from bot.accounts import sync_account_runtime
+
+                    sync_account_runtime(
+                        login=int(account.get("login") or 0),
+                        connected=True,
+                        balance=account.get("balance"),
+                        equity=account.get("equity"),
+                        currency=account.get("currency"),
+                    )
+                except Exception:
+                    pass
             else:
                 # No data - try reconnect
                 logger.warning("[MT5] No account data - attempting reconnect...")
@@ -60,6 +72,17 @@ def _mt5_reconnect_loop() -> None:
                 else:
                     state.mt5_connected = False
                     logger.error("[MT5] Reconnect failed - will retry in 10s")
+                    try:
+                        from bot import config as _cfg
+                        from bot.accounts import sync_account_runtime
+
+                        sync_account_runtime(
+                            login=int(getattr(_cfg, "MT5_LOGIN", 0) or 0),
+                            connected=False,
+                            error="mt5_disconnected",
+                        )
+                    except Exception:
+                        pass
 
             # Per-account heartbeat for clear ON/OFF visibility in logs.
             now_ts = time.monotonic()

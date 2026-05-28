@@ -120,6 +120,7 @@ if ($Action -eq "start" -or $Action -eq "restart") {
             "`$env:MT5_PRIMARY_STRATEGY='$($a.Strategy)'; " +
             "`$env:MT5_PRIMARY_ALLOWED_SYMBOLS='$($a.Allowed)'; " +
             "`$env:MT5_EXTRA_ACCOUNTS=''; " +
+            "`$env:BOT_SINGLE_ACCOUNT_MODE='1'; " +
             "`$env:API_PORT='$($a.ApiPort)'; " +
             "`$env:BOT_LOG_FILE='$instLog'; " +
             "`$env:BOT_SHARED_LOG_FILE='$sharedLog'; " +
