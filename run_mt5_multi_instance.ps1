@@ -72,6 +72,38 @@ function Save-Pids($rows) {
     ($rows | ConvertTo-Json -Depth 6) | Set-Content -Path $pidsPath -Encoding UTF8
 }
 
+function Stop-OrphanBotMainProcesses {
+    param([object[]]$KnownPowerShellPids)
+    $known = @{}
+    foreach ($kp in $KnownPowerShellPids) {
+        try { $known[[int]$kp] = $true } catch {}
+    }
+
+    # Kill any extra launcher PowerShell that runs `-m bot.main` outside pid registry.
+    $psOrphans = Get-CimInstance Win32_Process -Filter "name='powershell.exe'" |
+        Where-Object {
+            $_.CommandLine -and
+            $_.CommandLine -like "*-m bot.main*" -and
+            -not $known.ContainsKey([int]$_.ProcessId)
+        }
+    foreach ($p in $psOrphans) {
+        try {
+            Stop-Process -Id ([int]$p.ProcessId) -Force
+            Write-Host "[CLEANUP] Stopped orphan launcher pid=$($p.ProcessId)"
+        } catch {}
+    }
+
+    # Also kill any standalone python `-m bot.main` process (e.g., manually launched old process).
+    $pyOrphans = Get-CimInstance Win32_Process -Filter "name='python.exe'" |
+        Where-Object { $_.CommandLine -and $_.CommandLine -like "*-m bot.main*" }
+    foreach ($p in $pyOrphans) {
+        try {
+            Stop-Process -Id ([int]$p.ProcessId) -Force
+            Write-Host "[CLEANUP] Stopped orphan bot.main python pid=$($p.ProcessId)"
+        } catch {}
+    }
+}
+
 if (-not (Test-Path $py)) {
     throw "Python not found: $py"
 }
@@ -102,11 +134,13 @@ if ($Action -eq "stop" -or $Action -eq "restart") {
             Write-Host "[STOP] $($r.label) already stopped"
         }
     }
+    Stop-OrphanBotMainProcesses -KnownPowerShellPids ($rows | ForEach-Object { $_.pid })
     Save-Pids @()
     if ($Action -eq "stop") { exit 0 }
 }
 
 if ($Action -eq "start" -or $Action -eq "restart") {
+    Stop-OrphanBotMainProcesses -KnownPowerShellPids @()
     New-Item -ItemType Directory -Force -Path $logsDir | Out-Null
     $started = @()
     foreach ($a in $accounts) {
@@ -117,6 +151,7 @@ if ($Action -eq "start" -or $Action -eq "restart") {
             "`$env:MT5_PASSWORD='$($a.Password)'; " +
             "`$env:MT5_SERVER='$($a.Server)'; " +
             "`$env:MT5_PATH='$($a.Path)'; " +
+            "`$env:MT5_PORTABLE='1'; " +
             "`$env:MT5_PRIMARY_STRATEGY='$($a.Strategy)'; " +
             "`$env:MT5_PRIMARY_ALLOWED_SYMBOLS='$($a.Allowed)'; " +
             "`$env:MT5_EXTRA_ACCOUNTS=''; " +

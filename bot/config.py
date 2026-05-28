@@ -49,6 +49,7 @@ MT5_PASSWORD: str = os.getenv("MT5_PASSWORD", "")
 MT5_SERVER: str = os.getenv("MT5_SERVER", "MetaQuotes-Demo")
 MT5_PATH: str = os.getenv("MT5_PATH", r"C:\Program Files\MetaTrader 5\terminal64.exe")
 MT5_TIMEOUT_MS: int = _int("MT5_TIMEOUT_MS", 60000)
+MT5_PORTABLE: bool = _bool("MT5_PORTABLE", False)
 MT5_DEVIATION: int = _int("MT5_DEVIATION", 20)
 MT5_MAGIC_NUMBER: int = _int("MT5_MAGIC_NUMBER", 550001)
 MT5_PRIMARY_STRATEGY: str = os.getenv("MT5_PRIMARY_STRATEGY", "order_block").strip() or "order_block"

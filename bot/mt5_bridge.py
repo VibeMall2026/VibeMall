@@ -99,6 +99,8 @@ def connect() -> bool:
     }
     if config.MT5_PATH:
         kwargs["path"] = config.MT5_PATH
+    if getattr(config, "MT5_PORTABLE", False):
+        kwargs["portable"] = True
 
     # If no primary credentials are configured, try any enabled account directly.
     if not config.MT5_LOGIN:
@@ -109,10 +111,12 @@ def connect() -> bool:
     with get_mt5_lock():
         if not mt5.initialize(**kwargs):
             logger.error(f"MT5 initialize failed: {mt5.last_error()}")
-            from bot.accounts import ensure_any_account_connected
-            if ensure_any_account_connected():
-                logger.warning("MT5 primary connect failed; using enabled account fallback")
-                return True
+            # In single-account mode, never fallback to another account login.
+            if os.getenv("BOT_SINGLE_ACCOUNT_MODE", "").strip().lower() not in ("1", "true", "yes", "on"):
+                from bot.accounts import ensure_any_account_connected
+                if ensure_any_account_connected():
+                    logger.warning("MT5 primary connect failed; using enabled account fallback")
+                    return True
             return False
         # Enforce explicit login so terminal's previously saved account is not reused silently.
         if not mt5.login(config.MT5_LOGIN, password=config.MT5_PASSWORD, server=config.MT5_SERVER):
@@ -181,6 +185,10 @@ def ensure_connected() -> bool:
     logger.warning("MT5 connection inactive. Attempting reconnect...")
     if connect():
         return True
+
+    # In single-account mode, never fallback to another account login.
+    if os.getenv("BOT_SINGLE_ACCOUNT_MODE", "").strip().lower() in ("1", "true", "yes", "on"):
+        return False
 
     from bot.accounts import ensure_any_account_connected
     return ensure_any_account_connected()
