@@ -10,6 +10,17 @@ set "WATCHDOG_VISIBLE=1"
 python -X utf8 -u startup_manager.py
 
 echo.
+echo Checking multi-instance account processes...
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$out = & '.\run_mt5_multi_instance.ps1' -Action status 2>&1; " ^
+  "if(-not ($out -match '\[RUNNING\]')) { " ^
+  "  Write-Host 'No running instances found. Starting all accounts...'; " ^
+  "  & '.\run_mt5_multi_instance.ps1' -Action restart; " ^
+  "} else { " ^
+  "  Write-Host 'Instances already running. Skipping restart.'; " ^
+  "}"
+
+echo.
 echo Startup complete. Opening live shared logs...
 echo Press Ctrl+C to stop log tracking.
 echo.

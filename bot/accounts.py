@@ -14,7 +14,7 @@ import os
 import json
 import threading
 import time
-from datetime import datetime, timezone, date as _date
+from datetime import datetime, timezone, timedelta, date as _date
 from dataclasses import dataclass, field
 from typing import Optional
 from pathlib import Path
@@ -104,6 +104,56 @@ DAILY_PROFIT_STOP_USD = 45.0
 def get_mt5_lock() -> threading.RLock:
     """Global MT5 operation lock shared across modules."""
     return _mt5_op_lock
+
+
+def _parse_utc_dt(value: str) -> Optional[datetime]:
+    s = str(value or "").strip()
+    if not s:
+        return None
+    try:
+        s = s.replace("Z", "+00:00")
+        dt = datetime.fromisoformat(s)
+    except Exception:
+        for fmt in ("%Y-%m-%d %H:%M", "%Y-%m-%d %H:%M:%S"):
+            try:
+                dt = datetime.strptime(s, fmt)
+                break
+            except Exception:
+                dt = None
+        if dt is None:
+            return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _get_news_blackout_reason(now_utc: Optional[datetime] = None) -> Optional[str]:
+    """
+    Returns a reason string when current UTC time is inside news blackout window,
+    otherwise returns None.
+    """
+    if not bool(getattr(_config, "NEWS_FILTER_ENABLED", False)):
+        return None
+    raw = str(os.getenv("NEWS_EVENTS_UTC", getattr(_config, "NEWS_EVENTS_UTC_RAW", "")) or "").strip()
+    if not raw:
+        return None
+
+    before_min = max(0, int(getattr(_config, "NEWS_BLOCK_BEFORE_MINUTES", 5) or 5))
+    after_min = max(0, int(getattr(_config, "NEWS_BLOCK_AFTER_MINUTES", 5) or 5))
+    now = now_utc or datetime.now(timezone.utc)
+
+    for chunk in raw.split(","):
+        event_dt = _parse_utc_dt(chunk)
+        if not event_dt:
+            continue
+        window_start = event_dt - timedelta(minutes=before_min)
+        window_end = event_dt + timedelta(minutes=after_min)
+        if window_start <= now <= window_end:
+            return (
+                f"news_blackout(event_utc={event_dt.isoformat()},"
+                f"window={window_start.isoformat()}..{window_end.isoformat()})"
+            )
+    return None
 
 
 @dataclass
@@ -954,6 +1004,17 @@ def execute_on_all_accounts(
     if not MT5_AVAILABLE:
         return [{"success": False, "message": "MT5 not available", "account": "N/A"}]
 
+    news_reason = _get_news_blackout_reason()
+    if news_reason:
+        logger.warning(f"[ACCOUNTS] Trade skipped for all accounts: {news_reason}")
+        return [{
+            "success": False,
+            "message": f"Trade blocked: {news_reason}",
+            "account_id": None,
+            "account_label": None,
+            "login": None,
+        }]
+
     from bot import config as cfg
     import math
 
@@ -1221,6 +1282,10 @@ def _execute_single(
 
     def _is_xau_symbol(raw_symbol: str) -> bool:
         return str(raw_symbol or "").upper().startswith("XAUUSD")
+
+    news_reason = _get_news_blackout_reason()
+    if news_reason:
+        return {"success": False, "message": f"Trade blocked: {news_reason}"}
 
     def _resolve_symbol_name(raw_symbol: str) -> str | None:
         # Exact match first

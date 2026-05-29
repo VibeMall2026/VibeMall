@@ -113,3 +113,11 @@ MAX_SPREAD_POINTS: int = _int("MAX_SPREAD_POINTS", 80)
 DUPLICATE_WINDOW_MINUTES: int = _int("DUPLICATE_WINDOW_MINUTES", 0)
 MIN_SECONDS_BETWEEN_TRADES: int = _int("MIN_SECONDS_BETWEEN_TRADES", 5)
 ALLOW_PENDING_ORDERS: bool = _bool("ALLOW_PENDING_ORDERS", True)
+
+# â”€â”€ News blackout (global execution gate) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Times must be UTC datetimes, comma-separated. Example:
+# NEWS_EVENTS_UTC=2026-05-29 12:30,2026-05-29 18:00
+NEWS_FILTER_ENABLED: bool = _bool("NEWS_FILTER_ENABLED", False)
+NEWS_BLOCK_BEFORE_MINUTES: int = _int("NEWS_BLOCK_BEFORE_MINUTES", 5)
+NEWS_BLOCK_AFTER_MINUTES: int = _int("NEWS_BLOCK_AFTER_MINUTES", 5)
+NEWS_EVENTS_UTC_RAW: str = os.getenv("NEWS_EVENTS_UTC", "").strip()
