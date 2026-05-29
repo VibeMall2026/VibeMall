@@ -44,6 +44,15 @@ class AlgoConfig:
     sl_mult: float = 1.5
     enable_ts: bool = False
     ts_mult: float = 1.0
+    risk_check_interval_seconds: int = 1
+    partial_close_r: float = 0.7
+    partial_close_fraction: float = 0.5
+    rr_breakeven: float = 1.0
+    rr_lock_profit: float = 1.5
+    adverse_exit_enabled: bool = True
+    adverse_candle_count: int = 3
+    adverse_min_r: float = -0.15
+    adverse_sl_proximity_r: float = 0.35
 
     enable_sma: bool = True
     sma_fast_len: int = 10
@@ -92,12 +101,14 @@ class AlgoConfig:
 algo_config = AlgoConfig()
 _running = False
 _thread: Optional[threading.Thread] = None
+_risk_thread: Optional[threading.Thread] = None
 _lock = threading.Lock()
 _last_scan_at: Optional[str] = None
 _last_scan_summary: dict[str, dict] = {}
 _last_bar_time: dict[str, datetime] = {}
 _last_long_cond: dict[str, bool] = {}
 _last_short_cond: dict[str, bool] = {}
+_managed_trades: dict[int, dict] = {}
 
 
 def _normalize_symbols(symbol_value: Optional[str]) -> list[str]:
@@ -357,6 +368,18 @@ def _execute_signal(symbol: str, side: str, atr_val: float) -> None:
     succ = [r for r in (results or []) if r.get("success")]
     if succ:
         for s in succ:
+            t = int(s.get("ticket") or 0)
+            if t > 0:
+                _managed_trades[t] = {
+                    "symbol": symbol,
+                    "side": side,
+                    "entry": float(price),
+                    "initial_sl": float(sl),
+                    "one_r": abs(float(price) - float(sl)),
+                    "partial_closed": False,
+                    "r_stage": 0,
+                    "adverse_count": 0,
+                }
             logger.success(
                 f"[SIGNAL_FORGE] Trade on {s.get('account_label')} ({s.get('login')}) "
                 f"{symbol} {side.upper()} ticket={s.get('ticket')} lot={s.get('lot')}"
@@ -416,13 +439,110 @@ def _loop() -> None:
     logger.info("[SIGNAL_FORGE] Stopped.")
 
 
+def _manage_open_trade(ticket: int, tr: dict) -> None:
+    from bot.algo.human_mind import execute_partial_close, close_trade
+
+    positions = mt5_bridge.get_open_positions()
+    pos = next((p for p in positions if int(p.get("id") or p.get("position_id") or 0) == int(ticket)), None)
+    if not pos:
+        _managed_trades.pop(ticket, None)
+        return
+
+    side = str(tr.get("side") or "").lower()
+    symbol = str(tr.get("symbol") or pos.get("symbol") or "")
+    entry = float(tr.get("entry") or pos.get("entry") or 0.0)
+    initial_sl = float(tr.get("initial_sl") or pos.get("sl") or 0.0)
+    one_r = float(tr.get("one_r") or 0.0)
+    if one_r <= 0:
+        return
+
+    current_price = _get_live_price(symbol, side)
+    if current_price is None:
+        return
+    current_sl = float(pos.get("sl") or initial_sl)
+    profit_r = (current_price - entry) / one_r if side == "buy" else (entry - current_price) / one_r
+
+    # Partial profit booking
+    if (not tr.get("partial_closed")) and profit_r >= float(algo_config.partial_close_r):
+        vol = float(pos.get("volume") or 0.0)
+        if vol > 0 and execute_partial_close(ticket, symbol, vol, close_fraction=float(algo_config.partial_close_fraction)):
+            tr["partial_closed"] = True
+            logger.success(f"[SIGNAL_FORGE] Partial close | ticket={ticket} at R={profit_r:.2f}")
+
+    # Breakeven / profit lock / trailing
+    new_sl = None
+    stage = int(tr.get("r_stage", 0))
+    if profit_r >= float(algo_config.rr_lock_profit):
+        lock_sl = entry + (0.5 * one_r) if side == "buy" else entry - (0.5 * one_r)
+        new_sl = lock_sl
+        stage = max(stage, 2)
+    elif profit_r >= float(algo_config.rr_breakeven):
+        new_sl = entry
+        stage = max(stage, 1)
+
+    # Trailing (always active for this strategy once profitable)
+    if profit_r > 0:
+        candles = _fetch_rates(symbol, algo_config.analysis_timeframe, max(30, algo_config.atr_len + 5))
+        if candles is not None and len(candles) > algo_config.atr_len + 1:
+            highs = [float(r["high"]) for r in candles]
+            lows = [float(r["low"]) for r in candles]
+            closes = [float(r["close"]) for r in candles]
+            atr_val = _atr(highs, lows, closes, algo_config.atr_len)
+            if atr_val and atr_val > 0:
+                trail_sl = current_price - (atr_val * max(0.6, float(algo_config.ts_mult))) if side == "buy" else current_price + (atr_val * max(0.6, float(algo_config.ts_mult)))
+                if new_sl is None:
+                    new_sl = trail_sl
+                else:
+                    new_sl = max(new_sl, trail_sl) if side == "buy" else min(new_sl, trail_sl)
+                stage = max(stage, 3)
+
+    if new_sl is not None:
+        improved = (new_sl > current_sl) if side == "buy" else (new_sl < current_sl)
+        if improved:
+            res = mt5_bridge.modify_position(ticket, sl=float(new_sl))
+            if res.get("success"):
+                tr["r_stage"] = stage
+                logger.info(f"[SIGNAL_FORGE] SL trail | ticket={ticket} old={current_sl:.5f} new={new_sl:.5f} stage={stage}")
+
+    # Adverse momentum pre-SL close
+    if bool(algo_config.adverse_exit_enabled):
+        sl_gap_r = abs(current_sl - current_price) / one_r if one_r > 0 else 99.0
+        if profit_r <= float(algo_config.adverse_min_r) and sl_gap_r <= float(algo_config.adverse_sl_proximity_r):
+            candles = _fetch_rates(symbol, algo_config.analysis_timeframe, 2)
+            if candles is not None and len(candles) >= 1:
+                c = candles[-1]
+                is_adverse = (float(c["close"]) < float(c["open"])) if side == "buy" else (float(c["close"]) > float(c["open"]))
+                if is_adverse:
+                    tr["adverse_count"] = int(tr.get("adverse_count", 0)) + 1
+                else:
+                    tr["adverse_count"] = 0
+                if int(tr.get("adverse_count", 0)) >= int(algo_config.adverse_candle_count):
+                    if close_trade(ticket, symbol, side, "ALGO:SFG_ADVERSE_EXIT"):
+                        logger.warning(f"[SIGNAL_FORGE] Adverse pre-SL close | ticket={ticket} profit_r={profit_r:.2f}")
+                        _managed_trades.pop(ticket, None)
+
+
+def _risk_loop() -> None:
+    global _running
+    while _running:
+        try:
+            if mt5_bridge.ensure_connected():
+                for ticket, tr in list(_managed_trades.items()):
+                    _manage_open_trade(int(ticket), tr)
+        except Exception as exc:
+            logger.error(f"[SIGNAL_FORGE] Risk loop error: {exc}")
+        time.sleep(max(1, int(algo_config.risk_check_interval_seconds)))
+
+
 def start_algo() -> bool:
-    global _running, _thread
+    global _running, _thread, _risk_thread
     if _running:
         return True
     _running = True
     _thread = threading.Thread(target=_loop, daemon=True, name="SignalForgeAlgo")
+    _risk_thread = threading.Thread(target=_risk_loop, daemon=True, name="SignalForgeRisk")
     _thread.start()
+    _risk_thread.start()
     return True
 
 
@@ -449,6 +569,7 @@ def get_algo_status() -> dict:
             "analysis_timeframe": algo_config.analysis_timeframe,
             "risk_percent": algo_config.risk_percent,
             "require_all": algo_config.require_all,
+            "managed_trades": len(_managed_trades),
             "assigned_accounts": assigned,
             "last_scan_at": _last_scan_at,
             "scan_summary": dict(_last_scan_summary),
