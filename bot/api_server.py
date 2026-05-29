@@ -888,7 +888,14 @@ async def account_marketwatch(account_id: str):
 async def refresh_accounts():
     """Refresh balance/equity for all accounts."""
     from bot.accounts import refresh_account_info, get_all_accounts
-    refresh_account_info()
+    import asyncio
+    try:
+        # Keep admin panel responsive; MT5 reconnect can hang per account.
+        await asyncio.wait_for(asyncio.to_thread(refresh_account_info), timeout=12.0)
+    except asyncio.TimeoutError:
+        logger.warning("[API] /accounts/refresh timed out after 12s; returning cached account snapshot")
+    except Exception as exc:
+        logger.warning(f"[API] /accounts/refresh failed: {exc}")
     return [acc.to_dict() for acc in get_all_accounts()]
 
 

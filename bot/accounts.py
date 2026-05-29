@@ -98,7 +98,7 @@ THE5ERS_MAX_TRADES_PER_DAY = 15
 THE5ERS_MIN_SECONDS_BETWEEN_BREAKOUT_ENTRIES = 65
 THE5ERS_MAX_SIMULTANEOUS_BREAKOUT_TRADES = 2
 THE5ERS_POLICY_ENFORCED = os.getenv("THE5ERS_POLICY_ENFORCED", "false").strip().lower() in {"1", "true", "yes", "on"}
-DAILY_PROFIT_STOP_USD = 45.0
+DAILY_PROFIT_STOP_USD = 40.0
 
 
 def get_mt5_lock() -> threading.RLock:
@@ -1127,11 +1127,13 @@ def execute_on_all_accounts(
                     today_realized = 0.0
 
                 if today_realized >= DAILY_PROFIT_STOP_USD:
+                    # Per-account day halt (does NOT impact other accounts).
+                    stop_account_for_today(int(acc.login))
                     results.append({
                         "success": False,
                         "message": (
                             f"Daily profit stop reached (${today_realized:.2f} >= ${DAILY_PROFIT_STOP_USD:.2f}); "
-                            "no more trades today"
+                            "account paused for today"
                         ),
                         "account_id": acc.id,
                         "account_label": acc.label,

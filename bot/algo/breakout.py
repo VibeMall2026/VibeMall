@@ -105,6 +105,26 @@ def _normalize_symbols(symbol_value: Optional[str]) -> list[str]:
     return [part.strip().upper() for part in str(symbol_value).split(",") if part.strip()]
 
 
+def _get_allowed_symbols_single_mode() -> list[str]:
+    if str(os.getenv("BOT_SINGLE_ACCOUNT_MODE", "")).strip().lower() not in {"1", "true", "yes", "on"}:
+        return []
+    raw = str(os.getenv("MT5_PRIMARY_ALLOWED_SYMBOLS", "") or "").strip()
+    parsed = [s.strip().upper() for s in raw.split(",") if s.strip()]
+    if parsed:
+        return parsed
+    # Fallback: when launcher env is missing/empty, read from loaded primary account config.
+    try:
+        from bot.accounts import get_all_accounts
+
+        accounts = get_all_accounts()
+        if accounts:
+            allowed = getattr(accounts[0], "allowed_symbols", None) or []
+            return [str(s).strip().upper() for s in allowed if str(s).strip()]
+    except Exception:
+        pass
+    return []
+
+
 @dataclass
 class Candle:
     time: datetime
@@ -484,6 +504,14 @@ def _check_entry_signal(setup: BreakoutSetup, candles_exec: list[Candle]) -> Opt
 
 
 def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
+    allowed_symbols = _get_allowed_symbols_single_mode()
+    if allowed_symbols and str(setup.symbol).upper() not in allowed_symbols:
+        logger.warning(
+            f"[BREAKOUT] Skip execution: symbol={setup.symbol} not allowed for this account; "
+            f"allowed={allowed_symbols}"
+        )
+        return False
+
     # Breakout strategy can run on multiple accounts; drawdown must be evaluated
     # per-account (handled separately). Avoid a wrong-account drawdown block here.
     allowed, block_reason = can_trade_with_reason(skip_drawdown=True)
@@ -565,7 +593,15 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
     )
     successes = [r for r in results if r.get("success")]
     if not successes:
-        logger.error(f"[BREAKOUT] Trade failed on all breakout accounts: {results}")
+        only_symbol_blocked = bool(results) and all(
+            "symbol not allowed" in str(r.get("message", "")).lower() for r in results
+        )
+        if only_symbol_blocked:
+            logger.warning(
+                f"[BREAKOUT] Skipped: symbol '{setup.symbol}' not allowed on mapped account(s)."
+            )
+        else:
+            logger.error(f"[BREAKOUT] Trade failed on all breakout accounts: {results}")
         return False
     ticket = successes[0].get("ticket")
     for r in successes:
@@ -1171,6 +1207,8 @@ def start_algo() -> bool:
     if _algo_running:
         logger.warning("[BREAKOUT] Already running")
         return False
+    with _breakout_lock:
+        _active_breakouts.clear()
     _algo_running = True
     _algo_thread = threading.Thread(target=_algo_loop, daemon=True, name="BreakoutAlgoThread")
     _risk_thread = threading.Thread(target=_risk_check_loop, daemon=True, name="BreakoutRiskThread")
