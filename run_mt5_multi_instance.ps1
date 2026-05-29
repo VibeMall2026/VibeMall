@@ -73,6 +73,26 @@ function Load-Pids {
     return @()
 }
 
+function Test-InstanceProcess {
+    param(
+        [int]$ProcId,
+        [int]$ApiPort
+    )
+    try {
+        $proc = Get-CimInstance Win32_Process -Filter "ProcessId=$ProcId" -ErrorAction Stop
+        if (-not $proc) { return $false }
+        $cmd = [string]($proc.CommandLine)
+        if (-not $cmd) { return $false }
+        if ($cmd -notlike "*-m bot.main*") { return $false }
+        if ($ApiPort -gt 0 -and $cmd -notlike "*API_PORT='$ApiPort'*" -and $cmd -notlike "*API_PORT=$ApiPort*") {
+            return $false
+        }
+        return $true
+    } catch {
+        return $false
+    }
+}
+
 function Save-Pids($rows) {
     New-Item -ItemType Directory -Force -Path (Split-Path $pidsPath -Parent) | Out-Null
     ($rows | ConvertTo-Json -Depth 6) | Set-Content -Path $pidsPath -Encoding UTF8
@@ -133,9 +153,13 @@ if ($Action -eq "stop" -or $Action -eq "restart") {
     $rows = Load-Pids
     foreach ($r in $rows) {
         try {
-            $p = Get-Process -Id ([int]$r.pid) -ErrorAction Stop
-            Stop-Process -Id $p.Id -Force
-            Write-Host "[STOP] $($r.label) pid=$($p.Id)"
+            $pid = [int]$r.pid
+            if (Test-InstanceProcess -ProcId $pid -ApiPort ([int]$r.api_port)) {
+                Stop-Process -Id $pid -Force
+                Write-Host "[STOP] $($r.label) pid=$pid"
+            } else {
+                Write-Host "[STOP] $($r.label) stale/non-bot pid=$pid skipped"
+            }
         } catch {
             Write-Host "[STOP] $($r.label) already stopped"
         }
@@ -198,10 +222,9 @@ if ($Action -eq "status") {
         exit 0
     }
     foreach ($r in $rows) {
-        try {
-            $p = Get-Process -Id ([int]$r.pid) -ErrorAction Stop
-            Write-Host "[RUNNING] $($r.label) | pid=$($p.Id) | port=$($r.api_port) | log=$($r.log)"
-        } catch {
+        if (Test-InstanceProcess -ProcId ([int]$r.pid) -ApiPort ([int]$r.api_port)) {
+            Write-Host "[RUNNING] $($r.label) | pid=$($r.pid) | port=$($r.api_port) | log=$($r.log)"
+        } else {
             Write-Host "[DOWN] $($r.label) | pid=$($r.pid) | last_log=$($r.log)"
         }
     }
