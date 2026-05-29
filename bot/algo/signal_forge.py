@@ -323,8 +323,17 @@ def _build_sl_tp(side: str, price: float, atr_val: float) -> tuple[Optional[floa
     return sl, tp
 
 
+def _get_live_price(symbol: str, side: str) -> Optional[float]:
+    if not MT5_AVAILABLE or not mt5_bridge.ensure_connected():
+        return None
+    tick = mt5.symbol_info_tick(symbol)
+    if not tick:
+        return None
+    return float(tick.ask if str(side).lower() == "buy" else tick.bid)
+
+
 def _execute_signal(symbol: str, side: str, atr_val: float) -> None:
-    price = mt5_bridge.get_current_price(symbol)
+    price = _get_live_price(symbol, side)
     if price is None:
         return
     sl, tp = _build_sl_tp(side, float(price), atr_val)

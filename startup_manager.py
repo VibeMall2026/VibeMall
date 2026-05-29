@@ -28,7 +28,7 @@ PYTHON_EXE: Path = Path(r"C:\Users\ADMIN\AppData\Local\Programs\Python\Python311
 WATCHDOG_SCRIPT: Path = PROJECT_ROOT / "watchdog.py"
 MULTI_INSTANCE_SCRIPT: Path = PROJECT_ROOT / "run_mt5_multi_instance.ps1"
 
-STARTUP_DELAY: int = 60          # seconds to wait after login before doing anything
+STARTUP_DELAY: int = int(os.environ.get("STARTUP_DELAY_SECONDS", "15"))  # reduced boot delay
 MAX_RETRIES: int = 5
 RETRY_INTERVAL: int = 10         # seconds between connectivity retries
 HEALTH_URL: str = "http://localhost:8001/health"
@@ -233,6 +233,13 @@ def ensure_multi_instances_running() -> None:
         logger.warning("Could not ensure multi-instance start: %s", exc)
 
 
+def has_multi_instance_registry() -> bool:
+    try:
+        return (PROJECT_ROOT / "bot" / "sessions" / "instance_pids.json").exists()
+    except Exception:
+        return False
+
+
 # ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
@@ -264,6 +271,10 @@ def main() -> None:
     # In multi-instance mode, watchdog intentionally skips legacy bot launch.
     # Ensure account instances are actually started after boot.
     ensure_multi_instances_running()
+
+    if has_multi_instance_registry():
+        logger.info("Startup complete — multi-instance mode detected (health check on :8001 skipped).")
+        sys.exit(0)
 
     logger.info("Waiting for bot API to become healthy (up to %d s)…", HEALTH_TIMEOUT_SECS)
     if wait_for_health():

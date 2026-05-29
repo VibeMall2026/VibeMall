@@ -23,6 +23,8 @@ try:
 except ImportError:
     MT5_AVAILABLE = False
 
+import os
+
 from bot import mt5_bridge
 from bot.state import state
 from bot.algo.order_block import (
@@ -81,6 +83,15 @@ class AlgoConfig:
 
 algo_config = AlgoConfig()
 algo_config.symbols = ["XAUUSD", "EURUSD", "USDJPY", "GBPUSD", "USDCHF"]
+
+# In one-account-per-process mode, honor account-level allowed symbols so
+# strategies don't spam symbol_not_allowed errors for non-whitelisted pairs.
+if str(os.getenv("BOT_SINGLE_ACCOUNT_MODE", "")).strip().lower() in {"1", "true", "yes", "on"}:
+    _allowed_raw = str(os.getenv("MT5_PRIMARY_ALLOWED_SYMBOLS", "") or "").strip()
+    _allowed = [s.strip().upper() for s in _allowed_raw.split(",") if s.strip()]
+    if _allowed:
+        algo_config.symbol = _allowed[0]
+        algo_config.symbols = _allowed
 
 
 def _is_xau_symbol(symbol: str) -> bool:
