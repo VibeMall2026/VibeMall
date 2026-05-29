@@ -3,7 +3,7 @@ Volume Bubbles strategy (QuantAlgo-inspired) for MT5 bot runtime.
 
 Notes:
 - This mirrors the Pine indicator's cluster detection/classification logic.
-- It is implemented as a scanner strategy (logs cluster events); no auto-order placement.
+- Includes optional auto-order placement using detected clusters.
 """
 from __future__ import annotations
 
@@ -22,6 +22,8 @@ except ImportError:
     MT5_AVAILABLE = False
 
 from bot import mt5_bridge
+from bot.accounts import execute_on_all_accounts
+from bot.algo.order_block import can_trade_with_reason
 
 
 @dataclass
@@ -46,6 +48,13 @@ class _Cfg:
     show_small: bool = True
     show_medium: bool = True
     show_big: bool = True
+    trade_enabled: bool = True
+    trade_levels: tuple[str, ...] = ("MEDIUM", "BIG")
+    risk_percent: float = 0.5
+    atr_period: int = 14
+    sl_atr_mult: float = 1.2
+    tp_rr: float = 1.5
+    min_seconds_between_entries: int = 90
 
 
 _cfg = _Cfg()
@@ -54,6 +63,7 @@ _thread: Optional[threading.Thread] = None
 _last_scan_at: Optional[str] = None
 _last_scan_summary: dict[str, object] = {}
 _last_signal_key: Optional[str] = None
+_last_trade_ts: float = 0.0
 _lock = threading.Lock()
 
 
@@ -147,7 +157,7 @@ def _estimate_bar_delta(symbol: str, bar_time: datetime, bar_close: datetime) ->
 
 
 def _scan_once() -> None:
-    global _last_scan_at, _last_scan_summary, _last_signal_key
+    global _last_scan_at, _last_scan_summary, _last_signal_key, _last_trade_ts
 
     need = max(_cfg.long_len, _cfg.mid_len, _cfg.short_len) + 5
     candles = _fetch_candles(_cfg.symbol, _cfg.analysis_timeframe, need)
@@ -254,11 +264,112 @@ def _scan_once() -> None:
                 f"[VOL_BUBBLES] {level} {side} | {_cfg.symbol} | vol={cur['volume']:.0f} "
                 f"| delta={net_delta:.0f} | ratio={ratio:.2f}x | method={method}"
             )
+            _try_execute_trade(
+                symbol=_cfg.symbol,
+                side=side,
+                level=level,
+                candles=candles,
+            )
+
+
+def _has_open_volume_bubble_position(symbol: str) -> bool:
+    try:
+        positions = mt5_bridge.get_open_positions() or []
+        for p in positions:
+            if str(p.get("symbol", "")).upper() != str(symbol).upper():
+                continue
+            c = str(p.get("comment", "") or "")
+            if "ALGO:VBL:" in c:
+                return True
+    except Exception:
+        return False
+    return False
+
+
+def _atr_from_candles(candles: list[dict], period: int) -> float:
+    if len(candles) < max(3, period + 1):
+        return 0.0
+    trs: list[float] = []
+    for i in range(1, len(candles)):
+        h = float(candles[i]["high"])
+        l = float(candles[i]["low"])
+        pc = float(candles[i - 1]["close"])
+        tr = max(h - l, abs(h - pc), abs(l - pc))
+        trs.append(tr)
+    if not trs:
+        return 0.0
+    window = trs[-period:] if len(trs) >= period else trs
+    return sum(window) / float(len(window))
+
+
+def _try_execute_trade(symbol: str, side: str, level: str, candles: list[dict]) -> None:
+    global _last_trade_ts
+    if not _cfg.trade_enabled:
+        return
+    if level not in _cfg.trade_levels:
+        return
+    if side not in {"BUY", "SELL"}:
+        return
+    now_ts = time.time()
+    if now_ts - _last_trade_ts < max(5, int(_cfg.min_seconds_between_entries)):
+        return
+    if _has_open_volume_bubble_position(symbol):
+        return
+
+    allowed, reason = can_trade_with_reason()
+    if not allowed:
+        logger.info(f"[VOL_BUBBLES] Trade blocked | reason={reason}")
+        return
+
+    tick = mt5_bridge.get_current_price(symbol)
+    if tick is None:
+        return
+    entry = float(tick)
+    atr = _atr_from_candles(candles, max(5, int(_cfg.atr_period)))
+    if atr <= 0:
+        return
+    sl_dist = atr * float(_cfg.sl_atr_mult)
+    if sl_dist <= 0:
+        return
+
+    if side == "BUY":
+        sl = entry - sl_dist
+        tp = entry + (sl_dist * float(_cfg.tp_rr))
+        s = "buy"
+    else:
+        sl = entry + sl_dist
+        tp = entry - (sl_dist * float(_cfg.tp_rr))
+        s = "sell"
+
+    results = execute_on_all_accounts(
+        symbol=symbol,
+        side=s,
+        sl=sl,
+        tp=tp,
+        entry=entry,
+        order_type="market",
+        risk_percent=float(_cfg.risk_percent),
+        comment=f"ALGO:VBL:{level}",
+        strategy_id="volume_bubbles",
+    )
+    success = [r for r in results if r.get("success")]
+    if success:
+        _last_trade_ts = now_ts
+        for r in success:
+            logger.success(
+                f"[VOL_BUBBLES] Trade on {r.get('account_label')} ({r.get('login')}) "
+                f"| {symbol} {side} | ticket={r.get('ticket')} | level={level}"
+            )
+    else:
+        logger.warning(f"[VOL_BUBBLES] Signal not executed | {symbol} {side} {level} | {results}")
 
 
 def _loop() -> None:
     global _running
-    logger.info(f"[VOL_BUBBLES] Started | symbol={_cfg.symbol} tf={_cfg.analysis_timeframe}m")
+    logger.info(
+        f"[VOL_BUBBLES] Started | symbol={_cfg.symbol} tf={_cfg.analysis_timeframe}m "
+        f"| trade_enabled={_cfg.trade_enabled} levels={list(_cfg.trade_levels)}"
+    )
     while _running:
         try:
             if mt5_bridge.ensure_connected():
@@ -299,4 +410,3 @@ def get_algo_status() -> dict:
             "last_scan_at": _last_scan_at,
             "last_scan_summary": dict(_last_scan_summary),
         }
-
