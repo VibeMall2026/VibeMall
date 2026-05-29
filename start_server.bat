@@ -8,3 +8,12 @@ chcp 65001 >nul
 echo Starting trading bot server (visible mode)...
 set "WATCHDOG_VISIBLE=1"
 python -X utf8 -u startup_manager.py
+
+echo.
+echo Startup complete. Opening live shared logs...
+echo Press Ctrl+C to stop log tracking.
+echo.
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$p='.\logs\bot_shared.log'; " ^
+  "while(-not (Test-Path $p)){ Start-Sleep -Seconds 2 }; " ^
+  "Get-Content -LiteralPath $p -Tail 120 -Wait"
