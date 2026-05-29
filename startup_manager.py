@@ -26,6 +26,7 @@ import requests
 PROJECT_ROOT: Path = Path(__file__).parent.resolve()
 PYTHON_EXE: Path = Path(r"C:\Users\ADMIN\AppData\Local\Programs\Python\Python311\python.exe")
 WATCHDOG_SCRIPT: Path = PROJECT_ROOT / "watchdog.py"
+MULTI_INSTANCE_SCRIPT: Path = PROJECT_ROOT / "run_mt5_multi_instance.ps1"
 
 STARTUP_DELAY: int = 60          # seconds to wait after login before doing anything
 MAX_RETRIES: int = 5
@@ -175,6 +176,63 @@ def wait_for_health(
     return False
 
 
+def ensure_multi_instances_running() -> None:
+    """
+    Ensure multi-instance account processes are running.
+    If no [RUNNING] entries are found, run multi-instance restart.
+    """
+    logger = logging.getLogger("startup_manager")
+    if not MULTI_INSTANCE_SCRIPT.exists():
+        logger.warning("Multi-instance script not found: %s", MULTI_INSTANCE_SCRIPT)
+        return
+    try:
+        status_cmd = [
+            "powershell",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(MULTI_INSTANCE_SCRIPT),
+            "-Action",
+            "status",
+        ]
+        status = subprocess.run(
+            status_cmd,
+            cwd=str(PROJECT_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=45,
+        )
+        out = f"{status.stdout}\n{status.stderr}"
+        if "[RUNNING]" in out:
+            logger.info("Multi-instance status: running instances detected, no restart needed")
+            return
+
+        logger.warning("No running multi-instances detected. Starting all accounts...")
+        restart_cmd = [
+            "powershell",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(MULTI_INSTANCE_SCRIPT),
+            "-Action",
+            "restart",
+        ]
+        restarted = subprocess.run(
+            restart_cmd,
+            cwd=str(PROJECT_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=180,
+        )
+        logger.info("Multi-instance restart output:\n%s", restarted.stdout.strip() or "(no stdout)")
+        if restarted.returncode != 0:
+            logger.warning("Multi-instance restart returned non-zero code: %s", restarted.returncode)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Could not ensure multi-instance start: %s", exc)
+
+
 # ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
@@ -202,6 +260,10 @@ def main() -> None:
     except Exception as exc:  # noqa: BLE001
         logger.error("Failed to start watchdog: %s — aborting", exc)
         sys.exit(1)
+
+    # In multi-instance mode, watchdog intentionally skips legacy bot launch.
+    # Ensure account instances are actually started after boot.
+    ensure_multi_instances_running()
 
     logger.info("Waiting for bot API to become healthy (up to %d s)…", HEALTH_TIMEOUT_SECS)
     if wait_for_health():
