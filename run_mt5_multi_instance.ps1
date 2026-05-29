@@ -162,7 +162,7 @@ if ($Action -eq "start" -or $Action -eq "restart") {
             "Set-Location '$root'; " +
             "& '$py' -X utf8 -u -m bot.main"
         )
-        $p = Start-Process -FilePath "powershell.exe" -ArgumentList $argList -WindowStyle Hidden -PassThru
+        $p = Start-Process -FilePath "powershell.exe" -ArgumentList $argList -PassThru
         $started += [pscustomobject]@{
             label = $a.Label
             safe_label = $a.SafeLabel
