@@ -7,6 +7,7 @@ cd /d "%~dp0"
 chcp 65001 >nul
 echo Starting trading bot server (visible mode)...
 set "WATCHDOG_VISIBLE=1"
+set "SHOW_INSTANCE_WINDOWS=0"
 python -X utf8 -u startup_manager.py
 
 echo.

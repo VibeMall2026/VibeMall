@@ -11,6 +11,12 @@ $pidsPath = Join-Path $root "bot\sessions\instance_pids.json"
 $logsDir = Join-Path $root "logs\instances"
 $sharedLog = Join-Path $root "logs\bot_shared.log"
 $py = "C:\Users\ADMIN\AppData\Local\Programs\Python\Python311\python.exe"
+$showInstanceWindows = (
+    [string]::Equals($env:SHOW_INSTANCE_WINDOWS, "1", [System.StringComparison]::OrdinalIgnoreCase) -or
+    [string]::Equals($env:SHOW_INSTANCE_WINDOWS, "true", [System.StringComparison]::OrdinalIgnoreCase) -or
+    [string]::Equals($env:SHOW_INSTANCE_WINDOWS, "yes", [System.StringComparison]::OrdinalIgnoreCase) -or
+    [string]::Equals($env:SHOW_INSTANCE_WINDOWS, "on", [System.StringComparison]::OrdinalIgnoreCase)
+)
 
 function Parse-BotEnv {
     param([string]$Path)
@@ -162,7 +168,11 @@ if ($Action -eq "start" -or $Action -eq "restart") {
             "Set-Location '$root'; " +
             "& '$py' -X utf8 -u -m bot.main"
         )
-        $p = Start-Process -FilePath "powershell.exe" -ArgumentList $argList -PassThru
+        if ($showInstanceWindows) {
+            $p = Start-Process -FilePath "powershell.exe" -ArgumentList $argList -PassThru
+        } else {
+            $p = Start-Process -FilePath "powershell.exe" -ArgumentList $argList -WindowStyle Hidden -PassThru
+        }
         $started += [pscustomobject]@{
             label = $a.Label
             safe_label = $a.SafeLabel
