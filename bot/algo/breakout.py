@@ -73,6 +73,7 @@ class AlgoConfig:
     early_sl_avoid_ratio: float = 0.65
     staged_book_level_1_pct: float = 0.40
     staged_book_level_2_pct: float = 0.30
+    staged_book_level_3_pct: float = 0.20
 
     def get_symbols(self) -> list:
         """Return list of symbols to trade."""
@@ -175,6 +176,7 @@ class BreakoutSetup:
     dollar_lock_applied: bool = False
     staged_book_1_done: bool = False
     staged_book_2_done: bool = False
+    staged_book_3_done: bool = False
     # Multi-account support:
     # breakout strategy can be mapped to multiple MT5 accounts. Execution returns
     # one ticket per account. Risk management MUST operate per-account.
@@ -643,6 +645,7 @@ def _execute_breakout_trade(setup: BreakoutSetup, entry_price: float) -> bool:
             "dollar_lock_applied": False,
             "staged_book_1_done": False,
             "staged_book_2_done": False,
+            "staged_book_3_done": False,
             "partial_closed": False,
             "opened_at": setup._opened_at,
         }
@@ -771,7 +774,8 @@ def _manage_open_trade_risk_for_account(
     continuation_bias = _has_continuation_bias(_candles_hm or [], side)
 
     # Human-style staged booking:
-    # +$5 partial, +$7 partial, +$10 close remaining.
+    # +$5 partial, +$7 partial, +$10 partial/close.
+    # If continuation remains strong after +$10, hold last volume with tighter SL.
     if floating_pnl is not None:
         # Risky condition quick-book: lock small gain at +$3
         # Risky signal = no continuation + opposite pressure seen.
@@ -799,13 +803,21 @@ def _manage_open_trade_risk_for_account(
                 logger.info(f"[BREAKOUT] Stage-2 partial book at +${algo_config.extended_profit_min_usd:.2f}")
                 return
 
-        # If momentum weak after +$7, exit remaining. Otherwise hold till +$10.
+        # If momentum weak after +$7, exit remaining early.
         if floating_pnl >= algo_config.extended_profit_min_usd and not continuation_bias:
             if close_trade(ticket, _sym, side, "ALGO:BOOK_7_WEAK"):
                 return
+        # At +$10: if strong continuation, keep runner; otherwise book more and exit.
         if floating_pnl >= algo_config.extended_profit_max_usd:
-            if close_trade(ticket, _sym, side, "ALGO:BOOK_10_STAGED"):
-                return
+            if continuation_bias:
+                if (not bool(account_state.get("staged_book_3_done"))) and _vol > 0:
+                    if execute_partial_close(ticket, _sym, _vol, close_fraction=algo_config.staged_book_level_3_pct):
+                        account_state["staged_book_3_done"] = True
+                        logger.info(f"[BREAKOUT] Stage-3 runner trim at +${algo_config.extended_profit_max_usd:.2f}")
+                        return
+            else:
+                if close_trade(ticket, _sym, side, "ALGO:BOOK_10_STAGED"):
+                    return
 
     # Human-style SL avoidance:
     # If price has moved too close to SL, exit early.
@@ -879,6 +891,15 @@ def _manage_open_trade_risk_for_account(
             new_sl = trail_sl if new_sl is None else (max(new_sl, trail_sl) if side == "buy" else min(new_sl, trail_sl))
             account_state["r_stage"] = 3
 
+    # Runner protection: after +$10, if still trending, trail tighter to reduce giveback.
+    if floating_pnl is not None and floating_pnl >= algo_config.extended_profit_max_usd and continuation_bias:
+        candles_runner = _get_candles(_sym, algo_config.execution_timeframe, 20)
+        atr_runner = _calculate_atr(candles_runner, algo_config.atr_period) if candles_runner else None
+        if atr_runner:
+            tight_mult = max(0.25, float(algo_config.trail_atr_mult) * 0.60)
+            runner_sl = current_price - atr_runner * tight_mult if side == "buy" else current_price + atr_runner * tight_mult
+            new_sl = runner_sl if new_sl is None else (max(new_sl, runner_sl) if side == "buy" else min(new_sl, runner_sl))
+
     if new_sl is not None:
         current_sl = float(account_state.get("initial_sl") or setup.initial_sl or 0.0)
         should_update = (side == "buy" and new_sl > current_sl) or (side == "sell" and new_sl < current_sl)
@@ -943,6 +964,7 @@ def _scan_and_trade(symbol: str = None) -> None:
                 setup.dollar_lock_applied = False
                 setup.staged_book_1_done = False
                 setup.staged_book_2_done = False
+                setup.staged_book_3_done = False
                 setup.active = pnl_val >= 0
 
     candles_analysis = _get_candles(symbol, algo_config.analysis_timeframe, algo_config.breakout_lookback + 60)
@@ -1016,6 +1038,7 @@ def _scan_and_trade(symbol: str = None) -> None:
                 setup.r_stage = 0
                 setup.staged_book_1_done = False
                 setup.staged_book_2_done = False
+                setup.staged_book_3_done = False
 
     if len(algo_positions) >= 2:
         return
@@ -1127,6 +1150,7 @@ def _risk_check_loop() -> None:
                                         setup.dollar_lock_applied = False
                                         setup.staged_book_1_done = False
                                         setup.staged_book_2_done = False
+                                        setup.staged_book_3_done = False
                                         setup.active = pnl_val >= 0
                                     continue
 

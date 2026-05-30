@@ -108,6 +108,13 @@ class AlgoConfig:
     # Partial close tuning
     partial_close_r: float = 0.7         # trigger partial at +0.7R
     partial_close_fraction: float = 0.5  # close 50% position
+    staged_book_enabled: bool = True
+    staged_book_level_1_usd: float = 5.0
+    staged_book_level_2_usd: float = 7.0
+    staged_book_level_3_usd: float = 10.0
+    staged_book_level_1_pct: float = 0.25
+    staged_book_level_2_pct: float = 0.50
+    staged_book_level_3_pct: float = 0.20
     # Adverse momentum protection: close if price keeps pushing toward SL
     adverse_exit_enabled: bool = True
     adverse_candle_count: int = 3
@@ -1205,23 +1212,69 @@ def _manage_open_trade_risk(ob: OrderBlock) -> None:
     _hm_cfg.partial_close_at_r = float(getattr(algo_config, "partial_close_r", 1.0) or 1.0)
     _hm_cfg.partial_close_pct = float(getattr(algo_config, "partial_close_fraction", 0.5) or 0.5)
 
-    # Partial close (only once per trade)
-    if not getattr(ob, '_partial_closed', False):
-        if should_partial_close(entry, current_price, one_r, side, False):
-            try:
-                _positions = mt5_bridge.get_open_positions()
-                for _pos in _positions:
-                    if _pos.get("id") == ob.ticket or _pos.get("position_id") == ob.ticket:
-                        _vol = float(_pos.get("volume", 0.01))
-                        if execute_partial_close(ob.ticket, _ob_symbol, _vol, close_fraction=_hm_cfg.partial_close_pct):
-                            ob._partial_closed = True
-                            logger.info(
-                                f"[ALGO] Partial close done on ticket {ob.ticket} "
-                                f"at +{_hm_cfg.partial_close_at_r:.2f}R (fraction={_hm_cfg.partial_close_pct:.2f})"
-                            )
-                        break
-            except Exception as _exc:
-                logger.warning(f"[ALGO] Partial close check failed: {_exc}")
+    def _has_continuation_bias(candles: list, trade_side: str) -> bool:
+        if len(candles) < 3:
+            return False
+        c1, c2, c3 = candles[-3], candles[-2], candles[-1]
+        if trade_side == "buy":
+            return c2.is_bullish and c3.is_bullish and c3.close >= c2.close >= c1.close
+        return c2.is_bearish and c3.is_bearish and c3.close <= c2.close <= c1.close
+
+    continuation_bias = _has_continuation_bias(candles_exec_hm or [], side)
+    floating_pnl = None
+    live_volume = 0.0
+    try:
+        _positions = mt5_bridge.get_open_positions()
+        for _pos in _positions:
+            if _pos.get("id") == ob.ticket or _pos.get("position_id") == ob.ticket:
+                floating_pnl = float(_pos.get("pnl", 0) or 0)
+                live_volume = float(_pos.get("volume", 0.0) or 0.0)
+                break
+    except Exception:
+        pass
+
+    if getattr(algo_config, "staged_book_enabled", True) and floating_pnl is not None and live_volume > 0:
+        if (not getattr(ob, "_stage1_done", False)) and floating_pnl >= float(algo_config.staged_book_level_1_usd):
+            if execute_partial_close(ob.ticket, _ob_symbol, live_volume, close_fraction=float(algo_config.staged_book_level_1_pct)):
+                ob._stage1_done = True
+                logger.info(f"[ALGO] Stage-1 partial booked at +${algo_config.staged_book_level_1_usd:.2f}")
+                return
+        if (not getattr(ob, "_stage2_done", False)) and floating_pnl >= float(algo_config.staged_book_level_2_usd):
+            if execute_partial_close(ob.ticket, _ob_symbol, live_volume, close_fraction=float(algo_config.staged_book_level_2_pct)):
+                ob._stage2_done = True
+                logger.info(f"[ALGO] Stage-2 partial booked at +${algo_config.staged_book_level_2_usd:.2f}")
+                return
+        if floating_pnl >= float(algo_config.staged_book_level_3_usd):
+            if continuation_bias:
+                if not getattr(ob, "_stage3_done", False):
+                    if execute_partial_close(ob.ticket, _ob_symbol, live_volume, close_fraction=float(algo_config.staged_book_level_3_pct)):
+                        ob._stage3_done = True
+                        logger.info(f"[ALGO] Stage-3 runner trim at +${algo_config.staged_book_level_3_usd:.2f}")
+                        return
+            else:
+                if close_trade(ob.ticket, _ob_symbol, side, "ALGO:BOOK_10_STAGED"):
+                    ob.trade_taken = False
+                    ob.active = False
+                    ob.ticket = None
+                    return
+    else:
+        # Fallback old behavior.
+        if not getattr(ob, '_partial_closed', False):
+            if should_partial_close(entry, current_price, one_r, side, False):
+                try:
+                    _positions = mt5_bridge.get_open_positions()
+                    for _pos in _positions:
+                        if _pos.get("id") == ob.ticket or _pos.get("position_id") == ob.ticket:
+                            _vol = float(_pos.get("volume", 0.01))
+                            if execute_partial_close(ob.ticket, _ob_symbol, _vol, close_fraction=_hm_cfg.partial_close_pct):
+                                ob._partial_closed = True
+                                logger.info(
+                                    f"[ALGO] Partial close done on ticket {ob.ticket} "
+                                    f"at +{_hm_cfg.partial_close_at_r:.2f}R (fraction={_hm_cfg.partial_close_pct:.2f})"
+                                )
+                            break
+                except Exception as _exc:
+                    logger.warning(f"[ALGO] Partial close check failed: {_exc}")
 
     # Early exit on strong reversal candle
     if candles_exec_hm and should_early_exit(side, candles_exec_hm):
