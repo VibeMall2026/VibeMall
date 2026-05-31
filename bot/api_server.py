@@ -3,6 +3,7 @@ FastAPI server — exposes bot control & data endpoints.
 Called by the Django dashboard (trading/ app).
 """
 import asyncio
+import threading
 from datetime import datetime, date, timedelta, timezone
 from typing import Optional
 
@@ -32,6 +33,9 @@ from bot.algo.manager import (
 )
 
 app = FastAPI(title="Trading Bot API", version="1.0.0")
+
+_accounts_refresh_lock = threading.Lock()
+_accounts_refresh_in_progress = False
 
 
 def _parse_trade_date(raw_value) -> date | None:
@@ -786,9 +790,8 @@ async def debug_accounts():
 @app.get("/accounts", dependencies=[Depends(verify_api_key)])
 async def list_accounts():
     """List all configured MT5 accounts."""
-    from bot.accounts import get_all_accounts, _load_extra_accounts
-    # Re-run extra account loader so any new .env entries appear without restart
-    _load_extra_accounts()
+    from bot.accounts import get_all_accounts
+    # Keep this endpoint ultra-fast for dashboard polling.
     return [acc.to_dict() for acc in get_all_accounts()]
 
 
@@ -886,16 +889,25 @@ async def account_marketwatch(account_id: str):
 
 @app.post("/accounts/refresh", dependencies=[Depends(verify_api_key)])
 async def refresh_accounts():
-    """Refresh balance/equity for all accounts."""
+    """Trigger async refresh and immediately return cached account snapshot."""
     from bot.accounts import refresh_account_info, get_all_accounts
-    import asyncio
-    try:
-        # Keep admin panel responsive; MT5 reconnect can hang per account.
-        await asyncio.wait_for(asyncio.to_thread(refresh_account_info), timeout=12.0)
-    except asyncio.TimeoutError:
-        logger.warning("[API] /accounts/refresh timed out after 12s; returning cached account snapshot")
-    except Exception as exc:
-        logger.warning(f"[API] /accounts/refresh failed: {exc}")
+
+    def _refresh_worker() -> None:
+        global _accounts_refresh_in_progress
+        try:
+            refresh_account_info()
+        except Exception as exc:
+            logger.warning(f"[API] background accounts refresh failed: {exc}")
+        finally:
+            with _accounts_refresh_lock:
+                _accounts_refresh_in_progress = False
+
+    global _accounts_refresh_in_progress
+    with _accounts_refresh_lock:
+        if not _accounts_refresh_in_progress:
+            _accounts_refresh_in_progress = True
+            threading.Thread(target=_refresh_worker, daemon=True).start()
+
     return [acc.to_dict() for acc in get_all_accounts()]
 
 

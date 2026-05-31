@@ -210,6 +210,26 @@ if ($Action -eq "start" -or $Action -eq "restart") {
         Write-Host "[START] $($a.Label) | pid=$($p.Id) | port=$($a.ApiPort)"
     }
     Save-Pids $started
+    # Ensure unified dashboard API is available on :8001.
+    # Dashboard expects a single BOT_API_URL endpoint; instances run on 8101+.
+    $gatewayListening = $false
+    try {
+        $l = Get-NetTCPConnection -LocalPort 8001 -State Listen -ErrorAction SilentlyContinue
+        if ($l) { $gatewayListening = $true }
+    } catch {}
+    if (-not $gatewayListening) {
+        $gatewayCmd = @(
+            "-NoProfile",
+            "-ExecutionPolicy", "Bypass",
+            "-Command",
+            "`$env:BOT_SINGLE_ACCOUNT_MODE='0'; `$env:API_PORT='8001'; Set-Location '$root'; & '$py' -X utf8 -u -m bot.main --api"
+        )
+        Start-Process -FilePath "powershell.exe" -ArgumentList $gatewayCmd -WindowStyle Hidden | Out-Null
+        Start-Sleep -Seconds 2
+        Write-Host "[START] Dashboard API Gateway | port=8001"
+    } else {
+        Write-Host "[RUNNING] Dashboard API Gateway | port=8001"
+    }
     Write-Host ""
     Write-Host "Shared log: $sharedLog"
     exit 0
