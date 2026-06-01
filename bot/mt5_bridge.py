@@ -559,6 +559,55 @@ def get_open_positions() -> list[dict]:
         return result
 
 
+def get_current_price(symbol: str, side: Optional[str] = None) -> Optional[float]:
+    """
+    Return current symbol price.
+    side:
+      - "buy"  -> ask
+      - "sell" -> bid
+      - None / "mid" -> midpoint
+    """
+    # Bridge delegation mode
+    if USE_BRIDGE:
+        response = _call_bridge("/tick", method="GET", timeout=5)
+        # Bridge may not expose symbol-specific tick endpoint; fail gracefully.
+        if not isinstance(response, dict):
+            return None
+        bid = response.get("bid")
+        ask = response.get("ask")
+        try:
+            bid_f = float(bid)
+            ask_f = float(ask)
+        except Exception:
+            return None
+        s = str(side or "mid").strip().lower()
+        if s == "buy":
+            return ask_f
+        if s == "sell":
+            return bid_f
+        return (bid_f + ask_f) / 2.0
+
+    # Direct MT5 mode
+    if not MT5_AVAILABLE or not ensure_connected():
+        return None
+
+    from bot.accounts import get_mt5_lock
+    with get_mt5_lock():
+        tick = mt5.symbol_info_tick(symbol)
+        if not tick:
+            return None
+        bid = float(getattr(tick, "bid", 0.0) or 0.0)
+        ask = float(getattr(tick, "ask", 0.0) or 0.0)
+        s = str(side or "mid").strip().lower()
+        if s == "buy":
+            return ask if ask > 0 else None
+        if s == "sell":
+            return bid if bid > 0 else None
+        if bid > 0 and ask > 0:
+            return (bid + ask) / 2.0
+        return ask if ask > 0 else (bid if bid > 0 else None)
+
+
 def close_position(position_id: int) -> dict:
     """Fully close an open position by ticket/position id."""
     # Bridge delegation mode
