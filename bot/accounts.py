@@ -235,9 +235,10 @@ def _normalize_strategies(strategy) -> list[str]:
 def _load_default_account() -> None:
     """Load the primary account from config on startup."""
     if _config.MT5_LOGIN > 0 and _config.MT5_PASSWORD and _config.MT5_SERVER:
+        primary_label = str(os.getenv("MT5_ACCOUNT_LABEL", "") or "").strip() or "Primary Account"
         primary = MT5Account(
             id="acc_1",
-            label="Primary Account",
+            label=primary_label,
             login=_config.MT5_LOGIN,
             password=_config.MT5_PASSWORD,
             server=_config.MT5_SERVER,

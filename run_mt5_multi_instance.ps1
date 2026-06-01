@@ -178,6 +178,7 @@ if ($Action -eq "start" -or $Action -eq "restart") {
         $argList = @(
             "-Command",
             "`$env:MT5_LOGIN='$($a.Login)'; " +
+            "`$env:MT5_ACCOUNT_LABEL='$($a.Label)'; " +
             "`$env:MT5_PASSWORD='$($a.Password)'; " +
             "`$env:MT5_SERVER='$($a.Server)'; " +
             "`$env:MT5_PATH='$($a.Path)'; " +
