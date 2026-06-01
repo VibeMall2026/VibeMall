@@ -55,7 +55,7 @@ class AlgoConfig:
 
     # Risk
     risk_reward_ratio: float = 2.0
-    risk_percent: float = 1.0
+    risk_percent: float = 0.5
     enabled: bool = True
 
     trend_filter_enabled: bool = True

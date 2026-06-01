@@ -1503,6 +1503,19 @@ def _execute_single(
                     f"[ACCOUNTS][RISK] Non-XAU hard lot cap applied | symbol={resolved_symbol} "
                     f"lot={lot:.2f} cap={non_xau_cap:.2f} strategy_comment={comment}"
                 )
+        # MultiTF strategy: keep XAU lot conservative.
+        _is_mtf = "ALGO:MTF" in _c
+        if _is_mtf and _is_xau_symbol(resolved_symbol):
+            mtf_xau_cap = max(sym_info.volume_min, 0.05)
+            if lot > mtf_xau_cap:
+                step = sym_info.volume_step or sym_info.volume_min or 0.01
+                eps = step * 1e-6
+                lot = round(math.floor((mtf_xau_cap + eps) / step) * step, 8)
+                lot = max(sym_info.volume_min, lot)
+                logger.info(
+                    f"[ACCOUNTS][RISK] MultiTF XAU hard lot cap applied | symbol={resolved_symbol} "
+                    f"lot={lot:.2f} cap={mtf_xau_cap:.2f} strategy_comment={comment}"
+                )
     except Exception as _lot_cap_exc:
         logger.warning(f"[ACCOUNTS] Non-XAU hard cap guard failed: {_lot_cap_exc}")
 
