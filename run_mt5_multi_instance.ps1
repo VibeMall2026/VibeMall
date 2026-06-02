@@ -130,6 +130,42 @@ function Stop-OrphanBotMainProcesses {
     }
 }
 
+function Stop-BotPortOwners {
+    param([int[]]$Ports)
+
+    $owners = @{}
+    foreach ($port in $Ports) {
+        try {
+            $listeners = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+            foreach ($listener in $listeners) {
+                $ownerPid = [int]$listener.OwningProcess
+                if ($ownerPid -gt 0) {
+                    $owners[$ownerPid] = $port
+                }
+            }
+        } catch {}
+    }
+
+    foreach ($ownerPid in @($owners.Keys)) {
+        try {
+            $proc = Get-CimInstance Win32_Process -Filter "ProcessId=$ownerPid" -ErrorAction Stop
+            $parentPid = [int]$proc.ParentProcessId
+            Stop-Process -Id $ownerPid -Force
+            Write-Host "[CLEANUP] Stopped port owner pid=$ownerPid port=$($owners[$ownerPid])"
+
+            if ($parentPid -gt 0) {
+                try {
+                    $parent = Get-CimInstance Win32_Process -Filter "ProcessId=$parentPid" -ErrorAction Stop
+                    if ($parent.Name -ieq "powershell.exe") {
+                        Stop-Process -Id $parentPid -Force
+                        Write-Host "[CLEANUP] Stopped parent launcher pid=$parentPid"
+                    }
+                } catch {}
+            }
+        } catch {}
+    }
+}
+
 if (-not (Test-Path $py)) {
     throw "Python not found: $py"
 }
@@ -148,6 +184,7 @@ $basePort = 8101
 for ($i = 0; $i -lt $accounts.Count; $i++) {
     $accounts[$i].ApiPort = $basePort + $i
 }
+$managedPorts = @($accounts | ForEach-Object { [int]$_.ApiPort }) + @(8001)
 
 if ($Action -eq "stop" -or $Action -eq "restart") {
     $rows = Load-Pids
@@ -165,12 +202,14 @@ if ($Action -eq "stop" -or $Action -eq "restart") {
         }
     }
     Stop-OrphanBotMainProcesses -KnownPowerShellPids ($rows | ForEach-Object { $_.pid })
+    Stop-BotPortOwners -Ports $managedPorts
     Save-Pids @()
     if ($Action -eq "stop") { exit 0 }
 }
 
 if ($Action -eq "start" -or $Action -eq "restart") {
     Stop-OrphanBotMainProcesses -KnownPowerShellPids @()
+    Stop-BotPortOwners -Ports $managedPorts
     New-Item -ItemType Directory -Force -Path $logsDir | Out-Null
     $started = @()
     foreach ($a in $accounts) {

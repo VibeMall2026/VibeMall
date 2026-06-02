@@ -49,7 +49,7 @@ CONNECT_SUCCESS_LOG_INTERVAL_SECONDS = 60.0
 _TRADE_MODE_STORE_PATH = Path(__file__).resolve().parent / "sessions" / "account_trade_modes.json"
 
 
-def _load_trade_modes_from_disk() -> None:
+def _load_trade_modes_from_disk(*, log_success: bool = True, log_errors: bool = True) -> None:
     """Best-effort load of persisted trade-mode state into memory."""
     global _account_trade_halts, _account_trade_halts_until
     try:
@@ -67,12 +67,14 @@ def _load_trade_modes_from_disk() -> None:
             _account_trade_halts = {int(k): str(v) for k, v in halts.items() if str(k).strip()}
         if isinstance(halts_until, dict):
             _account_trade_halts_until = {int(k): str(v) for k, v in halts_until.items() if str(k).strip()}
-        logger.info(
-            f"[ACCOUNTS] Loaded trade-modes from disk: "
-            f"halts={len(_account_trade_halts)} halts_until={len(_account_trade_halts_until)}"
-        )
+        if log_success:
+            logger.info(
+                f"[ACCOUNTS] Loaded trade-modes from disk: "
+                f"halts={len(_account_trade_halts)} halts_until={len(_account_trade_halts_until)}"
+            )
     except Exception as exc:
-        logger.warning(f"[ACCOUNTS] Could not load trade-modes: {exc}")
+        if log_errors:
+            logger.warning(f"[ACCOUNTS] Could not load trade-modes: {exc}")
 
 
 def _persist_trade_modes_to_disk() -> None:
@@ -430,6 +432,7 @@ def sync_account_runtime(
 def stop_account_for_today(login: int) -> None:
     """Stop trade execution for this account for the current UTC day."""
     with _trade_mode_persist_lock:
+        _load_trade_modes_from_disk(log_success=False, log_errors=False)
         _account_trade_halts[int(login)] = _date.today().isoformat()
         # Clear any stop-until when explicit stop-today is set.
         _account_trade_halts_until.pop(int(login), None)
@@ -445,6 +448,7 @@ def stop_account_until(login: int, until_utc: datetime) -> None:
     """
     key = int(login)
     with _trade_mode_persist_lock:
+        _load_trade_modes_from_disk(log_success=False, log_errors=False)
         now = datetime.now(timezone.utc)
         if until_utc <= now:
             _account_trade_halts_until.pop(key, None)
@@ -462,6 +466,7 @@ def stop_account_until(login: int, until_utc: datetime) -> None:
 def start_account_now(login: int) -> None:
     """Manually resume trading for this account immediately."""
     with _trade_mode_persist_lock:
+        _load_trade_modes_from_disk(log_success=False, log_errors=False)
         _account_trade_halts.pop(int(login), None)
         _account_trade_halts_until.pop(int(login), None)
         _persist_trade_modes_to_disk()
@@ -472,6 +477,11 @@ def is_account_trade_allowed_today(login: int) -> tuple[bool, str]:
     Returns (allowed, reason).
     Auto-resets on next day.
     """
+    # Stop/start changes can be written by a different API/process. Reload the
+    # tiny shared file before every gate check so live strategy instances do not
+    # keep stale in-memory trade modes.
+    _load_trade_modes_from_disk(log_success=False, log_errors=False)
+
     key = int(login)
 
     # Priority 1: stop-until (datetime-based).
