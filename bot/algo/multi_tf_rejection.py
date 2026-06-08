@@ -34,6 +34,7 @@ try:
 except ImportError:
     MT5_AVAILABLE = False
 
+from bot import config as runtime_config
 from bot import mt5_bridge
 from bot.state import state
 
@@ -76,6 +77,9 @@ class AlgoConfig:
 
     # BE + trail rules
     trail_step_pips: float = 10.0
+    partial_close_enabled: bool = runtime_config.PARTIAL_CLOSE_ENABLED
+    partial_close_at_r: float = runtime_config.PARTIAL_CLOSE_TRIGGER_R
+    partial_close_fraction: float = runtime_config.PARTIAL_CLOSE_FRACTION
 
     scan_interval_seconds: int = 30
     risk_check_interval_seconds: int = 1
@@ -140,6 +144,7 @@ class TradeState:
     risk_pips: float
     be_applied: bool = False
     last_trail_step: int = 0
+    partial_closed: bool = False
 
 
 # ── Runtime state ─────────────────────────────────────────────────────────────
@@ -660,6 +665,39 @@ def _manage_trade(tr: TradeState) -> None:
         profit_pips = (current - tr.entry) / pip
     else:
         profit_pips = (tr.entry - current) / pip
+
+    if (
+        algo_config.partial_close_enabled
+        and not tr.partial_closed
+        and tr.risk_pips > 0
+        and profit_pips >= (tr.risk_pips * float(algo_config.partial_close_at_r))
+    ):
+        try:
+            open_positions = mt5_bridge.get_open_positions()
+            live_pos = next(
+                (
+                    p for p in open_positions
+                    if int(p.get("id") or p.get("position_id") or 0) == int(tr.ticket)
+                ),
+                None,
+            )
+            live_volume = float((live_pos or {}).get("volume", 0.0) or 0.0)
+            if live_volume > 0:
+                from bot.algo.human_mind import execute_partial_close
+                if execute_partial_close(
+                    tr.ticket,
+                    tr.symbol,
+                    live_volume,
+                    close_fraction=float(algo_config.partial_close_fraction),
+                ):
+                    tr.partial_closed = True
+                    logger.info(
+                        f"[MTF] Partial book done | ticket={tr.ticket} "
+                        f"at +{float(algo_config.partial_close_at_r):.2f}R "
+                        f"fraction={float(algo_config.partial_close_fraction):.2f}"
+                    )
+        except Exception as exc:
+            logger.warning(f"[MTF] Partial book check failed | ticket={tr.ticket} error={exc}")
 
     # Break-even at 1R (risk_pips)
     new_sl = None

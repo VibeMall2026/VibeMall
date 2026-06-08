@@ -100,7 +100,10 @@ THE5ERS_MAX_TRADES_PER_DAY = 15
 THE5ERS_MIN_SECONDS_BETWEEN_BREAKOUT_ENTRIES = 65
 THE5ERS_MAX_SIMULTANEOUS_BREAKOUT_TRADES = 2
 THE5ERS_POLICY_ENFORCED = os.getenv("THE5ERS_POLICY_ENFORCED", "false").strip().lower() in {"1", "true", "yes", "on"}
-DAILY_PROFIT_STOP_USD = 40.0
+try:
+    DAILY_PROFIT_STOP_USD = float(os.getenv("DAILY_PROFIT_STOP_USD", "15"))
+except Exception:
+    DAILY_PROFIT_STOP_USD = 15.0
 
 
 def get_mt5_lock() -> threading.RLock:
@@ -1047,6 +1050,7 @@ def execute_on_all_accounts(
         }]
 
     results = []
+    algo_trade = str(comment or "").upper().startswith("ALGO:")
 
     for acc in accounts_copy:
         try:
@@ -1088,6 +1092,43 @@ def execute_on_all_accounts(
                         logger.warning(f"[ACCOUNTS] Trade skipped for {acc.label}: symbol_not_allowed {sym}")
                         continue
 
+                effective_risk_percent = risk_percent
+                if algo_trade:
+                    try:
+                        from bot.algo.human_mind import can_enter_trade, get_lot_multiplier
+
+                        direction = "bullish" if str(side).lower() == "buy" else "bearish"
+                        open_positions_raw = mt5.positions_get() or []
+                        open_positions = [
+                            {
+                                "symbol": getattr(p, "symbol", ""),
+                                "side": "buy" if getattr(p, "type", None) == mt5.ORDER_TYPE_BUY else "sell",
+                                "comment": getattr(p, "comment", ""),
+                                "pnl": float(getattr(p, "profit", 0.0) or 0.0),
+                            }
+                            for p in open_positions_raw
+                        ]
+                        allowed_algo, algo_reason = can_enter_trade(
+                            symbol=symbol,
+                            direction=direction,
+                            candles=[],
+                            open_positions=open_positions,
+                        )
+                        if not allowed_algo:
+                            results.append({
+                                "success": False,
+                                "message": f"Algo quality gate block: {algo_reason}",
+                                "account_id": acc.id,
+                                "account_label": acc.label,
+                                "login": acc.login,
+                            })
+                            logger.warning(f"[ACCOUNTS] Algo trade skipped for {acc.label}: {algo_reason}")
+                            continue
+                        base_risk = _config.RISK_PERCENT if risk_percent is None else float(risk_percent)
+                        effective_risk_percent = max(0.01, base_risk * float(get_lot_multiplier(1.0)))
+                    except Exception as algo_gate_exc:
+                        logger.warning(f"[ACCOUNTS] Algo quality gate failed open for {acc.label}: {algo_gate_exc}")
+
                 # Account-specific prop-firm compliance guard (only this one account).
                 if THE5ERS_POLICY_ENFORCED and strategy_id == "breakout" and acc.login == THE5ERS_FUNDED_LOGIN:
                     allowed, reason = _check_the5ers_breakout_policy(acc)
@@ -1103,7 +1144,7 @@ def execute_on_all_accounts(
                         continue
 
                 # Hard daily profit stop per account:
-                # once realized PnL reaches +$45, stop opening new trades for today.
+                # once realized PnL reaches the configured target, stop opening new trades for today.
                 try:
                     from datetime import datetime, timezone
                     start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -1164,7 +1205,7 @@ def execute_on_all_accounts(
                     tp=tp,
                     entry=entry,
                     order_type=order_type,
-                    risk_percent=risk_percent,
+                    risk_percent=effective_risk_percent,
                     comment=comment,
                 )
                 result["account_id"] = acc.id
@@ -1174,6 +1215,12 @@ def execute_on_all_accounts(
 
                 strategy_label = strategy_id or "generic"
                 if result.get("success"):
+                    if algo_trade:
+                        try:
+                            from bot.algo.human_mind import record_trade_opened
+                            record_trade_opened()
+                        except Exception as record_exc:
+                            logger.warning(f"[ACCOUNTS] Could not record algo trade open: {record_exc}")
                     logger.success(
                         f"[EXECUTION][UNIFIED] strategy={strategy_label} account={acc.label} "
                         f"login={acc.login} status=SUCCESS ticket={result.get('ticket')} "

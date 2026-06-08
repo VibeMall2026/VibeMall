@@ -19,7 +19,7 @@ class BotState:
     channels: list[str] = field(default_factory=list)
 
     # Daily counters (reset at midnight)
-    _today: date = field(default_factory=date.today)
+    _today: date = field(default_factory=lambda: datetime.now(timezone.utc).date())
     daily_wins: int = 0
     daily_losses: int = 0
     daily_trades: int = 0
@@ -52,7 +52,7 @@ class BotState:
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     def reset_daily_if_needed(self) -> None:
-        today = date.today()
+        today = self._utc_today()
         if today != self._today:
             self._today = today
             self.daily_wins = 0

@@ -195,7 +195,7 @@ async def get_stats():
     total_trades = total_wins + total_losses
 
     # Today's stats — filter by today's date
-    today_trades = [t for t in trades if t.get('opened', '').startswith(str(today))]
+    today_trades = [t for t in trades if _parse_trade_date(t.get("opened")) == today]
     today_wins = sum(1 for t in today_trades if t.get('status') == 'win')
     today_losses = sum(1 for t in today_trades if t.get('status') == 'loss')
     today_pnl = sum(float(t.get('pnl', 0)) for t in today_trades)

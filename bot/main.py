@@ -7,6 +7,7 @@ Usage:
 """
 import asyncio
 import os
+import subprocess
 import sys
 import threading
 import re
@@ -21,6 +22,33 @@ from bot import config
 from bot.state import state
 from bot import mt5_bridge
 from bot.api_server import app
+
+
+def _should_terminate_port_owner(pid: str) -> bool:
+    if not pid or not pid.isdigit():
+        return False
+    if int(pid) == os.getpid():
+        return False
+    if os.name != "nt":
+        return True
+    try:
+        proc = subprocess.run(
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                f"$p=Get-CimInstance Win32_Process -Filter \"ProcessId={int(pid)}\"; if ($p) {{ $p.CommandLine }}",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        cmdline = (proc.stdout or "").strip().lower()
+        if not cmdline:
+            return False
+        return ("-m bot.main" in cmdline) or ("uvicorn" in cmdline and "bot.api_server:app" in cmdline)
+    except Exception:
+        return False
 
 
 def start_api_server() -> None:
@@ -192,7 +220,6 @@ def main() -> None:
     logger.info("=" * 60)
 
     # Kill any process holding the port before starting
-    import subprocess
     import time
     try:
         result = subprocess.run(["netstat", "-ano"], capture_output=True, text=True)
@@ -200,7 +227,7 @@ def main() -> None:
             if f":{config.API_PORT}" in line and "LISTENING" in line:
                 parts = line.split()
                 pid = parts[-1]
-                if pid.isdigit() and int(pid) != os.getpid():
+                if _should_terminate_port_owner(pid):
                     subprocess.run(["taskkill", "/F", "/PID", pid], capture_output=True)
                     logger.info(f"Freed port {config.API_PORT} (killed PID {pid})")
                     time.sleep(2)  # Wait longer for OS to release the port

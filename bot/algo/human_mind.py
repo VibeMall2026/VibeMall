@@ -11,20 +11,23 @@ Features implemented:
 """
 from __future__ import annotations
 
+import os
 import threading
 from datetime import datetime, date, timedelta, timezone
 from typing import Optional
 from loguru import logger
 
+from bot import config as runtime_config
+
 
 # ── Thread-safe state ─────────────────────────────────────────────────────────
 
-_lock = threading.Lock()
+_lock = threading.RLock()
 
 # --- Feature 3: Consecutive loss / daily limits ---
 _consecutive_losses: int = 0
 _daily_trade_count: int = 0
-_daily_date: date = date.today()
+_daily_date: date = datetime.now(timezone.utc).date()
 _daily_pnl: float = 0.0
 _daily_halted: bool = False
 
@@ -40,11 +43,27 @@ _cooldown_seconds: int = 15 * 60   # 15 min after a loss
 _reentry_tracker: dict[str, dict] = {}
 
 
+def _env_bool(key: str, default: bool) -> bool:
+    raw = str(os.getenv(key, str(default))).strip().lower()
+    return raw in {"1", "true", "yes", "on"}
+
+
+def _env_int(key: str, default: int) -> int:
+    try:
+        return int(str(os.getenv(key, str(default))).strip())
+    except Exception:
+        return default
+
+
+def _utc_today() -> date:
+    return datetime.now(timezone.utc).date()
+
+
 # ── Config (all tunable) ──────────────────────────────────────────────────────
 
 class HumanMindConfig:
     # --- Session filter ---
-    session_filter_enabled: bool = False
+    session_filter_enabled: bool = _env_bool("HUMAN_MIND_SESSION_FILTER_ENABLED", True)
     # UTC hours for allowed trading sessions (London + NY overlap)
     allowed_sessions: list[tuple[int, int]] = [
         (7, 17),   # London: 07:00–17:00 UTC
@@ -67,9 +86,9 @@ class HumanMindConfig:
     news_blackout_minutes: int = 30     # Block trades 30 min before/after high-impact news
 
     # --- Partial close ---
-    partial_close_enabled: bool = True
-    partial_close_at_r: float = 1.0     # Close 50% at 1R profit
-    partial_close_pct: float = 0.50     # Close 50% of position
+    partial_close_enabled: bool = runtime_config.PARTIAL_CLOSE_ENABLED
+    partial_close_at_r: float = runtime_config.PARTIAL_CLOSE_TRIGGER_R
+    partial_close_pct: float = runtime_config.PARTIAL_CLOSE_FRACTION
 
     # --- Early exit on reversal ---
     early_exit_enabled: bool = True
@@ -87,14 +106,17 @@ class HumanMindConfig:
 
     # --- Consecutive loss reduction ---
     consec_loss_enabled: bool = True
-    consec_loss_reduce_at: int = 2      # After 2 losses → half size
-    consec_loss_pause_at: int = 3       # After 3 losses → pause trading
+    consec_loss_reduce_at: int = _env_int("HUMAN_MIND_CONSEC_LOSS_REDUCE_AT", 1)
+    consec_loss_pause_at: int = _env_int("HUMAN_MIND_CONSEC_LOSS_PAUSE_AT", 2)
     consec_loss_size_multiplier: float = 0.5
 
     # --- Daily limits ---
     daily_loss_limit_usd: float = 30.0
     daily_profit_limit_usd: float = 50.0
-    daily_max_trades: int = 10
+    daily_max_trades: int = _env_int(
+        "HUMAN_MIND_DAILY_MAX_TRADES",
+        min(int(runtime_config.MAX_TRADES_PER_DAY or 10), 6),
+    )
 
     # --- Revenge trade cooldown ---
     revenge_cooldown_enabled: bool = True
@@ -114,7 +136,7 @@ class HumanMindConfig:
         ("EURUSD", "USDCHF"),   # inverse correlation
         ("XAUUSD", "USDJPY"),   # inverse correlation
     ]
-    max_same_direction_trades: int = 2  # max BUY or SELL across all symbols
+    max_same_direction_trades: int = _env_int("HUMAN_MIND_MAX_SAME_DIRECTION_TRADES", 1)
 
     # --- Re-entry ---
     reentry_enabled: bool = True
@@ -129,7 +151,7 @@ cfg = HumanMindConfig()
 
 def _reset_daily_if_needed() -> None:
     global _daily_trade_count, _daily_date, _daily_pnl, _daily_halted, _consecutive_losses
-    today = date.today()
+    today = _utc_today()
     with _lock:
         if _daily_date != today:
             _daily_date = today

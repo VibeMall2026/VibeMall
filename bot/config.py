@@ -102,7 +102,8 @@ XAUUSD_MAX_RISK_USD: float = _float("XAUUSD_MAX_RISK_USD", 10.0)
 
 # ── Trade management ──────────────────────────────────────────────────────────
 BREAKEVEN_TRIGGER_R: float = _float("BREAKEVEN_TRIGGER_R", 1.0)
-PARTIAL_CLOSE_TRIGGER_R: float = _float("PARTIAL_CLOSE_TRIGGER_R", 1.5)
+PARTIAL_CLOSE_ENABLED: bool = _bool("PARTIAL_CLOSE_ENABLED", True)
+PARTIAL_CLOSE_TRIGGER_R: float = _float("PARTIAL_CLOSE_TRIGGER_R", 1.0)
 PARTIAL_CLOSE_FRACTION: float = _float("PARTIAL_CLOSE_FRACTION", 0.5)
 TRAILING_STOP_ENABLED: bool = _bool("TRAILING_STOP_ENABLED", False)
 TRAILING_STOP_DISTANCE_R: float = _float("TRAILING_STOP_DISTANCE_R", 1.0)

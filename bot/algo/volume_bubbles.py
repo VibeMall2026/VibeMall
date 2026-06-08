@@ -21,6 +21,7 @@ try:
 except ImportError:
     MT5_AVAILABLE = False
 
+from bot import config as runtime_config
 from bot import mt5_bridge
 from bot.accounts import execute_on_all_accounts
 from bot.algo.order_block import can_trade_with_reason
@@ -55,15 +56,31 @@ class _Cfg:
     sl_atr_mult: float = 1.2
     tp_rr: float = 1.5
     min_seconds_between_entries: int = 90
+    partial_close_enabled: bool = runtime_config.PARTIAL_CLOSE_ENABLED
+    partial_close_at_r: float = runtime_config.PARTIAL_CLOSE_TRIGGER_R
+    partial_close_fraction: float = runtime_config.PARTIAL_CLOSE_FRACTION
+
+
+@dataclass
+class _ManagedTrade:
+    ticket: int
+    symbol: str
+    side: str
+    entry: float
+    sl: float
+    one_r: float
+    partial_closed: bool = False
 
 
 _cfg = _Cfg()
 _running = False
 _thread: Optional[threading.Thread] = None
+_risk_thread: Optional[threading.Thread] = None
 _last_scan_at: Optional[str] = None
 _last_scan_summary: dict[str, object] = {}
 _last_signal_key: Optional[str] = None
 _last_trade_ts: float = 0.0
+_managed_trades: dict[int, _ManagedTrade] = {}
 _lock = threading.Lock()
 
 
@@ -356,12 +373,82 @@ def _try_execute_trade(symbol: str, side: str, level: str, candles: list[dict]) 
     if success:
         _last_trade_ts = now_ts
         for r in success:
+            ticket = int(r.get("ticket") or 0)
+            if ticket:
+                with _lock:
+                    _managed_trades[ticket] = _ManagedTrade(
+                        ticket=ticket,
+                        symbol=symbol,
+                        side=s,
+                        entry=entry,
+                        sl=sl,
+                        one_r=abs(entry - sl),
+                    )
             logger.success(
                 f"[VOL_BUBBLES] Trade on {r.get('account_label')} ({r.get('login')}) "
                 f"| {symbol} {side} | ticket={r.get('ticket')} | level={level}"
             )
     else:
         logger.warning(f"[VOL_BUBBLES] Signal not executed | {symbol} {side} {level} | {results}")
+
+
+def _manage_trade(tr: _ManagedTrade, live_pos: dict) -> None:
+    if not _cfg.partial_close_enabled or tr.partial_closed or tr.one_r <= 0:
+        return
+
+    current = mt5_bridge.get_current_price(tr.symbol, side=tr.side)
+    if current is None:
+        return
+
+    profit_r = (current - tr.entry) / tr.one_r if tr.side == "buy" else (tr.entry - current) / tr.one_r
+    if profit_r < float(_cfg.partial_close_at_r):
+        return
+
+    live_volume = float(live_pos.get("volume", 0.0) or 0.0)
+    if live_volume <= 0:
+        return
+
+    try:
+        from bot.algo.human_mind import execute_partial_close
+        if execute_partial_close(
+            tr.ticket,
+            tr.symbol,
+            live_volume,
+            close_fraction=float(_cfg.partial_close_fraction),
+        ):
+            tr.partial_closed = True
+            logger.info(
+                f"[VOL_BUBBLES] Partial book done | ticket={tr.ticket} "
+                f"at +{float(_cfg.partial_close_at_r):.2f}R "
+                f"fraction={float(_cfg.partial_close_fraction):.2f}"
+            )
+    except Exception as exc:
+        logger.warning(f"[VOL_BUBBLES] Partial book failed | ticket={tr.ticket} error={exc}")
+
+
+def _risk_loop() -> None:
+    while _running:
+        try:
+            positions = mt5_bridge.get_open_positions() or []
+            positions_by_ticket = {
+                int(p.get("id") or p.get("position_id") or 0): p
+                for p in positions
+                if int(p.get("id") or p.get("position_id") or 0)
+            }
+
+            with _lock:
+                tracked = list(_managed_trades.items())
+
+            for ticket, tr in tracked:
+                live_pos = positions_by_ticket.get(int(ticket))
+                if not live_pos:
+                    with _lock:
+                        _managed_trades.pop(int(ticket), None)
+                    continue
+                _manage_trade(tr, live_pos)
+        except Exception as exc:
+            logger.debug(f"[VOL_BUBBLES] Risk loop error: {exc}")
+        time.sleep(1)
 
 
 def _loop() -> None:
@@ -381,12 +468,14 @@ def _loop() -> None:
 
 
 def start_algo() -> bool:
-    global _running, _thread
+    global _running, _thread, _risk_thread
     if _running:
         return True
     _running = True
     _thread = threading.Thread(target=_loop, daemon=True, name="VolumeBubblesAlgo")
+    _risk_thread = threading.Thread(target=_risk_loop, daemon=True, name="VolumeBubblesRisk")
     _thread.start()
+    _risk_thread.start()
     return True
 
 
@@ -406,7 +495,11 @@ def get_algo_status() -> dict:
                 "detect_method": _cfg.detect_method,
                 "classify_mode": _cfg.classify_mode,
                 "consensus_mode": _cfg.consensus_mode,
+                "partial_close_enabled": _cfg.partial_close_enabled,
+                "partial_close_at_r": _cfg.partial_close_at_r,
+                "partial_close_fraction": _cfg.partial_close_fraction,
             },
+            "managed_trades": len(_managed_trades),
             "last_scan_at": _last_scan_at,
             "last_scan_summary": dict(_last_scan_summary),
         }
