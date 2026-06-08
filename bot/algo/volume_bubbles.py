@@ -51,11 +51,11 @@ class _Cfg:
     show_big: bool = True
     trade_enabled: bool = True
     trade_levels: tuple[str, ...] = ("MEDIUM", "BIG")
-    risk_percent: float = 0.5
+    risk_percent: float = 0.35
     atr_period: int = 14
     sl_atr_mult: float = 1.2
-    tp_rr: float = 1.5
-    min_seconds_between_entries: int = 90
+    tp_rr: float = 2.0
+    min_seconds_between_entries: int = 180
     partial_close_enabled: bool = runtime_config.PARTIAL_CLOSE_ENABLED
     partial_close_at_r: float = runtime_config.PARTIAL_CLOSE_TRIGGER_R
     partial_close_fraction: float = runtime_config.PARTIAL_CLOSE_FRACTION

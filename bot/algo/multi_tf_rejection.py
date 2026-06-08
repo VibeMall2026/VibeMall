@@ -55,8 +55,8 @@ class AlgoConfig:
     level_tolerance_pips: float = 2  # snap/merge levels within this distance (pips)
 
     # Risk
-    risk_reward_ratio: float = 2.0
-    risk_percent: float = 0.5
+    risk_reward_ratio: float = 2.5
+    risk_percent: float = 0.35
     enabled: bool = True
 
     trend_filter_enabled: bool = True
@@ -64,12 +64,12 @@ class AlgoConfig:
 
     atr_filter_enabled: bool = True
     atr_period: int = 14
-    atr_min_multiplier: float = 0.7
+    atr_min_multiplier: float = 0.9
 
-    max_spread_pips: float = 60.0
-    min_rejection_close_pips: float = 5.0
+    max_spread_pips: float = 35.0
+    min_rejection_close_pips: float = 8.0
     require_confirmation_candle_direction: bool = True
-    min_minutes_between_trades: int = 20
+    min_minutes_between_trades: int = 45
 
     # SL rules
     special_sl_trigger_pips: float = 20.0

@@ -36,25 +36,25 @@ class AlgoConfig:
     symbols: list = None     # Not used for confluence — single symbol only
     analysis_timeframe: int = 15
     execution_timeframe: int = 15
-    risk_reward_ratio: float = 1.5
-    risk_percent: float = 1.0
+    risk_reward_ratio: float = 2.0
+    risk_percent: float = 0.5
     breakout_lookback: int = 10
     trend_ema_period: int = 20
     atr_period: int = 14
-    atr_min_multiplier: float = 0.4
-    breakout_buffer_atr: float = 0.02
-    fvg_min_body_ratio: float = 0.4
+    atr_min_multiplier: float = 0.55
+    breakout_buffer_atr: float = 0.03
+    fvg_min_body_ratio: float = 0.5
     max_active_setups: int = 5
     max_setup_age_bars: int = 30
     scan_interval_seconds: int = 60
     risk_check_interval_seconds: int = 1
     max_trades_per_setup: int = 1
     enabled: bool = True
-    rr_breakeven: float = 1.0
-    rr_lock_profit: float = 1.5
-    trail_atr_mult: float = 1.0
-    dollar_profit_trigger: float = 15.0
-    dollar_profit_lock: float = 10.0
+    rr_breakeven: float = 0.8
+    rr_lock_profit: float = 1.2
+    trail_atr_mult: float = 0.75
+    dollar_profit_trigger: float = 6.0
+    dollar_profit_lock: float = 3.5
     dollar_lock_enabled: bool = True
 
     def get_symbols(self) -> list:

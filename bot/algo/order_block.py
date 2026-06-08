@@ -65,15 +65,15 @@ class AlgoConfig:
     symbols: list = None  # Multi-symbol list — if set, overrides symbol
     analysis_timeframe: int = 15        # minutes — for OB/FVG detection
     execution_timeframe: int = 5        # minutes — for entry confirmation
-    risk_reward_ratio: float = 2.0      # minimum R:R (1:2)
-    risk_percent: float = 1.0           # % of balance per trade
+    risk_reward_ratio: float = 2.5      # minimum R:R (1:2.5)
+    risk_percent: float = 0.5           # % of balance per trade
     fvg_min_body_ratio: float = 0.6     # explosive candle body/range ratio
     ob_lookback: int = 50               # candles to scan for OBs
     trend_ema_period: int = 50          # EMA period for trend filter
     trend_timeframe_minutes: int = 60   # higher timeframe for trend confirmation
-    require_trend_alignment: bool = False
+    require_trend_alignment: bool = True
     atr_period: int = 14                # ATR period for volatility filter
-    atr_min_multiplier: float = 0.45    # soft-relaxed: allow slightly lower volatility setups
+    atr_min_multiplier: float = 0.55    # stricter volatility floor
     max_active_obs: int = 10            # max order blocks tracked at once (2 per symbol)
     scan_interval_seconds: int = 60     # how often to scan for new OB setups
     risk_check_interval_seconds: int = 1  # how often to check SL/profit lock on open trades
@@ -84,26 +84,26 @@ class AlgoConfig:
     daily_profit_limit: float = 50.0    # Stop trading if daily profit >= $50
     daily_loss_limit: float = 30.0      # Stop trading if daily loss >= $30
     max_drawdown_pct: float = 0.10      # Stop trading if drawdown >= 10%
-    rr_breakeven: float = 1.0           # Move SL to breakeven at +1R
-    rr_lock_profit: float = 1.5         # Lock +1R profit at +1.5R
+    rr_breakeven: float = 0.8           # Move SL to breakeven earlier
+    rr_lock_profit: float = 1.2         # Lock profit earlier
     trail_atr_mult: float = 0.8         # ATR multiplier for trailing stop (tighter)
-    entry_max_mid_distance_atr: float = 0.35  # reject entries too far from OB midpoint
-    require_entry_momentum: bool = False
-    require_entry_distance_check: bool = False
-    require_midpoint_cross_confirmation: bool = False
+    entry_max_mid_distance_atr: float = 0.25  # reject entries too far from OB midpoint
+    require_entry_momentum: bool = True
+    require_entry_distance_check: bool = True
+    require_midpoint_cross_confirmation: bool = True
 
     # ── Strong Trailing Stop (recommended) ────────────────────────────────────
     # Tight "smart" trailing that follows recent swing highs/lows with a small ATR buffer.
     # Starts early to protect open profit, while still respecting a minimum step and cooldown.
     strong_trailing_enabled: bool = True
-    strong_trailing_start_r: float = 0.30          # start trailing once trade is +0.3R
+    strong_trailing_start_r: float = 0.25          # start trailing once trade is +0.25R
     strong_trailing_swing_lookback: int = 3        # candles to use for swing high/low
     strong_trailing_atr_buffer_mult: float = 0.15  # buffer = ATR * this
     strong_trailing_min_step_r: float = 0.05       # only update if SL improves by >= 0.05R
     strong_trailing_min_update_seconds: int = 5    # minimum seconds between SL updates
     # ── Dollar-Based Profit Lock ──────────────────────────────────────────────
-    dollar_profit_trigger: float = 8.0   # When floating profit >= $8...
-    dollar_profit_lock: float = 5.0      # ...move SL to lock in $5 profit
+    dollar_profit_trigger: float = 5.0   # When floating profit >= $5...
+    dollar_profit_lock: float = 3.0      # ...move SL to lock in $3 profit
     dollar_lock_enabled: bool = True     # Enable/disable dollar profit lock
     # Partial close tuning
     partial_close_r: float = 0.7         # trigger partial at +0.7R

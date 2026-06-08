@@ -32,25 +32,25 @@ class AlgoConfig:
     symbol: str = "XAUUSD"
     symbols: list[str] | None = None
     analysis_timeframe: int = 15
-    scan_interval_seconds: int = 15
+    scan_interval_seconds: int = 30
     enabled: bool = True
-    risk_percent: float = 0.5
+    risk_percent: float = 0.35
     require_all: bool = True
 
     atr_len: int = 14
-    enable_tp: bool = False
+    enable_tp: bool = True
     tp_mult: float = 2.0
-    enable_sl: bool = False
+    enable_sl: bool = True
     sl_mult: float = 1.5
     enable_ts: bool = False
     ts_mult: float = 1.0
     risk_check_interval_seconds: int = 1
-    partial_close_r: float = 0.7
+    partial_close_r: float = 0.5
     partial_close_fraction: float = 0.5
-    rr_breakeven: float = 1.0
-    rr_lock_profit: float = 1.5
+    rr_breakeven: float = 0.8
+    rr_lock_profit: float = 1.2
     adverse_exit_enabled: bool = True
-    adverse_candle_count: int = 3
+    adverse_candle_count: int = 2
     adverse_min_r: float = -0.15
     adverse_sl_proximity_r: float = 0.35
 
