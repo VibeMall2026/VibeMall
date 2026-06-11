@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
+from pathlib import Path
 
 from loguru import logger
 
@@ -45,6 +46,30 @@ async def _send_via_bot_api(chat_id: str, text: str) -> None:
             raise RuntimeError(f"telegram_bot_api_error: {data}")
 
 
+async def _send_via_telethon_session(chat_id: str, text: str) -> None:
+    from telethon import TelegramClient
+    from telethon.sessions import StringSession
+
+    session_string = (config.TG_SESSION_STRING or "").strip()
+    if session_string:
+        session = StringSession(session_string)
+    else:
+        session_path = Path(config.TG_SESSION_DIR) / config.TG_SESSION_NAME
+        if not session_path.exists():
+            raise RuntimeError("telethon_session_not_configured")
+        session = str(session_path)
+
+    client = TelegramClient(session, config.TG_API_ID, config.TG_API_HASH)
+    await client.connect()
+    if not await client.is_user_authorized():
+        await client.disconnect()
+        raise RuntimeError("telethon_session_not_authorized")
+    try:
+        await client.send_message(chat_id, text)
+    finally:
+        await client.disconnect()
+
+
 async def _send_message(chat_id: str, text: str) -> None:
     from bot.telegram_listener import get_client
 
@@ -52,7 +77,11 @@ async def _send_message(chat_id: str, text: str) -> None:
     if client and client.is_connected():
         await client.send_message(chat_id, text)
         return
-    await _send_via_bot_api(chat_id, text)
+    try:
+        await _send_via_telethon_session(chat_id, text)
+        return
+    except Exception:
+        await _send_via_bot_api(chat_id, text)
 
 
 def send_algo_execution_alert(
