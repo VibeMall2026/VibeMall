@@ -103,12 +103,13 @@ def send_algo_execution_alert(
     side_text = str(side or "").upper()
     when_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     text = (
-        "✅ Algo Trade Executed\n"
-        f"Account: {account_label} ({login})\n"
+        f"Account: {account_label}\n"
         f"Symbol: {symbol}\n"
         f"Direction: {side_text}\n"
-        f"Lot: {lot}\n"
+        f"Lot Size: {lot}\n"
+        "\n"
         f"Strategy: {strategy}\n"
+        f"Login: {login}\n"
         f"Ticket: {ticket}\n"
         f"Time: {when_utc}"
     )
