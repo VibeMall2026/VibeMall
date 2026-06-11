@@ -103,13 +103,13 @@ def _persist_trade_modes_to_disk() -> None:
 def _halt_reason_text(reason_code: str | None) -> str:
     code = str(reason_code or "").strip().lower()
     mapping = {
-        "legacy_stop_today": "Stop reason unavailable (old halt)",
-        "manual_stop_today": "Manual stop by admin",
-        "manual_stop_until": "Manual stop until selected time",
-        "daily_profit_stop": "Auto stop due to daily profit target",
-        "daily_loss_stop": "Auto stop due to daily loss limit",
-        "floating_profit_stop": "Auto stop due to floating profit target",
-        "floating_loss_stop": "Auto stop due to floating loss limit",
+        "legacy_stop_today": "Old halt",
+        "manual_stop_today": "Manual stop",
+        "manual_stop_until": "Manual stop until time",
+        "daily_profit_stop": "Daily profit hit",
+        "daily_loss_stop": "Daily loss hit",
+        "floating_profit_stop": "Floating profit hit",
+        "floating_loss_stop": "Floating loss hit",
     }
     return mapping.get(code, "Trading stopped")
 

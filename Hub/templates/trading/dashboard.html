@@ -21,6 +21,7 @@
   .trade-mode-badge {
     white-space: normal !important;
     word-break: break-word;
+    text-transform: none !important;
     line-height: 1.2;
     display: inline-block;
     max-width: 280px;
@@ -851,7 +852,7 @@
       const reason = String(d.reason || '');
       const stopReason = String(d.stop_reason_text || '').trim();
       if (reason === 'manually_stopped_for_today') {
-        badge.textContent = stopReason ? `HARD STOP TODAY (${stopReason})` : 'HARD STOP TODAY';
+        badge.textContent = stopReason ? `Hard stop: ${stopReason}` : 'Hard stop today';
       } else if (d.halt_until) {
         badge.textContent = 'Trading: OFF (until ' + new Date(d.halt_until).toLocaleString() + (stopReason ? ` • ${stopReason}` : '') + ')';
       } else {
