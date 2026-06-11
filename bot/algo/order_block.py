@@ -260,7 +260,7 @@ def record_trade_pnl(pnl: float) -> None:
         if login > 0:
             try:
                 from bot.accounts import stop_account_for_today
-                stop_account_for_today(login)
+                stop_account_for_today(login, reason_code="daily_profit_stop")
             except Exception as exc:
                 logger.warning(f"[ALGO] Could not pause account {login} for today: {exc}")
         logger.warning(
@@ -272,7 +272,7 @@ def record_trade_pnl(pnl: float) -> None:
         if login > 0:
             try:
                 from bot.accounts import stop_account_for_today
-                stop_account_for_today(login)
+                stop_account_for_today(login, reason_code="daily_loss_stop")
             except Exception as exc:
                 logger.warning(f"[ALGO] Could not pause account {login} for today: {exc}")
         logger.warning(
@@ -343,7 +343,7 @@ def check_daily_loss_realtime() -> bool:
         if login > 0:
             try:
                 from bot.accounts import stop_account_for_today
-                stop_account_for_today(login)
+                stop_account_for_today(login, reason_code="floating_loss_stop")
             except Exception:
                 pass
         logger.warning(
@@ -359,7 +359,7 @@ def check_daily_loss_realtime() -> bool:
         if login > 0:
             try:
                 from bot.accounts import stop_account_for_today
-                stop_account_for_today(login)
+                stop_account_for_today(login, reason_code="floating_profit_stop")
             except Exception:
                 pass
         logger.warning(

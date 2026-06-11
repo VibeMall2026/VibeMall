@@ -32,6 +32,7 @@ _accounts_lock = threading.Lock()
 _mt5_op_lock = threading.RLock()
 _account_trade_halts: dict[int, str] = {}  # login -> YYYY-MM-DD (halt day)
 _account_trade_halts_until: dict[int, str] = {}  # login -> ISO UTC datetime (halt until)
+_account_trade_halt_reasons: dict[int, str] = {}  # login -> reason code
 _trade_mode_persist_lock = threading.Lock()
 _active_login: int | None = None
 _last_connect_attempt_ts: dict[int, float] = {}
@@ -51,7 +52,7 @@ _TRADE_MODE_STORE_PATH = Path(__file__).resolve().parent / "sessions" / "account
 
 def _load_trade_modes_from_disk(*, log_success: bool = True, log_errors: bool = True) -> None:
     """Best-effort load of persisted trade-mode state into memory."""
-    global _account_trade_halts, _account_trade_halts_until
+    global _account_trade_halts, _account_trade_halts_until, _account_trade_halt_reasons
     try:
         if not _TRADE_MODE_STORE_PATH.exists():
             return
@@ -63,10 +64,17 @@ def _load_trade_modes_from_disk(*, log_success: bool = True, log_errors: bool = 
             return
         halts = data.get("halts", {})
         halts_until = data.get("halts_until", {})
+        halt_reasons = data.get("halt_reasons", {})
         if isinstance(halts, dict):
             _account_trade_halts = {int(k): str(v) for k, v in halts.items() if str(k).strip()}
         if isinstance(halts_until, dict):
             _account_trade_halts_until = {int(k): str(v) for k, v in halts_until.items() if str(k).strip()}
+        if isinstance(halt_reasons, dict):
+            _account_trade_halt_reasons = {
+                int(k): str(v).strip()
+                for k, v in halt_reasons.items()
+                if str(k).strip() and str(v).strip()
+            }
         if log_success:
             logger.info(
                 f"[ACCOUNTS] Loaded trade-modes from disk: "
@@ -85,10 +93,25 @@ def _persist_trade_modes_to_disk() -> None:
             "updated_at": datetime.now(timezone.utc).isoformat(),
             "halts": {str(k): v for k, v in (_account_trade_halts or {}).items()},
             "halts_until": {str(k): v for k, v in (_account_trade_halts_until or {}).items()},
+            "halt_reasons": {str(k): v for k, v in (_account_trade_halt_reasons or {}).items()},
         }
         _TRADE_MODE_STORE_PATH.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     except Exception as exc:
         logger.warning(f"[ACCOUNTS] Could not persist trade-modes: {exc}")
+
+
+def _halt_reason_text(reason_code: str | None) -> str:
+    code = str(reason_code or "").strip().lower()
+    mapping = {
+        "legacy_stop_today": "Stop reason unavailable (old halt)",
+        "manual_stop_today": "Manual stop by admin",
+        "manual_stop_until": "Manual stop until selected time",
+        "daily_profit_stop": "Auto stop due to daily profit target",
+        "daily_loss_stop": "Auto stop due to daily loss limit",
+        "floating_profit_stop": "Auto stop due to floating profit target",
+        "floating_loss_stop": "Auto stop due to floating loss limit",
+    }
+    return mapping.get(code, "Trading stopped")
 
 # The5ers funded-account policy (applies only to the specific breakout account)
 THE5ERS_FUNDED_LOGIN = 26259636
@@ -432,11 +455,12 @@ def sync_account_runtime(
                 break
 
 
-def stop_account_for_today(login: int) -> None:
+def stop_account_for_today(login: int, reason_code: str = "manual_stop_today") -> None:
     """Stop trade execution for this account for the current UTC day."""
     with _trade_mode_persist_lock:
         _load_trade_modes_from_disk(log_success=False, log_errors=False)
         _account_trade_halts[int(login)] = _date.today().isoformat()
+        _account_trade_halt_reasons[int(login)] = str(reason_code or "manual_stop_today").strip().lower()
         # Clear any stop-until when explicit stop-today is set.
         _account_trade_halts_until.pop(int(login), None)
         _persist_trade_modes_to_disk()
@@ -444,7 +468,7 @@ def stop_account_for_today(login: int) -> None:
     _cancel_pending_orders_for_login(int(login))
 
 
-def stop_account_until(login: int, until_utc: datetime) -> None:
+def stop_account_until(login: int, until_utc: datetime, reason_code: str = "manual_stop_until") -> None:
     """
     Stop trade execution for this account until a specific UTC datetime.
     If until_utc is in the past, this clears the stop.
@@ -455,10 +479,12 @@ def stop_account_until(login: int, until_utc: datetime) -> None:
         now = datetime.now(timezone.utc)
         if until_utc <= now:
             _account_trade_halts_until.pop(key, None)
+            _account_trade_halt_reasons.pop(key, None)
             _persist_trade_modes_to_disk()
             return
         # Use a stable ISO format so it can round-trip safely through APIs.
         _account_trade_halts_until[key] = until_utc.astimezone(timezone.utc).isoformat()
+        _account_trade_halt_reasons[key] = str(reason_code or "manual_stop_until").strip().lower()
         # Clear stop-today so we only have one active halt source.
         _account_trade_halts.pop(key, None)
         _persist_trade_modes_to_disk()
@@ -472,6 +498,7 @@ def start_account_now(login: int) -> None:
         _load_trade_modes_from_disk(log_success=False, log_errors=False)
         _account_trade_halts.pop(int(login), None)
         _account_trade_halts_until.pop(int(login), None)
+        _account_trade_halt_reasons.pop(int(login), None)
         _persist_trade_modes_to_disk()
 
 
@@ -500,11 +527,13 @@ def is_account_trade_allowed_today(login: int) -> tuple[bool, str]:
             # Expired → auto-resume.
             with _trade_mode_persist_lock:
                 _account_trade_halts_until.pop(key, None)
+                _account_trade_halt_reasons.pop(key, None)
                 _persist_trade_modes_to_disk()
         except Exception:
             # If stored value is corrupted, fail open and clear it.
             with _trade_mode_persist_lock:
                 _account_trade_halts_until.pop(key, None)
+                _account_trade_halt_reasons.pop(key, None)
                 _persist_trade_modes_to_disk()
 
     # Priority 2: stop-today (date-based).
@@ -516,6 +545,7 @@ def is_account_trade_allowed_today(login: int) -> tuple[bool, str]:
         # Auto-reset on next day.
         with _trade_mode_persist_lock:
             _account_trade_halts.pop(key, None)
+            _account_trade_halt_reasons.pop(key, None)
             _persist_trade_modes_to_disk()
         return True, "auto_resumed_new_day"
     return False, "manually_stopped_for_today"
@@ -525,12 +555,17 @@ def get_account_trade_mode(login: int) -> dict:
     allowed, reason = is_account_trade_allowed_today(login)
     until_iso = _account_trade_halts_until.get(int(login))
     halted_day = _account_trade_halts.get(int(login))
+    stop_reason_code = _account_trade_halt_reasons.get(int(login), "")
+    if (halted_day or until_iso) and not stop_reason_code:
+        stop_reason_code = "legacy_stop_today"
     return {
         "login": int(login),
         "allowed": allowed,
         "reason": reason,
         "halt_until": until_iso,
         "halt_day": halted_day,
+        "stop_reason_code": stop_reason_code,
+        "stop_reason_text": _halt_reason_text(stop_reason_code) if (halted_day or until_iso) else "",
     }
 
 
@@ -1180,7 +1215,7 @@ def execute_on_all_accounts(
 
                 if today_realized >= DAILY_PROFIT_STOP_USD:
                     # Per-account day halt (does NOT impact other accounts).
-                    stop_account_for_today(int(acc.login))
+                    stop_account_for_today(int(acc.login), reason_code="daily_profit_stop")
                     results.append({
                         "success": False,
                         "message": (
@@ -1221,6 +1256,21 @@ def execute_on_all_accounts(
                             record_trade_opened()
                         except Exception as record_exc:
                             logger.warning(f"[ACCOUNTS] Could not record algo trade open: {record_exc}")
+                        try:
+                            from bot.telegram_notifier import send_algo_execution_alert
+
+                            send_algo_execution_alert(
+                                symbol=symbol,
+                                side=side,
+                                account_label=str(acc.label or ""),
+                                login=acc.login,
+                                ticket=result.get("ticket"),
+                                lot=result.get("lot"),
+                                strategy_id=str(strategy_id or "").strip() or None,
+                                comment=comment,
+                            )
+                        except Exception as notify_exc:
+                            logger.warning(f"[ACCOUNTS] Could not send algo execution alert: {notify_exc}")
                     logger.success(
                         f"[EXECUTION][UNIFIED] strategy={strategy_label} account={acc.label} "
                         f"login={acc.login} status=SUCCESS ticket={result.get('ticket')} "

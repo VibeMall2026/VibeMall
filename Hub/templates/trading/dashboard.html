@@ -839,12 +839,13 @@
       badge.className = 'badge bg-label-success ms-1';
     } else {
       const reason = String(d.reason || '');
+      const stopReason = String(d.stop_reason_text || '').trim();
       if (reason === 'manually_stopped_for_today') {
-        badge.textContent = 'HARD STOP TODAY';
+        badge.textContent = stopReason ? `HARD STOP TODAY (${stopReason})` : 'HARD STOP TODAY';
       } else if (d.halt_until) {
-        badge.textContent = 'Trading: OFF (until ' + new Date(d.halt_until).toLocaleString() + ')';
+        badge.textContent = 'Trading: OFF (until ' + new Date(d.halt_until).toLocaleString() + (stopReason ? ` • ${stopReason}` : '') + ')';
       } else {
-        badge.textContent = 'Trading: OFF (today)';
+        badge.textContent = stopReason ? `Trading: OFF (today • ${stopReason})` : 'Trading: OFF (today)';
       }
       badge.className = 'badge bg-label-danger ms-1';
     }

@@ -574,13 +574,14 @@ function refreshThe5ersTradeMode() {
         badge.style.borderColor = '#254a30';
       } else {
         const reason = String(d.reason || '');
+        const stopReason = String(d.stop_reason_text || '').trim();
         if (reason === 'manually_stopped_for_today') {
-          badge.textContent = 'HARD STOP TODAY';
+          badge.textContent = stopReason ? ('HARD STOP TODAY - ' + stopReason) : 'HARD STOP TODAY';
         } else if (d.halt_until) {
           const local = new Date(d.halt_until).toLocaleString();
-          badge.textContent = '● Stopped until ' + local;
+          badge.textContent = '● Stopped until ' + local + (stopReason ? (' - ' + stopReason) : '');
         } else {
-          badge.textContent = '● Stopped for Today';
+          badge.textContent = stopReason ? ('● Stopped for Today - ' + stopReason) : '● Stopped for Today';
         }
         badge.style.background = '#2a1518';
         badge.style.color = '#ff8a9e';
