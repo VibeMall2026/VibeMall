@@ -18,6 +18,16 @@
   .table-dark-custom td { border-color: #3b3d52; vertical-align: middle; font-size: 0.875rem; }
   .badge-buy  { background: rgba(40,199,111,.15); color: #28c76f; }
   .badge-sell { background: rgba(234,84,85,.15);  color: #ea5455; }
+  .trade-mode-badge {
+    white-space: normal !important;
+    word-break: break-word;
+    line-height: 1.2;
+    display: inline-block;
+    max-width: 280px;
+    text-align: left;
+    vertical-align: top;
+    margin-top: 4px;
+  }
   .section-header { font-size: 1rem; font-weight: 600; color: #cdd0d6; margin-bottom: 1rem; }
   .ctrl-btn { min-width: 110px; }
   .stat-label { font-size: 0.75rem; color: #a8aaae; text-transform: uppercase; letter-spacing: .5px; }
@@ -803,7 +813,7 @@
           <span class="badge ${acc.enabled ? (acc.connected ? 'bg-label-success' : 'bg-label-danger') : 'bg-label-secondary'}">
             ${acc.enabled ? (acc.connected ? '● MT5 Online' : '● MT5 Offline') : '● Disabled'}
           </span>
-          <span class="badge bg-label-secondary ms-1" id="tradeModeBadge_${acc.login}">Trading: —</span>
+          <span class="badge bg-label-secondary ms-1 trade-mode-badge" id="tradeModeBadge_${acc.login}">Trading: —</span>
           ${acc.error ? `<small class="text-danger d-block" style="font-size:.7rem;">${acc.error}</small>` : ''}
         </td>
         <td>
@@ -831,12 +841,12 @@
     if (!badge) return;
     if (!d) {
       badge.textContent = 'Trading: ?';
-      badge.className = 'badge bg-label-secondary ms-1';
+      badge.className = 'badge bg-label-secondary ms-1 trade-mode-badge';
       return;
     }
     if (d.allowed) {
       badge.textContent = 'Trading: ON';
-      badge.className = 'badge bg-label-success ms-1';
+      badge.className = 'badge bg-label-success ms-1 trade-mode-badge';
     } else {
       const reason = String(d.reason || '');
       const stopReason = String(d.stop_reason_text || '').trim();
@@ -847,7 +857,7 @@
       } else {
         badge.textContent = stopReason ? `Trading: OFF (today • ${stopReason})` : 'Trading: OFF (today)';
       }
-      badge.className = 'badge bg-label-danger ms-1';
+      badge.className = 'badge bg-label-danger ms-1 trade-mode-badge';
     }
   }
 

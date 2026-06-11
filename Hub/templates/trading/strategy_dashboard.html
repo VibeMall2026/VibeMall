@@ -92,7 +92,18 @@
   .t5-accent { color:#ccf35c; }
   .t5-grid { display:grid; grid-template-columns:repeat(4,minmax(130px,1fr)); gap:10px; margin-top:10px; }
   .t5-actions { display:flex; gap:8px; align-items:center; }
-  .t5-pill { border-radius:999px; padding:.35rem .8rem; font-size:.78rem; border:1px solid #2a2f3a; }
+  .t5-pill {
+    border-radius:999px;
+    padding:.35rem .8rem;
+    font-size:.78rem;
+    border:1px solid #2a2f3a;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.2;
+    display: inline-block;
+    max-width: 320px;
+    text-align: left;
+  }
   .t5-kpi { background:#141822; border:1px solid #2a2f3a; border-radius:12px; padding:10px; }
   .t5-kpi .k { font-size:.72rem; color:#95a1b8; text-transform:uppercase; }
   .t5-kpi .v { font-size:1.15rem; font-weight:700; color:#f4f7ff; }
