@@ -4,6 +4,7 @@ Outbound Telegram notifications for bot events.
 from __future__ import annotations
 
 import asyncio
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -70,18 +71,52 @@ async def _send_via_telethon_session(chat_id: str, text: str) -> None:
         await client.disconnect()
 
 
-async def _send_message(chat_id: str, text: str) -> None:
+async def _send_via_live_client(chat_id: str, text: str) -> None:
     from bot.telegram_listener import get_client
 
     client = get_client()
-    if client and client.is_connected():
+    if client is None:
+        raise RuntimeError("live_client_not_available")
+
+    loop = getattr(client, "loop", None)
+    if loop is None or not loop.is_running():
+        raise RuntimeError("live_client_loop_not_running")
+
+    try:
+        running_loop = asyncio.get_running_loop()
+    except RuntimeError:
+        running_loop = None
+
+    if running_loop is loop:
         await client.send_message(chat_id, text)
         return
+
+    fut = asyncio.run_coroutine_threadsafe(client.send_message(chat_id, text), loop)
+    await asyncio.wrap_future(fut)
+
+
+async def _send_message(chat_id: str, text: str) -> str:
+    errors: list[str] = []
+
+    try:
+        await _send_via_bot_api(chat_id, text)
+        return "bot_api"
+    except Exception as exc:
+        errors.append(f"bot_api={exc}")
+
+    try:
+        await _send_via_live_client(chat_id, text)
+        return "live_client"
+    except Exception as exc:
+        errors.append(f"live_client={exc}")
+
     try:
         await _send_via_telethon_session(chat_id, text)
-        return
-    except Exception:
-        await _send_via_bot_api(chat_id, text)
+        return "telethon_session"
+    except Exception as exc:
+        errors.append(f"telethon_session={exc}")
+
+    raise RuntimeError(" | ".join(errors))
 
 
 def send_algo_execution_alert(
@@ -115,21 +150,11 @@ def send_algo_execution_alert(
     )
 
     try:
-        from bot.telegram_listener import get_client
-
-        client = get_client()
-        if client and client.is_connected():
-            loop = getattr(client, "loop", None)
-            if loop and loop.is_running():
-                fut = asyncio.run_coroutine_threadsafe(_send_message(chat_id, text), loop)
-                fut.result(timeout=12)
-            else:
-                asyncio.run(_send_message(chat_id, text))
-        else:
-            asyncio.run(_send_message(chat_id, text))
+        method = asyncio.run(_send_message(chat_id, text))
         logger.info(
             f"[TG_NOTIFY] Algo execution alert sent to {chat_id} | "
-            f"{symbol} {side_text} | account={account_label} login={login}"
+            f"{symbol} {side_text} | account={account_label} login={login} | "
+            f"via={method} | thread={threading.current_thread().name}"
         )
         return True
     except Exception as exc:
