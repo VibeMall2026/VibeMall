@@ -217,6 +217,7 @@ def main() -> None:
     else:
         logger.info("  MT5 Login: none (using account registry only)")
     logger.info(f"  Channels: {', '.join(config.TG_CHANNELS) or 'none'}")
+    logger.info(f"  Execution Alerts: {config.TG_EXECUTION_ALERT_CHAT or config.ADMIN_CHAT_ID or 'disabled'}")
     logger.info("=" * 60)
 
     # Kill any process holding the port before starting

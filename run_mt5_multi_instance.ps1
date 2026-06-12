@@ -166,6 +166,21 @@ function Stop-BotPortOwners {
     }
 }
 
+function Clear-BotPyCache {
+    $cacheDirs = @(
+        (Join-Path $root "__pycache__"),
+        (Join-Path $root "bot\__pycache__")
+    )
+    foreach ($dir in $cacheDirs) {
+        if (-not (Test-Path $dir)) { continue }
+        try {
+            Get-ChildItem -Path $dir -Filter "*.pyc" -File -ErrorAction SilentlyContinue |
+                Remove-Item -Force -ErrorAction SilentlyContinue
+            Write-Host "[CLEANUP] Cleared pycache: $dir"
+        } catch {}
+    }
+}
+
 if (-not (Test-Path $py)) {
     throw "Python not found: $py"
 }
@@ -210,6 +225,7 @@ if ($Action -eq "stop" -or $Action -eq "restart") {
 if ($Action -eq "start" -or $Action -eq "restart") {
     Stop-OrphanBotMainProcesses -KnownPowerShellPids @()
     Stop-BotPortOwners -Ports $managedPorts
+    Clear-BotPyCache
     New-Item -ItemType Directory -Force -Path $logsDir | Out-Null
     $started = @()
     foreach ($a in $accounts) {
