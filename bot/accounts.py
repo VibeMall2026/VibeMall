@@ -33,6 +33,7 @@ _mt5_op_lock = threading.RLock()
 _account_trade_halts: dict[int, str] = {}  # login -> YYYY-MM-DD (halt day)
 _account_trade_halts_until: dict[int, str] = {}  # login -> ISO UTC datetime (halt until)
 _account_trade_halt_reasons: dict[int, str] = {}  # login -> reason code
+_account_trade_resume_overrides: dict[int, str] = {}  # login -> YYYY-MM-DD (manual resume override day)
 _trade_mode_persist_lock = threading.Lock()
 _active_login: int | None = None
 _last_connect_attempt_ts: dict[int, float] = {}
@@ -52,7 +53,7 @@ _TRADE_MODE_STORE_PATH = Path(__file__).resolve().parent / "sessions" / "account
 
 def _load_trade_modes_from_disk(*, log_success: bool = True, log_errors: bool = True) -> None:
     """Best-effort load of persisted trade-mode state into memory."""
-    global _account_trade_halts, _account_trade_halts_until, _account_trade_halt_reasons
+    global _account_trade_halts, _account_trade_halts_until, _account_trade_halt_reasons, _account_trade_resume_overrides
     try:
         if not _TRADE_MODE_STORE_PATH.exists():
             return
@@ -65,6 +66,7 @@ def _load_trade_modes_from_disk(*, log_success: bool = True, log_errors: bool = 
         halts = data.get("halts", {})
         halts_until = data.get("halts_until", {})
         halt_reasons = data.get("halt_reasons", {})
+        resume_overrides = data.get("resume_overrides", {})
         if isinstance(halts, dict):
             _account_trade_halts = {int(k): str(v) for k, v in halts.items() if str(k).strip()}
         if isinstance(halts_until, dict):
@@ -73,6 +75,12 @@ def _load_trade_modes_from_disk(*, log_success: bool = True, log_errors: bool = 
             _account_trade_halt_reasons = {
                 int(k): str(v).strip()
                 for k, v in halt_reasons.items()
+                if str(k).strip() and str(v).strip()
+            }
+        if isinstance(resume_overrides, dict):
+            _account_trade_resume_overrides = {
+                int(k): str(v).strip()
+                for k, v in resume_overrides.items()
                 if str(k).strip() and str(v).strip()
             }
         if log_success:
@@ -94,10 +102,19 @@ def _persist_trade_modes_to_disk() -> None:
             "halts": {str(k): v for k, v in (_account_trade_halts or {}).items()},
             "halts_until": {str(k): v for k, v in (_account_trade_halts_until or {}).items()},
             "halt_reasons": {str(k): v for k, v in (_account_trade_halt_reasons or {}).items()},
+            "resume_overrides": {str(k): v for k, v in (_account_trade_resume_overrides or {}).items()},
         }
         _TRADE_MODE_STORE_PATH.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     except Exception as exc:
         logger.warning(f"[ACCOUNTS] Could not persist trade-modes: {exc}")
+
+
+def _utc_today() -> _date:
+    return datetime.now(timezone.utc).date()
+
+
+def _utc_today_iso() -> str:
+    return _utc_today().isoformat()
 
 
 def _halt_reason_text(reason_code: str | None) -> str:
@@ -405,7 +422,14 @@ def get_accounts_runtime_status() -> list[dict]:
     with _accounts_lock:
         snapshot = list(_accounts)
     for acc in snapshot:
-        allowed, halt_reason = is_account_trade_allowed_today(acc.login)
+        mode = get_account_trade_mode(acc.login)
+        allowed = bool(mode.get("allowed"))
+        halt_reason = str(
+            mode.get("stop_reason_code")
+            or mode.get("stop_reason_text")
+            or mode.get("reason")
+            or ""
+        )
         last_ok = _last_connect_success_ts.get(int(acc.login), 0.0)
         last_fail = _last_connect_fail_ts.get(int(acc.login), 0.0)
         rows.append(
@@ -459,8 +483,9 @@ def stop_account_for_today(login: int, reason_code: str = "manual_stop_today") -
     """Stop trade execution for this account for the current UTC day."""
     with _trade_mode_persist_lock:
         _load_trade_modes_from_disk(log_success=False, log_errors=False)
-        _account_trade_halts[int(login)] = _date.today().isoformat()
+        _account_trade_halts[int(login)] = _utc_today_iso()
         _account_trade_halt_reasons[int(login)] = str(reason_code or "manual_stop_today").strip().lower()
+        _account_trade_resume_overrides.pop(int(login), None)
         # Clear any stop-until when explicit stop-today is set.
         _account_trade_halts_until.pop(int(login), None)
         _persist_trade_modes_to_disk()
@@ -480,11 +505,13 @@ def stop_account_until(login: int, until_utc: datetime, reason_code: str = "manu
         if until_utc <= now:
             _account_trade_halts_until.pop(key, None)
             _account_trade_halt_reasons.pop(key, None)
+            _account_trade_resume_overrides.pop(key, None)
             _persist_trade_modes_to_disk()
             return
         # Use a stable ISO format so it can round-trip safely through APIs.
         _account_trade_halts_until[key] = until_utc.astimezone(timezone.utc).isoformat()
         _account_trade_halt_reasons[key] = str(reason_code or "manual_stop_until").strip().lower()
+        _account_trade_resume_overrides.pop(key, None)
         # Clear stop-today so we only have one active halt source.
         _account_trade_halts.pop(key, None)
         _persist_trade_modes_to_disk()
@@ -496,10 +523,32 @@ def start_account_now(login: int) -> None:
     """Manually resume trading for this account immediately."""
     with _trade_mode_persist_lock:
         _load_trade_modes_from_disk(log_success=False, log_errors=False)
-        _account_trade_halts.pop(int(login), None)
-        _account_trade_halts_until.pop(int(login), None)
-        _account_trade_halt_reasons.pop(int(login), None)
+        key = int(login)
+        _account_trade_halts.pop(key, None)
+        _account_trade_halts_until.pop(key, None)
+        _account_trade_halt_reasons.pop(key, None)
+        _account_trade_resume_overrides[key] = _utc_today_iso()
         _persist_trade_modes_to_disk()
+    try:
+        from bot.algo.order_block import clear_account_risk_halt
+        clear_account_risk_halt(int(login))
+    except Exception:
+        pass
+
+
+def is_manual_resume_override_active(login: int) -> bool:
+    key = int(login)
+    with _trade_mode_persist_lock:
+        _load_trade_modes_from_disk(log_success=False, log_errors=False)
+        override_day = _account_trade_resume_overrides.get(key)
+        if not override_day:
+            return False
+        today = _utc_today_iso()
+        if override_day == today:
+            return True
+        _account_trade_resume_overrides.pop(key, None)
+        _persist_trade_modes_to_disk()
+        return False
 
 
 def is_account_trade_allowed_today(login: int) -> tuple[bool, str]:
@@ -513,6 +562,9 @@ def is_account_trade_allowed_today(login: int) -> tuple[bool, str]:
     _load_trade_modes_from_disk(log_success=False, log_errors=False)
 
     key = int(login)
+
+    if is_manual_resume_override_active(key):
+        return True, "manual_resume_override"
 
     # Priority 1: stop-until (datetime-based).
     until_iso = _account_trade_halts_until.get(key)
@@ -540,7 +592,7 @@ def is_account_trade_allowed_today(login: int) -> tuple[bool, str]:
     halted_day = _account_trade_halts.get(key)
     if not halted_day:
         return True, "allowed"
-    today = _date.today().isoformat()
+    today = _utc_today_iso()
     if halted_day != today:
         # Auto-reset on next day.
         with _trade_mode_persist_lock:
@@ -566,6 +618,7 @@ def get_account_trade_mode(login: int) -> dict:
         "halt_day": halted_day,
         "stop_reason_code": stop_reason_code,
         "stop_reason_text": _halt_reason_text(stop_reason_code) if (halted_day or until_iso) else "",
+        "manual_resume_override": is_manual_resume_override_active(int(login)),
     }
 
 
@@ -1213,7 +1266,7 @@ def execute_on_all_accounts(
                 except Exception:
                     today_realized = 0.0
 
-                if today_realized >= DAILY_PROFIT_STOP_USD:
+                if (not is_manual_resume_override_active(int(acc.login))) and today_realized >= DAILY_PROFIT_STOP_USD:
                     # Per-account day halt (does NOT impact other accounts).
                     stop_account_for_today(int(acc.login), reason_code="daily_profit_stop")
                     results.append({

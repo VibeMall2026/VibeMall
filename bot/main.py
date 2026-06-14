@@ -72,8 +72,9 @@ def _mt5_reconnect_loop() -> None:
     last_hb_ts = 0.0
     while True:
         try:
-            # Use get_account_info() as health check - returns {} if disconnected
-            account = mt5_bridge.get_account_info()
+            # Use non-reconnecting account peek as health check so the monitor
+            # itself does not trigger duplicate reconnect attempts.
+            account = mt5_bridge.get_account_info(attempt_reconnect=False)
             if account and account.get("balance") is not None:
                 # Connected and returning data
                 if not state.mt5_connected:

@@ -8,6 +8,8 @@ NOTE: MetaTrader5 Python library only works on Windows.
 import os
 import sys
 import math
+import time
+import threading
 from datetime import datetime
 from typing import Optional
 import requests
@@ -31,6 +33,11 @@ if USE_BRIDGE:
     logger.info(f"Bridge mode enabled: {BRIDGE_URL}")
 elif not MT5_AVAILABLE:
     logger.warning("MT5 not available and no bridge configured")
+
+
+_reconnect_lock = threading.Lock()
+_last_reconnect_attempt_ts = 0.0
+_RECONNECT_COOLDOWN_SECONDS = 3.0
 
 
 # ── Bridge HTTP Client ────────────────────────────────────────────────────────
@@ -182,9 +189,26 @@ def ensure_connected() -> bool:
         else:
             return True
 
-    logger.warning("MT5 connection inactive. Attempting reconnect...")
-    if connect():
-        return True
+    global _last_reconnect_attempt_ts
+    acquired = _reconnect_lock.acquire(blocking=False)
+    if not acquired:
+        wait_until = time.monotonic() + max(1.0, _RECONNECT_COOLDOWN_SECONDS)
+        while time.monotonic() < wait_until:
+            if is_connected():
+                return True
+            time.sleep(0.1)
+        return is_connected()
+
+    try:
+        now = time.monotonic()
+        if (now - _last_reconnect_attempt_ts) < _RECONNECT_COOLDOWN_SECONDS:
+            return is_connected()
+        _last_reconnect_attempt_ts = now
+        logger.warning("MT5 connection inactive. Attempting reconnect...")
+        if connect():
+            return True
+    finally:
+        _reconnect_lock.release()
 
     # In single-account mode, never fallback to another account login.
     if os.getenv("BOT_SINGLE_ACCOUNT_MODE", "").strip().lower() in ("1", "true", "yes", "on"):
@@ -196,14 +220,19 @@ def ensure_connected() -> bool:
 
 # ── Account info ──────────────────────────────────────────────────────────────
 
-def get_account_info() -> dict:
+def get_account_info(*, attempt_reconnect: bool = True) -> dict:
     # Bridge delegation mode
     if USE_BRIDGE:
         response = _call_bridge("/account")
         return response if response is not None else {}
     
     # Direct MT5 mode (existing code)
-    if not MT5_AVAILABLE or not ensure_connected():
+    if not MT5_AVAILABLE:
+        return {}
+    if attempt_reconnect:
+        if not ensure_connected():
+            return {}
+    elif not is_connected():
         return {}
     from bot.accounts import get_mt5_lock
     with get_mt5_lock():

@@ -244,6 +244,13 @@ def _reset_daily_if_needed() -> None:
         logger.info("[ALGO] Daily counters reset for new day")
 
 
+def clear_account_risk_halt(login: int) -> None:
+    account_key = str(int(login or 0))
+    _daily_halted_by_account.pop(account_key, None)
+    _dd_halted_by_account.pop(account_key, None)
+    logger.warning(f"[ALGO] Cleared manual risk halt override for account={account_key}")
+
+
 def record_trade_pnl(pnl: float) -> None:
     """Call this after each trade closes to update daily PnL tracking."""
     global _daily_pnl, _daily_halted, _daily_pnl_by_account, _daily_halted_by_account
@@ -255,6 +262,13 @@ def record_trade_pnl(pnl: float) -> None:
     _daily_pnl_by_account[account_key] = float(_daily_pnl_by_account.get(account_key, 0.0) + pnl)
     logger.info(f"[ALGO] Daily PnL updated: {_daily_pnl:.2f}")
     acc_pnl = float(_daily_pnl_by_account.get(account_key, 0.0))
+    try:
+        from bot.accounts import is_manual_resume_override_active
+        if login > 0 and is_manual_resume_override_active(login):
+            logger.warning(f"[ALGO] Manual resume override active for account={account_key} - skipping auto day halt")
+            return
+    except Exception:
+        pass
     if acc_pnl >= algo_config.daily_profit_limit:
         _daily_halted_by_account[account_key] = True
         if login > 0:
@@ -325,6 +339,13 @@ def check_daily_loss_realtime() -> bool:
     account = mt5_bridge.get_account_info() or {}
     login = int(account.get("login") or 0)
     account_key = str(login or account.get("account") or "global")
+    try:
+        from bot.accounts import is_manual_resume_override_active
+        if login > 0 and is_manual_resume_override_active(login):
+            _daily_halted_by_account.pop(account_key, None)
+            return False
+    except Exception:
+        pass
     if _daily_halted_by_account.get(account_key, False):
         return True
 
