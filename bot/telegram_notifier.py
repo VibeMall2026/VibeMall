@@ -162,3 +162,19 @@ def send_algo_execution_alert(
             f"[TG_NOTIFY] Could not send algo execution alert to {chat_id}: {exc}"
         )
         return False
+
+
+def send_text_alert(text: str, chat_id: str | None = None) -> bool:
+    destination = str(chat_id or _get_alert_destination() or "").strip()
+    if not destination or not str(text or "").strip():
+        return False
+    try:
+        method = asyncio.run(_send_message(destination, str(text)))
+        logger.info(
+            f"[TG_NOTIFY] Text alert sent to {destination} via={method} | "
+            f"thread={threading.current_thread().name}"
+        )
+        return True
+    except Exception as exc:
+        logger.warning(f"[TG_NOTIFY] Could not send text alert to {destination}: {exc}")
+        return False
