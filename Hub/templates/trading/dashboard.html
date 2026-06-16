@@ -837,7 +837,7 @@
     refreshTradeModes(accounts);
   }
 
-  const GLOBAL_MT5_CONNECTED = {% if mt5_connected %}true{% else %}false{% endif %};
+  let GLOBAL_MT5_CONNECTED = {% if mt5_connected %}true{% else %}false{% endif %};
 
   function renderConnectionBadge(acc) {
     const enabled = !!acc.enabled;
@@ -1002,23 +1002,38 @@
 
   function refreshAccounts(showMessage = true) {
     const csrfToken = getCookie('csrftoken');
-    fetch('/trading/api/accounts/refresh', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
-      body: '{}'
-    })
-      .then(async (r) => {
-        const text = await r.text();
-        try {
-          return JSON.parse(text || '[]');
-        } catch (e) {
-          throw new Error(`HTTP ${r.status} ${r.statusText} | ${text.slice(0, 160)}`);
-        }
+    Promise.all([
+      fetch('/trading/api/health', { credentials: 'same-origin' })
+        .then(async (r) => {
+          const text = await r.text();
+          try {
+            return JSON.parse(text || '{}');
+          } catch (e) {
+            return null;
+          }
+        })
+        .catch(() => null),
+      fetch('/trading/api/accounts/refresh', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+        body: '{}'
       })
-      .then(accounts => {
+        .then(async (r) => {
+          const text = await r.text();
+          try {
+            return JSON.parse(text || '[]');
+          } catch (e) {
+            throw new Error(`HTTP ${r.status} ${r.statusText} | ${text.slice(0, 160)}`);
+          }
+        })
+    ])
+      .then(([health, accounts]) => {
         if (!Array.isArray(accounts)) {
           throw new Error(accounts && (accounts.error || accounts.detail || JSON.stringify(accounts)));
+        }
+        if (health && typeof health.mt5_connected === 'boolean') {
+          GLOBAL_MT5_CONNECTED = health.mt5_connected;
         }
         renderAccounts(accounts);
         if (showMessage) {
