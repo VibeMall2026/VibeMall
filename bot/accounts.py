@@ -827,6 +827,8 @@ def _connect_account(acc: MT5Account) -> bool:
         }
         if acc.path:
             kwargs["path"] = acc.path
+        if getattr(_config, "MT5_PORTABLE", False):
+            kwargs["portable"] = True
 
         last_err = ""
         for attempt in attempts:

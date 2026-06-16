@@ -837,6 +837,95 @@
     refreshTradeModes(accounts);
   }
 
+  const GLOBAL_MT5_CONNECTED = {% if mt5_connected %}true{% else %}false{% endif %};
+
+  function renderConnectionBadge(acc) {
+    const enabled = !!acc.enabled;
+    const connected = !!acc.connected;
+    const errorText = String(acc.error || '');
+    const ipcIssue = /IPC/i.test(errorText);
+
+    if (!enabled) {
+      return `
+        <span class="badge bg-label-secondary">● Disabled</span>
+        <span class="badge bg-label-secondary ms-1 trade-mode-badge" id="tradeModeBadge_${acc.login}">Trading: —</span>
+        ${errorText ? `<small class="text-danger d-block" style="font-size:.7rem;">${errorText}</small>` : ''}
+      `;
+    }
+
+    if (connected) {
+      return `
+        <span class="badge bg-label-success">● MT5 Online</span>
+        <span class="badge bg-label-secondary ms-1 trade-mode-badge" id="tradeModeBadge_${acc.login}">Trading: —</span>
+        ${errorText ? `<small class="text-danger d-block" style="font-size:.7rem;">${errorText}</small>` : ''}
+      `;
+    }
+
+    if (GLOBAL_MT5_CONNECTED && ipcIssue) {
+      return `
+        <span class="badge bg-label-warning">● MT5 Syncing</span>
+        <span class="badge bg-label-secondary ms-1 trade-mode-badge" id="tradeModeBadge_${acc.login}">Trading: —</span>
+        <small class="text-warning d-block" style="font-size:.7rem;">${errorText}</small>
+      `;
+    }
+
+    return `
+      <span class="badge bg-label-danger">● MT5 Offline</span>
+      <span class="badge bg-label-secondary ms-1 trade-mode-badge" id="tradeModeBadge_${acc.login}">Trading: —</span>
+      ${errorText ? `<small class="text-danger d-block" style="font-size:.7rem;">${errorText}</small>` : ''}
+    `;
+  }
+
+  renderAccounts = function(accounts) {
+    const tbody = document.getElementById('accountsBody');
+    if (!accounts || accounts.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">No accounts configured</td></tr>';
+      renderStrategyButtons([]);
+      return;
+    }
+    tbody.innerHTML = accounts.map(acc => `
+      <tr>
+        <td><strong>${acc.label}</strong></td>
+        <td style="font-size:.85rem;">${acc.login}</td>
+        <td style="font-size:.8rem;color:#a8aaae;">${acc.server}</td>
+        <td>${acc.currency} ${acc.balance.toFixed(2)}</td>
+        <td>${acc.currency} ${acc.equity.toFixed(2)}</td>
+        <td>
+          <div class="d-flex flex-wrap gap-1">
+            <button class="btn btn-sm btn-outline-info bo-edit-btn"
+              data-account-id="${acc.id}"
+              data-strategies="${(Array.isArray(acc.strategy) ? acc.strategy : [acc.strategy]).join(',')}"
+              data-allowed-symbols="${(Array.isArray(acc.allowed_symbols) ? acc.allowed_symbols : (acc.allowed_symbols ? [acc.allowed_symbols] : [])).join(',')}">
+              <i class="bx bx-edit me-1"></i>Edit
+            </button>
+            <small class="text-muted d-block w-100" style="font-size:.75rem;">
+              ${Array.isArray(acc.strategy) ? acc.strategy.join(', ') : (acc.strategy || '')}
+            </small>
+          </div>
+        </td>
+        <td>
+          ${renderConnectionBadge(acc)}
+        </td>
+        <td>
+          <div class="d-flex gap-1 flex-wrap">
+            <button class="btn btn-sm ${acc.enabled ? 'btn-outline-warning' : 'btn-outline-success'}"
+              onclick="toggleAccount('${acc.id}', ${!acc.enabled})">
+              ${acc.enabled ? 'Disable' : 'Enable'}
+            </button>
+            ${acc.id !== 'acc_1' ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteAccount('${acc.id}', '${acc.label}')">Remove</button>` : ''}
+          </div>
+          <div class="d-flex gap-1 flex-wrap mt-1">
+            <button class="btn btn-sm btn-outline-danger" onclick="setAccountTradeMode(${acc.login}, 'stop_today')">Stop Today</button>
+            <button class="btn btn-sm btn-outline-warning" onclick="openStopUntilModal(${acc.login})">Stop Until</button>
+            <button class="btn btn-sm btn-outline-success" onclick="setAccountTradeMode(${acc.login}, 'start_now')">Start</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+    renderStrategyButtons(accounts);
+    refreshTradeModes(accounts);
+  }
+
   function updateTradeModeBadge(login, d) {
     const badge = document.getElementById(`tradeModeBadge_${login}`);
     if (!badge) return;
