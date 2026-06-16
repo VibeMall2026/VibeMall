@@ -31,14 +31,14 @@ def _find_stop_target(command_text: str):
     from bot.accounts import get_all_accounts
 
     command = _normalize_key(command_text)
-    if command not in {"bstop", "sstop"}:
+    if command not in {"bstop", "sstop", "bstart", "sstart"}:
         return None
 
     accounts = list(get_all_accounts() or [])
     if not accounts:
         return None
 
-    if command == "bstop":
+    if command in {"bstop", "bstart"}:
         for acc in accounts:
             label = str(getattr(acc, "label", "") or "").strip().lower()
             if label == "breakout demo":
@@ -50,7 +50,7 @@ def _find_stop_target(command_text: str):
                 return acc
         return None
 
-    if command == "sstop":
+    if command in {"sstop", "sstart"}:
         for acc in accounts:
             label = str(getattr(acc, "label", "") or "").strip().lower()
             if label in {"signal forge gold", "signnal forge gold", "signalforge"}:
@@ -66,20 +66,33 @@ def _find_stop_target(command_text: str):
 
 
 async def _handle_control_command(event, text: str, channel_name: str) -> bool:
-    from bot.accounts import get_account_trade_mode, stop_account_for_today
+    from bot.accounts import get_account_trade_mode, stop_account_for_today, start_account_now
 
     acc = _find_stop_target(text)
     if acc is None:
         return False
 
     command = _normalize_key(text)
-    reason_code = f"telegram_{command}_stop_today"
-    stop_account_for_today(int(acc.login), reason_code=reason_code)
+    action_text = ""
+    if command in {"bstop", "sstop"}:
+        reason_code = f"telegram_{command}_stop_today"
+        stop_account_for_today(int(acc.login), reason_code=reason_code)
+        action_text = "Stop trading for today"
+        logger.warning(
+            f"[TG_CMD] Stop-today command accepted from @{channel_name} | "
+            f"command={command} | account={acc.label} ({acc.login})"
+        )
+    elif command in {"bstart", "sstart"}:
+        start_account_now(int(acc.login))
+        action_text = "Start trading now"
+        logger.warning(
+            f"[TG_CMD] Start-now command accepted from @{channel_name} | "
+            f"command={command} | account={acc.label} ({acc.login})"
+        )
+    else:
+        return False
+
     mode = get_account_trade_mode(int(acc.login))
-    logger.warning(
-        f"[TG_CMD] Stop-today command accepted from @{channel_name} | "
-        f"command={command} | account={acc.label} ({acc.login})"
-    )
 
     with state._lock:
         state.channel_messages.insert(0, {
@@ -97,18 +110,19 @@ async def _handle_control_command(event, text: str, channel_name: str) -> bool:
         "tp": None,
         "status": "command",
         "channel": f"@{channel_name}",
-        "reason": f"Trading stopped for today on {acc.label}",
+        "reason": f"{action_text} on {acc.label}",
         "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "raw": text[:200],
     })
 
-    halt_text = mode.get("stop_reason_text") or "Manual stop"
+    halt_text = mode.get("stop_reason_text") or ("Trading ON" if mode.get("allowed") else "Manual stop")
     send_text_alert(
         f"Command accepted\n"
         f"Account: {acc.label}\n"
         f"Login: {acc.login}\n"
-        f"Action: Stop trading for today\n"
-        f"Auto resume: Next UTC day\n"
+        f"Action: {action_text}\n"
+        f"Current state: {'Trading ON' if mode.get('allowed') else 'Trading OFF for today'}\n"
+        f"Auto resume: {'Not needed' if mode.get('allowed') else 'Next UTC day'}\n"
         f"Source: @{channel_name}\n"
         f"Reason: {halt_text}"
     )
