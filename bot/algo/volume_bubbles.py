@@ -349,7 +349,10 @@ def _try_execute_trade(symbol: str, side: str, level: str, candles: list[dict]) 
     if sl_dist <= 0:
         return
 
-    if side == "BUY":
+    detected_side = str(side or "").upper()
+    execution_side = "SELL" if detected_side == "BUY" else "BUY"
+
+    if execution_side == "BUY":
         sl = entry - sl_dist
         tp = entry + (sl_dist * float(_cfg.tp_rr))
         s = "buy"
@@ -357,6 +360,11 @@ def _try_execute_trade(symbol: str, side: str, level: str, candles: list[dict]) 
         sl = entry + sl_dist
         tp = entry - (sl_dist * float(_cfg.tp_rr))
         s = "sell"
+
+    logger.info(
+        f"[VOL_BUBBLES] Reverse execution active | detected={detected_side} -> execute={execution_side} | "
+        f"{symbol} | level={level}"
+    )
 
     results = execute_on_all_accounts(
         symbol=symbol,
@@ -386,10 +394,13 @@ def _try_execute_trade(symbol: str, side: str, level: str, candles: list[dict]) 
                     )
             logger.success(
                 f"[VOL_BUBBLES] Trade on {r.get('account_label')} ({r.get('login')}) "
-                f"| {symbol} {side} | ticket={r.get('ticket')} | level={level}"
+                f"| detected={detected_side} execute={execution_side} | {symbol} | ticket={r.get('ticket')} | level={level}"
             )
     else:
-        logger.warning(f"[VOL_BUBBLES] Signal not executed | {symbol} {side} {level} | {results}")
+        logger.warning(
+            f"[VOL_BUBBLES] Signal not executed | detected={detected_side} execute={execution_side} | "
+            f"{symbol} {level} | {results}"
+        )
 
 
 def _manage_trade(tr: _ManagedTrade, live_pos: dict) -> None:
