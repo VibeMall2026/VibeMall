@@ -21,17 +21,62 @@ from bot.telegram_notifier import send_text_alert
 
 
 _client: TelegramClient | None = None
+_COMMAND_ALIASES = {
+    "status": "status",
+    "botstatus": "status",
+    "bstop": "bstop",
+    "breakoutdemostop": "bstop",
+    "bstart": "bstart",
+    "breakoutdemostart": "bstart",
+    "sstop": "sstop",
+    "signalforgestop": "sstop",
+    "signalforgegoldstop": "sstop",
+    "sstart": "sstart",
+    "signalforgestart": "sstart",
+    "signalforgegoldstart": "sstart",
+}
+_CONTROL_COMMANDS = set(_COMMAND_ALIASES.values())
 
 
 def _normalize_key(text: str) -> str:
     return "".join(ch for ch in str(text or "").lower() if ch.isalnum())
 
 
+def _canonical_command(text: str) -> str:
+    return _COMMAND_ALIASES.get(_normalize_key(text), "")
+
+
+def _build_status_text() -> str:
+    from bot.accounts import get_all_accounts, get_account_trade_mode
+
+    rows: list[str] = ["📊 Bot Account Status"]
+    accounts = list(get_all_accounts() or [])
+    if not accounts:
+        rows.append("No accounts found")
+        return "\n".join(rows)
+
+    for acc in accounts:
+        mode = get_account_trade_mode(int(acc.login))
+        trading_state = "ON" if mode.get("allowed") else "OFF"
+        mt5_state = "ONLINE" if getattr(acc, "connected", False) else "OFFLINE"
+        reason = str(mode.get("stop_reason_text") or mode.get("reason") or "").strip()
+        rows.append(
+            f"\n{acc.label}\n"
+            f"Login: {acc.login}\n"
+            f"MT5: {mt5_state}\n"
+            f"Trading: {trading_state}"
+        )
+        if reason and trading_state == "OFF":
+            rows.append(f"Reason: {reason}")
+
+    return "\n".join(rows)
+
+
 def _find_stop_target(command_text: str):
     from bot.accounts import get_all_accounts
 
-    command = _normalize_key(command_text)
-    if command not in {"bstop", "sstop", "bstart", "sstart"}:
+    command = _canonical_command(command_text)
+    if command not in _CONTROL_COMMANDS:
         return None
 
     accounts = list(get_all_accounts() or [])
@@ -65,14 +110,34 @@ def _find_stop_target(command_text: str):
     return None
 
 
+async def _reply_control_status(event, text: str) -> None:
+    try:
+        await event.reply(text)
+    except Exception as exc:
+        logger.warning(f"[TG_CMD] Could not send inline reply: {exc}")
+
+
 async def _handle_control_command(event, text: str, channel_name: str) -> bool:
     from bot.accounts import get_account_trade_mode, stop_account_for_today, start_account_now
 
-    acc = _find_stop_target(text)
-    if acc is None:
+    command = _canonical_command(text)
+    if command == "status":
+        await _reply_control_status(event, _build_status_text())
+        return True
+
+    if command not in _CONTROL_COMMANDS:
         return False
 
-    command = _normalize_key(text)
+    acc = _find_stop_target(text)
+    if acc is None:
+        await _reply_control_status(
+            event,
+            f"❌ Command failed\n"
+            f"Command: {command}\n"
+            f"Reason: Target account not found",
+        )
+        return True
+
     action_text = ""
     if command in {"bstop", "sstop"}:
         reason_code = f"telegram_{command}_stop_today"
@@ -116,6 +181,14 @@ async def _handle_control_command(event, text: str, channel_name: str) -> bool:
     })
 
     halt_text = mode.get("stop_reason_text") or ("Trading ON" if mode.get("allowed") else "Manual stop")
+    inline_status = (
+        f"✅ Command success\n"
+        f"Command: {command}\n"
+        f"Account: {acc.label}\n"
+        f"Action: {action_text}\n"
+        f"State: {'Trading ON' if mode.get('allowed') else 'Trading OFF for today'}"
+    )
+    await _reply_control_status(event, inline_status)
     send_text_alert(
         f"Command accepted\n"
         f"Account: {acc.label}\n"
