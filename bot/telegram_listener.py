@@ -9,6 +9,7 @@ Session strategy:
 import asyncio
 import os
 from datetime import datetime
+from types import SimpleNamespace
 from loguru import logger
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
@@ -22,6 +23,8 @@ from bot.telegram_notifier import send_text_alert
 
 _client: TelegramClient | None = None
 _COMMAND_ALIASES = {
+    "start": "start",
+    "help": "help",
     "status": "status",
     "botstatus": "status",
     "bstop": "bstop",
@@ -43,7 +46,21 @@ def _normalize_key(text: str) -> str:
 
 
 def _canonical_command(text: str) -> str:
-    return _COMMAND_ALIASES.get(_normalize_key(text), "")
+    token = str(text or "").strip().split()[0] if str(text or "").strip() else ""
+    if "@" in token:
+        token = token.split("@", 1)[0]
+    return _COMMAND_ALIASES.get(_normalize_key(token), "")
+
+
+def _build_help_text() -> str:
+    return (
+        "Trading bot control commands\n\n"
+        "/status - Show account trading status\n"
+        "/signal_forge_stop - Stop Signal Forge Gold for today\n"
+        "/signal_forge_start - Start Signal Forge Gold now\n"
+        "/breakout_demo_stop - Stop Breakout Demo for today\n"
+        "/breakout_demo_start - Start Breakout Demo now"
+    )
 
 
 def _build_status_text() -> str:
@@ -117,10 +134,109 @@ async def _reply_control_status(event, text: str) -> None:
         logger.warning(f"[TG_CMD] Could not send inline reply: {exc}")
 
 
+def _is_private_control_allowed(sender: dict) -> bool:
+    allowed_usernames = set(getattr(config, "TG_CONTROL_ALLOWED_USERNAMES", []) or [])
+    allowed_ids = set(getattr(config, "TG_CONTROL_ALLOWED_IDS", []) or [])
+
+    sender_id = str(sender.get("id", "") or "").strip()
+    sender_username = str(sender.get("username", "") or "").lstrip("@").strip().lower()
+
+    if not allowed_usernames and not allowed_ids:
+        return True
+    if sender_id and sender_id in allowed_ids:
+        return True
+    if sender_username and sender_username in allowed_usernames:
+        return True
+    return False
+
+
+async def _handle_private_control_message(chat_id: str | int, text: str, sender_label: str) -> bool:
+    class _PrivateReplyEvent:
+        def __init__(self, target_chat_id: str | int):
+            self._chat_id = str(target_chat_id)
+
+        async def reply(self, message_text: str):
+            send_text_alert(message_text, chat_id=self._chat_id)
+
+    fake_event = _PrivateReplyEvent(chat_id)
+    return await _handle_control_command(fake_event, text, sender_label)
+
+
+async def _bot_control_poll_loop() -> None:
+    if not getattr(config, "ADMIN_BOT_TOKEN", "").strip():
+        logger.info("[TG_BOT] Private command bot polling disabled (no ADMIN_BOT_TOKEN).")
+        return
+
+    try:
+        import httpx
+    except Exception as exc:
+        logger.warning(f"[TG_BOT] httpx not available for private command polling: {exc}")
+        return
+
+    token = config.ADMIN_BOT_TOKEN.strip()
+    get_updates_url = f"https://api.telegram.org/bot{token}/getUpdates"
+    offset: int | None = None
+    logger.info("[TG_BOT] Private command polling started.")
+
+    async with httpx.AsyncClient(timeout=40) as client:
+        while True:
+            try:
+                params = {"timeout": 30, "allowed_updates": '["message"]'}
+                if offset is not None:
+                    params["offset"] = offset
+                resp = await client.get(get_updates_url, params=params)
+                resp.raise_for_status()
+                payload = resp.json()
+                for item in payload.get("result", []) or []:
+                    try:
+                        offset = int(item.get("update_id", 0)) + 1
+                    except Exception:
+                        continue
+                    message = item.get("message") or {}
+                    if not message:
+                        continue
+                    chat = message.get("chat") or {}
+                    if str(chat.get("type") or "") != "private":
+                        continue
+                    text = str(message.get("text") or "").strip()
+                    if not text:
+                        continue
+                    sender = message.get("from") or {}
+                    sender_label = str(sender.get("username") or sender.get("first_name") or sender.get("id") or "private_user")
+                    if not _is_private_control_allowed(sender):
+                        send_text_alert(
+                            "❌ Not authorized to use trading control commands.",
+                            chat_id=str(chat.get("id")),
+                        )
+                        logger.warning(f"[TG_BOT] Unauthorized private command from {sender_label}")
+                        continue
+
+                    command = _canonical_command(text)
+                    if command in {"", None}:
+                        continue
+                    if command == "help" or command == "start":
+                        send_text_alert(_build_help_text(), chat_id=str(chat.get("id")))
+                        continue
+
+                    await _handle_private_control_message(
+                        chat_id=str(chat.get("id")),
+                        text=text,
+                        sender_label=f"private:{sender_label}",
+                    )
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                logger.warning(f"[TG_BOT] Private command polling error: {exc}")
+                await asyncio.sleep(max(3, int(getattr(config, "TG_RECONNECT_DELAY", 10) or 10)))
+
+
 async def _handle_control_command(event, text: str, channel_name: str) -> bool:
     from bot.accounts import get_account_trade_mode, stop_account_for_today, start_account_now
 
     command = _canonical_command(text)
+    if command in {"start", "help"}:
+        await _reply_control_status(event, _build_help_text())
+        return True
     if command == "status":
         await _reply_control_status(event, _build_status_text())
         return True
@@ -280,6 +396,7 @@ async def start_listener() -> None:
     await _client.start(phone=config.TG_PHONE)
     state.telegram_connected = True
     logger.success("Telegram connected.")
+    bot_poll_task = asyncio.create_task(_bot_control_poll_loop(), name="TelegramBotControlPoll")
 
     # Resolve channel entities — merge config + state channels
     all_channels = list(config.TG_CHANNELS)
@@ -307,8 +424,16 @@ async def start_listener() -> None:
         await _handle_message(event)
 
     logger.info("Telegram listener running...")
-    await _client.run_until_disconnected()
-    state.telegram_connected = False
+    try:
+        await _client.run_until_disconnected()
+    finally:
+        if bot_poll_task:
+            bot_poll_task.cancel()
+            try:
+                await bot_poll_task
+            except asyncio.CancelledError:
+                pass
+        state.telegram_connected = False
 
 
 async def stop_listener() -> None:
