@@ -1203,6 +1203,7 @@ def execute_on_all_accounts(
                             direction=direction,
                             candles=[],
                             open_positions=open_positions,
+                            account_login=acc.login,
                         )
                         if not allowed_algo:
                             results.append({
@@ -1308,7 +1309,7 @@ def execute_on_all_accounts(
                     if algo_trade:
                         try:
                             from bot.algo.human_mind import record_trade_opened
-                            record_trade_opened()
+                            record_trade_opened(account_login=acc.login)
                         except Exception as record_exc:
                             logger.warning(f"[ACCOUNTS] Could not record algo trade open: {record_exc}")
                         try:

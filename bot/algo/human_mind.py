@@ -31,6 +31,14 @@ _daily_date: date = datetime.now(timezone.utc).date()
 _daily_pnl: float = 0.0
 _daily_halted: bool = False
 
+# Per-account state so one account can pause without blocking the others.
+_consecutive_losses_by_account: dict[str, int] = {}
+_daily_trade_count_by_account: dict[str, int] = {}
+_daily_date_by_account: dict[str, date] = {}
+_daily_pnl_by_account: dict[str, float] = {}
+_daily_halted_by_account: dict[str, bool] = {}
+_last_loss_time_by_account: dict[str, datetime] = {}
+
 # --- Feature 6: Revenge / cooldown ---
 _last_loss_time: Optional[datetime] = None
 _cooldown_seconds: int = 15 * 60   # 15 min after a loss
@@ -57,6 +65,29 @@ def _env_int(key: str, default: int) -> int:
 
 def _utc_today() -> date:
     return datetime.now(timezone.utc).date()
+
+
+def _account_key(account_login: Optional[int]) -> Optional[str]:
+    if account_login is None:
+        return None
+    try:
+        return str(int(account_login))
+    except Exception:
+        return str(account_login).strip() or None
+
+
+def _resolve_active_account_login(account_login: Optional[int] = None) -> Optional[int]:
+    if account_login is not None:
+        return account_login
+    try:
+        from bot import mt5_bridge as _bridge
+
+        info = _bridge.get_account_info(attempt_reconnect=False)
+        if info and info.get("login"):
+            return int(info.get("login"))
+    except Exception:
+        pass
+    return None
 
 
 # ── Config (all tunable) ──────────────────────────────────────────────────────
@@ -149,10 +180,21 @@ cfg = HumanMindConfig()
 
 # ── Daily reset ───────────────────────────────────────────────────────────────
 
-def _reset_daily_if_needed() -> None:
+def _reset_daily_if_needed(account_login: Optional[int] = None) -> None:
     global _daily_trade_count, _daily_date, _daily_pnl, _daily_halted, _consecutive_losses
     today = _utc_today()
+    account_key = _account_key(account_login)
     with _lock:
+        if account_key is not None:
+            if _daily_date_by_account.get(account_key) != today:
+                _daily_date_by_account[account_key] = today
+                _daily_trade_count_by_account[account_key] = 0
+                _daily_pnl_by_account[account_key] = 0.0
+                _daily_halted_by_account[account_key] = False
+                _consecutive_losses_by_account[account_key] = 0
+                _last_loss_time_by_account.pop(account_key, None)
+                logger.info(f"[HUMAN_MIND] Daily counters reset for account={account_key}")
+            return
         if _daily_date != today:
             _daily_date = today
             _daily_trade_count = 0
@@ -164,11 +206,40 @@ def _reset_daily_if_needed() -> None:
 
 # ── Feature 3: Record trade result ───────────────────────────────────────────
 
-def record_trade_result(pnl: float) -> None:
+def record_trade_result(pnl: float, account_login: Optional[int] = None) -> None:
     """Call after every trade closes."""
     global _consecutive_losses, _last_loss_time, _daily_pnl, _daily_halted
-    _reset_daily_if_needed()
+    account_login = _resolve_active_account_login(account_login)
+    account_key = _account_key(account_login)
+    _reset_daily_if_needed(account_login=account_login)
     with _lock:
+        if account_key is not None:
+            _daily_pnl_by_account[account_key] = _daily_pnl_by_account.get(account_key, 0.0) + pnl
+            if pnl < 0:
+                _consecutive_losses_by_account[account_key] = _consecutive_losses_by_account.get(account_key, 0) + 1
+                _last_loss_time_by_account[account_key] = datetime.utcnow()
+                logger.info(
+                    f"[HUMAN_MIND] Loss recorded for account={account_key}. "
+                    f"Consecutive losses: {_consecutive_losses_by_account[account_key]}"
+                )
+            else:
+                _consecutive_losses_by_account[account_key] = 0
+                logger.info(f"[HUMAN_MIND] Win recorded for account={account_key}. Consecutive losses reset to 0")
+
+            if _daily_pnl_by_account[account_key] <= -cfg.daily_loss_limit_usd:
+                _daily_halted_by_account[account_key] = True
+                logger.warning(
+                    f"[HUMAN_MIND] ⛔ Daily loss limit ${cfg.daily_loss_limit_usd} hit "
+                    f"for account={account_key} — halted for today"
+                )
+            elif _daily_pnl_by_account[account_key] >= cfg.daily_profit_limit_usd:
+                _daily_halted_by_account[account_key] = True
+                logger.info(
+                    f"[HUMAN_MIND] ✅ Daily profit target ${cfg.daily_profit_limit_usd} hit "
+                    f"for account={account_key} — halted for today"
+                )
+            return
+
         _daily_pnl += pnl
         if pnl < 0:
             _consecutive_losses += 1
@@ -186,11 +257,16 @@ def record_trade_result(pnl: float) -> None:
             logger.info(f"[HUMAN_MIND] ✅ Daily profit target ${cfg.daily_profit_limit_usd} hit — halted for today")
 
 
-def record_trade_opened() -> None:
+def record_trade_opened(account_login: Optional[int] = None) -> None:
     """Call when a new trade is opened."""
     global _daily_trade_count
-    _reset_daily_if_needed()
+    account_login = _resolve_active_account_login(account_login)
+    account_key = _account_key(account_login)
+    _reset_daily_if_needed(account_login=account_login)
     with _lock:
+        if account_key is not None:
+            _daily_trade_count_by_account[account_key] = _daily_trade_count_by_account.get(account_key, 0) + 1
+            return
         _daily_trade_count += 1
 
 
@@ -247,30 +323,44 @@ def check_spread_from_bridge(symbol: str) -> bool:
 
 # ── Feature 6: Revenge trade cooldown ────────────────────────────────────────
 
-def is_in_cooldown() -> bool:
+def is_in_cooldown(account_login: Optional[int] = None) -> bool:
     """Return True if we are in post-loss cooldown period."""
     if not cfg.revenge_cooldown_enabled:
         return False
+    account_key = _account_key(account_login)
     with _lock:
-        if _last_loss_time is None:
+        last_loss_time = _last_loss_time_by_account.get(account_key) if account_key is not None else _last_loss_time
+        if last_loss_time is None:
             return False
-        elapsed = (datetime.utcnow() - _last_loss_time).total_seconds()
+        elapsed = (datetime.utcnow() - last_loss_time).total_seconds()
         if elapsed < cfg.cooldown_after_loss_minutes * 60:
             remaining = int((cfg.cooldown_after_loss_minutes * 60 - elapsed) / 60)
-            logger.info(f"[HUMAN_MIND] In cooldown after loss — {remaining} min remaining")
+            if account_key is not None:
+                logger.info(
+                    f"[HUMAN_MIND] In cooldown after loss for account={account_key} — {remaining} min remaining"
+                )
+            else:
+                logger.info(f"[HUMAN_MIND] In cooldown after loss — {remaining} min remaining")
             return True
     return False
 
 
 # ── Feature 3: Consecutive loss check ────────────────────────────────────────
 
-def is_paused_due_to_losses() -> bool:
+def is_paused_due_to_losses(account_login: Optional[int] = None) -> bool:
     """Return True if consecutive losses exceeded pause threshold."""
     if not cfg.consec_loss_enabled:
         return False
+    account_key = _account_key(account_login)
     with _lock:
-        if _consecutive_losses >= cfg.consec_loss_pause_at:
-            logger.warning(f"[HUMAN_MIND] ⛔ {_consecutive_losses} consecutive losses — trading paused")
+        losses = _consecutive_losses_by_account.get(account_key, 0) if account_key is not None else _consecutive_losses
+        if losses >= cfg.consec_loss_pause_at:
+            if account_key is not None:
+                logger.warning(
+                    f"[HUMAN_MIND] ⛔ {losses} consecutive losses — trading paused for account={account_key}"
+                )
+            else:
+                logger.warning(f"[HUMAN_MIND] ⛔ {losses} consecutive losses — trading paused")
             return True
     return False
 
@@ -304,10 +394,21 @@ def get_lot_multiplier(base_confidence: float = 1.0) -> float:
 
 # ── Feature 6: Daily limits & overtrading ────────────────────────────────────
 
-def is_daily_halted() -> bool:
+def is_daily_halted(account_login: Optional[int] = None) -> bool:
     """Return True if daily profit/loss limit hit or max trades reached."""
-    _reset_daily_if_needed()
+    account_key = _account_key(account_login)
+    _reset_daily_if_needed(account_login=account_login)
     with _lock:
+        if account_key is not None:
+            if _daily_halted_by_account.get(account_key, False):
+                return True
+            if cfg.overtrading_prevention_enabled and _daily_trade_count_by_account.get(account_key, 0) >= cfg.daily_max_trades:
+                logger.warning(
+                    f"[HUMAN_MIND] Max daily trades ({cfg.daily_max_trades}) reached for account={account_key} — no more trades today"
+                )
+                return True
+            return False
+
         if _daily_halted:
             return True
         if cfg.overtrading_prevention_enabled and _daily_trade_count >= cfg.daily_max_trades:
@@ -745,14 +846,20 @@ def close_trade(ticket: int, symbol: str, side: str, reason: str = "ALGO:EXIT") 
 
 # ── Master gate: can_enter_trade ──────────────────────────────────────────────
 
-def can_enter_trade(symbol: str, direction: str, candles: list,
-                    open_positions: list) -> tuple[bool, str]:
+def can_enter_trade(
+    symbol: str,
+    direction: str,
+    candles: list,
+    open_positions: list,
+    account_login: Optional[int] = None,
+    check_account_scoped_gates: bool = True,
+) -> tuple[bool, str]:
     """
     Master check — call before every new trade entry.
     Returns (allowed: bool, reason: str).
     """
     # 1. Daily halt
-    if is_daily_halted():
+    if check_account_scoped_gates and is_daily_halted(account_login=account_login):
         return False, "daily_halted"
 
     # 2. Session filter
@@ -764,11 +871,11 @@ def can_enter_trade(symbol: str, direction: str, candles: list,
         return False, "spread_too_wide"
 
     # 4. Revenge cooldown
-    if is_in_cooldown():
+    if check_account_scoped_gates and is_in_cooldown(account_login=account_login):
         return False, "cooldown_active"
 
     # 5. Consecutive loss pause
-    if is_paused_due_to_losses():
+    if check_account_scoped_gates and is_paused_due_to_losses(account_login=account_login):
         return False, "consecutive_loss_pause"
 
     # 6. Choppy market
@@ -784,9 +891,25 @@ def can_enter_trade(symbol: str, direction: str, candles: list,
 
 # ── Status for dashboard ──────────────────────────────────────────────────────
 
-def get_status() -> dict:
-    _reset_daily_if_needed()
+def get_status(account_login: Optional[int] = None) -> dict:
+    _reset_daily_if_needed(account_login=account_login)
     with _lock:
+        account_key = _account_key(account_login)
+        if account_key is not None:
+            return {
+                "session_ok": is_in_trading_session(),
+                "daily_halted": _daily_halted_by_account.get(account_key, False),
+                "daily_pnl": round(_daily_pnl_by_account.get(account_key, 0.0), 2),
+                "daily_trade_count": _daily_trade_count_by_account.get(account_key, 0),
+                "consecutive_losses": _consecutive_losses_by_account.get(account_key, 0),
+                "in_cooldown": is_in_cooldown(account_login=account_login),
+                "daily_loss_limit": cfg.daily_loss_limit_usd,
+                "daily_profit_limit": cfg.daily_profit_limit_usd,
+                "daily_max_trades": cfg.daily_max_trades,
+                "cooldown_minutes": cfg.cooldown_after_loss_minutes,
+                "consec_loss_pause_at": cfg.consec_loss_pause_at,
+                "account_login": int(account_key),
+            }
         return {
             "session_ok": is_in_trading_session(),
             "daily_halted": _daily_halted,

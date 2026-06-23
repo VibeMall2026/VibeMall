@@ -1774,6 +1774,7 @@ def _scan_and_trade(symbol: str = None) -> None:
                     direction=ob.direction,
                     candles=candles_exec,
                     open_positions=open_positions,
+                    check_account_scoped_gates=False,
                 )
                 if not allowed:
                     logger.info(f"[ALGO] Trade blocked by human_mind: {reason} | OB {ob.id}")

@@ -1075,6 +1075,7 @@ def _scan_and_trade(symbol: str = None) -> None:
                         direction=setup.direction,
                         candles=candles_exec,
                         open_positions=open_positions,
+                        check_account_scoped_gates=False,
                     )
                     if not allowed:
                         logger.info(f"[BREAKOUT] Trade blocked by human_mind: {reason} | {setup.id}")
@@ -1131,7 +1132,7 @@ def _risk_check_loop() -> None:
                                                 pnl_val = float(trade.get("pnl", 0))
                                                 record_trade_pnl(pnl_val)
                                                 from bot.algo.human_mind import record_trade_result, record_sl_hit
-                                                record_trade_result(pnl_val)
+                                                record_trade_result(pnl_val, account_login=acc.login)
                                                 if pnl_val < 0:
                                                     record_sl_hit(setup.id)
                                                 break
