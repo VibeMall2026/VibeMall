@@ -862,27 +862,23 @@ def can_enter_trade(
     if check_account_scoped_gates and is_daily_halted(account_login=account_login):
         return False, "daily_halted"
 
-    # 2. Session filter
-    if not is_in_trading_session():
-        return False, "outside_session"
-
-    # 3. Spread filter
+    # 2. Spread filter
     if not check_spread_from_bridge(symbol):
         return False, "spread_too_wide"
 
-    # 4. Revenge cooldown
+    # 3. Revenge cooldown
     if check_account_scoped_gates and is_in_cooldown(account_login=account_login):
         return False, "cooldown_active"
 
-    # 5. Consecutive loss pause
+    # 4. Consecutive loss pause
     if check_account_scoped_gates and is_paused_due_to_losses(account_login=account_login):
         return False, "consecutive_loss_pause"
 
-    # 6. Choppy market
+    # 5. Choppy market
     if is_market_choppy(candles):
         return False, "choppy_market"
 
-    # 7. Correlation
+    # 6. Correlation
     if is_correlated_trade_blocked(symbol, direction, open_positions):
         return False, "correlation_blocked"
 
