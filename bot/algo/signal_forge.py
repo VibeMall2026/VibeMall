@@ -24,6 +24,7 @@ except ImportError:
     MT5_AVAILABLE = False
 
 from bot import mt5_bridge
+from bot import config as runtime_config
 from bot.accounts import execute_on_all_accounts, get_all_accounts
 
 
@@ -34,7 +35,7 @@ class AlgoConfig:
     analysis_timeframe: int = 15
     scan_interval_seconds: int = 30
     enabled: bool = True
-    risk_percent: float = 0.35
+    risk_percent: float = runtime_config.RISK_PERCENT
     require_all: bool = True
 
     atr_len: int = 14

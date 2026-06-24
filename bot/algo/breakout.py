@@ -26,6 +26,7 @@ except ImportError:
 import os
 
 from bot import mt5_bridge
+from bot import config as runtime_config
 from bot.state import state
 from bot.algo.order_block import (
     can_trade_with_reason,
@@ -41,7 +42,7 @@ class AlgoConfig:
     analysis_timeframe: int = 15
     execution_timeframe: int = 15
     risk_reward_ratio: float = 2.0
-    risk_percent: float = 0.5
+    risk_percent: float = runtime_config.RISK_PERCENT
     breakout_lookback: int = 10
     trend_ema_period: int = 20
     atr_period: int = 14
