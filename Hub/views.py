@@ -6658,16 +6658,9 @@ def checkout_confirm(request):
         try:
             from .models import Coupon, CouponUsage
             applied_coupon = Coupon.objects.get(id=coupon_id)
-            # Validate coupon is still valid
-            if applied_coupon.is_valid():
-                # Check if not already used
-                already_used = CouponUsage.objects.filter(
-                    coupon=applied_coupon,
-                    user=request.user
-                ).exists()
-                if not already_used:
-                    # Calculate discount on subtotal only (before tax and shipping)
-                    coupon_discount = Decimal(str(applied_coupon.get_discount_amount(float(subtotal))))
+            validation_message = applied_coupon.get_validation_message(request.user, subtotal)
+            if validation_message is None:
+                coupon_discount = Decimal(str(applied_coupon.get_discount_amount(subtotal, shipping_cost)))
         except Coupon.DoesNotExist:
             applied_coupon = None
 
@@ -6803,8 +6796,8 @@ def checkout_confirm(request):
                     })
                 order = Order.objects.create(**order_kwargs)
 
-            # Create CouponUsage record if coupon was applied
-            if applied_coupon and coupon_discount > 0:
+            # Create CouponUsage record if coupon was applied successfully
+            if applied_coupon and validation_message is None:
                 from .models import CouponUsage
                 CouponUsage.objects.create(
                     coupon=applied_coupon,
@@ -14090,28 +14083,17 @@ def validate_coupon(request):
     except Coupon.DoesNotExist:
         return JsonResponse({'valid': False, 'message': 'Coupon code not found.'})
 
-    if not coupon.is_valid():
-        return JsonResponse({'valid': False, 'message': 'This coupon has expired or is no longer active.'})
+    shipping_cost = Decimal('0.00') if cart_total > 500 else Decimal('50.00')
+    validation_message = coupon.get_validation_message(request.user, cart_total)
+    if validation_message:
+        return JsonResponse({'valid': False, 'message': validation_message})
 
-    if cart_total < coupon.min_purchase_amount:
-        return JsonResponse({
-            'valid': False,
-            'message': f'Minimum purchase of ₹{coupon.min_purchase_amount} required for this coupon.'
-        })
-
-    # Check total usage limit
-    if coupon.usage_limit is not None and coupon.times_used() >= coupon.usage_limit:
-        return JsonResponse({'valid': False, 'message': 'This coupon has reached its usage limit.'})
-
-    # Check per-customer usage via CouponUsage
-    customer_uses = CouponUsage.objects.filter(coupon=coupon, user=request.user).count()
-    if customer_uses >= coupon.usage_per_user:
-        return JsonResponse({'valid': False, 'message': 'You have already used this coupon.'})
-
-    discount_amount = coupon.get_discount_amount(cart_total)
+    discount_amount = coupon.get_discount_amount(cart_total, shipping_cost)
 
     if coupon.discount_type == 'PERCENTAGE':
         message = f'{coupon.discount_value}% discount applied! You save ₹{discount_amount:.2f}.'
+    elif coupon.discount_type == 'FREE_SHIPPING':
+        message = 'Free shipping applied!'
     else:
         message = f'₹{discount_amount:.2f} discount applied!'
 
@@ -14140,25 +14122,28 @@ def get_available_coupons(request):
 
     result = []
     for coupon in coupons:
-        if not coupon.is_valid():
+        eligibility_message = coupon.get_eligibility_message(request.user)
+        if eligibility_message:
             continue
 
-        # Check if usage limit reached globally
-        if coupon.usage_limit is not None and coupon.times_used() >= coupon.usage_limit:
-            continue
-
-        customer_uses = CouponUsage.objects.filter(coupon=coupon, user=request.user).count()
-        used = customer_uses >= coupon.usage_per_user
+        if coupon.discount_type == 'PERCENTAGE':
+            discount_label = f"{coupon.discount_value}% OFF"
+        elif coupon.discount_type == 'FREE_SHIPPING':
+            discount_label = 'Free Shipping'
+        else:
+            discount_label = f"₹{coupon.discount_value} OFF"
 
         result.append({
             'id': coupon.id,
             'code': coupon.code,
+            'title': coupon.description or f'{discount_label} Coupon',
             'description': coupon.description,
             'discount_type': coupon.discount_type,
             'discount_value': float(coupon.discount_value),
             'min_purchase_amount': float(coupon.min_purchase_amount),
             'valid_until': coupon.valid_to.strftime('%d %b %Y'),
-            'used': used,
+            'used': CouponUsage.objects.filter(coupon=coupon, user=request.user).count() >= coupon.usage_per_user,
+            'discount': discount_label,
         })
 
-    return JsonResponse({'coupons': result})
+    return JsonResponse({'success': True, 'coupons': result})

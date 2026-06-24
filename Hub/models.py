@@ -2028,11 +2028,14 @@ class Coupon(models.Model):
     DISCOUNT_TYPE_CHOICES = [
         ('PERCENTAGE', 'Percentage'),
         ('FIXED', 'Fixed Amount'),
+        ('FREE_SHIPPING', 'Free Shipping'),
     ]
     
     COUPON_TYPE_CHOICES = [
         ('MANUAL', 'Manual Code'),
+        ('NEW_CUSTOMER', 'New Customer'),
         ('FIRST_ORDER', 'First Order (5%)'),
+        ('FREE_SHIPPING', 'Free Shipping'),
         ('SPEND_5K', 'Spend 5000 (5%)'),
     ]
     
@@ -2065,15 +2068,74 @@ class Coupon(models.Model):
         now = timezone.now()
         return self.is_active and self.valid_from <= now <= self.valid_to
     
-    def get_discount_amount(self, cart_total):
-        """Calculate discount amount for given cart total"""
+    def requires_new_customer(self):
+        return self.coupon_type == 'NEW_CUSTOMER'
+
+    def requires_first_order(self):
+        return self.coupon_type in {'FIRST_ORDER', 'FREE_SHIPPING'}
+
+    def is_free_shipping(self):
+        return self.discount_type == 'FREE_SHIPPING' or self.coupon_type == 'FREE_SHIPPING'
+
+    def get_discount_amount(self, cart_total, shipping_cost=0):
+        """Calculate discount amount for given cart total."""
+        cart_total = Decimal(str(cart_total or 0))
+        shipping_cost = Decimal(str(shipping_cost or 0))
+
+        if self.is_free_shipping():
+            return min(shipping_cost, cart_total)
+
         if self.discount_type == 'PERCENTAGE':
             discount = (cart_total * self.discount_value) / 100
             if self.max_discount_amount:
                 discount = min(discount, self.max_discount_amount)
         else:
             discount = self.discount_value
-        return min(discount, cart_total)
+        return min(Decimal(str(discount)), cart_total)
+
+    def get_validation_message(self, user, cart_total):
+        """Return a validation message when the coupon cannot be used."""
+        if not self.is_valid():
+            return 'This coupon has expired or is no longer active.'
+
+        if Decimal(str(cart_total or 0)) < self.min_purchase_amount:
+            return f'Minimum purchase of ₹{self.min_purchase_amount} required for this coupon.'
+
+        if self.usage_limit is not None and self.times_used() >= self.usage_limit:
+            return 'This coupon has reached its usage limit.'
+
+        if CouponUsage.objects.filter(coupon=self, user=user).count() >= self.usage_per_user:
+            return 'You have already used this coupon.'
+
+        profile = getattr(user, 'userprofile', None)
+        if self.requires_new_customer():
+            if not profile or profile.customer_segment != 'NEW':
+                return 'This coupon is only for new customers.'
+
+        if self.requires_first_order():
+            if Order.objects.filter(user=user).exists():
+                return 'This coupon is only for first-time orders.'
+
+        return None
+
+    def get_eligibility_message(self, user):
+        """Return a validation message for user-based eligibility only."""
+        if self.usage_limit is not None and self.times_used() >= self.usage_limit:
+            return 'This coupon has reached its usage limit.'
+
+        if CouponUsage.objects.filter(coupon=self, user=user).count() >= self.usage_per_user:
+            return 'You have already used this coupon.'
+
+        profile = getattr(user, 'userprofile', None)
+        if self.requires_new_customer():
+            if not profile or profile.customer_segment != 'NEW':
+                return 'This coupon is only for new customers.'
+
+        if self.requires_first_order():
+            if Order.objects.filter(user=user).exists():
+                return 'This coupon is only for first-time orders.'
+
+        return None
     
     def times_used(self):
         """Get total usage count"""
