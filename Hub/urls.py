@@ -193,6 +193,7 @@ urlpatterns = [
     path('returns/<int:return_id>/submitted/', views.return_submitted, name='return_submitted'),
     path('returns/<int:return_id>/', views.return_submitted, name='return_status'),
     path('order/track/<str:order_number>/', views.order_tracking, name='order_tracking'),
+    path('order/track/<str:order_number>/live-state/', views.order_tracking_live_state, name='order_tracking_live_state'),
     path('order/cancel/<int:order_id>/', views.customer_cancel_order, name='customer_cancel_order'),
     
     # Review URLs

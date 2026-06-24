@@ -5,6 +5,25 @@
 }
 
 @media (max-width: 767.98px) {
+    body.vm-page-mobile-shop #supportChatWidget {
+        right: 12px !important;
+        bottom: calc(92px + env(safe-area-inset-bottom)) !important;
+        z-index: 1201 !important;
+    }
+
+    body.vm-page-mobile-shop #supportChatToggle {
+        min-height: 40px;
+        padding: 8px 14px;
+        font-size: 14px;
+        border-radius: 999px;
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.22);
+    }
+
+    body.vm-page-mobile-shop #supportChatPanel {
+        width: min(94vw, 320px);
+        max-height: min(64vh, 520px);
+    }
+
     body.shop-filter-open {
         overflow: hidden;
     }

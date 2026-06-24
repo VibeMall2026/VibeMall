@@ -261,6 +261,32 @@
             </div>
             {% endif %}
 
+            <!-- CANCELLATION REQUEST BLOCK: shown for cancellation-related updates -->
+            {% if show_cancellation %}
+            <div class="info-block-dark">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td width="36" style="vertical-align:top; padding-right:14px; font-size:22px; color:#6f5c37;">&#10060;</td>
+                        <td style="vertical-align:top;">
+                            <p class="block-label">Cancellation Update</p>
+                            {% if cancel_request_id %}
+                            <p class="block-text">Reference: <strong>{{ cancel_request_id }}</strong></p>
+                            {% endif %}
+                            {% if cancel_reason %}
+                            <p class="block-text">Reason: {{ cancel_reason }}</p>
+                            {% endif %}
+                            {% if cancel_status_display %}
+                            <p class="block-text">Status: <strong>{{ cancel_status_display }}</strong></p>
+                            {% endif %}
+                            {% if cancel_notes %}
+                            <p class="block-text">Note: {{ cancel_notes }}</p>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            {% endif %}
+
             <!-- PICKUP BLOCK: shown for PICKUP_SCHEDULED / PICKUP_DONE -->
             {% if show_pickup %}
             <div class="info-block-dark">

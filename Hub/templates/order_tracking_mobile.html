@@ -378,7 +378,20 @@
             <p>Estimated Delivery: {% if order.delivery_date %}{{ order.delivery_date|date:'d M, Y' }}{% else %}Awaiting courier update{% endif %}</p>
         </section>
 
-        <section class="vm-tom-timeline">
+        <section class="vm-tom-timeline" data-live-root data-live-signature="{{ live_state.signature }}" data-live-url="{% url 'order_tracking_live_state' order.order_number %}">
+            <div style="padding:14px 16px;border:1px solid rgba(111,92,55,.18);border-radius:18px;background:#fff7ec;margin-bottom:18px;">
+                <small style="display:block;color:#8d6b2f;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;">Current Status</small>
+                <strong style="display:block;font-size:20px;margin-top:4px;">{{ live_state.current_label }}</strong>
+                <p style="margin:8px 0 0;color:rgba(27,28,25,.7);">{{ live_state.current_detail }}</p>
+            </div>
+            {% if live_state.cancel_state %}
+            <div style="padding:14px 16px;border:1px solid rgba(185,86,86,.2);border-radius:18px;background:#fff6f6;margin-bottom:18px;">
+                <small style="display:block;color:#a03f3f;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;">{{ live_state.cancel_state.badge }}</small>
+                <strong style="display:block;font-size:18px;margin-top:4px;">{{ live_state.cancel_state.title }}</strong>
+                {% if live_state.cancel_state.timestamp %}<time style="display:block;margin-top:4px;color:rgba(27,28,25,.55);font-size:12px;">{{ live_state.cancel_state.timestamp|date:'d M, h:i A' }}</time>{% endif %}
+                <p style="margin:8px 0 0;color:rgba(27,28,25,.7);">{{ live_state.cancel_state.detail }}</p>
+            </div>
+            {% endif %}
             <article class="vm-tom-step vm-tom-step--done">
                 <div class="vm-tom-step-dot"><i class="fas fa-check" aria-hidden="true"></i></div>
                 <div class="vm-tom-step-head">
@@ -484,4 +497,28 @@
         {% include 'partials/vm_mobile_alt_bottom_nav.html' with mobile_nav_key='account' %}
     </div>
 </section>
+<script>
+(function () {
+    const root = document.querySelector('[data-live-root]');
+    if (!root) return;
+
+    const liveUrl = root.dataset.liveUrl;
+    let lastSignature = root.dataset.liveSignature || '';
+
+    async function pollLiveState() {
+        try {
+            const response = await fetch(liveUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!response.ok) return;
+            const data = await response.json();
+            if (data.signature && data.signature !== lastSignature) {
+                window.location.reload();
+            }
+        } catch (error) {
+            return;
+        }
+    }
+
+    setInterval(pollLiveState, 20000);
+})();
+</script>
 {% endblock %}

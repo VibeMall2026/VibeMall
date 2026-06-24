@@ -4676,6 +4676,10 @@ def admin_order_details(request, order_id):
                     messages.warning(request, f'Cancellation approved and order cancelled, but refund issue: {refund_notes}')
                 else:
                     messages.success(request, 'Cancellation approved and order cancelled.')
+                try:
+                    send_order_status_update_email(order, old_status=old_status, new_status='CANCELLED')
+                except Exception as email_exc:
+                    logger.error(f"Cancellation approval email failed for order {order.order_number}: {email_exc}", exc_info=True)
             else:
                 cancel_request.status = 'REJECTED'
                 cancel_request.processed_at = now
@@ -4692,6 +4696,10 @@ def admin_order_details(request, order_id):
                     notes=admin_notes or 'Cancellation rejected.'
                 )
                 messages.success(request, 'Cancellation request rejected.')
+                try:
+                    send_order_status_update_email(order, old_status=order.order_status, new_status='CANCEL_REJECTED')
+                except Exception as email_exc:
+                    logger.error(f"Cancellation rejection email failed for order {order.order_number}: {email_exc}", exc_info=True)
         
         return redirect('admin_order_details', order_id=order.id)
     
@@ -10700,6 +10708,77 @@ def _cancel_eligibility(order):
     return True, '', deadline
 
 
+def _build_order_live_state(order):
+    cancel_request = getattr(order, 'cancellation_request', None)
+    latest_status = order.status_history.order_by('-created_at').first() if hasattr(order, 'status_history') else None
+
+    current_label = order.get_order_status_display()
+    current_detail = 'Order is being processed.'
+    if order.order_status == 'PROCESSING':
+        current_detail = 'Your order is being prepared.'
+    elif order.order_status == 'SHIPPED':
+        current_detail = 'Your order is in transit.'
+    elif order.order_status == 'DELIVERED':
+        current_detail = 'Your order has been delivered.'
+    elif order.order_status == 'CANCELLED':
+        current_detail = 'Your order has been cancelled.'
+
+    cancel_state = None
+    if cancel_request:
+        if cancel_request.status == 'REQUESTED':
+            cancel_state = {
+                'title': 'Cancellation Requested',
+                'detail': 'Your cancellation request is waiting for admin review.',
+                'badge': 'PENDING',
+                'timestamp': cancel_request.requested_at,
+            }
+        elif cancel_request.status == 'APPROVED':
+            cancel_state = {
+                'title': 'Cancellation Approved',
+                'detail': 'Your order has been cancelled and will be refunded if applicable.',
+                'badge': 'APPROVED',
+                'timestamp': cancel_request.processed_at or cancel_request.requested_at,
+            }
+            current_label = 'Cancelled'
+            current_detail = cancel_state['detail']
+        elif cancel_request.status == 'REJECTED':
+            cancel_state = {
+                'title': 'Cancellation Rejected',
+                'detail': 'Admin reviewed your request and kept the order active.',
+                'badge': 'REJECTED',
+                'timestamp': cancel_request.processed_at or cancel_request.requested_at,
+            }
+
+    if latest_status and latest_status.new_status == 'CANCEL_REQUESTED':
+        cancel_state = {
+            'title': 'Cancellation Requested',
+            'detail': latest_status.notes or 'Your cancellation request was submitted.',
+            'badge': 'PENDING',
+            'timestamp': latest_status.created_at,
+        }
+
+    signature = '|'.join([
+        str(order.order_status or ''),
+        str(order.updated_at.isoformat() if order.updated_at else ''),
+        str(order.delivery_date.isoformat() if order.delivery_date else ''),
+        str(cancel_request.status if cancel_request else ''),
+        str(cancel_request.processed_at.isoformat() if cancel_request and cancel_request.processed_at else ''),
+        str(cancel_request.requested_at.isoformat() if cancel_request else ''),
+        str(latest_status.new_status if latest_status else ''),
+        str(latest_status.created_at.isoformat() if latest_status else ''),
+    ])
+
+    return {
+        'current_label': current_label,
+        'current_detail': current_detail,
+        'cancel_state': cancel_state,
+        'signature': signature,
+        'order_updated_at': order.updated_at.isoformat() if order.updated_at else '',
+        'delivery_date': order.delivery_date.isoformat() if order.delivery_date else '',
+        'tracking_number': order.tracking_number or '',
+    }
+
+
 def _log_return_history(return_request, old_status, new_status, user=None, notes=''):
     ReturnHistory.objects.create(
         return_request=return_request,
@@ -11169,8 +11248,10 @@ def order_tracking(request, order_number):
         order_items = OrderItem.objects.filter(order=order)
         return_request_obj = order.return_requests.order_by('-requested_at').first()
         return_history = None
+        status_history = order.status_history.select_related('changed_by').order_by('created_at')
         if return_request_obj:
             return_history = return_request_obj.history.select_related('changed_by')
+        live_state = _build_order_live_state(order)
 
         forced_view = (request.GET.get('view') or '').strip().lower()
         if forced_view in {'mobile', 'tablet'}:
@@ -11192,10 +11273,39 @@ def order_tracking(request, order_number):
             'order_items': order_items,
             'return_request': return_request_obj,
             'return_history': return_history,
+            'status_history': status_history,
+            'cancel_request': getattr(order, 'cancellation_request', None),
+            'live_state': live_state,
         })
     except Order.DoesNotExist:
         messages.error(request, 'Order not found')
         return redirect('order_list')
+
+
+@login_required(login_url='login')
+@require_http_methods(["GET"])
+def order_tracking_live_state(request, order_number):
+    """Return lightweight live order state for auto-refresh polling."""
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+
+    normalized_order_number = re.sub(r'[^A-Za-z0-9]', '', (order_number or '').strip()).upper()
+
+    try:
+        order = Order.objects.get(order_number__iexact=normalized_order_number, user=request.user)
+        live_state = _build_order_live_state(order)
+        return JsonResponse({
+            'order_number': order.order_number,
+            'signature': live_state['signature'],
+            'order_status': order.order_status,
+            'order_status_display': order.get_order_status_display(),
+            'cancel_request_status': getattr(getattr(order, 'cancellation_request', None), 'status', ''),
+            'updated_at': live_state['order_updated_at'],
+            'delivery_date': live_state['delivery_date'],
+            'tracking_number': live_state['tracking_number'],
+        })
+    except Order.DoesNotExist:
+        return JsonResponse({'error': 'Order not found'}, status=404)
 
 
 @login_required(login_url='login')
@@ -12078,6 +12188,7 @@ def customer_cancel_order(request, order_id):
     bank_name = request.POST.get('bank_name', '').strip()
     upi_id = request.POST.get('upi_id', '').strip().lower()
     upi_name = ''
+    old_status = order.order_status
 
     if order.payment_method == 'COD' or order.payment_status != 'PAID':
         refund_method = ''
@@ -12129,6 +12240,11 @@ def customer_cancel_order(request, order_id):
         changed_by=request.user,
         notes=notes or 'Cancellation requested by customer.'
     )
+
+    try:
+        send_order_status_update_email(order, old_status=old_status, new_status='CANCEL_REQUESTED')
+    except Exception as email_exc:
+        logger.error(f"Cancellation request email failed for order {order.order_number}: {email_exc}", exc_info=True)
 
     messages.success(request, 'Cancellation request submitted. Admin will review it shortly.')
     return redirect(request.META.get('HTTP_REFERER', 'order_list'))

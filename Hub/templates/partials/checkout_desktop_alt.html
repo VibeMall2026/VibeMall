@@ -283,6 +283,13 @@
                             <input type="text" id="couponCode" name="coupon_code" placeholder="Enter coupon code">
                             <button type="button" id="applyCoupon">Apply</button>
                         </div>
+                        <div id="availableCouponsPanel" class="vm-checkout-d-coupon-panel" style="display:none;">
+                            <div class="vm-checkout-d-coupon-panel__head">
+                                <strong>Available Coupons</strong>
+                                <span id="availableCouponsStatus">Tap apply to use one coupon</span>
+                            </div>
+                            <div id="availableCouponsList" class="vm-checkout-d-coupon-panel__list"></div>
+                        </div>
                         <div id="couponMessage" class="vm-checkout-d-coupon-message mt-2"></div>
                         <div id="appliedCouponDisplay" style="display:none;">
                             <div class="d-flex justify-content-between align-items-center gap-3">

@@ -642,27 +642,43 @@ def send_order_status_update_email(order, old_status, new_status):
                 'hero_title': 'Arriving Today',
                 'cta_label': 'Track Your Journey',
             },
-            'DELIVERED': {
-                'title': 'Order Delivered Successfully',
-                'message': 'Your curated order has reached its destination. We hope every piece feels special when unboxed.',
-                'type': 'DELIVERED',
-                'badge': 'DELIVERY CONFIRMED',
-                'hero_title': 'Your Order Has Arrived',
-                'cta_label': 'View My Order',
-            },
-            'CANCELLED': {
-                'title': 'Order Cancelled',
-                'message': 'Your order has been cancelled. If you need help, our concierge team is here for you.',
-                'type': 'CANCELLED',
-                'badge': 'ORDER UPDATE',
-                'hero_title': 'Your Order Was Cancelled',
-                'cta_label': 'View Order History',
-            },
-            # Return flow statuses
-            'RETURN_SUBMITTED': {
-                'title': 'Return Request Submitted',
-                'message': 'We have received your return request and our team is reviewing it. You will hear from us shortly.',
-                'type': 'RETURN_SUBMITTED',
+        'DELIVERED': {
+            'title': 'Order Delivered Successfully',
+            'message': 'Your curated order has reached its destination. We hope every piece feels special when unboxed.',
+            'type': 'DELIVERED',
+            'badge': 'DELIVERY CONFIRMED',
+            'hero_title': 'Your Order Has Arrived',
+            'cta_label': 'View My Order',
+        },
+        'CANCELLED': {
+            'title': 'Order Cancelled',
+            'message': 'Your order has been cancelled. If you need help, our concierge team is here for you.',
+            'type': 'CANCELLED',
+            'badge': 'ORDER UPDATE',
+            'hero_title': 'Your Order Was Cancelled',
+            'cta_label': 'View Order History',
+        },
+        'CANCEL_REQUESTED': {
+            'title': 'Cancellation Request Received',
+            'message': 'We have received your cancellation request and our team will review it shortly.',
+            'type': 'CANCEL_REQUESTED',
+            'badge': 'CANCELLATION REQUEST',
+            'hero_title': 'Cancellation Request Submitted',
+            'cta_label': 'View Order',
+        },
+        'CANCEL_REJECTED': {
+            'title': 'Cancellation Request Rejected',
+            'message': 'Your cancellation request was reviewed and rejected. The order will remain active.',
+            'type': 'CANCEL_REJECTED',
+            'badge': 'REQUEST UPDATE',
+            'hero_title': 'Cancellation Request Rejected',
+            'cta_label': 'View Order',
+        },
+        # Return flow statuses
+        'RETURN_SUBMITTED': {
+            'title': 'Return Request Submitted',
+            'message': 'We have received your return request and our team is reviewing it. You will hear from us shortly.',
+            'type': 'RETURN_SUBMITTED',
                 'badge': 'RETURN REQUEST',
                 'hero_title': 'Return Request Received',
                 'cta_label': 'View Return Status',
@@ -754,6 +770,11 @@ def send_order_status_update_email(order, old_status, new_status):
         return_request_id = getattr(return_obj, 'id', '') or ''
         return_reason     = getattr(return_obj, 'reason', '') or ''
         return_status_display = getattr(return_obj, 'get_status_display', lambda: '')() if return_obj else ''
+        cancel_obj = getattr(order, 'cancellation_request', None)
+        cancel_request_id = getattr(cancel_obj, 'id', '') or ''
+        cancel_reason = getattr(cancel_obj, 'reason', '') or ''
+        cancel_status_display = getattr(cancel_obj, 'get_status_display', lambda: '')() if cancel_obj else ''
+        cancel_notes = getattr(cancel_obj, 'notes', '') or ''
         pickup_date    = getattr(return_obj, 'pickup_date', None)
         pickup_date    = pickup_date.strftime('%B %d, %Y') if pickup_date else ''
         pickup_window  = getattr(return_obj, 'pickup_window', '') or ''
@@ -776,6 +797,7 @@ def send_order_status_update_email(order, old_status, new_status):
         show_return   = new_status in ('RETURN_SUBMITTED', 'RETURN_ACCEPTED', 'PICKUP_SCHEDULED', 'PICKUP_DONE')
         show_pickup   = new_status in ('PICKUP_SCHEDULED', 'PICKUP_DONE')
         show_payment  = new_status == 'PROCEED_TO_PAYMENT'
+        show_cancellation = new_status in ('CANCEL_REQUESTED', 'CANCEL_REJECTED') or bool(cancel_obj)
 
         from datetime import datetime as _dt
         event_date = _dt.now().strftime('%b %d, %Y').upper()
@@ -807,6 +829,12 @@ def send_order_status_update_email(order, old_status, new_status):
             'return_request_id': return_request_id,
             'return_reason': return_reason,
             'return_status_display': return_status_display,
+            # Cancellation block
+            'show_cancellation': show_cancellation,
+            'cancel_request_id': cancel_request_id,
+            'cancel_reason': cancel_reason,
+            'cancel_status_display': cancel_status_display,
+            'cancel_notes': cancel_notes,
             # Pickup block
             'show_pickup': show_pickup,
             'pickup_date': pickup_date,
