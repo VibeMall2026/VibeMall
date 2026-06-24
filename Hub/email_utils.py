@@ -7,6 +7,7 @@ from django.core.mail import send_mail, EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.urls import reverse
+from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
@@ -15,6 +16,7 @@ import logging
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
+User = get_user_model()
 
 
 def _get_from_email() -> str:
@@ -77,8 +79,22 @@ def _get_admin_notification_emails() -> list[str]:
     elif isinstance(fallback_setting, (list, tuple)):
         emails.extend([str(email).strip() for email in fallback_setting if str(email).strip()])
 
+    try:
+        site_settings = SiteSettings.get_settings()
+        contact_email = (site_settings.contact_email or '').strip()
+        if contact_email:
+            emails.append(contact_email)
+    except Exception:
+        pass
+
+    try:
+        staff_emails = User.objects.filter(is_staff=True, is_active=True).exclude(email='').values_list('email', flat=True)
+        emails.extend([email.strip() for email in staff_emails if email and email.strip()])
+    except Exception:
+        pass
+
     if not emails:
-        emails.append('info.vibemall@gmail.com')
+        emails.append(getattr(settings, 'SERVER_EMAIL', '').strip() or 'info.vibemall@gmail.com')
 
     # Preserve order while deduplicating
     unique_emails: list[str] = []
@@ -89,7 +105,15 @@ def _get_admin_notification_emails() -> list[str]:
             continue
         seen.add(key)
         unique_emails.append(email)
+    logger.debug("Resolved admin notification recipients: %s", ', '.join(unique_emails))
     return unique_emails
+
+
+def _get_customer_notification_email(order) -> str:
+    customer_email = (getattr(order, 'customer_email', '') or '').strip()
+    if customer_email:
+        return customer_email
+    return (getattr(order.user, 'email', '') or '').strip()
 
 
 def _resolve_site_url(request=None) -> str:
@@ -226,7 +250,7 @@ def build_invoice_context(order):
         'company_address_lines': company_address_lines,
         'customer_id': f'CU-{order.user_id:05d}',
         'customer_name': customer_name,
-        'customer_email': order.user.email,
+        'customer_email': _get_customer_notification_email(order),
         'customer_phone': customer_phone,
         'billing_lines': split_address_lines(customer_address),
         'shipping_lines': split_address_lines(order.shipping_address or customer_address),
@@ -265,7 +289,8 @@ def send_order_confirmation_email(order):
             logger.warning("WeasyPrint PDF dependencies unavailable. Invoice PDF will not be attached: %s", exc)
             pdf_generation_available = False
         
-        if not order.user.email:
+        to_email = _get_customer_notification_email(order)
+        if not to_email:
             raise ValueError(f"Order #{order.order_number} cannot send confirmation email because the customer account has no email address.")
 
         # Validate email configuration before sending
@@ -406,8 +431,6 @@ def send_order_confirmation_email(order):
         
         # Create email
         subject = f'Order Confirmation - #{order.order_number} - VibeMall'
-        to_email = order.user.email
-        
         # Send email with both HTML and plain text versions
         email = EmailMultiAlternatives(
             subject=subject,
@@ -514,7 +537,7 @@ def send_order_confirmation_email(order):
         
         EmailLog.objects.create(
             user=order.user,
-            email_to=order.user.email,
+            email_to=to_email,
             email_type='ORDER_CONFIRMATION',
             subject=f'Order Confirmation - #{order.order_number}',
             order=order,
@@ -554,7 +577,8 @@ def send_order_status_update_email(order, old_status, new_status):
                 logger.error(f"Failed to award loyalty points for order {order.order_number}: {str(e)}")
         
         # Validate recipient and sender configuration
-        if not order.user.email:
+        to_email = _get_customer_notification_email(order)
+        if not to_email:
             logger.warning(f"Skipping status email for order {order.order_number}: user has no email")
             return False
 
@@ -833,7 +857,7 @@ def send_order_status_update_email(order, old_status, new_status):
             subject=subject,
             body=text_content,
             from_email=from_email,
-            to=[order.user.email]
+            to=[to_email]
         )
         email.attach_alternative(html_content, "text/html")
         email.send(fail_silently=False)
@@ -841,7 +865,7 @@ def send_order_status_update_email(order, old_status, new_status):
         # Log email
         EmailLog.objects.create(
             user=order.user,
-            email_to=order.user.email,
+            email_to=to_email,
             email_type=f'ORDER_{new_status}',
             subject=subject,
             order=order,
@@ -857,7 +881,7 @@ def send_order_status_update_email(order, old_status, new_status):
             link=f'/orders/{order.id}/'
         )
         
-        logger.info(f"Order status update email sent to {order.user.email} for order {order.order_number} (Status: {new_status})")
+        logger.info(f"Order status update email sent to {to_email} for order {order.order_number} (Status: {new_status})")
         return True
         
     except Exception as e:
@@ -869,7 +893,7 @@ def send_order_status_update_email(order, old_status, new_status):
 
         EmailLog.objects.create(
             user=order.user,
-            email_to=order.user.email,
+            email_to=to_email,
             email_type='ORDER_STATUS_UPDATE',
             subject=failed_subject,
             order=order,
@@ -896,6 +920,7 @@ def send_admin_order_notification(order, request):
         from_email = _validate_email_settings()
 
         admin_emails = _get_admin_notification_emails()
+        customer_email = _get_customer_notification_email(order)
         
         # Build absolute URLs
         site_url = request.build_absolute_uri('/').rstrip('/')
@@ -917,7 +942,7 @@ def send_admin_order_notification(order, request):
 New Order Received - #{order.order_number}
 
 Customer: {order.user.get_full_name() or order.user.username}
-Email: {order.user.email}
+Email: {customer_email or order.user.email}
 Total Amount: â‚¹{order.total_amount}
 Payment Method: {order.get_payment_method_display()}
 Payment Status: {order.payment_status}

@@ -629,6 +629,7 @@ class ResellOrderProcessor:
         # Create order
         order = Order.objects.create(
             user=customer,
+            customer_email=kwargs.get('customer_email', getattr(customer, 'email', '') or ''),
             is_resell=True,
             reseller=resell_link.reseller,
             resell_link=resell_link,

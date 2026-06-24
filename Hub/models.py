@@ -925,6 +925,7 @@ class Order(models.Model):
     # Order identification
     order_number = models.CharField(max_length=20, unique=True, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders')
+    customer_email = models.EmailField(blank=True, default='', help_text='Email address used for order notifications')
     
     # Order amounts
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)

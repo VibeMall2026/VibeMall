@@ -6747,6 +6747,7 @@ def checkout_confirm(request):
                         shipping_address=shipping_address,
                         billing_address=shipping_address,
                         payment_method=payment_method,
+                        customer_email=email,
                         tax=tax,
                         shipping_cost=shipping_cost,
                         coupon_discount=coupon_discount,
@@ -6774,6 +6775,7 @@ def checkout_confirm(request):
                 # Regular order and manual resell order
                 order_kwargs = {
                     'user': request.user,
+                    'customer_email': email,
                     'subtotal': subtotal,
                     'tax': tax,
                     'shipping_cost': shipping_cost,

@@ -1125,7 +1125,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         let currentIndex = 0;
-        let visibleCount = 3;
+        let visibleCount = 2;
         let dots = [];
         let autoplayTimer = null;
         const autoplayDelay = 4500;
@@ -1250,7 +1250,7 @@ document.addEventListener('DOMContentLoaded', function () {
         };
 
         const refreshSlider = function () {
-            visibleCount = window.innerWidth >= 1200 ? 3 : 1;
+            visibleCount = window.innerWidth >= 1200 ? 2 : 1;
             renderDots();
             updateSlider();
             startAutoplay();
