@@ -357,7 +357,9 @@
                                         <div>
                                             <h6 class="mb-1">{{ offer.code }}</h6>
                                             <div class="text-muted small mb-2">{{ offer.title }}</div>
+                                            {% if offer.description and offer.description != offer.title %}
                                             <div class="small mb-2">{{ offer.description }}</div>
+                                            {% endif %}
                                             <div class="small">
                                                 <strong>{{ offer.discount }}</strong>
                                                 {% if offer.min_purchase_amount and offer.min_purchase_amount > 0 %}

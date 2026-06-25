@@ -8860,7 +8860,7 @@ def profile_view(request):
         available_offers.append({
             'id': coupon.id,
             'code': coupon.code,
-            'title': coupon.description or f'{discount_label} Coupon',
+            'title': f'{discount_label} Coupon',
             'description': coupon.description or 'Available on eligible orders.',
             'discount': discount_label,
             'min_purchase_amount': coupon.min_purchase_amount,

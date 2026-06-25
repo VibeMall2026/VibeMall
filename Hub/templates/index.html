@@ -103,6 +103,9 @@
     position: relative;
     overflow: hidden;
   }
+  .vm-copy-product-card {
+    cursor: pointer;
+  }
   .vm-copy-product-card__hover {
     position: absolute;
     inset: 0;
@@ -916,7 +919,7 @@
             </div>
             <div class="vm-copy-product-grid">
                 {% for product in recommended|slice:":4" %}
-                <article class="vm-copy-product-card">
+                <article class="vm-copy-product-card" data-product-url="{% url 'product_detail' product.slug %}" role="link" tabindex="0">
                     <div class="vm-copy-product-card__media">
                         <a href="{% url 'product_detail' product.slug %}">
                             {% if product.image %}
@@ -926,7 +929,7 @@
                             {% endif %}
                         </a>
                         <div class="vm-copy-product-card__hover">
-                            <a href="{% url 'product_detail' product.slug %}" class="vm-copy-product-card__quick">
+                            <a href="{% url 'product_detail' product.slug %}" class="vm-copy-product-card__quick" onclick="event.stopPropagation()">
                                 <i class="fal fa-eye"></i>
                                 <span>Quick View</span>
                             </a>
@@ -935,7 +938,7 @@
                                 data-product-id="{{ product.id }}"
                                 data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
                                 aria-label="Add {{ product.name }} to cart"
-                                onclick="handleCartClick(this)">
+                                onclick="event.stopPropagation(); handleCartClick(this)">
                                 <i class="{% if product.id in cart_product_ids %}fas{% else %}fal{% endif %} fa-shopping-bag"></i>
                                 <span>{% if product.id in cart_product_ids %}In Cart{% else %}Add to Cart{% endif %}</span>
                             </button>
@@ -945,7 +948,7 @@
                                 data-logged-in="{% if user.is_authenticated %}1{% else %}0{% endif %}"
                                 data-in-wishlist="{% if product.id in wishlist_product_ids %}1{% else %}0{% endif %}"
                                 aria-label="Wishlist {{ product.name }}"
-                                onclick="handleWishlistClick(this)">
+                                onclick="event.stopPropagation(); handleWishlistClick(this)">
                                 <i class="{% if product.id in wishlist_product_ids %}fas{% else %}fal{% endif %} fa-heart"></i>
                             </button>
                         </div>
@@ -1111,8 +1114,8 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    const watchSliders = document.querySelectorAll('[data-vm-watch-slider]');
-    watchSliders.forEach(function (slider) {
+const watchSliders = document.querySelectorAll('[data-vm-watch-slider]');
+watchSliders.forEach(function (slider) {
         const section = slider.closest('.vm-copy-watch');
         const track = slider.querySelector('[data-vm-watch-track]');
         const slides = track ? Array.from(track.querySelectorAll('[data-vm-watch-slide]')) : [];
@@ -1340,6 +1343,22 @@ document.addEventListener('DOMContentLoaded', function () {
         carousel.addEventListener('mouseleave', startAuto);
 
         startAuto();
+    });
+
+    document.querySelectorAll('.vm-copy-product-card[data-product-url]').forEach(function (card) {
+        card.addEventListener('click', function (event) {
+            if (event.target.closest('a, button')) {
+                return;
+            }
+            window.location.href = card.dataset.productUrl;
+        });
+
+        card.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                window.location.href = card.dataset.productUrl;
+            }
+        });
     });
 });
 </script>

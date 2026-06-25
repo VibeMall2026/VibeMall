@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator
 from decimal import Decimal
+import logging
 import csv
 import json
 from io import StringIO
@@ -23,6 +24,8 @@ from Hub.models_new_features import (
     AdminRole, AdminUserRole, SalesReport, EmailTemplate
 )
 from Hub.models import Product, Order, OrderItem
+
+logger = logging.getLogger(__name__)
 
 
 # Helper decorator for staff members
@@ -190,7 +193,7 @@ def _build_admin_notification_feed(limit=12):
             'Support',
         )
 
-    for alert in ProductStockNotification.objects.select_related('product', 'user').filter(is_sent=False).order_by('-requested_at')[:5]:
+    for alert in ProductStockNotification.objects.select_related('product', 'user').filter(is_sent=False).order_by('-created_at')[:5]:
         add_item(
             getattr(alert, 'requested_at', None) or getattr(alert, 'created_at', None),
             f'Stock alert: {alert.product.name}',
@@ -254,26 +257,35 @@ def _build_admin_notification_feed(limit=12):
 @staff_member_required(login_url='login')
 def admin_notification_feed(request):
     """Return a compact admin notification feed for the shared navbar."""
-    items = _build_admin_notification_feed(limit=int(request.GET.get('limit', 12)))
-    unread_count = len(items)
+    try:
+        items = _build_admin_notification_feed(limit=int(request.GET.get('limit', 12)))
+        unread_count = len(items)
 
-    payload = []
-    for item in items:
-        payload.append({
-            'title': item['title'],
-            'description': item['description'],
-            'url': item['url'],
-            'icon': item['icon'],
-            'color': item['color'],
-            'badge': item['badge'],
-            'created_at': timezone.localtime(item['timestamp']).strftime('%d %b, %I:%M %p'),
+        payload = []
+        for item in items:
+            payload.append({
+                'title': item['title'],
+                'description': item['description'],
+                'url': item['url'],
+                'icon': item['icon'],
+                'color': item['color'],
+                'badge': item['badge'],
+                'created_at': timezone.localtime(item['timestamp']).strftime('%d %b, %I:%M %p'),
+            })
+
+        return JsonResponse({
+            'success': True,
+            'count': unread_count,
+            'items': payload,
         })
-
-    return JsonResponse({
-        'success': True,
-        'count': unread_count,
-        'items': payload,
-    })
+    except Exception as exc:
+        logger.exception('Failed to build admin notification feed: %s', exc)
+        return JsonResponse({
+            'success': False,
+            'count': 0,
+            'items': [],
+            'error': 'Unable to load notifications right now.',
+        }, status=500)
 
 
 # ============ DISCOUNT COUPONS ============
