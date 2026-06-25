@@ -242,6 +242,10 @@
             </a>
         </div>
     </div>
+    <div class="alert alert-info mb-4">
+        <i class="fas fa-sort-numeric-down me-2"></i>
+        Lower <strong>Display Order</strong> numbers appear first on the Watch &amp; Shop homepage section. You can edit the order inside each reel.
+    </div>
 
     <!-- Stats Cards -->
     <div class="row mb-4">
@@ -283,6 +287,7 @@
         <input type="text" id="searchInput" placeholder="Search reels..." onkeyup="searchReels()">
         
         <select id="sortBy" onchange="sortReels()">
+            <option value="order">Homepage Order</option>
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
             <option value="title">Title A-Z</option>
@@ -294,7 +299,7 @@
     {% if reels %}
     <div class="row" id="reelsGrid">
         {% for reel in reels %}
-        <div class="col-md-4 reel-item" data-status="{% if reel.is_processing %}processing{% elif reel.is_published %}published{% else %}draft{% endif %}" data-title="{{ reel.title|lower }}">
+        <div class="col-md-4 reel-item" data-status="{% if reel.is_processing %}processing{% elif reel.is_published %}published{% else %}draft{% endif %}" data-title="{{ reel.title|lower }}" data-order="{{ reel.order|default:0 }}" data-duration="{{ reel.duration|default:0 }}" data-created="{{ reel.created_at|date:'U' }}">
             <div class="reel-card">
                 <div class="reel-thumbnail-wrapper">
                     {% if reel.thumbnail %}
@@ -317,7 +322,12 @@
                 </div>
                 
                 <div class="reel-content">
-                    <h5 class="reel-title">{{ reel.title }}</h5>
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <h5 class="reel-title mb-0">{{ reel.title }}</h5>
+                        <span class="reel-status status-published" title="Homepage order">
+                            #{{ reel.order|default:0 }}
+                        </span>
+                    </div>
                     
                     <div class="reel-meta">
                         <span><i class="fas fa-images"></i> {{ reel.images.count }} images</span>
@@ -510,8 +520,20 @@
         const items = Array.from(document.querySelectorAll('.reel-item'));
         
         items.sort((a, b) => {
+            if (sortBy === 'order') {
+                return (parseInt(a.dataset.order || '0', 10) - parseInt(b.dataset.order || '0', 10)) || (parseInt(b.dataset.created || '0', 10) - parseInt(a.dataset.created || '0', 10));
+            }
+            if (sortBy === 'newest') {
+                return parseInt(b.dataset.created || '0', 10) - parseInt(a.dataset.created || '0', 10);
+            }
+            if (sortBy === 'oldest') {
+                return parseInt(a.dataset.created || '0', 10) - parseInt(b.dataset.created || '0', 10);
+            }
             if (sortBy === 'title') {
                 return a.dataset.title.localeCompare(b.dataset.title);
+            }
+            if (sortBy === 'duration') {
+                return parseInt(a.dataset.duration || '0', 10) - parseInt(b.dataset.duration || '0', 10);
             }
             // Add more sorting logic as needed
             return 0;

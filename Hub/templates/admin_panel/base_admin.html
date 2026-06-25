@@ -85,9 +85,68 @@
         padding: 10px 12px;
         color: #6c757d;
       }
+      .admin-notification-toggle {
+        position: relative;
+      }
+      .admin-notification-badge {
+        position: absolute;
+        top: -4px;
+        right: -6px;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        border-radius: 999px;
+        background: #dc3545;
+        color: #fff;
+        font-size: 10px;
+        line-height: 18px;
+        text-align: center;
+        font-weight: 700;
+      }
+      .admin-notification-menu {
+        width: 380px;
+        max-width: calc(100vw - 24px);
+      }
+      .admin-notification-list {
+        max-height: 420px;
+        overflow-y: auto;
+      }
+      .admin-notification-item {
+        display: flex;
+        gap: 12px;
+        padding: 12px 14px;
+        border-bottom: 1px solid #f1f3f5;
+        text-decoration: none;
+        color: inherit;
+      }
+      .admin-notification-item:hover {
+        background: #f8f9fa;
+      }
+      .admin-notification-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: #fff;
+      }
+      .admin-notification-meta {
+        font-size: 12px;
+        color: #6c757d;
+      }
+      .admin-notification-title {
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 2px;
+      }
       @media (max-width: 1200px) {
         .admin-search-wrapper {
           width: 200px;
+        }
+        .admin-notification-menu {
+          width: 320px;
         }
       }
       body {
@@ -774,6 +833,21 @@
               <!-- /Search -->
 
               <ul class="navbar-nav flex-row align-items-center ms-auto">
+                <li class="nav-item dropdown admin-notification-toggle me-2">
+                  <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" id="adminNotificationToggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bx bx-bell fs-4 lh-0"></i>
+                    <span id="adminNotificationBadge" class="admin-notification-badge" style="display:none;">0</span>
+                  </a>
+                  <div class="dropdown-menu dropdown-menu-end shadow admin-notification-menu" aria-labelledby="adminNotificationToggle">
+                    <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+                      <strong>Notifications</strong>
+                      <a href="{% url 'admin_activity_logs' %}" class="small text-primary text-decoration-none">View all</a>
+                    </div>
+                    <div id="adminNotificationList" class="admin-notification-list">
+                      <div class="px-3 py-4 text-muted">Loading notifications...</div>
+                    </div>
+                  </div>
+                </li>
                 <!-- User -->
                 <li class="nav-item navbar-dropdown dropdown-user dropdown">
                   <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown">
@@ -1058,6 +1132,69 @@
           if (!resultsBox.contains(event.target) && event.target !== searchInput) {
             closeResults();
           }
+        });
+      });
+    </script>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        const badge = document.getElementById('adminNotificationBadge');
+        const list = document.getElementById('adminNotificationList');
+        const toggle = document.getElementById('adminNotificationToggle');
+        if (!badge || !list || !toggle) return;
+
+        const iconClasses = {
+          success: 'bg-success',
+          danger: 'bg-danger',
+          warning: 'bg-warning',
+          info: 'bg-info',
+          primary: 'bg-primary',
+          secondary: 'bg-secondary',
+          dark: 'bg-dark',
+        };
+
+        const renderItems = (items) => {
+          if (!items.length) {
+            list.innerHTML = '<div class="px-3 py-4 text-muted">No recent notifications.</div>';
+            badge.style.display = 'none';
+            return;
+          }
+
+          list.innerHTML = items.map((item) => `
+            <a href="${item.url}" class="admin-notification-item">
+              <span class="admin-notification-icon ${iconClasses[item.color] || 'bg-primary'}">
+                <i class="${item.icon}"></i>
+              </span>
+              <span class="flex-grow-1">
+                <span class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                  <span class="admin-notification-title">${item.title}</span>
+                  <span class="badge bg-label-secondary">${item.badge}</span>
+                </span>
+                <span class="d-block">${item.description}</span>
+                <span class="admin-notification-meta">${item.created_at}</span>
+              </span>
+            </a>
+          `).join('');
+
+          badge.textContent = String(items.length);
+          badge.style.display = 'inline-block';
+        };
+
+        const loadNotifications = () => {
+          fetch('/admin-panel/notifications/feed/?limit=10')
+            .then((response) => response.json())
+            .then((data) => renderItems(data.items || []))
+            .catch(() => {
+              list.innerHTML = '<div class="px-3 py-4 text-muted">Unable to load notifications.</div>';
+              badge.style.display = 'none';
+            });
+        };
+
+        loadNotifications();
+
+        toggle.addEventListener('mouseenter', function () {
+          const dropdown = bootstrap.Dropdown.getOrCreateInstance(toggle);
+          dropdown.show();
         });
       });
     </script>

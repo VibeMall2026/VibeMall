@@ -245,6 +245,7 @@ urlpatterns = [
 urlpatterns += [
     # Activity Logs
     path('admin-panel/activity-logs/', views_new_features.admin_activity_logs, name='admin_activity_logs'),
+    path('admin-panel/notifications/feed/', views_new_features.admin_notification_feed, name='admin_notification_feed'),
     
     # Discount Coupons
     path('admin-panel/coupons/', views_new_features.admin_coupons, name='admin_coupons'),

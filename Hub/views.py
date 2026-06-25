@@ -8834,11 +8834,46 @@ def profile_view(request):
     # Get loyalty points and transactions
     loyalty_account, _ = LoyaltyPoints.objects.get_or_create(user=request.user)
     points_transactions = PointsTransaction.objects.filter(user=request.user).order_by('-created_at')[:10]
+
+    from django.utils import timezone
+    from .models import Coupon, CouponUsage
+
+    now = timezone.now()
+    available_offers = []
+    coupons = Coupon.objects.filter(
+        is_active=True,
+        valid_from__lte=now,
+        valid_to__gte=now,
+    ).order_by('-created_at')[:20]
+
+    for coupon in coupons:
+        if coupon.get_eligibility_message(request.user):
+            continue
+
+        if coupon.discount_type == 'PERCENTAGE':
+            discount_label = f"{coupon.discount_value}% OFF"
+        elif coupon.discount_type == 'FREE_SHIPPING':
+            discount_label = 'Free Shipping'
+        else:
+            discount_label = f"₹{coupon.discount_value} OFF"
+
+        available_offers.append({
+            'id': coupon.id,
+            'code': coupon.code,
+            'title': coupon.description or f'{discount_label} Coupon',
+            'description': coupon.description or 'Available on eligible orders.',
+            'discount': discount_label,
+            'min_purchase_amount': coupon.min_purchase_amount,
+            'valid_until': coupon.valid_to,
+            'used': CouponUsage.objects.filter(coupon=coupon, user=request.user).count() >= coupon.usage_per_user,
+        })
     
     return render(request, 'profile.html', {
         'profile': profile,
         'loyalty_account': loyalty_account,
-        'points_transactions': points_transactions
+        'points_transactions': points_transactions,
+        'available_offers': available_offers,
+        'available_offers_count': len(available_offers),
     })
 
 
@@ -12565,7 +12600,7 @@ def admin_reels(request):
     """Admin reel management list"""
     from Hub.models import Reel
     
-    reels = Reel.objects.all().order_by('-created_at')
+    reels = Reel.objects.all().order_by('order', '-created_at')
     
     # Search functionality
     search_query = request.GET.get('search', '').strip()
@@ -12962,7 +12997,7 @@ def admin_reels(request):
     """Reel list page"""
     from Hub.models import Reel
     
-    reels = Reel.objects.all().prefetch_related('images').order_by('-created_at')
+    reels = Reel.objects.all().prefetch_related('images').order_by('order', '-created_at')
     
     # Calculate stats
     total_reels = reels.count()

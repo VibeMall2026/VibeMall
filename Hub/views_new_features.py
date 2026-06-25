@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.http import HttpResponse, JsonResponse
+from django.urls import reverse
 from django.db.models import Q, Sum, Count, Avg
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
@@ -91,6 +92,188 @@ def log_activity(user, action, model_name, object_id=None, object_name='', chang
         ip_address=ip_address,
         user_agent=user_agent,
     )
+
+
+def _build_admin_notification_feed(limit=12):
+    """Build a unified admin activity feed for the navbar notification menu."""
+    from Hub.models import (
+        BackupLog,
+        ChatThread,
+        NewsletterSubscription,
+        OrderCancellationRequest,
+        ReturnRequest,
+        UPIVerification,
+        ProductStockNotification,
+    )
+
+    items = []
+
+    def add_item(timestamp, title, description, url, icon, color, badge):
+        if not timestamp:
+            return
+        items.append({
+            'title': title,
+            'description': description,
+            'url': url,
+            'icon': icon,
+            'color': color,
+            'badge': badge,
+            'timestamp': timestamp,
+        })
+
+    # Orders and payment issues
+    for order in Order.objects.select_related('user').order_by('-created_at')[:6]:
+        add_item(
+            order.created_at,
+            f'New order #{order.order_number}',
+            f"{order.user.username} • ₹{order.total_amount} • {order.get_order_status_display()}",
+            reverse('admin_order_details', args=[order.id]),
+            'bx bx-cart',
+            'success',
+            'Order',
+        )
+
+    for order in Order.objects.select_related('user').filter(payment_status__in=['PENDING', 'FAILED']).order_by('-created_at')[:5]:
+        add_item(
+            order.updated_at if hasattr(order, 'updated_at') else order.created_at,
+            f'Payment issue #{order.order_number}',
+            f"{order.user.username} • {order.get_payment_status_display()}",
+            reverse('admin_order_details', args=[order.id]),
+            'bx bx-error',
+            'danger',
+            'Payment',
+        )
+
+    # Cancellations and returns
+    for request_obj in OrderCancellationRequest.objects.select_related('order', 'user').order_by('-requested_at')[:5]:
+        add_item(
+            request_obj.requested_at,
+            f'Cancellation request #{request_obj.order.order_number}',
+            f"{request_obj.user.username} • {request_obj.get_status_display()}",
+            reverse('admin_order_details', args=[request_obj.order.id]),
+            'bx bx-x-circle',
+            'warning',
+            'Cancel',
+        )
+
+    for request_obj in ReturnRequest.objects.select_related('order', 'user').order_by('-requested_at')[:5]:
+        add_item(
+            request_obj.requested_at,
+            f'Return request #{request_obj.return_number}',
+            f"{request_obj.user.username} • {request_obj.get_status_display()}",
+            reverse('admin_return_detail', args=[request_obj.id]),
+            'bx bx-archive-out',
+            'info',
+            'Return',
+        )
+
+    # Users and support activity
+    for customer in User.objects.filter(is_staff=False).order_by('-date_joined')[:5]:
+        add_item(
+            customer.date_joined,
+            f'New customer {customer.username}',
+            customer.email or 'New account registered',
+            reverse('admin_customer_segmentation'),
+            'bx bx-user-plus',
+            'primary',
+            'User',
+        )
+
+    for thread in ChatThread.objects.select_related('user').order_by('-last_message_at', '-created_at')[:5]:
+        add_item(
+            thread.last_message_at or thread.created_at,
+            f'New support ticket #{thread.id}',
+            thread.display_name() if hasattr(thread, 'display_name') else (thread.user.username if thread.user else 'Guest support request'),
+            reverse('admin_chat_detail', args=[thread.id]),
+            'bx bx-message-square-dots',
+            'secondary',
+            'Support',
+        )
+
+    for alert in ProductStockNotification.objects.select_related('product', 'user').filter(is_sent=False).order_by('-requested_at')[:5]:
+        add_item(
+            getattr(alert, 'requested_at', None) or getattr(alert, 'created_at', None),
+            f'Stock alert: {alert.product.name}',
+            alert.user.email if alert.user else 'Guest request',
+            reverse('admin_low_stock_alerts'),
+            'bx bx-package',
+            'warning',
+            'Stock',
+        )
+
+    for subscription in NewsletterSubscription.objects.order_by('-subscribed_at')[:5]:
+        add_item(
+            subscription.subscribed_at,
+            'New contact / subscriber',
+            subscription.email,
+            reverse('admin_newsletter_subscribers'),
+            'bx bx-envelope',
+            'info',
+            'Mail',
+        )
+
+    for verification in UPIVerification.objects.select_related('user').order_by('-created_at')[:5]:
+        add_item(
+            verification.created_at,
+            f'UPI verification #{verification.id}',
+            f"{verification.user.username} • {verification.status}",
+            reverse('admin_upi_verification_review', args=[verification.id]),
+            'bx bx-credit-card',
+            'danger' if verification.status == 'FAILED' else 'success',
+            'UPI',
+        )
+
+    for backup in BackupLog.objects.order_by('-start_time')[:5]:
+        add_item(
+            backup.start_time,
+            f'Backup {backup.get_status_display()}',
+            f"{backup.get_backup_type_display()} • {backup.get_backup_scope_display()}",
+            reverse('admin_backup_history'),
+            'bx bx-data',
+            'success' if backup.status == 'SUCCESS' else 'warning',
+            'Backup',
+        )
+
+    # Admin activity logs
+    for log in ActivityLog.objects.select_related('admin_user').order_by('-timestamp')[:8]:
+        add_item(
+            log.timestamp,
+            f'{log.get_action_display()} {log.model_name}',
+            log.object_name or f'#{log.object_id or ""}',
+            reverse('admin_activity_logs'),
+            'bx bx-history',
+            'dark',
+            'Activity',
+        )
+
+    items.sort(key=lambda item: item['timestamp'], reverse=True)
+    return items[:limit]
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_notification_feed(request):
+    """Return a compact admin notification feed for the shared navbar."""
+    items = _build_admin_notification_feed(limit=int(request.GET.get('limit', 12)))
+    unread_count = len(items)
+
+    payload = []
+    for item in items:
+        payload.append({
+            'title': item['title'],
+            'description': item['description'],
+            'url': item['url'],
+            'icon': item['icon'],
+            'color': item['color'],
+            'badge': item['badge'],
+            'created_at': timezone.localtime(item['timestamp']).strftime('%d %b, %I:%M %p'),
+        })
+
+    return JsonResponse({
+        'success': True,
+        'count': unread_count,
+        'items': payload,
+    })
 
 
 # ============ DISCOUNT COUPONS ============

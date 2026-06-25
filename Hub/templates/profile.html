@@ -206,10 +206,21 @@
 
                     <article class="pdv-card pdv-discount">
                         <div>
+                            <div class="d-inline-flex align-items-center gap-2 mb-2">
+                                <span class="badge bg-warning text-dark">Available Offers</span>
+                            </div>
                             <h4>Active Discounts</h4>
-                            <p>SUMMER20 - 20% Off</p>
+                            {% if available_offers %}
+                                <p class="mb-1">{{ available_offers_count }} offer{{ available_offers_count|pluralize }} available now.</p>
+                                <small class="text-muted">Tap view to see the best coupon for your account.</small>
+                            {% else %}
+                                <p class="mb-1">No active offers available right now.</p>
+                                <small class="text-muted">Check back later for fresh discounts.</small>
+                            {% endif %}
                         </div>
-                        <button type="button" class="pdv-btn" data-pdv-copy="SUMMER20">Copy Code</button>
+                        <button type="button" class="pdv-btn" data-bs-toggle="modal" data-bs-target="#offersModal">
+                            View Offers
+                        </button>
                     </article>
                 </section>
 
@@ -321,6 +332,55 @@
                         </button>
                     </div>
                 </form>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Available Offers Modal -->
+<div class="modal fade" id="offersModal" tabindex="-1" aria-labelledby="offersModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-bottom-1 p-4">
+                <h5 class="modal-title" id="offersModalLabel">
+                    <i class="fas fa-tags"></i> Available Offers
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                {% if available_offers %}
+                    <div class="row g-3">
+                        {% for offer in available_offers %}
+                            <div class="col-12">
+                                <div class="border rounded-3 p-3 bg-light">
+                                    <div class="d-flex justify-content-between align-items-start gap-3">
+                                        <div>
+                                            <h6 class="mb-1">{{ offer.code }}</h6>
+                                            <div class="text-muted small mb-2">{{ offer.title }}</div>
+                                            <div class="small mb-2">{{ offer.description }}</div>
+                                            <div class="small">
+                                                <strong>{{ offer.discount }}</strong>
+                                                {% if offer.min_purchase_amount and offer.min_purchase_amount > 0 %}
+                                                    <span class="ms-2">Min order: ₹{{ offer.min_purchase_amount|floatformat:0 }}</span>
+                                                {% endif %}
+                                                <span class="ms-2">Valid till: {{ offer.valid_until|date:"d M Y" }}</span>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="pdv-btn" data-pdv-copy="{{ offer.code }}">
+                                            Copy Code
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-ticket-alt fa-2x text-muted mb-3"></i>
+                        <h6 class="mb-2">No active offers right now</h6>
+                        <p class="text-muted mb-0">We’ll show coupons here when they become available for your account.</p>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
