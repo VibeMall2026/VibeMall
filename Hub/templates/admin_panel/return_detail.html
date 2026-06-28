@@ -241,11 +241,18 @@
                         {% csrf_token %}
                         <div class="mb-3">
                             <label class="form-label">Next Status</label>
-                            <select class="form-select" name="action" required>
+                            <input type="hidden" name="action" id="returnStatusAction" value="{{ allowed_next.0 }}">
+                            <div class="d-grid gap-2">
                                 {% for status in allowed_next %}
-                                    <option value="{{ status }}">{% if status == 'APPROVED' %}R-Approved{% else %}{{ status|title }}{% endif %}</option>
+                                    <button
+                                        type="button"
+                                        class="btn {% if forloop.first %}btn-primary active{% else %}btn-outline-primary{% endif %} text-start return-status-btn"
+                                        data-action="{{ status }}"
+                                    >
+                                        {% if status == 'APPROVED' %}R-Approved{% else %}{{ status|title }}{% endif %}
+                                    </button>
                                 {% endfor %}
-                            </select>
+                            </div>
                         </div>
                         <div class="mb-3" id="pickupFields" style="display: none;">
                             <label class="form-label">Pickup Scheduled Date</label>
@@ -260,12 +267,12 @@
                                 class="form-control"
                                 name="refund_amount"
                                 id="refundAmountInput"
-                                data-half-amount="{{ half_refund_amount }}"
+                                data-full-amount="{{ full_refund_amount }}"
                                 value="{{ return_request.refund_amount|default_if_none:'' }}"
                                 placeholder="Optional"
                             >
                             <small class="text-muted">Rs.20 return fee will be deducted from this amount.</small>
-                            <small class="text-muted d-block" id="wrongReturnHint" style="display: none;">Half refund will be applied for wrong returns.</small>
+                            <small class="text-muted d-block" id="wrongReturnHint" style="display: none;">Full refund amount will be used for wrong returns.</small>
                         </div>
                         <div class="mb-3" id="refundMethodFields" style="display: none;">
                             <label class="form-label">Refund Method</label>
@@ -288,7 +295,8 @@
                     </form>
                     <script>
                         (function () {
-                            const actionSelect = document.querySelector('select[name="action"]');
+                            const actionInput = document.getElementById('returnStatusAction');
+                            const actionButtons = document.querySelectorAll('.return-status-btn');
                             const pickupFields = document.getElementById('pickupFields');
                             const refundAmountFields = document.getElementById('refundAmountFields');
                             const refundMethodFields = document.getElementById('refundMethodFields');
@@ -297,14 +305,14 @@
                             const razorpayPaymentHint = document.getElementById('razorpayPaymentHint');
                             const refundAmountInput = document.getElementById('refundAmountInput');
                             const wrongReturnHint = document.getElementById('wrongReturnHint');
-                            if (!actionSelect) return;
+                            if (!actionInput || !actionButtons.length) return;
 
                             const showPickup = new Set(['PICKUP_SCHEDULED']);
                             const showRefundAmount = new Set(['REFUNDED', 'WRONG_RETURN']);
                             const showRefundMethod = new Set(['REFUNDED']);
 
                             const updateVisibility = () => {
-                                const action = actionSelect.value;
+                                const action = actionInput.value;
                                 const isWrongReturn = action === 'WRONG_RETURN';
 
                                 pickupFields.style.display = showPickup.has(action) ? 'block' : 'none';
@@ -324,12 +332,22 @@
                                     }
                                 }
 
-                                if (isWrongReturn && refundAmountInput && refundAmountInput.dataset.halfAmount) {
-                                    refundAmountInput.value = refundAmountInput.dataset.halfAmount;
+                                if (isWrongReturn && refundAmountInput && refundAmountInput.dataset.fullAmount) {
+                                    refundAmountInput.value = refundAmountInput.dataset.fullAmount;
                                 }
                             };
 
-                            actionSelect.addEventListener('change', updateVisibility);
+                            actionButtons.forEach((button) => {
+                                button.addEventListener('click', () => {
+                                    actionInput.value = button.dataset.action || '';
+                                    actionButtons.forEach((item) => {
+                                        item.classList.toggle('active', item === button);
+                                        item.classList.toggle('btn-primary', item === button);
+                                        item.classList.toggle('btn-outline-primary', item !== button);
+                                    });
+                                    updateVisibility();
+                                });
+                            });
                             if (refundMethodSelect) {
                                 refundMethodSelect.addEventListener('change', updateVisibility);
                             }

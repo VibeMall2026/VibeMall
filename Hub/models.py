@@ -1896,6 +1896,15 @@ class SiteSettings(models.Model):
     # Contact Information
     contact_email = models.EmailField(default='info.vibemall@gmail.com')
     contact_phone = models.CharField(max_length=20, default='+91 1234567890')
+
+    # Homepage editorial feature section
+    featured_story_eyebrow = models.CharField(max_length=80, blank=True, default='Editorial Video')
+    featured_story_title = models.CharField(max_length=200, blank=True, default='The Art of Movement')
+    featured_story_description = models.TextField(blank=True, default='Immerse yourself in our latest lookbook film, where fashion meets cinema. Explore the textures and flow of the new collection in motion.')
+    featured_story_cta_text = models.CharField(max_length=80, blank=True, default='Watch the full series')
+    featured_story_cta_url = models.URLField(blank=True, default='')
+    featured_story_image = models.ImageField(upload_to='site/featured_story/', blank=True, null=True, help_text='Featured section poster/image (recommended: 1200x900 or 4:3)')
+    featured_story_video = models.FileField(upload_to='site/featured_story/', blank=True, null=True, help_text='Featured section video (MP4 recommended)')
     
     # Social Media Links
     facebook_url = models.URLField(blank=True)

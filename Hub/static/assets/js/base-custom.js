@@ -664,7 +664,7 @@ async function buyNowCard(productId) {
 
 // Newsletter subscription forms (About/404 CTA blocks)
 document.addEventListener('DOMContentLoaded', function() {
-    const forms = document.querySelectorAll('.js-newsletter-form');
+    const forms = document.querySelectorAll('.js-newsletter-form, [data-vm-newsletter-form], form[action*="/newsletter/subscribe/"]');
     if (!forms.length) return;
 
     const setFeedback = (el, message, type) => {
@@ -676,7 +676,25 @@ document.addEventListener('DOMContentLoaded', function() {
         if (type === 'info') el.classList.add('text-warning');
     };
 
+    const ensureHoneypot = (form) => {
+        if (form.querySelector('input[name="company_website"], input[name="website"]')) return;
+        const honeypot = document.createElement('input');
+        honeypot.type = 'text';
+        honeypot.name = 'company_website';
+        honeypot.autocomplete = 'off';
+        honeypot.tabIndex = -1;
+        honeypot.setAttribute('aria-hidden', 'true');
+        honeypot.setAttribute('data-newsletter-honeypot', 'true');
+        honeypot.style.position = 'absolute';
+        honeypot.style.left = '-9999px';
+        honeypot.style.width = '1px';
+        honeypot.style.height = '1px';
+        honeypot.style.opacity = '0';
+        form.appendChild(honeypot);
+    };
+
     forms.forEach((form) => {
+        ensureHoneypot(form);
         const emailInput = form.querySelector('input[name=\"email\"]');
         const submitBtn = form.querySelector('button[type=\"submit\"]');
         const feedbackEl = form.parentElement.querySelector('.newsletter-feedback');

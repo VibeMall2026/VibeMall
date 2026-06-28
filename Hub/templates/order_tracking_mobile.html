@@ -392,6 +392,25 @@
                 <p style="margin:8px 0 0;color:rgba(27,28,25,.7);">{{ live_state.cancel_state.detail }}</p>
             </div>
             {% endif %}
+            {% if live_state.return_state %}
+            <div style="padding:14px 16px;border:1px solid rgba(111,92,55,.18);border-radius:18px;background:#fff7ec;margin-bottom:18px;">
+                <small style="display:block;color:#8d6b2f;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;">Return Status</small>
+                <strong style="display:block;font-size:20px;margin-top:4px;">{{ live_state.return_state.current_label }}</strong>
+                <p style="margin:8px 0 0;color:rgba(27,28,25,.7);">{{ live_state.return_state.current_detail }}</p>
+            </div>
+            <div style="margin-bottom:18px;">
+                {% for step in live_state.return_state.timeline %}
+                <article class="vm-tom-step {% if step.state == 'active' %}vm-tom-step--active{% else %}vm-tom-step--done{% endif %}">
+                    <div class="vm-tom-step-dot"><i class="{{ step.icon }}" aria-hidden="true"></i></div>
+                    <div class="vm-tom-step-head">
+                        <h3>{{ step.label }}</h3>
+                        <span>{% if step.display_time %}{{ step.display_time }}{% else %}Pending{% endif %}</span>
+                    </div>
+                    <p>{{ step.detail }}</p>
+                </article>
+                {% endfor %}
+            </div>
+            {% endif %}
             <article class="vm-tom-step vm-tom-step--done">
                 <div class="vm-tom-step-dot"><i class="fas fa-check" aria-hidden="true"></i></div>
                 <div class="vm-tom-step-head">

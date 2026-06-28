@@ -1100,7 +1100,7 @@
             const buttonHtml = coupon.used
                 ? '<button class="btn btn-sm btn-secondary" disabled>Used</button>'
                 : `<button class="btn btn-sm btn-dark apply-mobile-coupon" data-code="${coupon.code}">Apply</button>`;
-            html += `<div class="coupon-card mb-3 p-3 border rounded ${coupon.used ? 'opacity-50' : ''}">`;
+            html += `<div class="coupon-card mb-3 p-3 border rounded ${coupon.used ? 'opacity-50' : ''}" data-code="${coupon.code}" data-used="${coupon.used ? '1' : '0'}" role="button" tabindex="0">`;
             html += '<div class="d-flex justify-content-between align-items-start gap-3">';
             html += '<div class="flex-grow-1">';
             html += `<h6 class="mb-1">${coupon.title}</h6>`;
@@ -1130,6 +1130,34 @@
                 }
                 modal.hide();
                 applyCouponCode(code);
+            });
+        });
+
+        document.querySelectorAll('#mobileCouponsModal .coupon-card[data-code]').forEach(function (card) {
+            card.addEventListener('click', function (event) {
+                if (event.target.closest('button')) {
+                    return;
+                }
+                if (card.dataset.used === '1') {
+                    return;
+                }
+                const code = card.dataset.code;
+                if (couponInput) {
+                    couponInput.value = code;
+                }
+                modal.hide();
+                applyCouponCode(code);
+            });
+            card.addEventListener('keydown', function (event) {
+                if ((event.key === 'Enter' || event.key === ' ') && card.dataset.used !== '1') {
+                    event.preventDefault();
+                    const code = card.dataset.code;
+                    if (couponInput) {
+                        couponInput.value = code;
+                    }
+                    modal.hide();
+                    applyCouponCode(code);
+                }
             });
         });
     }
@@ -1990,7 +2018,7 @@ function renderAvailableCouponsPanel(coupons) {
         const description = coupon.description || coupon.title || 'Offer available on eligible orders.';
         const discount = coupon.discount || 'Offer';
         return `
-            <div class="vm-checkout-d-coupon-card${usedClass}">
+            <div class="vm-checkout-d-coupon-card${usedClass}" data-code="${coupon.code}" data-used="${coupon.used ? '1' : '0'}" role="button" tabindex="0">
                 <div>
                     <h5>${coupon.code}</h5>
                     <p>${description}</p>
@@ -2012,6 +2040,34 @@ function renderAvailableCouponsPanel(coupons) {
                 couponInput.value = code;
             }
             applyCouponCode(code);
+        });
+    });
+
+    couponsList.querySelectorAll('.vm-checkout-d-coupon-card[data-code]').forEach(card => {
+        card.addEventListener('click', function(event) {
+            if (event.target.closest('button')) {
+                return;
+            }
+            if (card.dataset.used === '1') {
+                return;
+            }
+            const code = card.dataset.code;
+            const couponInput = document.getElementById('couponCode');
+            if (couponInput) {
+                couponInput.value = code;
+            }
+            applyCouponCode(code);
+        });
+        card.addEventListener('keydown', function(event) {
+            if ((event.key === 'Enter' || event.key === ' ') && card.dataset.used !== '1') {
+                event.preventDefault();
+                const code = card.dataset.code;
+                const couponInput = document.getElementById('couponCode');
+                if (couponInput) {
+                    couponInput.value = code;
+                }
+                applyCouponCode(code);
+            }
         });
     });
 }

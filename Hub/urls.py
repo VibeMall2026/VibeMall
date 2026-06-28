@@ -146,6 +146,7 @@ urlpatterns = [
     path('chat/thread/', views_api.chat_thread, name='chat_thread'),
     path('chat/message/', views_api.chat_message, name='chat_message'),
     path('newsletter/subscribe/', views_api.subscribe_newsletter, name='subscribe_newsletter'),
+    path('newsletter/confirm/<str:token>/', views.confirm_newsletter_subscription, name='confirm_newsletter_subscription'),
     
     # Cart URLs
     path('add-to-cart/', views.add_to_cart, name='add_to_cart'),

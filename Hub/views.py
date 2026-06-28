@@ -51,6 +51,7 @@ import logging
 import random
 
 logger = logging.getLogger(__name__)
+NEWSLETTER_CONFIRMATION_SALT = 'newsletter-subscribe-confirmation'
 
 RETURN_WINDOW_DAYS = 7
 CANCEL_WINDOW_HOURS = 2
@@ -197,6 +198,7 @@ def _log_rto_history(rto_case: 'RTOCase', old_status: str, new_status: str, user
 from .models import CategoryIcon, SubCategory, Slider, Feature, Banner, Product, DealCountdown, UserProfile, Address, Cart, Wishlist, ProductImage, ProductReview, ReviewImage, ReviewVote, ProductQuestion, Order, OrderItem, OrderStatusHistory, OrderCancellationRequest, ReturnRequest, ReturnItem, ReturnHistory, ReturnAttachment, ReturnLabel, RTOCase, RTOHistory, AdminEmailSettings, ProductStockNotification, BrandPartner, SiteSettings, LoyaltyPoints, PointsTransaction, MainPageProduct, MainPageSubCategoryBanner, MainPageBanner, ChatThread, ChatMessage, ChatAttachment, NewsletterSubscription, Coupon, CouponUsage
 from .models_content_management import FAQCategory, FAQ, BlogCategory, BlogPost, BlogComment
 from .email_utils import send_order_confirmation_email, send_order_status_update_email, send_admin_order_notification, build_invoice_context
+from .rate_limiter import rate_limit
 from .view_helpers import (
     _split_full_name,
     _get_checkout_items,
@@ -3457,6 +3459,14 @@ def admin_site_settings(request):
         settings_obj.tagline = request.POST.get('tagline', '')
         settings_obj.contact_email = request.POST.get('contact_email', 'info.vibemall@gmail.com')
         settings_obj.contact_phone = request.POST.get('contact_phone', '+91 1234567890')
+        settings_obj.featured_story_eyebrow = request.POST.get('featured_story_eyebrow', 'Editorial Video')
+        settings_obj.featured_story_title = request.POST.get('featured_story_title', 'The Art of Movement')
+        settings_obj.featured_story_description = request.POST.get(
+            'featured_story_description',
+            'Immerse yourself in our latest lookbook film, where fashion meets cinema. Explore the textures and flow of the new collection in motion.'
+        )
+        settings_obj.featured_story_cta_text = request.POST.get('featured_story_cta_text', 'Watch the full series')
+        settings_obj.featured_story_cta_url = request.POST.get('featured_story_cta_url', '')
         settings_obj.facebook_url = request.POST.get('facebook_url', '')
         settings_obj.instagram_url = request.POST.get('instagram_url', '')
         settings_obj.twitter_url = request.POST.get('twitter_url', '')
@@ -3471,6 +3481,10 @@ def admin_site_settings(request):
         
         if request.FILES.get('admin_logo'):
             settings_obj.admin_logo = request.FILES.get('admin_logo')
+        if request.FILES.get('featured_story_image'):
+            settings_obj.featured_story_image = request.FILES.get('featured_story_image')
+        if request.FILES.get('featured_story_video'):
+            settings_obj.featured_story_video = request.FILES.get('featured_story_video')
         
         settings_obj.save()
         cache.delete('site_settings_context_v1')
@@ -6159,12 +6173,30 @@ def _get_request_ip(request: HttpRequest) -> str:
     return (request.META.get('REMOTE_ADDR') or '').strip()
 
 
+def _build_newsletter_confirmation_url(request: HttpRequest, email: str, source_page: str, client_ip: str, user_agent: str) -> str:
+    token = signing.dumps(
+        {
+            'email': email,
+            'source_page': source_page,
+            'client_ip': client_ip,
+            'user_agent': user_agent,
+        },
+        salt=NEWSLETTER_CONFIRMATION_SALT,
+    )
+    return request.build_absolute_uri(reverse('confirm_newsletter_subscription', args=[token]))
+
+
 @require_POST
 @csrf_exempt
+@rate_limit('subscribe_newsletter', use_user=False)
 def subscribe_newsletter(request):
     """Capture newsletter subscribers from CTA forms."""
     email = (request.POST.get('email') or '').strip().lower()
     source_page = (request.POST.get('source_page') or '').strip()[:120]
+    honeypot = (
+        (request.POST.get('company_website') or '').strip()
+        or (request.POST.get('website') or '').strip()
+    )
     client_ip = _get_request_ip(request)
     user_agent = (request.META.get('HTTP_USER_AGENT') or '').strip()[:255]
     is_ajax = (
@@ -6176,6 +6208,13 @@ def subscribe_newsletter(request):
     parsed_redirect = urlparse(redirect_to)
     if parsed_redirect.netloc and parsed_redirect.netloc != request.get_host():
         redirect_to = reverse('index')
+
+    if honeypot:
+        message = 'Thanks for subscribing. Please check your email if you requested updates.'
+        if is_ajax:
+            return JsonResponse({'success': True, 'status': 'pending_confirmation', 'message': message})
+        messages.success(request, message)
+        return redirect(redirect_to)
 
     if not email:
         message = 'Please enter a valid email address.'
@@ -6193,6 +6232,60 @@ def subscribe_newsletter(request):
         messages.error(request, message)
         return redirect(redirect_to)
 
+    existing_subscriber = NewsletterSubscription.objects.filter(email=email).first()
+    if existing_subscriber and existing_subscriber.is_active:
+        message = 'This email is already subscribed to our newsletter.'
+        if is_ajax:
+            return JsonResponse({'success': True, 'status': 'already_subscribed', 'message': message})
+        messages.info(request, message)
+        return redirect(redirect_to)
+
+    confirm_url = _build_newsletter_confirmation_url(request, email, source_page, client_ip, user_agent)
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@vibemall.com')
+    subject = 'Confirm your VibeMall newsletter subscription'
+    plain_message = (
+        'Thanks for subscribing to VibeMall.\n\n'
+        'Please confirm your subscription by opening this link:\n'
+        f'{confirm_url}\n\n'
+        'If you did not request this, you can ignore this email.'
+    )
+    message = 'Thanks for subscribing. Please check your email to confirm your newsletter subscription.'
+    try:
+        send_mail(
+            subject,
+            plain_message,
+            from_email,
+            [email],
+            fail_silently=True,
+        )
+    except Exception as e:
+        logger.exception('Failed to send newsletter confirmation email to %s: %s', email, e)
+
+    if is_ajax:
+        return JsonResponse({'success': True, 'status': 'pending_confirmation', 'message': message})
+
+    messages.success(request, message)
+    return redirect(redirect_to)
+
+
+@require_http_methods(['GET'])
+def confirm_newsletter_subscription(request, token):
+    """Activate a newsletter subscriber after email confirmation."""
+    try:
+        payload = signing.loads(token, salt=NEWSLETTER_CONFIRMATION_SALT, max_age=60 * 60 * 24 * 7)
+    except signing.BadSignature:
+        messages.error(request, 'This newsletter confirmation link is invalid or has expired.')
+        return redirect('index')
+
+    email = (payload.get('email') or '').strip().lower()
+    source_page = (payload.get('source_page') or '').strip()[:120]
+    client_ip = (payload.get('client_ip') or '').strip()[:45]
+    user_agent = (payload.get('user_agent') or '').strip()[:255]
+
+    if not email:
+        messages.error(request, 'This newsletter confirmation link is invalid.')
+        return redirect('index')
+
     subscriber, created = NewsletterSubscription.objects.get_or_create(
         email=email,
         defaults={
@@ -6203,31 +6296,12 @@ def subscribe_newsletter(request):
         }
     )
 
-    status = 'subscribed'
-    if created:
-        message = 'Thanks for subscribing. You will receive our latest offers by email.'
-    elif subscriber.is_active:
-        status = 'already_subscribed'
-        message = 'This email is already subscribed to our newsletter.'
-    else:
-        status = 'resubscribed'
-        subscriber.is_active = True
-        subscriber.unsubscribed_at = None
-        update_fields = ['is_active', 'unsubscribed_at', 'updated_at']
-        if source_page:
-            subscriber.source_page = source_page
-            update_fields.append('source_page')
-        if client_ip and subscriber.ip_address != client_ip:
-            subscriber.ip_address = client_ip
-            update_fields.append('ip_address')
-        if user_agent and subscriber.user_agent != user_agent:
-            subscriber.user_agent = user_agent
-            update_fields.append('user_agent')
-        subscriber.save(update_fields=update_fields)
-        message = 'Welcome back. Your newsletter subscription is active again.'
-
-    if not created and status == 'already_subscribed':
+    if not created:
         update_fields = []
+        if not subscriber.is_active:
+            subscriber.is_active = True
+            subscriber.unsubscribed_at = None
+            update_fields.extend(['is_active', 'unsubscribed_at'])
         if source_page and subscriber.source_page != source_page:
             subscriber.source_page = source_page
             update_fields.append('source_page')
@@ -6241,37 +6315,8 @@ def subscribe_newsletter(request):
             update_fields.append('updated_at')
             subscriber.save(update_fields=update_fields)
 
-    # Send a welcome email when the user subscribes or resubscribes
-    if created or status == 'resubscribed':
-        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@vibemall.com')
-        subject = 'Welcome to VibeMall!'
-        plain_message = 'Thank you for joining VibeMall. We will notify you when we are live.'
-        try:
-            send_mail(
-                subject,
-                plain_message,
-                from_email,
-                [email],
-                fail_silently=True,
-            )
-        except Exception as e:
-            logger.exception('Failed to send newsletter welcome email to %s: %s', email, e)
-
-    if is_ajax:
-        return JsonResponse({
-            'success': True,
-            'status': status,
-            'message': message,
-        })
-
-    if status == 'subscribed':
-        messages.success(request, message)
-    elif status == 'already_subscribed':
-        messages.info(request, message)
-    else:
-        messages.success(request, message)
-
-    return redirect(redirect_to)
+    messages.success(request, 'Your newsletter subscription has been confirmed.')
+    return redirect('index')
 
 
 @login_required(login_url='login')
@@ -10743,9 +10788,149 @@ def _cancel_eligibility(order):
     return True, '', deadline
 
 
+def _return_status_label(status: str) -> str:
+    labels = {
+        'REQUESTED': 'Return Request Sent',
+        'APPROVED': 'Return Approved',
+        'PICKUP_SCHEDULED': 'Pickup Scheduled',
+        'RECEIVED': 'Return Received',
+        'UNABLE_TO_REACH': 'Pickup Attempt Failed',
+        'RESCHEDULED': 'Pickup Rescheduled',
+        'QC_PENDING': 'Quality Check',
+        'QC_PASSED': 'QC Passed',
+        'QC_FAILED': 'QC Failed',
+        'REFUND_PENDING': 'Refund Pending',
+        'WRONG_RETURN': 'Wrong Return Review',
+        'REFUNDED': 'Refunded',
+        'REPLACED': 'Replaced',
+        'REJECTED': 'Return Rejected',
+        'CANCELLED': 'Return Cancelled',
+    }
+    return labels.get(status, (status or '').replace('_', ' ').title())
+
+
+def _return_status_detail(status: str, return_request=None) -> str:
+    if status == 'REQUESTED':
+        return 'We received your return request and will review it shortly.'
+    if status == 'APPROVED':
+        return 'Your return has been approved. Pickup scheduling is next.'
+    if status == 'PICKUP_SCHEDULED':
+        return 'A pickup slot has been assigned for the return shipment.'
+    if status == 'RECEIVED':
+        return 'The return item has been received at the warehouse.'
+    if status == 'UNABLE_TO_REACH':
+        return 'The courier could not reach you. Please wait for rescheduling.'
+    if status == 'RESCHEDULED':
+        return 'A new pickup attempt has been scheduled.'
+    if status == 'QC_PENDING':
+        return 'Your return is under quality check.'
+    if status == 'QC_PASSED':
+        return 'The returned item passed QC and is moving to refund processing.'
+    if status == 'QC_FAILED':
+        return 'The returned item failed QC and is being reviewed further.'
+    if status == 'REFUND_PENDING':
+        return 'Your refund is being processed now.'
+    if status == 'WRONG_RETURN':
+        return 'The warehouse recorded a mismatch in the returned item.'
+    if status == 'REFUNDED':
+        return 'Your refund has been completed.'
+    if status == 'REPLACED':
+        return 'A replacement has been arranged for this return.'
+    if status == 'REJECTED':
+        return 'Your return request was not approved.'
+    if status == 'CANCELLED':
+        return 'This return request was cancelled.'
+    return return_request.reason_notes if return_request and return_request.reason_notes else 'Return update recorded.'
+
+
+def _return_status_icon(status: str) -> str:
+    return {
+        'REQUESTED': 'fas fa-paper-plane',
+        'APPROVED': 'fas fa-check-circle',
+        'PICKUP_SCHEDULED': 'fas fa-truck',
+        'RECEIVED': 'fas fa-box-open',
+        'UNABLE_TO_REACH': 'fas fa-phone-slash',
+        'RESCHEDULED': 'fas fa-calendar-alt',
+        'QC_PENDING': 'fas fa-search',
+        'QC_PASSED': 'fas fa-thumbs-up',
+        'QC_FAILED': 'fas fa-exclamation-triangle',
+        'REFUND_PENDING': 'fas fa-undo-alt',
+        'WRONG_RETURN': 'fas fa-exclamation-circle',
+        'REFUNDED': 'fas fa-wallet',
+        'REPLACED': 'fas fa-sync-alt',
+        'REJECTED': 'fas fa-times-circle',
+        'CANCELLED': 'fas fa-ban',
+    }.get(status, 'fas fa-flag')
+
+
+def _build_return_live_state(return_request):
+    if not return_request:
+        return None
+
+    history_qs = list(return_request.history.order_by('created_at').select_related('changed_by'))
+    steps = []
+    current_status = return_request.status
+
+    for entry in history_qs:
+        status = entry.new_status or ''
+        steps.append({
+            'status': status,
+            'label': _return_status_label(status),
+            'detail': entry.notes or _return_status_detail(status, return_request),
+            'timestamp': entry.created_at.isoformat() if entry.created_at else '',
+            'display_time': entry.created_at.strftime('%d %b, %I:%M %p') if entry.created_at else '',
+            'icon': _return_status_icon(status),
+            'state': 'active' if status == current_status else 'done',
+        })
+
+    if not steps:
+        steps.append({
+            'status': current_status,
+            'label': _return_status_label(current_status),
+            'detail': _return_status_detail(current_status, return_request),
+            'timestamp': return_request.requested_at.isoformat() if return_request.requested_at else '',
+            'display_time': return_request.requested_at.strftime('%d %b, %I:%M %p') if return_request.requested_at else '',
+            'icon': _return_status_icon(current_status),
+            'state': 'active',
+        })
+
+    current_label = _return_status_label(current_status)
+    if current_status == 'APPROVED':
+        current_label = 'Pickup Pending'
+    elif current_status == 'PICKUP_SCHEDULED':
+        current_label = 'Pickup Scheduled'
+    elif current_status == 'UNABLE_TO_REACH':
+        current_label = 'Pickup Pending'
+    elif current_status == 'RESCHEDULED':
+        current_label = 'Reschedule Requested'
+    elif current_status == 'QC_PENDING':
+        current_label = 'Quality Check Pending'
+
+    current_detail = _return_status_detail(current_status, return_request)
+    return {
+        'status': current_status,
+        'current_label': current_label,
+        'current_detail': current_detail,
+        'timeline': steps,
+        'signature': '|'.join([
+            str(return_request.status or ''),
+            str(return_request.updated_at.isoformat() if hasattr(return_request, 'updated_at') and return_request.updated_at else ''),
+            str(return_request.requested_at.isoformat() if return_request.requested_at else ''),
+            str(return_request.approved_at.isoformat() if return_request.approved_at else ''),
+            str(return_request.pickup_scheduled_at.isoformat() if return_request.pickup_scheduled_at else ''),
+            str(return_request.received_at.isoformat() if return_request.received_at else ''),
+            str(return_request.qc_checked_at.isoformat() if return_request.qc_checked_at else ''),
+            str(return_request.resolved_at.isoformat() if return_request.resolved_at else ''),
+            str(history_qs[-1].created_at.isoformat() if history_qs else ''),
+        ]),
+    }
+
+
 def _build_order_live_state(order):
     cancel_request = getattr(order, 'cancellation_request', None)
     latest_status = order.status_history.order_by('-created_at').first() if hasattr(order, 'status_history') else None
+    latest_return = order.return_requests.order_by('-requested_at').first()
+    return_state = _build_return_live_state(latest_return)
 
     current_label = order.get_order_status_display()
     current_detail = 'Order is being processed.'
@@ -10757,6 +10942,10 @@ def _build_order_live_state(order):
         current_detail = 'Your order has been delivered.'
     elif order.order_status == 'CANCELLED':
         current_detail = 'Your order has been cancelled.'
+
+    if return_state and latest_return:
+        current_label = return_state['current_label']
+        current_detail = return_state['current_detail']
 
     cancel_state = None
     if cancel_request:
@@ -10801,12 +10990,15 @@ def _build_order_live_state(order):
         str(cancel_request.requested_at.isoformat() if cancel_request else ''),
         str(latest_status.new_status if latest_status else ''),
         str(latest_status.created_at.isoformat() if latest_status else ''),
+        str(return_state['status'] if return_state else ''),
+        str(return_state['signature'] if return_state else ''),
     ])
 
     return {
         'current_label': current_label,
         'current_detail': current_detail,
         'cancel_state': cancel_state,
+        'return_state': return_state,
         'signature': signature,
         'order_updated_at': order.updated_at.isoformat() if order.updated_at else '',
         'delivery_date': order.delivery_date.isoformat() if order.delivery_date else '',
@@ -11335,6 +11527,8 @@ def order_tracking_live_state(request, order_number):
             'order_status': order.order_status,
             'order_status_display': order.get_order_status_display(),
             'cancel_request_status': getattr(getattr(order, 'cancellation_request', None), 'status', ''),
+            'return_request_status': getattr(order.return_requests.order_by('-requested_at').first(), 'status', ''),
+            'return_status_display': live_state['return_state']['current_label'] if live_state.get('return_state') else '',
             'updated_at': live_state['order_updated_at'],
             'delivery_date': live_state['delivery_date'],
             'tracking_number': live_state['tracking_number'],
@@ -11478,7 +11672,11 @@ def confirm_return_request(request, order_id):
         for i in draft['items']
     )
     fee = Decimal('20.00')
-    net = max(subtotal - fee, Decimal('0.00'))
+    order_subtotal = order.subtotal or Decimal('0')
+    order_tax = order.tax or Decimal('0')
+    tax_refund = (subtotal / order_subtotal) * order_tax if order_subtotal > 0 else Decimal('0')
+    gross_refund = (subtotal + tax_refund).quantize(Decimal('0.01'))
+    net = max(gross_refund - fee, Decimal('0.00')).quantize(Decimal('0.01'))
 
     if request.method == 'POST':
         existing_return = _latest_order_return(order, request.user)
@@ -11507,7 +11705,7 @@ def confirm_return_request(request, order_id):
             bank_ifsc=bank_ifsc if refund_method == 'BANK' else '',
             bank_name=bank_name if refund_method == 'BANK' else '',
             upi_id=upi_id if refund_method in ('UPI', 'RAZORPAY') else '',
-            refund_amount=subtotal,
+            refund_amount=gross_refund,
             refund_fee=fee,
             refund_amount_net=net,
             request_ip=request.META.get('REMOTE_ADDR'),
@@ -11708,7 +11906,7 @@ def admin_return_detail(request, return_id):
     return_request_obj = get_object_or_404(ReturnRequest, id=return_id)
     customer_profile = UserProfile.objects.filter(user=return_request_obj.user).first()
     full_refund_amount = _calculate_return_refund_amount(return_request_obj)
-    half_refund_amount = (full_refund_amount / Decimal('2')).quantize(Decimal('0.01')) if full_refund_amount else Decimal('0.00')
+    net_refund_amount = (full_refund_amount - Decimal('20.00')).quantize(Decimal('0.01')) if full_refund_amount else Decimal('0.00')
     allowed_next = RETURN_STATUS_FLOW.get(return_request_obj.status, [])
 
     if request.method == 'POST':
@@ -11750,9 +11948,9 @@ def admin_return_detail(request, return_id):
         elif action == 'QC_PENDING':
             return_request_obj.qc_checked_at = now
         elif action == 'WRONG_RETURN':
-            fee = Decimal('20.00') if half_refund_amount > 0 else Decimal('0.00')
-            net_amount = max(half_refund_amount - fee, Decimal('0.00'))
-            return_request_obj.refund_amount = half_refund_amount
+            fee = Decimal('20.00') if full_refund_amount > 0 else Decimal('0.00')
+            net_amount = max(full_refund_amount - fee, Decimal('0.00'))
+            return_request_obj.refund_amount = full_refund_amount
             return_request_obj.refund_fee = fee
             return_request_obj.refund_amount_net = net_amount
         elif action in ['REFUNDED', 'REPLACED']:
@@ -11816,7 +12014,8 @@ def admin_return_detail(request, return_id):
         'history': return_request_obj.history.select_related('changed_by'),
         'allowed_next': allowed_next,
         'customer_profile': customer_profile,
-        'half_refund_amount': half_refund_amount,
+        'full_refund_amount': full_refund_amount,
+        'net_refund_amount': net_refund_amount,
         'customer_ops_profile': customer_ops_profile,
         'disposition_recommendation': disposition_recommendation,
         'ops_recommendation': _return_ops_recommendation(return_request_obj.status),
