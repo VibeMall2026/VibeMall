@@ -203,6 +203,7 @@ from .view_helpers import (
     _split_full_name,
     _get_checkout_items,
     _get_checkout_total_quantity,
+    _get_checkout_item_product_and_qty,
     _get_resell_link_matching_quantity,
     _get_checkout_min_unit_price,
     _verify_upi_with_razorpay,
@@ -233,7 +234,6 @@ def _get_product_image_for_color(product, color: str, request) -> str:
                 image_url = vi.image.url
                 if not image_url.startswith('http'):
                     return f"{site_url}{image_url}"
-                return image_url
 
     # Fallback to main product image
     if product.image and product.image.name:
@@ -243,6 +243,19 @@ def _get_product_image_for_color(product, color: str, request) -> str:
         return image_url
 
     return ''
+
+
+def _checkout_cod_allowed(cart_items) -> bool:
+    """Check whether every checkout item supports COD."""
+    if not cart_items:
+        return False
+
+    for item in cart_items:
+        product, _quantity = _get_checkout_item_product_and_qty(item)
+        if not product or not product.is_cod_available():
+            return False
+
+    return True
 
 # ===== ADMIN PANEL VIEWS =====
 
@@ -2317,6 +2330,13 @@ def admin_edit_product(request, product_id):
             product.size = ', '.join(size_list) if size_list else ''
             product.shipping_info = request.POST.get('shipping_info', '')
             product.care_info = request.POST.get('care_info', '')
+            if 'is_returnable' in request.POST:
+                product.is_returnable = request.POST.get('is_returnable') == 'on'
+                product.return_days = int(request.POST.get('return_days', 7))
+                product.return_policy = request.POST.get('return_policy', '')
+            if 'payment_methods' in request.POST:
+                payment_methods_list = request.POST.getlist('payment_methods')
+                product.payment_methods = ','.join(payment_methods_list) if payment_methods_list else 'COD,ONLINE,UPI,CARD'
             
             # Update image if provided
             if 'image' in request.FILES:
@@ -6382,6 +6402,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
     cart_items, buy_now_item, total_price = _get_checkout_items(request)
     base_cart_total = Decimal(str(total_price))
     total_item_qty = _get_checkout_total_quantity(cart_items)
+    cod_available = _checkout_cod_allowed(cart_items)
     
     # Handle form submission
     if request.method == 'POST':
@@ -6397,7 +6418,8 @@ def checkout(request: HttpRequest) -> HttpResponse:
         postcode = (request.POST.get('postcode') or '').strip()
         pincode_valid = request.POST.get('pincode_valid', '')
         order_type = request.POST.get('order_type', 'for_self')
-        payment_method = request.POST.get('payment_method', 'COD')
+        payment_method_default = 'COD' if cod_available else 'RAZORPAY'
+        payment_method = request.POST.get('payment_method', payment_method_default)
         customer_notes = request.POST.get('customer_notes', '')
         is_resell = (order_type == 'for_resell') or (request.POST.get('is_resell') == 'on')
         user_selected_resell = is_resell
@@ -6423,6 +6445,9 @@ def checkout(request: HttpRequest) -> HttpResponse:
         logger.info(f"Payment method selected: {payment_method}")
         if not payment_method or payment_method not in ['COD', 'RAZORPAY']:
             messages.error(request, 'Please select a valid payment method.')
+            return redirect('checkout')
+        if payment_method == 'COD' and not cod_available:
+            messages.error(request, 'Cash on Delivery is not available for this product.')
             return redirect('checkout')
         
         # Resell FROM details
@@ -6538,7 +6563,11 @@ def checkout(request: HttpRequest) -> HttpResponse:
     # GET request - Show checkout form
     user_profile = UserProfile.objects.filter(user=request.user).first()
     default_address = Address.objects.filter(user=request.user, is_default=True).first()
-    checkout_form = request.session.get('checkout_form', {})
+    checkout_form = dict(request.session.get('checkout_form', {}))
+    if not checkout_form.get('payment_method') or (checkout_form.get('payment_method') == 'COD' and not cod_available):
+        checkout_form['payment_method'] = 'COD' if cod_available else 'RAZORPAY'
+        request.session['checkout_form'] = checkout_form
+        request.session.modified = True
     selected_order_type = checkout_form.get('order_type', 'for_self')
     manual_margin_raw = normalize_decimal_input(checkout_form.get('resell_margin', '0'))
     try:
@@ -6615,6 +6644,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
         'total_price': display_subtotal,
         'cart_base_total': base_cart_total,
         'total_item_qty': total_item_qty,
+        'cod_available': cod_available,
         'buy_now_item': buy_now_item,
         'user_profile': user_profile,
         'default_address': default_address,
@@ -6642,6 +6672,11 @@ def checkout_confirm(request):
     cart_items, buy_now_item, total_price = _get_checkout_items(request)
     base_cart_total = Decimal(str(total_price))
     total_item_qty = _get_checkout_total_quantity(cart_items)
+    cod_available = _checkout_cod_allowed(cart_items)
+    if checkout_form.get('payment_method') == 'COD' and not cod_available:
+        checkout_form['payment_method'] = 'RAZORPAY'
+        request.session['checkout_form'] = checkout_form
+        request.session.modified = True
 
     if not cart_items:
         messages.error(request, 'Your cart is empty.')

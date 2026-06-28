@@ -2270,18 +2270,22 @@ body.vm-mini-cart-open {
   color: #1b1c19;
 }
 
-.vm-copy-featured { background: #ece9e4; }
+.vm-copy-featured {
+  background: #f3efe8;
+}
 .vm-copy-feature-grid {
   display: grid;
-  grid-template-columns: 1.1fr .9fr;
-  gap: 34px;
-  align-items: center;
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, .95fr);
+  gap: 0;
+  align-items: stretch;
+  max-width: 1280px;
+  margin: 0 auto;
 }
 .vm-copy-feature-image-wrap { position: relative; }
 .vm-copy-feature-image-wrap > img,
 .vm-copy-feature-media {
   width: 100%;
-  min-height: 380px;
+  height: 100%;
   object-fit: cover;
   display: block;
 }
@@ -2289,12 +2293,13 @@ body.vm-mini-cart-open {
   position: relative;
   overflow: hidden;
   background: #111;
+  min-height: clamp(420px, 44vw, 520px);
 }
 .vm-copy-feature-media-wrap::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,.1) 100%);
+  background: linear-gradient(180deg, rgba(0,0,0,.02) 0%, rgba(0,0,0,.08) 100%);
   pointer-events: none;
 }
 .vm-copy-feature-play {
@@ -2317,15 +2322,11 @@ body.vm-mini-cart-open {
   font-size: 34px;
   line-height: 1;
 }
-.vm-copy-featured,
-.vm-copy-feature-copy--editorial {
-  background: #ece9e4;
-}
 .vm-copy-feature-copy {
   background: #000;
   color: #fff;
-  padding: 54px 48px;
-  min-height: 380px;
+  padding: clamp(34px, 4vw, 56px) clamp(28px, 3.5vw, 48px);
+  min-height: clamp(420px, 44vw, 520px);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -2699,6 +2700,7 @@ body.vm-mini-cart-open {
   .vm-copy-dept-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
   .vm-copy-feature-grid,
   .vm-copy-footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+  .vm-copy-feature-grid { gap: 0; }
   .vm-copy-product-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
 }
 
@@ -2711,7 +2713,12 @@ body.vm-mini-cart-open {
   .vm-copy-product-grid,
   .vm-copy-services .vm-copy-container { grid-template-columns: 1fr; }
   .vm-copy-feature-grid { grid-template-columns: 1fr; }
-  .vm-copy-feature-copy { padding: 30px 22px; min-height: unset; }
+  .vm-copy-feature-media-wrap { min-height: 320px; }
+  .vm-copy-feature-copy {
+    padding: 30px 22px;
+    min-height: unset;
+    background: #000;
+  }
   .vm-copy-newsletter form { flex-direction: column; }
   .vm-copy-newsletter input { border-right: 1px solid #d1ccc3; }
   .vm-copy-footer-grid { grid-template-columns: 1fr; }

@@ -496,9 +496,10 @@ class Product(models.Model):
     def save(self, *args, **kwargs):
         # Sanitize user-input fields to prevent XSS attacks
         from Hub.sanitizer import sanitize_text, sanitize_html
-        
+
         self.description = sanitize_html(self.description)  # Allow safe HTML tags in description
         self.return_policy = sanitize_text(self.return_policy)  # Remove HTML from return policy
+        self.payment_methods = ','.join(self._normalize_payment_methods())
         
         if not self.slug:
             base_slug = slugify(self.name)
@@ -544,16 +545,31 @@ class Product(models.Model):
         if self.tags:
             return [tag.strip() for tag in self.tags.split(',')]
         return []
+
+    def _normalize_payment_methods(self):
+        """Return a clean payment-method list for the current product state."""
+        allowed_methods = {'COD', 'ONLINE', 'UPI', 'CARD'}
+        payment_methods = [
+            method.strip().upper()
+            for method in (self.payment_methods or '').split(',')
+            if method.strip()
+        ]
+        payment_methods = [method for method in payment_methods if method in allowed_methods]
+        if not payment_methods:
+            payment_methods = ['COD', 'ONLINE', 'UPI', 'CARD']
+        if not self.is_returnable:
+            payment_methods = [method for method in payment_methods if method != 'COD']
+            if not payment_methods:
+                payment_methods = ['ONLINE', 'UPI', 'CARD']
+        return payment_methods
     
     def get_payment_methods_list(self):
         """Return available payment methods as list"""
-        if self.payment_methods:
-            return [method.strip() for method in self.payment_methods.split(',')]
-        return ['COD', 'ONLINE', 'UPI', 'CARD']
+        return self._normalize_payment_methods()
     
     def is_cod_available(self):
         """Check if COD is available for this product"""
-        return 'COD' in self.get_payment_methods_list()
+        return self.is_returnable and 'COD' in self.get_payment_methods_list()
     
     def get_return_policy_display(self):
         """Get formatted return policy"""

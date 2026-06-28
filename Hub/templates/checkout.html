@@ -283,16 +283,16 @@
                 </div>
 
                 <div class="vm-checkout-mobile-methods" id="mobilePaymentMethods">
-                    <label class="vm-checkout-mobile-radio {% if checkout_form.payment_method == 'COD' or not checkout_form.payment_method %}is-selected{% endif %}">
-                        <input type="radio" name="payment_method" value="COD" {% if checkout_form.payment_method == 'COD' or not checkout_form.payment_method %}checked{% endif %}>
+                    <label class="vm-checkout-mobile-radio {% if cod_available and (checkout_form.payment_method == 'COD' or not checkout_form.payment_method) %}is-selected{% elif not cod_available %}is-disabled{% endif %}">
+                        <input type="radio" name="payment_method" value="COD" {% if checkout_form.payment_method == 'COD' and cod_available %}checked{% endif %} {% if not cod_available %}disabled aria-disabled="true"{% endif %}>
                         <span class="material-symbols-outlined vm-checkout-icon">payments</span>
                         <div class="vm-checkout-mobile-radio__copy">
                             <strong>Cash on Delivery</strong>
-                            <p>Pay when the order reaches your doorstep.</p>
+                            <p>{% if cod_available %}Pay when the order reaches your doorstep.{% else %}Not available for no-return items.{% endif %}</p>
                         </div>
-                        <span class="material-symbols-outlined vm-checkout-icon vm-checkout-mobile-radio__icon">{% if checkout_form.payment_method == 'COD' or not checkout_form.payment_method %}check_circle{% else %}radio_button_unchecked{% endif %}</span>
+                        <span class="material-symbols-outlined vm-checkout-icon vm-checkout-mobile-radio__icon">{% if checkout_form.payment_method == 'COD' and cod_available %}check_circle{% else %}radio_button_unchecked{% endif %}</span>
                     </label>
-                    <label class="vm-checkout-mobile-radio {% if checkout_form.payment_method == 'RAZORPAY' %}is-selected{% endif %}">
+                    <label class="vm-checkout-mobile-radio {% if checkout_form.payment_method == 'RAZORPAY' or not cod_available %}is-selected{% endif %}">
                         <input type="radio" name="payment_method" value="RAZORPAY" {% if checkout_form.payment_method == 'RAZORPAY' %}checked{% endif %}>
                         <span class="material-symbols-outlined vm-checkout-icon">credit_card</span>
                         <div class="vm-checkout-mobile-radio__copy">
@@ -581,15 +581,15 @@
                     </div>
 
                     <div class="vm-checkout-tablet-radio-group" id="tabletPaymentMethods">
-                        <label class="vm-checkout-tablet-radio {% if checkout_form.payment_method == 'COD' or not checkout_form.payment_method %}is-selected{% endif %}">
-                            <input type="radio" name="payment_method" value="COD" {% if checkout_form.payment_method == 'COD' or not checkout_form.payment_method %}checked{% endif %}>
+                        <label class="vm-checkout-tablet-radio {% if cod_available and (checkout_form.payment_method == 'COD' or not checkout_form.payment_method) %}is-selected{% elif not cod_available %}is-disabled{% endif %}">
+                            <input type="radio" name="payment_method" value="COD" {% if checkout_form.payment_method == 'COD' and cod_available %}checked{% endif %} {% if not cod_available %}disabled aria-disabled="true"{% endif %}>
                             <span class="material-symbols-outlined" style="font-size: 1.5rem;">payments</span>
                             <div class="vm-checkout-tablet-radio__content">
                                 <p class="vm-checkout-tablet-radio__title">Cash on Delivery</p>
-                                <p class="vm-checkout-tablet-radio__description">Pay when the order reaches your doorstep.</p>
+                                <p class="vm-checkout-tablet-radio__description">{% if cod_available %}Pay when the order reaches your doorstep.{% else %}Not available for no-return items.{% endif %}</p>
                             </div>
                         </label>
-                        <label class="vm-checkout-tablet-radio {% if checkout_form.payment_method == 'RAZORPAY' %}is-selected{% endif %}">
+                        <label class="vm-checkout-tablet-radio {% if checkout_form.payment_method == 'RAZORPAY' or not cod_available %}is-selected{% endif %}">
                             <input type="radio" name="payment_method" value="RAZORPAY" {% if checkout_form.payment_method == 'RAZORPAY' %}checked{% endif %}>
                             <span class="material-symbols-outlined" style="font-size: 1.5rem;">credit_card</span>
                             <div class="vm-checkout-tablet-radio__content">
@@ -1996,6 +1996,8 @@ function showAvailableCouponsPopup() {
         showCouponMessage('Error loading coupons', 'danger');
     });
 }
+
+window.VMCheckoutShowAvailableCoupons = showAvailableCouponsPopup;
 
 function renderAvailableCouponsPanel(coupons) {
     const couponsPanel = document.getElementById('availableCouponsPanel');
