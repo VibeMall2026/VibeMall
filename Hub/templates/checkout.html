@@ -283,7 +283,7 @@
                 </div>
 
                 <div class="vm-checkout-mobile-methods" id="mobilePaymentMethods">
-                    <label class="vm-checkout-mobile-radio {% if cod_available and (checkout_form.payment_method == 'COD' or not checkout_form.payment_method) %}is-selected{% elif not cod_available %}is-disabled{% endif %}">
+                    <label class="vm-checkout-mobile-radio {% if cod_available and checkout_form.payment_method == 'COD' or cod_available and not checkout_form.payment_method %}is-selected{% elif not cod_available %}is-disabled{% endif %}">
                         <input type="radio" name="payment_method" value="COD" {% if checkout_form.payment_method == 'COD' and cod_available %}checked{% endif %} {% if not cod_available %}disabled aria-disabled="true"{% endif %}>
                         <span class="material-symbols-outlined vm-checkout-icon">payments</span>
                         <div class="vm-checkout-mobile-radio__copy">
@@ -581,7 +581,7 @@
                     </div>
 
                     <div class="vm-checkout-tablet-radio-group" id="tabletPaymentMethods">
-                        <label class="vm-checkout-tablet-radio {% if cod_available and (checkout_form.payment_method == 'COD' or not checkout_form.payment_method) %}is-selected{% elif not cod_available %}is-disabled{% endif %}">
+                        <label class="vm-checkout-tablet-radio {% if cod_available and checkout_form.payment_method == 'COD' or cod_available and not checkout_form.payment_method %}is-selected{% elif not cod_available %}is-disabled{% endif %}">
                             <input type="radio" name="payment_method" value="COD" {% if checkout_form.payment_method == 'COD' and cod_available %}checked{% endif %} {% if not cod_available %}disabled aria-disabled="true"{% endif %}>
                             <span class="material-symbols-outlined" style="font-size: 1.5rem;">payments</span>
                             <div class="vm-checkout-tablet-radio__content">
