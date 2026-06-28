@@ -20,6 +20,44 @@ from .models_ai_ml_features import *
 from .models_activation_tracking import *
 
 
+def _trim_uniform_border(img, tolerance=12):
+    """
+    Remove near-uniform outer padding so product photos fill the frame better.
+    Uses the top-left pixel as the background reference.
+    """
+    try:
+        from PIL import Image, ImageChops
+
+        if img.mode not in ('RGB', 'RGBA'):
+            working = img.convert('RGBA' if 'A' in img.mode else 'RGB')
+        else:
+            working = img.copy()
+
+        reference_pixel = working.getpixel((0, 0))
+        background = Image.new(working.mode, working.size, reference_pixel)
+        diff = ImageChops.difference(working, background)
+        if tolerance > 0:
+            diff = ImageChops.add(diff, diff, 2.0, -tolerance)
+        bbox = diff.getbbox()
+        if not bbox:
+            return working
+
+        trimmed = working.crop(bbox)
+        if trimmed.width < max(working.width * 0.35, 1) or trimmed.height < max(working.height * 0.35, 1):
+            return working
+        return trimmed
+    except Exception:
+        return img
+
+
+def _prepare_image_for_fill(img):
+    """Trim outer padding and normalize into an RGB/RGBA working image."""
+    has_alpha = img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info)
+    working = img.convert('RGBA') if has_alpha else img.convert('RGB')
+    working = _trim_uniform_border(working)
+    return working, has_alpha
+
+
 def _compress_image_field(instance, field_name, max_width=1200, quality=82):
     """
     Compress and resize an ImageField on a model instance in-place.
@@ -95,7 +133,7 @@ def _fit_image_field_to_frame(
     This keeps full image visible (contain behavior) and avoids distortion.
     """
     try:
-        from PIL import Image
+        from PIL import Image, ImageOps
         import io
         from django.core.files.base import ContentFile
 
@@ -114,36 +152,26 @@ def _fit_image_field_to_frame(
         if img.format not in ('JPEG', 'PNG', 'WEBP'):
             return
 
-        # Preserve transparency when available
-        has_alpha = img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info)
-        working = img.convert('RGBA') if has_alpha else img.convert('RGB')
+        # Trim source padding and fill the target frame instead of boxing the image.
+        working, has_alpha = _prepare_image_for_fill(img)
 
         # If already correct size and mode, skip rewrite
         if working.width == target_width and working.height == target_height:
             return
 
-        # Fit image inside frame (no crop), centered.
-        # Upscale small images too, so they don't appear tiny in the card.
-        scale = min(target_width / working.width, target_height / working.height)
-        new_width = max(1, int(round(working.width * scale)))
-        new_height = max(1, int(round(working.height * scale)))
-        fitted = working.resize((new_width, new_height), Image.LANCZOS)
-
-        if has_alpha:
-            canvas = Image.new('RGBA', (target_width, target_height), background_rgba)
-        else:
-            canvas = Image.new('RGB', (target_width, target_height), background_rgba[:3])
-
-        x = (target_width - fitted.width) // 2
-        y = (target_height - fitted.height) // 2
-        canvas.paste(fitted, (x, y), fitted if has_alpha else None)
+        fitted = ImageOps.fit(
+            working,
+            (target_width, target_height),
+            method=Image.LANCZOS,
+            centering=(0.5, 0.5),
+        )
 
         output_format = 'PNG' if has_alpha else 'JPEG'
         buffer = io.BytesIO()
         save_kwargs = {'format': output_format, 'optimize': True}
         if output_format == 'JPEG':
             save_kwargs['quality'] = quality
-        canvas.save(buffer, **save_kwargs)
+        fitted.save(buffer, **save_kwargs)
         buffer.seek(0)
 
         original_name = field.name.split('/')[-1]

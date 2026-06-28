@@ -44,7 +44,7 @@ import uuid
 import requests
 import shutil
 from io import BytesIO
-from PIL import Image as PILImage, UnidentifiedImageError
+from PIL import Image as PILImage, ImageOps as PILImageOps, UnidentifiedImageError
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 import logging
@@ -195,7 +195,7 @@ def _log_rto_history(rto_case: 'RTOCase', old_status: str, new_status: str, user
         notes=notes,
     )
 
-from .models import CategoryIcon, SubCategory, Slider, Feature, Banner, Product, DealCountdown, UserProfile, Address, Cart, Wishlist, ProductImage, ProductReview, ReviewImage, ReviewVote, ProductQuestion, Order, OrderItem, OrderStatusHistory, OrderCancellationRequest, ReturnRequest, ReturnItem, ReturnHistory, ReturnAttachment, ReturnLabel, RTOCase, RTOHistory, AdminEmailSettings, ProductStockNotification, BrandPartner, SiteSettings, LoyaltyPoints, PointsTransaction, MainPageProduct, MainPageSubCategoryBanner, MainPageBanner, ChatThread, ChatMessage, ChatAttachment, NewsletterSubscription, Coupon, CouponUsage
+from .models import CategoryIcon, SubCategory, Slider, Feature, Banner, Product, DealCountdown, UserProfile, Address, Cart, Wishlist, ProductImage, ProductReview, ReviewImage, ReviewVote, ProductQuestion, Order, OrderItem, OrderStatusHistory, OrderCancellationRequest, ReturnRequest, ReturnItem, ReturnHistory, ReturnAttachment, ReturnLabel, RTOCase, RTOHistory, AdminEmailSettings, ProductStockNotification, BrandPartner, SiteSettings, LoyaltyPoints, PointsTransaction, MainPageProduct, MainPageSubCategoryBanner, MainPageBanner, ChatThread, ChatMessage, ChatAttachment, NewsletterSubscription, Coupon, CouponUsage, _prepare_image_for_fill
 from .models_content_management import FAQCategory, FAQ, BlogCategory, BlogPost, BlogComment
 from .email_utils import send_order_confirmation_email, send_order_status_update_email, send_admin_order_notification, build_invoice_context
 from .rate_limiter import rate_limit
@@ -1188,31 +1188,27 @@ def crop_image_height(file_obj, target_height=738):
         target_width = 960
         frame_height = 1200
 
-        has_alpha = image.mode in ('RGBA', 'LA') or (image.mode == 'P' and 'transparency' in image.info)
-        working = image.convert('RGBA') if has_alpha else image.convert('RGB')
+        working, has_alpha = _prepare_image_for_fill(image)
 
-        # Resize to fit inside frame while preserving aspect ratio
-        fitted = working.copy()
         try:
             resample_filter = PILImage.Resampling.LANCZOS
         except AttributeError:
             resample_filter = PILImage.LANCZOS
-        fitted.thumbnail((target_width, frame_height), resample_filter)
 
-        canvas_mode = 'RGBA' if has_alpha else 'RGB'
-        canvas_bg = (246, 244, 239, 255) if has_alpha else (246, 244, 239)
-        canvas = PILImage.new(canvas_mode, (target_width, frame_height), canvas_bg)
-        offset_x = (target_width - fitted.width) // 2
-        offset_y = (frame_height - fitted.height) // 2
-        canvas.paste(fitted, (offset_x, offset_y), fitted if has_alpha else None)
+        fitted = PILImageOps.fit(
+            working,
+            (target_width, frame_height),
+            method=resample_filter,
+            centering=(0.5, 0.5),
+        )
 
         output = BytesIO()
         if has_alpha:
-            canvas.save(output, format='PNG', optimize=True)
+            fitted.save(output, format='PNG', optimize=True)
             content_type = 'image/png'
             ext = 'png'
         else:
-            canvas.save(output, format='JPEG', optimize=True, quality=92)
+            fitted.save(output, format='JPEG', optimize=True, quality=92)
             content_type = 'image/jpeg'
             ext = 'jpg'
         output.seek(0)
