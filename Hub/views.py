@@ -1387,6 +1387,73 @@ def _sanitize_folder_segment(value, fallback='Untitled'):
     return sanitized or fallback
 
 
+def _normalize_folder_match(value):
+    return re.sub(r'[^a-z0-9]+', '', str(value or '').strip().lower())
+
+
+def _pick_existing_folder_name(root_path, preferred_name, extra_candidates=None):
+    clean_preferred = _sanitize_folder_segment(preferred_name, fallback='')
+    if not root_path or not os.path.isdir(root_path):
+        return clean_preferred
+
+    existing_dirs = [
+        entry for entry in os.listdir(root_path)
+        if os.path.isdir(os.path.join(root_path, entry))
+    ]
+    if not existing_dirs:
+        return clean_preferred
+
+    candidate_values = [clean_preferred]
+    for item in (extra_candidates or []):
+        clean_item = _sanitize_folder_segment(item, fallback='')
+        if clean_item:
+            candidate_values.append(clean_item)
+
+    candidate_values = [item for item in candidate_values if item]
+    normalized_candidates = {_normalize_folder_match(item) for item in candidate_values if item}
+
+    for existing in existing_dirs:
+        if existing in candidate_values:
+            return existing
+
+    for existing in existing_dirs:
+        if _normalize_folder_match(existing) in normalized_candidates:
+            return existing
+
+    return clean_preferred
+
+
+def _ensure_product_image_folder_tree(main_label, sub_label='', category_key=''):
+    product_image_root = _get_product_image_root()
+    os.makedirs(product_image_root, exist_ok=True)
+
+    category_folder = _pick_existing_folder_name(
+        product_image_root,
+        main_label,
+        extra_candidates=[category_key],
+    ) or _sanitize_folder_segment(main_label, fallback='General')
+    category_dir = os.path.join(product_image_root, category_folder)
+    os.makedirs(category_dir, exist_ok=True)
+
+    sub_category_dir = ''
+    sub_category_folder = ''
+    if sub_label:
+        sub_category_folder = _pick_existing_folder_name(
+            category_dir,
+            sub_label,
+        ) or _sanitize_folder_segment(sub_label, fallback='General')
+        sub_category_dir = os.path.join(category_dir, sub_category_folder)
+        os.makedirs(sub_category_dir, exist_ok=True)
+
+    return {
+        'root': product_image_root,
+        'category_folder': category_folder,
+        'category_dir': category_dir,
+        'sub_category_folder': sub_category_folder,
+        'sub_category_dir': sub_category_dir,
+    }
+
+
 def _build_category_key(label, existing_keys=None):
     base_key = re.sub(r'[^A-Z0-9]+', '_', _sanitize_folder_segment(label, fallback='CATEGORY').upper()).strip('_')
     if not base_key:
@@ -1448,12 +1515,19 @@ def _ensure_category_and_subcategory(main_label, sub_label='', category_key=''):
                 order=max_sub_order + 1,
             )
 
+    folder_info = _ensure_product_image_folder_tree(
+        clean_main_label,
+        clean_sub_label,
+        category_key=final_category_key,
+    )
+
     return {
         'category_label': clean_main_label,
         'sub_category_label': clean_sub_label,
         'category_key': final_category_key,
         'category_icon': category_icon,
         'subcategory': created_subcategory,
+        'folder_info': folder_info,
     }
 
 
@@ -2763,6 +2837,13 @@ def admin_save_subcategory_icon(request):
         sub_category.icon_image = request.FILES['icon_image']
 
     sub_category.save()
+    category_icon = CategoryIcon.objects.filter(category_key=category_key).first()
+    category_label = category_icon.name if category_icon and category_icon.name else category_key
+    _ensure_product_image_folder_tree(
+        category_label,
+        sub_category.name,
+        category_key=category_key,
+    )
 
     messages.success(
         request,
@@ -2813,6 +2894,11 @@ def admin_add_category(request):
 
             if request.FILES.get('icon_image') or request.FILES.get('card_image'):
                 category.save()
+
+            _ensure_product_image_folder_tree(
+                category.name,
+                category_key=category.category_key,
+            )
             
             messages.success(request, f'Category "{category.name}" added successfully!')
             return redirect('admin_categories')
@@ -2859,6 +2945,10 @@ def admin_edit_category(request, category_id):
                 category.card_image = request.FILES['card_image']
             
             category.save()
+            _ensure_product_image_folder_tree(
+                category.name,
+                category_key=category.category_key,
+            )
             
             messages.success(request, f'Category "{category.name}" updated successfully!')
             return redirect('admin_categories')
