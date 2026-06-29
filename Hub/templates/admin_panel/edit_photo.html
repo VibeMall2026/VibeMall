@@ -292,33 +292,34 @@
 
                     <div class="card mt-4 border-light-subtle">
                         <div class="card-body">
-                            <h6 class="mb-2">Optional: Prepare Color Variants Here</h6>
+                            <h6 class="mb-2">Optional: Prepare Color Variant Batch</h6>
                             <p class="text-muted small mb-3">
-                                If these cropped PNGs belong to color variants, assign color name and role here. After save, `Add Product` will auto-use them as variant images too.
+                                For color variants, system will auto-use the same smart rule: first image as main, last as description, middle images as gallery.
                             </p>
-                            <div class="row g-3">
-                                {% for item in results %}
-                                <div class="col-md-6 col-lg-4">
-                                    <div class="border rounded p-2 h-100">
-                                        <img src="{{ item.url }}" alt="Variant candidate {{ forloop.counter }}" class="img-fluid rounded mb-2" style="max-height: 120px; object-fit: contain; width: 100%;">
-                                        <div class="small text-muted mb-2">{{ item.download_name }}</div>
-                                        <input type="hidden" name="variant_assignment_index" value="{{ forloop.counter }}">
-                                        <div class="mb-2">
-                                            <label class="form-label small mb-1">Color Name</label>
-                                            <input type="text" class="form-control form-control-sm" name="variant_assignment_color" list="variantColorSuggestions" placeholder="e.g. Navy Blue">
-                                        </div>
-                                        <div>
-                                            <label class="form-label small mb-1">Role</label>
-                                            <select class="form-select form-select-sm" name="variant_assignment_role">
-                                                <option value="">Not a variant</option>
-                                                <option value="main">Variant Main Image</option>
-                                                <option value="gallery">Variant Gallery Image</option>
-                                                <option value="description">Variant Description Image</option>
-                                            </select>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="is_color_variant_batch" name="is_color_variant_batch">
+                                <label class="form-check-label" for="is_color_variant_batch">
+                                    This batch is a color variant
+                                </label>
+                            </div>
+                            <div id="colorVariantBatchFields" style="display:none;">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label" for="variant_batch_color">Color Name</label>
+                                        <input type="text" class="form-control" id="variant_batch_color" name="variant_batch_color" list="variantColorSuggestions" placeholder="e.g. Navy Blue">
+                                    </div>
+                                    <div class="col-md-6 d-flex align-items-end">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="variant_batch_apply_all" name="variant_batch_apply_all" checked>
+                                            <label class="form-check-label" for="variant_batch_apply_all">
+                                                Apply same color to all selected images
+                                            </label>
                                         </div>
                                     </div>
                                 </div>
-                                {% endfor %}
+                                <div class="alert alert-info mt-3 mb-0 small">
+                                    Auto role rule: first image → main, last image → description, middle images → gallery.
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -501,6 +502,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const pastedImagesHidden = document.getElementById('pasted-images-hidden');
     const pastedImageList = document.getElementById('pasted-image-list');
     const imageFilesInput = document.getElementById('image_files');
+    const colorVariantBatchToggle = document.getElementById('is_color_variant_batch');
+    const colorVariantBatchFields = document.getElementById('colorVariantBatchFields');
 
     if (!urlList || !addBtn) return;
 
@@ -620,6 +623,18 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             pasteZone.innerHTML = `${imageFilesInput.files.length} uploaded file${imageFilesInput.files.length === 1 ? '' : 's'} selected.`;
         });
+    }
+
+    const toggleColorVariantBatchFields = () => {
+        if (!colorVariantBatchToggle || !colorVariantBatchFields) {
+            return;
+        }
+        colorVariantBatchFields.style.display = colorVariantBatchToggle.checked ? 'block' : 'none';
+    };
+
+    if (colorVariantBatchToggle) {
+        colorVariantBatchToggle.addEventListener('change', toggleColorVariantBatchFields);
+        toggleColorVariantBatchFields();
     }
 
     updateRemoveState();

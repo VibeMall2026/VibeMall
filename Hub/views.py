@@ -3248,9 +3248,8 @@ def admin_edit_photo(request):
             create_folder = request.POST.get('create_folder') == 'on'
             image_assignment_indexes = request.POST.getlist('image_assignment_index')
             image_assignment_roles = request.POST.getlist('image_assignment_role')
-            variant_assignment_indexes = request.POST.getlist('variant_assignment_index')
-            variant_assignment_colors = request.POST.getlist('variant_assignment_color')
-            variant_assignment_roles = request.POST.getlist('variant_assignment_role')
+            is_color_variant_batch = request.POST.get('is_color_variant_batch') == 'on'
+            variant_batch_color = (request.POST.get('variant_batch_color') or '').strip()
             standard_assignments = []
             variant_assignments = []
 
@@ -3307,29 +3306,17 @@ def admin_edit_photo(request):
             if len([item for item in standard_assignments if item['role'] == 'description']) > 1:
                 errors.append('Only one image can be assigned as Description Image.')
 
-            for raw_index, raw_color, raw_role in zip(
-                variant_assignment_indexes,
-                variant_assignment_colors,
-                variant_assignment_roles,
-            ):
-                color_value = (raw_color or '').strip()
-                role_value = (raw_role or '').strip().lower()
-                if not color_value and not role_value:
-                    continue
-                if not color_value or role_value not in ('main', 'gallery', 'description'):
-                    errors.append(f'Variant assignment for image {raw_index} is incomplete. Select both color and role.')
-                    continue
-                try:
-                    image_index = int(raw_index)
-                except (TypeError, ValueError):
-                    errors.append('Variant assignment contains invalid image index.')
-                    continue
-                variant_assignments.append({
-                    'index': image_index,
-                    'color': color_value,
-                    'role': role_value,
-                    'filename': f'{image_index}.png',
-                })
+            if is_color_variant_batch:
+                if not variant_batch_color:
+                    errors.append('Please enter a color name for the color variant batch.')
+                else:
+                    for assignment in standard_assignments:
+                        variant_assignments.append({
+                            'index': assignment['index'],
+                            'color': variant_batch_color,
+                            'role': assignment['role'],
+                            'filename': assignment['filename'],
+                        })
 
             # Fall back to label values when folder mapping is empty (new/unmapped category or sub-category)
             if not main_category and main_category_label:
