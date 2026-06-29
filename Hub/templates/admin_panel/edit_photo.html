@@ -292,33 +292,23 @@
 
                     <div class="card mt-4 border-light-subtle">
                         <div class="card-body">
-                            <h6 class="mb-2">Optional: Prepare Color Variant Batch</h6>
+                            <h6 class="mb-2">Optional: Prepare Color Variant Batches</h6>
                             <p class="text-muted small mb-3">
-                                For color variants, system will auto-use the same smart rule: first image as main, last as description, middle images as gallery.
+                                Add one or more colors. For each color batch, choose image range. System will auto-use the same smart rule: first image as main, last as description, middle images as gallery.
                             </p>
                             <div class="form-check form-switch mb-3">
-                                <input class="form-check-input" type="checkbox" id="is_color_variant_batch" name="is_color_variant_batch">
-                                <label class="form-check-label" for="is_color_variant_batch">
-                                    This batch is a color variant
+                                <input class="form-check-input" type="checkbox" id="has_color_variant_batches" name="has_color_variant_batches">
+                                <label class="form-check-label" for="has_color_variant_batches">
+                                    This product has color variants
                                 </label>
                             </div>
                             <div id="colorVariantBatchFields" style="display:none;">
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label" for="variant_batch_color">Color Name</label>
-                                        <input type="text" class="form-control" id="variant_batch_color" name="variant_batch_color" list="variantColorSuggestions" placeholder="e.g. Navy Blue">
-                                    </div>
-                                    <div class="col-md-6 d-flex align-items-end">
-                                        <div class="form-check mb-2">
-                                            <input class="form-check-input" type="checkbox" id="variant_batch_apply_all" name="variant_batch_apply_all" checked>
-                                            <label class="form-check-label" for="variant_batch_apply_all">
-                                                Apply same color to all selected images
-                                            </label>
-                                        </div>
-                                    </div>
+                                <div id="variantBatchRows" class="d-flex flex-column gap-3"></div>
+                                <div class="mt-3">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="addVariantBatchBtn">+ Add Color</button>
                                 </div>
                                 <div class="alert alert-info mt-3 mb-0 small">
-                                    Auto role rule: first image → main, last image → description, middle images → gallery.
+                                    Example: Navy Blue = images 1 to 4, Pink = images 5 to 8.
                                 </div>
                             </div>
                         </div>
@@ -502,8 +492,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const pastedImagesHidden = document.getElementById('pasted-images-hidden');
     const pastedImageList = document.getElementById('pasted-image-list');
     const imageFilesInput = document.getElementById('image_files');
-    const colorVariantBatchToggle = document.getElementById('is_color_variant_batch');
+    const colorVariantBatchToggle = document.getElementById('has_color_variant_batches');
     const colorVariantBatchFields = document.getElementById('colorVariantBatchFields');
+    const variantBatchRows = document.getElementById('variantBatchRows');
+    const addVariantBatchBtn = document.getElementById('addVariantBatchBtn');
 
     if (!urlList || !addBtn) return;
 
@@ -632,13 +624,77 @@ document.addEventListener('DOMContentLoaded', function() {
         colorVariantBatchFields.style.display = colorVariantBatchToggle.checked ? 'block' : 'none';
     };
 
+    const buildVariantBatchRow = (index) => {
+        return `
+            <div class="border rounded p-3 bg-white" data-variant-batch-row>
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label">Color Name</label>
+                        <input type="text" class="form-control" name="variant_batch_color" list="variantColorSuggestions" placeholder="e.g. Navy Blue">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">From</label>
+                        <input type="number" min="1" class="form-control" name="variant_batch_start" placeholder="1">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">To</label>
+                        <input type="number" min="1" class="form-control" name="variant_batch_end" placeholder="4">
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-outline-danger w-100 remove-variant-batch">Remove</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    };
+
+    const ensureAtLeastOneVariantBatchRow = () => {
+        if (!variantBatchRows || variantBatchRows.children.length > 0) {
+            return;
+        }
+        variantBatchRows.insertAdjacentHTML('beforeend', buildVariantBatchRow(variantBatchRows.children.length + 1));
+    };
+
     if (colorVariantBatchToggle) {
-        colorVariantBatchToggle.addEventListener('change', toggleColorVariantBatchFields);
+        colorVariantBatchToggle.addEventListener('change', () => {
+            toggleColorVariantBatchFields();
+            if (colorVariantBatchToggle.checked) {
+                ensureAtLeastOneVariantBatchRow();
+            }
+        });
         toggleColorVariantBatchFields();
+    }
+
+    if (addVariantBatchBtn) {
+        addVariantBatchBtn.addEventListener('click', () => {
+            if (!variantBatchRows) {
+                return;
+            }
+            variantBatchRows.insertAdjacentHTML('beforeend', buildVariantBatchRow(variantBatchRows.children.length + 1));
+        });
+    }
+
+    if (variantBatchRows) {
+        variantBatchRows.addEventListener('click', (event) => {
+            const removeBtn = event.target.closest('.remove-variant-batch');
+            if (!removeBtn) {
+                return;
+            }
+            const row = removeBtn.closest('[data-variant-batch-row]');
+            if (row) {
+                row.remove();
+            }
+            if (colorVariantBatchToggle?.checked) {
+                ensureAtLeastOneVariantBatchRow();
+            }
+        });
     }
 
     updateRemoveState();
     renderPastedImageList();
+    if (colorVariantBatchToggle?.checked) {
+        ensureAtLeastOneVariantBatchRow();
+    }
 
     const resultsBlock = document.getElementById('converted-images');
     const downloadBlock = document.getElementById('download-images');

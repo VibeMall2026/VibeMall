@@ -3248,8 +3248,10 @@ def admin_edit_photo(request):
             create_folder = request.POST.get('create_folder') == 'on'
             image_assignment_indexes = request.POST.getlist('image_assignment_index')
             image_assignment_roles = request.POST.getlist('image_assignment_role')
-            is_color_variant_batch = request.POST.get('is_color_variant_batch') == 'on'
-            variant_batch_color = (request.POST.get('variant_batch_color') or '').strip()
+            has_color_variant_batches = request.POST.get('has_color_variant_batches') == 'on'
+            variant_batch_colors = request.POST.getlist('variant_batch_color')
+            variant_batch_starts = request.POST.getlist('variant_batch_start')
+            variant_batch_ends = request.POST.getlist('variant_batch_end')
             standard_assignments = []
             variant_assignments = []
 
@@ -3306,17 +3308,54 @@ def admin_edit_photo(request):
             if len([item for item in standard_assignments if item['role'] == 'description']) > 1:
                 errors.append('Only one image can be assigned as Description Image.')
 
-            if is_color_variant_batch:
-                if not variant_batch_color:
-                    errors.append('Please enter a color name for the color variant batch.')
-                else:
-                    for assignment in standard_assignments:
+            if has_color_variant_batches:
+                used_variant_indexes = set()
+                for raw_color, raw_start, raw_end in zip(variant_batch_colors, variant_batch_starts, variant_batch_ends):
+                    color_value = (raw_color or '').strip()
+                    start_value = (raw_start or '').strip()
+                    end_value = (raw_end or '').strip()
+
+                    if not color_value and not start_value and not end_value:
+                        continue
+
+                    if not color_value or not start_value or not end_value:
+                        errors.append('Each color batch needs color name, start image, and end image.')
+                        continue
+
+                    try:
+                        start_index = int(start_value)
+                        end_index = int(end_value)
+                    except (TypeError, ValueError):
+                        errors.append(f'Invalid image range for color batch "{color_value}".')
+                        continue
+
+                    if start_index < 1 or end_index < 1 or start_index > end_index or end_index > total_converted:
+                        errors.append(f'Image range for "{color_value}" must stay between 1 and {total_converted}.')
+                        continue
+
+                    overlap = [idx for idx in range(start_index, end_index + 1) if idx in used_variant_indexes]
+                    if overlap:
+                        errors.append(f'Color batch "{color_value}" overlaps with another batch.')
+                        continue
+
+                    batch_indexes = list(range(start_index, end_index + 1))
+                    for idx, image_index in enumerate(batch_indexes):
+                        if len(batch_indexes) == 1:
+                            role_value = 'main'
+                        elif image_index == start_index:
+                            role_value = 'main'
+                        elif image_index == end_index:
+                            role_value = 'description'
+                        else:
+                            role_value = 'gallery'
+
                         variant_assignments.append({
-                            'index': assignment['index'],
-                            'color': variant_batch_color,
-                            'role': assignment['role'],
-                            'filename': assignment['filename'],
+                            'index': image_index,
+                            'color': color_value,
+                            'role': role_value,
+                            'filename': f'{image_index}.png',
                         })
+                        used_variant_indexes.add(image_index)
 
             # Fall back to label values when folder mapping is empty (new/unmapped category or sub-category)
             if not main_category and main_category_label:
