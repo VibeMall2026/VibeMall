@@ -543,10 +543,10 @@ body.vm-pd-original-card-image .pddx-reco__image img {
                 </div>
             </div>
 
-            <div class="pddx-option-block" data-pddx-color-root data-options="{{ product.color|default:'Signature finish'|escapejs }}">
+            <div class="pddx-option-block" data-pddx-color-root data-options="{{ available_color_options_csv|default:product.color|default:''|escapejs }}">
                 <div class="pddx-option-head">
                     <p>Color</p>
-                    <span data-pddx-color-value>{{ product.color|default:"Signature finish" }}</span>
+                    <span data-pddx-color-value>{{ selected_color_label|default:product.color|default:"" }}</span>
                 </div>
                 <div class="pddx-swatch-row" data-pddx-color-list></div>
                 {% if gallery_images %}
@@ -1055,7 +1055,8 @@ function initDesktopOptionGroup(rootSelector, listSelector, valueSelector, butto
         finalOptions = mergeUniqueOptions(finalOptions, getGalleryColorOptions());
     }
     if (!finalOptions.length) {
-        finalOptions = [isColorGroup ? 'Signature finish' : 'One Size'];
+        const existingValue = valueLabel ? (valueLabel.textContent || '').trim() : '';
+        finalOptions = [isColorGroup ? (existingValue || 'Color') : 'One Size'];
     }
     list.innerHTML = '';
 
@@ -1109,9 +1110,13 @@ function initMobileOptionGroup(rootSelector, listSelector, valueSelector, button
         .map(function(o) { return o.trim(); })
         .filter(Boolean);
 
-    let finalOptions = options.length ? options : [isColorGroup ? 'Signature finish' : 'One Size'];
+    const existingValue = valueLabel ? (valueLabel.textContent || '').trim() : '';
+    let finalOptions = options.length ? options : [isColorGroup ? (existingValue || 'Color') : 'One Size'];
     if (isColorGroup) {
         finalOptions = mergeUniqueOptions(finalOptions, getGalleryColorOptions());
+    }
+    if (!finalOptions.length) {
+        finalOptions = [isColorGroup ? (existingValue || 'Color') : 'One Size'];
     }
 
     list.innerHTML = '';

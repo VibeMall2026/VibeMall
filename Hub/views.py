@@ -1361,7 +1361,24 @@ def _write_edit_photo_alias(source_url, index):
 
 
 def _get_product_image_root():
-    return getattr(settings, 'PRODUCT_IMAGE_ROOT', r"D:\VibeMallProduct\ProductImage")
+    configured_root = (
+        os.getenv('PRODUCT_IMAGE_ROOT')
+        or getattr(settings, 'PRODUCT_IMAGE_ROOT', '')
+        or ''
+    )
+    configured_root = str(configured_root).strip()
+    if configured_root:
+        return configured_root
+
+    legacy_windows_root = r"D:\VibeMallProduct\ProductImage"
+    if os.path.isdir(legacy_windows_root):
+        return legacy_windows_root
+
+    media_root = str(getattr(settings, 'MEDIA_ROOT', '') or '').strip()
+    if media_root:
+        return os.path.join(media_root, 'product_images')
+
+    return os.path.join(str(settings.BASE_DIR), 'media', 'product_images')
 
 
 def _sanitize_folder_segment(value, fallback='Untitled'):
@@ -2873,6 +2890,10 @@ def admin_edit_photo(request):
     source_page_url = ''
 
     product_image_root = _get_product_image_root()
+    try:
+        os.makedirs(product_image_root, exist_ok=True)
+    except Exception:
+        pass
 
     def build_folder_index(root_path):
         folder_index = {}
@@ -3423,6 +3444,7 @@ def admin_edit_photo(request):
                     errors.append('Invalid target folder path.')
                 else:
                     if create_folder:
+                        os.makedirs(root_norm, exist_ok=True)
                         os.makedirs(category_dir, exist_ok=True)
                         os.makedirs(sub_category_dir, exist_ok=True)
                         os.makedirs(target_dir, exist_ok=True)
@@ -7831,6 +7853,29 @@ def product_details(request: HttpRequest, product_id: Optional[int] = None) -> H
                 is_active=True,
                 image_role=ProductImage.IMAGE_ROLE_DESCRIPTION,
             ).order_by('order')
+            available_color_options = []
+            seen_color_options = set()
+
+            def add_color_option(color_value):
+                clean_color = (color_value or '').strip()
+                normalized_color = clean_color.lower()
+                if not clean_color or normalized_color in seen_color_options:
+                    return
+                seen_color_options.add(normalized_color)
+                available_color_options.append(clean_color)
+
+            for raw_color in (product.color or '').split(','):
+                add_color_option(raw_color)
+
+            for variant_image in gallery_images:
+                add_color_option(getattr(variant_image, 'color', ''))
+
+            for description_variant in description_variant_images:
+                add_color_option(getattr(description_variant, 'color', ''))
+
+            selected_color_label = available_color_options[0] if available_color_options else ''
+            available_color_options_csv = ', '.join(available_color_options)
+
             initial_description_image_url = ''
             if product.descriptionImage and getattr(product.descriptionImage, 'name', ''):
                 initial_description_image_url = product.descriptionImage.url
@@ -7921,6 +7966,9 @@ def product_details(request: HttpRequest, product_id: Optional[int] = None) -> H
                 'sort_by': sort_by,
                 'gallery_images': gallery_images,
                 'description_variant_images': description_variant_images,
+                'available_color_options': available_color_options,
+                'available_color_options_csv': available_color_options_csv,
+                'selected_color_label': selected_color_label,
                 'initial_description_image_url': initial_description_image_url,
                 'recommended_products': recommended_products,
             })
