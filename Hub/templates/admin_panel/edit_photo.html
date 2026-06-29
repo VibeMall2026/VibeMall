@@ -67,7 +67,7 @@
                     <div id="url-list">
                         <div class="input-group mb-2 url-item">
                             <span class="input-group-text">URL</span>
-                            <input type="url" name="image_urls" class="form-control" placeholder="https://example.com/image.jpg" required>
+                            <input type="url" name="image_urls" class="form-control" placeholder="https://example.com/image.jpg">
                             <button type="button" class="btn btn-outline-secondary remove-url" disabled>Remove</button>
                         </div>
                     </div>
@@ -428,7 +428,7 @@ document.addEventListener('DOMContentLoaded', function() {
         item.className = 'input-group mb-2 url-item';
         item.innerHTML = `
             <span class="input-group-text">URL</span>
-            <input type="url" name="image_urls" class="form-control" placeholder="https://example.com/image.jpg" required>
+            <input type="url" name="image_urls" class="form-control" placeholder="https://example.com/image.jpg">
             <button type="button" class="btn btn-outline-secondary remove-url">Remove</button>
         `;
         urlList.appendChild(item);
