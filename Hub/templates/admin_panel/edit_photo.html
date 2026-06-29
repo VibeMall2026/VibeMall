@@ -60,7 +60,7 @@
                     Step 1: Convert all URLs to PNG. Step 2: Select one image, crop it, and apply the same crop to all PNGs.
                 </div>
 
-                <form method="POST">
+                <form method="POST" enctype="multipart/form-data" id="convert-images-form">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="convert">
 
@@ -71,6 +71,24 @@
                             <button type="button" class="btn btn-outline-secondary remove-url" disabled>Remove</button>
                         </div>
                     </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-lg-6">
+                            <label class="form-label" for="image_files">Upload image files</label>
+                            <input type="file" id="image_files" name="image_files" class="form-control" accept="image/*" multiple>
+                            <div class="form-text">You can select local JPG, PNG, WEBP, AVIF, or HEIC files.</div>
+                        </div>
+                        <div class="col-lg-6">
+                            <label class="form-label">Paste image from clipboard</label>
+                            <div id="paste-image-zone" class="border rounded p-3 bg-light text-muted small" tabindex="0" style="min-height: 96px; cursor: text;">
+                                Click here and press <strong>Ctrl + V</strong> to paste an image.
+                            </div>
+                            <div id="pasted-image-list" class="mt-2 d-flex flex-column gap-2"></div>
+                            <div class="form-text">Useful when you copy image directly from browser or screenshot tool.</div>
+                        </div>
+                    </div>
+
+                    <div id="pasted-images-hidden"></div>
 
                     <div class="d-flex flex-wrap gap-2 mb-3">
                         <button type="button" class="btn btn-outline-primary" id="add-url">+ Add another</button>
@@ -272,7 +290,7 @@
         <div class="card mb-4">
             <div class="card-body">
                 <h6 class="card-title">How it works</h6>
-                <p class="text-muted small mb-2">1. Paste one or more image URLs.</p>
+                <p class="text-muted small mb-2">1. Paste image URL, upload image, or paste image from clipboard.</p>
                 <p class="text-muted small mb-2">2. Click Convert to PNG.</p>
                 <p class="text-muted small mb-2">3. Save to Folder (select Main category, Sub_Category, Product_folder).</p>
                 <p class="text-muted small mb-0">4. Click Open Add Product to auto-use 1.png, 2.png, 3.png.</p>
@@ -388,6 +406,10 @@
 document.addEventListener('DOMContentLoaded', function() {
     const urlList = document.getElementById('url-list');
     const addBtn = document.getElementById('add-url');
+    const pasteZone = document.getElementById('paste-image-zone');
+    const pastedImagesHidden = document.getElementById('pasted-images-hidden');
+    const pastedImageList = document.getElementById('pasted-image-list');
+    const imageFilesInput = document.getElementById('image_files');
 
     if (!urlList || !addBtn) return;
 
@@ -422,7 +444,95 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    const renderPastedImageList = () => {
+        if (!pastedImagesHidden || !pastedImageList) {
+            return;
+        }
+
+        const inputs = Array.from(pastedImagesHidden.querySelectorAll('input[name="pasted_images"]'));
+        if (!inputs.length) {
+            pastedImageList.innerHTML = '';
+            if (pasteZone) {
+                pasteZone.innerHTML = 'Click here and press <strong>Ctrl + V</strong> to paste an image.';
+            }
+            return;
+        }
+
+        if (pasteZone) {
+            pasteZone.innerHTML = `${inputs.length} pasted image${inputs.length === 1 ? '' : 's'} ready for convert. You can paste more.`;
+        }
+
+        pastedImageList.innerHTML = inputs.map((input, index) => `
+            <div class="d-flex align-items-center justify-content-between border rounded px-3 py-2 bg-white">
+                <div class="small text-dark">Pasted image ${index + 1}</div>
+                <button type="button" class="btn btn-sm btn-outline-danger remove-pasted-image" data-index="${index}">Remove</button>
+            </div>
+        `).join('');
+    };
+
+    const appendPastedImage = (dataUrl) => {
+        if (!pastedImagesHidden || !dataUrl) {
+            return;
+        }
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'pasted_images';
+        input.value = dataUrl;
+        pastedImagesHidden.appendChild(input);
+        renderPastedImageList();
+    };
+
+    if (pasteZone) {
+        pasteZone.addEventListener('paste', (event) => {
+            const items = Array.from(event.clipboardData?.items || []);
+            const imageItem = items.find((item) => item.type && item.type.startsWith('image/'));
+            if (!imageItem) {
+                pasteZone.innerHTML = 'Clipboard does not contain an image. Copy image first, then paste here.';
+                return;
+            }
+
+            event.preventDefault();
+            const file = imageItem.getAsFile();
+            if (!file) {
+                pasteZone.innerHTML = 'Could not read pasted image.';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = () => appendPastedImage(reader.result);
+            reader.onerror = () => {
+                pasteZone.innerHTML = 'Could not process pasted image.';
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    if (pastedImageList) {
+        pastedImageList.addEventListener('click', (event) => {
+            const removeBtn = event.target.closest('.remove-pasted-image');
+            if (!removeBtn || !pastedImagesHidden) {
+                return;
+            }
+            const index = Number(removeBtn.getAttribute('data-index'));
+            const inputs = Array.from(pastedImagesHidden.querySelectorAll('input[name="pasted_images"]'));
+            if (inputs[index]) {
+                inputs[index].remove();
+            }
+            renderPastedImageList();
+        });
+    }
+
+    if (imageFilesInput) {
+        imageFilesInput.addEventListener('change', () => {
+            if (!imageFilesInput.files?.length || !pasteZone) {
+                return;
+            }
+            pasteZone.innerHTML = `${imageFilesInput.files.length} uploaded file${imageFilesInput.files.length === 1 ? '' : 's'} selected.`;
+        });
+    }
+
     updateRemoveState();
+    renderPastedImageList();
 
     const resultsBlock = document.getElementById('converted-images');
     const downloadBlock = document.getElementById('download-images');

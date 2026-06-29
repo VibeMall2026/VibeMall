@@ -36,6 +36,7 @@ from html import unescape
 from urllib.parse import urlencode, urlparse
 from typing import Dict, List, Optional, Tuple, Any, Union, Callable
 import ipaddress
+import base64
 import re
 import json
 import base64
@@ -1589,6 +1590,47 @@ def convert_url_to_png(image_url, crop_box=None, crop_ratio=None):
     public_url = f"{settings.MEDIA_URL}{rel_path.replace(os.sep, '/')}"
 
     return public_url, filename
+
+
+def convert_content_to_edit_photo_png(content, content_type='', filename_prefix='edit_photo'):
+    image = _load_image_from_content(content, content_type=content_type)
+
+    if image.mode in ('RGBA', 'LA', 'P'):
+        background = PILImage.new('RGB', image.size, (255, 255, 255))
+        if image.mode == 'P':
+            image = image.convert('RGBA')
+        background.paste(image, mask=image.split()[-1] if image.mode == 'RGBA' else None)
+        image = background
+    elif image.mode != 'RGB':
+        image = image.convert('RGB')
+
+    filename = f"{filename_prefix}_{uuid.uuid4().hex}.png"
+    rel_path = os.path.join('edit_photo', filename)
+    media_root = getattr(settings, 'MEDIA_ROOT', None) or os.path.join(settings.BASE_DIR, 'media')
+    abs_path = os.path.join(media_root, rel_path)
+    os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+
+    image.save(abs_path, format='PNG')
+    public_url = f"{settings.MEDIA_URL}{rel_path.replace(os.sep, '/')}"
+    return public_url, filename
+
+
+def convert_pasted_image_to_png(data_url):
+    raw_value = (data_url or '').strip()
+    match = re.match(r'^data:(image/[\w.+-]+);base64,(.+)$', raw_value, flags=re.IGNORECASE | re.DOTALL)
+    if not match:
+        raise ValueError('Pasted image data is invalid.')
+
+    content_type = (match.group(1) or '').lower()
+    if not content_type.startswith('image/'):
+        raise ValueError('Only image clipboard data is allowed.')
+
+    try:
+        content = base64.b64decode(match.group(2), validate=True)
+    except Exception as exc:
+        raise ValueError('Could not decode pasted image data.') from exc
+
+    return convert_content_to_edit_photo_png(content, content_type=content_type, filename_prefix='edit_photo_paste')
 
 
 def convert_uploaded_file_to_png(uploaded_file, upload_to='converted_images'):
@@ -3291,6 +3333,10 @@ def admin_edit_photo(request):
                     show_downloads = True
         else:
             urls = request.POST.getlist('image_urls')
+            uploaded_images = request.FILES.getlist('image_files')
+            pasted_images = request.POST.getlist('pasted_images')
+            processed_any = False
+
             for raw_url in urls:
                 url = (raw_url or '').strip()
                 if not url:
@@ -3303,8 +3349,46 @@ def admin_edit_photo(request):
                         'url': public_url,
                         'filename': filename,
                     })
+                    processed_any = True
                 except Exception as exc:
                     errors.append(f"{url}: {exc}")
+
+            for uploaded_image in uploaded_images:
+                if not uploaded_image:
+                    continue
+
+                try:
+                    public_url, filename = convert_content_to_edit_photo_png(
+                        uploaded_image.read(),
+                        content_type=getattr(uploaded_image, 'content_type', '') or '',
+                        filename_prefix='edit_photo_upload'
+                    )
+                    results.append({
+                        'source': getattr(uploaded_image, 'name', 'Uploaded image'),
+                        'url': public_url,
+                        'filename': filename,
+                    })
+                    processed_any = True
+                except Exception as exc:
+                    errors.append(f"{getattr(uploaded_image, 'name', 'Uploaded image')}: {exc}")
+
+            for index, pasted_image in enumerate(pasted_images, start=1):
+                if not (pasted_image or '').strip():
+                    continue
+
+                try:
+                    public_url, filename = convert_pasted_image_to_png(pasted_image)
+                    results.append({
+                        'source': f'Pasted image {index}',
+                        'url': public_url,
+                        'filename': filename,
+                    })
+                    processed_any = True
+                except Exception as exc:
+                    errors.append(f'Pasted image {index}: {exc}')
+
+            if not processed_any and not errors:
+                errors.append('Please enter at least one image URL, upload a file, or paste an image.')
 
     folder_index = build_folder_index(product_image_root)
     shop_taxonomy = build_shop_taxonomy()
