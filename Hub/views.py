@@ -1835,6 +1835,7 @@ def admin_add_product(request):
                 saved_display_main_category = (saved_info.get('display_main_category') or '').strip()
                 saved_display_sub_category = (saved_info.get('display_sub_category') or '').strip()
                 saved_folder_main_category = (saved_info.get('main_category') or '').strip()
+                saved_variant_assignments = saved_info.get('variant_assignments') or []
 
                 if not category and saved_category_key:
                     category = saved_category_key
@@ -1876,6 +1877,26 @@ def admin_add_product(request):
                         descriptionImage = file_from_path(desc_path)
                 except Exception:
                     pass
+
+                for assignment in saved_variant_assignments:
+                    filename = (assignment.get('filename') or '').strip()
+                    color_value = (assignment.get('color') or '').strip()
+                    role_value = (assignment.get('role') or '').strip().lower()
+                    if not target_dir or not filename or not color_value or role_value not in ('main', 'gallery', 'description'):
+                        continue
+
+                    variant_path = os.path.join(target_dir, filename)
+                    if not os.path.isfile(variant_path):
+                        continue
+
+                    try:
+                        variant_images.append({
+                            'image': file_from_path(variant_path),
+                            'color': color_value,
+                            'image_role': role_value,
+                        })
+                    except Exception:
+                        pass
             
             def normalize_sku(raw_sku):
                 cleaned = (raw_sku or '').strip()
@@ -2012,6 +2033,9 @@ def admin_add_product(request):
                 'path': path,
                 'exists': bool(path and os.path.isfile(path)),
             })
+        saved_variant_assignments = saved_info.get('variant_assignments') or []
+    else:
+        saved_variant_assignments = []
 
     sub_categories = list(
         SubCategory.objects.filter(is_active=True)
@@ -2023,6 +2047,7 @@ def admin_add_product(request):
         'categories': categories,
         'saved_info': saved_info,
         'saved_images': saved_images,
+        'saved_variant_assignments': saved_variant_assignments,
         'sub_categories': sub_categories,
         'sub_categories_json': json.dumps(sub_categories),
     })
@@ -3177,6 +3202,34 @@ def admin_edit_photo(request):
             sub_category_label = _sanitize_folder_segment(request.POST.get('sub_category_label'), fallback='')
             product_folder = (request.POST.get('product_folder') or '').strip()
             create_folder = request.POST.get('create_folder') == 'on'
+            variant_assignment_indexes = request.POST.getlist('variant_assignment_index')
+            variant_assignment_colors = request.POST.getlist('variant_assignment_color')
+            variant_assignment_roles = request.POST.getlist('variant_assignment_role')
+            variant_assignments = []
+
+            for raw_index, raw_color, raw_role in zip(
+                variant_assignment_indexes,
+                variant_assignment_colors,
+                variant_assignment_roles,
+            ):
+                color_value = (raw_color or '').strip()
+                role_value = (raw_role or '').strip().lower()
+                if not color_value and not role_value:
+                    continue
+                if not color_value or role_value not in ('main', 'gallery', 'description'):
+                    errors.append(f'Variant assignment for image {raw_index} is incomplete. Select both color and role.')
+                    continue
+                try:
+                    image_index = int(raw_index)
+                except (TypeError, ValueError):
+                    errors.append('Variant assignment contains invalid image index.')
+                    continue
+                variant_assignments.append({
+                    'index': image_index,
+                    'color': color_value,
+                    'role': role_value,
+                    'filename': f'{image_index}.png',
+                })
 
             # Fall back to label values when folder mapping is empty (new/unmapped category or sub-category)
             if not main_category and main_category_label:
@@ -3272,6 +3325,7 @@ def admin_edit_photo(request):
                                 'product_folder': product_folder,
                                 'base_path': product_image_root,
                                 'target_dir': target_dir,
+                                'variant_assignments': variant_assignments,
                             }
                             request.session.pop('edit_photo_temp_map', None)
                             request.session.modified = True

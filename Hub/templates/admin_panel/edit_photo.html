@@ -263,6 +263,39 @@
                         <label class="form-check-label" for="create_folder">Create folder if missing</label>
                     </div>
 
+                    <div class="card mt-4 border-light-subtle">
+                        <div class="card-body">
+                            <h6 class="mb-2">Optional: Prepare Color Variants Here</h6>
+                            <p class="text-muted small mb-3">
+                                If these cropped PNGs belong to color variants, assign color name and role here. After save, `Add Product` will auto-use them as variant images too.
+                            </p>
+                            <div class="row g-3">
+                                {% for item in results %}
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="border rounded p-2 h-100">
+                                        <img src="{{ item.url }}" alt="Variant candidate {{ forloop.counter }}" class="img-fluid rounded mb-2" style="max-height: 120px; object-fit: contain; width: 100%;">
+                                        <div class="small text-muted mb-2">{{ item.download_name }}</div>
+                                        <input type="hidden" name="variant_assignment_index" value="{{ forloop.counter }}">
+                                        <div class="mb-2">
+                                            <label class="form-label small mb-1">Color Name</label>
+                                            <input type="text" class="form-control form-control-sm" name="variant_assignment_color" list="variantColorSuggestions" placeholder="e.g. Navy Blue">
+                                        </div>
+                                        <div>
+                                            <label class="form-label small mb-1">Role</label>
+                                            <select class="form-select form-select-sm" name="variant_assignment_role">
+                                                <option value="">Not a variant</option>
+                                                <option value="main">Variant Main Image</option>
+                                                <option value="gallery">Variant Gallery Image</option>
+                                                <option value="description">Variant Description Image</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="mt-3">
                         <button type="submit" class="btn btn-success">Save to Folder</button>
                     </div>
@@ -399,6 +432,37 @@
     </div>
 </div>
 {% endblock %}
+
+<datalist id="variantColorSuggestions">
+    <option value="Red"></option>
+    <option value="Maroon"></option>
+    <option value="Wine"></option>
+    <option value="Pink"></option>
+    <option value="Rose Pink"></option>
+    <option value="Baby Pink"></option>
+    <option value="Peach"></option>
+    <option value="Orange"></option>
+    <option value="Rust"></option>
+    <option value="Yellow"></option>
+    <option value="Mustard"></option>
+    <option value="Gold"></option>
+    <option value="Green"></option>
+    <option value="Olive Green"></option>
+    <option value="Mint Green"></option>
+    <option value="Blue"></option>
+    <option value="Sky Blue"></option>
+    <option value="Navy Blue"></option>
+    <option value="Teal"></option>
+    <option value="Purple"></option>
+    <option value="Lavender"></option>
+    <option value="Brown"></option>
+    <option value="Beige"></option>
+    <option value="Cream"></option>
+    <option value="Off White"></option>
+    <option value="White"></option>
+    <option value="Grey"></option>
+    <option value="Black"></option>
+</datalist>
 
 {% block extra_js %}
 <script src="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.js"></script>

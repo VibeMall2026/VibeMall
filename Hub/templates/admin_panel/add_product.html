@@ -225,6 +225,16 @@
                                     </div>
                                 {% endfor %}
                             </div>
+                            {% if saved_variant_assignments %}
+                            <div class="mt-3">
+                                <div class="small fw-semibold mb-1">Auto color variants</div>
+                                {% for item in saved_variant_assignments %}
+                                <div class="small text-muted">
+                                    {{ item.filename }} -> {{ item.color }} / {{ item.role }}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
                             <input type="hidden" id="saved_main_category" value="{{ saved_info.display_main_category|default:saved_info.main_category }}">
                             <input type="hidden" id="saved_sub_category" value="{{ saved_info.display_sub_category|default:saved_info.sub_category }}">
                             <input type="hidden" id="saved_category_key" value="{{ saved_info.category_key|default:'' }}">
