@@ -1445,6 +1445,11 @@ def _ensure_product_image_folder_tree(main_label, sub_label='', category_key='')
         sub_category_dir = os.path.join(category_dir, sub_category_folder)
         os.makedirs(sub_category_dir, exist_ok=True)
 
+    if not os.path.isdir(category_dir):
+        raise OSError(f'Category folder could not be created: {category_dir}')
+    if sub_label and not os.path.isdir(sub_category_dir):
+        raise OSError(f'Sub-category folder could not be created: {sub_category_dir}')
+
     return {
         'root': product_image_root,
         'category_folder': category_folder,
@@ -2839,7 +2844,7 @@ def admin_save_subcategory_icon(request):
     sub_category.save()
     category_icon = CategoryIcon.objects.filter(category_key=category_key).first()
     category_label = category_icon.name if category_icon and category_icon.name else category_key
-    _ensure_product_image_folder_tree(
+    folder_info = _ensure_product_image_folder_tree(
         category_label,
         sub_category.name,
         category_key=category_key,
@@ -2847,7 +2852,7 @@ def admin_save_subcategory_icon(request):
 
     messages.success(
         request,
-        f'Sub-category "{sub_category.name}" updated successfully!'
+        f'Sub-category "{sub_category.name}" updated successfully! Folder: {folder_info.get("sub_category_dir") or folder_info.get("category_dir")}'
     )
     return redirect('admin_categories')
 
@@ -2895,12 +2900,12 @@ def admin_add_category(request):
             if request.FILES.get('icon_image') or request.FILES.get('card_image'):
                 category.save()
 
-            _ensure_product_image_folder_tree(
+            folder_info = _ensure_product_image_folder_tree(
                 category.name,
                 category_key=category.category_key,
             )
             
-            messages.success(request, f'Category "{category.name}" added successfully!')
+            messages.success(request, f'Category "{category.name}" added successfully! Folder: {folder_info.get("category_dir")}')
             return redirect('admin_categories')
         
         except Exception as e:
@@ -2945,12 +2950,12 @@ def admin_edit_category(request, category_id):
                 category.card_image = request.FILES['card_image']
             
             category.save()
-            _ensure_product_image_folder_tree(
+            folder_info = _ensure_product_image_folder_tree(
                 category.name,
                 category_key=category.category_key,
             )
             
-            messages.success(request, f'Category "{category.name}" updated successfully!')
+            messages.success(request, f'Category "{category.name}" updated successfully! Folder: {folder_info.get("category_dir")}')
             return redirect('admin_categories')
         
         except Exception as e:
@@ -3600,6 +3605,10 @@ def admin_edit_photo(request):
                             category_key = category_sync.get('category_key') or category_key
 
                             saved_message = f"Saved {saved_count} images to {target_dir}"
+                            if not os.path.isdir(target_dir):
+                                errors.append(f'Target folder was not created: {target_dir}')
+                            else:
+                                saved_message += f" | Target folder: {target_dir}"
                             request.session['edit_photo_saved'] = {
                                 'main_category': main_category,
                                 'sub_category': sub_category,
