@@ -1163,15 +1163,11 @@
     }
 
     function loadAvailableCoupons() {
-        fetch('/api/available-coupons/', {
-            method: 'POST',
+        fetch(`/api/available-coupons/?cart_total=${encodeURIComponent(calculateBaseTotalBeforeDiscounts())}`, {
+            method: 'GET',
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({
-                cart_total: calculateBaseTotalBeforeDiscounts()
-            })
+                'X-Requested-With': 'XMLHttpRequest'
+            }
         })
         .then(function (response) {
             return response.json();
@@ -1956,15 +1952,11 @@ function showAvailableCouponsPopup() {
         viewCouponsBtn.textContent = 'Hide Coupons';
     }
 
-    fetch('/api/available-coupons/', {
-        method: 'POST',
+    fetch(`/api/available-coupons/?cart_total=${encodeURIComponent(calculateBaseTotalBeforeDiscounts())}`, {
+        method: 'GET',
         headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify({
-            cart_total: calculateBaseTotalBeforeDiscounts()
-        })
+            'X-Requested-With': 'XMLHttpRequest'
+        }
     })
     .then(res => res.json())
     .then(data => {

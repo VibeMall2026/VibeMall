@@ -152,6 +152,81 @@
                             <input type="text" class="form-control" id="size" name="size" value="{{ product.size|default:'' }}" />
                         </div>
                     </div>
+
+                    <div class="card mb-4 border-light-subtle">
+                        <div class="card-body">
+                            <div class="mb-4">
+                                <h6 class="text-primary mb-3">Return Policy</h6>
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="is_returnable" name="is_returnable" {% if product.is_returnable %}checked{% endif %} onchange="toggleReturnOptions()">
+                                    <label class="form-check-label" for="is_returnable">
+                                        <strong>Product is Returnable</strong>
+                                    </label>
+                                </div>
+
+                                <div id="returnOptions">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="return_days">Return Period (Days)</label>
+                                        <select class="form-select" id="return_days" name="return_days">
+                                            <option value="7" {% if product.return_days == 7 %}selected{% endif %}>7 Days</option>
+                                            <option value="10" {% if product.return_days == 10 %}selected{% endif %}>10 Days</option>
+                                            <option value="15" {% if product.return_days == 15 %}selected{% endif %}>15 Days</option>
+                                            <option value="30" {% if product.return_days == 30 %}selected{% endif %}>30 Days</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label" for="return_policy">Return Policy Details (Optional)</label>
+                                        <textarea class="form-control" id="return_policy" name="return_policy" rows="3" placeholder="Enter return policy details...">{{ product.return_policy|default:'' }}</textarea>
+                                        <small class="text-muted">e.g., "Product must be unused and in original packaging"</small>
+                                    </div>
+                                </div>
+
+                                <div class="alert alert-warning" id="noReturnAlert" style="display:none;">
+                                    <i class="bx bx-info-circle me-2"></i>
+                                    <strong>Note:</strong> If product is not returnable, COD option will be hidden at checkout.
+                                </div>
+                            </div>
+
+                            <div class="mb-0">
+                                <h6 class="text-primary mb-3">Available Payment Methods</h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="payment_cod" name="payment_methods" value="COD" {% if 'COD' in product.get_payment_methods_list %}checked{% endif %}>
+                                            <label class="form-check-label" for="payment_cod">
+                                                <i class="bx bx-money me-1"></i> Cash on Delivery (COD)
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="payment_online" name="payment_methods" value="ONLINE" {% if 'ONLINE' in product.get_payment_methods_list %}checked{% endif %}>
+                                            <label class="form-check-label" for="payment_online">
+                                                <i class="bx bx-credit-card me-1"></i> Online Payment
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="payment_upi" name="payment_methods" value="UPI" {% if 'UPI' in product.get_payment_methods_list %}checked{% endif %}>
+                                            <label class="form-check-label" for="payment_upi">
+                                                <i class="bx bx-mobile me-1"></i> UPI Payment
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="payment_card" name="payment_methods" value="CARD" {% if 'CARD' in product.get_payment_methods_list %}checked{% endif %}>
+                                            <label class="form-check-label" for="payment_card">
+                                                <i class="bx bx-credit-card-alt me-1"></i> Credit/Debit Card
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     
                     <div class="mb-3">
                         <label class="form-label" for="image">Main Product Image</label>
@@ -582,6 +657,27 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
+        const toggleReturnOptions = () => {
+            const isReturnableField = document.getElementById('is_returnable');
+            const returnOptions = document.getElementById('returnOptions');
+            const noReturnAlert = document.getElementById('noReturnAlert');
+            const codCheckbox = document.getElementById('payment_cod');
+            if (!isReturnableField || !returnOptions || !noReturnAlert || !codCheckbox) {
+                return;
+            }
+
+            if (isReturnableField.checked) {
+                returnOptions.style.display = 'block';
+                noReturnAlert.style.display = 'none';
+                codCheckbox.disabled = false;
+            } else {
+                returnOptions.style.display = 'none';
+                noReturnAlert.style.display = 'block';
+                codCheckbox.checked = false;
+                codCheckbox.disabled = true;
+            }
+        };
+
         const resizeToggle = document.getElementById('adminImageResizeToggle');
         const resizeTargets = document.querySelectorAll('.admin-resize-target');
         const syncPreviewResizeMode = () => {
@@ -592,6 +688,12 @@
             resizeToggle.addEventListener('change', syncPreviewResizeMode);
         }
         syncPreviewResizeMode();
+
+        const isReturnableField = document.getElementById('is_returnable');
+        if (isReturnableField) {
+            isReturnableField.addEventListener('change', toggleReturnOptions);
+        }
+        toggleReturnOptions();
 
         const categorySelect = document.getElementById('category');
         const subCategorySelect = document.getElementById('sub_category');

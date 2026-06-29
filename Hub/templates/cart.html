@@ -91,7 +91,12 @@
         {% if messages %}
         <section class="vm-cart-t-messages" aria-label="Cart notifications">
             {% for message in messages %}
-            <div class="alert alert-{{ message.tags|default:'info' }}" role="alert">{{ message }}</div>
+            <div class="vm-cart-message vm-cart-message--{{ message.tags|default:'info' }}" role="alert">
+                <span class="vm-cart-message__icon" aria-hidden="true">
+                    {% if message.tags == 'success' %}✓{% elif message.tags == 'error' or message.tags == 'danger' %}!{% elif message.tags == 'warning' %}!{% else %}i{% endif %}
+                </span>
+                <span class="vm-cart-message__text">{{ message }}</span>
+            </div>
             {% endfor %}
         </section>
         {% endif %}
@@ -182,7 +187,12 @@
         {% if messages %}
         <section class="vm-cart-d-messages" aria-label="Cart notifications">
             {% for message in messages %}
-            <div class="alert alert-{{ message.tags|default:'info' }}" role="alert">{{ message }}</div>
+            <div class="vm-cart-message vm-cart-message--{{ message.tags|default:'info' }}" role="alert">
+                <span class="vm-cart-message__icon" aria-hidden="true">
+                    {% if message.tags == 'success' %}✓{% elif message.tags == 'error' or message.tags == 'danger' %}!{% elif message.tags == 'warning' %}!{% else %}i{% endif %}
+                </span>
+                <span class="vm-cart-message__text">{{ message }}</span>
+            </div>
             {% endfor %}
         </section>
         {% endif %}
