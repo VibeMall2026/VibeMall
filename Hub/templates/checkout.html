@@ -772,6 +772,8 @@
     {% include 'partials/checkout_desktop_alt.html' %}
 </div>
 
+{{ available_coupons|json_script:"available-coupons-data" }}
+
 <script>
 (function () {
     const form = document.getElementById('checkoutMobileForm');
@@ -1924,8 +1926,25 @@ function updateFinalTotal() {
 
 function showCouponMessage(message, type) {
     const msgDiv = document.getElementById('couponMessage');
+    if (!msgDiv) {
+        return;
+    }
     msgDiv.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show"><small>${message}</small><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
     setTimeout(() => msgDiv.innerHTML = '', 5000);
+}
+
+function getInitialAvailableCoupons() {
+    const payload = document.getElementById('available-coupons-data');
+    if (!payload) {
+        return [];
+    }
+
+    try {
+        const parsed = JSON.parse(payload.textContent || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+        return [];
+    }
 }
 
 function showAvailableCouponsPopup() {
@@ -1952,13 +1971,47 @@ function showAvailableCouponsPopup() {
         viewCouponsBtn.textContent = 'Hide Coupons';
     }
 
-    fetch(`/api/available-coupons/?cart_total=${encodeURIComponent(calculateBaseTotalBeforeDiscounts())}`, {
+    const initialCoupons = getInitialAvailableCoupons();
+    if (initialCoupons.length > 0) {
+        renderAvailableCouponsPanel(initialCoupons);
+        return;
+    }
+
+    let cartTotal = 0;
+    try {
+        cartTotal = calculateBaseTotalBeforeDiscounts();
+    } catch (error) {
+        if (couponsPanel) {
+            couponsPanel.dataset.loaded = 'true';
+        }
+        if (couponsStatus) {
+            couponsStatus.textContent = 'Unable to load coupons';
+        }
+        if (couponsList) {
+            couponsList.innerHTML = '<div class="vm-checkout-d-coupon-card"><div><h5>Could not load coupons</h5><p>Please refresh the page and try again.</p></div></div>';
+        }
+        showCouponMessage('Error preparing coupon list', 'danger');
+        return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+    fetch(`/api/available-coupons/?cart_total=${encodeURIComponent(cartTotal)}`, {
         method: 'GET',
         headers: {
             'X-Requested-With': 'XMLHttpRequest'
-        }
+        },
+        signal: controller.signal
     })
-    .then(res => res.json())
+    .then(res => {
+        clearTimeout(timeoutId);
+        const contentType = res.headers.get('content-type') || '';
+        if (!res.ok || !contentType.includes('application/json')) {
+            throw new Error('Invalid coupon response');
+        }
+        return res.json();
+    })
     .then(data => {
         if (data.success && data.coupons.length > 0) {
             renderAvailableCouponsPanel(data.coupons);
@@ -1976,6 +2029,7 @@ function showAvailableCouponsPopup() {
         }
     })
     .catch(err => {
+        clearTimeout(timeoutId);
         if (couponsPanel) {
             couponsPanel.dataset.loaded = 'true';
         }

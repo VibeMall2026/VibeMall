@@ -6654,6 +6654,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
         'tax_amount': tax_amount,
         'shipping_cost': shipping_cost,
         'final_total': final_total,
+        'available_coupons': _build_available_coupons_for_user(request.user, cart_total=final_total, limit=20),
     }
     
     return render(request, 'checkout.html', context)
@@ -14490,23 +14491,26 @@ def validate_coupon(request):
     })
 
 
-@login_required(login_url='login')
-def get_available_coupons(request):
-    """
-    Return list of currently active coupons for the logged-in user.
-    Accepts both GET and POST.
-    """
+def _build_available_coupons_for_user(user, cart_total=None, limit=20):
+    if not getattr(user, 'is_authenticated', False):
+        return []
+
     now = timezone.now()
     coupons = Coupon.objects.filter(
         is_active=True,
         valid_from__lte=now,
         valid_to__gte=now,
-    ).order_by('-created_at')[:20]
+    ).order_by('-created_at')[:limit]
 
+    normalized_total = Decimal(str(cart_total or 0))
     result = []
     for coupon in coupons:
-        eligibility_message = coupon.get_eligibility_message(request.user)
+        eligibility_message = coupon.get_eligibility_message(user)
         if eligibility_message:
+            continue
+
+        min_purchase_amount = Decimal(str(coupon.min_purchase_amount or 0))
+        if normalized_total > 0 and normalized_total < min_purchase_amount:
             continue
 
         if coupon.discount_type == 'PERCENTAGE':
@@ -14520,13 +14524,29 @@ def get_available_coupons(request):
             'id': coupon.id,
             'code': coupon.code,
             'title': coupon.description or f'{discount_label} Coupon',
-            'description': coupon.description,
+            'description': coupon.description or 'Offer available on eligible orders.',
             'discount_type': coupon.discount_type,
             'discount_value': float(coupon.discount_value),
-            'min_purchase_amount': float(coupon.min_purchase_amount),
+            'min_purchase_amount': float(min_purchase_amount),
             'valid_until': coupon.valid_to.strftime('%d %b %Y'),
-            'used': CouponUsage.objects.filter(coupon=coupon, user=request.user).count() >= coupon.usage_per_user,
+            'used': CouponUsage.objects.filter(coupon=coupon, user=user).count() >= coupon.usage_per_user,
             'discount': discount_label,
         })
 
+    return result
+
+
+@login_required(login_url='login')
+def get_available_coupons(request):
+    """
+    Return list of currently active coupons for the logged-in user.
+    Accepts both GET and POST.
+    """
+    cart_total_raw = request.GET.get('cart_total') or request.POST.get('cart_total') or 0
+    try:
+        cart_total = Decimal(str(cart_total_raw))
+    except Exception:
+        cart_total = Decimal('0')
+
+    result = _build_available_coupons_for_user(request.user, cart_total=cart_total, limit=20)
     return JsonResponse({'success': True, 'coupons': result})
