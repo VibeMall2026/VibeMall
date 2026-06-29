@@ -3508,6 +3508,7 @@ def admin_edit_photo(request):
                     sub_category_label or sub_category,
                     category_key='',
                 )
+                folder_info = category_sync.get('folder_info') or {}
                 main_category_label = category_sync.get('category_label') or main_category_label or main_category
                 sub_category_label = category_sync.get('sub_category_label') or sub_category_label or sub_category
 
@@ -3516,14 +3517,17 @@ def admin_edit_photo(request):
                 if not raw_sub_category:
                     sub_category = sub_category or _sanitize_folder_segment(sub_category_label, fallback='General')
 
+                resolved_category_folder = folder_info.get('category_folder') or main_category
+                resolved_sub_category_folder = folder_info.get('sub_category_folder') or sub_category
+
                 target_dir = os.path.normpath(
-                    os.path.join(product_image_root, main_category, sub_category, product_folder)
+                    os.path.join(product_image_root, resolved_category_folder, resolved_sub_category_folder, product_folder)
                 )
                 category_dir = os.path.normpath(
-                    os.path.join(product_image_root, main_category)
+                    os.path.join(product_image_root, resolved_category_folder)
                 )
                 sub_category_dir = os.path.normpath(
-                    os.path.join(category_dir, sub_category)
+                    os.path.join(category_dir, resolved_sub_category_folder)
                 )
                 root_norm = os.path.normpath(product_image_root)
                 if (
