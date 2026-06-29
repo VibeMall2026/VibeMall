@@ -209,9 +209,13 @@
                                 </label>
                             </div>
                             <div class="small text-muted">
-                                <div>Main Product Image -> 1.png</div>
-                                <div>Gallery Images (Multiple) -> 2.png</div>
-                                <div>Description Image -> 3.png</div>
+                                {% if saved_standard_assignments %}
+                                    <div>Using explicit image mapping from Edit Photo</div>
+                                {% else %}
+                                    <div>Main Product Image -> 1.png</div>
+                                    <div>Gallery Images (Multiple) -> 2.png</div>
+                                    <div>Description Image -> 3.png</div>
+                                {% endif %}
                             </div>
                             <div class="mt-2">
                                 {% for item in saved_images %}

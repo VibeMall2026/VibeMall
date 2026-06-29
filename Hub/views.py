@@ -1835,6 +1835,7 @@ def admin_add_product(request):
                 saved_display_main_category = (saved_info.get('display_main_category') or '').strip()
                 saved_display_sub_category = (saved_info.get('display_sub_category') or '').strip()
                 saved_folder_main_category = (saved_info.get('main_category') or '').strip()
+                saved_standard_assignments = saved_info.get('standard_assignments') or []
                 saved_variant_assignments = saved_info.get('variant_assignments') or []
 
                 if not category and saved_category_key:
@@ -1856,27 +1857,49 @@ def admin_add_product(request):
                 def file_from_path(path):
                     return File(open(path, 'rb'), name=os.path.basename(path))
 
-                main_path = os.path.join(target_dir, '1.png') if target_dir else None
-                gallery_path = os.path.join(target_dir, '2.png') if target_dir else None
-                desc_path = os.path.join(target_dir, '3.png') if target_dir else None
+                if saved_standard_assignments:
+                    for assignment in saved_standard_assignments:
+                        filename = (assignment.get('filename') or '').strip()
+                        role_value = (assignment.get('role') or '').strip().lower()
+                        if not target_dir or not filename or role_value not in ('main', 'gallery', 'description'):
+                            continue
 
-                try:
-                    if main_path and os.path.isfile(main_path):
-                        image = file_from_path(main_path)
-                except Exception:
-                    pass
+                        assigned_path = os.path.join(target_dir, filename)
+                        if not os.path.isfile(assigned_path):
+                            continue
 
-                try:
-                    if gallery_path and os.path.isfile(gallery_path):
-                        gallery_images.append(file_from_path(gallery_path))
-                except Exception:
-                    pass
+                        try:
+                            file_obj = file_from_path(assigned_path)
+                            if role_value == 'main' and not image:
+                                image = file_obj
+                            elif role_value == 'gallery':
+                                gallery_images.append(file_obj)
+                            elif role_value == 'description' and not descriptionImage:
+                                descriptionImage = file_obj
+                        except Exception:
+                            pass
+                else:
+                    main_path = os.path.join(target_dir, '1.png') if target_dir else None
+                    gallery_path = os.path.join(target_dir, '2.png') if target_dir else None
+                    desc_path = os.path.join(target_dir, '3.png') if target_dir else None
 
-                try:
-                    if desc_path and os.path.isfile(desc_path):
-                        descriptionImage = file_from_path(desc_path)
-                except Exception:
-                    pass
+                    try:
+                        if main_path and os.path.isfile(main_path):
+                            image = file_from_path(main_path)
+                    except Exception:
+                        pass
+
+                    try:
+                        if gallery_path and os.path.isfile(gallery_path):
+                            gallery_images.append(file_from_path(gallery_path))
+                    except Exception:
+                        pass
+
+                    try:
+                        if desc_path and os.path.isfile(desc_path):
+                            descriptionImage = file_from_path(desc_path)
+                    except Exception:
+                        pass
 
                 for assignment in saved_variant_assignments:
                     filename = (assignment.get('filename') or '').strip()
@@ -2024,18 +2047,38 @@ def admin_add_product(request):
     if saved_info:
         target_dir = saved_info.get('target_dir')
         saved_images = []
-        for index, label in ((1, 'Main Product Image'), (2, 'Gallery Image'), (3, 'Description Image')):
-            filename = f"{index}.png"
-            path = os.path.join(target_dir, filename) if target_dir else ''
-            saved_images.append({
-                'label': label,
-                'filename': filename,
-                'path': path,
-                'exists': bool(path and os.path.isfile(path)),
-            })
-        saved_variant_assignments = saved_info.get('variant_assignments') or []
+        saved_standard_assignments = saved_info.get('standard_assignments') or []
+        if saved_standard_assignments:
+            role_labels = {
+                'main': 'Main Product Image',
+                'gallery': 'Gallery Image',
+                'description': 'Description Image',
+            }
+            for item in saved_standard_assignments:
+                filename = (item.get('filename') or '').strip()
+                role_value = (item.get('role') or '').strip().lower()
+                path = os.path.join(target_dir, filename) if target_dir and filename else ''
+                saved_images.append({
+                    'label': role_labels.get(role_value, role_value.title()),
+                    'filename': filename,
+                    'path': path,
+                    'exists': bool(path and os.path.isfile(path)),
+                })
+        else:
+            for index, label in ((1, 'Main Product Image'), (2, 'Gallery Image'), (3, 'Description Image')):
+                filename = f"{index}.png"
+                path = os.path.join(target_dir, filename) if target_dir else ''
+                saved_images.append({
+                    'label': label,
+                    'filename': filename,
+                    'path': path,
+                    'exists': bool(path and os.path.isfile(path)),
+                })
     else:
+        saved_standard_assignments = []
         saved_variant_assignments = []
+    if saved_info:
+        saved_variant_assignments = saved_info.get('variant_assignments') or []
 
     sub_categories = list(
         SubCategory.objects.filter(is_active=True)
@@ -2047,6 +2090,7 @@ def admin_add_product(request):
         'categories': categories,
         'saved_info': saved_info,
         'saved_images': saved_images,
+        'saved_standard_assignments': saved_standard_assignments,
         'saved_variant_assignments': saved_variant_assignments,
         'sub_categories': sub_categories,
         'sub_categories_json': json.dumps(sub_categories),
@@ -3202,10 +3246,66 @@ def admin_edit_photo(request):
             sub_category_label = _sanitize_folder_segment(request.POST.get('sub_category_label'), fallback='')
             product_folder = (request.POST.get('product_folder') or '').strip()
             create_folder = request.POST.get('create_folder') == 'on'
+            image_assignment_indexes = request.POST.getlist('image_assignment_index')
+            image_assignment_roles = request.POST.getlist('image_assignment_role')
             variant_assignment_indexes = request.POST.getlist('variant_assignment_index')
             variant_assignment_colors = request.POST.getlist('variant_assignment_color')
             variant_assignment_roles = request.POST.getlist('variant_assignment_role')
+            standard_assignments = []
             variant_assignments = []
+
+            for raw_index, raw_role in zip(image_assignment_indexes, image_assignment_roles):
+                role_value = (raw_role or '').strip().lower()
+                if not role_value:
+                    continue
+                if role_value not in ('main', 'gallery', 'description'):
+                    errors.append('Product image role mapping contains invalid role.')
+                    continue
+                try:
+                    image_index = int(raw_index)
+                except (TypeError, ValueError):
+                    errors.append('Product image role mapping contains invalid image index.')
+                    continue
+                standard_assignments.append({
+                    'index': image_index,
+                    'role': role_value,
+                    'filename': f'{image_index}.png',
+                })
+
+            total_converted = len(converted_urls)
+            assigned_by_index = {item['index']: item for item in standard_assignments}
+            has_main_assignment = any(item['role'] == 'main' for item in standard_assignments)
+            has_description_assignment = any(item['role'] == 'description' for item in standard_assignments)
+
+            if total_converted > 0 and not has_main_assignment:
+                assigned_by_index[1] = {
+                    'index': 1,
+                    'role': 'main',
+                    'filename': '1.png',
+                }
+
+            if total_converted > 1 and not has_description_assignment:
+                assigned_by_index[total_converted] = {
+                    'index': total_converted,
+                    'role': 'description',
+                    'filename': f'{total_converted}.png',
+                }
+
+            for image_index in range(1, total_converted + 1):
+                if image_index in assigned_by_index:
+                    continue
+                assigned_by_index[image_index] = {
+                    'index': image_index,
+                    'role': 'gallery',
+                    'filename': f'{image_index}.png',
+                }
+
+            standard_assignments = [assigned_by_index[index] for index in sorted(assigned_by_index.keys())]
+
+            if len([item for item in standard_assignments if item['role'] == 'main']) > 1:
+                errors.append('Only one image can be assigned as Main Product Image.')
+            if len([item for item in standard_assignments if item['role'] == 'description']) > 1:
+                errors.append('Only one image can be assigned as Description Image.')
 
             for raw_index, raw_color, raw_role in zip(
                 variant_assignment_indexes,
@@ -3325,6 +3425,7 @@ def admin_edit_photo(request):
                                 'product_folder': product_folder,
                                 'base_path': product_image_root,
                                 'target_dir': target_dir,
+                                'standard_assignments': standard_assignments,
                                 'variant_assignments': variant_assignments,
                             }
                             request.session.pop('edit_photo_temp_map', None)
