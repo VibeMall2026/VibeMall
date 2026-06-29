@@ -3240,12 +3240,33 @@ def admin_edit_photo(request):
 
         elif action == 'save_to_folder':
             converted_urls = request.POST.getlist('converted_urls')
-            main_category = _sanitize_folder_segment(request.POST.get('main_category'), fallback='')
-            sub_category = _sanitize_folder_segment(request.POST.get('sub_category'), fallback='')
-            main_category_label = _sanitize_folder_segment(request.POST.get('main_category_label'), fallback='')
-            sub_category_label = _sanitize_folder_segment(request.POST.get('sub_category_label'), fallback='')
-            product_folder = (request.POST.get('product_folder') or '').strip()
+            raw_main_category = (request.POST.get('main_category') or '').strip()
+            raw_sub_category = (request.POST.get('sub_category') or '').strip()
+            raw_main_category_label = (request.POST.get('main_category_label') or '').strip()
+            raw_sub_category_label = (request.POST.get('sub_category_label') or '').strip()
+            raw_main_category_select = (request.POST.get('_main_category_select') or '').strip()
+            raw_sub_category_select = (request.POST.get('_sub_category_select') or '').strip()
+            raw_main_category_custom = (request.POST.get('main_category_custom') or '').strip()
+            raw_sub_category_custom = (request.POST.get('sub_category_custom') or '').strip()
+            raw_product_folder_select = (request.POST.get('_product_folder_select') or '').strip()
+            product_folder = (request.POST.get('product_folder') or raw_product_folder_select or '').strip()
             create_folder = request.POST.get('create_folder') == 'on'
+            main_category = _sanitize_folder_segment(
+                raw_main_category or raw_main_category_custom or raw_main_category_select,
+                fallback=''
+            )
+            sub_category = _sanitize_folder_segment(
+                raw_sub_category or raw_sub_category_custom or raw_sub_category_select,
+                fallback=''
+            )
+            main_category_label = _sanitize_folder_segment(
+                raw_main_category_label or raw_main_category_custom or raw_main_category_select,
+                fallback=''
+            )
+            sub_category_label = _sanitize_folder_segment(
+                raw_sub_category_label or raw_sub_category_custom or raw_sub_category_select,
+                fallback=''
+            )
             image_assignment_indexes = request.POST.getlist('image_assignment_index')
             image_assignment_roles = request.POST.getlist('image_assignment_role')
             has_color_variant_batches = request.POST.get('has_color_variant_batches') == 'on'
@@ -3363,19 +3384,47 @@ def admin_edit_photo(request):
             if not sub_category and sub_category_label:
                 sub_category = sub_category_label
 
-            if not main_category or not sub_category or not product_folder:
-                errors.append('Please select Main category, Sub_Category, and Product_folder.')
+            if not product_folder:
+                product_folder = '1'
+
+            if not main_category or not sub_category:
+                errors.append('Please select or enter Main category and Sub_Category.')
             elif not product_folder.isdigit():
                 errors.append('Product_folder must be a number like 1, 2, 3.')
             else:
+                category_sync = _ensure_category_and_subcategory(
+                    main_category_label or main_category,
+                    sub_category_label or sub_category,
+                    category_key='',
+                )
+                main_category_label = category_sync.get('category_label') or main_category_label or main_category
+                sub_category_label = category_sync.get('sub_category_label') or sub_category_label or sub_category
+
+                if not raw_main_category:
+                    main_category = main_category or _sanitize_folder_segment(main_category_label, fallback='General')
+                if not raw_sub_category:
+                    sub_category = sub_category or _sanitize_folder_segment(sub_category_label, fallback='General')
+
                 target_dir = os.path.normpath(
                     os.path.join(product_image_root, main_category, sub_category, product_folder)
                 )
+                category_dir = os.path.normpath(
+                    os.path.join(product_image_root, main_category)
+                )
+                sub_category_dir = os.path.normpath(
+                    os.path.join(category_dir, sub_category)
+                )
                 root_norm = os.path.normpath(product_image_root)
-                if os.path.commonpath([root_norm, target_dir]) != root_norm:
+                if (
+                    os.path.commonpath([root_norm, category_dir]) != root_norm
+                    or os.path.commonpath([root_norm, sub_category_dir]) != root_norm
+                    or os.path.commonpath([root_norm, target_dir]) != root_norm
+                ):
                     errors.append('Invalid target folder path.')
                 else:
                     if create_folder:
+                        os.makedirs(category_dir, exist_ok=True)
+                        os.makedirs(sub_category_dir, exist_ok=True)
                         os.makedirs(target_dir, exist_ok=True)
                     if not os.path.isdir(target_dir):
                         errors.append('Target folder does not exist. Enable create folder.')
@@ -3432,13 +3481,6 @@ def admin_edit_photo(request):
                             elif not sub_category_label:
                                 sub_category_label = sub_category
 
-                            category_sync = _ensure_category_and_subcategory(
-                                main_category_label or main_category,
-                                sub_category_label or sub_category,
-                                category_key=category_key,
-                            )
-                            main_category_label = category_sync.get('category_label') or main_category_label or main_category
-                            sub_category_label = category_sync.get('sub_category_label') or sub_category_label or sub_category
                             category_key = category_sync.get('category_key') or category_key
 
                             saved_message = f"Saved {saved_count} images to {target_dir}"

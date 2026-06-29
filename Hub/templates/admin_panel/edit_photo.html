@@ -239,18 +239,18 @@
                                     <option value="{{ category.label }}">{{ category.label }}</option>
                                 {% endfor %}
                             </select>
-                            <input type="text" class="form-control mt-2" id="main_category_custom" placeholder="Or type new category">
+                            <input type="text" class="form-control mt-2" id="main_category_custom" name="main_category_custom" placeholder="Or type new category">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label" for="sub_category_select">Sub_Category</label>
                             <select class="form-select" id="sub_category_select" name="_sub_category_select">
                                 <option value="">Select sub category</option>
                             </select>
-                            <input type="text" class="form-control mt-2" id="sub_category_custom" placeholder="Or type new sub category">
+                            <input type="text" class="form-control mt-2" id="sub_category_custom" name="sub_category_custom" placeholder="Or type new sub category">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label" for="product_folder_select">Product_folder</label>
-                            <select class="form-select" id="product_folder_select">
+                            <select class="form-select" id="product_folder_select" name="_product_folder_select">
                                 <option value="">Select folder number</option>
                             </select>
                             <input type="text" class="form-control mt-2" id="product_folder_input" name="product_folder" placeholder="Or type folder number">
