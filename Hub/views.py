@@ -1279,7 +1279,7 @@ def _load_image_from_content(content, content_type=''):
 
 
 def _safe_edit_photo_path_from_url(url):
-    media_root = getattr(settings, 'MEDIA_ROOT', None) or os.path.join(settings.BASE_DIR, 'media')
+    media_root = _get_edit_photo_media_root()
     media_url = getattr(settings, 'MEDIA_URL', '/media/')
     parsed = urlparse(url)
     url_path = parsed.path or url
@@ -1329,7 +1329,7 @@ def _resolve_edit_photo_path(url, request=None):
     match = re.fullmatch(r'(\d+)\.png', basename or '')
     if match:
         index = match.group(1)
-        media_root = getattr(settings, 'MEDIA_ROOT', None) or os.path.join(settings.BASE_DIR, 'media')
+        media_root = _get_edit_photo_media_root()
         edit_photo_dir = os.path.join(media_root, 'edit_photo')
         if os.path.isdir(edit_photo_dir):
             prefix = f'edit_photo_crop_{index}_'
@@ -1352,7 +1352,7 @@ def _write_edit_photo_alias(source_url, index):
     if not safe_path:
         return None
 
-    media_root = getattr(settings, 'MEDIA_ROOT', None) or os.path.join(settings.BASE_DIR, 'media')
+    media_root = _get_edit_photo_media_root()
     alias_rel_path = os.path.join('edit_photo', f'{index}.png')
     alias_abs_path = os.path.join(media_root, alias_rel_path)
     os.makedirs(os.path.dirname(alias_abs_path), exist_ok=True)
@@ -1379,6 +1379,26 @@ def _get_product_image_root():
         return os.path.join(media_root, 'product_images')
 
     return os.path.join(str(settings.BASE_DIR), 'media', 'product_images')
+
+
+def _get_edit_photo_media_root():
+    configured_root = str(getattr(settings, 'MEDIA_ROOT', '') or '').strip()
+    local_default = os.path.join(str(settings.BASE_DIR), 'media')
+
+    if not configured_root:
+        os.makedirs(local_default, exist_ok=True)
+        return local_default
+
+    normalized_configured = os.path.normpath(configured_root)
+
+    if os.name == 'nt':
+        normalized_slashes = configured_root.replace('\\', '/').lower()
+        if configured_root.startswith(('/', '\\')) or '/var/www/' in normalized_slashes:
+            os.makedirs(local_default, exist_ok=True)
+            return local_default
+
+    os.makedirs(normalized_configured, exist_ok=True)
+    return normalized_configured
 
 
 def _sanitize_folder_segment(value, fallback='Untitled'):
@@ -1554,7 +1574,7 @@ def _crop_png_by_ratio(abs_path, ratio, index=None):
     else:
         filename = f"edit_photo_crop_{uuid.uuid4().hex}.png"
     rel_path = os.path.join('edit_photo', filename)
-    media_root = getattr(settings, 'MEDIA_ROOT', None) or os.path.join(settings.BASE_DIR, 'media')
+    media_root = _get_edit_photo_media_root()
     abs_out = os.path.join(media_root, rel_path)
     os.makedirs(os.path.dirname(abs_out), exist_ok=True)
     image.save(abs_out, format='PNG')
@@ -1598,7 +1618,7 @@ def _resize_uploaded_image(file_obj, target_width=None, target_height=None, keep
 
     filename = f"edit_photo_resize_{uuid.uuid4().hex}.png"
     rel_path = os.path.join('edit_photo', filename)
-    media_root = getattr(settings, 'MEDIA_ROOT', None) or os.path.join(settings.BASE_DIR, 'media')
+    media_root = _get_edit_photo_media_root()
     abs_path = os.path.join(media_root, rel_path)
     os.makedirs(os.path.dirname(abs_path), exist_ok=True)
     image.save(abs_path, format='PNG')
@@ -1678,7 +1698,7 @@ def convert_url_to_png(image_url, crop_box=None, crop_ratio=None):
 
     filename = f"edit_photo_{uuid.uuid4().hex}.png"
     rel_path = os.path.join('edit_photo', filename)
-    media_root = getattr(settings, 'MEDIA_ROOT', None) or os.path.join(settings.BASE_DIR, 'media')
+    media_root = _get_edit_photo_media_root()
     abs_path = os.path.join(media_root, rel_path)
     os.makedirs(os.path.dirname(abs_path), exist_ok=True)
 
@@ -1702,7 +1722,7 @@ def convert_content_to_edit_photo_png(content, content_type='', filename_prefix=
 
     filename = f"{filename_prefix}_{uuid.uuid4().hex}.png"
     rel_path = os.path.join('edit_photo', filename)
-    media_root = getattr(settings, 'MEDIA_ROOT', None) or os.path.join(settings.BASE_DIR, 'media')
+    media_root = _get_edit_photo_media_root()
     abs_path = os.path.join(media_root, rel_path)
     os.makedirs(os.path.dirname(abs_path), exist_ok=True)
 
