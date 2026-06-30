@@ -358,11 +358,11 @@ body.vm-pd-original-card-image .pddx-reco__image img {
                 </div>
             </div>
 
-            {% if product.color %}
-            <div class="vm-pd-m-variant-row" data-vm-mobile-color-root data-options="{{ product.color|escapejs }}">
+            {% if available_color_options_csv or product.color %}
+            <div class="vm-pd-m-variant-row" data-vm-mobile-color-root data-options="{{ available_color_options_csv|default:product.color|default:''|escapejs }}">
                 <div class="vm-pd-m-variant-head">
                     <span>Color</span>
-                    <span class="vm-pd-m-variant-value" data-vm-mobile-color-value>{{ product.color }}</span>
+                    <span class="vm-pd-m-variant-value" data-vm-mobile-color-value>{{ selected_color_label|default:product.color|default:"" }}</span>
                 </div>
                 <div class="vm-pd-m-swatch-row" data-vm-mobile-color-list></div>
             </div>
@@ -1236,6 +1236,31 @@ function syncDesktopColorSelection(colorValue) {
     syncProductVariantInputs();
 }
 
+function syncMobileColorSelection(colorValue) {
+    const colorRoot = document.querySelector('[data-vm-mobile-color-root]');
+    if (!colorRoot) return;
+
+    const normalizedTarget = normalizeProductColor(colorValue);
+    const colorButtons = colorRoot.querySelectorAll('.vm-pd-m-swatch-btn');
+    const valueLabel = colorRoot.querySelector('[data-vm-mobile-color-value]');
+    let matchedButton = null;
+
+    colorButtons.forEach(function(button) {
+        const buttonValue = button.getAttribute('data-value') || '';
+        const isMatch = normalizedTarget && normalizeProductColor(buttonValue) === normalizedTarget;
+        button.classList.toggle('is-active', isMatch);
+        button.setAttribute('aria-pressed', isMatch ? 'true' : 'false');
+        if (isMatch) {
+            matchedButton = button;
+        }
+    });
+
+    if (matchedButton && valueLabel) {
+        valueLabel.textContent = matchedButton.getAttribute('data-value') || colorValue;
+    }
+    syncProductVariantInputs();
+}
+
 function findDescriptionImageByColor(colorValue) {
     const normalizedTarget = normalizeProductColor(colorValue);
     const descriptionVariants = Array.from(document.querySelectorAll('#pddxDescriptionVariantData [data-description-src]'));
@@ -1307,10 +1332,12 @@ function findMainImageByColor(colorValue) {
 }
 
 function initProductColorImageSync() {
-    const colorRoot = document.querySelector('[data-pddx-color-root]');
+    const desktopColorRoot = document.querySelector('[data-pddx-color-root]');
+    const mobileColorRoot = document.querySelector('[data-vm-mobile-color-root]');
+    const colorRoot = desktopColorRoot || mobileColorRoot;
     if (!colorRoot) return;
 
-    const colorButtons = colorRoot.querySelectorAll('.pddx-swatch');
+    const colorButtons = document.querySelectorAll('.pddx-swatch, .vm-pd-m-swatch-btn');
     if (!colorButtons.length) return;
 
     function findThumbBySrc(thumbSelector, imageSrc) {
@@ -1432,17 +1459,22 @@ function initProductColorImageSync() {
         if (mobileThumb)  setActiveThumb('.vm-pd-m-thumb', '#vmPdMainImage', mobileThumb);
 
         syncDesktopColorSelection(colorValue);
+        syncMobileColorSelection(colorValue);
         setDescriptionImageByColor(colorValue);
     }
     // Expose globally so swatches + thumb clicks can use the same logic.
     window._vmApplyColorSelection = applyColorSelection;
 
-    const initiallySelectedColor = colorRoot.querySelector('.pddx-swatch.is-active');
+    const initiallySelectedColor =
+        desktopColorRoot && desktopColorRoot.querySelector('.pddx-swatch.is-active')
+        || mobileColorRoot && mobileColorRoot.querySelector('.vm-pd-m-swatch-btn.is-active');
     if (initiallySelectedColor) {
         applyColorSelection(initiallySelectedColor.getAttribute('data-value') || '');
     } else {
         // No swatch selected yet — apply filter for first available color
-        var firstSwatch = colorRoot.querySelector('.pddx-swatch');
+        var firstSwatch =
+            desktopColorRoot && desktopColorRoot.querySelector('.pddx-swatch')
+            || mobileColorRoot && mobileColorRoot.querySelector('.vm-pd-m-swatch-btn');
         if (firstSwatch) {
             applyColorSelection(firstSwatch.getAttribute('data-value') || '');
         }

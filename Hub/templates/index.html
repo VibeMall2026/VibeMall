@@ -889,9 +889,9 @@
         </div>
     </section>
 
-    <section class="vm-copy-section vm-copy-featured">
+    <section class="vm-copy-section vm-copy-featured vm-copy-featured--editorial">
         <div class="vm-copy-container vm-copy-feature-grid vm-copy-feature-grid--editorial">
-            <div class="vm-copy-feature-media-wrap">
+            <div class="vm-copy-feature-media-wrap vm-copy-feature-media-wrap--editorial">
                 {% if site_settings.featured_story_video %}
                 <video class="vm-copy-feature-media" autoplay muted loop playsinline preload="metadata"{% if site_settings.featured_story_image %} poster="{{ site_settings.featured_story_image.url }}"{% endif %}>
                     <source src="{{ site_settings.featured_story_video.url }}" type="video/mp4">
@@ -905,7 +905,7 @@
                     <span class="material-symbols-outlined">play_arrow</span>
                 </div>
             </div>
-            <div class="vm-copy-feature-copy vm-copy-feature-copy--editorial">
+            <div class="vm-copy-feature-copy vm-copy-feature-copy--editorial" style="background:#000;color:#fff;">
                 <small>{{ site_settings.featured_story_eyebrow|default:'Editorial Video' }}</small>
                 <h2>{{ site_settings.featured_story_title|default:'The Art of Movement' }}</h2>
                 <p>{{ site_settings.featured_story_description|default:'Immerse yourself in our latest lookbook film, where fashion meets cinema. Explore the textures and flow of the new collection in motion.' }}</p>
