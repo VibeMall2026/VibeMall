@@ -238,6 +238,10 @@ STORAGES = {
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = Path(os.getenv('MEDIA_ROOT', str(BASE_DIR / 'media')))
+PRODUCT_IMAGE_ROOT = os.getenv(
+    'PRODUCT_IMAGE_ROOT',
+    r'D:\VibeMallProduct\ProductImage' if os.name == 'nt' else str(MEDIA_ROOT / 'product_images')
+)
 
 
 # Default primary key field type
