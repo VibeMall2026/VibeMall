@@ -363,91 +363,108 @@
   }
   .vm-copy-hero-content span {
     display: inline-block;
-    margin-bottom: 14px;
-    color: #4f3326;
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 4px;
+    margin-bottom: 16px;
+    color: #6c5846;
+    font-family: var(--vm-sans), system-ui, sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.28em;
     text-transform: uppercase;
   }
   .vm-copy-hero-content h1 {
     margin: 0;
     color: #74143a;
-    font-family: Georgia, "Times New Roman", serif;
-    font-size: clamp(58px, 5vw, 92px);
-    line-height: 0.86;
+    font-family: var(--vm-serif), Georgia, serif;
+    font-size: clamp(48px, 4.7vw, 82px);
+    letter-spacing: -0.04em;
+    line-height: 0.9;
     font-weight: 700;
   }
   .vm-copy-hero-content h1 em {
     display: block;
     color: #a78150;
-    font-family: "Brush Script MT", "Segoe Script", cursive;
-    font-size: 0.92em;
+    font-family: var(--vm-serif), Georgia, serif;
+    font-size: 0.84em;
+    font-style: italic;
     font-weight: 400;
-    line-height: 0.86;
+    line-height: 0.94;
   }
   .vm-copy-hero-copy {
-    width: min(310px, 100%);
-    margin: 24px 0 18px;
-    color: #67584d;
+    width: min(360px, 100%);
+    margin: 26px 0 20px;
+    color: #68584b;
+    font-family: var(--vm-sans), system-ui, sans-serif;
     font-size: 15px;
-    line-height: 1.5;
+    font-weight: 400;
+    line-height: 1.7;
   }
   .vm-copy-hero-perks {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
-    width: min(400px, 100%);
-    margin-bottom: 26px;
+    gap: 16px;
+    width: min(420px, 100%);
+    margin-bottom: 30px;
   }
   .vm-copy-hero-perk {
     display: grid;
-    grid-template-columns: 24px 1fr;
-    gap: 7px;
+    grid-template-columns: 28px 1fr;
+    gap: 8px;
     align-items: center;
-    color: #46372f;
-    font-size: 9px;
+    color: #4e3f35;
+    font-family: var(--vm-sans), system-ui, sans-serif;
+    font-size: 10px;
     font-weight: 700;
     line-height: 1.2;
     text-transform: uppercase;
+    letter-spacing: 0.12em;
   }
   .vm-copy-hero-perk i {
-    width: 24px;
-    height: 24px;
-    border: 1px solid rgba(70, 55, 47, 0.34);
+    width: 28px;
+    height: 28px;
+    border: 1px solid rgba(97, 79, 61, 0.32);
     border-radius: 50%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 11px;
+    font-size: 12px;
   }
   .vm-copy-hero-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 14px;
   }
   .vm-copy-hero-actions a {
     display: inline-flex;
     align-items: center;
-    gap: 16px;
-    min-height: 46px;
-    padding: 0 24px;
+    justify-content: center;
+    gap: 14px;
+    min-height: 50px;
+    padding: 0 28px;
     background: #74143a;
     color: #fff;
     border: 1px solid #74143a;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
+    font-family: var(--vm-sans), system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
+    text-decoration: none;
+    box-shadow: 0 14px 34px rgba(116, 20, 58, 0.14);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
   }
   .vm-copy-hero-actions a::after {
     content: "\f061";
     font-family: "Font Awesome 5 Pro";
     font-weight: 300;
   }
+  .vm-copy-hero-actions a:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 36px rgba(116, 20, 58, 0.2);
+  }
   .vm-copy-hero-actions a + a {
-    background: transparent;
+    background: rgba(255, 249, 241, 0.42);
     color: #74143a;
+    box-shadow: none;
   }
   .vm-copy-hero-offer {
     position: absolute;
@@ -469,27 +486,33 @@
   }
   .vm-copy-hero-offer small {
     color: #654432;
+    font-family: var(--vm-sans), system-ui, sans-serif;
     font-size: 10px;
     font-weight: 700;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
   }
   .vm-copy-hero-offer strong {
     margin-top: 2px;
-    font-family: Georgia, "Times New Roman", serif;
-    font-size: 42px;
+    font-family: var(--vm-serif), Georgia, serif;
+    font-size: 40px;
+    letter-spacing: -0.05em;
     line-height: 0.9;
   }
   .vm-copy-hero-offer b {
-    font-size: 18px;
+    font-family: var(--vm-sans), system-ui, sans-serif;
+    font-size: 16px;
+    letter-spacing: 0.06em;
     line-height: 1;
     text-transform: uppercase;
   }
   .vm-copy-hero-offer span {
     margin: 8px 0 0;
     color: #74143a;
+    font-family: var(--vm-sans), system-ui, sans-serif;
     font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
   }
   .vm-copy-hero__slide--layout-2 {
@@ -628,7 +651,7 @@
       padding-left: 7%;
     }
     .vm-copy-hero-content h1 {
-      font-size: 58px;
+      font-size: 54px;
     }
     .vm-copy-hero-offer {
       right: 5.5%;
