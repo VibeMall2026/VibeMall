@@ -239,22 +239,19 @@
                                     <option value="{{ category.label }}">{{ category.label }}</option>
                                 {% endfor %}
                             </select>
-                            <input type="text" class="form-control mt-2" id="main_category_custom" name="main_category_custom" placeholder="Or type new category">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label" for="sub_category_select">Sub_Category</label>
                             <select class="form-select" id="sub_category_select" name="_sub_category_select">
                                 <option value="">Select sub category</option>
                             </select>
-                            <input type="text" class="form-control mt-2" id="sub_category_custom" name="sub_category_custom" placeholder="Or type new sub category">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label" for="product_folder_select">Product_folder</label>
                             <select class="form-select" id="product_folder_select" name="_product_folder_select">
                                 <option value="">Select folder number</option>
                             </select>
-                            <input type="text" class="form-control mt-2" id="product_folder_input" name="product_folder" placeholder="Or type folder number">
-                            <div class="form-text" id="product_folder_hint"></div>
+                            <input type="hidden" id="product_folder_input" name="product_folder">
                         </div>
                     </div>
 
@@ -716,24 +713,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const subSelect = document.getElementById('sub_category_select');
     const productSelect = document.getElementById('product_folder_select');
     const productInput = document.getElementById('product_folder_input');
-    const mainCustom = document.getElementById('main_category_custom');
-    const subCustom = document.getElementById('sub_category_custom');
     const mainValueField = document.getElementById('main_category_value');
     const subValueField = document.getElementById('sub_category_value');
     const mainLabelField = document.getElementById('main_category_label_value');
     const subLabelField = document.getElementById('sub_category_label_value');
-    const hint = document.getElementById('product_folder_hint');
     const form = document.getElementById('save-images-form');
 
     if (!mainSelect || !subSelect || !productSelect || !productInput) return;
 
     const getSelectedCategoryEntry = () => {
-        const mainValue = (mainCustom.value || mainSelect.value || '').trim();
+        const mainValue = (mainSelect.value || '').trim();
         return dropdownTaxonomy.find((item) => item.label === mainValue) || null;
     };
 
     const getSelectedSubcategoryEntry = (categoryEntry) => {
-        const subValue = (subCustom.value || subSelect.value || '').trim();
+        const subValue = (subSelect.value || '').trim();
         if (!categoryEntry) {
             return null;
         }
@@ -743,15 +737,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const updateSubcategories = () => {
         const categoryEntry = getSelectedCategoryEntry();
         if (mainValueField) {
-            mainValueField.value = categoryEntry ? (categoryEntry.folder_category || categoryEntry.label || '') : (mainCustom.value || mainSelect.value || '').trim();
+            mainValueField.value = categoryEntry ? (categoryEntry.folder_category || categoryEntry.label || '') : (mainSelect.value || '').trim();
         }
         if (mainLabelField) {
-            mainLabelField.value = categoryEntry ? (categoryEntry.label || '') : (mainCustom.value || mainSelect.value || '').trim();
+            mainLabelField.value = categoryEntry ? (categoryEntry.label || '') : (mainSelect.value || '').trim();
         }
         subSelect.innerHTML = '<option value="">Select sub category</option>';
         productSelect.innerHTML = '<option value="">Select folder number</option>';
+        productInput.value = '';
         if (!categoryEntry) {
-            hint.textContent = '';
             return;
         }
         (categoryEntry.sub_categories || []).forEach((sub) => {
@@ -766,24 +760,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const categoryEntry = getSelectedCategoryEntry();
         const subEntry = getSelectedSubcategoryEntry(categoryEntry);
         if (mainValueField) {
-            mainValueField.value = categoryEntry ? (categoryEntry.folder_category || categoryEntry.label || '') : (mainCustom.value || mainSelect.value || '').trim();
+            mainValueField.value = categoryEntry ? (categoryEntry.folder_category || categoryEntry.label || '') : (mainSelect.value || '').trim();
         }
         if (mainLabelField) {
-            mainLabelField.value = categoryEntry ? (categoryEntry.label || '') : (mainCustom.value || mainSelect.value || '').trim();
+            mainLabelField.value = categoryEntry ? (categoryEntry.label || '') : (mainSelect.value || '').trim();
         }
         if (subValueField) {
-            subValueField.value = subEntry ? (subEntry.folder_subcategory || subEntry.label || '') : (subCustom.value || subSelect.value || '').trim();
+            subValueField.value = subEntry ? (subEntry.folder_subcategory || subEntry.label || '') : (subSelect.value || '').trim();
         }
         if (subLabelField) {
-            subLabelField.value = subEntry ? (subEntry.label || '') : (subCustom.value || subSelect.value || '').trim();
+            subLabelField.value = subEntry ? (subEntry.label || '') : (subSelect.value || '').trim();
         }
         productSelect.innerHTML = '<option value="">Select folder number</option>';
+        productInput.value = '';
         if (!categoryEntry || !subEntry) {
-            const hasManualPath = ((mainCustom.value || mainSelect.value || '').trim() && (subCustom.value || subSelect.value || '').trim());
-            hint.textContent = hasManualPath ? 'Suggested next folder: 1' : '';
-            if (hasManualPath && !productInput.value) {
-                productInput.value = '1';
-            }
             return;
         }
         const numbers = subEntry.folder_numbers || [];
@@ -793,35 +783,17 @@ document.addEventListener('DOMContentLoaded', function() {
             opt.textContent = String(num);
             productSelect.appendChild(opt);
         });
-        const next = numbers.length ? Math.max(...numbers) + 1 : 1;
-        hint.textContent = `Suggested next folder: ${next}`;
-        if (!productInput.value) {
-            productInput.value = String(next);
-        }
     };
 
     mainSelect.addEventListener('change', () => {
-        if (!mainCustom.value) {
-            updateSubcategories();
-            updateProductFolders();
-        }
-    });
-    subSelect.addEventListener('change', () => {
-        if (!subCustom.value) {
-            updateProductFolders();
-        }
-    });
-    mainCustom.addEventListener('input', () => {
         updateSubcategories();
         updateProductFolders();
     });
-    subCustom.addEventListener('input', () => {
+    subSelect.addEventListener('change', () => {
         updateProductFolders();
     });
     productSelect.addEventListener('change', () => {
-        if (productSelect.value) {
-            productInput.value = productSelect.value;
-        }
+        productInput.value = productSelect.value || '';
     });
 
     if (form) {
@@ -831,12 +803,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (detectedCategory && dropdownTaxonomy.some((item) => item.label === detectedCategory)) {
             mainSelect.value = detectedCategory;
-            mainCustom.value = '';
             updateSubcategories();
             const categoryEntry = getSelectedCategoryEntry();
             if (detectedSubcategory && categoryEntry && (categoryEntry.sub_categories || []).some((item) => item.label === detectedSubcategory)) {
                 subSelect.value = detectedSubcategory;
-                subCustom.value = '';
                 updateProductFolders();
             } else {
                 updateProductFolders();
