@@ -195,7 +195,7 @@
                 </a>
                 {% endif %}
                 <div class="alert alert-info" role="alert">
-                    Base path: {{ product_image_root }}
+                    Base path: {{ product_image_root_display|default:product_image_root }}
                 </div>
 
                 <form method="POST" class="row g-2 align-items-end mb-3">

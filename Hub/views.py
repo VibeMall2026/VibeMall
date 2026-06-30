@@ -3747,6 +3747,8 @@ def admin_edit_photo(request):
         for sub_index in folder_index.values()
         for folder_numbers in sub_index.values()
     )
+    product_image_root_display = os.path.normpath(str(product_image_root or ''))
+
     return render(request, 'admin_panel/edit_photo.html', {
         'results': results,
         'errors': errors,
@@ -3769,6 +3771,7 @@ def admin_edit_photo(request):
         'total_subcategories': total_subcategories,
         'total_product_folders': total_product_folders,
         'product_image_root': product_image_root,
+        'product_image_root_display': product_image_root_display,
     })
 
 
