@@ -423,6 +423,7 @@
   }
   .vm-copy-hero-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 12px;
   }
   .vm-copy-hero-actions a {
@@ -491,6 +492,111 @@
     letter-spacing: 0;
     text-transform: uppercase;
   }
+  .vm-copy-hero__slide--layout-2 {
+    background:
+      radial-gradient(circle at 84% 14%, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 22%),
+      linear-gradient(90deg, #f6ecdf 0%, #f3e6d6 100%);
+  }
+  .vm-copy-hero__slide--layout-2 img {
+    inset: 0 52% 0 0;
+    width: 48%;
+    object-position: center 28%;
+  }
+  .vm-copy-hero__slide--layout-2::before {
+    background:
+      linear-gradient(270deg, rgba(246, 236, 223, 0.98) 0%, rgba(246, 236, 223, 0.93) 30%, rgba(246, 236, 223, 0.24) 54%, rgba(246, 236, 223, 0) 70%),
+      radial-gradient(circle at 88% 82%, rgba(122, 29, 68, 0.08), rgba(122, 29, 68, 0) 20%);
+  }
+  .vm-copy-hero__slide--layout-2::after {
+    left: auto;
+    right: 5%;
+    bottom: auto;
+    top: -14%;
+  }
+  .vm-copy-hero__slide--layout-2 .vm-copy-hero-content {
+    width: min(38vw, 540px);
+    margin-left: auto;
+    padding: 88px 7.5% 68px 0;
+    align-items: flex-start;
+    color: #5f1835;
+  }
+  .vm-copy-hero__slide--layout-2 .vm-copy-hero-content h1,
+  .vm-copy-hero__slide--layout-2 .vm-copy-hero-content h1 em,
+  .vm-copy-hero__slide--layout-2 .vm-copy-hero-actions a + a,
+  .vm-copy-hero__slide--layout-2 .vm-copy-hero-offer,
+  .vm-copy-hero__slide--layout-2 .vm-copy-hero-offer span {
+    color: #5f1835;
+  }
+  .vm-copy-hero__slide--layout-2 .vm-copy-hero-copy,
+  .vm-copy-hero__slide--layout-2 .vm-copy-hero-perk {
+    color: #5e4f44;
+  }
+  .vm-copy-hero__slide--layout-2 .vm-copy-hero-actions {
+    justify-content: flex-start;
+  }
+  .vm-copy-hero__slide--layout-2 .vm-copy-hero-actions a {
+    background: #5f1835;
+    border-color: #5f1835;
+  }
+  .vm-copy-hero__slide--layout-2 .vm-copy-hero-actions a + a {
+    background: rgba(255, 255, 255, 0.34);
+    border-color: rgba(95, 24, 53, 0.28);
+  }
+  .vm-copy-hero__slide--layout-2 .vm-copy-hero-offer {
+    left: 33%;
+    right: auto;
+    top: 12%;
+    background: rgba(255, 247, 238, 0.94);
+  }
+  .vm-copy-hero__slide--layout-3 {
+    background:
+      radial-gradient(circle at 15% 84%, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0) 20%),
+      linear-gradient(135deg, #f8ede1 0%, #f4e4d2 46%, #f5ebdf 100%);
+  }
+  .vm-copy-hero__slide--layout-3 img {
+    inset: 0 18% 0 28%;
+    width: 54%;
+    object-position: center 22%;
+  }
+  .vm-copy-hero__slide--layout-3::before {
+    background:
+      linear-gradient(90deg, rgba(248, 237, 225, 0.96) 0%, rgba(248, 237, 225, 0.58) 22%, rgba(248, 237, 225, 0.1) 42%, rgba(248, 237, 225, 0.2) 63%, rgba(248, 237, 225, 0.88) 100%);
+  }
+  .vm-copy-hero__slide--layout-3 .vm-copy-hero-content {
+    width: min(30vw, 420px);
+    padding: 88px 0 82px 6%;
+    justify-content: flex-start;
+  }
+  .vm-copy-hero__slide--layout-3 .vm-copy-hero-copy {
+    margin-bottom: 22px;
+  }
+  .vm-copy-hero__slide--layout-3 .vm-copy-hero-perks {
+    width: min(280px, 100%);
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 0;
+  }
+  .vm-copy-hero__slide--layout-3 .vm-copy-hero-actions {
+    position: absolute;
+    right: 7%;
+    bottom: 64px;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+  }
+  .vm-copy-hero__slide--layout-3 .vm-copy-hero-actions a {
+    min-width: 236px;
+    justify-content: center;
+  }
+  .vm-copy-hero__slide--layout-3 .vm-copy-hero-actions a + a {
+    background: rgba(255, 248, 240, 0.7);
+  }
+  .vm-copy-hero__slide--layout-3 .vm-copy-hero-offer {
+    right: 8%;
+    top: 18%;
+    width: 136px;
+    height: 136px;
+  }
   .vm-copy-hero__nav {
     display: none !important;
   }
@@ -531,6 +637,25 @@
     }
     .vm-copy-hero-offer strong {
       font-size: 34px;
+    }
+    .vm-copy-hero__slide--layout-2 .vm-copy-hero-content {
+      width: min(42vw, 440px);
+      padding-right: 6%;
+    }
+    .vm-copy-hero__slide--layout-2 .vm-copy-hero-offer {
+      left: 28%;
+    }
+    .vm-copy-hero__slide--layout-3 img {
+      inset: 0 13% 0 30%;
+      width: 57%;
+    }
+    .vm-copy-hero__slide--layout-3 .vm-copy-hero-content {
+      width: min(34vw, 360px);
+      padding-left: 5.5%;
+    }
+    .vm-copy-hero__slide--layout-3 .vm-copy-hero-actions {
+      right: 5.5%;
+      bottom: 52px;
     }
   }
 </style>
@@ -990,7 +1115,7 @@
     <section class="vm-copy-hero vm-copy-hero--carousel" data-vm-hero-carousel>
         <div class="vm-copy-hero__track" data-vm-hero-track>
             {% for slide in hero_slides %}
-            <div class="vm-copy-hero__slide" data-vm-hero-slide>
+            <div class="vm-copy-hero__slide vm-copy-hero__slide--layout-{{ forloop.counter }}" data-vm-hero-slide>
                 {% if slide.image and slide.image.name %}
                 <img src="{{ slide.image.url }}" alt="{{ slide.title }}" {% if forloop.first %}fetchpriority="high" decoding="sync"{% else %}loading="lazy" decoding="async"{% endif %}>
                 {% else %}
