@@ -5,8 +5,18 @@
 }
 
 @media (max-width: 767px) {
-  body.vm-page-mobile-home #supportChatWidget {
+  body.vm-page-mobile-home #supportChatWidget,
+  body.vm-page-mobile-home #supportChatToggle,
+  body.vm-page-mobile-home #supportChatPanel,
+  body.vm-page-mobile-home #supportChatMessages,
+  body.vm-page-mobile-alt.vm-page-mobile-home #supportChatWidget,
+  body.vm-page-mobile-alt.vm-page-mobile-home #supportChatToggle,
+  body.vm-page-mobile-alt.vm-page-mobile-home #supportChatPanel,
+  body.vm-page-mobile-alt.vm-page-mobile-home #supportChatMessages {
     display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
   }
 
   body.vm-page-mobile-home #supportChatToggle {
