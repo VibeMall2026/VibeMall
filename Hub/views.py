@@ -1361,6 +1361,10 @@ def _write_edit_photo_alias(source_url, index):
 
 
 def _get_product_image_root():
+    legacy_windows_root = r"D:\VibeMallProduct\ProductImage"
+    if os.name == 'nt' and os.path.isdir(legacy_windows_root):
+        return legacy_windows_root
+
     configured_root = (
         os.getenv('PRODUCT_IMAGE_ROOT')
         or getattr(settings, 'PRODUCT_IMAGE_ROOT', '')
@@ -1369,10 +1373,6 @@ def _get_product_image_root():
     configured_root = str(configured_root).strip()
     if configured_root:
         return configured_root
-
-    legacy_windows_root = r"D:\VibeMallProduct\ProductImage"
-    if os.path.isdir(legacy_windows_root):
-        return legacy_windows_root
 
     media_root = str(getattr(settings, 'MEDIA_ROOT', '') or '').strip()
     if media_root:
