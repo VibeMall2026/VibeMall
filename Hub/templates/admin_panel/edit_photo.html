@@ -231,7 +231,7 @@
                     {% endfor %}
 
                     <div class="row g-3">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label class="form-label" for="main_category_select">Main category</label>
                             <select class="form-select" id="main_category_select" name="_main_category_select">
                                 <option value="">Select category</option>
@@ -240,20 +240,14 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label class="form-label" for="sub_category_select">Sub_Category</label>
                             <select class="form-select" id="sub_category_select" name="_sub_category_select">
                                 <option value="">Select sub category</option>
                             </select>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label" for="product_folder_select">Product_folder</label>
-                            <select class="form-select" id="product_folder_select" name="_product_folder_select">
-                                <option value="">Select folder number</option>
-                            </select>
-                            <input type="hidden" id="product_folder_input" name="product_folder">
-                        </div>
                     </div>
+                    <input type="hidden" id="product_folder_input" name="product_folder">
 
                     <div class="card mt-4 border-light-subtle">
                         <div class="card-body">
@@ -340,7 +334,7 @@
                 <h6 class="card-title">How it works</h6>
                 <p class="text-muted small mb-2">1. Paste image URL, upload image, or paste image from clipboard.</p>
                 <p class="text-muted small mb-2">2. Click Convert to PNG.</p>
-                <p class="text-muted small mb-2">3. Save to Folder (select Main category, Sub_Category, Product_folder).</p>
+                <p class="text-muted small mb-2">3. Save to Folder (select Main category and Sub_Category).</p>
                 <p class="text-muted small mb-0">4. Click Open Add Product to auto-use 1.png, 2.png, 3.png.</p>
             </div>
         </div>
@@ -711,7 +705,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const dropdownTaxonomy = {{ shop_dropdown_taxonomy_json|safe }};
     const mainSelect = document.getElementById('main_category_select');
     const subSelect = document.getElementById('sub_category_select');
-    const productSelect = document.getElementById('product_folder_select');
     const productInput = document.getElementById('product_folder_input');
     const mainValueField = document.getElementById('main_category_value');
     const subValueField = document.getElementById('sub_category_value');
@@ -719,7 +712,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const subLabelField = document.getElementById('sub_category_label_value');
     const form = document.getElementById('save-images-form');
 
-    if (!mainSelect || !subSelect || !productSelect || !productInput) return;
+    if (!mainSelect || !subSelect || !productInput) return;
 
     const getSelectedCategoryEntry = () => {
         const mainValue = (mainSelect.value || '').trim();
@@ -743,7 +736,6 @@ document.addEventListener('DOMContentLoaded', function() {
             mainLabelField.value = categoryEntry ? (categoryEntry.label || '') : (mainSelect.value || '').trim();
         }
         subSelect.innerHTML = '<option value="">Select sub category</option>';
-        productSelect.innerHTML = '<option value="">Select folder number</option>';
         productInput.value = '';
         if (!categoryEntry) {
             return;
@@ -771,18 +763,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (subLabelField) {
             subLabelField.value = subEntry ? (subEntry.label || '') : (subSelect.value || '').trim();
         }
-        productSelect.innerHTML = '<option value="">Select folder number</option>';
         productInput.value = '';
         if (!categoryEntry || !subEntry) {
             return;
         }
         const numbers = subEntry.folder_numbers || [];
-        numbers.forEach((num) => {
-            const opt = document.createElement('option');
-            opt.value = String(num);
-            opt.textContent = String(num);
-            productSelect.appendChild(opt);
-        });
+        const next = numbers.length ? Math.max(...numbers) + 1 : 1;
+        productInput.value = String(next);
     };
 
     mainSelect.addEventListener('change', () => {
@@ -791,9 +778,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     subSelect.addEventListener('change', () => {
         updateProductFolders();
-    });
-    productSelect.addEventListener('change', () => {
-        productInput.value = productSelect.value || '';
     });
 
     if (form) {
