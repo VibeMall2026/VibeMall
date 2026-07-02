@@ -408,10 +408,10 @@
     width: min(360px, 100%);
     margin: 26px 0 20px;
     color: #68584b;
-    font-family: var(--vm-sans), system-ui, sans-serif;
-    font-size: 15px;
-    font-weight: 400;
-    line-height: 1.7;
+    font-family: 'Cormorant Garamond', var(--vm-serif), Georgia, serif;
+    font-size: 17px;
+    font-weight: 500;
+    line-height: 1.24;
   }
   .vm-copy-hero-perks {
     display: grid;
@@ -534,11 +534,13 @@
   }
   .vm-copy-hero-story__copy {
     margin: 18px 0 0;
-    width: min(250px, 100%);
+    width: min(340px, 100%);
     color: #68584b;
     font-family: 'Cormorant Garamond', var(--vm-serif), Georgia, serif;
-    font-size: 16px;
-    line-height: 1.35;
+    font-size: 17px;
+    font-weight: 500;
+    line-height: 1.22;
+    letter-spacing: 0.01em;
   }
   .vm-copy-hero-promo {
     width: min(400px, 100%);
@@ -1326,11 +1328,10 @@
                         {% endif %}
                     </div>
                 </div>
-                <div class="vm-copy-hero-offer" aria-label="{{ slide.offer_eyebrow|default:'Upto' }} {{ slide.offer_main_text|default:'50%' }} {{ slide.offer_subtext|default:'Off' }} {{ slide.offer_footer_text|default:'+ Extra 10% Cashback' }}">
+                <div class="vm-copy-hero-offer" aria-label="{{ slide.offer_eyebrow|default:'Upto' }} {{ slide.offer_main_text|default:'50%' }} {{ slide.offer_subtext|default:'Off' }}">
                     <small>{{ slide.offer_eyebrow|default:"Upto" }}</small>
                     <strong>{{ slide.offer_main_text|default:"50%" }}</strong>
                     <b>{{ slide.offer_subtext|default:"Off" }}</b>
-                    <span>{{ slide.offer_footer_text|default:"+ Extra 10% Cashback"|linebreaksbr }}</span>
                 </div>
             </div>
             {% endfor %}
