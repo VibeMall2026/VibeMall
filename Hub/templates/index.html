@@ -386,21 +386,21 @@
   }
   .vm-copy-hero__slide--layout-1 .vm-copy-hero-content h1 {
     color: #7c133c;
-    font-size: clamp(66px, 7vw, 104px);
+    font-size: clamp(56px, 6vw, 92px);
     letter-spacing: -0.06em;
-    line-height: 0.84;
+    line-height: 0.9;
   }
   .vm-copy-hero__slide--layout-1 .vm-copy-hero-content h1 em {
     margin-top: 4px;
     color: #ad8650;
-    font-size: clamp(54px, 5.7vw, 88px);
+    font-size: clamp(46px, 4.8vw, 76px);
     font-weight: 400;
-    line-height: 0.92;
+    line-height: 0.96;
   }
   .vm-copy-hero__slide--layout-1 .vm-copy-hero-copy {
     position: relative;
     width: min(420px, 100%);
-    margin: 34px 0 28px;
+    margin: 28px 0 24px;
     padding-top: 28px;
     color: #544337;
     font-family: var(--vm-serif), Georgia, serif;
@@ -421,7 +421,7 @@
   .vm-copy-hero__slide--layout-1 .vm-copy-hero-perks {
     width: min(480px, 100%);
     gap: 18px;
-    margin-bottom: 34px;
+    margin-bottom: 28px;
   }
   .vm-copy-hero__slide--layout-1 .vm-copy-hero-perk {
     grid-template-columns: 34px 1fr;
@@ -973,7 +973,7 @@
     justify-content: center;
   }
   .vm-copy-hero__slide--layout-3 .vm-copy-hero-actions a + a {
-    background: rgba(255, 248, 240, 0.7);
+    display: none;
   }
   .vm-copy-hero__slide--layout-3 .vm-copy-hero-offer {
     right: 26px;
@@ -1566,11 +1566,11 @@
                             <div class="vm-copy-hero-perk"><i class="fal fa-award"></i><span>Premium<br>Quality</span></div>
                             <div class="vm-copy-hero-perk"><i class="fal fa-truck"></i><span>Fast & Reliable<br>Delivery</span></div>
                             <div class="vm-copy-hero-perk"><i class="fal fa-box-open"></i><span>Easy<br>Returns</span></div>
-                            {% if forloop.counter == 2 %}<div class="vm-copy-hero-perk"><i class="fal fa-shield-check"></i><span>Secure<br>Payments</span></div>{% endif %}
+                            {% if forloop.counter == 2 or forloop.counter == 3 %}<div class="vm-copy-hero-perk"><i class="fal fa-shield-check"></i><span>Secure<br>Payments</span></div>{% endif %}
                         </div>
                         <div class="vm-copy-hero-actions">
-                            {% if slide.button2_url %}<a href="{{ slide.button2_url }}">{{ slide.button2_text|default:"Read Editorial" }}</a>{% endif %}
                             {% if slide.top_button_url %}<a href="{{ slide.top_button_url }}">{{ slide.top_button_text|default:"Explore Collection" }}</a>{% endif %}
+                            {% if slide.button2_url %}<a href="{{ slide.button2_url }}">{{ slide.button2_text|default:"Read Editorial" }}</a>{% endif %}
                         </div>
                     </div>
                     <div class="vm-copy-hero-media">
