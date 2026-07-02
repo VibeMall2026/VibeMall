@@ -6,20 +6,14 @@
 
 @media (max-width: 767px) {
   body.vm-page-mobile-home #supportChatWidget,
-  body.vm-page-mobile-home #supportChatToggle,
-  body.vm-page-mobile-home #supportChatPanel,
-  body.vm-page-mobile-home #supportChatMessages,
-  body.vm-page-mobile-alt.vm-page-mobile-home #supportChatWidget,
-  body.vm-page-mobile-alt.vm-page-mobile-home #supportChatToggle,
-  body.vm-page-mobile-alt.vm-page-mobile-home #supportChatPanel,
-  body.vm-page-mobile-alt.vm-page-mobile-home #supportChatMessages {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
+  body.vm-page-mobile-alt.vm-page-mobile-home #supportChatWidget {
+    right: 12px !important;
+    bottom: calc(92px + env(safe-area-inset-bottom)) !important;
+    z-index: 1201 !important;
   }
 
-  body.vm-page-mobile-home #supportChatToggle {
+  body.vm-page-mobile-home #supportChatToggle,
+  body.vm-page-mobile-alt.vm-page-mobile-home #supportChatToggle {
     min-height: 40px;
     padding: 8px 14px;
     font-size: 14px;
@@ -27,7 +21,8 @@
     box-shadow: 0 10px 22px rgba(15, 23, 42, 0.22);
   }
 
-  body.vm-page-mobile-home #supportChatPanel {
+  body.vm-page-mobile-home #supportChatPanel,
+  body.vm-page-mobile-alt.vm-page-mobile-home #supportChatPanel {
     width: min(94vw, 320px);
     max-height: min(64vh, 520px);
   }
