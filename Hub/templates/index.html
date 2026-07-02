@@ -1296,7 +1296,7 @@
     <section class="vm-copy-hero vm-copy-hero--carousel" data-vm-hero-carousel>
         <div class="vm-copy-hero__track" data-vm-hero-track>
             {% for slide in hero_slides %}
-            <div class="vm-copy-hero__slide vm-copy-hero__slide--layout-{{ forloop.counter }}" data-vm-hero-slide>
+            <div class="vm-copy-hero__slide vm-copy-hero__slide--layout-1" data-vm-hero-slide>
                 {% if slide.image and slide.image.name %}
                 <img src="{{ slide.image.url }}" alt="{{ slide.title }}" {% if forloop.first %}fetchpriority="high" decoding="sync"{% else %}loading="lazy" decoding="async"{% endif %}>
                 {% else %}
@@ -1304,7 +1304,6 @@
                 {% endif %}
                 <div class="vm-copy-hero-overlay"></div>
                 <div class="vm-copy-hero-content">
-                    {% if forloop.counter == 1 %}
                     <div class="vm-copy-hero-story" aria-label="Collection story">
                         <span class="vm-copy-hero-story__eyebrow">{{ slide.eyebrow_text|default:"New Collection" }}</span>
                         <div class="vm-copy-hero-story__rule"><i class="fal fa-sparkles"></i></div>
@@ -1326,20 +1325,6 @@
                         <a href="{{ slide.button2_url }}">{{ slide.button2_text }}</a>
                         {% endif %}
                     </div>
-                    {% else %}
-                    {% if slide.eyebrow_text %}<span>{{ slide.eyebrow_text }}</span>{% endif %}
-                    <h1>{{ slide.title }}{% if slide.title_italic_part %} <em>{{ slide.title_italic_part }}</em>{% endif %}</h1>
-                    <p class="vm-copy-hero-copy">{{ slide.subtitle|default:slide.description|default:"Crafted for every moment. Designed to make you unforgettable." }}</p>
-                    <div class="vm-copy-hero-perks" aria-label="Collection benefits">
-                        <div class="vm-copy-hero-perk"><i class="fal fa-award"></i><span>{{ slide.benefit_1_text|default:"Premium Quality"|linebreaksbr }}</span></div>
-                        <div class="vm-copy-hero-perk"><i class="fal fa-truck"></i><span>{{ slide.benefit_2_text|default:"Fast & Reliable Delivery"|linebreaksbr }}</span></div>
-                        <div class="vm-copy-hero-perk"><i class="fal fa-box-open"></i><span>{{ slide.benefit_3_text|default:"Easy Returns"|linebreaksbr }}</span></div>
-                    </div>
-                    <div class="vm-copy-hero-actions">
-                        {% if slide.top_button_url %}<a href="{{ slide.top_button_url }}">{{ slide.top_button_text|default:"Explore Collection" }}</a>{% endif %}
-                        {% if slide.button2_url %}<a href="{{ slide.button2_url }}">{{ slide.button2_text|default:"Read Editorial" }}</a>{% endif %}
-                    </div>
-                    {% endif %}
                 </div>
                 <div class="vm-copy-hero-offer" aria-label="{{ slide.offer_eyebrow|default:'Upto' }} {{ slide.offer_main_text|default:'50%' }} {{ slide.offer_subtext|default:'Off' }} {{ slide.offer_footer_text|default:'+ Extra 10% Cashback' }}">
                     <small>{{ slide.offer_eyebrow|default:"Upto" }}</small>
