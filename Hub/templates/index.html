@@ -309,11 +309,19 @@
     min-width: 100%;
     height: 100%;
     position: relative;
-    padding: 34px 48px 44px;
     background:
-      radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0) 24%),
-      linear-gradient(90deg, #fbf1e5 0%, #f6eadc 100%);
+      radial-gradient(circle at 21% 17%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0) 25%),
+      linear-gradient(90deg, #fbefe2 0%, #f8eadb 36%, #f3ddc7 100%);
     overflow: hidden;
+  }
+  .vm-copy-hero__slide img {
+    position: absolute;
+    inset: 0 0 0 36%;
+    width: 64%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center right;
+    display: block;
   }
   .vm-copy-hero__slide::before {
     content: "";
@@ -322,97 +330,36 @@
     z-index: 2;
     pointer-events: none;
     background:
-      linear-gradient(90deg, rgba(251, 241, 229, 0.72) 0%, rgba(251, 241, 229, 0.18) 40%, rgba(251, 241, 229, 0) 62%),
-      radial-gradient(circle at 7% 88%, rgba(118, 26, 55, 0.08), rgba(118, 26, 55, 0) 18%);
+      linear-gradient(90deg, rgba(251, 239, 226, 0.98) 0%, rgba(251, 239, 226, 0.94) 29%, rgba(251, 239, 226, 0.36) 48%, rgba(251, 239, 226, 0) 62%),
+      radial-gradient(circle at 4% 92%, rgba(118, 26, 55, 0.09), rgba(118, 26, 55, 0) 18%);
   }
   .vm-copy-hero__slide::after {
     content: "";
     position: absolute;
-    left: 2%;
-    bottom: -22%;
-    width: 24%;
+    left: 4%;
+    bottom: -16%;
+    width: 26%;
     aspect-ratio: 1;
     z-index: 3;
-    opacity: 0.18;
-    border: 1px solid rgba(118, 26, 55, 0.14);
+    opacity: 0.22;
+    border: 1px solid rgba(118, 26, 55, 0.22);
     border-radius: 50%;
     pointer-events: none;
   }
   .vm-copy-hero-overlay {
     display: none;
   }
-  .vm-copy-hero__slide--layout-1 {
-    background:
-      radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0) 24%),
-      linear-gradient(90deg, #fbf1e5 0%, #f6eadc 100%);
-  }
-  .vm-copy-hero__slide--layout-2 {
-    background:
-      radial-gradient(circle at 84% 14%, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 22%),
-      linear-gradient(90deg, #f6ecdf 0%, #f3e6d6 100%);
-  }
-  .vm-copy-hero__slide--layout-3 {
-    background:
-      radial-gradient(circle at 15% 84%, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0) 20%),
-      linear-gradient(135deg, #f8ede1 0%, #f4e4d2 46%, #f5ebdf 100%);
-  }
-  .vm-copy-hero__slide--layout-2::before {
-    background:
-      linear-gradient(270deg, rgba(246, 236, 223, 0.98) 0%, rgba(246, 236, 223, 0.93) 30%, rgba(246, 236, 223, 0.24) 54%, rgba(246, 236, 223, 0) 70%),
-      radial-gradient(circle at 88% 82%, rgba(122, 29, 68, 0.08), rgba(122, 29, 68, 0) 20%);
-  }
-  .vm-copy-hero__slide--layout-3::before {
-    background:
-      linear-gradient(90deg, rgba(248, 237, 225, 0.96) 0%, rgba(248, 237, 225, 0.7) 20%, rgba(248, 237, 225, 0.12) 44%, rgba(248, 237, 225, 0.16) 63%, rgba(248, 237, 225, 0.9) 100%);
-  }
-  .vm-copy-hero__slide--layout-2::after {
-    left: auto;
-    right: 5%;
-    bottom: auto;
-    top: -14%;
-  }
-  .vm-copy-hero__slide--layout-3::after {
-  }
-  .vm-copy-hero__shell {
-    position: relative;
-    z-index: 4;
-    display: grid;
-    grid-template-columns: minmax(340px, 0.9fr) minmax(460px, 1.1fr);
-    grid-template-areas: "content media";
-    gap: 34px;
-    align-items: center;
-    height: 100%;
-    min-height: 0;
-  }
-  .vm-copy-hero-media {
-    grid-area: media;
-    position: relative;
-    height: 100%;
-    min-height: 440px;
-    border-radius: 24px;
-    overflow: hidden;
-    box-shadow: 0 28px 56px rgba(76, 47, 34, 0.14);
-  }
-  .vm-copy-hero-media img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center 18%;
-    display: block;
-  }
   .vm-copy-hero-content {
-    grid-area: content;
     position: relative;
     z-index: 4;
-    width: 100%;
-    max-width: 520px;
-    padding: 24px 0 24px 32px;
+    width: min(36vw, 520px);
+    height: 100%;
+    padding: 74px 0 64px 8.5%;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-self: center;
-    text-align: left;
     color: #681336;
+    text-align: left;
   }
   .vm-copy-hero-content span {
     display: inline-block;
@@ -428,7 +375,7 @@
     margin: 0;
     color: #74143a;
     font-family: var(--vm-serif), Georgia, serif;
-    font-size: clamp(44px, 4.4vw, 78px);
+    font-size: clamp(48px, 4.7vw, 82px);
     letter-spacing: -0.04em;
     line-height: 0.9;
     font-weight: 700;
@@ -443,7 +390,7 @@
     line-height: 0.94;
   }
   .vm-copy-hero-copy {
-    width: min(370px, 100%);
+    width: min(360px, 100%);
     margin: 26px 0 20px;
     color: #68584b;
     font-family: var(--vm-sans), system-ui, sans-serif;
@@ -521,11 +468,11 @@
   }
   .vm-copy-hero-offer {
     position: absolute;
-    right: 28px;
-    top: 26px;
+    right: 7.5%;
+    top: 29%;
     z-index: 5;
-    width: 138px;
-    height: 138px;
+    width: 150px;
+    height: 150px;
     border: 1px solid rgba(167, 129, 80, 0.65);
     border-radius: 50%;
     background: rgba(255, 248, 240, 0.9);
@@ -548,7 +495,7 @@
   .vm-copy-hero-offer strong {
     margin-top: 2px;
     font-family: var(--vm-serif), Georgia, serif;
-    font-size: 36px;
+    font-size: 40px;
     letter-spacing: -0.05em;
     line-height: 0.9;
   }
@@ -568,14 +515,31 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
-  .vm-copy-hero__slide--layout-2 .vm-copy-hero__shell {
-    grid-template-columns: minmax(430px, 1fr) minmax(360px, 0.9fr);
-    grid-template-areas: "media content";
+  .vm-copy-hero__slide--layout-2 {
+    background:
+      radial-gradient(circle at 84% 14%, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 22%),
+      linear-gradient(90deg, #f6ecdf 0%, #f3e6d6 100%);
+  }
+  .vm-copy-hero__slide--layout-2 img {
+    inset: 0 52% 0 0;
+    width: 48%;
+    object-position: center 28%;
+  }
+  .vm-copy-hero__slide--layout-2::before {
+    background:
+      linear-gradient(270deg, rgba(246, 236, 223, 0.98) 0%, rgba(246, 236, 223, 0.93) 30%, rgba(246, 236, 223, 0.24) 54%, rgba(246, 236, 223, 0) 70%),
+      radial-gradient(circle at 88% 82%, rgba(122, 29, 68, 0.08), rgba(122, 29, 68, 0) 20%);
+  }
+  .vm-copy-hero__slide--layout-2::after {
+    left: auto;
+    right: 5%;
+    bottom: auto;
+    top: -14%;
   }
   .vm-copy-hero__slide--layout-2 .vm-copy-hero-content {
-    max-width: 470px;
+    width: min(38vw, 540px);
     margin-left: auto;
-    padding: 12px 24px 12px 0;
+    padding: 88px 7.5% 68px 0;
     align-items: flex-start;
     color: #5f1835;
   }
@@ -602,55 +566,67 @@
     border-color: rgba(95, 24, 53, 0.28);
   }
   .vm-copy-hero__slide--layout-2 .vm-copy-hero-offer {
-    left: 24px;
+    left: 33%;
     right: auto;
-    top: 24px;
+    top: 12%;
     background: rgba(255, 247, 238, 0.94);
   }
-  .vm-copy-hero__slide--layout-3 .vm-copy-hero__shell {
-    grid-template-columns: minmax(340px, 0.82fr) minmax(500px, 1.18fr);
-    align-items: center;
+  .vm-copy-hero__slide--layout-3 {
+    background:
+      radial-gradient(circle at 15% 84%, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0) 20%),
+      linear-gradient(135deg, #f8ede1 0%, #f4e4d2 46%, #f5ebdf 100%);
+  }
+  .vm-copy-hero__slide--layout-3 img {
+    inset: 0 18% 0 28%;
+    width: 54%;
+    object-position: center 22%;
+  }
+  .vm-copy-hero__slide--layout-3::before {
+    background:
+      linear-gradient(90deg, rgba(248, 237, 225, 0.96) 0%, rgba(248, 237, 225, 0.58) 22%, rgba(248, 237, 225, 0.1) 42%, rgba(248, 237, 225, 0.2) 63%, rgba(248, 237, 225, 0.88) 100%);
   }
   .vm-copy-hero__slide--layout-3 .vm-copy-hero-content {
-    max-width: 420px;
-    padding: 24px 0 24px 18px;
-    justify-content: center;
+    width: min(30vw, 420px);
+    padding: 88px 0 82px 6%;
+    justify-content: flex-start;
   }
   .vm-copy-hero__slide--layout-3 .vm-copy-hero-copy {
-    margin-bottom: 20px;
+    margin-bottom: 22px;
   }
   .vm-copy-hero__slide--layout-3 .vm-copy-hero-perks {
-    width: min(320px, 100%);
+    width: min(280px, 100%);
     grid-template-columns: 1fr;
     gap: 10px;
-    margin-bottom: 18px;
+    margin-bottom: 0;
   }
   .vm-copy-hero__slide--layout-3 .vm-copy-hero-actions {
-    margin-top: 0;
+    position: absolute;
+    right: 7%;
+    bottom: 64px;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: flex-end;
     gap: 10px;
   }
   .vm-copy-hero__slide--layout-3 .vm-copy-hero-actions a {
-    min-width: 220px;
+    min-width: 236px;
     justify-content: center;
   }
   .vm-copy-hero__slide--layout-3 .vm-copy-hero-actions a + a {
     background: rgba(255, 248, 240, 0.7);
   }
   .vm-copy-hero__slide--layout-3 .vm-copy-hero-offer {
-    right: 26px;
-    top: 26px;
-    width: 126px;
-    height: 126px;
+    right: 8%;
+    top: 18%;
+    width: 136px;
+    height: 136px;
   }
   .vm-copy-hero__nav {
     display: none !important;
   }
   .vm-copy-hero__dots {
     position: absolute;
-    left: 50%;
     bottom: 32px;
+    left: 50%;
     transform: translateX(-50%);
     display: flex;
     gap: 8px;
@@ -659,8 +635,8 @@
   .vm-copy-hero__dot {
     width: 8px;
     height: 8px;
-    border: none;
     border-radius: 50%;
+    border: none;
     background: rgba(255,255,255,0.82);
     cursor: pointer;
     transition: background 0.2s ease, transform 0.2s ease;
@@ -670,33 +646,39 @@
     transform: scale(1.3);
   }
   @media (max-width: 1199px) {
-    .vm-copy-hero__slide {
-      padding: 28px 24px 34px;
-    }
-    .vm-copy-hero__shell,
-    .vm-copy-hero__slide--layout-2 .vm-copy-hero__shell,
-    .vm-copy-hero__slide--layout-3 .vm-copy-hero__shell {
-      grid-template-columns: minmax(280px, 0.82fr) minmax(360px, 1.18fr);
-      gap: 24px;
-    }
     .vm-copy-hero-content {
-      padding: 12px 0 12px 12px;
-      max-width: 420px;
+      width: min(44vw, 480px);
+      padding-left: 7%;
     }
     .vm-copy-hero-content h1 {
-      font-size: 48px;
-    }
-    .vm-copy-hero-media {
-      min-height: 390px;
+      font-size: 54px;
     }
     .vm-copy-hero-offer {
-      right: 20px;
-      top: 20px;
-      width: 112px;
-      height: 112px;
+      right: 5.5%;
+      width: 126px;
+      height: 126px;
     }
     .vm-copy-hero-offer strong {
-      font-size: 30px;
+      font-size: 34px;
+    }
+    .vm-copy-hero__slide--layout-2 .vm-copy-hero-content {
+      width: min(42vw, 440px);
+      padding-right: 6%;
+    }
+    .vm-copy-hero__slide--layout-2 .vm-copy-hero-offer {
+      left: 28%;
+    }
+    .vm-copy-hero__slide--layout-3 img {
+      inset: 0 13% 0 30%;
+      width: 57%;
+    }
+    .vm-copy-hero__slide--layout-3 .vm-copy-hero-content {
+      width: min(34vw, 360px);
+      padding-left: 5.5%;
+    }
+    .vm-copy-hero__slide--layout-3 .vm-copy-hero-actions {
+      right: 5.5%;
+      bottom: 52px;
     }
   }
 </style>
@@ -1157,34 +1139,31 @@
         <div class="vm-copy-hero__track" data-vm-hero-track>
             {% for slide in hero_slides %}
             <div class="vm-copy-hero__slide vm-copy-hero__slide--layout-{{ forloop.counter }}" data-vm-hero-slide>
-                <div class="vm-copy-hero__shell">
-                    <div class="vm-copy-hero-content">
-                        {% if slide.eyebrow_text %}<span>{{ slide.eyebrow_text }}</span>{% endif %}
-                        <h1>{{ slide.title }}{% if slide.title_italic_part %} <em>{{ slide.title_italic_part }}</em>{% endif %}</h1>
-                        <p class="vm-copy-hero-copy">{{ slide.description|default:"Crafted for every moment. Designed to make you unforgettable." }}</p>
-                        <div class="vm-copy-hero-perks" aria-label="Collection benefits">
-                            <div class="vm-copy-hero-perk"><i class="fal fa-award"></i><span>Premium<br>Quality</span></div>
-                            <div class="vm-copy-hero-perk"><i class="fal fa-truck"></i><span>Fast & Reliable<br>Delivery</span></div>
-                            <div class="vm-copy-hero-perk"><i class="fal fa-box-open"></i><span>Easy<br>Returns</span></div>
-                        </div>
-                        <div class="vm-copy-hero-actions">
-                            {% if slide.top_button_url %}<a href="{{ slide.top_button_url }}">{{ slide.top_button_text|default:"Explore Collection" }}</a>{% endif %}
-                            {% if slide.button2_url %}<a href="{{ slide.button2_url }}">{{ slide.button2_text|default:"Read Editorial" }}</a>{% endif %}
-                        </div>
+                {% if slide.image and slide.image.name %}
+                <img src="{{ slide.image.url }}" alt="{{ slide.title }}" {% if forloop.first %}fetchpriority="high" decoding="sync"{% else %}loading="lazy" decoding="async"{% endif %}>
+                {% else %}
+                <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPgZcF0ecnNzrhiTIOBosODib_rgNafg4VuUXINy8jtP45Sjc0gdrriXJ-29JiDsZtHNCULAUffv_RomzJ2Bhov88cdC2xGfHSn-Qo_bVdOYiHajrWN5xBmTpCHb7I8GTacrClH2fVTShiQYEvkdvJ9s6RBnpG-__GOi8MI0jK8Ay3dW-2sAGBSVXKe2HcaCzULPC-Xt8yhduSML_Q6ZtxFb170C4ZxegrEp22j-ZbfyV74nucTwSJqWdPWZr3u8QEsKLkeVgK4VX3" alt="{{ slide.title }}" referrerpolicy="no-referrer" {% if forloop.first %}fetchpriority="high" decoding="sync"{% else %}loading="lazy" decoding="async"{% endif %}>
+                {% endif %}
+                <div class="vm-copy-hero-overlay"></div>
+                <div class="vm-copy-hero-content">
+                    {% if slide.eyebrow_text %}<span>{{ slide.eyebrow_text }}</span>{% endif %}
+                    <h1>{{ slide.title }}{% if slide.title_italic_part %} <em>{{ slide.title_italic_part }}</em>{% endif %}</h1>
+                    <p class="vm-copy-hero-copy">{{ slide.description|default:"Crafted for every moment. Designed to make you unforgettable." }}</p>
+                    <div class="vm-copy-hero-perks" aria-label="Collection benefits">
+                        <div class="vm-copy-hero-perk"><i class="fal fa-award"></i><span>Premium<br>Quality</span></div>
+                        <div class="vm-copy-hero-perk"><i class="fal fa-truck"></i><span>Fast & Reliable<br>Delivery</span></div>
+                        <div class="vm-copy-hero-perk"><i class="fal fa-box-open"></i><span>Easy<br>Returns</span></div>
                     </div>
-                    <div class="vm-copy-hero-media">
-                        {% if slide.image and slide.image.name %}
-                        <img src="{{ slide.image.url }}" alt="{{ slide.title }}" {% if forloop.first %}fetchpriority="high" decoding="sync"{% else %}loading="lazy" decoding="async"{% endif %}>
-                        {% else %}
-                        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPgZcF0ecnNzrhiTIOBosODib_rgNafg4VuUXINy8jtP45Sjc0gdrriXJ-29JiDsZtHNCULAUffv_RomzJ2Bhov88cdC2xGfHSn-Qo_bVdOYiHajrWN5xBmTpCHb7I8GTacrClH2fVTShiQYEvkdvJ9s6RBnpG-__GOi8MI0jK8Ay3dW-2sAGBSVXKe2HcaCzULPC-Xt8yhduSML_Q6ZtxFb170C4ZxegrEp22j-ZbfyV74nucTwSJqWdPWZr3u8QEsKLkeVgK4VX3" alt="{{ slide.title }}" referrerpolicy="no-referrer" {% if forloop.first %}fetchpriority="high" decoding="sync"{% else %}loading="lazy" decoding="async"{% endif %}>
-                        {% endif %}
+                    <div class="vm-copy-hero-actions">
+                        {% if slide.top_button_url %}<a href="{{ slide.top_button_url }}">{{ slide.top_button_text|default:"Explore Collection" }}</a>{% endif %}
+                        {% if slide.button2_url %}<a href="{{ slide.button2_url }}">{{ slide.button2_text|default:"Read Editorial" }}</a>{% endif %}
                     </div>
-                    <div class="vm-copy-hero-offer" aria-label="Up to 50 percent off plus extra 10 percent cashback">
-                        <small>Upto</small>
-                        <strong>50%</strong>
-                        <b>Off</b>
-                        <span>+ Extra 10%<br>Cashback</span>
-                    </div>
+                </div>
+                <div class="vm-copy-hero-offer" aria-label="Up to 50 percent off plus extra 10 percent cashback">
+                    <small>Upto</small>
+                    <strong>50%</strong>
+                    <b>Off</b>
+                    <span>+ Extra 10%<br>Cashback</span>
                 </div>
             </div>
             {% endfor %}
