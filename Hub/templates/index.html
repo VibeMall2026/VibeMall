@@ -466,6 +466,62 @@
     color: #74143a;
     box-shadow: none;
   }
+  .vm-copy-hero-story {
+    width: min(420px, 100%);
+    margin: 6px 0 26px;
+    text-align: center;
+  }
+  .vm-copy-hero-story__eyebrow {
+    display: block;
+    margin-bottom: 12px;
+    color: #4f3326;
+    font-family: var(--vm-sans), system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+  }
+  .vm-copy-hero-story__rule {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    color: #b48a4f;
+  }
+  .vm-copy-hero-story__rule::before,
+  .vm-copy-hero-story__rule::after {
+    content: "";
+    width: 108px;
+    max-width: 28vw;
+    height: 1px;
+    background: rgba(180, 138, 79, 0.55);
+  }
+  .vm-copy-hero-story__title {
+    margin: 0;
+    color: #74143a;
+    font-family: var(--vm-serif), Georgia, serif;
+    font-size: clamp(46px, 4.4vw, 74px);
+    line-height: 0.88;
+    letter-spacing: -0.04em;
+  }
+  .vm-copy-hero-story__title em {
+    display: block;
+    margin-top: 4px;
+    color: #b48a4f;
+    font-size: 0.88em;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 0.92;
+  }
+  .vm-copy-hero-story__copy {
+    margin: 16px auto 0;
+    width: min(270px, 100%);
+    color: #68584b;
+    font-family: var(--vm-serif), Georgia, serif;
+    font-size: 14px;
+    line-height: 1.45;
+  }
   .vm-copy-hero-offer {
     position: absolute;
     right: 7.5%;
@@ -681,6 +737,17 @@
     }
     .vm-copy-hero__slide--layout-3 .vm-copy-hero-actions {
       position: static;
+    }
+    .vm-copy-hero-story {
+      width: min(360px, 100%);
+      margin-bottom: 20px;
+    }
+    .vm-copy-hero-story__title {
+      font-size: clamp(38px, 4vw, 58px);
+    }
+    .vm-copy-hero-story__rule::before,
+    .vm-copy-hero-story__rule::after {
+      width: 78px;
     }
   }
 </style>
@@ -1156,6 +1223,14 @@
                         <div class="vm-copy-hero-perk"><i class="fal fa-truck"></i><span>Fast & Reliable<br>Delivery</span></div>
                         <div class="vm-copy-hero-perk"><i class="fal fa-box-open"></i><span>Easy<br>Returns</span></div>
                     </div>
+                    {% if forloop.counter == 1 %}
+                    <div class="vm-copy-hero-story" aria-label="Collection story">
+                        <span class="vm-copy-hero-story__eyebrow">New Collection</span>
+                        <div class="vm-copy-hero-story__rule"><i class="fal fa-sparkles"></i></div>
+                        <h2 class="vm-copy-hero-story__title">Grace In <em>Every Thread</em></h2>
+                        <p class="vm-copy-hero-story__copy">Timeless styles crafted for every celebration</p>
+                    </div>
+                    {% endif %}
                     <div class="vm-copy-hero-actions">
                         {% if slide.top_button_url %}<a href="{{ slide.top_button_url }}">{{ slide.top_button_text|default:"Explore Collection" }}</a>{% endif %}
                         {% if slide.button2_url %}<a href="{{ slide.button2_url }}">{{ slide.button2_text|default:"Read Editorial" }}</a>{% endif %}
