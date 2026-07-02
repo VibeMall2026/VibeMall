@@ -25,28 +25,42 @@
                     <div class="card-header"><h5 class="mb-0">Slider Details</h5></div>
                     <div class="card-body">
                         <div class="mb-3">
-                            <label class="form-label" for="title">Title</label>
-                            <input type="text" class="form-control" id="title" name="title" value="{{ slider.title }}" />
+                            <label class="form-label" for="eyebrow_text">Top Label</label>
+                            <input type="text" class="form-control" id="eyebrow_text" name="eyebrow_text" value="{{ slider.eyebrow_text }}" placeholder="e.g. NEW COLLECTION" />
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label" for="subtitle">Subtitle</label>
+                            <label class="form-label" for="title">Main Heading</label>
+                            <input type="text" class="form-control" id="title" name="title" value="{{ slider.title }}" placeholder="e.g. Grace In" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="title_italic_part">Highlight Heading</label>
+                            <input type="text" class="form-control" id="title_italic_part" name="title_italic_part" value="{{ slider.title_italic_part }}" placeholder="e.g. Every Thread" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="subtitle">Supporting Text</label>
                             <textarea class="form-control" id="subtitle" name="subtitle" rows="2">{{ slider.subtitle }}</textarea>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label" for="description">Description</label>
-                            <textarea class="form-control" id="description" name="description" rows="3">{{ slider.description }}</textarea>
+                            <label class="form-label" for="description">Promo Line</label>
+                            <textarea class="form-control" id="description" name="description" rows="2">{{ slider.description }}</textarea>
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label" for="top_button_text">Button Text</label>
-                                <input type="text" class="form-control" id="top_button_text" name="top_button_text" value="{{ slider.top_button_text }}" />
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label" for="benefit_1_text">Benefit 1</label>
+                                <input type="text" class="form-control" id="benefit_1_text" name="benefit_1_text" value="{{ slider.benefit_1_text }}" />
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label" for="top_button_url">Button URL</label>
-                                <input type="text" class="form-control" id="top_button_url" name="top_button_url" value="{{ slider.top_button_url }}" />
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label" for="benefit_2_text">Benefit 2</label>
+                                <input type="text" class="form-control" id="benefit_2_text" name="benefit_2_text" value="{{ slider.benefit_2_text }}" />
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label" for="benefit_3_text">Benefit 3</label>
+                                <input type="text" class="form-control" id="benefit_3_text" name="benefit_3_text" value="{{ slider.benefit_3_text }}" />
                             </div>
                         </div>
 
@@ -66,28 +80,40 @@
                 </div>
 
                 <div class="card mb-4">
-                    <div class="card-header"><h5 class="mb-0">Hero Banner Fields</h5></div>
+                    <div class="card-header"><h5 class="mb-0">Buttons & Offer Sticker</h5></div>
                     <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label" for="eyebrow_text">Eyebrow Text</label>
-                            <input type="text" class="form-control" id="eyebrow_text" name="eyebrow_text" value="{{ slider.eyebrow_text }}" placeholder="e.g. AUTUMN / WINTER '24" />
-                            <small class="text-muted">Small text displayed above the title</small>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label" for="title_italic_part">Title Italic Part</label>
-                            <input type="text" class="form-control" id="title_italic_part" name="title_italic_part" value="{{ slider.title_italic_part }}" placeholder="e.g. Modern Drape" />
-                            <small class="text-muted">Italic portion appended after the main title</small>
-                        </div>
-
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label" for="button2_text">Second Button Text</label>
+                                <label class="form-label" for="top_button_text">Primary Button Text</label>
+                                <input type="text" class="form-control" id="top_button_text" name="top_button_text" value="{{ slider.top_button_text }}" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="top_button_url">Primary Button URL</label>
+                                <input type="text" class="form-control" id="top_button_url" name="top_button_url" value="{{ slider.top_button_url }}" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="button2_text">Secondary Button Text</label>
                                 <input type="text" class="form-control" id="button2_text" name="button2_text" value="{{ slider.button2_text }}" placeholder="e.g. Read Editorial" />
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label" for="button2_url">Second Button URL</label>
+                                <label class="form-label" for="button2_url">Secondary Button URL</label>
                                 <input type="text" class="form-control" id="button2_url" name="button2_url" value="{{ slider.button2_url }}" placeholder="e.g. /blog/" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="offer_eyebrow">Sticker Top Text</label>
+                                <input type="text" class="form-control" id="offer_eyebrow" name="offer_eyebrow" value="{{ slider.offer_eyebrow }}" placeholder="UPTO" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="offer_main_text">Sticker Main Text</label>
+                                <input type="text" class="form-control" id="offer_main_text" name="offer_main_text" value="{{ slider.offer_main_text }}" placeholder="50%" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="offer_subtext">Sticker Middle Text</label>
+                                <input type="text" class="form-control" id="offer_subtext" name="offer_subtext" value="{{ slider.offer_subtext }}" placeholder="OFF" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="offer_footer_text">Sticker Footer Text</label>
+                                <input type="text" class="form-control" id="offer_footer_text" name="offer_footer_text" value="{{ slider.offer_footer_text }}" placeholder="+ EXTRA 10% CASHBACK" />
                             </div>
                         </div>
                     </div>
@@ -106,6 +132,11 @@
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" id="is_active" name="is_active" {% if slider.is_active %}checked{% endif %} />
                             <label class="form-check-label" for="is_active">Active</label>
+                        </div>
+
+                        <div class="form-check form-switch mt-3">
+                            <input class="form-check-input" type="checkbox" id="use_as_hero" name="use_as_hero" {% if slider.use_as_hero %}checked{% endif %} />
+                            <label class="form-check-label" for="use_as_hero">Show in desktop hero slider</label>
                         </div>
                     </div>
                 </div>

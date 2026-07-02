@@ -52,7 +52,7 @@ class SliderAdmin(admin.ModelAdmin):
     list_editable = ['is_active', 'order']
     fieldsets = [
         ('Basic', {'fields': ['title', 'subtitle', 'description', 'image', 'is_active', 'order']}),
-        ('Hero Banner', {'fields': ['eyebrow_text', 'title_italic_part', 'top_button_text', 'top_button_url', 'button2_text', 'button2_url', 'use_as_hero']}),
+        ('Hero Banner', {'fields': ['eyebrow_text', 'title_italic_part', 'benefit_1_text', 'benefit_2_text', 'benefit_3_text', 'top_button_text', 'top_button_url', 'button2_text', 'button2_url', 'offer_eyebrow', 'offer_main_text', 'offer_subtext', 'offer_footer_text', 'use_as_hero']}),
     ]
 
 @admin.register(CategoryIcon)

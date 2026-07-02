@@ -9867,6 +9867,10 @@ def _normalize_slider_url(url):
     return '/' + url
 
 
+def _clean_offer_footer_text(value):
+    return (value or '').replace('\r\n', '\n').replace('\r', '\n')
+
+
 @login_required(login_url='login')
 @staff_member_required(login_url='login')
 def admin_add_slider(request):
@@ -9880,10 +9884,18 @@ def admin_add_slider(request):
             top_button_url = _normalize_slider_url(request.POST.get('top_button_url', '#'))
             eyebrow_text = request.POST.get('eyebrow_text', '')
             title_italic_part = request.POST.get('title_italic_part', '')
+            benefit_1_text = request.POST.get('benefit_1_text', '')
+            benefit_2_text = request.POST.get('benefit_2_text', '')
+            benefit_3_text = request.POST.get('benefit_3_text', '')
             button2_text = request.POST.get('button2_text', '')
             button2_url = _normalize_slider_url(request.POST.get('button2_url', ''))
+            offer_eyebrow = request.POST.get('offer_eyebrow', '')
+            offer_main_text = request.POST.get('offer_main_text', '')
+            offer_subtext = request.POST.get('offer_subtext', '')
+            offer_footer_text = _clean_offer_footer_text(request.POST.get('offer_footer_text', ''))
             order = request.POST.get('order', 0)
             is_active = request.POST.get('is_active') == 'on'
+            use_as_hero = request.POST.get('use_as_hero') == 'on'
             image = request.FILES.get('image')
             
             slider = Slider.objects.create(
@@ -9894,8 +9906,16 @@ def admin_add_slider(request):
                 top_button_url=top_button_url,
                 eyebrow_text=eyebrow_text,
                 title_italic_part=title_italic_part,
+                benefit_1_text=benefit_1_text,
+                benefit_2_text=benefit_2_text,
+                benefit_3_text=benefit_3_text,
                 button2_text=button2_text,
                 button2_url=button2_url,
+                offer_eyebrow=offer_eyebrow,
+                offer_main_text=offer_main_text,
+                offer_subtext=offer_subtext,
+                offer_footer_text=offer_footer_text,
+                use_as_hero=use_as_hero,
                 order=int(order) if order else 0,
                 is_active=is_active,
                 image=image
@@ -9926,12 +9946,19 @@ def admin_edit_slider(request, slider_id):
             order = request.POST.get('order', 0)
             slider.order = int(order) if order else 0
             slider.is_active = request.POST.get('is_active') == 'on'
+            slider.use_as_hero = request.POST.get('use_as_hero') == 'on'
             
-            # Also save new hero fields
             slider.eyebrow_text = request.POST.get('eyebrow_text', '')
             slider.title_italic_part = request.POST.get('title_italic_part', '')
+            slider.benefit_1_text = request.POST.get('benefit_1_text', '')
+            slider.benefit_2_text = request.POST.get('benefit_2_text', '')
+            slider.benefit_3_text = request.POST.get('benefit_3_text', '')
             slider.button2_text = request.POST.get('button2_text', '')
             slider.button2_url = _normalize_slider_url(request.POST.get('button2_url', ''))
+            slider.offer_eyebrow = request.POST.get('offer_eyebrow', '')
+            slider.offer_main_text = request.POST.get('offer_main_text', '')
+            slider.offer_subtext = request.POST.get('offer_subtext', '')
+            slider.offer_footer_text = _clean_offer_footer_text(request.POST.get('offer_footer_text', ''))
             
             if 'image' in request.FILES:
                 slider.image = request.FILES['image']

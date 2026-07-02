@@ -23,8 +23,8 @@
                     <tr>
                         <th>Order</th>
                         <th>Image</th>
-                        <th>Title</th>
-                        <th>Button</th>
+                        <th>Headline</th>
+                        <th>Primary CTA</th>
                         <th>Status</th>
                         <th>Actions</th>
                     </tr>
@@ -42,8 +42,8 @@
                             {% endif %}
                         </td>
                         <td>
-                            <div class="fw-semibold">{{ slider.title }}</div>
-                            {% if slider.subtitle %}<small class="text-muted">{{ slider.subtitle|truncatewords:10 }}</small>{% endif %}
+                            <div class="fw-semibold">{{ slider.title }}{% if slider.title_italic_part %} / {{ slider.title_italic_part }}{% endif %}</div>
+                            {% if slider.eyebrow_text %}<small class="text-muted">{{ slider.eyebrow_text }}</small>{% endif %}
                         </td>
                         <td>
                             {% if slider.top_button_text %}
