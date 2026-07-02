@@ -467,13 +467,13 @@
     box-shadow: none;
   }
   .vm-copy-hero-story {
-    width: min(420px, 100%);
-    margin: 6px 0 26px;
-    text-align: center;
+    width: min(430px, 100%);
+    margin: 0 0 26px;
+    text-align: left;
   }
   .vm-copy-hero-story__eyebrow {
     display: block;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
     color: #4f3326;
     font-family: var(--vm-sans), system-ui, sans-serif;
     font-size: 11px;
@@ -484,9 +484,9 @@
   .vm-copy-hero-story__rule {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 12px;
-    margin-bottom: 14px;
+    margin-bottom: 18px;
     color: #b48a4f;
   }
   .vm-copy-hero-story__rule::before,
@@ -501,26 +501,64 @@
     margin: 0;
     color: #74143a;
     font-family: var(--vm-serif), Georgia, serif;
-    font-size: clamp(46px, 4.4vw, 74px);
-    line-height: 0.88;
+    font-size: clamp(56px, 5vw, 82px);
+    line-height: 0.86;
     letter-spacing: -0.04em;
   }
   .vm-copy-hero-story__title em {
     display: block;
-    margin-top: 4px;
+    margin-top: 6px;
     color: #b48a4f;
-    font-size: 0.88em;
+    font-size: 0.9em;
     font-style: italic;
     font-weight: 400;
-    line-height: 0.92;
+    line-height: 0.9;
   }
   .vm-copy-hero-story__copy {
-    margin: 16px auto 0;
-    width: min(270px, 100%);
+    margin: 18px 0 0;
+    width: min(290px, 100%);
     color: #68584b;
     font-family: var(--vm-serif), Georgia, serif;
-    font-size: 14px;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .vm-copy-hero-promo {
+    width: min(470px, 100%);
+    margin: 0 0 28px;
+  }
+  .vm-copy-hero-promo__text {
+    margin: 0 0 20px;
+    color: #68584b;
+    font-family: var(--vm-sans), system-ui, sans-serif;
+    font-size: 15px;
     line-height: 1.45;
+  }
+  .vm-copy-hero__slide--layout-1 .vm-copy-hero-content {
+    width: min(37vw, 540px);
+    align-items: flex-start;
+    padding: 76px 0 60px 6.8%;
+    text-align: left;
+  }
+  .vm-copy-hero__slide--layout-1 .vm-copy-hero-perks {
+    width: min(470px, 100%);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-bottom: 0;
+  }
+  .vm-copy-hero__slide--layout-1 .vm-copy-hero-perk {
+    gap: 8px;
+    justify-items: start;
+    text-align: left;
+    font-size: 10px;
+  }
+  .vm-copy-hero__slide--layout-1 .vm-copy-hero-perk span {
+    margin: 0;
+    font-size: inherit;
+    letter-spacing: 0.12em;
+    color: inherit;
+  }
+  .vm-copy-hero__slide--layout-1 .vm-copy-hero-actions {
+    justify-content: flex-start;
   }
   .vm-copy-hero-offer {
     position: absolute;
@@ -748,6 +786,18 @@
     .vm-copy-hero-story__rule::before,
     .vm-copy-hero-story__rule::after {
       width: 78px;
+    }
+    .vm-copy-hero__slide--layout-1 .vm-copy-hero-content {
+      width: min(44vw, 470px);
+      padding-left: 5.5%;
+    }
+    .vm-copy-hero-promo {
+      width: min(360px, 100%);
+    }
+    .vm-copy-hero__slide--layout-1 .vm-copy-hero-perks {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      width: min(340px, 100%);
+      gap: 12px 18px;
     }
   }
 </style>
@@ -1215,6 +1265,27 @@
                 {% endif %}
                 <div class="vm-copy-hero-overlay"></div>
                 <div class="vm-copy-hero-content">
+                    {% if forloop.counter == 1 %}
+                    <div class="vm-copy-hero-story" aria-label="Collection story">
+                        <span class="vm-copy-hero-story__eyebrow">New Collection</span>
+                        <div class="vm-copy-hero-story__rule"><i class="fal fa-sparkles"></i></div>
+                        <h2 class="vm-copy-hero-story__title">Grace In <em>Every Thread</em></h2>
+                        <div class="vm-copy-hero-story__rule"><i class="fal fa-sparkles"></i></div>
+                        <p class="vm-copy-hero-story__copy">Timeless styles crafted for every celebration</p>
+                    </div>
+                    <div class="vm-copy-hero-promo" aria-label="Collection benefits">
+                        <p class="vm-copy-hero-promo__text">Discount 30% On Products &amp; Free Shipping</p>
+                        <div class="vm-copy-hero-perks">
+                            <div class="vm-copy-hero-perk"><i class="fal fa-award"></i><span>Premium<br>Quality</span></div>
+                            <div class="vm-copy-hero-perk"><i class="fal fa-truck"></i><span>Fast & Reliable<br>Delivery</span></div>
+                            <div class="vm-copy-hero-perk"><i class="fal fa-box-open"></i><span>Easy<br>Returns</span></div>
+                        </div>
+                    </div>
+                    <div class="vm-copy-hero-actions">
+                        {% if slide.top_button_url %}<a href="{{ slide.top_button_url }}">{{ slide.top_button_text|default:"Explore Collection" }}</a>{% endif %}
+                        {% if slide.button2_url %}<a href="{{ slide.button2_url }}">{{ slide.button2_text|default:"Read Editorial" }}</a>{% endif %}
+                    </div>
+                    {% else %}
                     {% if slide.eyebrow_text %}<span>{{ slide.eyebrow_text }}</span>{% endif %}
                     <h1>{{ slide.title }}{% if slide.title_italic_part %} <em>{{ slide.title_italic_part }}</em>{% endif %}</h1>
                     <p class="vm-copy-hero-copy">{{ slide.description|default:"Crafted for every moment. Designed to make you unforgettable." }}</p>
@@ -1223,18 +1294,11 @@
                         <div class="vm-copy-hero-perk"><i class="fal fa-truck"></i><span>Fast & Reliable<br>Delivery</span></div>
                         <div class="vm-copy-hero-perk"><i class="fal fa-box-open"></i><span>Easy<br>Returns</span></div>
                     </div>
-                    {% if forloop.counter == 1 %}
-                    <div class="vm-copy-hero-story" aria-label="Collection story">
-                        <span class="vm-copy-hero-story__eyebrow">New Collection</span>
-                        <div class="vm-copy-hero-story__rule"><i class="fal fa-sparkles"></i></div>
-                        <h2 class="vm-copy-hero-story__title">Grace In <em>Every Thread</em></h2>
-                        <p class="vm-copy-hero-story__copy">Timeless styles crafted for every celebration</p>
-                    </div>
-                    {% endif %}
                     <div class="vm-copy-hero-actions">
                         {% if slide.top_button_url %}<a href="{{ slide.top_button_url }}">{{ slide.top_button_text|default:"Explore Collection" }}</a>{% endif %}
                         {% if slide.button2_url %}<a href="{{ slide.button2_url }}">{{ slide.button2_text|default:"Read Editorial" }}</a>{% endif %}
                     </div>
+                    {% endif %}
                 </div>
                 <div class="vm-copy-hero-offer" aria-label="Up to 50 percent off plus extra 10 percent cashback">
                     <small>Upto</small>
