@@ -1317,8 +1317,7 @@
                         </div>
                     </div>
                     <div class="vm-copy-hero-actions">
-                        {% if slide.top_button_url %}<a href="{{ slide.top_button_url }}">{{ slide.top_button_text|default:"Explore Collection" }}</a>{% endif %}
-                        {% if slide.button2_url %}<a href="{{ slide.button2_url }}">{{ slide.button2_text|default:"Read Editorial" }}</a>{% endif %}
+                        <a href="{% if slide.top_button_url %}{{ slide.top_button_url }}{% else %}{% url 'shop' %}{% endif %}">Explore Collection</a>
                     </div>
                     {% else %}
                     {% if slide.eyebrow_text %}<span>{{ slide.eyebrow_text }}</span>{% endif %}
