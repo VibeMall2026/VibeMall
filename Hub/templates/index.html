@@ -650,10 +650,139 @@
     text-transform: uppercase;
     line-height: 1.3;
   }
+  .vm-copy-featured--editorial {
+    padding: 72px 0 26px;
+    background:
+      radial-gradient(circle at 12% 22%, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0) 30%),
+      linear-gradient(180deg, #f7f2ea 0%, #faf7f2 100%);
+  }
+  .vm-copy-feature-grid--editorial {
+    display: grid;
+    grid-template-columns: minmax(280px, 0.86fr) minmax(420px, 1.18fr);
+    align-items: center;
+    gap: 56px;
+  }
+  .vm-copy-feature-copy--editorial {
+    max-width: 470px;
+    padding: 18px 0 18px 12px;
+  }
+  .vm-copy-feature-copy--editorial small {
+    display: inline-block;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    color: #57534d;
+    font-family: var(--vm-sans), system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    position: relative;
+  }
+  .vm-copy-feature-copy--editorial small::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 66px;
+    height: 1.5px;
+    background: rgba(167, 129, 80, 0.82);
+  }
+  .vm-copy-feature-copy--editorial h2 {
+    margin: 0 0 24px;
+    color: #171818;
+    font-family: 'Cormorant Garamond', var(--vm-serif), Georgia, serif;
+    font-size: clamp(52px, 4.7vw, 82px);
+    line-height: 0.92;
+    letter-spacing: -0.045em;
+    font-weight: 600;
+  }
+  .vm-copy-feature-copy--editorial p {
+    margin: 0 0 28px;
+    color: #5c5c58;
+    font-family: var(--vm-sans), system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    max-width: 390px;
+  }
+  .vm-copy-feature-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 18px;
+    color: #7b173f;
+    font-family: 'Cormorant Garamond', var(--vm-serif), Georgia, serif;
+    font-size: 18px;
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(123, 23, 63, 0.5);
+    padding-bottom: 10px;
+  }
+  .vm-copy-feature-link::after {
+    content: "\f061";
+    font-family: "Font Awesome 5 Pro";
+    font-weight: 300;
+    font-size: 16px;
+  }
+  .vm-copy-feature-media-wrap--editorial {
+    position: relative;
+    border-radius: 18px;
+    overflow: hidden;
+    background: #cab08e;
+    box-shadow: 0 22px 44px rgba(67, 53, 34, 0.14);
+    min-height: 600px;
+  }
+  .vm-copy-feature-media {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 600px;
+    object-fit: cover;
+    object-position: center;
+    background: #cab08e;
+  }
+  .vm-copy-feature-play {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .vm-copy-feature-play i {
+    width: 108px;
+    height: 108px;
+    border-radius: 50%;
+    border: 4px solid rgba(255, 255, 255, 0.94);
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    padding-left: 8px;
+    backdrop-filter: blur(2px);
+  }
   .vm-copy-hero__slide--layout-2 {
     background:
       radial-gradient(circle at 84% 14%, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 22%),
       linear-gradient(90deg, #f6ecdf 0%, #f3e6d6 100%);
+  }
+  @media (max-width: 1100px) {
+    .vm-copy-feature-grid--editorial {
+      grid-template-columns: 1fr;
+      gap: 30px;
+    }
+    .vm-copy-feature-copy--editorial {
+      max-width: none;
+      padding: 0;
+      order: 1;
+    }
+    .vm-copy-feature-media-wrap--editorial {
+      order: 2;
+      min-height: 500px;
+    }
+    .vm-copy-feature-media {
+      min-height: 500px;
+    }
   }
   .vm-copy-hero__slide--layout-2 img {
     inset: 0 52% 0 0;
@@ -1393,9 +1522,15 @@
 
     <section class="vm-copy-section vm-copy-featured vm-copy-featured--editorial">
         <div class="vm-copy-container vm-copy-feature-grid vm-copy-feature-grid--editorial">
+            <div class="vm-copy-feature-copy vm-copy-feature-copy--editorial">
+                <small>{{ site_settings.featured_story_eyebrow|default:'Feature Media' }}</small>
+                <h2>{{ site_settings.featured_story_title|default:'The Art of Movement' }}</h2>
+                <p>{{ site_settings.featured_story_description|default:'Immerse yourself in our latest lookbook film, where fashion meets cinema. Explore the textures and flow of the new collection in motion.'|linebreaksbr }}</p>
+                <a class="vm-copy-feature-link" href="{{ site_settings.featured_story_cta_url|default:site_settings.instagram_url|default:'#' }}">{{ site_settings.featured_story_cta_text|default:'Watch the full video' }}</a>
+            </div>
             <div class="vm-copy-feature-media-wrap vm-copy-feature-media-wrap--editorial">
                 {% if site_settings.featured_story_video %}
-                <video class="vm-copy-feature-media" autoplay muted loop playsinline preload="metadata"{% if site_settings.featured_story_image %} poster="{{ site_settings.featured_story_image.url }}"{% endif %}>
+                <video class="vm-copy-feature-media" controls preload="metadata"{% if site_settings.featured_story_image %} poster="{{ site_settings.featured_story_image.url }}"{% endif %}>
                     <source src="{{ site_settings.featured_story_video.url }}" type="video/mp4">
                 </video>
                 {% elif site_settings.featured_story_image %}
@@ -1403,15 +1538,9 @@
                 {% else %}
                 <img class="vm-copy-feature-media" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSKjRWc8A_jccmkjuT5rARs5Dkb8FRST48xFMtX545bJsK_AdpRLCzFJfof42wreLgDVfEkckEk21YWQfhkZNSL3vwlcvrEK7c0Y_o1cP7NXJe9anYtcRgdUKbJqxuZrIASZzHVeu22m6YifhNyUEGIziBY3xP87vYaPZofatsGq6PYMypIpcITUMi-zcpcGc66L-lozFx5xKV07IZeBRYAQ4N-iZxn6wzQLROCuVwI7NgUWlLv1TXzseb45Ga62mFM3ykDvyUhRg" alt="The Art of Movement" referrerpolicy="no-referrer" loading="lazy" decoding="async">
                 {% endif %}
-                <div class="vm-copy-feature-play" aria-hidden="true">
+                <div class="vm-copy-feature-play" aria-hidden="true"{% if site_settings.featured_story_video %} style="display:none"{% endif %}>
                     <i class="fas fa-play"></i>
                 </div>
-            </div>
-            <div class="vm-copy-feature-copy vm-copy-feature-copy--editorial">
-                <small>{{ site_settings.featured_story_eyebrow|default:'Editorial Video' }}</small>
-                <h2>{{ site_settings.featured_story_title|default:'The Art of Movement' }}</h2>
-                <p>{{ site_settings.featured_story_description|default:'Immerse yourself in our latest lookbook film, where fashion meets cinema. Explore the textures and flow of the new collection in motion.' }}</p>
-                <a class="vm-copy-feature-link" href="{{ site_settings.featured_story_cta_url|default:site_settings.instagram_url|default:'#' }}">{{ site_settings.featured_story_cta_text|default:'Watch the full series' }}</a>
             </div>
         </div>
     </section>
