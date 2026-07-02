@@ -325,6 +325,12 @@
     object-position: center right;
     display: block;
   }
+  .vm-copy-hero__slide--layout-1 img {
+    inset: 0;
+    width: 100%;
+    object-fit: cover;
+    object-position: center 24%;
+  }
   .vm-copy-hero__slide::before {
     content: "";
     position: absolute;
@@ -564,6 +570,20 @@
   }
   .vm-copy-hero__slide--layout-1 .vm-copy-hero-actions {
     justify-content: flex-start;
+  }
+  .vm-copy-hero__slide--layout-1 .vm-copy-hero-actions a {
+    min-height: 46px;
+    padding: 0 30px;
+    border-radius: 0;
+    font-family: 'Cormorant Garamond', var(--vm-serif), Georgia, serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    box-shadow: none;
+  }
+  .vm-copy-hero__slide--layout-1 .vm-copy-hero-actions a::after {
+    font-weight: 300;
   }
   .vm-copy-hero-offer {
     position: absolute;
