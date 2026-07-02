@@ -375,7 +375,7 @@
     letter-spacing: 0.34em;
   }
   .vm-copy-hero__slide--layout-1 .vm-copy-hero-content span::before {
-    content: "✦";
+    content: "\2726";
     position: absolute;
     top: -2px;
     left: 50%;
@@ -1167,6 +1167,15 @@
   .vm-copy-hero__nav {
     display: none !important;
   }
+  .vm-page-home-editorial [aria-label="Support"],
+  .vm-page-home-editorial .support-button,
+  .vm-page-home-editorial .support-btn,
+  .vm-page-home-editorial #supportButton,
+  .vm-page-home-editorial #support-button,
+  .vm-page-home-editorial iframe[title*="support" i],
+  .vm-page-home-editorial iframe[title*="chat" i] {
+    display: none !important;
+  }
   .vm-copy-hero__dots {
     position: absolute;
     bottom: 32px;
@@ -1782,9 +1791,23 @@
             <div class="vm-copy-hero__slide vm-copy-hero__slide--layout-{{ forloop.counter }}" data-vm-hero-slide>
                 <div class="vm-copy-hero__shell">
                     <div class="vm-copy-hero-content">
+                        {% if forloop.counter == 1 %}
+                        <span>New Collection</span>
+                        <h1>Timeless <em>Elegance</em></h1>
+                        <p class="vm-copy-hero-copy">Crafted for every moment. Designed to make you unforgettable.</p>
+                        {% elif forloop.counter == 2 %}
+                        <span>New Arrivals</span>
+                        <h1>Effortless Grace <em>Endless Charm</em></h1>
+                        <p class="vm-copy-hero-copy">Discover timeless outfits that reflect elegance in every detail.</p>
+                        {% elif forloop.counter == 3 %}
+                        <span>Festive Ready</span>
+                        <h1>Celebrate <em>Every Moment</em></h1>
+                        <p class="vm-copy-hero-copy">Timeless outfits for every you. Shine in every celebration.</p>
+                        {% else %}
                         {% if slide.eyebrow_text %}<span>{{ slide.eyebrow_text }}</span>{% endif %}
                         <h1>{{ slide.title }}{% if slide.title_italic_part %} <em>{{ slide.title_italic_part }}</em>{% endif %}</h1>
                         <p class="vm-copy-hero-copy">{{ slide.description|default:"Crafted for every moment. Designed to make you unforgettable." }}</p>
+                        {% endif %}
                         <div class="vm-copy-hero-perks" aria-label="Collection benefits">
                             <div class="vm-copy-hero-perk"><i class="fal fa-award"></i><span>Premium<br>Quality</span></div>
                             <div class="vm-copy-hero-perk"><i class="fal fa-truck"></i><span>Fast & Reliable<br>Delivery</span></div>
@@ -1792,8 +1815,16 @@
                             {% if forloop.counter == 2 or forloop.counter == 3 %}<div class="vm-copy-hero-perk"><i class="fal fa-shield-check"></i><span>Secure<br>Payments</span></div>{% endif %}
                         </div>
                         <div class="vm-copy-hero-actions">
+                            {% if forloop.counter == 1 %}
+                            <a href="{% url 'shop' %}">Explore Collection</a>
+                            {% elif forloop.counter == 2 %}
+                            <a href="{% url 'shop' %}?sort=new">Explore New Arrivals</a>
+                            {% elif forloop.counter == 3 %}
+                            <a href="{% url 'shop' %}?category=WomenWear">Shop Festive Collection</a>
+                            {% else %}
                             {% if slide.top_button_url %}<a href="{{ slide.top_button_url }}">{{ slide.top_button_text|default:"Explore Collection" }}</a>{% endif %}
                             {% if slide.button2_url %}<a href="{{ slide.button2_url }}">{{ slide.button2_text|default:"Read Editorial" }}</a>{% endif %}
+                            {% endif %}
                         </div>
                     </div>
                     <div class="vm-copy-hero-media">
