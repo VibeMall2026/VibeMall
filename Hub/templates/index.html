@@ -13,58 +13,178 @@
 <link rel="stylesheet" href="{% static 'assets/css/home-tablet-alt.css' %}?v=20260524-02">
 {% else %}
 <style>
-  .vm-copy-section-head h2 {
-    line-height: 0.96;
-    color: #1b1c19;
+  .vm-copy-category-showcase {
+    padding: 54px 0 28px;
+    background:
+      radial-gradient(circle at 18% 10%, rgba(255, 255, 255, 0.88), rgba(255,255,255,0) 28%),
+      linear-gradient(180deg, #fbf7f2 0%, #f8f5ef 100%);
   }
-
+  .vm-copy-category-showcase__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 36px;
+    margin-bottom: 28px;
+  }
+  .vm-copy-category-showcase__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+    color: #8a1f46;
+    font-family: var(--vm-sans), system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+  }
+  .vm-copy-category-showcase__eyebrow::after {
+    content: "";
+    width: 124px;
+    max-width: 20vw;
+    height: 1px;
+    background: rgba(180, 138, 79, 0.6);
+  }
+  .vm-copy-category-showcase__title {
+    margin: 0 0 12px;
+    color: #141414;
+    font-family: 'Cormorant Garamond', var(--vm-serif), Georgia, serif;
+    font-size: clamp(52px, 5vw, 78px);
+    line-height: 0.95;
+    letter-spacing: -0.05em;
+    font-weight: 600;
+  }
+  .vm-copy-category-showcase__subtitle {
+    margin: 0;
+    color: #5f5b55;
+    font-family: var(--vm-sans), system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    max-width: 460px;
+  }
+  .vm-copy-category-showcase__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 18px;
+    margin-top: 86px;
+    color: #8a1f46;
+    text-decoration: none;
+    font-family: var(--vm-sans), system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border-bottom: 1px solid rgba(138, 31, 70, 0.42);
+    padding-bottom: 14px;
+    white-space: nowrap;
+  }
+  .vm-copy-category-showcase__link::after {
+    content: "\f061";
+    font-family: "Font Awesome 5 Pro";
+    font-weight: 300;
+  }
   .vm-copy-dept-grid {
     display: grid !important;
     grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
-    gap: 14px !important;
+    gap: 20px !important;
   }
-
   .vm-copy-dept-grid > a {
     display: block !important;
     color: inherit !important;
     text-decoration: none !important;
-    transition: transform 0.3s ease;
+    transition: transform 0.28s ease, box-shadow 0.28s ease;
   }
-
   .vm-copy-dept-grid > a:hover {
     transform: translateY(-6px);
   }
-
-  .vm-copy-dept-grid article {
-    margin: 0;
+  .vm-copy-dept-card {
+    position: relative;
+    height: 100%;
+    border-radius: 18px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 12px 26px rgba(60, 45, 30, 0.09);
+    border: 1px solid rgba(170, 145, 112, 0.14);
   }
-
-  .vm-copy-dept-grid article img {
+  .vm-copy-dept-card__media {
+    position: relative;
+    aspect-ratio: 4 / 6.2;
+    background: #f1e9dd;
+    overflow: hidden;
+  }
+  .vm-copy-dept-card__media img {
     width: 100% !important;
-    aspect-ratio: 3 / 4;
+    height: 100% !important;
     object-fit: cover !important;
     display: block !important;
-    filter: grayscale(1);
-    transition: filter 0.45s ease, transform 0.45s ease;
+    transition: transform 0.45s ease;
   }
-
-  .vm-copy-dept-grid > a:hover article img {
-    filter: grayscale(0);
-    transform: scale(1.03);
+  .vm-copy-dept-grid > a:hover .vm-copy-dept-card__media img {
+    transform: scale(1.04);
   }
-
-  .vm-copy-dept-grid article span {
-    display: block !important;
+  .vm-copy-dept-card__badge {
+    position: absolute;
+    left: 50%;
+    bottom: -34px;
+    transform: translateX(-50%);
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    background: #8a1f46;
+    border: 4px solid #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 12px 24px rgba(138, 31, 70, 0.22);
+    z-index: 2;
+  }
+  .vm-copy-dept-card__badge img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+  }
+  .vm-copy-dept-card__badge i {
+    color: #f2d385;
+    font-size: 25px;
+  }
+  .vm-copy-dept-card__body {
+    padding: 46px 18px 20px;
     text-align: center;
-    margin-top: 8px;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: #707070;
   }
-
-  .vm-copy-dept-grid > a:hover article span {
-    color: #1b1c19;
+  .vm-copy-dept-card__title {
+    margin: 0 0 10px;
+    color: #161616;
+    font-family: 'Cormorant Garamond', var(--vm-serif), Georgia, serif;
+    font-size: 22px;
+    line-height: 1.05;
+    font-weight: 700;
+  }
+  .vm-copy-dept-card__copy {
+    margin: 0 auto 18px;
+    color: #63605b;
+    font-family: var(--vm-sans), system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.65;
+    max-width: 170px;
+    min-height: 64px;
+  }
+  .vm-copy-dept-card__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: #8a1f46;
+    font-family: var(--vm-sans), system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(180, 138, 79, 0.46);
+    padding-bottom: 10px;
+  }
+  .vm-copy-dept-card__cta::after {
+    content: "\f061";
+    font-family: "Font Awesome 5 Pro";
+    font-weight: 300;
   }
 
   .vm-copy-product-grid article > a {
@@ -1000,8 +1120,8 @@
         <section class="vm-home-mobile-section">
             <div class="vm-home-mobile-section__head">
                 <div>
-                    <span>Discover</span>
-                    <h3>The Departments</h3>
+                    <span>Shop by Category</span>
+                    <h3>Explore Our Collections</h3>
                 </div>
             </div>
             <div class="vm-home-mobile-categories">
@@ -1489,29 +1609,45 @@
     {% endif %}
     {% endwith %}
 
-    <section class="vm-copy-section vm-copy-departments">
+    <section class="vm-copy-section vm-copy-category-showcase">
         <div class="vm-copy-container">
-            <div class="vm-copy-section-head">
+            <div class="vm-copy-category-showcase__head">
                 <div>
-                    <h2>The Departments</h2>
-                    <p>Curated selections from our global atelier</p>
+                    <span class="vm-copy-category-showcase__eyebrow">Shop by Category</span>
+                    <h2 class="vm-copy-category-showcase__title">Explore Our Collections</h2>
+                    <p class="vm-copy-category-showcase__subtitle">Curated styles for every occasion, crafted with elegance.</p>
                 </div>
-                <a href="{% url 'shop' %}">View All</a>
+                <a href="{% url 'shop' %}" class="vm-copy-category-showcase__link">View All Categories</a>
             </div>
             <div class="vm-copy-dept-grid">
                 {% for category in categories|slice:":6" %}
                 <a href="{% url 'shop' %}?category={{ category.category_key|urlencode }}">
-                    <article>
-                        {% if category.card_image %}
-                            <img src="{{ category.card_image.url }}" alt="{{ category.name }}" loading="lazy" decoding="async">
-                        {% elif category.icon_image %}
-                            <img src="{{ category.icon_image.url }}" alt="{{ category.name }}" loading="lazy" decoding="async">
-                        {% elif category_fallback_images|get_item:category.category_key %}
-                            <img src="{{ category_fallback_images|get_item:category.category_key }}" alt="{{ category.name }}" loading="lazy" decoding="async">
-                        {% else %}
-                            <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ category.name }}" loading="lazy" decoding="async">
-                        {% endif %}
-                        <span>{{ category.name }}</span>
+                    <article class="vm-copy-dept-card">
+                        <div class="vm-copy-dept-card__media">
+                            {% if category.card_image %}
+                                <img src="{{ category.card_image.url }}" alt="{{ category.name }}" loading="lazy" decoding="async">
+                            {% elif category_fallback_images|get_item:category.category_key %}
+                                <img src="{{ category_fallback_images|get_item:category.category_key }}" alt="{{ category.name }}" loading="lazy" decoding="async">
+                            {% elif category.icon_image %}
+                                <img src="{{ category.icon_image.url }}" alt="{{ category.name }}" loading="lazy" decoding="async">
+                            {% else %}
+                                <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ category.name }}" loading="lazy" decoding="async">
+                            {% endif %}
+                            <div class="vm-copy-dept-card__badge">
+                                {% if category.icon_image %}
+                                    <img src="{{ category.icon_image.url }}" alt="{{ category.name }}" loading="lazy" decoding="async">
+                                {% elif category.icon_class %}
+                                    <i class="{{ category.icon_class }}"></i>
+                                {% else %}
+                                    <i class="far fa-star"></i>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="vm-copy-dept-card__body">
+                            <h3 class="vm-copy-dept-card__title">{{ category.name }}</h3>
+                            <p class="vm-copy-dept-card__copy">{{ category.short_description|default:"Curated styles for every occasion, crafted with elegance." }}</p>
+                            <span class="vm-copy-dept-card__cta">Shop Now</span>
+                        </div>
                     </article>
                 </a>
                 {% endfor %}

@@ -220,8 +220,14 @@ from django.utils.text import slugify
 from django.utils import timezone
 
 class CategoryIcon(models.Model):
-    """Category icons for Shop By Department section"""
+    """Category assets for homepage Shop By Category section"""
     name = models.CharField(max_length=100, help_text="Category name (e.g., Mobiles, Food & Health)")
+    short_description = models.CharField(
+        max_length=140,
+        blank=True,
+        default='',
+        help_text="Short homepage card description (e.g., 'Curated styles for every occasion')"
+    )
     icon_class = models.CharField(
         max_length=100,
         blank=True,
@@ -238,7 +244,7 @@ class CategoryIcon(models.Model):
         upload_to='category_cards/',
         blank=True,
         null=True,
-        help_text="Homepage All Categories card image (recommended: 800x1000 or 4:5 ratio)"
+        help_text="Homepage Shop By Category card image (recommended: 800x1000 or 4:5 ratio)"
     )
     category_key = models.CharField(
         max_length=50,

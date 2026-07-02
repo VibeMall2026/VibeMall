@@ -1,7 +1,7 @@
 {% extends 'admin_panel/base_admin.html' %}
 {% load static %}
 
-{% block title %}Manage Categories - FashioHub Admin{% endblock %}
+{% block title %}Manage Homepage Categories - FashioHub Admin{% endblock %}
 
 {% block extra_css %}
 <!-- FontAwesome for category icons -->
@@ -11,13 +11,13 @@
 {% block content %}
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Category Icons Management</h5>
+        <h5 class="mb-0">Homepage Category Cards Management</h5>
         <div class="d-flex gap-2">
             <a href="{% url 'admin_subcategories' %}" class="btn btn-outline-primary">
                 <i class='bx bx-category'></i> Sub-Category Icon Management
             </a>
             <a href="{% url 'admin_add_category' %}" class="btn btn-primary">
-                <i class='bx bx-plus'></i> Add New Category
+                <i class='bx bx-plus'></i> Add New Homepage Category
             </a>
         </div>
     </div>
@@ -40,6 +40,7 @@
                         <th>Card Preview</th>
                         <th>Icon Preview</th>
                         <th>Name</th>
+                        <th>Description</th>
                         <th>Category Key</th>
                         <th>Icon Class</th>
                         <th>Status</th>
@@ -69,6 +70,7 @@
                             </div>
                         </td>
                         <td><strong>{{ category.name }}</strong></td>
+                        <td>{{ category.short_description|default:"—"|truncatechars:42 }}</td>
                         <td><code>{{ category.category_key }}</code></td>
                         <td><code>{{ category.icon_class }}</code></td>
                         <td>
@@ -96,9 +98,9 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="text-center py-4">
-                            <p class="text-muted">No categories found.</p>
-                            <a href="{% url 'admin_add_category' %}" class="btn btn-sm btn-primary">Add First Category</a>
+                        <td colspan="9" class="text-center py-4">
+                            <p class="text-muted">No homepage categories found.</p>
+                            <a href="{% url 'admin_add_category' %}" class="btn btn-sm btn-primary">Add First Homepage Category</a>
                         </td>
                     </tr>
                     {% endfor %}
@@ -111,7 +113,7 @@
 <!-- Category Preview Section -->
 <div class="card mt-4">
     <div class="card-header">
-        <h5 class="mb-0">Live Preview (All Categories Photo Cards)</h5>
+        <h5 class="mb-0">Live Preview (Shop By Category Cards)</h5>
     </div>
     <div class="card-body">
         <div class="row g-3">
@@ -130,7 +132,8 @@
                             <span class="text-muted small">No image</span>
                         {% endif %}
                     </div>
-                    <h6 style="margin: 0; padding: 10px 8px; color: #333; font-weight: 600; font-size: 13px; text-align: center;">{{ category.name }}</h6>
+                    <h6 style="margin: 0; padding: 10px 8px 4px; color: #333; font-weight: 600; font-size: 13px; text-align: center;">{{ category.name }}</h6>
+                    <p style="margin: 0; padding: 0 8px 10px; color: #6b7280; font-size: 11px; text-align: center;">{{ category.short_description|default:"Curated styles for every occasion."|truncatechars:42 }}</p>
                 </div>
             </div>
             {% endif %}

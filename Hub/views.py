@@ -2883,6 +2883,7 @@ def admin_add_category(request):
     if request.method == 'POST':
         try:
             name = request.POST.get('name')
+            short_description = request.POST.get('short_description', '')
             category_key = request.POST.get('category_key')
             icon_class = request.POST.get('icon_class', '')
             icon_color = request.POST.get('icon_color', '#0288d1')
@@ -2900,6 +2901,7 @@ def admin_add_category(request):
             
             category = CategoryIcon.objects.create(
                 name=name,
+                short_description=short_description,
                 category_key=category_key,
                 icon_class=icon_class,
                 icon_color=icon_color,
@@ -2943,6 +2945,7 @@ def admin_edit_category(request, category_id):
     if request.method == 'POST':
         try:
             category.name = request.POST.get('name')
+            category.short_description = request.POST.get('short_description', '')
             category.category_key = request.POST.get('category_key')
             category.icon_class = request.POST.get('icon_class', '')
             category.icon_color = request.POST.get('icon_color', '#0288d1')

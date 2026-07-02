@@ -64,8 +64,8 @@ class CategoryIconAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('📋 BASIC INFO', {
-            'fields': ('name', 'category_key'),
-            'description': 'Category name and key (must match Product category choices)'
+            'fields': ('name', 'short_description', 'category_key'),
+            'description': 'Homepage category card heading, description, and matching product key'
         }),
         ('🎨 ICON & STYLING', {
             'fields': ('icon_class', 'icon_color', 'background_gradient'),

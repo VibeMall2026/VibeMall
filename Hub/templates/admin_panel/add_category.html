@@ -1,7 +1,7 @@
 {% extends 'admin_panel/base_admin.html' %}
 {% load static %}
 
-{% block title %}Add Category - FashioHub Admin{% endblock %}
+{% block title %}Add Homepage Category - FashioHub Admin{% endblock %}
 
 {% block extra_css %}
 <!-- FontAwesome for category icons -->
@@ -13,9 +13,9 @@
     <div class="col-md-8">
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Add New Category Icon</h5>
+                <h5 class="mb-0">Add New Homepage Category</h5>
                 <a href="{% url 'admin_categories' %}" class="btn btn-sm btn-secondary">
-                    <i class='bx bx-arrow-back'></i> Back to Categories
+                    <i class='bx bx-arrow-back'></i> Back to Homepage Categories
                 </a>
             </div>
             <div class="card-body">
@@ -34,7 +34,13 @@
                     <div class="mb-3">
                         <label class="form-label" for="name">Category Name *</label>
                         <input type="text" class="form-control" id="name" name="name" placeholder="e.g., Mobiles" required>
-                        <div class="form-text">Display name shown to users</div>
+                        <div class="form-text">Main heading shown on the homepage card</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="short_description">Card Description</label>
+                        <textarea class="form-control" id="short_description" name="short_description" rows="2" placeholder="e.g., Curated styles for every occasion, crafted with elegance."></textarea>
+                        <div class="form-text">Short text shown under the category name on the homepage card</div>
                     </div>
                     
                     <div class="mb-3">
@@ -73,7 +79,7 @@
                     <div class="mb-3">
                         <label class="form-label" for="card_image">Category Card Image (Homepage)</label>
                         <input type="file" class="form-control" id="card_image" name="card_image" accept="image/*">
-                        <div class="form-text">Used in homepage All Categories photo cards. Recommended size: 800x1000 (4:5).</div>
+                        <div class="form-text">Used in homepage Shop By Category cards. Recommended size: 800x1000 (4:5).</div>
                     </div>
                     
                     <div class="mb-3">
@@ -92,7 +98,7 @@
                     </div>
                     
                     <button type="submit" class="btn btn-primary">
-                        <i class='bx bx-save'></i> Add Category
+                        <i class='bx bx-save'></i> Add Homepage Category
                     </button>
                 </form>
             </div>
@@ -110,6 +116,7 @@
                         <i id="preview-icon-element" class="fas fa-mobile-alt" style="font-size: 48px; color: #0288d1;"></i>
                     </div>
                     <h6 id="preview-name" style="color: #333; font-weight: 600; font-size: 12px;">Mobiles</h6>
+                    <p id="preview-description" class="small text-muted mb-0">Curated styles for every occasion.</p>
                 </div>
             </div>
         </div>
@@ -134,12 +141,14 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Live preview update
     const nameInput = document.getElementById('name');
+    const shortDescriptionInput = document.getElementById('short_description');
     const iconClassInput = document.getElementById('icon_class');
     const iconColorInput = document.getElementById('icon_color');
     const bgGradientInput = document.getElementById('background_gradient');
     const iconSizeInput = document.getElementById('icon_size');
     
     const previewName = document.getElementById('preview-name');
+    const previewDescription = document.getElementById('preview-description');
     const previewIcon = document.getElementById('preview-icon');
     const previewIconElement = document.getElementById('preview-icon-element');
 
@@ -167,6 +176,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (nameInput && previewName) {
         nameInput.addEventListener('input', function() {
             previewName.textContent = this.value || 'Category Name';
+        });
+    }
+
+    if (shortDescriptionInput && previewDescription) {
+        shortDescriptionInput.addEventListener('input', function() {
+            previewDescription.textContent = this.value || 'Curated styles for every occasion.';
         });
     }
     
