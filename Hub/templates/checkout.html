@@ -1929,7 +1929,7 @@ function showCouponMessage(message, type) {
     if (!msgDiv) {
         return;
     }
-    msgDiv.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show"><small>${message}</small><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
+    msgDiv.innerHTML = `<div class="alert vm-inline-alert alert-${type} alert-dismissible fade show"><small>${message}</small><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
     setTimeout(() => msgDiv.innerHTML = '', 5000);
 }
 
@@ -2044,6 +2044,16 @@ function showAvailableCouponsPopup() {
 }
 
 window.VMCheckoutShowAvailableCoupons = showAvailableCouponsPopup;
+window.VMCheckoutApplyCouponCode = function () {
+    const couponInput = document.getElementById('couponCode');
+    const code = ((couponInput && couponInput.value) || '').trim().toUpperCase();
+    if (!code) {
+        showCouponMessage('Please enter a coupon code', 'warning');
+        return;
+    }
+    applyCouponCode(code);
+};
+window.VMCheckoutRemoveCoupon = removeCoupon;
 
 function renderAvailableCouponsPanel(coupons) {
     const couponsPanel = document.getElementById('availableCouponsPanel');
@@ -2134,6 +2144,22 @@ function getCookie(name) {
     }
     return cookieValue;
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+    const couponInput = document.getElementById('couponCode');
+    if (!couponInput) {
+        return;
+    }
+
+    couponInput.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            if (window.VMCheckoutApplyCouponCode) {
+                window.VMCheckoutApplyCouponCode();
+            }
+        }
+    });
+});
 </script>
 
 {% endblock content %}

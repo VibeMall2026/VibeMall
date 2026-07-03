@@ -50,6 +50,7 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 import logging
 import random
+import threading
 
 logger = logging.getLogger(__name__)
 NEWSLETTER_CONFIRMATION_SALT = 'newsletter-subscribe-confirmation'
@@ -969,6 +970,50 @@ Hello {thread.display_name()},
     email.send(fail_silently=True)
 
 
+def _run_async(target, *args, **kwargs):
+    try:
+        threading.Thread(target=target, args=args, kwargs=kwargs, daemon=True).start()
+    except Exception:
+        logger.exception("Failed to start async background task")
+
+
+def _get_chat_auto_reply(message_text):
+    text = (message_text or '').strip().lower()
+    if not text:
+        return ''
+
+    reply_map = (
+        (('hello', 'hi', 'hey', 'hii'), "Hi! Thanks for contacting VibeMall support. Please share your concern and we’ll help you shortly."),
+        (('return', 'refund', 'exchange'), "Our team can help with returns, refunds, and exchanges. Please share your order number and product issue for faster support."),
+        (('size', 'sizing', 'size guide', 'fit'), "For size help, please check the size guide on the product page. If you want, send us the product name and your usual size."),
+        (('shipping', 'delivery', 'dispatch', 'courier'), "Shipping timelines depend on your location and product availability. Share the product or order details and we’ll guide you."),
+        (('cod', 'cash on delivery', 'payment'), "COD and payment options can vary by product and pincode. Please share your pincode or order details for exact help."),
+    )
+
+    for keywords, reply in reply_map:
+        if any(keyword in text for keyword in keywords):
+            return reply
+
+    return "Thanks for your message. Our support team has received it and will get back to you soon."
+
+
+def _serialize_chat_message(message):
+    return {
+        'sender': message.sender_type,
+        'message': message.message,
+        'attachments': [
+            {
+                'name': att.original_name,
+                'url': att.file.url,
+                'content_type': att.content_type,
+                'is_image': (att.content_type or '').startswith('image/')
+            }
+            for att in message.attachments.all()
+        ],
+        'created_at': message.created_at.strftime('%d %b %H:%M')
+    }
+
+
 def _validate_chat_attachments(files):
     allowed_ext = {'.jpg', '.jpeg', '.png', '.webp', '.mp4', '.pdf', '.doc', '.docx'}
     allowed_types = {
@@ -995,24 +1040,8 @@ def chat_thread(request):
     thread_id = request.GET.get('thread_id')
     thread = _get_thread_for_request(request, thread_id)
 
-    messages_qs = thread.messages.prefetch_related('attachments').order_by('created_at')[:50]
-    messages_data = [
-        {
-            'sender': msg.sender_type,
-            'message': msg.message,
-            'attachments': [
-                {
-                    'name': att.original_name,
-                    'url': att.file.url,
-                    'content_type': att.content_type,
-                    'is_image': (att.content_type or '').startswith('image/')
-                }
-                for att in msg.attachments.all()
-            ],
-            'created_at': msg.created_at.strftime('%d %b %H:%M')
-        }
-        for msg in messages_qs
-    ]
+    messages_qs = thread.messages.prefetch_related('attachments').order_by('created_at')[:30]
+    messages_data = [_serialize_chat_message(msg) for msg in messages_qs]
 
     requires_profile = False
     if not request.user.is_authenticated:
@@ -1067,28 +1096,28 @@ def chat_message(request):
             content_type=f.content_type or '',
             size_bytes=f.size
         )
+    auto_reply = None
+    auto_reply_text = _get_chat_auto_reply(message_text)
+    if auto_reply_text:
+        auto_reply = ChatMessage.objects.create(
+            thread=thread,
+            sender_type='ADMIN',
+            message=auto_reply_text
+        )
     thread.last_message_at = timezone.now()
     thread.save(update_fields=['last_message_at', 'guest_name', 'guest_email'])
 
     notify_text = message_text or "Sent attachment(s)."
-    _send_admin_chat_email(thread, notify_text)
+    _run_async(_send_admin_chat_email, thread, notify_text)
+
+    response_messages = [_serialize_chat_message(message)]
+    if auto_reply:
+        response_messages.append(_serialize_chat_message(auto_reply))
 
     return JsonResponse({
         'status': 'ok',
-        'message': {
-            'sender': message.sender_type,
-            'message': message.message,
-            'attachments': [
-                {
-                    'name': att.original_name,
-                    'url': att.file.url,
-                    'content_type': att.content_type,
-                    'is_image': (att.content_type or '').startswith('image/')
-                }
-                for att in message.attachments.all()
-            ],
-            'created_at': message.created_at.strftime('%d %b %H:%M')
-        }
+        'thread_id': thread.id,
+        'messages': response_messages,
     })
 
 
@@ -1130,7 +1159,7 @@ def admin_chat_detail(request, thread_id):
                 thread.last_message_at = timezone.now()
                 thread.save(update_fields=['last_message_at'])
                 notify_text = message_text or "Sent attachment(s)."
-                _send_user_chat_email(thread, notify_text)
+                _run_async(_send_user_chat_email, thread, notify_text)
                 messages.success(request, 'Reply sent.')
                 return redirect('admin_chat_detail', thread_id=thread.id)
 

@@ -60,6 +60,8 @@
     border-radius: 10px;
     margin-bottom: 8px;
     font-size: 13px;
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 
 .chat-bubble.user {
@@ -102,6 +104,12 @@
     padding: 6px 10px;
     font-size: 12px;
     cursor: pointer;
+}
+
+.chat-quick:disabled,
+.chat-attach:has(input:disabled) {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .chat-input {
@@ -166,6 +174,12 @@
     border-radius: 8px;
     padding: 8px 12px;
     cursor: pointer;
+}
+
+.chat-input button:disabled,
+.chat-input input:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
 }
 
 /* Buy Now Button for Product Cards */
@@ -291,6 +305,92 @@ body .vm-floating-alert.alert-info::before {
 }
 
 .vm-floating-alert .btn-close:hover {
+    opacity: 1;
+}
+
+body .vm-inline-alert.alert {
+    position: relative;
+    margin: 0 0 14px;
+    border-radius: 22px;
+    border: 1px solid rgba(139, 111, 61, 0.18);
+    border-left: 4px solid #8b6f3d;
+    background: linear-gradient(135deg, rgba(255, 252, 246, 0.98), rgba(247, 242, 232, 0.95));
+    box-shadow: 0 14px 30px rgba(32, 26, 18, 0.08);
+    padding: 16px 20px 16px 54px;
+    color: #2b251d;
+    font-size: 14px;
+    line-height: 1.6;
+    overflow: hidden;
+}
+
+body .vm-inline-alert.alert::before {
+    content: "✓";
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(139, 111, 61, 0.12);
+    color: #6d5426;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+body .vm-inline-alert.alert-success {
+    border-color: rgba(126, 100, 55, 0.2);
+    border-left-color: #7e6437;
+    background: linear-gradient(135deg, rgba(252, 249, 241, 0.99), rgba(241, 233, 215, 0.96));
+}
+
+body .vm-inline-alert.alert-success::before {
+    background: #7e6437;
+    color: #fff;
+}
+
+body .vm-inline-alert.alert-warning,
+body .vm-inline-alert.alert-danger,
+body .vm-inline-alert.alert-error {
+    border-color: rgba(166, 83, 54, 0.2);
+    border-left-color: #a65336;
+    background: linear-gradient(135deg, rgba(255, 248, 244, 0.98), rgba(252, 239, 231, 0.95));
+    color: #6d3424;
+}
+
+body .vm-inline-alert.alert-warning::before,
+body .vm-inline-alert.alert-danger::before,
+body .vm-inline-alert.alert-error::before {
+    content: "!";
+    background: rgba(166, 83, 54, 0.12);
+    color: #8a4027;
+}
+
+body .vm-inline-alert.alert-info {
+    border-color: rgba(111, 107, 99, 0.18);
+    border-left-color: #6f6b63;
+    background: linear-gradient(135deg, rgba(247, 244, 238, 0.98), rgba(241, 236, 226, 0.95));
+    color: #3f3a34;
+}
+
+body .vm-inline-alert.alert-info::before {
+    content: "i";
+    background: rgba(111, 107, 99, 0.12);
+    color: #4e4a42;
+}
+
+body .vm-inline-alert .btn-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    opacity: 0.45;
+    font-size: 11px;
+}
+
+body .vm-inline-alert .btn-close:hover {
     opacity: 1;
 }
 

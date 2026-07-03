@@ -5,7 +5,7 @@
     {% if messages %}
     <div class="mb-4">
         {% for message in messages %}
-        <div class="alert alert-{% if message.tags %}{{ message.tags }}{% else %}info{% endif %} mb-2" role="alert">
+        <div class="alert vm-inline-alert alert-{% if message.tags == 'error' %}danger{% elif message.tags %}{{ message.tags }}{% else %}info{% endif %} mb-2" role="alert">
             {{ message }}
         </div>
         {% endfor %}
@@ -277,11 +277,11 @@
                     <div class="vm-checkout-d-coupon">
                         <div class="vm-checkout-d-coupon-head">
                             <h4>Have a Coupon?</h4>
-                            <button type="button" id="viewAvailableCoupons" class="vm-checkout-d-coupon-link">Available Coupons</button>
+                            <button type="button" id="viewAvailableCoupons" class="vm-checkout-d-coupon-link" onclick="if (window.VMCheckoutShowAvailableCoupons) { window.VMCheckoutShowAvailableCoupons(); } return false;">Available Coupons</button>
                         </div>
                         <div class="vm-checkout-d-coupon-row">
                             <input type="text" id="couponCode" name="coupon_code" placeholder="Enter coupon code">
-                            <button type="button" id="applyCoupon">Apply</button>
+                            <button type="button" id="applyCoupon" onclick="if (window.VMCheckoutApplyCouponCode) { window.VMCheckoutApplyCouponCode(); } return false;">Apply</button>
                         </div>
                         <div id="availableCouponsPanel" class="vm-checkout-d-coupon-panel" style="display:none;">
                             <div class="vm-checkout-d-coupon-panel__head">
@@ -297,7 +297,7 @@
                                     <strong><span id="appliedCouponCode"></span></strong>
                                     <div class="small">Discount: ₹<span id="appliedCouponAmount">0</span></div>
                                 </div>
-                                <button type="button" id="removeCoupon">Remove</button>
+                                <button type="button" id="removeCoupon" onclick="if (window.VMCheckoutRemoveCoupon) { window.VMCheckoutRemoveCoupon(); } return false;">Remove</button>
                             </div>
                         </div>
                         <input type="hidden" id="appliedCouponId" name="coupon_id" value="{{ checkout_form.coupon_id|default:'' }}">

@@ -711,6 +711,25 @@
             }
             syncCountryCode();
             countrySelect.addEventListener('change', syncCountryCode);
+
+            const contactSection = countrySelect.closest('.vm-register-d-section');
+            const openCountrySection = () => {
+                if (contactSection) contactSection.classList.add('is-select-open');
+            };
+            const closeCountrySection = () => {
+                window.setTimeout(() => {
+                    if (contactSection) contactSection.classList.remove('is-select-open');
+                }, 120);
+            };
+
+            countrySelect.addEventListener('mousedown', openCountrySection);
+            countrySelect.addEventListener('focus', openCountrySection);
+            countrySelect.addEventListener('blur', closeCountrySection);
+            countrySelect.addEventListener('change', closeCountrySection);
+            document.addEventListener('click', (event) => {
+                if (!contactSection || contactSection.contains(event.target)) return;
+                contactSection.classList.remove('is-select-open');
+            });
         }
 
         if (emailInput && emailFeedback) {

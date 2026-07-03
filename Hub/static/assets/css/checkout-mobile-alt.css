@@ -145,31 +145,86 @@ body.vm-page-mobile-checkout {
     }
 
     .vm-checkout-mobile-message {
-        padding: 14px 16px;
-        border-radius: 18px;
+        position: relative;
+        padding: 15px 16px 15px 48px;
+        border-radius: 20px;
+        border: 1px solid rgba(139, 111, 61, 0.16);
+        border-left: 4px solid #8b6f3d;
+        background: linear-gradient(135deg, rgba(255, 252, 246, 0.98), rgba(247, 242, 232, 0.95));
+        box-shadow: 0 12px 28px rgba(32, 26, 18, 0.08);
         font-size: 13px;
         line-height: 1.6;
+        color: #2b251d;
+    }
+
+    .vm-checkout-mobile-message::before {
+        content: "✓";
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(139, 111, 61, 0.12);
+        color: #6d5426;
+        font-size: 11px;
+        font-weight: 800;
     }
 
     .vm-checkout-mobile-message.success {
-        background: #ecfdf3;
-        color: #166534;
+        border-color: rgba(126, 100, 55, 0.2);
+        border-left-color: #7e6437;
+        background: linear-gradient(135deg, rgba(252, 249, 241, 0.99), rgba(241, 233, 215, 0.96));
+    }
+
+    .vm-checkout-mobile-message.success::before {
+        background: #7e6437;
+        color: #fff;
     }
 
     .vm-checkout-mobile-message.error,
     .vm-checkout-mobile-message.danger {
-        background: #fef2f2;
-        color: #b42318;
+        border-color: rgba(166, 83, 54, 0.2);
+        border-left-color: #a65336;
+        background: linear-gradient(135deg, rgba(255, 248, 244, 0.98), rgba(252, 239, 231, 0.95));
+        color: #6d3424;
+    }
+
+    .vm-checkout-mobile-message.error::before,
+    .vm-checkout-mobile-message.danger::before {
+        content: "!";
+        background: rgba(166, 83, 54, 0.12);
+        color: #8a4027;
     }
 
     .vm-checkout-mobile-message.warning {
-        background: #fff7e6;
-        color: #8e6730;
+        border-color: rgba(166, 83, 54, 0.2);
+        border-left-color: #a65336;
+        background: linear-gradient(135deg, rgba(255, 248, 244, 0.98), rgba(252, 239, 231, 0.95));
+        color: #6d3424;
+    }
+
+    .vm-checkout-mobile-message.warning::before {
+        content: "!";
+        background: rgba(166, 83, 54, 0.12);
+        color: #8a4027;
     }
 
     .vm-checkout-mobile-message.info {
-        background: #eef2ff;
-        color: #374151;
+        border-color: rgba(111, 107, 99, 0.18);
+        border-left-color: #6f6b63;
+        background: linear-gradient(135deg, rgba(247, 244, 238, 0.98), rgba(241, 236, 226, 0.95));
+        color: #3f3a34;
+    }
+
+    .vm-checkout-mobile-message.info::before {
+        content: "i";
+        background: rgba(111, 107, 99, 0.12);
+        color: #4e4a42;
     }
 
     .vm-checkout-mobile-summary {

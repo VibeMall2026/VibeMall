@@ -168,6 +168,11 @@
   .vm-register-d-section {
     display: grid;
     gap: 24px;
+    transition: margin-bottom 0.22s ease;
+  }
+
+  .vm-register-d-section.is-select-open {
+    margin-bottom: 210px;
   }
 
   .vm-register-d-section-head {
@@ -211,6 +216,12 @@
   .vm-register-d-field {
     display: grid;
     gap: 9px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .vm-register-d-field:focus-within {
+    z-index: 5;
   }
 
   .vm-register-d-field--full {
