@@ -1634,15 +1634,7 @@
                             {% else %}
                                 <img src="{% static 'assets/img/product/tp-1.jpg' %}" alt="{{ category.name }}" loading="lazy" decoding="async">
                             {% endif %}
-                            <div class="vm-copy-dept-card__badge">
-                                {% if category.icon_image %}
-                                    <img src="{{ category.icon_image.url }}" alt="{{ category.name }}" loading="lazy" decoding="async">
-                                {% elif category.icon_class %}
-                                    <i class="{{ category.icon_class }}"></i>
-                                {% else %}
-                                    <i class="far fa-star"></i>
-                                {% endif %}
-                            </div>
+                           
                         </div>
                         <div class="vm-copy-dept-card__body">
                             <h3 class="vm-copy-dept-card__title">{{ category.name }}</h3>
