@@ -1542,7 +1542,7 @@ function applyOrderTypeUI() {
     if (marginField) {
         marginField.required = !!isResell;
     }
-        updateMobileFinalTotal();
+    updateFinalTotal();
 }
 
 if (checkoutFormEl) {
@@ -1592,7 +1592,7 @@ if (redeemCheckbox) {
         } else {
             pointsDiscountRow.style.display = 'none';
             pointsToRedeemInput.value = 0;
-            updateMobileFinalTotal();
+            updateFinalTotal();
         }
     });
 
@@ -1605,7 +1605,7 @@ if (redeemCheckbox) {
         points = Math.min(points, maxDiscount);
             
             this.value = points;
-            updateMobileFinalTotal();
+            updateFinalTotal();
         });
     }
 }
