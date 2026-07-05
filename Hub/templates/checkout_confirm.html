@@ -141,11 +141,19 @@
                         Cash on Delivery
                         {% elif payment_method == 'RAZORPAY' %}
                         Razorpay
+                        {% elif payment_method == 'WALLET' %}
+                        VibeMall Wallet
                         {% else %}
                         {{ payment_method }}
                         {% endif %}
                     </p>
-                    <small>Payment will be processed after confirmation</small>
+                    <small>
+                        {% if payment_method == 'WALLET' %}
+                        Payment will be deducted from your wallet balance.
+                        {% else %}
+                        Payment will be processed after confirmation
+                        {% endif %}
+                    </small>
                 </div>
             </div>
         </section>
@@ -304,11 +312,19 @@
                                 Cash on Delivery
                                 {% elif payment_method == 'RAZORPAY' %}
                                 Razorpay
+                                {% elif payment_method == 'WALLET' %}
+                                VibeMall Wallet
                                 {% else %}
                                 {{ payment_method }}
                                 {% endif %}
                             </p>
-                            <span>Payment will be processed after confirmation</span>
+                            <span>
+                                {% if payment_method == 'WALLET' %}
+                                Payment will be deducted from your wallet balance.
+                                {% else %}
+                                Payment will be processed after confirmation
+                                {% endif %}
+                            </span>
                         </div>
                     </div>
                 </article>
@@ -431,6 +447,8 @@
                                 Cash on Delivery
                                 {% elif payment_method == 'RAZORPAY' %}
                                 Razorpay
+                                {% elif payment_method == 'WALLET' %}
+                                VibeMall Wallet
                                 {% else %}
                                 {{ payment_method }}
                                 {% endif %}

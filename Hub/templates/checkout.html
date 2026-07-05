@@ -301,6 +301,15 @@
                         </div>
                         <span class="material-symbols-outlined vm-checkout-icon vm-checkout-mobile-radio__icon">{% if checkout_form.payment_method == 'RAZORPAY' %}check_circle{% else %}radio_button_unchecked{% endif %}</span>
                     </label>
+                    <label class="vm-checkout-mobile-radio {% if wallet_available and checkout_form.payment_method == 'WALLET' %}is-selected{% elif not wallet_available %}is-disabled{% endif %}">
+                        <input type="radio" name="payment_method" value="WALLET" {% if checkout_form.payment_method == 'WALLET' and wallet_available %}checked{% endif %} {% if not wallet_available %}disabled aria-disabled="true"{% endif %}>
+                        <span class="material-symbols-outlined vm-checkout-icon">account_balance_wallet</span>
+                        <div class="vm-checkout-mobile-radio__copy">
+                            <strong>Wallet</strong>
+                            <p>Use your wallet balance. ₹{{ wallet_balance|floatformat:2 }} available{% if not wallet_available %} — insufficient for this order{% endif %}.</p>
+                        </div>
+                        <span class="material-symbols-outlined vm-checkout-icon vm-checkout-mobile-radio__icon">{% if checkout_form.payment_method == 'WALLET' and wallet_available %}check_circle{% else %}radio_button_unchecked{% endif %}</span>
+                    </label>
                 </div>
             </section>
 
@@ -595,6 +604,14 @@
                             <div class="vm-checkout-tablet-radio__content">
                                 <p class="vm-checkout-tablet-radio__title">Razorpay</p>
                                 <p class="vm-checkout-tablet-radio__description">Cards, UPI, net banking, and wallets.</p>
+                            </div>
+                        </label>
+                        <label class="vm-checkout-tablet-radio {% if wallet_available and checkout_form.payment_method == 'WALLET' %}is-selected{% elif not wallet_available %}is-disabled{% endif %}">
+                            <input type="radio" name="payment_method" value="WALLET" {% if checkout_form.payment_method == 'WALLET' and wallet_available %}checked{% endif %} {% if not wallet_available %}disabled aria-disabled="true"{% endif %}>
+                            <span class="material-symbols-outlined" style="font-size: 1.5rem;">account_balance_wallet</span>
+                            <div class="vm-checkout-tablet-radio__content">
+                                <p class="vm-checkout-tablet-radio__title">Wallet</p>
+                                <p class="vm-checkout-tablet-radio__description">Use wallet balance. ₹{{ wallet_balance|floatformat:2 }} available{% if not wallet_available %} — insufficient for this order{% endif %}.</p>
                             </div>
                         </label>
                     </div>

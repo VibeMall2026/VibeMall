@@ -7,6 +7,7 @@ from django.http import JsonResponse, HttpResponse, HttpRequest
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
+from django.db import transaction
 from django.db.models import Count, Q, Avg, Sum, F, DecimalField, ExpressionWrapper, Case, When, Value, IntegerField, QuerySet, Min, Max, Prefetch
 from django.db.models.functions import Coalesce, Lower, Trim
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger, Page
@@ -6926,7 +6927,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
         
         # Log selected payment method
         logger.info(f"Payment method selected: {payment_method}")
-        if not payment_method or payment_method not in ['COD', 'RAZORPAY']:
+        if not payment_method or payment_method not in ['COD', 'RAZORPAY', 'WALLET']:
             messages.error(request, 'Please select a valid payment method.')
             return redirect('checkout')
         if payment_method == 'COD' and not cod_available:
@@ -7044,7 +7045,8 @@ def checkout(request: HttpRequest) -> HttpResponse:
         return redirect('checkout_confirm')
     
     # GET request - Show checkout form
-    user_profile = UserProfile.objects.filter(user=request.user).first()
+    user_profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    wallet_balance = Decimal(str(user_profile.wallet_balance or 0))
     default_address = Address.objects.filter(user=request.user, is_default=True).first()
     checkout_form = dict(request.session.get('checkout_form', {}))
     if not checkout_form.get('payment_method') or (checkout_form.get('payment_method') == 'COD' and not cod_available):
@@ -7121,6 +7123,11 @@ def checkout(request: HttpRequest) -> HttpResponse:
     tax_amount = display_subtotal * Decimal('0.05')
     shipping_cost = Decimal('0.00') if display_subtotal > 500 else Decimal('50.00')
     final_total = display_subtotal + tax_amount + shipping_cost
+    wallet_available = wallet_balance >= final_total
+    if checkout_form.get('payment_method') == 'WALLET' and not wallet_available:
+        checkout_form['payment_method'] = 'COD' if cod_available else 'RAZORPAY'
+        request.session['checkout_form'] = checkout_form
+        request.session.modified = True
 
     context = {
         'cart_items': cart_items,
@@ -7130,6 +7137,8 @@ def checkout(request: HttpRequest) -> HttpResponse:
         'cod_available': cod_available,
         'buy_now_item': buy_now_item,
         'user_profile': user_profile,
+        'wallet_balance': wallet_balance,
+        'wallet_available': wallet_available,
         'default_address': default_address,
         'checkout_form': checkout_form,
         'selected_order_type': selected_order_type,
@@ -7269,6 +7278,12 @@ def checkout_confirm(request):
         from_name = checkout_form.get('from_name', '')
         from_phone = checkout_form.get('from_phone', '')
         set_default_address = checkout_form.get('set_default_address') is True
+        wallet_payment = payment_method == 'WALLET'
+        if wallet_payment:
+            wallet_profile, _ = UserProfile.objects.get_or_create(user=request.user)
+            if Decimal(str(wallet_profile.wallet_balance or 0)) < total_amount:
+                messages.error(request, 'Insufficient wallet balance for this order.')
+                return redirect('checkout')
 
         if not all([first_name, last_name, email, phone, address, city, state, postcode]):
             messages.error(request, 'Please fill all required fields')
@@ -7325,7 +7340,7 @@ def checkout_confirm(request):
                         coupon_discount=coupon_discount,
                         points_discount=points_discount,
                         coupon=applied_coupon,
-                        payment_status='PENDING',
+                        payment_status='PAID' if wallet_payment else 'PENDING',
                     )
                     
                     # Add customer notes if provided
@@ -7354,12 +7369,13 @@ def checkout_confirm(request):
                     'coupon': applied_coupon,  # Save coupon reference
                     'coupon_discount': coupon_discount,  # Save discount amount
                     'total_amount': total_amount,
-                    'shipping_address': shipping_address,
-                    'billing_address': shipping_address,
-                    'payment_method': payment_method,
-                    'customer_notes': customer_notes,
-                    'is_resell': is_resell,
-                    'resell_from_name': from_name if is_resell else '',
+                        'shipping_address': shipping_address,
+                        'billing_address': shipping_address,
+                        'payment_method': payment_method,
+                        'payment_status': 'PAID' if wallet_payment else 'PENDING',
+                        'customer_notes': customer_notes,
+                        'is_resell': is_resell,
+                        'resell_from_name': from_name if is_resell else '',
                     'resell_from_phone': from_phone if is_resell else '',
                 }
                 if is_resell:
@@ -7369,6 +7385,11 @@ def checkout_confirm(request):
                         'total_margin': total_margin,
                     })
                 order = Order.objects.create(**order_kwargs)
+
+            if wallet_payment:
+                wallet_profile, _ = UserProfile.objects.get_or_create(user=request.user)
+                wallet_profile.wallet_balance = Decimal(str(wallet_profile.wallet_balance or 0)) - total_amount
+                wallet_profile.save(update_fields=['wallet_balance'])
 
             # Create CouponUsage record if coupon was applied successfully
             if applied_coupon and validation_message is None:
@@ -7500,7 +7521,10 @@ def checkout_confirm(request):
             if payment_method == 'RAZORPAY':
                 return redirect('razorpay_payment', order_id=order.id)
 
-            order.payment_status = 'PENDING'
+            if wallet_payment:
+                order.payment_status = 'PAID'
+            else:
+                order.payment_status = 'PENDING'
             order.order_status = 'PENDING'
             order.save()
 
@@ -13983,6 +14007,7 @@ def payment_methods_view(request):
     payment_meta = {
         'COD': {'label': 'Cash on Delivery', 'icon': 'fas fa-money-bill-wave', 'color': '#28a745'},
         'RAZORPAY': {'label': 'Razorpay (Cards / UPI / Net Banking)', 'icon': 'fas fa-credit-card', 'color': '#2196f3'},
+        'WALLET': {'label': 'VibeMall Wallet', 'icon': 'fas fa-wallet', 'color': '#8b5cf6'},
         'UPI': {'label': 'UPI', 'icon': 'fas fa-qrcode', 'color': '#9c27b0'},
         'ONLINE': {'label': 'Online Payment', 'icon': 'fas fa-globe', 'color': '#ff9800'},
         'CARD': {'label': 'Credit / Debit Card', 'icon': 'fas fa-credit-card', 'color': '#e91e63'},

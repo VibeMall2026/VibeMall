@@ -179,6 +179,11 @@
                             <h4>Cash on Delivery</h4>
                             <p>{% if cod_available %}Pay when you receive the heirloom.{% else %}Not available for no-return items.{% endif %}</p>
                         </label>
+                        <label class="vm-checkout-d-payment-option {% if wallet_available and checkout_form.payment_method == 'WALLET' %}is-selected{% elif not wallet_available %}is-disabled{% endif %}">
+                            <input type="radio" name="payment_method" value="WALLET" id="wallet_payment" {% if checkout_form.payment_method == 'WALLET' and wallet_available %}checked{% endif %} {% if not wallet_available %}disabled aria-disabled="true"{% endif %}>
+                            <h4>Wallet</h4>
+                            <p>Use wallet balance. ₹{{ wallet_balance|floatformat:2 }} available{% if not wallet_available %} — insufficient for this order{% endif %}.</p>
+                        </label>
                     </div>
                 </section>
 

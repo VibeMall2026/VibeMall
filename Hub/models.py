@@ -977,6 +977,7 @@ class Order(models.Model):
         ('ONLINE', 'Online Payment'),
         ('UPI', 'UPI'),
         ('CARD', 'Credit/Debit Card'),
+        ('WALLET', 'VibeMall Wallet'),
     ]
     
     # Order identification
