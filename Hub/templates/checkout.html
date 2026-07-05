@@ -948,7 +948,7 @@
         return discount;
     }
 
-    function updateFinalTotal() {
+    function updateMobileFinalTotal() {
         let total = calculateBaseTotalBeforeDiscounts();
 
         if (mobileState.appliedCoupon) {
@@ -994,10 +994,10 @@
             marginField.required = isResell;
         }
 
-        updateFinalTotal();
+        updateMobileFinalTotal();
     }
 
-    function showCouponMessage(message, type) {
+    function showMobileCouponMessage(message, type) {
         if (!couponMessage) {
             return;
         }
@@ -1029,7 +1029,7 @@
             }
         }
 
-        updateFinalTotal();
+        updateMobileFinalTotal();
     }
 
     function getCookie(name) {
@@ -1047,7 +1047,7 @@
         return cookieValue;
     }
 
-    function applyCouponCode(code) {
+    function applyMobileCouponCode(code) {
         fetch('/api/validate-coupon/', {
             method: 'POST',
             headers: {
@@ -1073,24 +1073,24 @@
             if (couponInput) {
                 couponInput.value = payload.data.code;
             }
-            showCouponMessage(payload.data.message, 'success');
+            showMobileCouponMessage(payload.data.message, 'success');
             syncCouponUI();
         })
         .catch(function (error) {
-            showCouponMessage(error.message || 'Error applying coupon.', 'danger');
+            showMobileCouponMessage(error.message || 'Error applying coupon.', 'danger');
         });
     }
 
-    function removeCoupon() {
+    function removeMobileCoupon() {
         mobileState.appliedCoupon = null;
         if (couponInput) {
             couponInput.value = '';
         }
-        showCouponMessage('Coupon removed.', 'info');
+        showMobileCouponMessage('Coupon removed.', 'info');
         syncCouponUI();
     }
 
-    function showCouponsModal(coupons) {
+    function showMobileCouponsModal(coupons) {
         let html = '';
         html += '<div class="modal fade" id="mobileCouponsModal" tabindex="-1">';
         html += '<div class="modal-dialog modal-dialog-centered">';
@@ -1131,7 +1131,7 @@
                     couponInput.value = code;
                 }
                 modal.hide();
-                applyCouponCode(code);
+                applyMobileCouponCode(code);
             });
         });
 
@@ -1148,7 +1148,7 @@
                     couponInput.value = code;
                 }
                 modal.hide();
-                applyCouponCode(code);
+                applyMobileCouponCode(code);
             });
             card.addEventListener('keydown', function (event) {
                 if ((event.key === 'Enter' || event.key === ' ') && card.dataset.used !== '1') {
@@ -1158,13 +1158,13 @@
                         couponInput.value = code;
                     }
                     modal.hide();
-                    applyCouponCode(code);
+                    applyMobileCouponCode(code);
                 }
             });
         });
     }
 
-    function loadAvailableCoupons() {
+    function loadMobileAvailableCoupons() {
         fetch(`/api/available-coupons/?cart_total=${encodeURIComponent(calculateBaseTotalBeforeDiscounts())}`, {
             method: 'GET',
             headers: {
@@ -1178,10 +1178,10 @@
             if (!data.success || !data.coupons || !data.coupons.length) {
                 throw new Error('No coupons available at the moment.');
             }
-            showCouponsModal(data.coupons);
+            showMobileCouponsModal(data.coupons);
         })
         .catch(function (error) {
-            showCouponMessage(error.message || 'Unable to load coupons.', 'danger');
+            showMobileCouponMessage(error.message || 'Unable to load coupons.', 'danger');
         });
     }
 
@@ -1335,23 +1335,23 @@
         resellCheckbox.addEventListener('change', applyOrderTypeUI);
     }
     if (marginField) {
-        marginField.addEventListener('input', updateFinalTotal);
+        marginField.addEventListener('input', updateMobileFinalTotal);
     }
     if (applyCouponButton) {
         applyCouponButton.addEventListener('click', function () {
             const code = (couponInput && couponInput.value || '').trim().toUpperCase();
             if (!code) {
-                showCouponMessage('Please enter a coupon code.', 'danger');
+                showMobileCouponMessage('Please enter a coupon code.', 'danger');
                 return;
             }
-            applyCouponCode(code);
+            applyMobileCouponCode(code);
         });
     }
     if (viewCouponsButton) {
-        viewCouponsButton.addEventListener('click', loadAvailableCoupons);
+        viewCouponsButton.addEventListener('click', loadMobileAvailableCoupons);
     }
     if (removeCouponButton) {
-        removeCouponButton.addEventListener('click', removeCoupon);
+        removeCouponButton.addEventListener('click', removeMobileCoupon);
     }
     if (redeemCheckbox) {
         redeemCheckbox.addEventListener('change', updateFinalTotal);
@@ -1422,7 +1422,7 @@
     if (useDefaultAddress && useDefaultAddress.checked) {
         applyDefaultAddress();
     }
-    updateFinalTotal();
+    updateMobileFinalTotal();
 })();
 </script>
 
@@ -1525,7 +1525,7 @@ function applyOrderTypeUI() {
     if (marginField) {
         marginField.required = !!isResell;
     }
-    updateFinalTotal();
+        updateMobileFinalTotal();
 }
 
 if (checkoutFormEl) {
@@ -1575,7 +1575,7 @@ if (redeemCheckbox) {
         } else {
             pointsDiscountRow.style.display = 'none';
             pointsToRedeemInput.value = 0;
-            updateFinalTotal();
+            updateMobileFinalTotal();
         }
     });
 
@@ -1585,10 +1585,10 @@ if (redeemCheckbox) {
             // Limit points to not exceed order total
             const maxDiscount = Math.floor(calculateBaseTotalBeforeDiscounts());
             points = Math.min(points, maxPoints);
-            points = Math.min(points, maxDiscount);
+        points = Math.min(points, maxDiscount);
             
             this.value = points;
-            updateFinalTotal();
+            updateMobileFinalTotal();
         });
     }
 }
