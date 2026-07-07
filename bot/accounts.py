@@ -1105,19 +1105,48 @@ def execute_on_all_accounts(
     Execute trade on ALL enabled accounts.
     Returns list of results per account.
     """
+    algo_trade = str(comment or "").upper().startswith("ALGO:")
+
+    def notify_algo_failures(rows: list[dict]) -> None:
+        if not algo_trade:
+            return
+        for row in rows or []:
+            if row.get("success"):
+                continue
+            try:
+                from bot.telegram_notifier import send_algo_error_alert
+
+                send_algo_error_alert(
+                    account_label=str(row.get("account_label") or row.get("account") or "N/A"),
+                    login=row.get("login"),
+                    strategy_id=str(strategy_id or "").strip() or None,
+                    symbol=symbol,
+                    side=side,
+                    order_type=order_type,
+                    reason=row.get("message") or "algo_execution_failed",
+                    comment=comment,
+                    severity="ERROR",
+                )
+            except Exception as notify_exc:
+                logger.warning(f"[ACCOUNTS] Could not send algo error alert: {notify_exc}")
+
     if not MT5_AVAILABLE:
-        return [{"success": False, "message": "MT5 not available", "account": "N/A"}]
+        results = [{"success": False, "message": "MT5 not available", "account": "N/A"}]
+        notify_algo_failures(results)
+        return results
 
     news_reason = _get_news_blackout_reason()
     if news_reason:
         logger.warning(f"[ACCOUNTS] Trade skipped for all accounts: {news_reason}")
-        return [{
+        results = [{
             "success": False,
             "message": f"Trade blocked: {news_reason}",
             "account_id": None,
             "account_label": None,
             "login": None,
         }]
+        notify_algo_failures(results)
+        return results
 
     from bot import config as cfg
     import math
@@ -1131,16 +1160,17 @@ def execute_on_all_accounts(
 
     # Strict strategy routing: when strategy_id is provided, do not fallback.
     if strategy_id and not accounts_copy:
-        return [{
+        results = [{
             "success": False,
             "message": f"No enabled accounts mapped to strategy '{strategy_id}'",
             "account_id": None,
             "account_label": None,
             "login": None,
         }]
+        notify_algo_failures(results)
+        return results
 
     results = []
-    algo_trade = str(comment or "").upper().startswith("ALGO:")
 
     for acc in accounts_copy:
         try:
@@ -1353,6 +1383,7 @@ def execute_on_all_accounts(
     # Always reconnect primary account after multi-account execution
     _reconnect_primary()
 
+    notify_algo_failures(results)
     return results
 
 

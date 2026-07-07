@@ -43,6 +43,8 @@ TG_CHANNELS: list[str] = _list("TG_CHANNELS")
 TG_RECONNECT_DELAY: int = _int("TG_RECONNECT_DELAY_SECONDS", 10)
 TG_ENABLED: bool = _bool("TG_ENABLED", True)
 TG_EXECUTION_ALERT_CHAT: str = os.getenv("TG_EXECUTION_ALERT_CHAT", "").strip()
+TG_ALGO_ERROR_ALERTS_ENABLED: bool = _bool("TG_ALGO_ERROR_ALERTS_ENABLED", True)
+TG_ALGO_ERROR_DEDUPE_SECONDS: int = _int("TG_ALGO_ERROR_DEDUPE_SECONDS", 60)
 TG_CONTROL_ALLOWED_USERNAMES: list[str] = [u.lstrip("@").strip().lower() for u in _list("TG_CONTROL_ALLOWED_USERNAMES")]
 TG_CONTROL_ALLOWED_IDS: list[str] = [str(x).strip() for x in _list("TG_CONTROL_ALLOWED_IDS")]
 

@@ -5,12 +5,23 @@ from __future__ import annotations
 
 import asyncio
 import threading
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
 from loguru import logger
 
 from bot import config
+
+_error_alert_lock = threading.Lock()
+_last_error_alert_ts: dict[str, float] = {}
+
+
+def _shorten(value: object, limit: int = 700) -> str:
+    text = str(value or "").strip()
+    if len(text) <= limit:
+        return text
+    return text[: limit - 3].rstrip() + "..."
 
 
 def _get_alert_destination() -> str:
@@ -161,6 +172,72 @@ def send_algo_execution_alert(
         logger.warning(
             f"[TG_NOTIFY] Could not send algo execution alert to {chat_id}: {exc}"
         )
+        return False
+
+
+def send_algo_error_alert(
+    *,
+    account_label: str | None = None,
+    login: int | str | None = None,
+    strategy_id: str | None = None,
+    symbol: str | None = None,
+    side: str | None = None,
+    order_type: str | None = None,
+    reason: str | None = None,
+    comment: str | None = None,
+    severity: str = "ERROR",
+) -> bool:
+    if not getattr(config, "TG_ALGO_ERROR_ALERTS_ENABLED", True):
+        return False
+
+    chat_id = _get_alert_destination()
+    if not chat_id:
+        return False
+
+    strategy = _extract_strategy_name(strategy_id, comment)
+    reason_text = _shorten(reason or "unknown_error")
+    dedupe_seconds = max(0, int(getattr(config, "TG_ALGO_ERROR_DEDUPE_SECONDS", 60) or 0))
+    dedupe_key = "|".join(
+        [
+            str(account_label or ""),
+            str(login or ""),
+            str(strategy or ""),
+            str(symbol or ""),
+            str(side or ""),
+            reason_text[:180],
+        ]
+    )
+
+    if dedupe_seconds > 0:
+        now = time.monotonic()
+        with _error_alert_lock:
+            last = _last_error_alert_ts.get(dedupe_key, 0.0)
+            if now - last < dedupe_seconds:
+                return False
+            _last_error_alert_ts[dedupe_key] = now
+
+    when_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    text = (
+        f"⚠️ ALGO {str(severity or 'ERROR').upper()}\n"
+        f"Account: {account_label or 'N/A'}\n"
+        f"Login: {login or 'N/A'}\n"
+        f"Strategy: {strategy}\n"
+        f"Symbol: {symbol or 'N/A'}\n"
+        f"Direction: {str(side or 'N/A').upper()}\n"
+        f"Order Type: {order_type or 'N/A'}\n"
+        f"Reason: {reason_text}\n"
+        f"Time: {when_utc}"
+    )
+
+    try:
+        method = asyncio.run(_send_message(chat_id, text))
+        logger.info(
+            f"[TG_NOTIFY] Algo error alert sent to {chat_id} | "
+            f"account={account_label} login={login} strategy={strategy} via={method}"
+        )
+        return True
+    except Exception as exc:
+        logger.warning(f"[TG_NOTIFY] Could not send algo error alert to {chat_id}: {exc}")
         return False
 
 

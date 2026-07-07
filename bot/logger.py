@@ -8,6 +8,36 @@ from loguru import logger
 from bot import config
 
 
+def _is_algo_runtime_error(record: dict) -> bool:
+    name = str(record.get("name") or "")
+    if not name.startswith("bot.algo"):
+        return False
+    message = str(record.get("message") or "")
+    execution_failures = (
+        "Trade failed",
+        "Signal not executed",
+        "Trade blocked",
+    )
+    return not any(marker in message for marker in execution_failures)
+
+
+def _send_algo_error_alert_from_log(message) -> None:
+    try:
+        record = message.record
+        reason = f"{record.get('name')}:{record.get('line')} - {record.get('message')}"
+        from bot.telegram_notifier import send_algo_error_alert
+
+        send_algo_error_alert(
+            account_label=os.getenv("MT5_ACCOUNT_LABEL", "").strip() or "N/A",
+            login=os.getenv("MT5_LOGIN", "").strip() or None,
+            strategy_id=os.getenv("MT5_PRIMARY_STRATEGY", "").strip() or None,
+            reason=reason,
+            severity=str(record.get("level").name if record.get("level") else "ERROR"),
+        )
+    except Exception:
+        pass
+
+
 def setup_logger() -> None:
     # Force UTF-8 console output on Windows to avoid UnicodeEncodeError.
     try:
@@ -53,6 +83,14 @@ def setup_logger() -> None:
             retention="14 days",
             compression="zip",
             format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{line} - {message}",
+        )
+
+    if getattr(config, "TG_ALGO_ERROR_ALERTS_ENABLED", True):
+        logger.add(
+            _send_algo_error_alert_from_log,
+            level="ERROR",
+            filter=_is_algo_runtime_error,
+            enqueue=True,
         )
 
 
