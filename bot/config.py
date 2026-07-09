@@ -81,6 +81,8 @@ API_CORS_ORIGINS: list[str] = _list(
 # ── Bot behaviour ─────────────────────────────────────────────────────────────
 AUTO_START: bool = _bool("AUTO_START", False)
 LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO").upper()
+MT5_HEARTBEAT_SECONDS: int = _int("MT5_HEARTBEAT_SECONDS", 5)
+MT5_RECONNECT_MONITOR_SECONDS: int = _int("MT5_RECONNECT_MONITOR_SECONDS", 5)
 OB_DEBUG_MODE: bool = _bool("OB_DEBUG_MODE", False)
 
 # ── Trading pause (manual override) ───────────────────────────────────────────

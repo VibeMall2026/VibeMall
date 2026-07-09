@@ -67,8 +67,9 @@ def _mt5_reconnect_loop() -> None:
     Uses account_info() as health check (safer than terminal_info() cross-thread).
     """
     import time
-    logger.info("[MT5] Auto-reconnect monitor started (10s interval)")
-    hb_every_seconds = 30
+    monitor_interval_seconds = max(1, int(getattr(config, "MT5_RECONNECT_MONITOR_SECONDS", 5) or 5))
+    hb_every_seconds = max(1, int(getattr(config, "MT5_HEARTBEAT_SECONDS", 5) or 5))
+    logger.info(f"[MT5] Auto-reconnect monitor started ({monitor_interval_seconds}s interval)")
     last_hb_ts = 0.0
     while True:
         try:
@@ -140,7 +141,7 @@ def _mt5_reconnect_loop() -> None:
                 last_hb_ts = now_ts
         except Exception as e:
             logger.error(f"[MT5] Reconnect monitor error: {e}")
-        time.sleep(10)
+        time.sleep(monitor_interval_seconds)
 
 
 async def start_bot() -> None:

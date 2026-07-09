@@ -362,29 +362,64 @@ async def parse_signal_endpoint(body: ParseSignalRequest):
 @app.post("/control", dependencies=[Depends(verify_api_key)])
 async def control_bot(body: ControlRequest):
     action = body.action
+    from bot.algo.runner import get_runner_status, start_all_strategies, stop_all_strategies
+
     if action == "start":
         if state.running:
-            return {"success": False, "message": "Bot already running"}
+            running_strategies = get_runner_status().get("running_strategies", [])
+            return {
+                "success": False,
+                "message": "Bot already running",
+                "status": "running",
+                "running_strategies": running_strategies,
+            }
         state.running = True
-        return {"success": True, "message": "Bot started", "status": "running"}
+        started = start_all_strategies()
+        return {
+            "success": True,
+            "message": "Bot started",
+            "status": "running",
+            "started_strategies": started,
+            "running_strategies": get_runner_status().get("running_strategies", []),
+        }
 
     elif action == "stop":
+        running_before = get_runner_status().get("running_strategies", [])
         state.running = False
-        return {"success": True, "message": "Bot stopped", "status": "stopped"}
+        stop_all_strategies()
+        return {
+            "success": True,
+            "message": "Bot stopped",
+            "status": "stopped",
+            "stopped_strategies": running_before,
+        }
 
     elif action == "restart":
+        running_before = get_runner_status().get("running_strategies", [])
         state.running = False
+        stop_all_strategies()
         await asyncio.sleep(1)
         state.running = True
-        return {"success": True, "message": "Bot restarted", "status": "running"}
+        started = start_all_strategies()
+        return {
+            "success": True,
+            "message": "Bot restarted",
+            "status": "running",
+            "stopped_strategies": running_before,
+            "started_strategies": started,
+            "running_strategies": get_runner_status().get("running_strategies", []),
+        }
 
     elif action == "weekend_shutdown":
+        running_before = get_runner_status().get("running_strategies", [])
         state.running = False
+        stop_all_strategies()
         weekend_close = mt5_bridge.close_positions_for_weekend(exempt_symbols={"BTCUSD"})
         return {
             "success": weekend_close.get("success", True),
             "message": "Weekend shutdown initiated (non-BTCUSD positions close attempted)",
             "status": "stopped",
+            "stopped_strategies": running_before,
             "weekend_close": weekend_close,
         }
 
@@ -397,17 +432,40 @@ async def control_bot(body: ControlRequest):
 @app.post("/start", dependencies=[Depends(verify_api_key)])
 async def start_bot():
     """Shortcut: start the bot."""
+    from bot.algo.runner import get_runner_status, start_all_strategies
+
     if state.running:
-        return {"success": False, "message": "Bot already running", "status": "running"}
+        return {
+            "success": False,
+            "message": "Bot already running",
+            "status": "running",
+            "running_strategies": get_runner_status().get("running_strategies", []),
+        }
     state.running = True
-    return {"success": True, "message": "Bot started", "status": "running"}
+    started = start_all_strategies()
+    return {
+        "success": True,
+        "message": "Bot started",
+        "status": "running",
+        "started_strategies": started,
+        "running_strategies": get_runner_status().get("running_strategies", []),
+    }
 
 
 @app.post("/stop", dependencies=[Depends(verify_api_key)])
 async def stop_bot():
     """Shortcut: stop the bot."""
+    from bot.algo.runner import get_runner_status, stop_all_strategies
+
+    running_before = get_runner_status().get("running_strategies", [])
     state.running = False
-    return {"success": True, "message": "Bot stopped", "status": "stopped"}
+    stop_all_strategies()
+    return {
+        "success": True,
+        "message": "Bot stopped",
+        "status": "stopped",
+        "stopped_strategies": running_before,
+    }
 
 
 @app.get("/strategy/{strategy_id}/stats", dependencies=[Depends(verify_api_key)])

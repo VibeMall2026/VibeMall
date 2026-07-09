@@ -8,7 +8,7 @@ Session strategy:
 """
 import asyncio
 import os
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from loguru import logger
 from telethon import TelegramClient, events
@@ -56,11 +56,25 @@ def _build_help_text() -> str:
     return (
         "Trading bot control commands\n\n"
         "/status - Show account trading status\n"
-        "/signal_forge_stop - Stop Signal Forge Gold for today\n"
+        "/signal_forge_stop - Stop Signal Forge Gold until next XAUUSD market reopen\n"
         "/signal_forge_start - Start Signal Forge Gold now\n"
-        "/breakout_demo_stop - Stop Breakout Demo for today\n"
+        "/breakout_demo_stop - Stop Breakout Demo until next XAUUSD market reopen\n"
         "/breakout_demo_start - Start Breakout Demo now"
     )
+
+
+def _next_xauusd_reopen_utc(now_utc: datetime | None = None) -> datetime:
+    now = (now_utc or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    today_2200 = now.replace(hour=22, minute=0, second=0, microsecond=0)
+    weekday = now.weekday()  # Monday=0 ... Sunday=6
+
+    if weekday <= 3:
+        return today_2200 if now < today_2200 else today_2200 + timedelta(days=1)
+    if weekday == 4:
+        return today_2200 + timedelta(days=2)
+    if weekday == 5:
+        return today_2200 + timedelta(days=1)
+    return today_2200 if now < today_2200 else today_2200 + timedelta(days=1)
 
 
 def _build_status_text() -> str:
@@ -231,7 +245,7 @@ async def _bot_control_poll_loop() -> None:
 
 
 async def _handle_control_command(event, text: str, channel_name: str) -> bool:
-    from bot.accounts import get_account_trade_mode, stop_account_for_today, start_account_now
+    from bot.accounts import get_account_trade_mode, stop_account_until, start_account_now
 
     command = _canonical_command(text)
     if command in {"start", "help"}:
@@ -255,13 +269,16 @@ async def _handle_control_command(event, text: str, channel_name: str) -> bool:
         return True
 
     action_text = ""
+    auto_resume_text = "Not needed"
     if command in {"bstop", "sstop"}:
-        reason_code = f"telegram_{command}_stop_today"
-        stop_account_for_today(int(acc.login), reason_code=reason_code)
-        action_text = "Stop trading for today"
+        reason_code = f"telegram_{command}_stop_until_reopen"
+        resume_at = _next_xauusd_reopen_utc()
+        stop_account_until(int(acc.login), resume_at, reason_code=reason_code)
+        action_text = f"Stop trading until next XAUUSD reopen ({resume_at.strftime('%Y-%m-%d %H:%M UTC')})"
+        auto_resume_text = resume_at.strftime("%Y-%m-%d %H:%M UTC")
         logger.warning(
-            f"[TG_CMD] Stop-today command accepted from @{channel_name} | "
-            f"command={command} | account={acc.label} ({acc.login})"
+            f"[TG_CMD] Stop-until-reopen command accepted from @{channel_name} | "
+            f"command={command} | account={acc.label} ({acc.login}) | resume_at={resume_at.isoformat()}"
         )
     elif command in {"bstart", "sstart"}:
         start_account_now(int(acc.login))
@@ -302,7 +319,7 @@ async def _handle_control_command(event, text: str, channel_name: str) -> bool:
         f"Command: {command}\n"
         f"Account: {acc.label}\n"
         f"Action: {action_text}\n"
-        f"State: {'Trading ON' if mode.get('allowed') else 'Trading OFF for today'}"
+        f"State: {'Trading ON' if mode.get('allowed') else 'Trading OFF until market reopen'}"
     )
     await _reply_control_status(event, inline_status)
     send_text_alert(
@@ -310,8 +327,8 @@ async def _handle_control_command(event, text: str, channel_name: str) -> bool:
         f"Account: {acc.label}\n"
         f"Login: {acc.login}\n"
         f"Action: {action_text}\n"
-        f"Current state: {'Trading ON' if mode.get('allowed') else 'Trading OFF for today'}\n"
-        f"Auto resume: {'Not needed' if mode.get('allowed') else 'Next UTC day'}\n"
+        f"Current state: {'Trading ON' if mode.get('allowed') else 'Trading OFF until market reopen'}\n"
+        f"Auto resume: {auto_resume_text}\n"
         f"Source: @{channel_name}\n"
         f"Reason: {halt_text}"
     )

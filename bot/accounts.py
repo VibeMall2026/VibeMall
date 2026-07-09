@@ -1135,6 +1135,38 @@ def execute_on_all_accounts(
         notify_algo_failures(results)
         return results
 
+    if algo_trade:
+        from bot.state import state as _bot_state
+
+        if not bool(getattr(_bot_state, "running", False)):
+            results = [{
+                "success": False,
+                "message": "Algo execution blocked: bot is stopped",
+                "account_id": None,
+                "account_label": None,
+                "login": None,
+            }]
+            notify_algo_failures(results)
+            return results
+
+        if strategy_id:
+            try:
+                from bot.algo.runner import get_runner_status
+
+                running_strategies = set(get_runner_status().get("running_strategies", []) or [])
+                if strategy_id not in running_strategies:
+                    results = [{
+                        "success": False,
+                        "message": f"Algo execution blocked: strategy '{strategy_id}' is stopped",
+                        "account_id": None,
+                        "account_label": None,
+                        "login": None,
+                    }]
+                    notify_algo_failures(results)
+                    return results
+            except Exception as runner_exc:
+                logger.warning(f"[ACCOUNTS] Runner-status gate check failed open: {runner_exc}")
+
     news_reason = _get_news_blackout_reason()
     if news_reason:
         logger.warning(f"[ACCOUNTS] Trade skipped for all accounts: {news_reason}")
