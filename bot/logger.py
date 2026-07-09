@@ -38,6 +38,27 @@ def _send_algo_error_alert_from_log(message) -> None:
         pass
 
 
+def _is_windows() -> bool:
+    return os.name == "nt"
+
+
+def _build_file_sink_kwargs(level: str, rotation: str | None, retention: str | None, compression: str | None) -> dict:
+    kwargs = {
+        "level": level,
+        "format": "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{line} - {message}",
+        "enqueue": True,
+        "backtrace": False,
+        "diagnose": False,
+    }
+    if rotation:
+        kwargs["rotation"] = rotation
+    if retention:
+        kwargs["retention"] = retention
+    if compression:
+        kwargs["compression"] = compression
+    return kwargs
+
+
 def setup_logger() -> None:
     # Force UTF-8 console output on Windows to avoid UnicodeEncodeError.
     try:
@@ -59,31 +80,36 @@ def setup_logger() -> None:
     root_dir = Path(__file__).resolve().parents[1]
     log_dir = root_dir / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
-    default_log_file = log_dir / "bot.log"
+    # On Windows, multiple bot processes can rotate the same file at once and
+    # trigger WinError 32 during os.rename(). Keep the default process-local.
+    default_log_name = f"bot_{os.getpid()}.log" if _is_windows() else "bot.log"
+    default_log_file = log_dir / default_log_name
     instance_log_file = Path(os.getenv("BOT_LOG_FILE", str(default_log_file)))
     shared_log_file_raw = os.getenv("BOT_SHARED_LOG_FILE", "").strip()
     shared_log_file = Path(shared_log_file_raw) if shared_log_file_raw else None
 
     instance_log_file.parent.mkdir(parents=True, exist_ok=True)
-    logger.add(
-        str(instance_log_file),
+    logger.add(str(instance_log_file), **_build_file_sink_kwargs(
         level=config.LOG_LEVEL,
         rotation="10 MB",
         retention="14 days",
         compression="zip",
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{line} - {message}",
-    )
+    ))
 
     if shared_log_file:
         shared_log_file.parent.mkdir(parents=True, exist_ok=True)
-        logger.add(
-            str(shared_log_file),
+        # Shared multi-process file rotation is fragile on Windows because
+        # concurrent rotation uses rename() on a file another process may still
+        # hold open. Keep the shared sink append-only there.
+        shared_rotation = None if _is_windows() else "25 MB"
+        shared_retention = None if _is_windows() else "14 days"
+        shared_compression = None if _is_windows() else "zip"
+        logger.add(str(shared_log_file), **_build_file_sink_kwargs(
             level=config.LOG_LEVEL,
-            rotation="25 MB",
-            retention="14 days",
-            compression="zip",
-            format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{line} - {message}",
-        )
+            rotation=shared_rotation,
+            retention=shared_retention,
+            compression=shared_compression,
+        ))
 
     if getattr(config, "TG_ALGO_ERROR_ALERTS_ENABLED", True):
         logger.add(
