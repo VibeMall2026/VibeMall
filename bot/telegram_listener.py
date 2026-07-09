@@ -8,7 +8,7 @@ Session strategy:
 """
 import asyncio
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, date
 from types import SimpleNamespace
 from loguru import logger
 from telethon import TelegramClient, events
@@ -27,10 +27,6 @@ _COMMAND_ALIASES = {
     "help": "help",
     "status": "status",
     "botstatus": "status",
-    "bstop": "bstop",
-    "breakoutdemostop": "bstop",
-    "bstart": "bstart",
-    "breakoutdemostart": "bstart",
     "sstop": "sstop",
     "signalforgestop": "sstop",
     "signalforgegoldstop": "sstop",
@@ -57,9 +53,7 @@ def _build_help_text() -> str:
         "Trading bot control commands\n\n"
         "/status - Show account trading status\n"
         "/signal_forge_stop - Stop Signal Forge Gold until next XAUUSD market reopen\n"
-        "/signal_forge_start - Start Signal Forge Gold now\n"
-        "/breakout_demo_stop - Stop Breakout Demo until next XAUUSD market reopen\n"
-        "/breakout_demo_start - Start Breakout Demo now"
+        "/signal_forge_start - Start Signal Forge Gold now"
     )
 
 
@@ -75,6 +69,71 @@ def _next_xauusd_reopen_utc(now_utc: datetime | None = None) -> datetime:
     if weekday == 5:
         return today_2200 + timedelta(days=1)
     return today_2200 if now < today_2200 else today_2200 + timedelta(days=1)
+
+
+def _parse_trade_date(raw_value) -> date | None:
+    if raw_value is None:
+        return None
+    text = str(raw_value).strip()
+    if not text:
+        return None
+    try:
+        if len(text) >= 10 and text[4] == "-" and text[7] == "-":
+            return datetime.strptime(text[:10], "%Y-%m-%d").date()
+    except Exception:
+        pass
+    try:
+        iso = text.replace("Z", "+00:00").replace(" ", "T")
+        return datetime.fromisoformat(iso).date()
+    except Exception:
+        return None
+
+
+def _is_signal_forge_account(acc) -> bool:
+    label = str(getattr(acc, "label", "") or "").strip().lower()
+    strategies = {str(s).strip().lower() for s in list(getattr(acc, "strategy", []) or [])}
+    return "signal_forge" in strategies or "signal" in label
+
+
+def _build_signal_forge_overview_text(acc) -> str:
+    from bot.accounts import _connect_account, _reconnect_primary
+    from bot import mt5_bridge
+
+    if not acc or not acc.enabled:
+        return "Signal Forge Gold overview unavailable: target account not available."
+
+    if not _connect_account(acc):
+        return (
+            "Signal Forge Gold overview unavailable: could not connect to the account.\n"
+            f"Account: {acc.label}\n"
+            f"Login: {acc.login}"
+        )
+
+    try:
+        account_info = mt5_bridge.get_account_info() or {}
+        trades = mt5_bridge.get_trade_history(limit=500) or []
+        today = datetime.now(timezone.utc).date()
+        today_trades = [t for t in trades if _parse_trade_date(t.get("opened")) == today]
+        today_wins = sum(1 for t in today_trades if t.get("status") == "win")
+        today_losses = sum(1 for t in today_trades if t.get("status") == "loss")
+        today_pnl = sum(float(t.get("pnl", 0) or 0) for t in today_trades)
+        open_positions = mt5_bridge.get_open_positions() or []
+        return (
+            "Signal Forge Gold overview\n"
+            f"Account: {acc.label}\n"
+            f"Login: {acc.login}\n"
+            f"Balance: {float(account_info.get('balance', acc.balance) or 0):.2f}\n"
+            f"Equity: {float(account_info.get('equity', acc.equity) or 0):.2f}\n"
+            f"Today wins: {today_wins}\n"
+            f"Today losses: {today_losses}\n"
+            f"Today net profit: {today_pnl:.2f}\n"
+            f"Open positions: {len(open_positions)}"
+        )
+    finally:
+        try:
+            _reconnect_primary()
+        except Exception:
+            pass
 
 
 def _build_status_text() -> str:
@@ -114,19 +173,19 @@ def _find_stop_target(command_text: str):
     if not accounts:
         return None
 
-    if command in {"bstop", "bstart"}:
-        for acc in accounts:
-            label = str(getattr(acc, "label", "") or "").strip().lower()
-            if label == "breakout demo":
-                return acc
-        for acc in accounts:
-            label = str(getattr(acc, "label", "") or "").strip().lower()
-            strategies = [str(s).strip().lower() for s in list(getattr(acc, "strategy", []) or [])]
-            if "breakout" in strategies and "demo" in label:
-                return acc
-        return None
-
     if command in {"sstop", "sstart"}:
+        preferred_labels = (
+            "signal forge gold 5%",
+            "signal forge gold funded",
+            "signal forge gold demo",
+            "signal forge gold",
+            "the5ers funded",
+        )
+        for target_label in preferred_labels:
+            for acc in accounts:
+                label = str(getattr(acc, "label", "") or "").strip().lower()
+                if label == target_label:
+                    return acc
         for acc in accounts:
             label = str(getattr(acc, "label", "") or "").strip().lower()
             if label in {"signal forge gold", "signnal forge gold", "signalforge"}:
@@ -270,7 +329,7 @@ async def _handle_control_command(event, text: str, channel_name: str) -> bool:
 
     action_text = ""
     auto_resume_text = "Not needed"
-    if command in {"bstop", "sstop"}:
+    if command == "sstop":
         reason_code = f"telegram_{command}_stop_until_reopen"
         resume_at = _next_xauusd_reopen_utc()
         stop_account_until(int(acc.login), resume_at, reason_code=reason_code)
@@ -280,7 +339,7 @@ async def _handle_control_command(event, text: str, channel_name: str) -> bool:
             f"[TG_CMD] Stop-until-reopen command accepted from @{channel_name} | "
             f"command={command} | account={acc.label} ({acc.login}) | resume_at={resume_at.isoformat()}"
         )
-    elif command in {"bstart", "sstart"}:
+    elif command == "sstart":
         start_account_now(int(acc.login))
         action_text = "Start trading now"
         logger.warning(
@@ -314,12 +373,16 @@ async def _handle_control_command(event, text: str, channel_name: str) -> bool:
     })
 
     halt_text = mode.get("stop_reason_text") or ("Trading ON" if mode.get("allowed") else "Manual stop")
+    overview_text = ""
+    if command == "sstop" and _is_signal_forge_account(acc):
+        overview_text = "\n\n" + _build_signal_forge_overview_text(acc)
     inline_status = (
         f"✅ Command success\n"
         f"Command: {command}\n"
         f"Account: {acc.label}\n"
         f"Action: {action_text}\n"
         f"State: {'Trading ON' if mode.get('allowed') else 'Trading OFF until market reopen'}"
+        f"{overview_text}"
     )
     await _reply_control_status(event, inline_status)
     send_text_alert(
@@ -329,6 +392,7 @@ async def _handle_control_command(event, text: str, channel_name: str) -> bool:
         f"Action: {action_text}\n"
         f"Current state: {'Trading ON' if mode.get('allowed') else 'Trading OFF until market reopen'}\n"
         f"Auto resume: {auto_resume_text}\n"
+        f"{overview_text.strip() + chr(10) if overview_text else ''}"
         f"Source: @{channel_name}\n"
         f"Reason: {halt_text}"
     )

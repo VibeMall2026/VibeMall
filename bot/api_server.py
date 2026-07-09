@@ -84,6 +84,21 @@ def _period_bounds_utc(today_utc: date) -> dict[str, tuple[date, date]]:
         "last_6_months": (six_month_start, today_utc),
     }
 
+
+def _format_strategy_list(values: list[str] | None) -> str:
+    items = [str(v).strip() for v in (values or []) if str(v).strip()]
+    return ", ".join(items) if items else "none"
+
+
+def _send_control_telegram_notice(title: str, lines: list[str]) -> None:
+    try:
+        from bot.telegram_notifier import send_text_alert
+
+        text_lines = [title] + [str(line).strip() for line in lines if str(line).strip()]
+        send_text_alert("\n".join(text_lines))
+    except Exception as exc:
+        logger.warning(f"[API] Could not send Telegram control notice: {exc}")
+
 # ── CORS ──────────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
@@ -367,14 +382,31 @@ async def control_bot(body: ControlRequest):
     if action == "start":
         if state.running:
             running_strategies = get_runner_status().get("running_strategies", [])
+            _send_control_telegram_notice(
+                "Bot control: START requested",
+                [
+                    "Source: dashboard /control start",
+                    "Status: Bot already running",
+                    f"Running strategies: {_format_strategy_list(running_strategies)}",
+                ],
+            )
             return {
                 "success": False,
                 "message": "Bot already running",
                 "status": "running",
                 "running_strategies": running_strategies,
-            }
+        }
         state.running = True
         started = start_all_strategies()
+        _send_control_telegram_notice(
+            "Bot control: START confirmed",
+            [
+                "Source: dashboard /control start",
+                "Status: Bot started",
+                f"Started strategies: {_format_strategy_list(started)}",
+                f"Running strategies: {_format_strategy_list(get_runner_status().get('running_strategies', []))}",
+            ],
+        )
         return {
             "success": True,
             "message": "Bot started",
@@ -387,6 +419,14 @@ async def control_bot(body: ControlRequest):
         running_before = get_runner_status().get("running_strategies", [])
         state.running = False
         stop_all_strategies()
+        _send_control_telegram_notice(
+            "Bot control: STOP confirmed",
+            [
+                "Source: dashboard /control stop",
+                "Status: Bot stopped",
+                f"Stopped strategies: {_format_strategy_list(running_before)}",
+            ],
+        )
         return {
             "success": True,
             "message": "Bot stopped",
@@ -401,6 +441,15 @@ async def control_bot(body: ControlRequest):
         await asyncio.sleep(1)
         state.running = True
         started = start_all_strategies()
+        _send_control_telegram_notice(
+            "Bot control: RESTART confirmed",
+            [
+                "Source: dashboard /control restart",
+                "Status: Bot restarted",
+                f"Stopped strategies: {_format_strategy_list(running_before)}",
+                f"Started strategies: {_format_strategy_list(started)}",
+            ],
+        )
         return {
             "success": True,
             "message": "Bot restarted",
@@ -415,6 +464,15 @@ async def control_bot(body: ControlRequest):
         state.running = False
         stop_all_strategies()
         weekend_close = mt5_bridge.close_positions_for_weekend(exempt_symbols={"BTCUSD"})
+        _send_control_telegram_notice(
+            "Bot control: WEEKEND SHUTDOWN confirmed",
+            [
+                "Source: dashboard /control weekend_shutdown",
+                "Status: Bot stopped",
+                f"Stopped strategies: {_format_strategy_list(running_before)}",
+                "Weekend close requested for non-BTCUSD positions",
+            ],
+        )
         return {
             "success": weekend_close.get("success", True),
             "message": "Weekend shutdown initiated (non-BTCUSD positions close attempted)",
@@ -435,14 +493,31 @@ async def start_bot():
     from bot.algo.runner import get_runner_status, start_all_strategies
 
     if state.running:
+        running_strategies = get_runner_status().get("running_strategies", [])
+        _send_control_telegram_notice(
+            "Bot control: START requested",
+            [
+                "Source: dashboard /start",
+                "Status: Bot already running",
+                f"Running strategies: {_format_strategy_list(running_strategies)}",
+            ],
+        )
         return {
             "success": False,
             "message": "Bot already running",
             "status": "running",
-            "running_strategies": get_runner_status().get("running_strategies", []),
+            "running_strategies": running_strategies,
         }
     state.running = True
     started = start_all_strategies()
+    _send_control_telegram_notice(
+        "Bot control: START confirmed",
+        [
+            "Source: dashboard /start",
+            "Status: Bot started",
+            f"Started strategies: {_format_strategy_list(started)}",
+        ],
+    )
     return {
         "success": True,
         "message": "Bot started",
@@ -460,6 +535,14 @@ async def stop_bot():
     running_before = get_runner_status().get("running_strategies", [])
     state.running = False
     stop_all_strategies()
+    _send_control_telegram_notice(
+        "Bot control: STOP confirmed",
+        [
+            "Source: dashboard /stop",
+            "Status: Bot stopped",
+            f"Stopped strategies: {_format_strategy_list(running_before)}",
+        ],
+    )
     return {
         "success": True,
         "message": "Bot stopped",
@@ -986,6 +1069,14 @@ async def set_account_trade_mode(login: int, body: AccountTradeModeRequest):
     action = (body.action or "").strip().lower()
     if action == "stop_today":
         _stop_today(login)
+        _send_control_telegram_notice(
+            "Account trade-mode: STOP TODAY confirmed",
+            [
+                f"Login: {login}",
+                "Source: dashboard trade-mode",
+                "Status: Trading paused until next day",
+            ],
+        )
     elif action == "stop_until":
         if not body.until:
             raise HTTPException(status_code=400, detail="until is required for stop_until")
@@ -997,8 +1088,24 @@ async def set_account_trade_mode(login: int, body: AccountTradeModeRequest):
         except Exception:
             raise HTTPException(status_code=400, detail="until must be an ISO datetime string")
         _stop_until(login, until_dt)
+        _send_control_telegram_notice(
+            "Account trade-mode: STOP UNTIL confirmed",
+            [
+                f"Login: {login}",
+                "Source: dashboard trade-mode",
+                f"Resume at: {until_dt.strftime('%Y-%m-%d %H:%M UTC')}",
+            ],
+        )
     elif action == "start_now":
         _start_now(login)
+        _send_control_telegram_notice(
+            "Account trade-mode: START confirmed",
+            [
+                f"Login: {login}",
+                "Source: dashboard trade-mode",
+                "Status: Trading resumed now",
+            ],
+        )
     else:
         raise HTTPException(status_code=400, detail="action must be stop_today, stop_until, or start_now")
     return {"success": True, **_get_mode(login)}
@@ -1033,11 +1140,28 @@ async def algo_start(body: dict = {}):
     strategy_id = body.get("strategy_id")
     if strategy_id:
         success = start_algo(strategy_id)
+        if success:
+            _send_control_telegram_notice(
+                "Algo control: START confirmed",
+                [
+                    f"Strategy: {strategy_id}",
+                    "Source: dashboard /algo/start",
+                    "Status: Strategy started",
+                ],
+            )
         return {"success": success, "message": "Algo started" if success else "Algo already running"}
 
     from bot.algo.runner import start_all_strategies
 
     started = start_all_strategies()
+    if started:
+        _send_control_telegram_notice(
+            "Algo control: START confirmed",
+            [
+                "Source: dashboard /algo/start",
+                f"Started strategies: {_format_strategy_list(started)}",
+            ],
+        )
     return {
         "success": bool(started),
         "started": started,
@@ -1052,6 +1176,14 @@ async def algo_stop():
 
     before = get_runner_status().get("running_strategies", [])
     stop_all_strategies()
+    _send_control_telegram_notice(
+        "Algo control: STOP confirmed",
+        [
+            "Source: dashboard /algo/stop",
+            f"Stopped strategies: {_format_strategy_list(before)}",
+            "Status: Strategy threads stopped",
+        ],
+    )
     return {
         "success": bool(before),
         "stopped": before,

@@ -15,6 +15,7 @@ from bot import config
 
 _error_alert_lock = threading.Lock()
 _last_error_alert_ts: dict[str, float] = {}
+_error_alert_counts: dict[str, int] = {}
 
 
 def _shorten(value: object, limit: int = 700) -> str:
@@ -42,6 +43,28 @@ def _extract_strategy_name(strategy_id: str | None, comment: str | None) -> str:
         if len(parts) >= 2 and parts[1].strip():
             return parts[1].strip().lower()
     return "algo"
+
+
+def _is_signal_forge_notice(
+    strategy_id: str | None,
+    comment: str | None,
+    account_label: str | None = None,
+) -> bool:
+    sid = str(strategy_id or "").strip().lower()
+    if sid in {"signal_forge", "sfg"}:
+        label = str(account_label or "").strip().lower()
+        return any(
+            marker in label
+            for marker in (
+                "signal forge gold",
+                "signalforgegold",
+                "the5ers funded",
+                "signal forge gold 5%",
+                "signal forge gold demo",
+            )
+        )
+    raw = str(comment or "").strip().upper()
+    return raw.startswith("ALGO:SFG") or "SIGNAL_FORGE" in raw
 
 
 async def _send_via_bot_api(chat_id: str, text: str) -> None:
@@ -141,6 +164,8 @@ def send_algo_execution_alert(
     strategy_id: str | None = None,
     comment: str | None = None,
 ) -> bool:
+    if not _is_signal_forge_notice(strategy_id, comment, account_label=account_label):
+        return False
     chat_id = _get_alert_destination()
     if not chat_id:
         return False
@@ -189,6 +214,8 @@ def send_algo_error_alert(
 ) -> bool:
     if not getattr(config, "TG_ALGO_ERROR_ALERTS_ENABLED", True):
         return False
+    if not _is_signal_forge_notice(strategy_id, comment, account_label=account_label):
+        return False
 
     chat_id = _get_alert_destination()
     if not chat_id:
@@ -208,13 +235,17 @@ def send_algo_error_alert(
         ]
     )
 
-    if dedupe_seconds > 0:
-        now = time.monotonic()
-        with _error_alert_lock:
+    now = time.monotonic()
+    with _error_alert_lock:
+        sent_count = _error_alert_counts.get(dedupe_key, 0)
+        if sent_count >= 5:
+            return False
+        if dedupe_seconds > 0:
             last = _last_error_alert_ts.get(dedupe_key, 0.0)
             if now - last < dedupe_seconds:
                 return False
             _last_error_alert_ts[dedupe_key] = now
+        _error_alert_counts[dedupe_key] = sent_count + 1
 
     when_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     text = (
