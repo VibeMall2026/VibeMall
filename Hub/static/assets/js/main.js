@@ -355,7 +355,7 @@
 		$('#checkout_coupon').slideToggle(900);
 	});
 
-	(function () {
+	if (false) {
 		const viewCouponsBtn = document.getElementById('viewAvailableCoupons');
 		if (!viewCouponsBtn) {
 			return;
@@ -567,7 +567,7 @@
 			event.preventDefault();
 			showAvailableCouponsPopup();
 		});
-	})();
+	}
 
 	////////////////////////////////////////////////////
 	// 19. Create An Account Toggle Js
