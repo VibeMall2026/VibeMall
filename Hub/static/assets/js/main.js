@@ -355,6 +355,220 @@
 		$('#checkout_coupon').slideToggle(900);
 	});
 
+	(function () {
+		const viewCouponsBtn = document.getElementById('viewAvailableCoupons');
+		if (!viewCouponsBtn) {
+			return;
+		}
+
+		const couponsPanel = document.getElementById('availableCouponsPanel');
+		const couponsList = document.getElementById('availableCouponsList');
+		const couponsStatus = document.getElementById('availableCouponsStatus');
+
+		function parseAmount(text) {
+			const value = String(text || '').replace(/[^\d.-]/g, '');
+			const parsed = Number.parseFloat(value);
+			return Number.isFinite(parsed) ? parsed : 0;
+		}
+
+		function getCartTotal() {
+			const subtotalElement = document.getElementById('cart_subtotal_amount');
+			const finalElement = document.getElementById('final_total_display');
+			return parseAmount((subtotalElement && subtotalElement.textContent) || (finalElement && finalElement.textContent) || '0');
+		}
+
+		function showMessage(message, type) {
+			const messageBox = document.getElementById('couponMessage');
+			if (!messageBox) {
+				return;
+			}
+			messageBox.innerHTML = `<div class="alert vm-inline-alert alert-${type} alert-dismissible fade show"><small>${message}</small><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
+			setTimeout(function () {
+				messageBox.innerHTML = '';
+			}, 5000);
+		}
+
+		function applyCouponCode(code) {
+			fetch('/api/validate-coupon/', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || ''
+				},
+				body: JSON.stringify({
+					code: code,
+					cart_total: getCartTotal()
+				})
+			})
+			.then(function (response) {
+				return response.json().then(function (data) {
+					return { response: response, data: data };
+				});
+			})
+			.then(function (payload) {
+				if (!payload.response.ok || !payload.data.valid) {
+					throw new Error(payload.data.message || 'Unable to apply coupon.');
+				}
+
+				const couponInput = document.getElementById('couponCode');
+				const couponIdInput = document.getElementById('appliedCouponId');
+				const couponDisplay = document.getElementById('appliedCouponDisplay');
+				const couponCodeDisplay = document.getElementById('appliedCouponCode');
+				const couponAmountDisplay = document.getElementById('appliedCouponAmount');
+				const couponDiscountRow = document.getElementById('coupon_discount_row');
+				const couponDiscountAmount = document.getElementById('coupon_discount_amount');
+
+				if (couponInput) {
+					couponInput.value = payload.data.code;
+				}
+				if (couponIdInput) {
+					couponIdInput.value = payload.data.coupon_id;
+				}
+				if (couponCodeDisplay) {
+					couponCodeDisplay.textContent = payload.data.code;
+				}
+				if (couponAmountDisplay) {
+					couponAmountDisplay.textContent = Number(payload.data.discount_amount || 0).toFixed(2);
+				}
+				if (couponDisplay) {
+					couponDisplay.style.display = 'block';
+				}
+				if (couponDiscountRow && couponDiscountAmount) {
+					couponDiscountRow.style.display = 'table-row';
+					couponDiscountAmount.textContent = `-₹${Number(payload.data.discount_amount || 0).toFixed(2)}`;
+				}
+				if (couponsPanel) {
+					couponsPanel.style.display = 'none';
+				}
+				if (viewCouponsBtn) {
+					viewCouponsBtn.textContent = 'Available Coupons';
+				}
+				showMessage(payload.data.message, 'success');
+			})
+			.catch(function (error) {
+				showMessage((error && error.message) || 'Error applying coupon', 'danger');
+			});
+		}
+
+		function renderCoupons(coupons) {
+			if (!couponsList) {
+				return;
+			}
+
+			couponsList.innerHTML = coupons.map(function (coupon) {
+				const isUsed = coupon.used ? ' is-used' : '';
+				const buttonHtml = coupon.used
+					? '<button type="button" disabled>Used</button>'
+					: `<button type="button" class="apply-coupon-btn" data-code="${coupon.code}">Apply</button>`;
+				const description = coupon.description || coupon.title || 'Offer available on eligible orders.';
+				const discount = coupon.discount || 'Offer';
+				return `
+					<div class="vm-checkout-d-coupon-card${isUsed}" data-code="${coupon.code}" data-used="${coupon.used ? '1' : '0'}" role="button" tabindex="0">
+						<div>
+							<h5>${coupon.code}</h5>
+							<p>${description}</p>
+							<div class="vm-checkout-d-coupon-meta">
+								<span>${discount}</span>
+								${coupon.title ? `<span>${coupon.title}</span>` : ''}
+							</div>
+						</div>
+						<div>${buttonHtml}</div>
+					</div>
+				`;
+			}).join('');
+
+			couponsList.querySelectorAll('.apply-coupon-btn').forEach(function (button) {
+				button.addEventListener('click', function () {
+					const code = this.getAttribute('data-code');
+					const couponInput = document.getElementById('couponCode');
+					if (couponInput) {
+						couponInput.value = code;
+					}
+					applyCouponCode(code);
+				});
+			});
+
+			couponsList.querySelectorAll('.vm-checkout-d-coupon-card[data-code]').forEach(function (card) {
+				card.addEventListener('click', function (event) {
+					if (event.target.closest('button') || card.dataset.used === '1') {
+						return;
+					}
+					const code = card.dataset.code;
+					const couponInput = document.getElementById('couponCode');
+					if (couponInput) {
+						couponInput.value = code;
+					}
+					applyCouponCode(code);
+				});
+			});
+		}
+
+		function showAvailableCouponsPopup() {
+			if (!couponsPanel || !couponsList) {
+				return;
+			}
+
+			const isOpen = couponsPanel.style.display === 'block' && couponsPanel.dataset.loaded === 'true';
+			if (isOpen) {
+				couponsPanel.style.display = 'none';
+				if (viewCouponsBtn) {
+					viewCouponsBtn.textContent = 'Available Coupons';
+				}
+				return;
+			}
+
+			couponsPanel.style.display = 'block';
+			couponsPanel.dataset.loaded = 'false';
+			if (couponsStatus) {
+				couponsStatus.textContent = 'Loading coupons...';
+			}
+			couponsList.innerHTML = '';
+			if (viewCouponsBtn) {
+				viewCouponsBtn.textContent = 'Hide Coupons';
+			}
+
+			fetch(`/api/available-coupons/?cart_total=${encodeURIComponent(getCartTotal())}`, {
+				method: 'GET',
+				headers: {
+					'X-Requested-With': 'XMLHttpRequest'
+				}
+			})
+			.then(function (response) {
+				return response.json();
+			})
+			.then(function (data) {
+				if (data.success && Array.isArray(data.coupons) && data.coupons.length > 0) {
+					couponsPanel.dataset.loaded = 'true';
+					if (couponsStatus) {
+						couponsStatus.textContent = `${data.coupons.length} coupon${data.coupons.length === 1 ? '' : 's'} found`;
+					}
+					renderCoupons(data.coupons);
+					return;
+				}
+
+				couponsPanel.dataset.loaded = 'true';
+				if (couponsStatus) {
+					couponsStatus.textContent = 'No coupons available right now';
+				}
+				couponsList.innerHTML = '<div class="vm-checkout-d-coupon-card"><div><h5>No coupons available</h5><p>Please try again later.</p></div></div>';
+			})
+			.catch(function () {
+				couponsPanel.dataset.loaded = 'true';
+				if (couponsStatus) {
+					couponsStatus.textContent = 'Unable to load coupons';
+				}
+				couponsList.innerHTML = '<div class="vm-checkout-d-coupon-card"><div><h5>Could not load coupons</h5><p>Please try again in a moment.</p></div></div>';
+				showMessage('Error loading coupons', 'danger');
+			});
+		}
+
+		window.VMCheckoutShowAvailableCoupons = showAvailableCouponsPopup;
+		viewCouponsBtn.addEventListener('click', function (event) {
+			event.preventDefault();
+			showAvailableCouponsPopup();
+		});
+	})();
+
 	////////////////////////////////////////////////////
 	// 19. Create An Account Toggle Js
 	$('#cbox').on('click', function () {
