@@ -1828,7 +1828,8 @@ if (applyCouponBtn) {
 // View Available Coupons
 const viewCouponsBtn = document.getElementById('viewAvailableCoupons');
 if (viewCouponsBtn) {
-    viewCouponsBtn.addEventListener('click', function() {
+    viewCouponsBtn.addEventListener('click', function(event) {
+        event.preventDefault();
         showAvailableCouponsPopup();
     });
 }
@@ -2182,7 +2183,7 @@ document.addEventListener('DOMContentLoaded', function () {
 {% endblock content %}
 
 {% block extra_js %}
-<script src="{% static 'assets/js/checkout-tablet.js' %}?v=20260405-01"></script>
+<script src="{% static 'assets/js/checkout-tablet.js' %}?v=20260710-01"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     function configureDefaultAddress(options) {

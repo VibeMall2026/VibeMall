@@ -355,15 +355,6 @@
 		$('#checkout_coupon').slideToggle(900);
 	});
 
-	if ($('#viewAvailableCoupons').length) {
-		$('#viewAvailableCoupons').on('click', function (event) {
-			if (typeof window.VMCheckoutShowAvailableCoupons === 'function') {
-				event.preventDefault();
-				window.VMCheckoutShowAvailableCoupons();
-			}
-		});
-	}
-
 	////////////////////////////////////////////////////
 	// 19. Create An Account Toggle Js
 	$('#cbox').on('click', function () {
