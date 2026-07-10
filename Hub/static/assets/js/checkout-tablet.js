@@ -338,11 +338,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function applyCouponCode(code) {
         try {
-            const response = await fetch('{% url "api_validate_coupon" %}', {
+            const response = await fetch('/api/validate-coupon/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
                 },
                 body: JSON.stringify({
                     code: code,
@@ -355,7 +355,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.valid) {
                 appliedCoupon = true;
                 selectedCouponCode = code;
-                appliedCouponIdInput.value = data.code;
+                appliedCouponIdInput.value = data.coupon_id;
                 couponDiscountDisplay.textContent = '-₹' + data.discount_amount.toFixed(2);
                 showCouponMessage(data.message, 'success');
                 couponCodeInput.disabled = true;
@@ -412,15 +412,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function loadAvailableCoupons() {
         try {
-            const response = await fetch('{% url "api_available_coupons" %}', {
-                method: 'POST',
+            const response = await fetch(`/api/available-coupons/?cart_total=${encodeURIComponent(cartSubtotal)}`, {
+                method: 'GET',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                },
-                body: JSON.stringify({
-                    cart_total: cartSubtotal
-                })
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
             });
 
             const data = await response.json();
