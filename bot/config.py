@@ -52,6 +52,13 @@ TG_EXECUTION_ALERT_ACCOUNT_LABELS: list[str] = [
         "Signal Forge Gold,The5ers Funded",
     )
 ]
+TRADING_DASHBOARD_ACCOUNT_LABELS: list[str] = [
+    label.strip().lower()
+    for label in _list(
+        "TRADING_DASHBOARD_ACCOUNT_LABELS",
+        "Signal Forge Gold,The5ers Funded",
+    )
+]
 TG_CONTROL_ALLOWED_USERNAMES: list[str] = [u.lstrip("@").strip().lower() for u in _list("TG_CONTROL_ALLOWED_USERNAMES")]
 TG_CONTROL_ALLOWED_IDS: list[str] = [str(x).strip() for x in _list("TG_CONTROL_ALLOWED_IDS")]
 

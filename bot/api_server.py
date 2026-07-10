@@ -38,6 +38,24 @@ _accounts_refresh_lock = threading.Lock()
 _accounts_refresh_in_progress = False
 
 
+def _visible_dashboard_accounts(accounts):
+    try:
+        from bot import config
+    except Exception:
+        return list(accounts or [])
+    labels = {
+        label.strip().lower()
+        for label in (getattr(config, "TRADING_DASHBOARD_ACCOUNT_LABELS", []) or [])
+        if label
+    }
+    if not labels:
+        return list(accounts or [])
+    return [
+        acc for acc in (accounts or [])
+        if str(getattr(acc, "label", "")).strip().lower() in labels
+    ]
+
+
 def _parse_trade_date(raw_value) -> date | None:
     """Parse trade datetime/date strings from MT5 payload."""
     if raw_value is None:
@@ -931,7 +949,7 @@ async def list_accounts():
     """List all configured MT5 accounts."""
     from bot.accounts import get_all_accounts
     # Keep this endpoint ultra-fast for dashboard polling.
-    return [acc.to_dict() for acc in get_all_accounts()]
+    return [acc.to_dict() for acc in _visible_dashboard_accounts(get_all_accounts())]
 
 
 @app.post("/accounts", dependencies=[Depends(verify_api_key)])
@@ -1047,7 +1065,7 @@ async def refresh_accounts():
             _accounts_refresh_in_progress = True
             threading.Thread(target=_refresh_worker, daemon=True).start()
 
-    return [acc.to_dict() for acc in get_all_accounts()]
+    return [acc.to_dict() for acc in _visible_dashboard_accounts(get_all_accounts())]
 
 
 @app.get("/accounts/{login}/trade-mode", dependencies=[Depends(verify_api_key)])
