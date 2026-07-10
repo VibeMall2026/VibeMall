@@ -92,13 +92,6 @@
         <p style="color:#a8aaae;font-size:.85rem;">Tame multiple strategies select kari shako (multi-select):</p>
         <div class="d-flex flex-column gap-2">
           <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
-            <input type="checkbox" name="account_strategy" value="order_block" id="strat_order_block" class="form-check-input mt-1">
-            <div>
-              <div style="font-weight:600;">⚡ Order Block + FVG</div>
-              <small style="color:#a8aaae;">ICT/Smart Money — detects Order Blocks and Fair Value Gaps</small>
-            </div>
-          </label>
-          <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
             <input type="checkbox" name="account_strategy" value="breakout" id="strat_breakout" class="form-check-input mt-1">
             <div>
               <div style="font-weight:600;">📈 Range Breakout Retest</div>
@@ -106,17 +99,10 @@
             </div>
           </label>
           <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
-            <input type="checkbox" name="account_strategy" value="confluence" id="strat_confluence" class="form-check-input mt-1">
+            <input type="checkbox" name="account_strategy" value="signal_forge" id="strat_signal_forge" class="form-check-input mt-1">
             <div>
-              <div style="font-weight:600;">🧩 OB + FVG + Breakout</div>
-              <small style="color:#a8aaae;">Order Block + Fair Value Gap with breakout confluence</small>
-            </div>
-          </label>
-          <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
-            <input type="checkbox" name="account_strategy" value="my_strategy" id="strat_my_strategy" class="form-check-input mt-1">
-            <div>
-              <div style="font-weight:600;">🧱 MultiTF Rejection</div>
-              <small style="color:#a8aaae;">15m S/R levels + 5m rejection entry with BE + step trailing</small>
+              <div style="font-weight:600;">✨ Signal Forge</div>
+              <small style="color:#a8aaae;">Modular multi-indicator signal engine</small>
             </div>
           </label>
           <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
@@ -215,20 +201,12 @@
           <label class="form-label" style="color:#a8aaae;">Trading Strategy (multi-select)</label>
           <div class="d-flex flex-column gap-2 p-2 rounded" style="background:#232333;border:1px solid #3b3d52;">
             <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
-              <input type="checkbox" value="order_block" id="newAccStrat_order_block" class="form-check-input" checked>
-              <span>⚡ Order Block + FVG</span>
-            </label>
-            <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
               <input type="checkbox" value="breakout" id="newAccStrat_breakout" class="form-check-input">
               <span>📈 Range Breakout Retest</span>
             </label>
             <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
-              <input type="checkbox" value="confluence" id="newAccStrat_confluence" class="form-check-input">
-              <span>🧩 OB + FVG + Breakout</span>
-            </label>
-            <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
-              <input type="checkbox" value="my_strategy" id="newAccStrat_my_strategy" class="form-check-input">
-              <span>🧱 MultiTF Rejection</span>
+              <input type="checkbox" value="signal_forge" id="newAccStrat_signal_forge" class="form-check-input" checked>
+              <span>✨ Signal Forge</span>
             </label>
             <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
               <input type="checkbox" value="telegram_signals" id="newAccStrat_telegram_signals" class="form-check-input">
@@ -762,10 +740,8 @@
   }
 
   const STRATEGY_LABELS = {
-    'order_block': '⚡ Order Block + FVG',
     'breakout': '📈 Range Breakout Retest',
-    'confluence': '🧩 OB + FVG + Breakout',
-    'my_strategy': '🧱 MultiTF Rejection',
+    'signal_forge': '✨ Signal Forge',
     'telegram_signals': '📡 Telegram Signals',
     'ema_crossover': '📈 EMA Crossover',
     'rsi_reversal': '🔄 RSI Reversal',
@@ -773,10 +749,8 @@
   };
 
   const STRATEGY_OPTIONS = `
-    <option value="order_block">Order Block + FVG</option>
     <option value="breakout">Range Breakout Retest</option>
-    <option value="confluence">OB + FVG + Breakout</option>
-    <option value="my_strategy">MultiTF Rejection</option>
+    <option value="signal_forge">Signal Forge</option>
     <option value="telegram_signals">Telegram Signals Only</option>
     <option value="ema_crossover" disabled>EMA Crossover (Soon)</option>
     <option value="rsi_reversal" disabled>RSI Reversal (Soon)</option>
@@ -965,17 +939,13 @@
     });
 
     const strategyNames = {
-      'order_block': '⚡ Order Block + FVG',
       'breakout': '📈 Range Breakout Retest',
-      'confluence': '🧩 OB + FVG + Breakout',
-      'my_strategy': '🧱 MultiTF Rejection',
+      'signal_forge': '✨ Signal Forge',
       'telegram_signals': '📡 Telegram Signals',
     };
     const strategyColors = {
-      'order_block': '#696cff',
       'breakout': '#28c76f',
-      'confluence': '#ff9f43',
-      'my_strategy': '#9b59b6',
+      'signal_forge': '#f6c94c',
       'telegram_signals': '#29b6f6',
     };
 
@@ -1055,9 +1025,9 @@
     document.getElementById('accPassword').value = '';
     document.getElementById('accServer').value = '';
     // reset strategies
-    ['order_block', 'breakout', 'confluence', 'my_strategy', 'telegram_signals'].forEach(s => {
+    ['breakout', 'signal_forge', 'telegram_signals'].forEach(s => {
       const el = document.getElementById(`newAccStrat_${s}`);
-      if (el) el.checked = (s === 'order_block');
+      if (el) el.checked = (s === 'signal_forge');
     });
     // reset only-trade
     const all = document.getElementById('onlyTradeAll');
@@ -1182,7 +1152,7 @@
 
   function saveStrategies() {
     const accountId = document.getElementById('strategyAccountId').value;
-    const selected = ['order_block', 'breakout', 'confluence', 'my_strategy', 'telegram_signals']
+    const selected = ['breakout', 'signal_forge', 'telegram_signals']
       .filter(s => document.getElementById(`strat_${s}`)?.checked);
     if (!selected || selected.length === 0) {
       document.getElementById('strategyResult').style.display = 'block';
@@ -1233,7 +1203,7 @@
 
   function submitAddAccount() {
     const csrfToken = getCookie('csrftoken');
-    const strategies = ['order_block', 'breakout', 'confluence', 'my_strategy', 'telegram_signals']
+    const strategies = ['breakout', 'signal_forge', 'telegram_signals']
       .filter(s => document.getElementById(`newAccStrat_${s}`)?.checked);
     if (!strategies.length) {
       alert('At least 1 strategy select karo');
@@ -1503,7 +1473,7 @@
   // Overload openStrategyModal to also accept current allowed symbols.
   function openStrategyModal(accountId, currentStrategies, allowedSymbols) {
     document.getElementById('strategyAccountId').value = accountId;
-    ['order_block', 'breakout', 'confluence', 'my_strategy', 'telegram_signals'].forEach(s => {
+    ['breakout', 'signal_forge', 'telegram_signals'].forEach(s => {
       const el = document.getElementById(`strat_${s}`);
       if (el) el.checked = (currentStrategies || []).includes(s);
     });

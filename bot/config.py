@@ -45,6 +45,13 @@ TG_ENABLED: bool = _bool("TG_ENABLED", True)
 TG_EXECUTION_ALERT_CHAT: str = os.getenv("TG_EXECUTION_ALERT_CHAT", "").strip()
 TG_ALGO_ERROR_ALERTS_ENABLED: bool = _bool("TG_ALGO_ERROR_ALERTS_ENABLED", True)
 TG_ALGO_ERROR_DEDUPE_SECONDS: int = _int("TG_ALGO_ERROR_DEDUPE_SECONDS", 60)
+TG_EXECUTION_ALERT_ACCOUNT_LABELS: list[str] = [
+    label.strip().lower()
+    for label in _list(
+        "TG_EXECUTION_ALERT_ACCOUNT_LABELS",
+        "Signal Forge Gold,The5ers Funded",
+    )
+]
 TG_CONTROL_ALLOWED_USERNAMES: list[str] = [u.lstrip("@").strip().lower() for u in _list("TG_CONTROL_ALLOWED_USERNAMES")]
 TG_CONTROL_ALLOWED_IDS: list[str] = [str(x).strip() for x in _list("TG_CONTROL_ALLOWED_IDS")]
 
@@ -57,7 +64,7 @@ MT5_TIMEOUT_MS: int = _int("MT5_TIMEOUT_MS", 60000)
 MT5_PORTABLE: bool = _bool("MT5_PORTABLE", False)
 MT5_DEVIATION: int = _int("MT5_DEVIATION", 20)
 MT5_MAGIC_NUMBER: int = _int("MT5_MAGIC_NUMBER", 550001)
-MT5_PRIMARY_STRATEGY: str = os.getenv("MT5_PRIMARY_STRATEGY", "order_block").strip() or "order_block"
+MT5_PRIMARY_STRATEGY: str = os.getenv("MT5_PRIMARY_STRATEGY", "signal_forge").strip() or "signal_forge"
 MT5_PRIMARY_ALLOWED_SYMBOLS: list[str] = _list("MT5_PRIMARY_ALLOWED_SYMBOLS")
 
 # Extra accounts: "Label|login|password|server|strategy1+strategy2"

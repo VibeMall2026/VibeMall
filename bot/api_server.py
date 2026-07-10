@@ -593,10 +593,8 @@ async def strategy_stats(strategy_id: str, period: str = "today", account_login:
         assigned_accounts = [acc for acc in assigned_accounts if str(acc.login) == selected_account_login]
 
     comment_map = {
-        "order_block": "ALGO:OB",
         "breakout": "ALGO:BRK",
-        "confluence": "ALGO:CONF",
-        "my_strategy": "ALGO:MTF",
+        "signal_forge": "ALGO:SFG",
     }
     comment_prefix = comment_map.get(strategy_id, f"ALGO:{strategy_id[:3].upper()}")
     assigned_logins = {acc.login for acc in assigned_accounts}
@@ -875,7 +873,7 @@ class AccountAddRequest(BaseModel):
     server: str
     path: Optional[str] = ""
     # Can be a string or a list of strings (multi-strategy per account).
-    strategy: Optional[object] = "order_block"
+    strategy: Optional[object] = "signal_forge"
     # None/empty = all symbols; otherwise whitelist.
     allowed_symbols: Optional[list[str]] = None
 
@@ -940,7 +938,7 @@ async def list_accounts():
 async def add_account(body: AccountAddRequest):
     """Add a new MT5 account."""
     from bot.accounts import add_account as _add
-    strategy = body.strategy or "order_block"
+    strategy = body.strategy or "signal_forge"
     acc = _add(
         label=body.label,
         login=body.login,
@@ -974,7 +972,7 @@ async def toggle_account(account_id: str, body: dict = {}):
 async def update_strategy(account_id: str, body: dict = {}):
     """Update strategy for an account."""
     from bot.accounts import update_account_strategy, update_account_strategies
-    strategy = body.get("strategy", "order_block")
+    strategy = body.get("strategy", "signal_forge")
     if isinstance(strategy, list):
         success = update_account_strategies(account_id, strategy)
     else:

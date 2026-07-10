@@ -34,6 +34,18 @@ def _get_alert_destination() -> str:
     return str(channels[0]).strip() if channels else ""
 
 
+def _is_allowed_execution_account(account_label: str | None) -> bool:
+    allowed_labels = {
+        str(label or "").strip().lower()
+        for label in (getattr(config, "TG_EXECUTION_ALERT_ACCOUNT_LABELS", []) or [])
+        if str(label or "").strip()
+    }
+    if not allowed_labels:
+        return True
+    label = str(account_label or "").strip().lower()
+    return label in allowed_labels
+
+
 def _extract_strategy_name(strategy_id: str | None, comment: str | None) -> str:
     if str(strategy_id or "").strip():
         return str(strategy_id).strip()
@@ -164,6 +176,8 @@ def send_algo_execution_alert(
     strategy_id: str | None = None,
     comment: str | None = None,
 ) -> bool:
+    if not _is_allowed_execution_account(account_label):
+        return False
     if not _is_signal_forge_notice(strategy_id, comment, account_label=account_label):
         return False
     chat_id = _get_alert_destination()
@@ -213,6 +227,8 @@ def send_algo_error_alert(
     severity: str = "ERROR",
 ) -> bool:
     if not getattr(config, "TG_ALGO_ERROR_ALERTS_ENABLED", True):
+        return False
+    if not _is_allowed_execution_account(account_label):
         return False
     if not _is_signal_forge_notice(strategy_id, comment, account_label=account_label):
         return False

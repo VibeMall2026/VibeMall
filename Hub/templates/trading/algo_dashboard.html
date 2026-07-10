@@ -396,10 +396,9 @@
           <div class="col-12">
             <label class="stat-label">Strategy</label>
             <select id="cfgStrategyId" class="form-select config-input mt-1">
-              <option value="order_block">Order Block + FVG</option>
               <option value="breakout">Range Breakout Retest</option>
-              <option value="confluence">OB + FVG + Breakout</option>
-              <option value="my_strategy">MultiTF Rejection</option>
+              <option value="signal_forge">Signal Forge</option>
+              <option value="telegram_signals">Telegram Signals Only</option>
             </select>
           </div>
           <div class="col-12">
@@ -730,12 +729,11 @@ function formatScanTime(value) {
 }
 
 function normalizeStrategyRows(statuses) {
-  const ordered = ['order_block', 'breakout', 'confluence', 'my_strategy'];
+  const ordered = ['signal_forge', 'breakout', 'telegram_signals'];
   const labelMap = {
-    order_block: 'Order Block + FVG',
     breakout: 'Range Breakout Retest',
-    confluence: 'OB + FVG + Breakout',
-    my_strategy: 'MultiTF Rejection'
+    signal_forge: 'Signal Forge',
+    telegram_signals: 'Telegram Signals Only'
   };
   return ordered
     .filter(key => statuses && statuses[key])

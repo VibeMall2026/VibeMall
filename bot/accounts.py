@@ -221,7 +221,7 @@ class MT5Account:
 
     def __post_init__(self):
         if self.strategy is None:
-            self.strategy = ["order_block"]
+            self.strategy = ["signal_forge"]
         # Normalize allowed_symbols.
         if self.allowed_symbols is not None:
             try:
@@ -260,21 +260,21 @@ _accounts: list[MT5Account] = []
 def _normalize_single_strategy(strategy) -> list[str]:
     """Store exactly one strategy per account for predictable runner behavior."""
     if isinstance(strategy, list):
-        strategy = strategy[0] if strategy else "order_block"
-    return [str(strategy or "order_block").strip()]
+        strategy = strategy[0] if strategy else "signal_forge"
+    return [str(strategy or "signal_forge").strip()]
 
 
 def _normalize_strategies(strategy) -> list[str]:
     """Accept string or list[str] and return normalized list[str] (deduped)."""
     if strategy is None:
-        return ["order_block"]
+        return ["signal_forge"]
     raw = list(strategy) if isinstance(strategy, (list, tuple, set)) else [strategy]
     cleaned: list[str] = []
     for s in raw:
         sid = str(s or "").strip()
         if sid and sid not in cleaned:
             cleaned.append(sid)
-    return cleaned or ["order_block"]
+    return cleaned or ["signal_forge"]
 
 
 def _load_default_account() -> None:
@@ -289,7 +289,7 @@ def _load_default_account() -> None:
             server=_config.MT5_SERVER,
             path=_config.MT5_PATH,
             enabled=True,
-            strategy=_normalize_single_strategy(getattr(_config, "MT5_PRIMARY_STRATEGY", "order_block")),
+            strategy=_normalize_single_strategy(getattr(_config, "MT5_PRIMARY_STRATEGY", "signal_forge")),
             allowed_symbols=(
                 [s.strip().upper() for s in getattr(_config, "MT5_PRIMARY_ALLOWED_SYMBOLS", []) if str(s).strip()]
                 or None
@@ -313,7 +313,7 @@ def _load_extra_accounts() -> None:
         XAUUSD,BTCUSD
 
     Example:
-        Range Breakout Demo|106903766|IbLcNr_4|MetaQuotes-Demo|breakout|C:\MT5\terminal64.exe|XAUUSD
+        Example Account|106903766|password|MetaQuotes-Demo|breakout|C:\MT5\terminal64.exe|XAUUSD
     """
     # In one-account-per-process mode, skip loading shared extra accounts from .env.
     # Each process should only run its own primary account credentials.
@@ -362,7 +362,7 @@ def _load_extra_accounts() -> None:
             password = os.getenv(password[1:].strip(), password)
         server = parts[3].strip()
         strategies = _normalize_single_strategy(
-            [s.strip() for s in parts[4].split("+")] if len(parts) >= 5 else ["order_block"]
+            [s.strip() for s in parts[4].split("+")] if len(parts) >= 5 else ["signal_forge"]
         )
         account_path = parts[5].strip() if len(parts) >= 6 else _config.MT5_PATH
         allowed_symbols = None
@@ -672,7 +672,7 @@ def add_account(
     password: str,
     server: str,
     path: str = "",
-    strategy="order_block",
+    strategy="signal_forge",
     allowed_symbols: Optional[list[str]] = None,
 ) -> MT5Account:
     """Add a new MT5 account."""
@@ -977,7 +977,7 @@ def probe_marketwatch_symbols(login: int, password: str, server: str, path: str 
         server=str(server or ""),
         path=str(path or ""),
         enabled=True,
-        strategy=["order_block"],
+        strategy=["signal_forge"],
     )
     symbols: list[str] = []
     with _mt5_op_lock:

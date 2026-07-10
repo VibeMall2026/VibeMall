@@ -18,13 +18,6 @@ from typing import Optional
 
 STRATEGIES: list[dict] = [
     {
-        "id": "order_block",
-        "name": "Order Block + FVG",
-        "description": "ICT/Smart Money — detects Order Blocks and Fair Value Gaps on 15m/5m timeframes",
-        "status": "available",
-        "module": "bot.algo.order_block",
-    },
-    {
         "id": "breakout",
         "name": "Range Breakout Retest",
         "description": "Recent range breakout with trend, ATR, volume, and retest confirmation",
@@ -32,30 +25,9 @@ STRATEGIES: list[dict] = [
         "module": "bot.algo.breakout",
     },
     {
-        "id": "confluence",
-        "name": "OB + FVG + Breakout",
-        "description": "Order Block + Fair Value Gap with same-direction breakout confluence",
-        "status": "available",
-        "module": "bot.algo.confluence",
-    },
-    {
-        "id": "my_strategy",
-        "name": "MultiTF Rejection",
-        "description": "Multi-timeframe support/resistance rejection (15m levels, 5m confirmation) with BE + step trailing",
-        "status": "available",
-        "module": "bot.algo.multi_tf_rejection",
-    },
-    {
-        "id": "volume_bubbles",
-        "name": "Volume Bubbles",
-        "description": "Volume/Delta percentile cluster detection with consensus windows (QuantAlgo-style scanner)",
-        "status": "available",
-        "module": "bot.algo.volume_bubbles",
-    },
-    {
         "id": "signal_forge",
         "name": "Signal Forge",
-        "description": "Modular 11-indicator confluence engine with fresh-signal entries and ATR-based exits",
+        "description": "Modular 11-indicator signal engine with fresh-signal entries and ATR-based exits",
         "status": "available",
         "module": "bot.algo.signal_forge",
     },
