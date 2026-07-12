@@ -757,8 +757,18 @@
     <option value="bollinger_breakout" disabled>Bollinger Breakout (Soon)</option>
   `;
 
+  const VISIBLE_ACCOUNT_LABELS = new Set([
+    'signal forge gold',
+    'the5ers funded',
+  ]);
+
+  function filterVisibleAccounts(accounts) {
+    return (accounts || []).filter(acc => VISIBLE_ACCOUNT_LABELS.has(String(acc.label || '').trim().toLowerCase()));
+  }
+
   function renderAccounts(accounts) {
     const tbody = document.getElementById('accountsBody');
+    accounts = filterVisibleAccounts(accounts);
     if (!accounts || accounts.length === 0) {
       tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">No accounts configured</td></tr>';
       renderStrategyButtons([]);
@@ -852,6 +862,7 @@
 
   renderAccounts = function(accounts) {
     const tbody = document.getElementById('accountsBody');
+    accounts = filterVisibleAccounts(accounts);
     if (!accounts || accounts.length === 0) {
       tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">No accounts configured</td></tr>';
       renderStrategyButtons([]);
@@ -933,6 +944,7 @@
   }
 
   function renderStrategyButtons(accounts) {
+    accounts = filterVisibleAccounts(accounts);
     const strategies = new Set();
     accounts.forEach(acc => {
       (acc.strategy || []).forEach(s => strategies.add(s));
