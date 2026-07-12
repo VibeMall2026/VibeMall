@@ -8,8 +8,10 @@ Session strategy:
 """
 import asyncio
 import os
+import shlex
 from datetime import datetime, timedelta, timezone, date
 from types import SimpleNamespace
+from zoneinfo import ZoneInfo
 from loguru import logger
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
@@ -52,8 +54,10 @@ def _build_help_text() -> str:
     return (
         "Trading bot control commands\n\n"
         "/status - Show account trading status\n"
-        "/signal_forge_stop - Stop Signal Forge Gold until next XAUUSD market reopen\n"
-        "/signal_forge_start - Start Signal Forge Gold now"
+        "/signal_forge_stop [time] - Stop Signal Forge Gold until next XAUUSD reopen or a custom time\n"
+        "/signal_forge_start - Start Signal Forge Gold now\n"
+        "Time examples: /signal_forge_stop 2026-07-12 18:00\n"
+        "               /signal_forge_stop 18:00"
     )
 
 
@@ -87,6 +91,41 @@ def _parse_trade_date(raw_value) -> date | None:
         return datetime.fromisoformat(iso).date()
     except Exception:
         return None
+
+
+def _parse_stop_until_datetime(command_text: str) -> tuple[datetime | None, str]:
+    parts = shlex.split(str(command_text or "").strip())
+    if len(parts) <= 1:
+        return _next_xauusd_reopen_utc(), "next_xauusd_reopen"
+
+    raw_arg = " ".join(parts[1:]).strip()
+    if not raw_arg:
+        return None, "missing_time"
+
+    try:
+        iso_value = raw_arg.replace("Z", "+00:00").replace(" ", "T")
+        parsed = datetime.fromisoformat(iso_value)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=ZoneInfo("Europe/Berlin"))
+        return parsed.astimezone(timezone.utc), "custom_time"
+    except Exception:
+        pass
+
+    try:
+        local_tz = ZoneInfo("Europe/Berlin")
+        now_local = datetime.now(local_tz)
+        if ":" in raw_arg and "-" not in raw_arg:
+            parsed_local = datetime.strptime(raw_arg, "%H:%M").replace(
+                year=now_local.year,
+                month=now_local.month,
+                day=now_local.day,
+                tzinfo=local_tz,
+            )
+            return parsed_local.astimezone(timezone.utc), "custom_time"
+    except Exception:
+        pass
+
+    return None, "invalid_time"
 
 
 def _is_signal_forge_account(acc) -> bool:
@@ -388,14 +427,32 @@ async def _handle_control_command(event, text: str, channel_name: str) -> bool:
 
     action_text = ""
     auto_resume_text = "Not needed"
+    control_error = ""
     if command == "sstop":
-        reason_code = f"telegram_{command}_stop_until_reopen"
-        resume_at = _next_xauusd_reopen_utc()
+        resume_at, resume_kind = _parse_stop_until_datetime(text)
+        if resume_at is None:
+            await _reply_control_status(
+                event,
+                "❌ Stop failed\n"
+                f"Account: {acc.label}\n"
+                f"Reason: {resume_kind}\n"
+                "Use: /signal_forge_stop 2026-07-12 18:00 or /signal_forge_stop 18:00",
+            )
+            return True
+        if resume_at <= datetime.now(timezone.utc):
+            await _reply_control_status(
+                event,
+                "❌ Stop failed\n"
+                f"Account: {acc.label}\n"
+                "Reason: stop time is in the past",
+            )
+            return True
+        reason_code = f"telegram_{command}_{resume_kind}"
         stop_account_until(int(acc.login), resume_at, reason_code=reason_code)
-        action_text = f"Stop trading until next XAUUSD reopen ({resume_at.strftime('%Y-%m-%d %H:%M UTC')})"
+        action_text = f"Stop trading until {resume_at.strftime('%Y-%m-%d %H:%M UTC')}"
         auto_resume_text = resume_at.strftime("%Y-%m-%d %H:%M UTC")
         logger.warning(
-            f"[TG_CMD] Stop-until-reopen command accepted from @{channel_name} | "
+            f"[TG_CMD] Stop-until command accepted from @{channel_name} | "
             f"command={command} | account={acc.label} ({acc.login}) | resume_at={resume_at.isoformat()}"
         )
     elif command == "sstart":
@@ -409,6 +466,20 @@ async def _handle_control_command(event, text: str, channel_name: str) -> bool:
         return False
 
     mode = get_account_trade_mode(int(acc.login))
+    if command == "sstop" and mode.get("allowed"):
+        control_error = "Stop was not applied"
+    if command == "sstop" and not mode.get("halt_until"):
+        control_error = control_error or "No halt-until time was stored"
+
+    if control_error:
+        await _reply_control_status(
+            event,
+            "❌ Command failed\n"
+            f"Account: {acc.label}\n"
+            f"Reason: {control_error}\n"
+            f"Mode: {'Trading ON' if mode.get('allowed') else 'Trading OFF'}",
+        )
+        return True
 
     with state._lock:
         state.channel_messages.insert(0, {
@@ -441,7 +512,7 @@ async def _handle_control_command(event, text: str, channel_name: str) -> bool:
         f"Command: {command}\n"
         f"Account: {acc.label}\n"
         f"Action: {action_text}\n"
-        f"State: {'Trading ON' if mode.get('allowed') else 'Trading OFF until market reopen'}"
+        f"State: {'Trading ON' if mode.get('allowed') else f'Trading OFF until {auto_resume_text}'}"
         f"{overview_text}"
         f"{stats_text}"
     )
@@ -451,7 +522,7 @@ async def _handle_control_command(event, text: str, channel_name: str) -> bool:
         f"Account: {acc.label}\n"
         f"Login: {acc.login}\n"
         f"Action: {action_text}\n"
-        f"Current state: {'Trading ON' if mode.get('allowed') else 'Trading OFF until market reopen'}\n"
+        f"Current state: {'Trading ON' if mode.get('allowed') else f'Trading OFF until {auto_resume_text}'}\n"
         f"Auto resume: {auto_resume_text}\n"
         f"{overview_text.strip() + chr(10) if overview_text else ''}"
         f"{stats_text.strip() + chr(10) if stats_text else ''}"
