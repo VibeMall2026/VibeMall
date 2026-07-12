@@ -136,6 +136,65 @@ def _build_signal_forge_overview_text(acc) -> str:
             pass
 
 
+def _build_account_performance_text(acc) -> str:
+    from bot.accounts import _connect_account, _reconnect_primary
+    from bot import mt5_bridge
+
+    if not acc or not acc.enabled:
+        return "Account stats unavailable: target account not available."
+
+    if not _connect_account(acc):
+        return (
+            "Account stats unavailable: could not connect to the account.\n"
+            f"Account: {acc.label}\n"
+            f"Login: {acc.login}"
+        )
+
+    try:
+        account_info = mt5_bridge.get_account_info() or {}
+        trades = mt5_bridge.get_trade_history(limit=500) or []
+        today = datetime.now(timezone.utc).date()
+        today_trades = [t for t in trades if _parse_trade_date(t.get("opened")) == today]
+
+        total_trades = len(trades)
+        wins = sum(1 for t in trades if t.get("status") == "win")
+        losses = sum(1 for t in trades if t.get("status") == "loss")
+        breakeven = sum(1 for t in trades if t.get("status") == "breakeven")
+        net_profit = sum(float(t.get("pnl", 0) or 0) for t in trades)
+
+        today_wins = sum(1 for t in today_trades if t.get("status") == "win")
+        today_losses = sum(1 for t in today_trades if t.get("status") == "loss")
+        today_net_profit = sum(float(t.get("pnl", 0) or 0) for t in today_trades)
+
+        open_positions = mt5_bridge.get_open_positions() or []
+        balance = float(account_info.get("balance", acc.balance) or 0)
+        equity = float(account_info.get("equity", acc.equity) or 0)
+        profit = equity - balance
+
+        return (
+            "Account summary\n"
+            f"Account: {acc.label}\n"
+            f"Login: {acc.login}\n"
+            f"Balance: {balance:.2f}\n"
+            f"Equity: {equity:.2f}\n"
+            f"Floating P/L: {profit:.2f}\n"
+            f"Total trades: {total_trades}\n"
+            f"Wins: {wins}\n"
+            f"Losses: {losses}\n"
+            f"Breakeven: {breakeven}\n"
+            f"Net profit: {net_profit:.2f}\n"
+            f"Today wins: {today_wins}\n"
+            f"Today losses: {today_losses}\n"
+            f"Today net profit: {today_net_profit:.2f}\n"
+            f"Open positions: {len(open_positions)}"
+        )
+    finally:
+        try:
+            _reconnect_primary()
+        except Exception:
+            pass
+
+
 def _build_status_text() -> str:
     from bot.accounts import get_all_accounts, get_account_trade_mode
 
@@ -376,6 +435,7 @@ async def _handle_control_command(event, text: str, channel_name: str) -> bool:
     overview_text = ""
     if command == "sstop" and _is_signal_forge_account(acc):
         overview_text = "\n\n" + _build_signal_forge_overview_text(acc)
+    stats_text = "\n\n" + _build_account_performance_text(acc)
     inline_status = (
         f"✅ Command success\n"
         f"Command: {command}\n"
@@ -383,6 +443,7 @@ async def _handle_control_command(event, text: str, channel_name: str) -> bool:
         f"Action: {action_text}\n"
         f"State: {'Trading ON' if mode.get('allowed') else 'Trading OFF until market reopen'}"
         f"{overview_text}"
+        f"{stats_text}"
     )
     await _reply_control_status(event, inline_status)
     send_text_alert(
@@ -393,6 +454,7 @@ async def _handle_control_command(event, text: str, channel_name: str) -> bool:
         f"Current state: {'Trading ON' if mode.get('allowed') else 'Trading OFF until market reopen'}\n"
         f"Auto resume: {auto_resume_text}\n"
         f"{overview_text.strip() + chr(10) if overview_text else ''}"
+        f"{stats_text.strip() + chr(10) if stats_text else ''}"
         f"Source: @{channel_name}\n"
         f"Reason: {halt_text}"
     )
