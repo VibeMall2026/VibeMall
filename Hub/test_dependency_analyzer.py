@@ -5,7 +5,7 @@ This script tests the DependencyAnalyzer class to ensure it correctly:
 - Builds dependency graphs from foreign key relationships
 - Performs topological sort for migration ordering
 - Detects circular dependencies between models
-"""
+
 
 import os
 import sys

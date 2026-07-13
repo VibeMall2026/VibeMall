@@ -116,6 +116,7 @@ urlpatterns = [
     path('admin-panel/resell/payouts/<int:payout_id>/invoice/', views_admin_resell.admin_download_payout_invoice, name='admin_download_payout_invoice'),
     
     # Reel Management URLs
+    
     path('admin-panel/reels/', views.admin_reels, name='admin_reels'),
     path('admin-panel/reels/studio/', views.reel_studio, name='reel_studio'),
     path('admin-panel/reels/studio/export/', views.reel_studio_export, name='reel_studio_export'),

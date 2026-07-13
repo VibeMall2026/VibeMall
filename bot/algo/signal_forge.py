@@ -383,7 +383,8 @@ def _execute_signal(symbol: str, side: str, atr_val: float) -> None:
                 }
             logger.success(
                 f"[SIGNAL_FORGE] Trade on {s.get('account_label')} ({s.get('login')}) "
-                f"{symbol} {side.upper()} ticket={s.get('ticket')} lot={s.get('lot')}"
+                f"{symbol} {side.upper()} ticket={s.get('ticket')} lot={s.get('lot')} "
+                f"entry={float(price):.5f} sl={float(sl):.5f} tp={float(tp):.5f}"
             )
     else:
         logger.warning(f"[SIGNAL_FORGE] Signal not executed on mapped accounts | {symbol} {side.upper()} | {results}")

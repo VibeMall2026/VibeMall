@@ -1393,7 +1393,9 @@ def execute_on_all_accounts(
                         f"[EXECUTION][UNIFIED] strategy={strategy_label} account={acc.label} "
                         f"login={acc.login} status=SUCCESS ticket={result.get('ticket')} "
                         f"symbol={symbol} side={side.upper()} order_type={order_type} "
-                        f"lot={result.get('lot')}"
+                        f"lot={result.get('lot')} entry={float(entry or 0):.5f} "
+                        f"sl={float(sl) if sl is not None else 'none'} "
+                        f"tp={float(tp) if tp is not None else 'none'}"
                     )
                 else:
                     logger.error(
