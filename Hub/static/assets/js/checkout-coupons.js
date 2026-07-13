@@ -1,137 +1,182 @@
 (function () {
+    if (window.__vmCheckoutCouponsInitialized) {
+        return;
+    }
+    window.__vmCheckoutCouponsInitialized = true;
+
     function parseAmount(value) {
         const cleaned = String(value || '').replace(/[^\d.-]/g, '');
         const amount = Number.parseFloat(cleaned);
         return Number.isFinite(amount) ? amount : 0;
     }
 
+    function escapeHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     function getCsrfToken() {
         const tokenField = document.querySelector('[name=csrfmiddlewaretoken]');
-        return (tokenField && tokenField.value) ? tokenField.value : '';
+        return tokenField && tokenField.value ? tokenField.value : '';
+    }
+
+    function getEls() {
+        return {
+            couponInput: document.getElementById('couponCode'),
+            applyButton: document.getElementById('applyCoupon'),
+            viewButton: document.getElementById('viewAvailableCoupons'),
+            removeButton: document.getElementById('removeCoupon'),
+            messageBox: document.getElementById('couponMessage'),
+            panel: document.getElementById('availableCouponsPanel'),
+            list: document.getElementById('availableCouponsList'),
+            status: document.getElementById('availableCouponsStatus'),
+            discountRow: document.getElementById('coupon_discount_row'),
+            discountAmount: document.getElementById('coupon_discount_amount'),
+            appliedDisplay: document.getElementById('appliedCouponDisplay'),
+            appliedCode: document.getElementById('appliedCouponCode'),
+            appliedAmount: document.getElementById('appliedCouponAmount'),
+            appliedId: document.getElementById('appliedCouponId'),
+            subtotalAmount: document.getElementById('cart_subtotal_amount'),
+            finalTotalAmount: document.getElementById('final_total_display')
+        };
     }
 
     function getCartTotal() {
-        const subtotalText = document.getElementById('cart_subtotal_amount')?.textContent;
-        const finalText = document.getElementById('final_total_display')?.textContent;
+        const els = getEls();
+        const subtotalText = els.subtotalAmount && els.subtotalAmount.textContent;
+        const finalText = els.finalTotalAmount && els.finalTotalAmount.textContent;
         return parseAmount(subtotalText || finalText || '0');
     }
 
-    function showCouponMessage(message, type) {
-        const messageBox = document.getElementById('couponMessage');
-        if (!messageBox) {
+    function showMessage(message, type) {
+        const els = getEls();
+        if (!els.messageBox) {
             return;
         }
 
-        messageBox.innerHTML = `<div class="alert vm-inline-alert alert-${type} alert-dismissible fade show"><small>${message}</small><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
-        window.setTimeout(function () {
-            messageBox.innerHTML = '';
+        const alertType = ['success', 'danger', 'warning', 'info'].includes(type) ? type : 'info';
+        els.messageBox.innerHTML = `
+            <div class="alert vm-inline-alert alert-${alertType} alert-dismissible fade show" role="alert">
+                <small>${escapeHtml(message)}</small>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+
+        window.clearTimeout(window.__vmCheckoutCouponMessageTimer);
+        window.__vmCheckoutCouponMessageTimer = window.setTimeout(function () {
+            if (els.messageBox) {
+                els.messageBox.innerHTML = '';
+            }
         }, 5000);
     }
 
-    function setCouponPanelVisible(visible) {
-        const couponsPanel = document.getElementById('availableCouponsPanel');
-        const viewButton = document.getElementById('viewAvailableCoupons');
-        if (couponsPanel) {
-            couponsPanel.style.display = visible ? 'block' : 'none';
-            couponsPanel.dataset.loaded = visible ? 'true' : 'false';
+    function setPanelVisible(visible) {
+        const els = getEls();
+        if (els.panel) {
+            els.panel.style.display = visible ? 'block' : 'none';
         }
-        if (viewButton) {
-            viewButton.textContent = visible ? 'Hide Coupons' : 'Available Coupons';
+        if (els.viewButton) {
+            els.viewButton.textContent = visible ? 'Hide Coupons' : 'Available Coupons';
         }
     }
 
-    function syncCouponSummary(discountAmount, couponCode, couponId) {
-        const couponDisplay = document.getElementById('appliedCouponDisplay');
-        const couponCodeDisplay = document.getElementById('appliedCouponCode');
-        const couponAmountDisplay = document.getElementById('appliedCouponAmount');
-        const couponIdInput = document.getElementById('appliedCouponId');
-        const couponDiscountRow = document.getElementById('coupon_discount_row');
-        const couponDiscountAmount = document.getElementById('coupon_discount_amount');
+    function syncAppliedState(discountAmount, couponCode, couponId) {
+        const els = getEls();
 
-        if (couponDisplay) {
-            couponDisplay.style.display = 'block';
+        if (els.appliedDisplay) {
+            els.appliedDisplay.style.display = 'block';
         }
-        if (couponAmountDisplay) {
-            couponAmountDisplay.textContent = Number(discountAmount || 0).toFixed(2);
+        if (els.appliedCode) {
+            els.appliedCode.textContent = couponCode || '';
         }
-        if (couponCodeDisplay && couponCode) {
-            couponCodeDisplay.textContent = couponCode;
+        if (els.appliedAmount) {
+            els.appliedAmount.textContent = Number(discountAmount || 0).toFixed(2);
         }
-        if (couponIdInput) {
-            couponIdInput.value = couponId || '';
+        if (els.appliedId) {
+            els.appliedId.value = couponId || '';
         }
-        if (couponDiscountRow && couponDiscountAmount) {
-            couponDiscountRow.style.display = 'table-row';
-            couponDiscountAmount.textContent = `-₹${Number(discountAmount || 0).toFixed(2)}`;
+        if (els.discountRow) {
+            els.discountRow.style.display = 'table-row';
+        }
+        if (els.discountAmount) {
+            els.discountAmount.textContent = `-₹${Number(discountAmount || 0).toFixed(2)}`;
         }
     }
 
-    function clearCouponSummary() {
-        const couponInput = document.getElementById('couponCode');
-        const couponDisplay = document.getElementById('appliedCouponDisplay');
-        const couponCodeDisplay = document.getElementById('appliedCouponCode');
-        const couponAmountDisplay = document.getElementById('appliedCouponAmount');
-        const couponIdInput = document.getElementById('appliedCouponId');
-        const couponDiscountRow = document.getElementById('coupon_discount_row');
-        const couponDiscountAmount = document.getElementById('coupon_discount_amount');
+    function clearAppliedState() {
+        const els = getEls();
 
-        if (couponInput) {
-            couponInput.value = '';
+        if (els.couponInput) {
+            els.couponInput.value = '';
         }
-        if (couponDisplay) {
-            couponDisplay.style.display = 'none';
+        if (els.appliedDisplay) {
+            els.appliedDisplay.style.display = 'none';
         }
-        if (couponCodeDisplay) {
-            couponCodeDisplay.textContent = '';
+        if (els.appliedCode) {
+            els.appliedCode.textContent = '';
         }
-        if (couponAmountDisplay) {
-            couponAmountDisplay.textContent = '0.00';
+        if (els.appliedAmount) {
+            els.appliedAmount.textContent = '0.00';
         }
-        if (couponIdInput) {
-            couponIdInput.value = '';
+        if (els.appliedId) {
+            els.appliedId.value = '';
         }
-        if (couponDiscountRow) {
-            couponDiscountRow.style.display = 'none';
+        if (els.discountRow) {
+            els.discountRow.style.display = 'none';
         }
-        if (couponDiscountAmount) {
-            couponDiscountAmount.textContent = '-₹0.00';
+        if (els.discountAmount) {
+            els.discountAmount.textContent = '-₹0.00';
         }
+    }
+
+    function buildCouponCard(coupon) {
+        const used = !!coupon.used;
+        const title = coupon.title || coupon.description || 'Offer available on eligible orders.';
+        const description = coupon.description || coupon.title || 'Offer available on eligible orders.';
+        const discount = coupon.discount || 'Offer';
+        const code = coupon.code || '';
+
+        return `
+            <div class="vm-checkout-d-coupon-card${used ? ' is-used' : ''}" data-code="${escapeHtml(code)}" data-used="${used ? '1' : '0'}" role="button" tabindex="0">
+                <div>
+                    <h5>${escapeHtml(code)}</h5>
+                    <p>${escapeHtml(description)}</p>
+                    <div class="vm-checkout-d-coupon-meta">
+                        <span>${escapeHtml(discount)}</span>
+                        ${title ? `<span>${escapeHtml(title)}</span>` : ''}
+                    </div>
+                </div>
+                <div>
+                    ${
+                        used
+                            ? '<button type="button" disabled>Used</button>'
+                            : `<button type="button" class="vm-checkout-coupon-apply" data-code="${escapeHtml(code)}">Apply</button>`
+                    }
+                </div>
+            </div>
+        `;
     }
 
     function renderCoupons(coupons) {
-        const couponsList = document.getElementById('availableCouponsList');
-        const couponsStatus = document.getElementById('availableCouponsStatus');
-        if (!couponsList) {
+        const els = getEls();
+        if (!els.list) {
             return;
         }
 
-        if (couponsStatus) {
-            couponsStatus.textContent = `${coupons.length} coupon${coupons.length === 1 ? '' : 's'} found`;
+        const normalizedCoupons = Array.isArray(coupons) ? coupons : [];
+        if (els.status) {
+            els.status.textContent = `${normalizedCoupons.length} coupon${normalizedCoupons.length === 1 ? '' : 's'} found`;
         }
 
-        couponsList.innerHTML = coupons.map(function (coupon) {
-            const usedClass = coupon.used ? ' is-used' : '';
-            const buttonHtml = coupon.used
-                ? '<button type="button" disabled>Used</button>'
-                : `<button type="button" class="vm-checkout-coupon-apply" data-code="${coupon.code}">Apply</button>`;
-            const description = coupon.description || coupon.title || 'Offer available on eligible orders.';
-            const discount = coupon.discount || 'Offer';
-            return `
-                <div class="vm-checkout-d-coupon-card${usedClass}" data-code="${coupon.code}" data-used="${coupon.used ? '1' : '0'}" role="button" tabindex="0">
-                    <div>
-                        <h5>${coupon.code}</h5>
-                        <p>${description}</p>
-                        <div class="vm-checkout-d-coupon-meta">
-                            <span>${discount}</span>
-                            ${coupon.title ? `<span>${coupon.title}</span>` : ''}
-                        </div>
-                    </div>
-                    <div>${buttonHtml}</div>
-                </div>
-            `;
-        }).join('');
+        els.list.innerHTML = normalizedCoupons.length
+            ? normalizedCoupons.map(buildCouponCard).join('')
+            : '<div class="vm-checkout-d-coupon-card"><div><h5>No coupons available</h5><p>Please try again later.</p></div></div>';
 
-        couponsList.querySelectorAll('.vm-checkout-coupon-apply').forEach(function (button) {
+        els.list.querySelectorAll('.vm-checkout-coupon-apply').forEach(function (button) {
             button.addEventListener('click', function (event) {
                 event.preventDefault();
                 event.stopPropagation();
@@ -139,19 +184,40 @@
             });
         });
 
-        couponsList.querySelectorAll('.vm-checkout-d-coupon-card[data-code]').forEach(function (card) {
+        els.list.querySelectorAll('.vm-checkout-d-coupon-card[data-code]').forEach(function (card) {
             card.addEventListener('click', function (event) {
                 if (event.target.closest('button') || card.dataset.used === '1') {
                     return;
                 }
                 applyCouponCode(card.dataset.code);
             });
+            card.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    if (card.dataset.used !== '1') {
+                        applyCouponCode(card.dataset.code);
+                    }
+                }
+            });
         });
     }
 
-    function applyCouponCode(code) {
+    function normalizeCouponValidationResponse(payload) {
+        if (!payload) {
+            return { valid: false, message: 'Unable to validate coupon.' };
+        }
+
+        if (payload.data && typeof payload.data === 'object') {
+            return payload.data;
+        }
+
+        return payload;
+    }
+
+    function applyCouponCode(rawCode) {
+        const code = String(rawCode || '').trim().toUpperCase();
         if (!code) {
-            showCouponMessage('Please enter a coupon code', 'warning');
+            showMessage('Please enter a coupon code.', 'warning');
             return;
         }
 
@@ -162,55 +228,47 @@
                 'X-CSRFToken': getCsrfToken()
             },
             body: JSON.stringify({
-                code: String(code).trim().toUpperCase(),
+                code: code,
                 cart_total: getCartTotal()
             })
         })
-        .then(function (response) {
-            return response.json().then(function (data) {
-                return { response: response, data: data };
+            .then(function (response) {
+                return response.json().then(function (data) {
+                    return { response: response, data: data };
+                });
+            })
+            .then(function (payload) {
+                const result = normalizeCouponValidationResponse(payload);
+                if (!payload.response.ok || !result.valid) {
+                    throw new Error(result.message || 'Unable to apply coupon.');
+                }
+
+                const els = getEls();
+                if (els.couponInput) {
+                    els.couponInput.value = result.code || code;
+                }
+
+                syncAppliedState(result.discount_amount, result.code || code, result.coupon_id);
+                setPanelVisible(false);
+                showMessage(result.message || 'Coupon applied.', 'success');
+            })
+            .catch(function (error) {
+                showMessage((error && error.message) || 'Error applying coupon.', 'danger');
             });
-        })
-        .then(function (payload) {
-            if (!payload.response.ok || !payload.data.valid) {
-                throw new Error(payload.data.message || 'Unable to apply coupon.');
-            }
-
-            const couponInput = document.getElementById('couponCode');
-            const couponCodeDisplay = document.getElementById('appliedCouponCode');
-
-            if (couponInput) {
-                couponInput.value = payload.data.code;
-            }
-            if (couponCodeDisplay) {
-                couponCodeDisplay.textContent = payload.data.code;
-            }
-
-            syncCouponSummary(payload.data.discount_amount, payload.data.code, payload.data.coupon_id);
-            setCouponPanelVisible(false);
-            showCouponMessage(payload.data.message, 'success');
-        })
-        .catch(function (error) {
-            showCouponMessage((error && error.message) || 'Error applying coupon', 'danger');
-        });
     }
 
     function loadCoupons() {
-        const couponsPanel = document.getElementById('availableCouponsPanel');
-        const couponsStatus = document.getElementById('availableCouponsStatus');
-        const couponsList = document.getElementById('availableCouponsList');
-
-        if (!couponsPanel || !couponsList) {
+        const els = getEls();
+        if (!els.panel || !els.list) {
             return;
         }
 
-        couponsPanel.style.display = 'block';
-        couponsPanel.dataset.loaded = 'false';
-        if (couponsStatus) {
-            couponsStatus.textContent = 'Loading coupons...';
+        setPanelVisible(true);
+        els.panel.dataset.loaded = 'false';
+        els.list.innerHTML = '';
+        if (els.status) {
+            els.status.textContent = 'Loading coupons...';
         }
-        couponsList.innerHTML = '';
-        setCouponPanelVisible(true);
 
         fetch(`/api/available-coupons/?cart_total=${encodeURIComponent(getCartTotal())}`, {
             method: 'GET',
@@ -218,92 +276,90 @@
                 'X-Requested-With': 'XMLHttpRequest'
             }
         })
-        .then(function (response) {
-            return response.json();
-        })
-        .then(function (data) {
-            if (data.success && Array.isArray(data.coupons) && data.coupons.length > 0) {
-                couponsPanel.dataset.loaded = 'true';
-                renderCoupons(data.coupons);
-                return;
-            }
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (data) {
+                const coupons = Array.isArray(data && data.coupons) ? data.coupons : [];
+                els.panel.dataset.loaded = 'true';
+                renderCoupons(coupons);
 
-            couponsPanel.dataset.loaded = 'true';
-            if (couponsStatus) {
-                couponsStatus.textContent = 'No coupons available right now';
-            }
-            couponsList.innerHTML = '<div class="vm-checkout-d-coupon-card"><div><h5>No coupons available</h5><p>Please try again later.</p></div></div>';
-        })
-        .catch(function () {
-            couponsPanel.dataset.loaded = 'true';
-            if (couponsStatus) {
-                couponsStatus.textContent = 'Unable to load coupons';
-            }
-            couponsList.innerHTML = '<div class="vm-checkout-d-coupon-card"><div><h5>Could not load coupons</h5><p>Please try again in a moment.</p></div></div>';
-            showCouponMessage('Error loading coupons', 'danger');
-        });
+                if (!coupons.length) {
+                    if (els.status) {
+                        els.status.textContent = data && data.message ? data.message : 'No coupons available right now';
+                    }
+                    showMessage(data && data.message ? data.message : 'No coupons available right now.', 'info');
+                }
+            })
+            .catch(function (error) {
+                els.panel.dataset.loaded = 'true';
+                if (els.status) {
+                    els.status.textContent = 'Unable to load coupons';
+                }
+                els.list.innerHTML = '<div class="vm-checkout-d-coupon-card"><div><h5>Could not load coupons</h5><p>Please try again in a moment.</p></div></div>';
+                showMessage((error && error.message) || 'Error loading coupons.', 'danger');
+            });
     }
 
     function removeCoupon() {
-        clearCouponSummary();
-        setCouponPanelVisible(false);
-        showCouponMessage('Coupon removed', 'info');
+        clearAppliedState();
+        setPanelVisible(false);
+        showMessage('Coupon removed.', 'info');
     }
 
-    function interceptCouponButtonClicks() {
-        const viewButton = document.getElementById('viewAvailableCoupons');
-        const applyButton = document.getElementById('applyCoupon');
-        const removeButton = document.getElementById('removeCoupon');
-        const couponInput = document.getElementById('couponCode');
+    function bindEvents() {
+        const els = getEls();
 
-        if (viewButton) {
-            viewButton.addEventListener('click', function (event) {
+        if (els.viewButton) {
+            els.viewButton.addEventListener('click', function (event) {
                 event.preventDefault();
                 event.stopPropagation();
+
+                const panelVisible = els.panel && els.panel.style.display !== 'none';
+                if (panelVisible && els.panel.dataset.loaded === 'true') {
+                    setPanelVisible(false);
+                    return;
+                }
+
                 loadCoupons();
             }, true);
         }
 
-        if (applyButton) {
-            applyButton.addEventListener('click', function (event) {
+        if (els.applyButton) {
+            els.applyButton.addEventListener('click', function (event) {
                 event.preventDefault();
                 event.stopPropagation();
-                const code = (couponInput && couponInput.value || '').trim().toUpperCase();
-                if (!code) {
-                    showCouponMessage('Please enter a coupon code', 'warning');
-                    return;
-                }
-                applyCouponCode(code);
+                applyCouponCode(els.couponInput ? els.couponInput.value : '');
             }, true);
         }
 
-        if (removeButton) {
-            removeButton.addEventListener('click', function (event) {
+        if (els.removeButton) {
+            els.removeButton.addEventListener('click', function (event) {
                 event.preventDefault();
                 event.stopPropagation();
                 removeCoupon();
             }, true);
         }
 
-        if (couponInput) {
-            couponInput.addEventListener('keydown', function (event) {
+        if (els.couponInput) {
+            els.couponInput.addEventListener('keydown', function (event) {
                 if (event.key === 'Enter') {
                     event.preventDefault();
-                    applyCouponCode(couponInput.value);
+                    applyCouponCode(els.couponInput.value);
                 }
             });
         }
 
         window.VMCheckoutShowAvailableCoupons = loadCoupons;
         window.VMCheckoutApplyCouponCode = function () {
-            applyCouponCode(couponInput ? couponInput.value : '');
+            applyCouponCode(els.couponInput ? els.couponInput.value : '');
         };
         window.VMCheckoutRemoveCoupon = removeCoupon;
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', interceptCouponButtonClicks);
+        document.addEventListener('DOMContentLoaded', bindEvents);
     } else {
-        interceptCouponButtonClicks();
+        bindEvents();
     }
 })();
