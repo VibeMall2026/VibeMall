@@ -39,6 +39,8 @@ elif not MT5_AVAILABLE:
 _reconnect_lock = threading.Lock()
 _last_reconnect_attempt_ts = 0.0
 _RECONNECT_COOLDOWN_SECONDS = 3.0
+_last_terminal_launch_ts_by_path: dict[str, float] = {}
+_TERMINAL_RELAUNCH_COOLDOWN_SECONDS = 300.0
 
 
 def _launch_mt5_terminal(path: str) -> bool:
@@ -46,6 +48,10 @@ def _launch_mt5_terminal(path: str) -> bool:
     if not terminal_path:
         return False
     if os.name != "nt":
+        return False
+    now_ts = time.monotonic()
+    last_launch_ts = _last_terminal_launch_ts_by_path.get(terminal_path, 0.0)
+    if (now_ts - last_launch_ts) < _TERMINAL_RELAUNCH_COOLDOWN_SECONDS:
         return False
     try:
         from pathlib import Path
@@ -60,6 +66,7 @@ def _launch_mt5_terminal(path: str) -> bool:
             cwd=str(Path(terminal_path).parent),
             creationflags=getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
         )
+        _last_terminal_launch_ts_by_path[terminal_path] = now_ts
         logger.info(f"MT5 terminal launched: {terminal_path}")
         return True
     except Exception as exc:

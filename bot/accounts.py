@@ -41,6 +41,7 @@ _last_connect_attempt_ts: dict[int, float] = {}
 _last_connect_fail_ts: dict[int, float] = {}
 _last_connect_success_ts: dict[int, float] = {}
 _last_connect_success_log_ts: dict[int, float] = {}
+_last_terminal_launch_ts_by_path: dict[str, float] = {}
 
 # Connection-throttle tuning to reduce MT5 authorization flapping during rapid account switching.
 CONNECT_MIN_RETRY_SECONDS = 3.0
@@ -125,6 +126,10 @@ def _launch_mt5_terminal(path: str) -> bool:
         return False
     if os.name != "nt":
         return False
+    now_ts = time.monotonic()
+    last_launch_ts = _last_terminal_launch_ts_by_path.get(terminal_path, 0.0)
+    if (now_ts - last_launch_ts) < 300.0:
+        return False
     try:
         if not Path(terminal_path).exists():
             logger.warning(f"[ACCOUNTS] MT5 terminal path not found: {terminal_path}")
@@ -136,6 +141,7 @@ def _launch_mt5_terminal(path: str) -> bool:
             cwd=str(Path(terminal_path).parent),
             creationflags=getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
         )
+        _last_terminal_launch_ts_by_path[terminal_path] = now_ts
         logger.info(f"[ACCOUNTS] Launched MT5 terminal: {terminal_path}")
         return True
     except Exception as exc:
