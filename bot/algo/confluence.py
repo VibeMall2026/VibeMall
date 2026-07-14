@@ -564,9 +564,12 @@ def _manage_open_trade_risk(setup: ConfluenceSetup) -> None:
     # ── Human Mind: partial close, early exit, time-based exit ───────────────
     from bot.algo.human_mind import (
         should_early_exit, should_time_exit, should_partial_close,
-        execute_partial_close, close_trade,
+        execute_partial_close, close_trade, is_manual_management_window,
     )
     _candles_hm = _get_candles(algo_config.symbol, algo_config.execution_timeframe, 10)
+
+    if is_manual_management_window():
+        return
 
     if not getattr(setup, '_partial_closed', False):
         if should_partial_close(entry, current_price, one_r, side, False):

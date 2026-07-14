@@ -442,12 +442,14 @@ def _loop() -> None:
 
 
 def _manage_open_trade(ticket: int, tr: dict) -> None:
-    from bot.algo.human_mind import execute_partial_close, close_trade
+    from bot.algo.human_mind import execute_partial_close, close_trade, is_manual_management_window
 
     positions = mt5_bridge.get_open_positions()
     pos = next((p for p in positions if int(p.get("id") or p.get("position_id") or 0) == int(ticket)), None)
     if not pos:
         _managed_trades.pop(ticket, None)
+        return
+    if is_manual_management_window():
         return
 
     side = str(tr.get("side") or "").lower()

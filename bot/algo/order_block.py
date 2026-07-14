@@ -1224,10 +1224,13 @@ def _manage_open_trade_risk(ob: OrderBlock) -> None:
     # ── Human Mind: partial close, early exit, time-based exit ───────────────
     from bot.algo.human_mind import (
         should_early_exit, should_time_exit, should_partial_close,
-        execute_partial_close, close_trade, cfg as _hm_cfg,
+        execute_partial_close, close_trade, cfg as _hm_cfg, is_manual_management_window,
     )
     _ob_symbol = getattr(ob, 'symbol', algo_config.symbol)
     candles_exec_hm = _get_candles(_ob_symbol, algo_config.execution_timeframe, 10)
+
+    if is_manual_management_window():
+        return
 
     # Keep Human Mind thresholds aligned with Order Block config.
     _hm_cfg.partial_close_at_r = float(getattr(algo_config, "partial_close_r", 1.0) or 1.0)

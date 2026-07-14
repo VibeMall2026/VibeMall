@@ -15,6 +15,7 @@ import os
 import threading
 from datetime import datetime, date, timedelta, timezone
 from typing import Optional
+from zoneinfo import ZoneInfo
 from loguru import logger
 
 from bot import config as runtime_config
@@ -176,6 +177,25 @@ class HumanMindConfig:
 
 
 cfg = HumanMindConfig()
+
+_IST_TIMEZONE = ZoneInfo("Asia/Kolkata")
+_MANUAL_MANAGEMENT_START_HOUR = 10
+_MANUAL_MANAGEMENT_END_HOUR = 22
+
+
+def is_manual_management_window(now: Optional[datetime] = None) -> bool:
+    """
+    Return True when automated exit management should stay paused.
+
+    The window is 10:00 to 22:00 India time, so trades can still open with
+    SL/TP attached, but trailing, reversal, time, and partial-close logic is
+    skipped during that period.
+    """
+    current = now or datetime.now(_IST_TIMEZONE)
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=timezone.utc)
+    current_ist = current.astimezone(_IST_TIMEZONE)
+    return _MANUAL_MANAGEMENT_START_HOUR <= current_ist.hour < _MANUAL_MANAGEMENT_END_HOUR
 
 
 # ── Daily reset ───────────────────────────────────────────────────────────────
@@ -542,6 +562,8 @@ def cleanup_reentry_tracker(max_age_hours: int = 24) -> None:
 def should_partial_close(entry: float, current_price: float, one_r: float, side: str,
                           partial_done: bool) -> bool:
     """Return True if partial close should be triggered (1R profit reached, not yet done)."""
+    if is_manual_management_window():
+        return False
     if not cfg.partial_close_enabled or partial_done or one_r <= 0:
         return False
     profit_r = (current_price - entry) / one_r if side == "buy" else (entry - current_price) / one_r
@@ -677,6 +699,8 @@ def should_early_exit(side: str, candles: list) -> bool:
     Return True if the last candle shows a strong reversal signal.
     candles: list of Candle objects.
     """
+    if is_manual_management_window():
+        return False
     if not cfg.early_exit_enabled or len(candles) < 2:
         return False
     try:
@@ -700,6 +724,8 @@ def should_early_exit(side: str, candles: list) -> bool:
 def should_time_exit(opened_at: datetime, entry: float, current_price: float,
                      one_r: float, side: str) -> bool:
     """Return True if trade has been open too long with insufficient profit."""
+    if is_manual_management_window():
+        return False
     if not cfg.time_exit_enabled or one_r <= 0:
         return False
     try:

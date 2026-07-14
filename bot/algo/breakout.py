@@ -725,9 +725,12 @@ def _manage_open_trade_risk_for_account(
     # ── Human Mind: partial close, early exit, time-based exit ───────────────
     from bot.algo.human_mind import (
         should_early_exit, should_time_exit, should_partial_close,
-        execute_partial_close, close_trade,
+        execute_partial_close, close_trade, is_manual_management_window,
     )
     _candles_hm = _get_candles(_sym, algo_config.execution_timeframe, 10)
+
+    if is_manual_management_window():
+        return
 
     if not bool(account_state.get("partial_closed")):
         # Avoid "micro" partial closes on small lot sizes (e.g., The5ers 0.01 lot)
