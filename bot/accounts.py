@@ -42,6 +42,8 @@ _last_connect_fail_ts: dict[int, float] = {}
 _last_connect_success_ts: dict[int, float] = {}
 _last_connect_success_log_ts: dict[int, float] = {}
 _last_terminal_launch_ts_by_path: dict[str, float] = {}
+_next_reconnect_allowed_ts_by_login: dict[int, float] = {}
+_reconnect_backoff_seconds_by_login: dict[int, float] = {}
 
 # Connection-throttle tuning to reduce MT5 authorization flapping during rapid account switching.
 CONNECT_MIN_RETRY_SECONDS = 3.0
@@ -147,6 +149,22 @@ def _launch_mt5_terminal(path: str) -> bool:
     except Exception as exc:
         logger.warning(f"[ACCOUNTS] Could not launch MT5 terminal: {exc}")
         return False
+
+
+def _mark_reconnect_failure(login: int) -> None:
+    now_ts = time.monotonic()
+    current = float(_reconnect_backoff_seconds_by_login.get(login, 5.0) or 5.0)
+    _next_reconnect_allowed_ts_by_login[login] = now_ts + current
+    _reconnect_backoff_seconds_by_login[login] = min(300.0, max(5.0, current * 2.0))
+
+
+def _mark_reconnect_success(login: int) -> None:
+    _next_reconnect_allowed_ts_by_login.pop(login, None)
+    _reconnect_backoff_seconds_by_login.pop(login, None)
+
+
+def _reconnect_backoff_active(login: int) -> bool:
+    return time.monotonic() < float(_next_reconnect_allowed_ts_by_login.get(login, 0.0) or 0.0)
 
 
 def _halt_reason_text(reason_code: str | None) -> str:
@@ -825,6 +843,11 @@ def _connect_account(acc: MT5Account) -> bool:
             acc.error = f"Backoff active ({wait_left:.1f}s) after recent auth/connect failure"
             return False
 
+        if _reconnect_backoff_active(target_login):
+            acc.connected = False
+            acc.error = "Reconnect backoff active"
+            return False
+
         # Fast path: if current MT5 session is already on this login and alive, skip re-init.
         try:
             info = mt5.account_info()
@@ -839,6 +862,7 @@ def _connect_account(acc: MT5Account) -> bool:
                     acc.leverage = getattr(info, "leverage", acc.leverage)
                 _active_login = target_login
                 _last_connect_success_ts[target_login] = now_ts
+                _mark_reconnect_success(target_login)
                 return True
         except Exception:
             pass
@@ -891,10 +915,12 @@ def _connect_account(acc: MT5Account) -> bool:
 
             last_err = str(mt5.last_error())
             _last_connect_fail_ts[target_login] = time.monotonic()
+            _mark_reconnect_failure(target_login)
             if ("IPC send failed" in last_err or "IPC timeout" in last_err) and attempt == 1:
                 launch_path = acc.path or _config.MT5_PATH
                 if _launch_mt5_terminal(launch_path):
                     time.sleep(4)
+                    continue
             if attempt == 1 and len(attempts) > 1:
                 time.sleep(0.4)
 

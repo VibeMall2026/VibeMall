@@ -94,8 +94,11 @@ def _mt5_reconnect_loop() -> None:
                 except Exception:
                     pass
             else:
-                # No data - try reconnect
-                logger.warning("[MT5] No account data - attempting reconnect...")
+                # No data - try reconnect, but don't spam logs while backoff is active.
+                if mt5_bridge.reconnect_backoff_active():
+                    logger.debug("[MT5] Reconnect backoff active; waiting before retry...")
+                else:
+                    logger.warning("[MT5] No account data - attempting reconnect...")
                 if mt5_bridge.ensure_connected():
                     state.mt5_connected = True
                     logger.success("[MT5] Reconnected successfully.")

@@ -41,6 +41,25 @@ _last_reconnect_attempt_ts = 0.0
 _RECONNECT_COOLDOWN_SECONDS = 3.0
 _last_terminal_launch_ts_by_path: dict[str, float] = {}
 _TERMINAL_RELAUNCH_COOLDOWN_SECONDS = 300.0
+_next_reconnect_allowed_ts = 0.0
+_reconnect_backoff_seconds = 5.0
+_RECONNECT_BACKOFF_MAX_SECONDS = 300.0
+
+
+def _mark_reconnect_success() -> None:
+    global _next_reconnect_allowed_ts, _reconnect_backoff_seconds
+    _next_reconnect_allowed_ts = 0.0
+    _reconnect_backoff_seconds = 5.0
+
+
+def _mark_reconnect_failure() -> None:
+    global _next_reconnect_allowed_ts, _reconnect_backoff_seconds
+    _next_reconnect_allowed_ts = time.monotonic() + _reconnect_backoff_seconds
+    _reconnect_backoff_seconds = min(_RECONNECT_BACKOFF_MAX_SECONDS, max(5.0, _reconnect_backoff_seconds * 2.0))
+
+
+def reconnect_backoff_active() -> bool:
+    return time.monotonic() < _next_reconnect_allowed_ts
 
 
 def _launch_mt5_terminal(path: str) -> bool:
@@ -153,6 +172,7 @@ def connect() -> bool:
         if not mt5.initialize(**kwargs):
             last_error = str(mt5.last_error())
             logger.error(f"MT5 initialize failed: {last_error}")
+            _mark_reconnect_failure()
             if "IPC send failed" in last_error or "IPC timeout" in last_error:
                 launch_path = config.MT5_PATH or ""
                 if _launch_mt5_terminal(launch_path):
@@ -160,6 +180,7 @@ def connect() -> bool:
                     if mt5.initialize(**kwargs) and mt5.login(config.MT5_LOGIN, password=config.MT5_PASSWORD, server=config.MT5_SERVER):
                         info = mt5.account_info()
                         if info and int(getattr(info, "login", 0) or 0) == int(config.MT5_LOGIN):
+                            _mark_reconnect_success()
                             logger.info(
                                 f"MT5 reconnected after terminal relaunch | Account: {info.login} | "
                                 f"Balance: {info.balance} {info.currency}"
@@ -235,6 +256,9 @@ def ensure_connected() -> bool:
                 return True
         else:
             return True
+
+    if reconnect_backoff_active():
+        return False
 
     global _last_reconnect_attempt_ts
     acquired = _reconnect_lock.acquire(blocking=False)
