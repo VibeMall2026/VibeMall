@@ -128,6 +128,24 @@ def _launch_mt5_terminal(path: str) -> bool:
         return False
     if os.name != "nt":
         return False
+    try:
+        terminal_lower = terminal_path.lower()
+        running = subprocess.run(
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                f"Get-CimInstance Win32_Process | Where-Object {{$_.Name -ieq 'terminal64.exe' -and $_.CommandLine -and ($_.CommandLine -like '*{terminal_lower}*')}} | Select-Object -First 1 -ExpandProperty ProcessId",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if str(running.stdout or "").strip():
+            logger.info(f"[ACCOUNTS] MT5 terminal already running: {terminal_path}")
+            return False
+    except Exception:
+        pass
     now_ts = time.monotonic()
     last_launch_ts = _last_terminal_launch_ts_by_path.get(terminal_path, 0.0)
     if (now_ts - last_launch_ts) < 300.0:

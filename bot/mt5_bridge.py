@@ -62,11 +62,39 @@ def reconnect_backoff_active() -> bool:
     return time.monotonic() < _next_reconnect_allowed_ts
 
 
+def _is_terminal_running(path: str) -> bool:
+    terminal_path = str(path or "").strip().lower()
+    if not terminal_path:
+        return False
+    if os.name != "nt":
+        return False
+    try:
+        import subprocess as _subprocess
+
+        result = _subprocess.run(
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                f"Get-CimInstance Win32_Process | Where-Object {{$_.Name -ieq 'terminal64.exe' -and $_.CommandLine -and ($_.CommandLine -like '*{terminal_path}*')}} | Select-Object -First 1 -ExpandProperty ProcessId",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        return bool((result.stdout or "").strip())
+    except Exception:
+        return False
+
+
 def _launch_mt5_terminal(path: str) -> bool:
     terminal_path = str(path or "").strip()
     if not terminal_path:
         return False
     if os.name != "nt":
+        return False
+    if _is_terminal_running(terminal_path):
+        logger.info(f"MT5 terminal already running: {terminal_path}")
         return False
     now_ts = time.monotonic()
     last_launch_ts = _last_terminal_launch_ts_by_path.get(terminal_path, 0.0)
