@@ -14,6 +14,7 @@ import os
 import json
 import threading
 import time
+import subprocess
 from datetime import datetime, timezone, timedelta, date as _date
 from dataclasses import dataclass, field
 from typing import Optional
@@ -115,6 +116,31 @@ def _utc_today() -> _date:
 
 def _utc_today_iso() -> str:
     return _utc_today().isoformat()
+
+
+def _launch_mt5_terminal(path: str) -> bool:
+    """Best-effort launch of the MT5 terminal executable."""
+    terminal_path = str(path or "").strip()
+    if not terminal_path:
+        return False
+    if os.name != "nt":
+        return False
+    try:
+        if not Path(terminal_path).exists():
+            logger.warning(f"[ACCOUNTS] MT5 terminal path not found: {terminal_path}")
+            return False
+        subprocess.Popen(
+            [terminal_path],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            cwd=str(Path(terminal_path).parent),
+            creationflags=getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
+        )
+        logger.info(f"[ACCOUNTS] Launched MT5 terminal: {terminal_path}")
+        return True
+    except Exception as exc:
+        logger.warning(f"[ACCOUNTS] Could not launch MT5 terminal: {exc}")
+        return False
 
 
 def _halt_reason_text(reason_code: str | None) -> str:
@@ -859,6 +885,10 @@ def _connect_account(acc: MT5Account) -> bool:
 
             last_err = str(mt5.last_error())
             _last_connect_fail_ts[target_login] = time.monotonic()
+            if ("IPC send failed" in last_err or "IPC timeout" in last_err) and attempt == 1:
+                launch_path = acc.path or _config.MT5_PATH
+                if _launch_mt5_terminal(launch_path):
+                    time.sleep(4)
             if attempt == 1 and len(attempts) > 1:
                 time.sleep(0.4)
 

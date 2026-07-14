@@ -10,6 +10,7 @@ import sys
 import math
 import time
 import threading
+import subprocess
 from datetime import datetime
 from typing import Optional
 import requests
@@ -38,6 +39,32 @@ elif not MT5_AVAILABLE:
 _reconnect_lock = threading.Lock()
 _last_reconnect_attempt_ts = 0.0
 _RECONNECT_COOLDOWN_SECONDS = 3.0
+
+
+def _launch_mt5_terminal(path: str) -> bool:
+    terminal_path = str(path or "").strip()
+    if not terminal_path:
+        return False
+    if os.name != "nt":
+        return False
+    try:
+        from pathlib import Path
+
+        if not Path(terminal_path).exists():
+            logger.warning(f"MT5 terminal path not found: {terminal_path}")
+            return False
+        subprocess.Popen(
+            [terminal_path],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            cwd=str(Path(terminal_path).parent),
+            creationflags=getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
+        )
+        logger.info(f"MT5 terminal launched: {terminal_path}")
+        return True
+    except Exception as exc:
+        logger.warning(f"Could not launch MT5 terminal: {exc}")
+        return False
 
 
 # ── Bridge HTTP Client ────────────────────────────────────────────────────────
@@ -117,7 +144,20 @@ def connect() -> bool:
     from bot.accounts import get_mt5_lock
     with get_mt5_lock():
         if not mt5.initialize(**kwargs):
-            logger.error(f"MT5 initialize failed: {mt5.last_error()}")
+            last_error = str(mt5.last_error())
+            logger.error(f"MT5 initialize failed: {last_error}")
+            if "IPC send failed" in last_error or "IPC timeout" in last_error:
+                launch_path = config.MT5_PATH or ""
+                if _launch_mt5_terminal(launch_path):
+                    time.sleep(4)
+                    if mt5.initialize(**kwargs) and mt5.login(config.MT5_LOGIN, password=config.MT5_PASSWORD, server=config.MT5_SERVER):
+                        info = mt5.account_info()
+                        if info and int(getattr(info, "login", 0) or 0) == int(config.MT5_LOGIN):
+                            logger.info(
+                                f"MT5 reconnected after terminal relaunch | Account: {info.login} | "
+                                f"Balance: {info.balance} {info.currency}"
+                            )
+                            return True
             # In single-account mode, never fallback to another account login.
             if os.getenv("BOT_SINGLE_ACCOUNT_MODE", "").strip().lower() not in ("1", "true", "yes", "on"):
                 from bot.accounts import ensure_any_account_connected
