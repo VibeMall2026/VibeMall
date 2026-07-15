@@ -117,6 +117,16 @@ def _send_control_telegram_notice(title: str, lines: list[str]) -> None:
     except Exception as exc:
         logger.warning(f"[API] Could not send Telegram control notice: {exc}")
 
+
+def _send_account_summary_notice(title: str) -> None:
+    try:
+        from bot.telegram_listener import build_accounts_summary_text
+        from bot.telegram_notifier import send_text_alert
+
+        send_text_alert(f"{title}\n\n{build_accounts_summary_text()}")
+    except Exception as exc:
+        logger.warning(f"[API] Could not send account summary notice: {exc}")
+
 # ── CORS ──────────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
@@ -425,6 +435,7 @@ async def control_bot(body: ControlRequest):
                 f"Running strategies: {_format_strategy_list(get_runner_status().get('running_strategies', []))}",
             ],
         )
+        _send_account_summary_notice("Account summary after bot start")
         return {
             "success": True,
             "message": "Bot started",
@@ -445,6 +456,7 @@ async def control_bot(body: ControlRequest):
                 f"Stopped strategies: {_format_strategy_list(running_before)}",
             ],
         )
+        _send_account_summary_notice("Account summary after bot stop")
         return {
             "success": True,
             "message": "Bot stopped",
@@ -468,6 +480,7 @@ async def control_bot(body: ControlRequest):
                 f"Started strategies: {_format_strategy_list(started)}",
             ],
         )
+        _send_account_summary_notice("Account summary after bot restart")
         return {
             "success": True,
             "message": "Bot restarted",
@@ -491,6 +504,7 @@ async def control_bot(body: ControlRequest):
                 "Weekend close requested for non-BTCUSD positions",
             ],
         )
+        _send_account_summary_notice("Account summary after weekend shutdown")
         return {
             "success": weekend_close.get("success", True),
             "message": "Weekend shutdown initiated (non-BTCUSD positions close attempted)",
@@ -536,6 +550,7 @@ async def start_bot():
             f"Started strategies: {_format_strategy_list(started)}",
         ],
     )
+    _send_account_summary_notice("Account summary after bot start")
     return {
         "success": True,
         "message": "Bot started",
@@ -561,6 +576,7 @@ async def stop_bot():
             f"Stopped strategies: {_format_strategy_list(running_before)}",
         ],
     )
+    _send_account_summary_notice("Account summary after bot stop")
     return {
         "success": True,
         "message": "Bot stopped",

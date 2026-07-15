@@ -305,6 +305,86 @@ async def _reply_control_status(event, text: str) -> None:
         logger.warning(f"[TG_CMD] Could not send inline reply: {exc}")
 
 
+def build_accounts_summary_text() -> str:
+    from bot.accounts import get_all_accounts, get_account_trade_mode, _connect_account, _reconnect_primary
+    from bot import mt5_bridge
+
+    lines: list[str] = ["📊 Account Summary"]
+    accounts = list(get_all_accounts() or [])
+    if not accounts:
+        return "📊 Account Summary\nNo accounts found."
+
+    total_balance = 0.0
+    total_equity = 0.0
+    total_today_net = 0.0
+
+    for acc in accounts:
+        if not getattr(acc, "enabled", True):
+            continue
+
+        mode = get_account_trade_mode(int(acc.login))
+        allowed = "ON" if mode.get("allowed") else "OFF"
+        reason = str(mode.get("stop_reason_text") or mode.get("reason") or "").strip()
+
+        balance = float(getattr(acc, "balance", 0.0) or 0.0)
+        equity = float(getattr(acc, "equity", 0.0) or 0.0)
+        today_wins = 0
+        today_losses = 0
+        today_net_profit = 0.0
+        total_trades = 0
+        open_positions = 0
+        today_profit_amount = 0.0
+        today_loss_amount = 0.0
+
+        if _connect_account(acc):
+            try:
+                account_info = mt5_bridge.get_account_info() or {}
+                balance = float(account_info.get("balance", balance) or balance or 0.0)
+                equity = float(account_info.get("equity", equity) or equity or 0.0)
+                trades = mt5_bridge.get_trade_history(limit=500) or []
+                today = datetime.now(timezone.utc).date()
+                today_trades = [t for t in trades if _parse_trade_date(t.get("opened")) == today]
+                total_trades = len(trades)
+                today_wins = sum(1 for t in today_trades if t.get("status") == "win")
+                today_losses = sum(1 for t in today_trades if t.get("status") == "loss")
+                today_profit_amount = sum(max(float(t.get("pnl", 0) or 0), 0.0) for t in today_trades)
+                today_loss_amount = abs(sum(min(float(t.get("pnl", 0) or 0), 0.0) for t in today_trades))
+                today_net_profit = today_profit_amount - today_loss_amount
+                open_positions = len(mt5_bridge.get_open_positions() or [])
+            finally:
+                try:
+                    _reconnect_primary()
+                except Exception:
+                    pass
+
+        total_balance += balance
+        total_equity += equity
+        total_today_net += today_net_profit
+
+        lines.append(
+            f"\n{acc.label}\n"
+            f"Login: {acc.login}\n"
+            f"Status: {'Trading ' + allowed}\n"
+            f"Today profit: {today_profit_amount:.2f}\n"
+            f"Today loss: {today_loss_amount:.2f}\n"
+            f"Net profit: {today_net_profit:.2f}\n"
+            f"Balance: {balance:.2f}\n"
+            f"Equity: {equity:.2f}\n"
+            f"Total trades: {total_trades}\n"
+            f"Open positions: {open_positions}"
+        )
+        if reason and allowed == "OFF":
+            lines.append(f"Reason: {reason}")
+
+    lines.append(
+        "\nAll Accounts Total\n"
+        f"Balance: {total_balance:.2f}\n"
+        f"Equity: {total_equity:.2f}\n"
+        f"Today net profit: {total_today_net:.2f}"
+    )
+    return "\n".join(lines)
+
+
 def _is_private_control_allowed(sender: dict) -> bool:
     allowed_usernames = set(getattr(config, "TG_CONTROL_ALLOWED_USERNAMES", []) or [])
     allowed_ids = set(getattr(config, "TG_CONTROL_ALLOWED_IDS", []) or [])
@@ -529,6 +609,10 @@ async def _handle_control_command(event, text: str, channel_name: str) -> bool:
         f"Source: @{channel_name}\n"
         f"Reason: {halt_text}"
     )
+    try:
+        send_text_alert(build_accounts_summary_text())
+    except Exception as exc:
+        logger.warning(f"[TG_CMD] Could not send account summary: {exc}")
     return True
 
 

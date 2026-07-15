@@ -25,6 +25,31 @@ def _shorten(value: object, limit: int = 700) -> str:
     return text[: limit - 3].rstrip() + "..."
 
 
+def _is_expected_algo_block_reason(reason: str | None) -> bool:
+    text = str(reason or "").strip().lower()
+    if not text:
+        return False
+    blocked_markers = (
+        "algo quality gate block:",
+        "account paused for today",
+        "stopped_until_",
+        "manually_stopped_for_today",
+        "daily profit stop reached",
+        "trade blocked:",
+        "signal not executed on mapped accounts",
+        "bot is stopped",
+        "strategy '",
+        "no enabled accounts mapped",
+        "symbol not allowed for this account",
+        "correlation_blocked",
+        "max bullish trades",
+        "max bearish trades",
+        "algo trade skipped",
+        "the5ers policy block:",
+    )
+    return any(marker in text for marker in blocked_markers)
+
+
 def _get_alert_destination() -> str:
     if getattr(config, "TG_EXECUTION_ALERT_CHAT", "").strip():
         return config.TG_EXECUTION_ALERT_CHAT.strip()
@@ -231,6 +256,8 @@ def send_algo_error_alert(
     if not _is_allowed_execution_account(account_label):
         return False
     if not _is_signal_forge_notice(strategy_id, comment, account_label=account_label):
+        return False
+    if _is_expected_algo_block_reason(reason):
         return False
 
     chat_id = _get_alert_destination()
