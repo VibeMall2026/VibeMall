@@ -307,9 +307,35 @@ async def _reply_control_status(event, text: str) -> None:
     try:
         await event.reply(text)
     except Exception as exc:
+        chat_id = getattr(event, "chat_id", None)
+        if chat_id is not None:
+            try:
+                send_text_alert(text, chat_id=str(chat_id))
+                logger.warning(f"[TG_CMD] Inline reply failed; sent direct message instead: {exc}")
+                return
+            except Exception as exc2:
+                logger.warning(f"[TG_CMD] Could not send direct reply: {exc2}")
+                return
         logger.warning(f"[TG_CMD] Could not send inline reply: {exc}")
 
 
+def _is_control_chat_allowed(chat: dict) -> bool:
+    chat_type = str(chat.get("type") or "").strip().lower()
+    chat_username = str(chat.get("username") or "").lstrip("@").strip().lower()
+    chat_id = str(chat.get("id") or "").strip()
+
+    allowed_chats = {
+        str(item).lstrip("@").strip().lower()
+        for item in (getattr(config, "TG_CHANNELS", []) or [])
+        if str(item).strip()
+    }
+    if chat_type == "private":
+        return True
+    if chat_username and chat_username in allowed_chats:
+        return True
+    if chat_id and chat_id in allowed_chats:
+        return True
+    return False
 def build_accounts_summary_text() -> str:
     from bot.accounts import get_all_accounts, get_account_trade_mode, _connect_account, _reconnect_primary
     from bot import mt5_bridge
@@ -424,24 +450,27 @@ async def _handle_private_control_message(chat_id: str | int, text: str, sender_
 
 async def _bot_control_poll_loop() -> None:
     if not getattr(config, "ADMIN_BOT_TOKEN", "").strip():
-        logger.info("[TG_BOT] Private command bot polling disabled (no ADMIN_BOT_TOKEN).")
+        logger.info("[TG_BOT] Control command polling disabled (no ADMIN_BOT_TOKEN).")
         return
 
     try:
         import httpx
     except Exception as exc:
-        logger.warning(f"[TG_BOT] httpx not available for private command polling: {exc}")
+        logger.warning(f"[TG_BOT] httpx not available for control command polling: {exc}")
         return
 
     token = config.ADMIN_BOT_TOKEN.strip()
     get_updates_url = f"https://api.telegram.org/bot{token}/getUpdates"
     offset: int | None = None
-    logger.info("[TG_BOT] Private command polling started.")
+    logger.info("[TG_BOT] Control command polling started.")
 
     async with httpx.AsyncClient(timeout=40) as client:
         while True:
             try:
-                params = {"timeout": 30, "allowed_updates": '["message"]'}
+                params = {
+                    "timeout": 30,
+                    "allowed_updates": '["message","channel_post","edited_message","edited_channel_post"]',
+                }
                 if offset is not None:
                     params["offset"] = offset
                 resp = await client.get(get_updates_url, params=params)
@@ -452,20 +481,24 @@ async def _bot_control_poll_loop() -> None:
                         offset = int(item.get("update_id", 0)) + 1
                     except Exception:
                         continue
-                    message = item.get("message") or {}
+
+                    message = item.get("message") or item.get("channel_post") or item.get("edited_message") or item.get("edited_channel_post") or {}
                     if not message:
                         continue
+
                     chat = message.get("chat") or {}
-                    if str(chat.get("type") or "") != "private":
+                    if not _is_control_chat_allowed(chat):
                         continue
+
                     text = str(message.get("text") or "").strip()
                     if not text:
                         continue
+
                     sender = message.get("from") or {}
                     sender_label = str(sender.get("username") or sender.get("first_name") or sender.get("id") or "private_user")
-                    if not _is_control_sender_allowed(sender):
+                    if str(chat.get("type") or "").strip().lower() == "private" and not _is_control_sender_allowed(sender):
                         send_text_alert(
-                            "❌ Not authorized to use trading control commands.",
+                            "? Not authorized to use trading control commands.",
                             chat_id=str(chat.get("id")),
                         )
                         logger.warning(f"[TG_BOT] Unauthorized private command from {sender_label}")
@@ -474,22 +507,20 @@ async def _bot_control_poll_loop() -> None:
                     command = _canonical_command(text)
                     if command in {"", None}:
                         continue
-                    if command == "help" or command == "start":
+                    if command in {"help", "start"}:
                         send_text_alert(_build_help_text(), chat_id=str(chat.get("id")))
                         continue
 
                     await _handle_private_control_message(
                         chat_id=str(chat.get("id")),
                         text=text,
-                        sender_label=f"private:{sender_label}",
+                        sender_label=f"{str(chat.get('type') or 'chat')}:{sender_label}",
                     )
             except asyncio.CancelledError:
                 raise
             except Exception as exc:
-                logger.warning(f"[TG_BOT] Private command polling error: {exc}")
+                logger.warning(f"[TG_BOT] Control command polling error: {exc}")
                 await asyncio.sleep(max(3, int(getattr(config, "TG_RECONNECT_DELAY", 10) or 10)))
-
-
 async def _handle_control_command(event, text: str, channel_name: str) -> bool:
     from bot.accounts import get_account_trade_mode, stop_account_until, start_account_now
     from bot.algo.runner import get_runner_status, start_all_strategies, stop_all_strategies
@@ -839,3 +870,4 @@ async def stop_listener() -> None:
 
 def get_client() -> TelegramClient | None:
     return _client
+
