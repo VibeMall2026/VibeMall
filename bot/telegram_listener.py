@@ -406,6 +406,10 @@ def _is_private_control_allowed(sender: dict) -> bool:
     return False
 
 
+def _is_control_sender_allowed(sender: dict) -> bool:
+    return _is_private_control_allowed(sender)
+
+
 async def _handle_private_control_message(chat_id: str | int, text: str, sender_label: str) -> bool:
     class _PrivateReplyEvent:
         def __init__(self, target_chat_id: str | int):
@@ -459,7 +463,7 @@ async def _bot_control_poll_loop() -> None:
                         continue
                     sender = message.get("from") or {}
                     sender_label = str(sender.get("username") or sender.get("first_name") or sender.get("id") or "private_user")
-                    if not _is_private_control_allowed(sender):
+                    if not _is_control_sender_allowed(sender):
                         send_text_alert(
                             "❌ Not authorized to use trading control commands.",
                             chat_id=str(chat.get("id")),
@@ -766,12 +770,51 @@ async def start_listener() -> None:
     if not channel_entities:
         logger.warning("No channels resolved. Check TG_CHANNELS in .env")
 
+    monitored_chat_ids = {
+        int(getattr(entity, "id", 0))
+        for entity in channel_entities
+        if getattr(entity, "id", None) is not None
+    }
+
     @_client.on(events.NewMessage(chats=channel_entities))
     async def handler(event):
         chat = await event.get_chat()
         channel_name = getattr(chat, "username", None) or str(chat.id)
         logger.debug(f"[TG] Raw event received from @{channel_name}")
         await _handle_message(event)
+
+    @_client.on(events.NewMessage())
+    async def control_handler(event):
+        text = (event.raw_text or "").strip()
+        if not text:
+            return
+
+        command = _canonical_command(text)
+        if command not in _CONTROL_COMMANDS:
+            return
+
+        chat = await event.get_chat()
+        chat_id = int(getattr(chat, "id", 0) or 0)
+        if chat_id in monitored_chat_ids:
+            return
+
+        sender = await event.get_sender()
+        sender_dict = {
+            "id": getattr(sender, "id", None),
+            "username": getattr(sender, "username", None),
+            "first_name": getattr(sender, "first_name", None),
+        }
+        if not _is_control_sender_allowed(sender_dict):
+            await event.reply("❌ Not authorized to use trading control commands.")
+            logger.warning(
+                f"[TG_CMD] Unauthorized command in chat {chat_id} from "
+                f"{sender_dict.get('username') or sender_dict.get('first_name') or sender_dict.get('id')}"
+            )
+            return
+
+        channel_name = getattr(chat, "username", None) or str(chat.id)
+        logger.info(f"[TG_CMD] Control command received in chat @{channel_name}: {text[:80]}")
+        await _handle_control_command(event, text, channel_name)
 
     logger.info("Telegram listener running...")
     try:
