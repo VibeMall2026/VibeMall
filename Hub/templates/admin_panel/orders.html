@@ -451,29 +451,37 @@
                                     </a>
                                 </td>
                                 <td>
-                                    <div class="d-flex align-items-center">
-                                        {% if item.order.user.userprofile.profile_image and item.order.user.userprofile.profile_image.name != 'profile_images/default.png' %}
-                                        <img src="{{ item.order.user.userprofile.profile_image.url }}" alt="{{ item.order.user.username }}" class="customer-avatar">
-                                        {% else %}
-                                        <span class="avatar-initial rounded-circle bg-label-primary customer-avatar d-flex align-items-center justify-content-center">
-                                            {{ item.order.user.username|slice:":1"|upper }}
-                                        </span>
-                                        {% endif %}
-                                        <div>
-                                            <strong>{{ item.order.user.username }}</strong>
-                                            <br>
-                                            <small class="text-muted">{{ item.order.user.first_name }} {{ item.order.user.last_name }}</small>
+                                    {% if admin_panel_mode == 'seller' %}
+                                        <span class="badge bg-label-secondary">Customer hidden</span>
+                                    {% else %}
+                                        <div class="d-flex align-items-center">
+                                            {% if item.order.user.userprofile.profile_image and item.order.user.userprofile.profile_image.name != 'profile_images/default.png' %}
+                                            <img src="{{ item.order.user.userprofile.profile_image.url }}" alt="{{ item.order.user.username }}" class="customer-avatar">
+                                            {% else %}
+                                            <span class="avatar-initial rounded-circle bg-label-primary customer-avatar d-flex align-items-center justify-content-center">
+                                                {{ item.order.user.username|slice:":1"|upper }}
+                                            </span>
+                                            {% endif %}
+                                            <div>
+                                                <strong>{{ item.order.user.username }}</strong>
+                                                <br>
+                                                <small class="text-muted">{{ item.order.user.first_name }} {{ item.order.user.last_name }}</small>
+                                            </div>
                                         </div>
-                                    </div>
+                                    {% endif %}
                                 </td>
                                 <td>
-                                    <div>
-                                        <i class='bx bx-envelope'></i> {{ item.order.user.email }}
-                                        <br>
-                                        {% if item.order.user.userprofile.mobile_number %}
-                                        <i class='bx bx-phone'></i> {{ item.order.user.userprofile.country_code }} {{ item.order.user.userprofile.mobile_number }}
-                                        {% endif %}
-                                    </div>
+                                    {% if admin_panel_mode == 'seller' %}
+                                        <span class="badge bg-label-secondary">Private</span>
+                                    {% else %}
+                                        <div>
+                                            <i class='bx bx-envelope'></i> {{ item.order.user.email }}
+                                            <br>
+                                            {% if item.order.user.userprofile.mobile_number %}
+                                            <i class='bx bx-phone'></i> {{ item.order.user.userprofile.country_code }} {{ item.order.user.userprofile.mobile_number }}
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <strong>₹{{ item.subtotal|floatformat:2 }}</strong>
@@ -838,6 +846,7 @@
         </div>
 
         <!-- Customer Details Modal -->
+        {% if admin_panel_mode != 'seller' %}
         <div class="modal fade" id="customerModal{{ item.order.id }}" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -892,6 +901,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
         <!-- Delete Order Modal -->
         <div class="modal fade" id="deleteModal{{ item.id }}" tabindex="-1">
@@ -907,7 +917,11 @@
                             <div class="alert alert-danger">
                                 <i class='bx bx-trash'></i> This will permanently delete the order and all associated records (items, history). This action cannot be undone.
                             </div>
+                            {% if admin_panel_mode == 'seller' %}
+                            <p><strong>Customer:</strong> Hidden</p>
+                            {% else %}
                             <p><strong>Customer:</strong> {{ item.order.user.get_full_name|default:item.order.user.username }}</p>
+                            {% endif %}
                             <p><strong>Total:</strong> ₹{{ item.order.total_amount|floatformat:2 }}</p>
                         </div>
                         <div class="modal-footer">

@@ -5,15 +5,22 @@ Views for Customer Insights, Financial Management, Product Enhancements, Securit
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.http import HttpResponse, JsonResponse
-from django.core.exceptions import FieldError
+from django.core.exceptions import FieldError, ValidationError
 from django.db.models import Q, Sum, Count, Avg, F
 from django.db.utils import OperationalError, ProgrammingError
+from django.core.mail import send_mail
+from django.core.validators import validate_email
 from django.template import TemplateDoesNotExist
 from django.utils import timezone
 from django.utils.text import slugify
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes
+from django.conf import settings
+from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator
 from decimal import Decimal
@@ -46,7 +53,7 @@ from Hub.models_product_enhancements import (
     Product360View, ProductBulkOperation
 )
 from Hub.models_security_access import (
-    SecurityRole, UserRoleAssignment, SecurityAuditLog,
+    SecurityRole, UserRoleAssignment, SellerAccessInvite, SecurityAuditLog,
     TwoFactorAuthentication, IPWhitelist, UserSession,
     LoginAttempt, SecurityAlert, DataAccessLog
 )
@@ -66,7 +73,7 @@ from Hub.models_ai_ml_features import (
 )
 
 from Hub.views_new_features import staff_member_required, log_activity
-from Hub.models import Product, Order, OrderItem
+from Hub.models import Product, Order, OrderItem, ResellerProfile
 
 
 def _advanced_feature_hint(exc):
@@ -565,6 +572,9 @@ def admin_security_roles(request):
                 role.can_manage_orders = request.POST.get('can_manage_orders') == 'on'
                 role.can_manage_customers = request.POST.get('can_manage_customers') == 'on'
                 role.can_manage_inventory = request.POST.get('can_manage_inventory') == 'on'
+                role.can_manage_categories = request.POST.get('can_manage_categories') == 'on'
+                role.can_manage_invoices = request.POST.get('can_manage_invoices') == 'on'
+                role.can_manage_resellers = request.POST.get('can_manage_resellers') == 'on'
                 role.can_manage_finances = request.POST.get('can_manage_finances') == 'on'
                 role.can_manage_marketing = request.POST.get('can_manage_marketing') == 'on'
                 role.can_manage_users = request.POST.get('can_manage_users') == 'on'
@@ -667,6 +677,224 @@ def admin_user_sessions(request):
     }
     
     return render(request, 'admin_panel/user_sessions.html', context)
+
+
+# ============ SELLER INVITES =============
+
+def _get_or_create_seller_role(created_by=None):
+    role = SecurityRole.objects.filter(role_type='SELLER').order_by('name').first()
+    if role:
+        return role
+    role, _ = SecurityRole.objects.get_or_create(
+        name='Seller Panel Access',
+        defaults={
+            'role_type': 'SELLER',
+            'description': 'Seller panel access with scoped dashboard permissions.',
+            'can_manage_products': True,
+            'can_manage_orders': True,
+            'can_manage_categories': True,
+            'can_manage_invoices': True,
+            'can_manage_resellers': True,
+            'can_view_reports': True,
+            'created_by': created_by,
+        },
+    )
+    return role
+
+
+def _build_unique_username(base_username: str) -> str:
+    base_username = (base_username or '').strip().lower().replace(' ', '_')
+    if not base_username:
+        base_username = 'seller'
+    candidate = base_username
+    suffix = 1
+    while User.objects.filter(username=candidate).exists():
+        suffix += 1
+        candidate = f"{base_username}{suffix}"
+    return candidate[:150]
+
+
+def _prepare_seller_account(user: User, created_by=None, business_name: str = '') -> None:
+    role = _get_or_create_seller_role(created_by=created_by)
+    UserRoleAssignment.objects.update_or_create(
+        user=user,
+        role=role,
+        defaults={
+            'assigned_by': created_by,
+            'is_active': True,
+            'is_primary': True,
+            'valid_from': timezone.now(),
+            'valid_until': None,
+        },
+    )
+    reseller_profile, _ = ResellerProfile.objects.get_or_create(
+        user=user,
+        defaults={
+            'is_reseller_enabled': True,
+            'business_name': business_name or user.get_full_name() or user.username,
+        },
+    )
+    update_fields = []
+    if not reseller_profile.is_reseller_enabled:
+        reseller_profile.is_reseller_enabled = True
+        update_fields.append('is_reseller_enabled')
+    if business_name and reseller_profile.business_name != business_name:
+        reseller_profile.business_name = business_name
+        update_fields.append('business_name')
+    if update_fields:
+        reseller_profile.save(update_fields=update_fields)
+
+
+def _send_seller_invite_email(request, invite: SellerAccessInvite) -> None:
+    invite_url = request.build_absolute_uri(reverse('seller_invite_accept', args=[invite.token]))
+    subject = 'Your VibeMall Seller Panel Invite'
+    message = (
+        f"You have been invited to access the VibeMall seller panel.\n\n"
+        f"Open this link to set your password and sign in:\n{invite_url}\n\n"
+        f"This link expires on {invite.expires_at:%Y-%m-%d %H:%M}."
+    )
+    send_mail(
+        subject,
+        message,
+        getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+        [invite.email],
+        fail_silently=False,
+    )
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_seller_invites(request):
+    """Create and manage seller access invites."""
+    if request.method == 'POST':
+        action = (request.POST.get('action') or '').strip()
+        if action == 'create_invite':
+            email = (request.POST.get('email') or '').strip()
+            username = (request.POST.get('username') or '').strip()
+            first_name = (request.POST.get('first_name') or '').strip()
+            last_name = (request.POST.get('last_name') or '').strip()
+            business_name = (request.POST.get('business_name') or '').strip()
+
+            if not email:
+                messages.error(request, 'Email is required.')
+                return redirect('admin_seller_invites')
+
+            if not username:
+                username = _build_unique_username(email.split('@', 1)[0])
+
+            try:
+                validate_email(email)
+            except ValidationError:
+                messages.error(request, 'Please enter a valid email address.')
+                return redirect('admin_seller_invites')
+
+            user = User.objects.filter(email__iexact=email).first()
+            if user and user.is_active:
+                messages.error(request, 'A fully active account already exists for this email. Use the existing account instead of creating a new invite.')
+                return redirect('admin_seller_invites')
+
+            if not user:
+                user = User.objects.create(
+                    username=_build_unique_username(username),
+                    email=email,
+                    first_name=first_name,
+                    last_name=last_name,
+                    is_active=False,
+                )
+                user.set_unusable_password()
+                user.save(update_fields=['password'])
+            else:
+                changed_fields = []
+                if not user.first_name and first_name:
+                    user.first_name = first_name
+                    changed_fields.append('first_name')
+                if not user.last_name and last_name:
+                    user.last_name = last_name
+                    changed_fields.append('last_name')
+                if user.username != username:
+                    candidate_username = _build_unique_username(username)
+                    if candidate_username != user.username:
+                        user.username = candidate_username
+                        changed_fields.append('username')
+                if changed_fields:
+                    user.save(update_fields=changed_fields)
+                if user.has_usable_password():
+                    user.set_unusable_password()
+                    user.save(update_fields=['password'])
+
+            _prepare_seller_account(user, created_by=request.user, business_name=business_name)
+
+            SellerAccessInvite.objects.filter(user=user, is_active=True, used_at__isnull=True).update(is_active=False)
+            invite = SellerAccessInvite.objects.create(
+                user=user,
+                email=email,
+                token=SellerAccessInvite.generate_token(),
+                expires_at=timezone.now() + timedelta(days=7),
+                created_by=request.user,
+            )
+            _send_seller_invite_email(request, invite)
+            messages.success(request, f'Seller invite sent to {email}.')
+            return redirect('admin_seller_invites')
+
+    invites = SellerAccessInvite.objects.select_related('user', 'created_by').order_by('-created_at')[:50]
+    seller_users = User.objects.filter(role_assignments__role__role_type='SELLER').distinct().order_by('username')
+    context = {
+        'invites': invites,
+        'seller_users': seller_users,
+    }
+    return render(request, 'admin_panel/seller_invites.html', context)
+
+
+def seller_invite_accept(request, token):
+    """Accept a seller invite, set a password, and enter the panel."""
+    invite = get_object_or_404(
+        SellerAccessInvite.objects.select_related('user'),
+        token=token,
+        is_active=True,
+        used_at__isnull=True,
+    )
+
+    if invite.is_expired:
+        invite.is_active = False
+        invite.save(update_fields=['is_active'])
+        messages.error(request, 'This seller invite has expired.')
+        return redirect('login')
+
+    if request.method == 'POST':
+        password1 = (request.POST.get('password1') or '').strip()
+        password2 = (request.POST.get('password2') or '').strip()
+
+        if not password1 or not password2:
+            messages.error(request, 'Please enter and confirm your password.')
+            return render(request, 'admin_panel/seller_invite_accept.html', {'invite': invite})
+        if password1 != password2:
+            messages.error(request, 'Passwords do not match.')
+            return render(request, 'admin_panel/seller_invite_accept.html', {'invite': invite})
+        if len(password1) < 8:
+            messages.error(request, 'Password must be at least 8 characters.')
+            return render(request, 'admin_panel/seller_invite_accept.html', {'invite': invite})
+
+        user = invite.user
+        user.set_password(password1)
+        user.is_active = True
+        user.email = invite.email
+        user.save(update_fields=['password', 'is_active', 'email'])
+
+        _prepare_seller_account(user, created_by=invite.created_by, business_name=(user.reseller_profile.business_name if hasattr(user, 'reseller_profile') else ''))
+
+        invite.is_active = False
+        invite.used_at = timezone.now()
+        invite.save(update_fields=['is_active', 'used_at'])
+
+        authenticated_user = authenticate(request, username=user.username, password=password1)
+        if authenticated_user is not None:
+            login(request, authenticated_user)
+        else:
+            login(request, user)
+        messages.success(request, 'Seller access activated successfully.')
+        return redirect('admin_dashboard')
+
+    return render(request, 'admin_panel/seller_invite_accept.html', {'invite': invite})
 
 
 # ============ CONTENT MANAGEMENT VIEWS ============

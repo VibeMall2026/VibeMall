@@ -24,19 +24,13 @@ from Hub.models_new_features import (
     AdminRole, AdminUserRole, SalesReport, EmailTemplate
 )
 from Hub.models import Product, Order, OrderItem
+from Hub.panel_access import admin_panel_required
 
 logger = logging.getLogger(__name__)
 
 
-# Helper decorator for staff members
-def staff_member_required(login_url='login'):
-    def decorator(view_func):
-        def wrapped_view(request, *args, **kwargs):
-            if not request.user.is_staff:
-                return redirect(login_url)
-            return view_func(request, *args, **kwargs)
-        return wrapped_view
-    return decorator
+# Helper decorator for admin/seller panel access
+staff_member_required = admin_panel_required
 
 
 # ============ ACTIVITY LOGS ============
@@ -516,6 +510,7 @@ def admin_bulk_import_products(request):
                         category=row.get('category', ''),
                         description=row.get('description', ''),
                         is_active=row.get('is_active', 'true').lower() == 'true',
+                        created_by=request.user,
                     )
                     successful += 1
                     log_activity(request.user, 'CREATE', 'Product', product.id, product.name, request=request)

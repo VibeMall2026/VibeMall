@@ -7,6 +7,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from decimal import Decimal
+import uuid
 import json
 
 
@@ -17,6 +18,7 @@ class SecurityRole(models.Model):
         ('ADMIN', 'Administrator'),
         ('MANAGER', 'Manager'),
         ('STAFF', 'Staff Member'),
+        ('SELLER', 'Seller'),
         ('VIEWER', 'View Only'),
         ('CUSTOMER_SERVICE', 'Customer Service'),
         ('INVENTORY_MANAGER', 'Inventory Manager'),
@@ -35,6 +37,9 @@ class SecurityRole(models.Model):
     can_manage_orders = models.BooleanField(default=False)
     can_manage_customers = models.BooleanField(default=False)
     can_manage_inventory = models.BooleanField(default=False)
+    can_manage_categories = models.BooleanField(default=False)
+    can_manage_invoices = models.BooleanField(default=False)
+    can_manage_resellers = models.BooleanField(default=False)
     can_manage_finances = models.BooleanField(default=False)
     can_manage_marketing = models.BooleanField(default=False)
     can_manage_users = models.BooleanField(default=False)
@@ -104,6 +109,32 @@ class UserRoleAssignment(models.Model):
     
     def __str__(self):
         return f"{self.user.username} - {self.role.name}"
+
+
+class SellerAccessInvite(models.Model):
+    """Single-use invite link for seller panel access."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='seller_access_invites')
+    email = models.EmailField()
+    token = models.CharField(max_length=64, unique=True, db_index=True)
+    expires_at = models.DateTimeField()
+    is_active = models.BooleanField(default=True)
+    used_at = models.DateTimeField(null=True, blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='seller_access_invites_created')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Seller invite for {self.email}"
+
+    @property
+    def is_expired(self):
+        return timezone.now() >= self.expires_at
+
+    @classmethod
+    def generate_token(cls):
+        return uuid.uuid4().hex + uuid.uuid4().hex
 
 
 class SecurityAuditLog(models.Model):

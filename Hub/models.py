@@ -267,6 +267,7 @@ class CategoryIcon(models.Model):
     )
     is_active = models.BooleanField(default=True)
     order = models.PositiveIntegerField(default=0, help_text="Display order (lower numbers appear first)")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_category_icons')
 
     class Meta:
         ordering = ['order', 'id']
@@ -308,6 +309,7 @@ class SubCategory(models.Model):
     )
     is_active = models.BooleanField(default=True)
     order = models.PositiveIntegerField(default=0)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_subcategories')
 
     class Meta:
         ordering = ['order', 'name']
@@ -530,6 +532,7 @@ class Product(models.Model):
     is_active = models.BooleanField(default=True)
     rating = models.FloatField(default=0)
     review_count = models.PositiveIntegerField(default=0)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='products')
 
     class Meta:
         ordering = ['-id']

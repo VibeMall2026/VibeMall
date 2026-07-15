@@ -363,8 +363,12 @@
                 <div class="text-muted small">{{ invoice.payment_method }}</div>
               </td>
               <td>
-                <div class="fw-semibold">{{ invoice.user.get_full_name|default:invoice.user.username }}</div>
-                <div class="text-muted small">{{ invoice.user.email }}</div>
+                {% if admin_panel_mode == 'seller' %}
+                  <div class="fw-semibold text-muted">Customer hidden</div>
+                {% else %}
+                  <div class="fw-semibold">{{ invoice.user.get_full_name|default:invoice.user.username }}</div>
+                  <div class="text-muted small">{{ invoice.user.email }}</div>
+                {% endif %}
               </td>
               <td>
                 <div>{{ invoice.created_at|date:'d M Y' }}</div>

@@ -14,7 +14,6 @@ from datetime import datetime, timedelta
 import logging
 import os
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse, FileResponse
 from django.db import transaction
@@ -35,6 +34,8 @@ from .models import (
     User,
     ReturnRequest
 )
+from .panel_access import get_order_scope, get_resell_link_scope, is_seller_user
+from .panel_access import admin_panel_required as staff_member_required
 from .resell_payout_service import (
     PayoutEligibilityManager,
     PayoutEmailService,
@@ -121,9 +122,12 @@ def admin_resell_orders(request):
     order_by = order_sort_fields.get(sort_by, '-created_at')
     
     # Base queryset
-    orders = Order.objects.filter(is_resell=True).select_related(
+    orders = get_order_scope(request.user).filter(is_resell=True).select_related(
         'user', 'reseller', 'resell_link'
     ).prefetch_related('items').order_by(order_by)
+
+    if is_seller_user(request.user):
+        reseller_id = str(request.user.id)
     
     # Apply filters
     if reseller_id:
@@ -176,9 +180,12 @@ def admin_resell_orders(request):
     page_obj = paginator.get_page(page_number)
     
     # Get all resellers for filter dropdown
-    resellers = User.objects.filter(
-        reseller_profile__is_reseller_enabled=True
-    ).order_by('username')
+    if is_seller_user(request.user):
+        resellers = User.objects.filter(id=request.user.id).order_by('username')
+    else:
+        resellers = User.objects.filter(
+            reseller_profile__is_reseller_enabled=True
+        ).order_by('username')
     
     context = {
         'page_obj': page_obj,
@@ -216,6 +223,8 @@ def admin_reseller_analytics(request):
     - reseller_id: View specific reseller analytics
     """
     reseller_id = request.GET.get('reseller_id', '')
+    if is_seller_user(request.user):
+        reseller_id = str(request.user.id)
     
     if reseller_id:
         # Single reseller analytics
@@ -301,13 +310,16 @@ def admin_reseller_analytics(request):
         }
         order_by = reseller_sort_fields.get(sort_by, '-total_earnings')
 
-        resellers = ResellerProfile.objects.filter(
-            is_reseller_enabled=True
-        ).select_related('user').order_by(order_by)
+        if is_seller_user(request.user):
+            resellers = ResellerProfile.objects.filter(user=request.user).select_related('user').order_by(order_by)
+        else:
+            resellers = ResellerProfile.objects.filter(
+                is_reseller_enabled=True
+            ).select_related('user').order_by(order_by)
         
         # Calculate overall metrics
         total_resellers = resellers.count()
-        all_resell_orders = Order.objects.filter(is_resell=True)
+        all_resell_orders = get_order_scope(request.user).filter(is_resell=True)
         order_metrics = all_resell_orders.aggregate(
             total_orders=Count('id'),
             total_revenue=Sum('total_amount'),
@@ -379,16 +391,18 @@ def admin_resell_reports(request):
         return redirect('admin_resell_reports')
     
     # Get data for date range
-    orders = Order.objects.filter(
+    orders = get_order_scope(request.user).filter(
         is_resell=True,
         created_at__gte=date_from_obj,
         created_at__lt=date_to_obj
     )
-    
+
     earnings = ResellerEarning.objects.filter(
         created_at__gte=date_from_obj,
         created_at__lt=date_to_obj
     )
+    if is_seller_user(request.user):
+        earnings = earnings.filter(reseller=request.user)
     
     payouts = PayoutTransaction.objects.filter(
         initiated_at__gte=date_from_obj,
@@ -527,7 +541,10 @@ def admin_reseller_management(request):
     order_by = sort_fields.get(sort_by, '-created_at')
     
     # Base queryset
-    resellers = ResellerProfile.objects.select_related('user').order_by(order_by)
+    if is_seller_user(request.user):
+        resellers = ResellerProfile.objects.filter(user=request.user).select_related('user').order_by(order_by)
+    else:
+        resellers = ResellerProfile.objects.select_related('user').order_by(order_by)
     
     # Apply filters
     if search_query:
@@ -548,8 +565,8 @@ def admin_reseller_management(request):
     page_obj = paginator.get_page(page_number)
     
     # Calculate summary
-    total_resellers = ResellerProfile.objects.count()
-    enabled_resellers = ResellerProfile.objects.filter(is_reseller_enabled=True).count()
+    total_resellers = resellers.count() if is_seller_user(request.user) else ResellerProfile.objects.count()
+    enabled_resellers = resellers.filter(is_reseller_enabled=True).count() if is_seller_user(request.user) else ResellerProfile.objects.filter(is_reseller_enabled=True).count()
     disabled_resellers = total_resellers - enabled_resellers
     
     context = {
@@ -590,7 +607,10 @@ def admin_reseller_payment_data(request):
     }
     order_by = sort_fields.get(sort_by, '-updated_at')
 
-    profiles = ResellerProfile.objects.select_related('user', 'user__userprofile').order_by(order_by)
+    if is_seller_user(request.user):
+        profiles = ResellerProfile.objects.filter(user=request.user).select_related('user', 'user__userprofile').order_by(order_by)
+    else:
+        profiles = ResellerProfile.objects.select_related('user', 'user__userprofile').order_by(order_by)
 
     if search_query:
         profiles = profiles.filter(
@@ -622,10 +642,16 @@ def admin_reseller_payment_data(request):
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
 
-    total_profiles = ResellerProfile.objects.count()
-    bank_ready = ResellerProfile.objects.filter(has_bank_q).count()
-    upi_ready = ResellerProfile.objects.filter(has_upi_q).count()
-    both_ready = ResellerProfile.objects.filter(has_bank_q & has_upi_q).count()
+    if is_seller_user(request.user):
+        total_profiles = profiles.count()
+        bank_ready = profiles.filter(has_bank_q).count()
+        upi_ready = profiles.filter(has_upi_q).count()
+        both_ready = profiles.filter(has_bank_q & has_upi_q).count()
+    else:
+        total_profiles = ResellerProfile.objects.count()
+        bank_ready = ResellerProfile.objects.filter(has_bank_q).count()
+        upi_ready = ResellerProfile.objects.filter(has_upi_q).count()
+        both_ready = ResellerProfile.objects.filter(has_bank_q & has_upi_q).count()
 
     payment_rows = []
     for profile in page_obj.object_list:
@@ -669,7 +695,7 @@ def admin_toggle_reseller_status(request, reseller_id):
         return redirect('admin_reseller_management')
 
     try:
-        profile = get_object_or_404(ResellerProfile, id=reseller_id)
+        profile = get_object_or_404(ResellerProfile, id=reseller_id, user=request.user) if is_seller_user(request.user) else get_object_or_404(ResellerProfile, id=reseller_id)
         profile.is_reseller_enabled = not profile.is_reseller_enabled
         profile.save(update_fields=['is_reseller_enabled'])
 
@@ -703,13 +729,18 @@ def admin_payout_management(request):
     page_size = _get_safe_page_size(request)
 
     # Get all resellers for filter
-    resellers = User.objects.filter(
-        reseller_profile__is_reseller_enabled=True
-    ).order_by('username')
+    if is_seller_user(request.user):
+        resellers = User.objects.filter(id=request.user.id).order_by('username')
+    else:
+        resellers = User.objects.filter(
+            reseller_profile__is_reseller_enabled=True
+        ).order_by('username')
 
     if view_type == 'eligible':
         # Show earnings ready for payout (passed 7-day hold)
         earnings = PayoutEligibilityManager.get_eligible_payouts_for_admin()
+        if is_seller_user(request.user):
+            earnings = earnings.filter(reseller=request.user)
         earnings = earnings.select_related('order__user', 'reseller__reseller_profile')
         
         # Add eligibility status for each
@@ -743,10 +774,13 @@ def admin_payout_management(request):
         page_obj = paginator.get_page(page_number)
         
         # Summary for eligible
-        total_earnings = ResellerEarning.objects.filter(
+        total_earnings_qs = ResellerEarning.objects.filter(
             status='CONFIRMED',
             payout_transaction__isnull=True
-        ).aggregate(total=Sum('margin_amount'))['total'] or Decimal('0.00')
+        )
+        if is_seller_user(request.user):
+            total_earnings_qs = total_earnings_qs.filter(reseller=request.user)
+        total_earnings = total_earnings_qs.aggregate(total=Sum('margin_amount'))['total'] or Decimal('0.00')
         
         context = {
             'view_type': 'eligible',

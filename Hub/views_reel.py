@@ -3,7 +3,6 @@ Reel Generation Views for Admin Panel
 """
 
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
@@ -12,6 +11,7 @@ import os
 import threading
 from .models import Reel, ReelImage
 from .reel_creator import ReelCreator
+from .panel_access import admin_panel_required as staff_member_required
 
 
 @login_required(login_url='login')

@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}Set Your Seller Password - VibeMall{% endblock %}
+{% block body_class %}login-page vm-page-mobile-alt{% endblock %}
+
+{% block extra_css %}
+<style>
+  .vm-invite-wrap {
+    min-height: calc(100vh - 220px);
+    background: #f7f5f0;
+    display: grid;
+    place-items: center;
+    padding: 48px 16px;
+  }
+  .vm-invite-card {
+    width: 100%;
+    max-width: 560px;
+    background: #fff;
+    border: 1px solid #e8e3d9;
+    box-shadow: 0 18px 36px rgba(0,0,0,.06);
+    border-radius: 18px;
+    padding: 32px;
+  }
+  .vm-invite-card h1 {
+    margin: 0 0 10px;
+    font-size: 32px;
+  }
+  .vm-invite-card p { color: #5a564f; }
+  .vm-field { margin-bottom: 16px; }
+  .vm-field label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #6e6657;
+  }
+  .vm-field input {
+    width: 100%;
+    border: 1px solid #d9d2c3;
+    height: 46px;
+    padding: 0 14px;
+    font-size: 14px;
+  }
+  .vm-submit {
+    width: 100%;
+    border: 0;
+    background: #171818;
+    color: #fff;
+    height: 46px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-weight: 700;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="vm-invite-wrap">
+  <div class="vm-invite-card">
+    <p class="text-uppercase mb-2" style="letter-spacing:.14em;color:#8b7755;">Seller Access Invite</p>
+    <h1>Set your password</h1>
+    <p>After you set your password, you will go straight to the seller admin panel.</p>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-success{% endif %}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="vm-field">
+        <label>Email</label>
+        <input type="email" value="{{ invite.email }}" disabled>
+      </div>
+      <div class="vm-field">
+        <label>New Password</label>
+        <input type="password" name="password1" required>
+      </div>
+      <div class="vm-field">
+        <label>Confirm Password</label>
+        <input type="password" name="password2" required>
+      </div>
+      <button type="submit" class="vm-submit">Activate Seller Access</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

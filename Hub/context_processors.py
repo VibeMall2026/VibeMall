@@ -13,6 +13,7 @@ from datetime import timedelta
 
 from .models import Cart, Wishlist, SiteSettings, LoyaltyPoints, CategoryIcon, Product, SubCategory, Coupon, Order, OrderItem, ProductReview
 from django.db.models import F, Sum
+from .panel_access import get_panel_label, get_panel_mode, get_panel_permissions
 
 MOBILE_REVIEW_PROMPT_SESSION_KEY = 'mobile_review_prompt_seen_count'
 MOBILE_REVIEW_PROMPT_MAX_SHOWN = 2
@@ -258,6 +259,7 @@ def admin_panel_context(request):
         'admin_avatar_url': '',
         'admin_billing_alert_count': 0,
         'admin_presence_class': 'avatar-offline',
+        'admin_panel_mode': 'user',
     }
 
     user = getattr(request, 'user', None)
@@ -269,11 +271,9 @@ def admin_panel_context(request):
         return context
 
     context['admin_display_name'] = user.get_full_name() or user.username
-
-    if user.is_superuser:
-        context['admin_role_label'] = 'Super Admin'
-    elif user.is_staff:
-        context['admin_role_label'] = 'Admin'
+    context['admin_role_label'] = get_panel_label(user)
+    context['admin_panel_mode'] = get_panel_mode(user)
+    context.update(get_panel_permissions(user))
 
     try:
         profile = user.userprofile

@@ -11,7 +11,6 @@ from django.db import transaction
 from django.db.models import Count, Q, Avg, Sum, F, DecimalField, ExpressionWrapper, Case, When, Value, IntegerField, QuerySet, Min, Max, Prefetch
 from django.db.models.functions import Coalesce, Lower, Trim
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger, Page
-from django.contrib.admin.views.decorators import staff_member_required
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime, parse_date
 from django.utils.html import strip_tags
@@ -38,6 +37,18 @@ from urllib.parse import urlencode, urlparse
 from typing import Dict, List, Optional, Tuple, Any, Union, Callable
 import ipaddress
 import base64
+
+from .panel_access import (
+    admin_panel_required as staff_member_required,
+    get_category_scope,
+    get_order_item_scope,
+    get_order_scope,
+    get_panel_mode,
+    get_product_scope,
+    get_resell_link_scope,
+    get_subcategory_scope,
+    is_seller_user,
+)
 import re
 import json
 import base64
@@ -282,16 +293,20 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
     last_7_days = today - timedelta(days=7)
     last_30_days = today - timedelta(days=30)
     current_month_start = today.replace(day=1)
+    seller_mode = is_seller_user(request.user)
+    product_scope = get_product_scope(request.user)
+    order_scope = get_order_scope(request.user)
+    order_item_scope = get_order_item_scope(request.user)
     
     # Basic Statistics
-    total_products = Product.objects.count()
-    active_products = Product.objects.filter(is_active=True).count()
-    total_users = User.objects.count()
-    total_orders = Order.objects.count()
+    total_products = product_scope.count()
+    active_products = product_scope.filter(is_active=True).count()
+    total_users = 1 if seller_mode else User.objects.count()
+    total_orders = order_scope.count()
 
     # Paid orders (for consistent revenue calculations)
-    paid_orders_qs = Order.objects.filter(payment_status='PAID')
-    profit_orders_qs = _paid_orders_qs()
+    paid_orders_qs = order_scope.filter(payment_status='PAID')
+    profit_orders_qs = paid_orders_qs
     
     # Revenue Statistics
     total_revenue = paid_orders_qs.aggregate(total=Sum('total_amount'))['total'] or 0
@@ -305,30 +320,30 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
     ).aggregate(total=Sum('total_amount'))['total'] or 0
     
     # Order Statistics
-    pending_orders = Order.objects.filter(order_status='PENDING').count()
-    processing_orders = Order.objects.filter(order_status='PROCESSING').count()
-    shipped_orders = Order.objects.filter(order_status='SHIPPED').count()
-    delivered_orders = Order.objects.filter(order_status='DELIVERED').count()
+    pending_orders = order_scope.filter(order_status='PENDING').count()
+    processing_orders = order_scope.filter(order_status='PROCESSING').count()
+    shipped_orders = order_scope.filter(order_status='SHIPPED').count()
+    delivered_orders = order_scope.filter(order_status='DELIVERED').count()
     
     # Recent Orders
-    recent_orders = Order.objects.all().select_related('user').order_by('-created_at')[:10]
+    recent_orders = order_scope.select_related('user').order_by('-created_at')[:10]
 
     # Recent Order Items for dashboard table (show first 7 recent orders with their items)
-    recent_order_items = Order.objects.all().select_related('user').prefetch_related('items').order_by('-created_at')[:7]
+    recent_order_items = order_scope.select_related('user').prefetch_related('items').order_by('-created_at')[:7]
     
     # Top Selling Products (by total quantity sold)
     top_products = (
-        Product.objects
+        product_scope
         .annotate(sales_count=Sum('orderitem__quantity'))
         .filter(sales_count__gt=0)
         .order_by('-sales_count')[:5]
     )
     
     # Low Stock Products
-    low_stock_products = Product.objects.filter(stock__lte=10, is_active=True).order_by('stock')[:5]
+    low_stock_products = product_scope.filter(stock__lte=10, is_active=True).order_by('stock')[:5]
     
     # Recent Reviews
-    recent_reviews = ProductReview.objects.select_related('user', 'product').order_by('-created_at')[:5]
+    recent_reviews = ProductReview.objects.select_related('user', 'product').filter(product__in=product_scope).order_by('-created_at')[:5]
     
     # Daily Sales Chart Data (Last 7 Days)
     daily_sales = paid_orders_qs.filter(
@@ -340,56 +355,71 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
     ).order_by('date')
 
     # Visitors (new users) in last 7 days
-    new_users_last_7 = User.objects.filter(date_joined__date__gte=last_7_days).count()
-    prev_7_start = last_7_days - timedelta(days=7)
-    new_users_prev_7 = User.objects.filter(
-        date_joined__date__gte=prev_7_start,
-        date_joined__date__lt=last_7_days
-    ).count()
-    visitors_weekly_percent = round((new_users_last_7 / new_users_prev_7) * 100, 1) if new_users_prev_7 else (100.0 if new_users_last_7 else 0.0)
-
-    visitors_series_qs = User.objects.filter(date_joined__date__gte=last_7_days).annotate(
-        date=TruncDate('date_joined')
-    ).values('date').annotate(count=Count('id')).order_by('date')
-    visitors_series_map = {row['date']: row['count'] for row in visitors_series_qs}
     visitors_week_labels = [today - timedelta(days=i) for i in range(6, -1, -1)]
-    visitors_weekly_series = [visitors_series_map.get(day, 0) for day in visitors_week_labels]
+    if seller_mode:
+        prev_7_start = last_7_days - timedelta(days=7)
+        new_users_last_7 = 0
+        new_users_prev_7 = 0
+        visitors_weekly_percent = 0.0
+        visitors_weekly_series = [0] * 7
+        visitors_today_series = [0] * 24
+        visitors_yesterday_series = [0] * 24
+        visitors_last_month_series = [0] * 30
+        visitors_today_count = 0
+        visitors_yesterday_count = 0
+        visitors_last_month_count = 0
+        yesterday = today - timedelta(days=1)
+        last_30_start = today - timedelta(days=29)
+    else:
+        new_users_last_7 = User.objects.filter(date_joined__date__gte=last_7_days).count()
+        prev_7_start = last_7_days - timedelta(days=7)
+        new_users_prev_7 = User.objects.filter(
+            date_joined__date__gte=prev_7_start,
+            date_joined__date__lt=last_7_days
+        ).count()
+        visitors_weekly_percent = round((new_users_last_7 / new_users_prev_7) * 100, 1) if new_users_prev_7 else (100.0 if new_users_last_7 else 0.0)
 
-    # Visitors (today, yesterday, last 30 days)
-    yesterday = today - timedelta(days=1)
+        visitors_series_qs = User.objects.filter(date_joined__date__gte=last_7_days).annotate(
+            date=TruncDate('date_joined')
+        ).values('date').annotate(count=Count('id')).order_by('date')
+        visitors_series_map = {row['date']: row['count'] for row in visitors_series_qs}
+        visitors_weekly_series = [visitors_series_map.get(day, 0) for day in visitors_week_labels]
 
-    visitors_today_qs = User.objects.filter(date_joined__date=today).annotate(
-        hour=ExtractHour('date_joined')
-    ).values('hour').annotate(count=Count('id')).order_by('hour')
-    visitors_today_map = {row['hour']: row['count'] for row in visitors_today_qs}
-    visitors_today_series = [visitors_today_map.get(h, 0) for h in range(24)]
-    visitors_today_count = sum(visitors_today_series)
+        # Visitors (today, yesterday, last 30 days)
+        yesterday = today - timedelta(days=1)
 
-    visitors_yesterday_qs = User.objects.filter(date_joined__date=yesterday).annotate(
-        hour=ExtractHour('date_joined')
-    ).values('hour').annotate(count=Count('id')).order_by('hour')
-    visitors_yesterday_map = {row['hour']: row['count'] for row in visitors_yesterday_qs}
-    visitors_yesterday_series = [visitors_yesterday_map.get(h, 0) for h in range(24)]
-    visitors_yesterday_count = sum(visitors_yesterday_series)
+        visitors_today_qs = User.objects.filter(date_joined__date=today).annotate(
+            hour=ExtractHour('date_joined')
+        ).values('hour').annotate(count=Count('id')).order_by('hour')
+        visitors_today_map = {row['hour']: row['count'] for row in visitors_today_qs}
+        visitors_today_series = [visitors_today_map.get(h, 0) for h in range(24)]
+        visitors_today_count = sum(visitors_today_series)
 
-    last_30_start = today - timedelta(days=29)
-    visitors_last_month_qs = User.objects.filter(date_joined__date__gte=last_30_start).annotate(
-        date=TruncDate('date_joined')
-    ).values('date').annotate(count=Count('id')).order_by('date')
-    visitors_last_month_map = {row['date']: row['count'] for row in visitors_last_month_qs}
-    visitors_last_month_labels = [last_30_start + timedelta(days=i) for i in range(30)]
-    visitors_last_month_series = [visitors_last_month_map.get(day, 0) for day in visitors_last_month_labels]
-    visitors_last_month_count = sum(visitors_last_month_series)
+        visitors_yesterday_qs = User.objects.filter(date_joined__date=yesterday).annotate(
+            hour=ExtractHour('date_joined')
+        ).values('hour').annotate(count=Count('id')).order_by('hour')
+        visitors_yesterday_map = {row['hour']: row['count'] for row in visitors_yesterday_qs}
+        visitors_yesterday_series = [visitors_yesterday_map.get(h, 0) for h in range(24)]
+        visitors_yesterday_count = sum(visitors_yesterday_series)
+
+        last_30_start = today - timedelta(days=29)
+        visitors_last_month_qs = User.objects.filter(date_joined__date__gte=last_30_start).annotate(
+            date=TruncDate('date_joined')
+        ).values('date').annotate(count=Count('id')).order_by('date')
+        visitors_last_month_map = {row['date']: row['count'] for row in visitors_last_month_qs}
+        visitors_last_month_labels = [last_30_start + timedelta(days=i) for i in range(30)]
+        visitors_last_month_series = [visitors_last_month_map.get(day, 0) for day in visitors_last_month_labels]
+        visitors_last_month_count = sum(visitors_last_month_series)
 
     # Activity (orders) last 7 days vs previous 7 days
-    activity_last_7 = Order.objects.filter(created_at__date__gte=last_7_days).count()
-    activity_prev_7 = Order.objects.filter(
+    activity_last_7 = order_scope.filter(created_at__date__gte=last_7_days).count()
+    activity_prev_7 = order_scope.filter(
         created_at__date__gte=prev_7_start,
         created_at__date__lt=last_7_days
     ).count()
     activity_weekly_percent = round((activity_last_7 / activity_prev_7) * 100, 1) if activity_prev_7 else (100.0 if activity_last_7 else 0.0)
 
-    activity_series_qs = Order.objects.filter(created_at__date__gte=last_7_days).annotate(
+    activity_series_qs = order_scope.filter(created_at__date__gte=last_7_days).annotate(
         date=TruncDate('created_at')
     ).values('date').annotate(count=Count('id')).order_by('date')
     activity_series_map = {row['date']: row['count'] for row in activity_series_qs}
@@ -411,7 +441,7 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
 
     # Profit & Expenses (margin-based)
     profit_items_last_30 = _order_item_profit(
-        OrderItem.objects.filter(order__in=profit_orders_qs, order__created_at__date__gte=last_30_days)
+        order_item_scope.filter(order__in=profit_orders_qs, order__created_at__date__gte=last_30_days)
     )
     return_fee_last_30 = _return_fee_profit(start_date=last_30_days)
     profit_last_30 = profit_items_last_30 + return_fee_last_30
@@ -831,7 +861,7 @@ def admin_new_dashboard(request):
     category_labels = []
     category_counts = []
     category_list = []
-    icon_categories = CategoryIcon.objects.filter(is_active=True).order_by('order', 'id')
+    icon_categories = get_category_scope(request.user).filter(is_active=True).order_by('order', 'id')
 
     for idx, icon in enumerate(icon_categories):
         category_key = icon.category_key
@@ -1545,6 +1575,7 @@ def _ensure_category_and_subcategory(main_label, sub_label='', category_key=''):
             category_key=final_category_key,
             is_active=True,
             order=max_order + 1,
+            created_by=request.user,
         )
     else:
         final_category_key = (category_icon.category_key or '').strip()
@@ -1568,6 +1599,7 @@ def _ensure_category_and_subcategory(main_label, sub_label='', category_key=''):
                 name=clean_sub_label,
                 is_active=True,
                 order=max_sub_order + 1,
+                created_by=request.user,
             )
 
     folder_info = _ensure_product_image_folder_tree(
@@ -2104,6 +2136,7 @@ def admin_add_product(request):
                 weight=weight,
                 color=color,
                 size=size,
+                created_by=request.user,
                 is_returnable=is_returnable,
                 return_days=return_days,
                 return_policy=return_policy,
@@ -2187,7 +2220,7 @@ def admin_add_product(request):
             messages.error(request, f'Error adding product: {str(e)}')
     
     # Get categories for dropdown
-    categories = CategoryIcon.objects.filter(is_active=True).order_by('order', 'id')
+    categories = get_category_scope(request.user).filter(is_active=True).order_by('order', 'id')
     saved_info = request.session.get('edit_photo_saved')
     saved_images = None
     if saved_info:
@@ -2227,7 +2260,7 @@ def admin_add_product(request):
         saved_variant_assignments = saved_info.get('variant_assignments') or []
 
     sub_categories = list(
-        SubCategory.objects.filter(is_active=True)
+        get_subcategory_scope(request.user).filter(is_active=True)
         .order_by('order', 'name')
         .values('category_key', 'name')
     )
@@ -2360,7 +2393,7 @@ def admin_product_list(request):
 
 
     products = (
-        Product.objects
+        get_product_scope(request.user)
         .annotate(
             reel_count=Count('watch_shop_reels', distinct=True),
             total_reel_views=Coalesce(
@@ -2443,7 +2476,7 @@ def admin_product_list(request):
         products = paginator.page(paginator.num_pages)
 
     # Summary cards
-    paid_orders = Order.objects.filter(payment_status='PAID')
+    paid_orders = get_order_scope(request.user).filter(payment_status='PAID')
     in_store_orders = paid_orders.filter(payment_method='COD')
     website_orders = paid_orders.exclude(payment_method='COD')
 
@@ -2463,13 +2496,13 @@ def admin_product_list(request):
     query_params.pop('export', None)
 
     category_choices = list(
-        CategoryIcon.objects.filter(is_active=True)
+        get_category_scope(request.user).filter(is_active=True)
         .order_by('order', 'id')
         .values_list('category_key', 'name')
     )
 
     sub_categories = list(
-        SubCategory.objects.filter(is_active=True)
+        get_subcategory_scope(request.user).filter(is_active=True)
         .order_by('order', 'name')
         .values('category_key', 'name')
     )
@@ -2501,7 +2534,10 @@ def admin_product_list(request):
 @staff_member_required(login_url='login')
 @require_POST
 def admin_toggle_stock(request, product_id):
-    product = get_object_or_404(Product, id=product_id)
+    product_filter = {'id': product_id}
+    if is_seller_user(request.user):
+        product_filter['created_by'] = request.user
+    product = get_object_or_404(Product, **product_filter)
     previous_stock = product.stock
 
     if product.stock > 0:
@@ -2537,7 +2573,10 @@ def admin_toggle_stock(request, product_id):
 @staff_member_required(login_url='login')
 def admin_edit_product(request, product_id):
     """Admin Edit Product Page"""
-    product = get_object_or_404(Product, id=product_id)
+    product_filter = {'id': product_id}
+    if is_seller_user(request.user):
+        product_filter['created_by'] = request.user
+    product = get_object_or_404(Product, **product_filter)
     
     if request.method == 'POST':
         try:
@@ -2771,15 +2810,15 @@ def admin_edit_product(request, product_id):
         'product_reel_count': reel_totals.get('total_reels', 0) or 0,
         'product_reel_views': reel_totals.get('total_views', 0) or 0,
         'product_reel_likes': reel_totals.get('total_likes', 0) or 0,
-        'categories': CategoryIcon.objects.filter(is_active=True).order_by('order', 'id'),
+        'categories': get_category_scope(request.user).filter(is_active=True).order_by('order', 'id'),
         'gallery_images': product.additional_images.filter(is_active=True).order_by('order'),
         'sub_categories': list(
-            SubCategory.objects.filter(is_active=True)
+            get_subcategory_scope(request.user).filter(is_active=True)
             .order_by('order', 'name')
             .values('category_key', 'name')
         ),
         'sub_categories_json': json.dumps(list(
-            SubCategory.objects.filter(is_active=True)
+            get_subcategory_scope(request.user).filter(is_active=True)
             .order_by('order', 'name')
             .values('category_key', 'name')
         )),
@@ -2790,7 +2829,10 @@ def admin_edit_product(request, product_id):
 @staff_member_required(login_url='login')
 def admin_delete_product(request, product_id):
     """Delete Product"""
-    product = get_object_or_404(Product, id=product_id)
+    product_filter = {'id': product_id}
+    if is_seller_user(request.user):
+        product_filter['created_by'] = request.user
+    product = get_object_or_404(Product, **product_filter)
     product_name = product.name
     product.delete()
     
@@ -2801,7 +2843,10 @@ def admin_delete_product(request, product_id):
 @staff_member_required(login_url='login')
 def admin_delete_gallery_image(request, image_id):
     """Delete Gallery Image"""
-    gallery_image = get_object_or_404(ProductImage, id=image_id)
+    gallery_filter = {'id': image_id}
+    if is_seller_user(request.user):
+        gallery_filter['product__created_by'] = request.user
+    gallery_image = get_object_or_404(ProductImage, **gallery_filter)
     product_name = gallery_image.product.name
     gallery_image.delete()
     
@@ -2812,7 +2857,7 @@ def admin_delete_gallery_image(request, image_id):
 @staff_member_required(login_url='login')
 def admin_categories(request):
     """Admin Category Management Page"""
-    categories = CategoryIcon.objects.all().order_by('order', 'id')
+    categories = get_category_scope(request.user).order_by('order', 'id')
     
     context = {
         'categories': categories,
@@ -2824,8 +2869,8 @@ def admin_categories(request):
 @staff_member_required(login_url='login')
 def admin_subcategories(request):
     """Admin Sub-Category Management Page"""
-    categories = CategoryIcon.objects.all().order_by('order', 'id')
-    sub_categories = SubCategory.objects.all().order_by('category_key', 'order', 'name')
+    categories = get_category_scope(request.user).order_by('order', 'id')
+    sub_categories = get_subcategory_scope(request.user).order_by('category_key', 'order', 'name')
 
     context = {
         'categories': categories,
@@ -2879,7 +2924,8 @@ def admin_save_subcategory_icon(request):
 
     sub_category, _ = SubCategory.objects.get_or_create(
         category_key=category_key,
-        name=sub_category_name
+        name=sub_category_name,
+        defaults={'created_by': request.user},
     )
 
     sub_category.icon_class = icon_class
@@ -2892,7 +2938,7 @@ def admin_save_subcategory_icon(request):
         sub_category.icon_image = request.FILES['icon_image']
 
     sub_category.save()
-    category_icon = CategoryIcon.objects.filter(category_key=category_key).first()
+    category_icon = get_category_scope(request.user).filter(category_key=category_key).first()
     category_label = category_icon.name if category_icon and category_icon.name else category_key
     folder_info = _ensure_product_image_folder_tree(
         category_label,
@@ -2938,7 +2984,8 @@ def admin_add_category(request):
                 background_gradient=background_gradient,
                 icon_size=icon_size,
                 order=order,
-                is_active=is_active
+                is_active=is_active,
+                created_by=request.user,
             )
             
             # Handle icon image upload
@@ -2970,7 +3017,10 @@ def admin_add_category(request):
 @staff_member_required(login_url='login')
 def admin_edit_category(request, category_id):
     """Admin Edit Category Page"""
-    category = get_object_or_404(CategoryIcon, id=category_id)
+    category_filter = {'id': category_id}
+    if is_seller_user(request.user):
+        category_filter['created_by'] = request.user
+    category = get_object_or_404(CategoryIcon, **category_filter)
     
     if request.method == 'POST':
         try:
@@ -3100,7 +3150,7 @@ def admin_edit_photo(request):
             product_subcategory_map.setdefault(key, []).append(sub_name)
 
         taxonomy = []
-        for icon in CategoryIcon.objects.filter(is_active=True).order_by('order', 'id'):
+        for icon in get_category_scope(request.user).filter(is_active=True).order_by('order', 'id'):
             category_key = (icon.category_key or '').strip()
             if not category_key:
                 continue
@@ -3880,7 +3930,10 @@ def admin_edit_photo_preview(request):
 @staff_member_required(login_url='login')
 def admin_delete_category(request, category_id):
     """Delete Category"""
-    category = get_object_or_404(CategoryIcon, id=category_id)
+    category_filter = {'id': category_id}
+    if is_seller_user(request.user):
+        category_filter['created_by'] = request.user
+    category = get_object_or_404(CategoryIcon, **category_filter)
     category_name = category.name
     category.delete()
     
@@ -4525,7 +4578,7 @@ def admin_main_page_products(request):
     # Get available products
     available_products = Product.objects.filter(is_active=True).order_by('-sold', 'name')
 
-    sub_categories = SubCategory.objects.filter(is_active=True).order_by('category_key', 'order', 'name')
+    sub_categories = get_subcategory_scope(request.user).filter(is_active=True).order_by('category_key', 'order', 'name')
     main_page_subcategory_banners = (
         MainPageSubCategoryBanner.objects
         .select_related('sub_category')
@@ -4824,7 +4877,7 @@ def admin_orders(request):
                 messages.error(request, 'No valid orders were selected for bulk action.')
                 return redirect('admin_orders')
 
-            orders = Order.objects.filter(id__in=normalized_ids)
+            orders = order_scope.filter(id__in=normalized_ids)
 
             if action in ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED']:
                 # Bulk status update
@@ -4860,7 +4913,8 @@ def admin_orders(request):
             return redirect('admin_orders')
     
     # Get all order items (individual products with their order details)
-    all_orders = OrderItem.objects.select_related('order', 'order__user', 'order__cancellation_request', 'product').order_by('-order__created_at')
+    order_scope = get_order_scope(request.user)
+    all_orders = get_order_item_scope(request.user).select_related('order', 'order__user', 'order__cancellation_request', 'product').order_by('-order__created_at')
     
     # === FILTERS ===
     # Status filter
@@ -4946,22 +5000,22 @@ def admin_orders(request):
     all_orders = all_orders.order_by(sort_by)
     
     # === STATISTICS ===
-    total_orders = Order.objects.count()
-    pending_orders = Order.objects.filter(order_status='PENDING').count()
-    processing_orders = Order.objects.filter(order_status='PROCESSING').count()
-    shipped_orders = Order.objects.filter(order_status='SHIPPED').count()
-    delivered_orders = Order.objects.filter(order_status='DELIVERED').count()
-    cancelled_orders = Order.objects.filter(order_status='CANCELLED').count()
+    total_orders = order_scope.count()
+    pending_orders = order_scope.filter(order_status='PENDING').count()
+    processing_orders = order_scope.filter(order_status='PROCESSING').count()
+    shipped_orders = order_scope.filter(order_status='SHIPPED').count()
+    delivered_orders = order_scope.filter(order_status='DELIVERED').count()
+    cancelled_orders = order_scope.filter(order_status='CANCELLED').count()
     
     # Approval stats
-    pending_approval_orders = Order.objects.filter(approval_status='PENDING_APPROVAL').count()
-    approved_orders = Order.objects.filter(approval_status='APPROVED').count()
-    rejected_orders = Order.objects.filter(approval_status='REJECTED').count()
-    suspicious_orders = Order.objects.filter(is_suspicious=True).count()
+    pending_approval_orders = order_scope.filter(approval_status='PENDING_APPROVAL').count()
+    approved_orders = order_scope.filter(approval_status='APPROVED').count()
+    rejected_orders = order_scope.filter(approval_status='REJECTED').count()
+    suspicious_orders = order_scope.filter(is_suspicious=True).count()
     
     # Revenue stats (use Order model, not OrderItem)
     from decimal import Decimal
-    paid_orders = Order.objects.filter(payment_status='PAID')
+    paid_orders = order_scope.filter(payment_status='PAID')
     total_revenue = paid_orders.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
     today_revenue = paid_orders.filter(created_at__date=datetime.now().date()).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
     this_month_revenue = paid_orders.filter(created_at__month=datetime.now().month).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
@@ -4980,7 +5034,7 @@ def admin_orders(request):
     this_month_profit = this_month_profit_items + _return_fee_profit(start_date=month_start)
     
     # Today's orders
-    today_orders = Order.objects.filter(created_at__date=datetime.now().date()).count()
+    today_orders = order_scope.filter(created_at__date=datetime.now().date()).count()
     
     # Payment methods list
     payment_methods = list(
@@ -4996,7 +5050,7 @@ def admin_orders(request):
         response['Content-Disposition'] = f'attachment; filename="Order {datetime.now().strftime("%m/%Y")}.csv"'
         
         writer = csv.writer(response)
-        writer.writerow(['Order Number', 'Product', 'Quantity', 'Price', 'Customer', 'Email', 'Phone', 'Order Status', 'Payment Status', 'Date'])
+        writer.writerow(['Order Number', 'Product', 'Quantity', 'Price', 'Order Status', 'Payment Status', 'Date'])
         
         for item in all_orders:
             writer.writerow([
@@ -5004,9 +5058,6 @@ def admin_orders(request):
                 item.product_name,
                 item.quantity,
                 item.subtotal,
-                item.order.user.get_full_name() or item.order.user.username,
-                item.order.user.email,
-                item.order.user.userprofile.mobile_number if hasattr(item.order.user, 'userprofile') else '',
                 item.order.get_order_status_display(),
                 item.order.get_payment_status_display(),
                 item.order.created_at.strftime('%d-%m-%Y')
@@ -5074,7 +5125,12 @@ def admin_orders(request):
 @staff_member_required(login_url='login')
 def admin_order_details(request, order_id):
     """Order Details with timeline, tracking, notes, and actions"""
-    order = get_object_or_404(Order, id=order_id)
+    order_filter = {'id': order_id}
+    if is_seller_user(request.user):
+        order_filter = {'id': order_id}
+        order = get_object_or_404(get_order_scope(request.user), **order_filter)
+    else:
+        order = get_object_or_404(Order, **order_filter)
     from django.utils import timezone
     
     # Handle POST actions
@@ -5314,7 +5370,7 @@ def admin_api_search_orders(request):
 @staff_member_required(login_url='login')
 def admin_approve_order(request, order_id):
     """Approve a pending order"""
-    order = get_object_or_404(Order, id=order_id)
+    order = get_object_or_404(get_order_scope(request.user), id=order_id) if is_seller_user(request.user) else get_object_or_404(Order, id=order_id)
     
     # Log current status
     logger.info(f"Approve Order #{order.order_number} - Current approval_status: {order.approval_status}")
@@ -5359,7 +5415,7 @@ def admin_approve_order(request, order_id):
 @staff_member_required(login_url='login')
 def admin_reject_order(request, order_id):
     """Reject a pending order"""
-    order = get_object_or_404(Order, id=order_id)
+    order = get_object_or_404(get_order_scope(request.user), id=order_id) if is_seller_user(request.user) else get_object_or_404(Order, id=order_id)
     
     if order.approval_status != 'PENDING_APPROVAL':
         messages.warning(request, 'Order is not pending approval.')
@@ -5449,7 +5505,11 @@ FashioHub Team
 @staff_member_required(login_url='login')
 def admin_delete_order(request, order_id):
     """Delete an order permanently"""
-    order = get_object_or_404(Order, id=order_id)
+    order_filter = {'id': order_id}
+    if is_seller_user(request.user):
+        order = get_object_or_404(get_order_scope(request.user), **order_filter)
+    else:
+        order = get_object_or_404(Order, **order_filter)
     
     # Store order details for message
     order_number = order.order_number
@@ -5467,7 +5527,8 @@ def admin_delete_order(request, order_id):
 @staff_member_required(login_url='login')
 def admin_invoices(request):
     """Admin Invoices List - Using Orders as Invoices"""
-    all_invoices = Order.objects.select_related('user').prefetch_related('items').order_by('-created_at')
+    order_scope = get_order_scope(request.user)
+    all_invoices = order_scope.select_related('user').prefetch_related('items').order_by('-created_at')
     
     # Status filter
     status_filter = request.GET.get('status', '')
@@ -5491,10 +5552,10 @@ def admin_invoices(request):
         )
     
     # Get statistics
-    total_invoices = Order.objects.count()
-    total_clients = Order.objects.values('user').distinct().count()
-    total_paid = Order.objects.filter(payment_status='PAID').aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-    total_unpaid = Order.objects.filter(payment_status__in=['PENDING', 'FAILED']).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    total_invoices = order_scope.count()
+    total_clients = order_scope.values('user').distinct().count()
+    total_paid = order_scope.filter(payment_status='PAID').aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    total_unpaid = order_scope.filter(payment_status__in=['PENDING', 'FAILED']).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
     
     # Pagination
     items_per_page = request.GET.get('per_page', 10)
@@ -5544,8 +5605,9 @@ def admin_invoices(request):
 def admin_invoice_inventory(request):
     """Unified Invoice & Inventory management dashboard for admins"""
 
+    order_scope = get_order_scope(request.user)
     invoices_qs = (
-        Order.objects
+        order_scope
         .select_related('user')
         .prefetch_related('items')
         .order_by('-created_at')
@@ -5594,8 +5656,8 @@ def admin_invoice_inventory(request):
     except EmptyPage:
         page_obj = paginator.page(paginator.num_pages)
 
-    paid_orders_qs = Order.objects.filter(payment_status='PAID')
-    outstanding_orders_qs = Order.objects.filter(payment_status__in=['PENDING', 'FAILED'])
+    paid_orders_qs = order_scope.filter(payment_status='PAID')
+    outstanding_orders_qs = order_scope.filter(payment_status__in=['PENDING', 'FAILED'])
 
     total_revenue = paid_orders_qs.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
     outstanding_amount = outstanding_orders_qs.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
@@ -5610,7 +5672,7 @@ def admin_invoice_inventory(request):
         output_field=DecimalField(max_digits=12, decimal_places=2)
     )
 
-    active_products_qs = Product.objects.filter(is_active=True)
+    active_products_qs = get_product_scope(request.user).filter(is_active=True)
 
     total_skus = active_products_qs.count()
     total_units = active_products_qs.aggregate(total=Sum('stock'))['total'] or 0
@@ -5625,7 +5687,7 @@ def admin_invoice_inventory(request):
     low_stock_products = list(low_stock_qs[:12])
 
     out_of_stock_qs = (
-        Product.objects
+        get_product_scope(request.user)
         .filter(stock__lte=0)
         .annotate(value=inventory_value_expr)
         .order_by('name')
@@ -5651,7 +5713,7 @@ def admin_invoice_inventory(request):
         )
 
     # Inventory manager list (all products)
-    inventory_qs = Product.objects.all().order_by('name')
+    inventory_qs = get_product_scope(request.user).order_by('name')
     product_search_query = request.GET.get('product_search', '').strip()
 
     if product_search_query:
@@ -5737,11 +5799,10 @@ def admin_update_inventory(request):
     action = request.POST.get('action', 'save_stock')
     redirect_url = request.POST.get('next') or reverse('admin_invoice_inventory')
 
-    try:
-        product = Product.objects.get(id=product_id)
-    except Product.DoesNotExist:
-        messages.error(request, 'Product not found')
-        return redirect(redirect_url)
+    product_filter = {'id': product_id}
+    if is_seller_user(request.user):
+        product_filter['created_by'] = request.user
+    product = get_object_or_404(Product, **product_filter)
 
     try:
         previous_stock = product.stock
@@ -6153,7 +6214,7 @@ def index(request):
         features = list(Feature.objects.filter(is_active=True).order_by('order', 'id'))
         banners = list(Banner.objects.filter(is_active=True).order_by('order', 'id'))
 
-        categories = list(CategoryIcon.objects.filter(is_active=True).order_by('order', 'id'))
+        categories = list(get_category_scope(request.user).filter(is_active=True).order_by('order', 'id'))
         if not categories:
             excluded_categories = {'TOP_DEALS', 'TOP_SELLING', 'TOP_FEATURED', 'RECOMMENDED'}
             categories = [
@@ -7921,6 +7982,9 @@ def login_view(request: HttpRequest) -> HttpResponse:
             if next_url and next_url.startswith('/') and not next_url.startswith('//'):
                 return redirect(next_url)
 
+            if is_seller_user(user):
+                return redirect("admin_dashboard")
+
             if user.is_staff:
                 return redirect("admin_dashboard")
 
@@ -8203,7 +8267,7 @@ def shop(request):
     special_offers = Product.objects.filter(is_active=True, stock__gt=0).order_by('-discount_percent', '-id')[:5]
 
     # Get categories from CategoryIcon (dynamic admin-managed categories)
-    category_icons = CategoryIcon.objects.filter(is_active=True).order_by('order', 'id')
+    category_icons = get_category_scope(request.user).filter(is_active=True).order_by('order', 'id')
 
     def normalize_category_key(raw_key):
         return (raw_key or '').strip()
@@ -9635,7 +9699,8 @@ def add_product(request):
                 description=description,
                 weight=weight,
                 color=color,
-                size=size
+                size=size,
+                created_by=request.user,
             )
             
             # Add gallery images if provided
@@ -10815,7 +10880,7 @@ def razorpay_webhook(request):
 @user_passes_test(lambda u: u.is_staff)
 def razorpay_refund(request, order_id):
     """Process Razorpay Refund for an Order"""
-    order = get_object_or_404(Order, id=order_id)
+    order = get_object_or_404(get_order_scope(request.user), id=order_id) if is_seller_user(request.user) else get_object_or_404(Order, id=order_id)
     
     # Check if order can be refunded
     if order.payment_status != 'PAID':

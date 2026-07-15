@@ -4,6 +4,7 @@ from . import views_api
 from . import views_resell
 from . import views_admin_resell
 from . import backup_views
+from . import views_comprehensive_features
 from . import views_new_features
 from . import views_n8n  # n8n AI product ingestion
 
@@ -129,6 +130,7 @@ urlpatterns = [
     
     # Auth
     path('accounts/login/', views.login_view, name='accounts_login'),
+    path('seller/invite/<str:token>/', views_comprehensive_features.seller_invite_accept, name='seller_invite_accept'),
 
     # Profile
     path('profile/', views.profile_view, name='profile'),
@@ -303,6 +305,7 @@ urlpatterns += [
     # Security & Access Control
     path('admin-panel/security-roles/', views_comprehensive_features.admin_security_roles, name='admin_security_roles'),
     path('admin-panel/security-audit/', views_comprehensive_features.admin_security_audit_log, name='admin_security_audit_log'),
+    path('admin-panel/seller-invites/', views_comprehensive_features.admin_seller_invites, name='admin_seller_invites'),
     path('admin-panel/user-sessions/', views_comprehensive_features.admin_user_sessions, name='admin_user_sessions'),
     
     # Content Management
