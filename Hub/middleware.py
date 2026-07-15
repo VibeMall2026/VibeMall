@@ -24,6 +24,7 @@ class ComingSoonModeMiddleware:
             '/password_reset',
             '/password_reset_confirm/',
             '/verify-email/',
+            '/profile/',
             '/seller/invite/',
             '/admin-panel/',
             '/admin/',

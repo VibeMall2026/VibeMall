@@ -354,13 +354,6 @@
               </ul>
             </li>
 
-            <li class="menu-item">
-              <a href="{% url 'admin_seller_invites' %}" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-user-pin"></i>
-                <div data-i18n="Seller">Seller Invites</div>
-              </a>
-            </li>
-
             {% if admin_panel_mode != 'seller' %}
             <li class="menu-item">
               <a href="/admin-panel/blog-management/" class="menu-link">
@@ -906,6 +899,7 @@
                         <span class="align-middle">My Profile</span>
                       </a>
                     </li>
+                    {% if admin_panel_mode != 'seller' %}
                     <li>
                       <a class="dropdown-item" href="{% url 'admin_site_settings' %}">
                         <i class="bx bx-cog me-2"></i>
@@ -923,6 +917,7 @@
                         </span>
                       </a>
                     </li>
+                    {% endif %}
                     <li>
                       <div class="dropdown-divider"></div>
                     </li>

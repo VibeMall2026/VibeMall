@@ -26,9 +26,12 @@ from bot.telegram_notifier import send_text_alert
 _client: TelegramClient | None = None
 _COMMAND_ALIASES = {
     "start": "start",
+    "stop": "stop",
     "help": "help",
     "status": "status",
     "botstatus": "status",
+    "botstart": "start",
+    "botstop": "stop",
     "sstop": "sstop",
     "signalforgestop": "sstop",
     "signalforgegoldstop": "sstop",
@@ -53,6 +56,8 @@ def _canonical_command(text: str) -> str:
 def _build_help_text() -> str:
     return (
         "Trading bot control commands\n\n"
+        "/start - Start the bot and strategies\n"
+        "/stop - Stop the bot and strategies\n"
         "/status - Show account trading status\n"
         "/signal_forge_stop [time] - Stop Signal Forge Gold until next XAUUSD reopen or a custom time\n"
         "/signal_forge_start - Start Signal Forge Gold now\n"
@@ -483,10 +488,57 @@ async def _bot_control_poll_loop() -> None:
 
 async def _handle_control_command(event, text: str, channel_name: str) -> bool:
     from bot.accounts import get_account_trade_mode, stop_account_until, start_account_now
+    from bot.algo.runner import get_runner_status, start_all_strategies, stop_all_strategies
 
     command = _canonical_command(text)
-    if command in {"start", "help"}:
+    if command == "help":
         await _reply_control_status(event, _build_help_text())
+        return True
+    if command == "start":
+        running_before = get_runner_status().get("running_strategies", [])
+        started = []
+        if not state.running:
+            state.running = True
+            started = start_all_strategies()
+        running_after = get_runner_status().get("running_strategies", [])
+        summary_text = build_accounts_summary_text()
+        await _reply_control_status(
+            event,
+            "✅ Bot start confirmed\n"
+            f"Source: @{channel_name}\n"
+            f"Status: {'Bot started' if started else 'Bot already running'}\n"
+            f"Running strategies: {', '.join(running_after) if running_after else 'none'}\n"
+            f"Previously running: {', '.join(running_before) if running_before else 'none'}\n\n"
+            f"{summary_text}"
+        )
+        send_text_alert(
+            "Bot start confirmed\n"
+            f"Source: @{channel_name}\n"
+            f"Status: {'Bot started' if started else 'Bot already running'}\n"
+            f"Running strategies: {', '.join(running_after) if running_after else 'none'}\n\n"
+            f"{summary_text}"
+        )
+        return True
+    if command == "stop":
+        running_before = get_runner_status().get("running_strategies", [])
+        state.running = False
+        stop_all_strategies()
+        summary_text = build_accounts_summary_text()
+        await _reply_control_status(
+            event,
+            "🛑 Bot stop confirmed\n"
+            f"Source: @{channel_name}\n"
+            f"Status: Bot stopped\n"
+            f"Stopped strategies: {', '.join(running_before) if running_before else 'none'}\n\n"
+            f"{summary_text}"
+        )
+        send_text_alert(
+            "Bot stop confirmed\n"
+            f"Source: @{channel_name}\n"
+            f"Status: Bot stopped\n"
+            f"Stopped strategies: {', '.join(running_before) if running_before else 'none'}\n\n"
+            f"{summary_text}"
+        )
         return True
     if command == "status":
         await _reply_control_status(event, _build_status_text())
