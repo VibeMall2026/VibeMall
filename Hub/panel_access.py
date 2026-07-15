@@ -146,6 +146,7 @@ def admin_panel_required(view_func=None, login_url='login'):
         'admin_reject_payout',
         'admin_download_payout_invoice',
         'admin_resell_reports',
+        'admin_seller_invites',
     }
 
     def decorator(func):

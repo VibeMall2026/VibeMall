@@ -39,8 +39,24 @@
     width: 100%;
     border: 1px solid #d9d2c3;
     height: 46px;
-    padding: 0 14px;
+    padding: 0 48px 0 14px;
     font-size: 14px;
+  }
+  .vm-password-wrap {
+    position: relative;
+  }
+  .vm-password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 0;
+    background: transparent;
+    color: #8b7755;
+    font-size: 18px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
   }
   .vm-submit {
     width: 100%;
@@ -76,14 +92,35 @@
       </div>
       <div class="vm-field">
         <label>New Password</label>
-        <input type="password" name="password1" required>
+        <div class="vm-password-wrap">
+          <input type="password" name="password1" id="sellerPassword1" required>
+          <button type="button" class="vm-password-toggle" data-target="sellerPassword1" aria-label="Show password">👁</button>
+        </div>
       </div>
       <div class="vm-field">
         <label>Confirm Password</label>
-        <input type="password" name="password2" required>
+        <div class="vm-password-wrap">
+          <input type="password" name="password2" id="sellerPassword2" required>
+          <button type="button" class="vm-password-toggle" data-target="sellerPassword2" aria-label="Show password">👁</button>
+        </div>
       </div>
       <button type="submit" class="vm-submit">Activate Seller Access</button>
     </form>
   </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.vm-password-toggle').forEach(function (button) {
+    button.addEventListener('click', function () {
+      const targetId = this.getAttribute('data-target');
+      const input = document.getElementById(targetId);
+      if (!input) return;
+      const isPassword = input.type === 'password';
+      input.type = isPassword ? 'text' : 'password';
+      this.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+      this.textContent = isPassword ? '🙈' : '👁';
+    });
+  });
+});
+</script>
 {% endblock %}

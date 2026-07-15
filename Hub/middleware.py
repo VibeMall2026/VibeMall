@@ -19,6 +19,12 @@ class ComingSoonModeMiddleware:
         self.allowed_prefixes = (
             '/coming-soon/',
             '/launch/',
+            '/login/',
+            '/accounts/login/',
+            '/password_reset',
+            '/password_reset_confirm/',
+            '/verify-email/',
+            '/seller/invite/',
             '/admin-panel/',
             '/admin/',
             '/api/products/search/',
