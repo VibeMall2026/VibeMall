@@ -766,11 +766,42 @@ async def start_listener() -> None:
         logger.info(f"Using file-based Telegram session: {session}")
 
     _client = TelegramClient(session, config.TG_API_ID, config.TG_API_HASH)
+    bot_poll_task = None
+    live_mode = "user_session"
 
-    await _client.start(phone=config.TG_PHONE)
-    state.telegram_connected = True
-    logger.success("Telegram connected.")
-    bot_poll_task = asyncio.create_task(_bot_control_poll_loop(), name="TelegramBotControlPoll")
+    try:
+        await asyncio.wait_for(_client.connect(), timeout=15)
+        if not await _client.is_user_authorized():
+            raise RuntimeError("telegram_user_session_not_authorized")
+        state.telegram_connected = True
+        logger.success("Telegram connected with user session.")
+    except Exception as exc:
+        logger.warning(f"Telegram user session unavailable; trying bot token fallback: {exc}")
+        try:
+            await _client.disconnect()
+        except Exception:
+            pass
+
+        if not getattr(config, "ADMIN_BOT_TOKEN", "").strip():
+            bot_poll_task = asyncio.create_task(_bot_control_poll_loop(), name="TelegramBotControlPoll")
+            logger.warning("No ADMIN_BOT_TOKEN available; control polling continues without live Telegram listener.")
+        else:
+            live_mode = "bot_session"
+            _client = TelegramClient(StringSession(), config.TG_API_ID, config.TG_API_HASH)
+            try:
+                await asyncio.wait_for(_client.start(bot_token=config.ADMIN_BOT_TOKEN.strip()), timeout=15)
+                state.telegram_connected = True
+                logger.success("Telegram connected with bot token.")
+            except Exception as bot_exc:
+                logger.warning(f"Telegram bot-session fallback failed; control polling continues: {bot_exc}")
+                try:
+                    await _client.disconnect()
+                except Exception:
+                    pass
+                bot_poll_task = asyncio.create_task(_bot_control_poll_loop(), name="TelegramBotControlPoll")
+
+    if bot_poll_task is None and not (state.telegram_connected and _client and _client.is_connected()):
+        bot_poll_task = asyncio.create_task(_bot_control_poll_loop(), name="TelegramBotControlPoll")
 
     # Resolve channel entities — merge config + state channels
     all_channels = list(config.TG_CHANNELS)
@@ -838,7 +869,11 @@ async def start_listener() -> None:
 
     logger.info("Telegram listener running...")
     try:
-        await _client.run_until_disconnected()
+        if _client and _client.is_connected():
+            await _client.run_until_disconnected()
+        else:
+            if bot_poll_task:
+                await bot_poll_task
     finally:
         if bot_poll_task:
             bot_poll_task.cancel()

@@ -18,6 +18,27 @@ _last_error_alert_ts: dict[str, float] = {}
 _error_alert_counts: dict[str, int] = {}
 
 
+def _run_or_schedule(coro):
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop is not None and loop.is_running():
+        task = loop.create_task(coro)
+
+        def _log_task_result(completed_task: asyncio.Task) -> None:
+            try:
+                completed_task.result()
+            except Exception as exc:
+                logger.warning(f"[TG_NOTIFY] Scheduled Telegram send failed: {exc}")
+
+        task.add_done_callback(_log_task_result)
+        return "scheduled"
+
+    return asyncio.run(coro)
+
+
 def _shorten(value: object, limit: int = 700) -> str:
     text = str(value or "").strip()
     if len(text) <= limit:
@@ -304,7 +325,7 @@ def send_algo_error_alert(
     )
 
     try:
-        method = asyncio.run(_send_message(chat_id, text))
+        method = _run_or_schedule(_send_message(chat_id, text))
         logger.info(
             f"[TG_NOTIFY] Algo error alert sent to {chat_id} | "
             f"account={account_label} login={login} strategy={strategy} via={method}"
@@ -320,7 +341,7 @@ def send_text_alert(text: str, chat_id: str | None = None) -> bool:
     if not destination or not str(text or "").strip():
         return False
     try:
-        method = asyncio.run(_send_message(destination, str(text)))
+        method = _run_or_schedule(_send_message(destination, str(text)))
         logger.info(
             f"[TG_NOTIFY] Text alert sent to {destination} via={method} | "
             f"thread={threading.current_thread().name}"
