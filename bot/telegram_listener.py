@@ -493,7 +493,10 @@ async def _bot_control_poll_loop() -> None:
                     command = _canonical_command(text)
                     if command in {"", None}:
                         continue
-                    if command in {"help", "start"}:
+                    if command == "help":
+                        logger.info(
+                            f"[TG_CMD] Help requested in {str(chat.get('type') or 'chat')}:{sender_label}"
+                        )
                         send_text_alert(_build_help_text(), chat_id=str(chat.get("id")))
                         continue
 
