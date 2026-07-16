@@ -16,6 +16,8 @@ urlpatterns = [
 
     path('coming-soon/', views.coming_soon, name='coming_soon'),
     path('launch/the-atelier-awakens/', views.launch_experience, name='launch_experience'),
+    path('seller/', views.seller_portal, name='seller_portal'),
+    path('seller/login/', views.seller_portal, name='seller_login'),
 
     # Admin Panel URLs
     path('admin-panel/', views.admin_dashboard, name='admin_dashboard'),

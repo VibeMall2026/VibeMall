@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+
+{% block title %}Seller Portal - VibeMall{% endblock %}
+{% block body_class %}login-page vm-page-mobile-alt{% endblock %}
+
+{% block extra_css %}
+<style>
+  .vm-seller-wrap {
+    min-height: calc(100vh - 220px);
+    background: #f7f5f0;
+    padding: 48px 16px 72px;
+  }
+  .vm-seller-shell {
+    max-width: 1120px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1.05fr .95fr;
+    gap: 0;
+    background: #fff;
+    border: 1px solid #e8e3d9;
+    box-shadow: 0 18px 36px rgba(0,0,0,.06);
+    overflow: hidden;
+  }
+  .vm-seller-left {
+    background: linear-gradient(180deg, #f2e9d9 0%, #ebe1cf 100%);
+    padding: 56px 44px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 18px;
+  }
+  .vm-seller-kicker {
+    text-transform: uppercase;
+    letter-spacing: .18em;
+    font-size: 11px;
+    color: #8b7755;
+    margin: 0;
+  }
+  .vm-seller-left h1 {
+    margin: 0;
+    font-size: 46px;
+    line-height: 1.03;
+    letter-spacing: -0.03em;
+  }
+  .vm-seller-left p {
+    margin: 0;
+    color: #5a564f;
+    font-size: 16px;
+    line-height: 1.65;
+    max-width: 520px;
+  }
+  .vm-seller-points {
+    display: grid;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .vm-seller-point {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    color: #3f3c37;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .vm-seller-point strong {
+    display: block;
+    font-size: 13px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .vm-seller-right {
+    padding: 48px 40px;
+  }
+  .vm-seller-card-title {
+    margin: 0 0 8px;
+    font-size: 32px;
+    line-height: 1.15;
+  }
+  .vm-seller-subtitle {
+    margin: 0 0 24px;
+    color: #5a564f;
+  }
+  .vm-seller-form .vm-auth-field {
+    margin-bottom: 16px;
+  }
+  .vm-seller-form .vm-auth-field label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #6e6657;
+  }
+  .vm-seller-form .vm-auth-field input {
+    width: 100%;
+    border: 1px solid #d9d2c3;
+    height: 46px;
+    padding: 0 14px;
+    font-size: 14px;
+    background: #fff;
+  }
+  .vm-password-wrap {
+    position: relative;
+  }
+  .vm-password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 0;
+    background: transparent;
+    color: #8b7755;
+    font-size: 18px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+  }
+  .vm-seller-submit {
+    width: 100%;
+    border: 0;
+    background: #171818;
+    color: #fff;
+    height: 46px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-weight: 700;
+    margin-top: 8px;
+  }
+  .vm-seller-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 16px;
+    font-size: 13px;
+  }
+  .vm-seller-links a {
+    color: #8b7755;
+    font-weight: 700;
+  }
+  .vm-seller-note {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border: 1px solid #eadfca;
+    background: #fbf7ef;
+    color: #5a564f;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  @media (max-width: 991.98px) {
+    .vm-seller-shell {
+      grid-template-columns: 1fr;
+    }
+    .vm-seller-left,
+    .vm-seller-right {
+      padding: 34px 24px;
+    }
+    .vm-seller-left h1 {
+      font-size: 36px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="vm-seller-wrap">
+  <div class="vm-seller-shell">
+    <section class="vm-seller-left">
+      <p class="vm-seller-kicker">VibeMall Seller</p>
+      <h1>Access your seller panel anytime.</h1>
+      <p>
+        Your invite link is single-use, but your seller account is permanent.
+        Use this page whenever you need to sign back in, manage products, review orders,
+        or continue working after the invite expires.
+      </p>
+      <div class="vm-seller-points">
+        <div class="vm-seller-point">
+          <div>•</div>
+          <div><strong>Login anytime</strong>Use your seller username or email plus password to open the panel again.</div>
+        </div>
+        <div class="vm-seller-point">
+          <div>•</div>
+          <div><strong>Invite expired</strong>No problem — this page stays active even after the first invite has been used.</div>
+        </div>
+        <div class="vm-seller-point">
+          <div>•</div>
+          <div><strong>Seller access</strong>Only seller-scoped dashboard data is shown after login.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="vm-seller-right">
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-success{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <h2 class="vm-seller-card-title">Seller Login</h2>
+      <p class="vm-seller-subtitle">Sign in to continue to the seller admin panel.</p>
+
+      <form class="vm-seller-form" method="post" action="{{ seller_login_url }}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
+        <div class="vm-auth-field">
+          <label for="sellerUsername">Username or Email</label>
+          <input type="text" name="username" id="sellerUsername" autocomplete="username" required>
+        </div>
+        <div class="vm-auth-field">
+          <label for="sellerPassword">Password</label>
+          <div class="vm-password-wrap">
+            <input type="password" name="password" id="sellerPassword" autocomplete="current-password" required>
+            <button type="button" class="vm-password-toggle" data-target="sellerPassword" aria-label="Show password">👁</button>
+          </div>
+        </div>
+        <div class="vm-seller-links">
+          <a href="{% url 'password_reset' %}">Forgot password?</a>
+          <a href="{% url 'login' %}?next={{ next|urlencode }}">Use main login</a>
+        </div>
+        <button type="submit" class="vm-seller-submit">Enter Seller Portal</button>
+      </form>
+
+      <div class="vm-seller-note">
+        If you were invited before, this is the page to use after the invite expires.
+        If you do not remember your password, use the password reset link above.
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.vm-password-toggle').forEach(function (button) {
+    button.addEventListener('click', function () {
+      const targetId = this.getAttribute('data-target');
+      const input = document.getElementById(targetId);
+      if (!input) return;
+      const isPassword = input.type === 'password';
+      input.type = isPassword ? 'text' : 'password';
+      this.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+      this.textContent = isPassword ? '🙈' : '👁';
+    });
+  });
+});
+</script>
+{% endblock %}

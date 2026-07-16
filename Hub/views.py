@@ -7997,6 +7997,19 @@ def login_view(request: HttpRequest) -> HttpResponse:
     })
 
 
+def seller_portal(request: HttpRequest) -> HttpResponse:
+    """Public seller entry page with login and recovery options."""
+    if request.user.is_authenticated and is_seller_user(request.user):
+        return redirect("admin_dashboard")
+
+    next_url = request.GET.get("next") or "/admin-panel/"
+    context = {
+        "next": next_url if str(next_url).startswith("/") else "/admin-panel/",
+        "seller_login_url": reverse("accounts_login"),
+    }
+    return render(request, "seller_portal.html", context)
+
+
 
 
 def my_account(request): return render(request, 'profile.html')

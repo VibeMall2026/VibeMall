@@ -747,11 +747,13 @@ def _prepare_seller_account(user: User, created_by=None, business_name: str = ''
 
 def _send_seller_invite_email(request, invite: SellerAccessInvite) -> None:
     invite_url = request.build_absolute_uri(reverse('seller_invite_accept', args=[invite.token]))
+    seller_portal_url = request.build_absolute_uri(reverse('seller_portal'))
     subject = 'Your VibeMall Seller Panel Invite'
     message = (
         f"You have been invited to access the VibeMall seller panel.\n\n"
         f"Open this link to set your password and sign in:\n{invite_url}\n\n"
-        f"This link expires on {invite.expires_at:%Y-%m-%d %H:%M}."
+        f"This link expires on {invite.expires_at:%Y-%m-%d %H:%M}.\n\n"
+        f"After that, use the permanent seller page:\n{seller_portal_url}"
     )
     send_mail(
         subject,
@@ -858,7 +860,7 @@ def seller_invite_accept(request, token):
         invite.is_active = False
         invite.save(update_fields=['is_active'])
         messages.error(request, 'This seller invite has expired.')
-        return redirect('login')
+        return redirect('seller_portal')
 
     if request.method == 'POST':
         password1 = (request.POST.get('password1') or '').strip()
