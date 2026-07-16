@@ -321,21 +321,7 @@ async def _reply_control_status(event, text: str) -> None:
 
 def _is_control_chat_allowed(chat: dict) -> bool:
     chat_type = str(chat.get("type") or "").strip().lower()
-    chat_username = str(chat.get("username") or "").lstrip("@").strip().lower()
-    chat_id = str(chat.get("id") or "").strip()
-
-    allowed_chats = {
-        str(item).lstrip("@").strip().lower()
-        for item in (getattr(config, "TG_CHANNELS", []) or [])
-        if str(item).strip()
-    }
-    if chat_type == "private":
-        return True
-    if chat_username and chat_username in allowed_chats:
-        return True
-    if chat_id and chat_id in allowed_chats:
-        return True
-    return False
+    return chat_type in {"private", "group", "supergroup", "channel"}
 def build_accounts_summary_text() -> str:
     from bot.accounts import get_all_accounts, get_account_trade_mode, _connect_account, _reconnect_primary
     from bot import mt5_bridge
