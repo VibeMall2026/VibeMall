@@ -49,6 +49,13 @@ from .resell_payout_service import (
 logger = logging.getLogger(__name__)
 
 
+def _reseller_profiles_queryset(*, include_sellers: bool = False):
+    queryset = ResellerProfile.objects.select_related('user')
+    if not include_sellers:
+        queryset = queryset.exclude(user__role_assignments__role__role_type='SELLER')
+    return queryset
+
+
 def _parse_admin_date(date_str, field_label):
     """Parse admin date filter in YYYY-MM-DD format."""
     if not date_str:
@@ -311,11 +318,11 @@ def admin_reseller_analytics(request):
         order_by = reseller_sort_fields.get(sort_by, '-total_earnings')
 
         if is_seller_user(request.user):
-            resellers = ResellerProfile.objects.filter(user=request.user).select_related('user').order_by(order_by)
+            resellers = _reseller_profiles_queryset(include_sellers=False).filter(user=request.user).order_by(order_by)
         else:
-            resellers = ResellerProfile.objects.filter(
+            resellers = _reseller_profiles_queryset(include_sellers=False).filter(
                 is_reseller_enabled=True
-            ).select_related('user').order_by(order_by)
+            ).order_by(order_by)
         
         # Calculate overall metrics
         total_resellers = resellers.count()
@@ -410,7 +417,7 @@ def admin_resell_reports(request):
     )
     
     # Calculate metrics
-    total_resellers = ResellerProfile.objects.filter(is_reseller_enabled=True).count()
+    total_resellers = _reseller_profiles_queryset(include_sellers=False).filter(is_reseller_enabled=True).count()
     total_orders = orders.count()
     total_revenue = orders.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
     total_margin = orders.aggregate(total=Sum('total_margin'))['total'] or Decimal('0.00')
@@ -429,7 +436,7 @@ def admin_resell_reports(request):
     total_payout_amount = payouts.filter(status='COMPLETED').aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
     
     # Top performing resellers
-    top_resellers = ResellerProfile.objects.filter(
+    top_resellers = _reseller_profiles_queryset(include_sellers=False).filter(
         is_reseller_enabled=True
     ).annotate(
         period_orders=Count('user__resold_orders', filter=Q(
@@ -542,9 +549,9 @@ def admin_reseller_management(request):
     
     # Base queryset
     if is_seller_user(request.user):
-        resellers = ResellerProfile.objects.filter(user=request.user).select_related('user').order_by(order_by)
+        resellers = _reseller_profiles_queryset(include_sellers=False).filter(user=request.user).order_by(order_by)
     else:
-        resellers = ResellerProfile.objects.select_related('user').order_by(order_by)
+        resellers = _reseller_profiles_queryset(include_sellers=False).order_by(order_by)
     
     # Apply filters
     if search_query:
@@ -565,8 +572,8 @@ def admin_reseller_management(request):
     page_obj = paginator.get_page(page_number)
     
     # Calculate summary
-    total_resellers = resellers.count() if is_seller_user(request.user) else ResellerProfile.objects.count()
-    enabled_resellers = resellers.filter(is_reseller_enabled=True).count() if is_seller_user(request.user) else ResellerProfile.objects.filter(is_reseller_enabled=True).count()
+    total_resellers = resellers.count() if is_seller_user(request.user) else _reseller_profiles_queryset(include_sellers=False).count()
+    enabled_resellers = resellers.filter(is_reseller_enabled=True).count() if is_seller_user(request.user) else _reseller_profiles_queryset(include_sellers=False).filter(is_reseller_enabled=True).count()
     disabled_resellers = total_resellers - enabled_resellers
     
     context = {
@@ -608,9 +615,9 @@ def admin_reseller_payment_data(request):
     order_by = sort_fields.get(sort_by, '-updated_at')
 
     if is_seller_user(request.user):
-        profiles = ResellerProfile.objects.filter(user=request.user).select_related('user', 'user__userprofile').order_by(order_by)
+        profiles = _reseller_profiles_queryset(include_sellers=False).filter(user=request.user).select_related('user', 'user__userprofile').order_by(order_by)
     else:
-        profiles = ResellerProfile.objects.select_related('user', 'user__userprofile').order_by(order_by)
+        profiles = _reseller_profiles_queryset(include_sellers=False).select_related('user', 'user__userprofile').order_by(order_by)
 
     if search_query:
         profiles = profiles.filter(
@@ -648,10 +655,11 @@ def admin_reseller_payment_data(request):
         upi_ready = profiles.filter(has_upi_q).count()
         both_ready = profiles.filter(has_bank_q & has_upi_q).count()
     else:
-        total_profiles = ResellerProfile.objects.count()
-        bank_ready = ResellerProfile.objects.filter(has_bank_q).count()
-        upi_ready = ResellerProfile.objects.filter(has_upi_q).count()
-        both_ready = ResellerProfile.objects.filter(has_bank_q & has_upi_q).count()
+        all_profiles = _reseller_profiles_queryset(include_sellers=False)
+        total_profiles = all_profiles.count()
+        bank_ready = all_profiles.filter(has_bank_q).count()
+        upi_ready = all_profiles.filter(has_upi_q).count()
+        both_ready = all_profiles.filter(has_bank_q & has_upi_q).count()
 
     payment_rows = []
     for profile in page_obj.object_list:
