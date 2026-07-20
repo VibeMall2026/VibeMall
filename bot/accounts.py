@@ -561,6 +561,17 @@ def stop_account_for_today(login: int, reason_code: str = "manual_stop_today") -
     _cancel_pending_orders_for_login(int(login))
 
 
+def stop_all_accounts_for_today(reason_code: str = "telegram_bot_stop") -> list[int]:
+    """Pause trade execution for every enabled account for today."""
+    stopped_logins: list[int] = []
+    for acc in get_all_accounts():
+        if not getattr(acc, "enabled", True):
+            continue
+        stop_account_for_today(int(acc.login), reason_code=reason_code)
+        stopped_logins.append(int(acc.login))
+    return stopped_logins
+
+
 def stop_account_until(login: int, until_utc: datetime, reason_code: str = "manual_stop_until") -> None:
     """
     Stop trade execution for this account until a specific UTC datetime.
@@ -602,6 +613,33 @@ def start_account_now(login: int) -> None:
         clear_account_risk_halt(int(login))
     except Exception:
         pass
+
+
+def start_accounts_stopped_by_reason(reason_code: str = "telegram_bot_stop") -> list[int]:
+    """Resume only accounts whose active halt reason matches the provided code."""
+    resumed_logins: list[int] = []
+    target_reason = str(reason_code or "").strip().lower()
+    with _trade_mode_persist_lock:
+        _load_trade_modes_from_disk(log_success=False, log_errors=False)
+        for acc in get_all_accounts():
+            key = int(acc.login)
+            current_reason = str(_account_trade_halt_reasons.get(key, "") or "").strip().lower()
+            if not current_reason or current_reason != target_reason:
+                continue
+            _account_trade_halts.pop(key, None)
+            _account_trade_halts_until.pop(key, None)
+            _account_trade_halt_reasons.pop(key, None)
+            _account_trade_resume_overrides[key] = _utc_today_iso()
+            resumed_logins.append(key)
+        if resumed_logins:
+            _persist_trade_modes_to_disk()
+    for login in resumed_logins:
+        try:
+            from bot.algo.order_block import clear_account_risk_halt
+            clear_account_risk_halt(int(login))
+        except Exception:
+            pass
+    return resumed_logins
 
 
 def is_manual_resume_override_active(login: int) -> bool:
