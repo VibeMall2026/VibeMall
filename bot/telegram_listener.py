@@ -482,6 +482,8 @@ async def _bot_control_poll_loop() -> None:
 
                     sender = message.get("from") or {}
                     sender_label = str(sender.get("username") or sender.get("first_name") or sender.get("id") or "private_user")
+                    if sender.get("is_bot"):
+                        continue
                     if str(chat.get("type") or "").strip().lower() == "private" and not _is_control_sender_allowed(sender):
                         send_text_alert(
                             "? Not authorized to use trading control commands.",
@@ -542,14 +544,6 @@ async def _handle_control_command(event, text: str, channel_name: str) -> bool:
             f"Previously running: {', '.join(running_before) if running_before else 'none'}\n\n"
             f"{summary_text}"
         )
-        send_text_alert(
-            "Bot start confirmed\n"
-            f"Source: @{channel_name}\n"
-            f"Status: {'Bot started' if started else 'Bot already running'}\n"
-            f"Accounts resumed: {len(resumed_logins)}\n"
-            f"Running strategies: {', '.join(running_after) if running_after else 'none'}\n\n"
-            f"{summary_text}"
-        )
         return True
     if command == "stop":
         running_before = get_runner_status().get("running_strategies", [])
@@ -560,14 +554,6 @@ async def _handle_control_command(event, text: str, channel_name: str) -> bool:
         await _reply_control_status(
             event,
             "🛑 Bot stop confirmed\n"
-            f"Source: @{channel_name}\n"
-            f"Status: Bot stopped\n"
-            f"Accounts paused: {len(stopped_logins)}\n"
-            f"Stopped strategies: {', '.join(running_before) if running_before else 'none'}\n\n"
-            f"{summary_text}"
-        )
-        send_text_alert(
-            "Bot stop confirmed\n"
             f"Source: @{channel_name}\n"
             f"Status: Bot stopped\n"
             f"Accounts paused: {len(stopped_logins)}\n"
@@ -684,22 +670,6 @@ async def _handle_control_command(event, text: str, channel_name: str) -> bool:
         f"{stats_text}"
     )
     await _reply_control_status(event, inline_status)
-    send_text_alert(
-        f"Command accepted\n"
-        f"Account: {acc.label}\n"
-        f"Login: {acc.login}\n"
-        f"Action: {action_text}\n"
-        f"Current state: {'Trading ON' if mode.get('allowed') else f'Trading OFF until {auto_resume_text}'}\n"
-        f"Auto resume: {auto_resume_text}\n"
-        f"{overview_text.strip() + chr(10) if overview_text else ''}"
-        f"{stats_text.strip() + chr(10) if stats_text else ''}"
-        f"Source: @{channel_name}\n"
-        f"Reason: {halt_text}"
-    )
-    try:
-        send_text_alert(build_accounts_summary_text())
-    except Exception as exc:
-        logger.warning(f"[TG_CMD] Could not send account summary: {exc}")
     return True
 
 
