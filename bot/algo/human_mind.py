@@ -114,8 +114,8 @@ class HumanMindConfig:
     }
 
     # --- News filter ---
-    news_filter_enabled: bool = False   # Requires external news feed; disabled by default
-    news_blackout_minutes: int = 30     # Block trades 30 min before/after high-impact news
+    news_filter_enabled: bool = True    # Block trades during the configured news blackout
+    news_blackout_minutes: int = 5      # Block trades 5 min before/after high-impact news
 
     # --- Partial close ---
     partial_close_enabled: bool = runtime_config.PARTIAL_CLOSE_ENABLED

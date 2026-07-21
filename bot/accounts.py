@@ -50,6 +50,10 @@ CONNECT_MIN_RETRY_SECONDS = 3.0
 CONNECT_RECENT_OK_SECONDS = 1.5
 CONNECT_SUCCESS_LOG_INTERVAL_SECONDS = 60.0
 
+_IST = timezone(timedelta(hours=5, minutes=30))
+IST_TRADING_START_HOUR = 9
+IST_TRADING_END_HOUR = 22
+
 # Persist per-account trade-mode so it survives bot restarts and avoids
 # "Trading: ON again after refresh" when FastAPI process reloads / API URL changes.
 _TRADE_MODE_STORE_PATH = Path(__file__).resolve().parent / "sessions" / "account_trade_modes.json"
@@ -119,6 +123,27 @@ def _utc_today() -> _date:
 
 def _utc_today_iso() -> str:
     return _utc_today().isoformat()
+
+
+def _ist_now(now_utc: Optional[datetime] = None) -> datetime:
+    current_utc = now_utc or datetime.now(timezone.utc)
+    return current_utc.astimezone(_IST)
+
+
+def _ist_trading_day(now_utc: Optional[datetime] = None) -> _date:
+    local_now = _ist_now(now_utc)
+    if local_now.hour < IST_TRADING_START_HOUR:
+        return (local_now.date() - timedelta(days=1))
+    return local_now.date()
+
+
+def _ist_trading_day_iso(now_utc: Optional[datetime] = None) -> str:
+    return _ist_trading_day(now_utc).isoformat()
+
+
+def _is_within_ist_trading_window(now_utc: Optional[datetime] = None) -> bool:
+    local_now = _ist_now(now_utc)
+    return IST_TRADING_START_HOUR <= local_now.hour < IST_TRADING_END_HOUR
 
 
 def _launch_mt5_terminal(path: str) -> bool:
@@ -191,6 +216,8 @@ def _halt_reason_text(reason_code: str | None) -> str:
         "legacy_stop_today": "Old halt",
         "manual_stop_today": "Manual stop",
         "manual_stop_until": "Manual stop until time",
+        "night_auto_stop": "Night auto stop",
+        "outside_ist_trading_window": "Outside IST trading window",
         "daily_profit_stop": "Daily profit hit",
         "daily_loss_stop": "Daily loss hit",
         "floating_profit_stop": "Floating profit hit",
@@ -548,10 +575,10 @@ def sync_account_runtime(
 
 
 def stop_account_for_today(login: int, reason_code: str = "manual_stop_today") -> None:
-    """Stop trade execution for this account for the current UTC day."""
+    """Stop trade execution for this account for the current IST trading day."""
     with _trade_mode_persist_lock:
         _load_trade_modes_from_disk(log_success=False, log_errors=False)
-        _account_trade_halts[int(login)] = _utc_today_iso()
+        _account_trade_halts[int(login)] = _ist_trading_day_iso()
         _account_trade_halt_reasons[int(login)] = str(reason_code or "manual_stop_today").strip().lower()
         _account_trade_resume_overrides.pop(int(login), None)
         # Clear any stop-until when explicit stop-today is set.
@@ -606,7 +633,7 @@ def start_account_now(login: int) -> None:
         _account_trade_halts.pop(key, None)
         _account_trade_halts_until.pop(key, None)
         _account_trade_halt_reasons.pop(key, None)
-        _account_trade_resume_overrides[key] = _utc_today_iso()
+        _account_trade_resume_overrides[key] = _ist_trading_day_iso()
         _persist_trade_modes_to_disk()
     try:
         from bot.algo.order_block import clear_account_risk_halt
@@ -649,7 +676,7 @@ def is_manual_resume_override_active(login: int) -> bool:
         override_day = _account_trade_resume_overrides.get(key)
         if not override_day:
             return False
-        today = _utc_today_iso()
+        today = _ist_trading_day_iso()
         if override_day == today:
             return True
         _account_trade_resume_overrides.pop(key, None)
@@ -660,7 +687,8 @@ def is_manual_resume_override_active(login: int) -> bool:
 def is_account_trade_allowed_today(login: int) -> tuple[bool, str]:
     """
     Returns (allowed, reason).
-    Auto-resets on next day.
+    Trading is allowed only between 09:00 and 22:00 India time.
+    Auto-resets after 09:00 India time on the next trading day.
     """
     # Stop/start changes can be written by a different API/process. Reload the
     # tiny shared file before every gate check so live strategy instances do not
@@ -668,6 +696,24 @@ def is_account_trade_allowed_today(login: int) -> tuple[bool, str]:
     _load_trade_modes_from_disk(log_success=False, log_errors=False)
 
     key = int(login)
+    trading_day = _ist_trading_day_iso()
+    in_window = _is_within_ist_trading_window()
+
+    if not in_window:
+        # Outside the allowed trading window, force a persisted halt so the
+        # dashboard and live instances agree immediately.
+        with _trade_mode_persist_lock:
+            current_halt_day = _account_trade_halts.get(key)
+            current_reason = str(_account_trade_halt_reasons.get(key, "") or "").strip().lower()
+            if current_halt_day != trading_day or current_reason != "night_auto_stop":
+                _account_trade_halts[key] = trading_day
+                _account_trade_halt_reasons[key] = "night_auto_stop"
+                _account_trade_halts_until.pop(key, None)
+                _persist_trade_modes_to_disk()
+        local_now = _ist_now()
+        if local_now.hour < IST_TRADING_START_HOUR:
+            return False, "outside_ist_trading_window"
+        return False, "night_auto_stop"
 
     if is_manual_resume_override_active(key):
         return True, "manual_resume_override"
@@ -698,8 +744,7 @@ def is_account_trade_allowed_today(login: int) -> tuple[bool, str]:
     halted_day = _account_trade_halts.get(key)
     if not halted_day:
         return True, "allowed"
-    today = _utc_today_iso()
-    if halted_day != today:
+    if halted_day != trading_day:
         # Auto-reset on next day.
         with _trade_mode_persist_lock:
             _account_trade_halts.pop(key, None)
