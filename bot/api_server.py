@@ -629,6 +629,7 @@ async def strategy_stats(strategy_id: str, period: str = "today", account_login:
     comment_map = {
         "breakout": "ALGO:BRK",
         "signal_forge": "ALGO:SFG",
+        "smart_money": "ALGO:SMR",
     }
     comment_prefix = comment_map.get(strategy_id, f"ALGO:{strategy_id[:3].upper()}")
     assigned_logins = {acc.login for acc in assigned_accounts}

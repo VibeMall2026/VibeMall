@@ -32,6 +32,13 @@ STRATEGIES: list[dict] = [
         "module": "bot.algo.signal_forge",
     },
     {
+        "id": "smart_money",
+        "name": "Smart Money Structure",
+        "description": "Pivot breakout strategy with volatility, trend, and volume confirmation",
+        "status": "available",
+        "module": "bot.algo.smart_money",
+    },
+    {
         "id": "ema_crossover",
         "name": "EMA Crossover",
         "description": "Classic EMA 9/21 crossover strategy with trend filter",
