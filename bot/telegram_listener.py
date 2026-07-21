@@ -24,6 +24,7 @@ from bot.telegram_notifier import send_text_alert
 
 
 _client: TelegramClient | None = None
+_IST = ZoneInfo("Asia/Kolkata")
 _COMMAND_ALIASES = {
     "start": "start",
     "stop": "stop",
@@ -253,6 +254,7 @@ def _build_status_text() -> str:
         trading_state = "ON" if mode.get("allowed") else "OFF"
         mt5_state = "ONLINE" if getattr(acc, "connected", False) else "OFFLINE"
         reason = str(mode.get("stop_reason_text") or mode.get("reason") or "").strip()
+        halt_until = str(mode.get("halt_until") or "").strip()
         rows.append(
             f"\n{acc.label}\n"
             f"Login: {acc.login}\n"
@@ -261,6 +263,15 @@ def _build_status_text() -> str:
         )
         if reason and trading_state == "OFF":
             rows.append(f"Reason: {reason}")
+        if halt_until and trading_state == "OFF":
+            try:
+                until_dt = datetime.fromisoformat(halt_until.replace("Z", "+00:00"))
+                if until_dt.tzinfo is None:
+                    until_dt = until_dt.replace(tzinfo=timezone.utc)
+                until_ist = until_dt.astimezone(_IST)
+                rows.append(f"Paused Until: {until_ist.strftime('%d %b %Y %I:%M %p IST')}")
+            except Exception:
+                rows.append(f"Paused Until: {halt_until}")
 
     return "\n".join(rows)
 
