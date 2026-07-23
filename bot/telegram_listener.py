@@ -351,8 +351,17 @@ def build_accounts_summary_text() -> str:
             continue
 
         mode = get_account_trade_mode(int(acc.login))
-        allowed = "ON" if mode.get("allowed") else "OFF"
+        has_active_halt = bool(
+            str(mode.get("halt_day") or "").strip()
+            or str(mode.get("halt_until") or "").strip()
+            or str(mode.get("stop_reason_code") or "").strip()
+        )
+        allowed_flag = bool(mode.get("allowed"))
+        status_label = "ON" if (allowed_flag and not has_active_halt) else "OFF"
         reason = str(mode.get("stop_reason_text") or mode.get("reason") or "").strip()
+        halt_until = str(mode.get("halt_until") or "").strip()
+        if not reason and has_active_halt:
+            reason = str(mode.get("stop_reason_code") or "trading paused").strip()
 
         balance = float(getattr(acc, "balance", 0.0) or 0.0)
         equity = float(getattr(acc, "equity", 0.0) or 0.0)
@@ -392,7 +401,7 @@ def build_accounts_summary_text() -> str:
         lines.append(
             f"\n{acc.label}\n"
             f"Login: {acc.login}\n"
-            f"Status: {'Trading ' + allowed}\n"
+            f"Status: Trading {status_label}\n"
             f"Today profit: {today_profit_amount:.2f}\n"
             f"Today loss: {today_loss_amount:.2f}\n"
             f"Net profit: {today_net_profit:.2f}\n"
@@ -401,7 +410,16 @@ def build_accounts_summary_text() -> str:
             f"Total trades: {total_trades}\n"
             f"Open positions: {open_positions}"
         )
-        if reason and allowed == "OFF":
+        if halt_until and status_label == "OFF":
+            try:
+                until_dt = datetime.fromisoformat(halt_until.replace("Z", "+00:00"))
+                if until_dt.tzinfo is None:
+                    until_dt = until_dt.replace(tzinfo=timezone.utc)
+                until_ist = until_dt.astimezone(_IST)
+                lines.append(f"Paused Until: {until_ist.strftime('%d %b %Y %I:%M %p IST')}")
+            except Exception:
+                lines.append(f"Paused Until: {halt_until}")
+        if reason and status_label == "OFF":
             lines.append(f"Reason: {reason}")
 
     lines.append(
