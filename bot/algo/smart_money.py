@@ -14,7 +14,7 @@ from __future__ import annotations
 import threading
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from loguru import logger
@@ -113,7 +113,8 @@ def _tf_to_mt5(timeframe_minutes: int):
 def _get_candles(symbol: str, timeframe_minutes: int, count: int) -> list[Candle]:
     from bot import mt5_bridge as _bridge
 
-    if _bridge.USE_BRIDGE:
+    bridge_url = str(getattr(_bridge, "BRIDGE_URL", "") or "").strip()
+    if bridge_url:
         try:
             response = _bridge._call_bridge(
                 f"/candles?symbol={symbol}&timeframe={timeframe_minutes}&count={count}"
@@ -134,12 +135,25 @@ def _get_candles(symbol: str, timeframe_minutes: int, count: int) -> list[Candle
                 return candles
         except Exception as exc:
             logger.warning(f"[SMART_MONEY] Bridge candles fetch failed: {exc}")
-        return []
+        # Fall through to local MT5 if bridge is unavailable or empty.
 
     if not MT5_AVAILABLE or not mt5_bridge.is_connected():
         return []
 
+    try:
+        mt5.symbol_select(symbol, True)
+    except Exception:
+        pass
+
     rates = mt5.copy_rates_from_pos(symbol, _tf_to_mt5(timeframe_minutes), 0, count)
+    if rates is None or len(rates) == 0:
+        try:
+            lookback_days = max(3, int((count * max(1, timeframe_minutes)) / 1440) + 3)
+            start = datetime.now(timezone.utc) - timedelta(days=lookback_days)
+            rates = mt5.copy_rates_from(symbol, _tf_to_mt5(timeframe_minutes), start, count)
+        except Exception as exc:
+            logger.warning(f"[SMART_MONEY] copy_rates_from fallback failed for {symbol}: {exc}")
+            rates = None
     if rates is None or len(rates) == 0:
         return []
 
@@ -297,9 +311,9 @@ def _breakout_ok(side: str, candles: list[Candle], breakout_period: int = 5) -> 
 
 
 def _build_signal(symbol: str) -> Optional[dict]:
-    candles = _get_candles(symbol, algo_config.analysis_timeframe, 140)
+    candles = _get_candles(symbol, algo_config.analysis_timeframe, 300)
     if len(candles) < 40:
-        logger.debug(f"[SMART_MONEY] Not enough candles for {symbol}")
+        logger.debug(f"[SMART_MONEY] Not enough candles for {symbol} (got {len(candles)})")
         return None
 
     bar_time = candles[-1].time

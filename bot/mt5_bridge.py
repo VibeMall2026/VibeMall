@@ -27,7 +27,7 @@ except ImportError:
 
 # Bridge configuration (for Ubuntu VPS → Windows PC delegation)
 BRIDGE_URL = os.getenv("MT5_BRIDGE_URL", "").strip()
-BRIDGE_API_KEY = os.getenv("MT5_BRIDGE_API_KEY", "")
+BRIDGE_API_KEY = getattr(config, "API_KEY", "").strip() or os.getenv("MT5_BRIDGE_API_KEY", "").strip()
 USE_BRIDGE = not MT5_AVAILABLE and bool(BRIDGE_URL)
 
 if USE_BRIDGE:

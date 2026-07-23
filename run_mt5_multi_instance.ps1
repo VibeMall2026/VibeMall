@@ -195,10 +195,11 @@ if ($accounts.Count -eq 0) {
     throw "No accounts found in MT5_EXTRA_ACCOUNTS"
 }
 
-$basePort = 8101
+$basePort = 8201
 for ($i = 0; $i -lt $accounts.Count; $i++) {
     $accounts[$i].ApiPort = $basePort + $i
 }
+$signalForgeBridgePort = ($accounts | Where-Object { $_.Label -eq "Signal Forge Gold" } | Select-Object -First 1 -ExpandProperty ApiPort)
 $managedPorts = @($accounts | ForEach-Object { [int]$_.ApiPort }) + @(8001)
 
 if ($Action -eq "stop" -or $Action -eq "restart") {
@@ -230,9 +231,13 @@ if ($Action -eq "start" -or $Action -eq "restart") {
     $started = @()
     foreach ($a in $accounts) {
         $instLog = Join-Path $logsDir ("{0}.log" -f $a.SafeLabel)
-        $argList = @(
-            "-Command",
-            "`$env:MT5_LOGIN='$($a.Login)'; " +
+        $bridgeUrlEnv = ""
+        $bridgeKeyEnv = ""
+        if ($a.Strategy -eq "smart_money" -and $signalForgeBridgePort) {
+            $bridgeUrlEnv = "`$env:MT5_BRIDGE_URL='http://127.0.0.1:$signalForgeBridgePort'; "
+            $bridgeKeyEnv = "`$env:MT5_BRIDGE_API_KEY='$($envMap['API_KEY'])'; "
+        }
+        $command = "`$env:MT5_LOGIN='$($a.Login)'; " +
             "`$env:MT5_ACCOUNT_LABEL='$($a.Label)'; " +
             "`$env:MT5_PASSWORD='$($a.Password)'; " +
             "`$env:MT5_SERVER='$($a.Server)'; " +
@@ -242,12 +247,14 @@ if ($Action -eq "start" -or $Action -eq "restart") {
             "`$env:MT5_PRIMARY_ALLOWED_SYMBOLS='$($a.Allowed)'; " +
             "`$env:MT5_EXTRA_ACCOUNTS=''; " +
             "`$env:BOT_SINGLE_ACCOUNT_MODE='1'; " +
+            "$bridgeUrlEnv" +
+            "$bridgeKeyEnv" +
             "`$env:API_PORT='$($a.ApiPort)'; " +
             "`$env:BOT_LOG_FILE='$instLog'; " +
             "`$env:BOT_SHARED_LOG_FILE='$sharedLog'; " +
             "Set-Location '$root'; " +
             "& '$py' -X utf8 -u -m bot.main"
-        )
+        $argList = @("-Command", $command)
         if ($showInstanceWindows) {
             $p = Start-Process -FilePath "powershell.exe" -ArgumentList $argList -PassThru
         } else {

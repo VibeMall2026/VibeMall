@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 from fastapi.security.api_key import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import MetaTrader5 as mt5
 
 from bot import config
 from bot.state import state
@@ -158,6 +159,49 @@ async def verify_api_key(api_key: str = Security(_api_key_header)) -> str:
     if api_key != config.API_KEY:
         raise HTTPException(status_code=403, detail="Invalid API key")
     return api_key
+
+
+@app.get("/candles", dependencies=[Depends(verify_api_key)])
+def get_candles(symbol: str, timeframe: int = 5, count: int = 100):
+    """Return OHLCV candles for strategy bridge consumers."""
+    if not mt5_bridge.ensure_connected():
+        raise HTTPException(status_code=503, detail="MT5 not connected")
+
+    tf_map = {
+        1: mt5.TIMEFRAME_M1,
+        5: mt5.TIMEFRAME_M5,
+        15: mt5.TIMEFRAME_M15,
+        30: mt5.TIMEFRAME_M30,
+        60: mt5.TIMEFRAME_H1,
+        240: mt5.TIMEFRAME_H4,
+        1440: mt5.TIMEFRAME_D1,
+    }
+    tf = tf_map.get(int(timeframe), mt5.TIMEFRAME_M5)
+
+    from bot.accounts import get_mt5_lock
+
+    with get_mt5_lock():
+        try:
+            mt5.symbol_select(symbol, True)
+        except Exception:
+            pass
+        rates = mt5.copy_rates_from_pos(symbol, tf, 0, count)
+        if rates is None or len(rates) == 0:
+            return []
+
+        result = []
+        for row in rates:
+            result.append(
+                {
+                    "time": datetime.fromtimestamp(row["time"], tz=timezone.utc).isoformat(),
+                    "open": float(row["open"]),
+                    "high": float(row["high"]),
+                    "low": float(row["low"]),
+                    "close": float(row["close"]),
+                    "volume": float(row.get("tick_volume", 0)),
+                }
+            )
+        return result
 
 
 # ── Pydantic models ───────────────────────────────────────────────────────────
