@@ -11,6 +11,8 @@ import subprocess
 import sys
 import threading
 import re
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 import uvicorn
 from loguru import logger
 
@@ -147,6 +149,62 @@ def _mt5_reconnect_loop() -> None:
         time.sleep(monitor_interval_seconds)
 
 
+def _daily_schedule_loop() -> None:
+    """
+    Auto start/stop the bot around the IST trading window and send a summary.
+    Morning: start at/after 09:00 IST once per day.
+    Night: stop at/after 22:00 IST once per day.
+    """
+    import time
+
+    ist = ZoneInfo("Asia/Kolkata")
+    last_sent: dict[str, str] = {"morning": "", "night": ""}
+
+    logger.info("[SCHEDULE] Auto start/stop scheduler started (IST 09:00/22:00)")
+    while True:
+        try:
+            now_ist = datetime.now(timezone.utc).astimezone(ist)
+            today = now_ist.date().isoformat()
+
+            if 9 <= now_ist.hour < 10:
+                if last_sent.get("morning") != today:
+                    last_sent["morning"] = today
+                    if not state.running:
+                        from bot.algo.runner import start_all_strategies
+
+                        state.running = True
+                        started = start_all_strategies()
+                        logger.info(f"[SCHEDULE] Morning auto-start triggered | strategies={started}")
+                    else:
+                        logger.info("[SCHEDULE] Morning summary triggered while bot already running")
+
+                    from bot.telegram_listener import build_schedule_notice_text
+                    from bot.telegram_notifier import send_text_alert
+
+                    send_text_alert(build_schedule_notice_text("start"))
+
+            if now_ist.hour >= 22:
+                if last_sent.get("night") != today:
+                    last_sent["night"] = today
+                    if state.running:
+                        from bot.algo.runner import stop_all_strategies
+
+                        state.running = False
+                        stop_all_strategies()
+                        logger.info("[SCHEDULE] Night auto-stop triggered")
+                    else:
+                        logger.info("[SCHEDULE] Night summary triggered while bot already stopped")
+
+                    from bot.telegram_listener import build_schedule_notice_text
+                    from bot.telegram_notifier import send_text_alert
+
+                    send_text_alert(build_schedule_notice_text("stop"))
+        except Exception as exc:
+            logger.warning(f"[SCHEDULE] Auto start/stop loop error: {exc}")
+
+        time.sleep(60)
+
+
 async def start_bot() -> None:
     """Connect MT5 and start Telegram listener."""
     # Connect MT5 (only if not already connected)
@@ -266,6 +324,11 @@ def main() -> None:
         target=_mt5_reconnect_loop, daemon=True, name="MT5ReconnectMonitor"
     )
     reconnect_thread.start()
+
+    schedule_thread = threading.Thread(
+        target=_daily_schedule_loop, daemon=True, name="ISTScheduleManager"
+    )
+    schedule_thread.start()
 
     # Run bot (blocking)
     asyncio.run(start_bot())

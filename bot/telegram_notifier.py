@@ -4,6 +4,7 @@ Outbound Telegram notifications for bot events.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import threading
 import time
 from datetime import datetime, timezone
@@ -16,6 +17,8 @@ from bot import config
 _error_alert_lock = threading.Lock()
 _last_error_alert_ts: dict[str, float] = {}
 _error_alert_counts: dict[str, int] = {}
+_text_alert_lock = threading.Lock()
+_last_text_alert_ts: dict[str, float] = {}
 
 
 def _run_or_schedule(coro):
@@ -340,8 +343,20 @@ def send_text_alert(text: str, chat_id: str | None = None) -> bool:
     destination = str(chat_id or _get_alert_destination() or "").strip()
     if not destination or not str(text or "").strip():
         return False
+    normalized = str(text).strip()
+    dedupe_key = f"{destination}|{hashlib.sha1(normalized.encode('utf-8')).hexdigest()}"
+    now = time.monotonic()
+    with _text_alert_lock:
+        last = _last_text_alert_ts.get(dedupe_key, 0.0)
+        if now - last < 3.0:
+            logger.debug(
+                f"[TG_NOTIFY] Duplicate text alert suppressed for {destination} "
+                f"(within 3s window)"
+            )
+            return False
+        _last_text_alert_ts[dedupe_key] = now
     try:
-        method = _run_or_schedule(_send_message(destination, str(text)))
+        method = _run_or_schedule(_send_message(destination, normalized))
         logger.info(
             f"[TG_NOTIFY] Text alert sent to {destination} via={method} | "
             f"thread={threading.current_thread().name}"

@@ -175,7 +175,8 @@ def _get_candles(symbol: str, timeframe_minutes: int, count: int) -> list[Candle
 def _get_tick_price(symbol: str, side: str) -> Optional[float]:
     from bot import mt5_bridge as _bridge
 
-    if _bridge.USE_BRIDGE:
+    bridge_url = str(getattr(_bridge, "BRIDGE_URL", "") or "").strip()
+    if _bridge.USE_BRIDGE or bridge_url:
         try:
             response = _bridge._call_bridge(f"/price?symbol={symbol}")
             if response and "bid" in response and "ask" in response:
@@ -494,7 +495,13 @@ def _loop() -> None:
     )
     while _running:
         try:
-            if mt5_bridge.ensure_connected():
+            bridge_url = str(getattr(mt5_bridge, "BRIDGE_URL", "") or "").strip()
+            connected = mt5_bridge.ensure_connected()
+            if not connected and not bridge_url:
+                logger.debug("[SMART_MONEY] MT5 not connected and no bridge available; skipping scan")
+                time.sleep(max(3, int(algo_config.scan_interval_seconds)))
+                continue
+            if connected or bridge_url:
                 for symbol in algo_config.get_symbols():
                     _scan_symbol(symbol)
         except Exception as exc:

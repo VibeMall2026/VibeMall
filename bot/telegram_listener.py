@@ -67,6 +67,39 @@ def _build_help_text() -> str:
     )
 
 
+def _ist_now() -> datetime:
+    return datetime.now(timezone.utc).astimezone(_IST)
+
+
+def _daypart_label(now: datetime | None = None) -> str:
+    current = now or _ist_now()
+    hour = current.hour
+    if 5 <= hour < 12:
+        return "morning"
+    if 12 <= hour < 18:
+        return "afternoon"
+    return "night"
+
+
+def build_schedule_notice_text(kind: str, *, include_summary: bool = True) -> str:
+    """Build a friendly scheduled start/stop notification."""
+    current = _ist_now()
+    summary = build_accounts_summary_text() if include_summary else ""
+    if str(kind or "").strip().lower() == "start":
+        greeting = "🌅 Good morning"
+        intro = "Bot is starting now."
+    else:
+        greeting = "🌙 Good night"
+        intro = "Bot is stopping for the night."
+    summary_block = f"\n\n{summary}" if summary else ""
+    return (
+        f"{greeting}\n"
+        f"{intro}\n"
+        f"Time: {current.strftime('%d %b %Y %I:%M %p IST')}"
+        f"{summary_block}"
+    )
+
+
 def _next_xauusd_reopen_utc(now_utc: datetime | None = None) -> datetime:
     now = (now_utc or datetime.now(timezone.utc)).astimezone(timezone.utc)
     today_2200 = now.replace(hour=22, minute=0, second=0, microsecond=0)
@@ -563,9 +596,10 @@ async def _handle_control_command(event, text: str, channel_name: str) -> bool:
         resumed_logins = start_accounts_stopped_by_reason("telegram_bot_stop")
         running_after = get_runner_status().get("running_strategies", [])
         summary_text = build_accounts_summary_text()
+        greeting = "🌅 Good morning" if _daypart_label() == "morning" else "✅ Bot start confirmed"
         await _reply_control_status(
             event,
-            "✅ Bot start confirmed\n"
+            f"{greeting}\n"
             f"Source: @{channel_name}\n"
             f"Status: {'Bot started' if started else 'Bot already running'}\n"
             f"Accounts resumed: {len(resumed_logins)}\n"
@@ -580,9 +614,10 @@ async def _handle_control_command(event, text: str, channel_name: str) -> bool:
         stop_all_strategies()
         stopped_logins = stop_all_accounts_for_today("telegram_bot_stop")
         summary_text = build_accounts_summary_text()
+        greeting = "🌙 Good night" if _daypart_label() == "night" else "🛑 Bot stop confirmed"
         await _reply_control_status(
             event,
-            "🛑 Bot stop confirmed\n"
+            f"{greeting}\n"
             f"Source: @{channel_name}\n"
             f"Status: Bot stopped\n"
             f"Accounts paused: {len(stopped_logins)}\n"
