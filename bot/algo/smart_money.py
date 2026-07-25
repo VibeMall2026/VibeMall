@@ -111,32 +111,6 @@ def _tf_to_mt5(timeframe_minutes: int):
 
 
 def _get_candles(symbol: str, timeframe_minutes: int, count: int) -> list[Candle]:
-    from bot import mt5_bridge as _bridge
-
-    bridge_url = str(getattr(_bridge, "BRIDGE_URL", "") or "").strip()
-    if bridge_url:
-        try:
-            response = _bridge._call_bridge(
-                f"/candles?symbol={symbol}&timeframe={timeframe_minutes}&count={count}"
-            )
-            if response and isinstance(response, list):
-                candles: list[Candle] = []
-                for row in response:
-                    candles.append(
-                        Candle(
-                            time=datetime.fromisoformat(row["time"]) if isinstance(row["time"], str) else datetime.fromtimestamp(row["time"]),
-                            open=float(row["open"]),
-                            high=float(row["high"]),
-                            low=float(row["low"]),
-                            close=float(row["close"]),
-                            volume=float(row.get("volume", row.get("tick_volume", 0))),
-                        )
-                    )
-                return candles
-        except Exception as exc:
-            logger.warning(f"[SMART_MONEY] Bridge candles fetch failed: {exc}")
-        # Fall through to local MT5 if bridge is unavailable or empty.
-
     if not MT5_AVAILABLE or not mt5_bridge.is_connected():
         return []
 
@@ -173,20 +147,6 @@ def _get_candles(symbol: str, timeframe_minutes: int, count: int) -> list[Candle
 
 
 def _get_tick_price(symbol: str, side: str) -> Optional[float]:
-    from bot import mt5_bridge as _bridge
-
-    bridge_url = str(getattr(_bridge, "BRIDGE_URL", "") or "").strip()
-    if _bridge.USE_BRIDGE or bridge_url:
-        try:
-            response = _bridge._call_bridge(f"/price?symbol={symbol}")
-            if response and "bid" in response and "ask" in response:
-                bid = float(response["bid"])
-                ask = float(response["ask"])
-                return ask if side == "buy" else bid
-        except Exception as exc:
-            logger.warning(f"[SMART_MONEY] Bridge price fetch failed: {exc}")
-        return None
-
     if not MT5_AVAILABLE or not mt5_bridge.is_connected():
         return None
     tick = mt5.symbol_info_tick(symbol)
@@ -495,13 +455,12 @@ def _loop() -> None:
     )
     while _running:
         try:
-            bridge_url = str(getattr(mt5_bridge, "BRIDGE_URL", "") or "").strip()
             connected = mt5_bridge.ensure_connected()
-            if not connected and not bridge_url:
+            if not connected:
                 logger.debug("[SMART_MONEY] MT5 not connected and no bridge available; skipping scan")
                 time.sleep(max(3, int(algo_config.scan_interval_seconds)))
                 continue
-            if connected or bridge_url:
+            if connected:
                 for symbol in algo_config.get_symbols():
                     _scan_symbol(symbol)
         except Exception as exc:

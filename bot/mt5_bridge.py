@@ -26,9 +26,11 @@ except ImportError:
     logger.warning("MetaTrader5 library not available (Ubuntu). Running without MT5.")
 
 # Bridge configuration (for Ubuntu VPS → Windows PC delegation)
-BRIDGE_URL = os.getenv("MT5_BRIDGE_URL", "").strip()
+# This deployment is running local Windows MT5 instances only, so keep bridge
+# mode disabled unless it is explicitly re-enabled in a future deployment.
+BRIDGE_URL = ""
 BRIDGE_API_KEY = getattr(config, "API_KEY", "").strip() or os.getenv("MT5_BRIDGE_API_KEY", "").strip()
-USE_BRIDGE = not MT5_AVAILABLE and bool(BRIDGE_URL)
+USE_BRIDGE = False
 
 if USE_BRIDGE:
     logger.info(f"Bridge mode enabled: {BRIDGE_URL}")
