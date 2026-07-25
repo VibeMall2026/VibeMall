@@ -7,8 +7,10 @@ Session strategy:
   2. Otherwise → use file-based session (requires manual auth on first run)
 """
 import asyncio
+import json
 import os
 import shlex
+from pathlib import Path
 from datetime import datetime, timedelta, timezone, date
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
@@ -25,6 +27,7 @@ from bot.telegram_notifier import send_text_alert
 
 _client: TelegramClient | None = None
 _IST = ZoneInfo("Asia/Kolkata")
+_CONTROL_POLL_LOCK_PATH = Path(__file__).resolve().parent / "sessions" / "tg_control_poll.lock"
 _COMMAND_ALIASES = {
     "start": "start",
     "stop": "stop",
@@ -41,6 +44,57 @@ _COMMAND_ALIASES = {
     "signalforgegoldstart": "sstart",
 }
 _CONTROL_COMMANDS = set(_COMMAND_ALIASES.values())
+
+
+def _pid_is_running(pid: int) -> bool:
+    if pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+        return True
+    except Exception:
+        return False
+
+
+def _acquire_control_poll_lock() -> bool:
+    try:
+        _CONTROL_POLL_LOCK_PATH.parent.mkdir(parents=True, exist_ok=True)
+        if _CONTROL_POLL_LOCK_PATH.exists():
+            try:
+                existing = json.loads(_CONTROL_POLL_LOCK_PATH.read_text(encoding="utf-8"))
+                existing_pid = int(existing.get("pid") or 0)
+                if existing_pid and _pid_is_running(existing_pid):
+                    return False
+            except Exception:
+                pass
+            try:
+                _CONTROL_POLL_LOCK_PATH.unlink()
+            except Exception:
+                return False
+
+        _CONTROL_POLL_LOCK_PATH.write_text(
+            json.dumps(
+                {
+                    "pid": os.getpid(),
+                    "started_at": datetime.now(timezone.utc).isoformat(),
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        return True
+    except Exception:
+        return False
+
+
+def _release_control_poll_lock() -> None:
+    try:
+        if _CONTROL_POLL_LOCK_PATH.exists():
+            data = json.loads(_CONTROL_POLL_LOCK_PATH.read_text(encoding="utf-8"))
+            if int(data.get("pid") or 0) == os.getpid():
+                _CONTROL_POLL_LOCK_PATH.unlink()
+    except Exception:
+        pass
 
 
 def _normalize_key(text: str) -> str:
@@ -821,6 +875,7 @@ async def start_listener() -> None:
     _client = TelegramClient(session, config.TG_API_ID, config.TG_API_HASH)
     bot_poll_task = None
     live_mode = "user_session"
+    poll_lock_acquired = False
 
     try:
         await asyncio.wait_for(_client.connect(), timeout=15)
@@ -836,8 +891,12 @@ async def start_listener() -> None:
             pass
 
         if not getattr(config, "ADMIN_BOT_TOKEN", "").strip():
-            bot_poll_task = asyncio.create_task(_bot_control_poll_loop(), name="TelegramBotControlPoll")
-            logger.warning("No ADMIN_BOT_TOKEN available; control polling continues without live Telegram listener.")
+            poll_lock_acquired = _acquire_control_poll_lock()
+            if poll_lock_acquired:
+                bot_poll_task = asyncio.create_task(_bot_control_poll_loop(), name="TelegramBotControlPoll")
+                logger.warning("No ADMIN_BOT_TOKEN available; control polling continues without live Telegram listener.")
+            else:
+                logger.info("[TG_BOT] Control polling skipped because another process already owns it.")
         else:
             live_mode = "bot_session"
             _client = TelegramClient(StringSession(), config.TG_API_ID, config.TG_API_HASH)
@@ -851,10 +910,18 @@ async def start_listener() -> None:
                     await _client.disconnect()
                 except Exception:
                     pass
-                bot_poll_task = asyncio.create_task(_bot_control_poll_loop(), name="TelegramBotControlPoll")
+                poll_lock_acquired = _acquire_control_poll_lock()
+                if poll_lock_acquired:
+                    bot_poll_task = asyncio.create_task(_bot_control_poll_loop(), name="TelegramBotControlPoll")
+                else:
+                    logger.info("[TG_BOT] Control polling skipped because another process already owns it.")
 
     if bot_poll_task is None and not (state.telegram_connected and _client and _client.is_connected()):
-        bot_poll_task = asyncio.create_task(_bot_control_poll_loop(), name="TelegramBotControlPoll")
+        poll_lock_acquired = _acquire_control_poll_lock()
+        if poll_lock_acquired:
+            bot_poll_task = asyncio.create_task(_bot_control_poll_loop(), name="TelegramBotControlPoll")
+        else:
+            logger.info("[TG_BOT] Control polling skipped because another process already owns it.")
 
     # Resolve channel entities — merge config + state channels
     all_channels = list(config.TG_CHANNELS)
@@ -934,6 +1001,8 @@ async def start_listener() -> None:
                 await bot_poll_task
             except asyncio.CancelledError:
                 pass
+        if poll_lock_acquired:
+            _release_control_poll_lock()
         state.telegram_connected = False
 
 
@@ -943,6 +1012,7 @@ async def stop_listener() -> None:
         await _client.disconnect()
         state.telegram_connected = False
         logger.info("Telegram listener stopped.")
+    _release_control_poll_lock()
 
 
 def get_client() -> TelegramClient | None:
