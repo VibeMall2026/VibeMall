@@ -97,27 +97,42 @@ def _mt5_reconnect_loop() -> None:
                     pass
             else:
                 # No data - try reconnect, but don't spam logs while backoff is active.
-                if mt5_bridge.reconnect_backoff_active():
-                    logger.debug("[MT5] Reconnect backoff active; waiting before retry...")
-                else:
-                    logger.warning("[MT5] No account data - attempting reconnect...")
-                if mt5_bridge.ensure_connected():
-                    state.mt5_connected = True
-                    logger.success("[MT5] Reconnected successfully.")
-                else:
-                    state.mt5_connected = False
-                    logger.error("[MT5] Reconnect failed - will retry in 10s")
-                    try:
-                        from bot import config as _cfg
-                        from bot.accounts import sync_account_runtime
+                try:
+                    from bot.accounts import get_accounts_runtime_status
 
-                        sync_account_runtime(
-                            login=int(getattr(_cfg, "MT5_LOGIN", 0) or 0),
-                            connected=False,
-                            error="mt5_disconnected",
-                        )
-                    except Exception:
-                        pass
+                    statuses = get_accounts_runtime_status()
+                    any_trade_allowed = any(
+                        s.get("enabled") and s.get("trade_allowed")
+                        for s in statuses
+                    )
+                except Exception:
+                    any_trade_allowed = True
+
+                if not any_trade_allowed:
+                    state.mt5_connected = False
+                    logger.debug("[MT5] Trading is halted; skipping MT5 reconnect until schedule resumes.")
+                else:
+                    if mt5_bridge.reconnect_backoff_active():
+                        logger.debug("[MT5] Reconnect backoff active; waiting before retry...")
+                    else:
+                        logger.warning("[MT5] No account data - attempting reconnect...")
+                    if mt5_bridge.ensure_connected():
+                        state.mt5_connected = True
+                        logger.success("[MT5] Reconnected successfully.")
+                    else:
+                        state.mt5_connected = False
+                        logger.error("[MT5] Reconnect failed - will retry in 10s")
+                        try:
+                            from bot import config as _cfg
+                            from bot.accounts import sync_account_runtime
+
+                            sync_account_runtime(
+                                login=int(getattr(_cfg, "MT5_LOGIN", 0) or 0),
+                                connected=False,
+                                error="mt5_disconnected",
+                            )
+                        except Exception:
+                            pass
 
             # Per-account heartbeat for clear ON/OFF visibility in logs.
             now_ts = time.monotonic()

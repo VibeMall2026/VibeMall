@@ -233,10 +233,9 @@ if ($Action -eq "start" -or $Action -eq "restart") {
         $instLog = Join-Path $logsDir ("{0}.log" -f $a.SafeLabel)
         $bridgeUrlEnv = ""
         $bridgeKeyEnv = ""
-        if ($a.Strategy -eq "smart_money" -and $signalForgeBridgePort) {
-            $bridgeUrlEnv = "`$env:MT5_BRIDGE_URL='http://127.0.0.1:$signalForgeBridgePort'; "
-            $bridgeKeyEnv = "`$env:MT5_BRIDGE_API_KEY='$($envMap['API_KEY'])'; "
-        }
+        # Smart Money should read candles from its own local MT5 instance.
+        # Do not route it through the Signal Forge bridge, because that can
+        # return stale/failed candle data and trigger reconnect noise.
         $command = "`$env:MT5_LOGIN='$($a.Login)'; " +
             "`$env:MT5_ACCOUNT_LABEL='$($a.Label)'; " +
             "`$env:MT5_PASSWORD='$($a.Password)'; " +
