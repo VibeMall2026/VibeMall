@@ -405,6 +405,7 @@ def build_accounts_summary_text() -> str:
         open_positions = 0
         today_profit_amount = 0.0
         today_loss_amount = 0.0
+        connection_note = ""
 
         if _connect_account(acc):
             try:
@@ -426,6 +427,11 @@ def build_accounts_summary_text() -> str:
                     _reconnect_primary()
                 except Exception:
                     pass
+        else:
+            connection_note = "MT5 connection unavailable"
+            acc_error = str(getattr(acc, "error", "") or "").strip()
+            if acc_error:
+                connection_note = f"{connection_note} ({acc_error})"
 
         total_balance += balance
         total_equity += equity
@@ -443,6 +449,8 @@ def build_accounts_summary_text() -> str:
             f"Total trades: {total_trades}\n"
             f"Open positions: {open_positions}"
         )
+        if connection_note:
+            lines.append(f"Data status: {connection_note}")
         if halt_until and status_label == "OFF":
             try:
                 until_dt = datetime.fromisoformat(halt_until.replace("Z", "+00:00"))
