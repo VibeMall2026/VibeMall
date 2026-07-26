@@ -234,6 +234,7 @@ if ($Action -eq "start" -or $Action -eq "restart") {
         $bridgeUrlEnv = ""
         $bridgeKeyEnv = ""
         $bridgeUrlOverride = "`$env:MT5_BRIDGE_URL=''; "
+        $showThisInstanceWindow = $showInstanceWindows -or ($a.Label -eq "The5ers Funded")
         # Smart Money should read candles from its own local MT5 instance.
         # Do not route it through the Signal Forge bridge, because that can
         # return stale/failed candle data and trigger reconnect noise.
@@ -256,7 +257,7 @@ if ($Action -eq "start" -or $Action -eq "restart") {
             "Set-Location '$root'; " +
             "& '$py' -X utf8 -u -m bot.main"
         $argList = @("-Command", $command)
-        if ($showInstanceWindows) {
+        if ($showThisInstanceWindow) {
             $p = Start-Process -FilePath "powershell.exe" -ArgumentList $argList -PassThru
         } else {
             $p = Start-Process -FilePath "powershell.exe" -ArgumentList $argList -WindowStyle Hidden -PassThru
