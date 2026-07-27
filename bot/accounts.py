@@ -1108,6 +1108,17 @@ def refresh_account_info() -> None:
         if not acc.enabled:
             acc.connected = False
             continue
+        # Do not force reconnects or status flips while the account is in a
+        # scheduled/manual halt. This keeps dashboard refreshes from causing
+        # ON/OFF churn during night_auto_stop or manual pauses.
+        try:
+            allowed_today, halt_reason = is_account_trade_allowed_today(int(acc.login))
+        except Exception:
+            allowed_today, halt_reason = True, ""
+        if not allowed_today:
+            if halt_reason and not acc.error:
+                acc.error = halt_reason
+            continue
         try:
             if _connect_account(acc):
                 info = mt5.account_info()

@@ -73,6 +73,7 @@ def _mt5_reconnect_loop() -> None:
     hb_every_seconds = max(1, int(getattr(config, "MT5_HEARTBEAT_SECONDS", 5) or 5))
     logger.info(f"[MT5] Auto-reconnect monitor started ({monitor_interval_seconds}s interval)")
     last_hb_ts = 0.0
+    consecutive_misses = 0
     while True:
         try:
             # Use non-reconnecting account peek as health check so the monitor
@@ -109,30 +110,36 @@ def _mt5_reconnect_loop() -> None:
                     any_trade_allowed = True
 
                 if not any_trade_allowed:
-                    state.mt5_connected = False
                     logger.debug("[MT5] Trading is halted; skipping MT5 reconnect until schedule resumes.")
                 else:
+                    consecutive_misses += 1
                     if mt5_bridge.reconnect_backoff_active():
                         logger.debug("[MT5] Reconnect backoff active; waiting before retry...")
                     else:
                         logger.warning("[MT5] No account data - attempting reconnect...")
                     if mt5_bridge.ensure_connected():
+                        consecutive_misses = 0
                         state.mt5_connected = True
                         logger.success("[MT5] Reconnected successfully.")
                     else:
-                        state.mt5_connected = False
-                        logger.error("[MT5] Reconnect failed - will retry in 10s")
-                        try:
-                            from bot import config as _cfg
-                            from bot.accounts import sync_account_runtime
+                        if consecutive_misses >= 3:
+                            state.mt5_connected = False
+                            logger.error("[MT5] Reconnect failed - marking offline until next successful poll")
+                            try:
+                                from bot import config as _cfg
+                                from bot.accounts import sync_account_runtime
 
-                            sync_account_runtime(
-                                login=int(getattr(_cfg, "MT5_LOGIN", 0) or 0),
-                                connected=False,
-                                error="mt5_disconnected",
+                                sync_account_runtime(
+                                    login=int(getattr(_cfg, "MT5_LOGIN", 0) or 0),
+                                    connected=False,
+                                    error="mt5_disconnected",
+                                )
+                            except Exception:
+                                pass
+                        else:
+                            logger.debug(
+                                f"[MT5] Reconnect miss {consecutive_misses}/3; keeping last known connection state"
                             )
-                        except Exception:
-                            pass
 
             # Per-account heartbeat for clear ON/OFF visibility in logs.
             now_ts = time.monotonic()
