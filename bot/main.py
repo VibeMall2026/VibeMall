@@ -110,8 +110,6 @@ def _mt5_reconnect_loop() -> None:
                     any_trade_allowed = True
 
                 if not any_trade_allowed:
-                    state.mt5_connected = True
-                    consecutive_misses = 0
                     logger.debug("[MT5] Trading is halted; skipping MT5 reconnect until schedule resumes.")
                     try:
                         from bot import config as _cfg
@@ -119,11 +117,13 @@ def _mt5_reconnect_loop() -> None:
 
                         sync_account_runtime(
                             login=int(getattr(_cfg, "MT5_LOGIN", 0) or 0),
-                            connected=True,
+                            connected=False,
                             error="",
                         )
                     except Exception:
                         pass
+                    state.mt5_connected = False
+                    consecutive_misses = 0
                 else:
                     consecutive_misses += 1
                     if mt5_bridge.reconnect_backoff_active():
@@ -241,8 +241,32 @@ def _daily_schedule_loop() -> None:
 
 async def start_bot() -> None:
     """Connect MT5 and start Telegram listener."""
-    # Connect MT5 (only if not already connected)
-    if not mt5_bridge.is_connected():
+    try:
+        from bot.accounts import get_accounts_runtime_status, refresh_account_info
+
+        statuses = get_accounts_runtime_status()
+        any_trade_allowed = any(
+            s.get("enabled") and s.get("trade_allowed")
+            for s in statuses
+        )
+    except Exception:
+        any_trade_allowed = True
+
+    # During the night window we keep every account OFF and avoid bringing MT5
+    # up at startup so the dashboard stays aligned with the trade gate.
+    if not any_trade_allowed:
+        logger.info("Night window active - starting without MT5 connection.")
+        state.mt5_connected = False
+        try:
+            mt5_bridge.disconnect()
+        except Exception:
+            pass
+        try:
+            refresh_account_info()
+        except Exception as exc:
+            logger.debug(f"Night refresh skipped: {exc}")
+    # Connect MT5 only when trading is allowed.
+    elif not mt5_bridge.is_connected():
         logger.info("Connecting to MT5...")
         if mt5_bridge.ensure_connected():
             state.mt5_connected = True

@@ -532,7 +532,7 @@ def get_accounts_runtime_status() -> list[dict]:
                 "label": acc.label,
                 "login": int(acc.login),
                 "enabled": bool(acc.enabled),
-                "connected": bool(acc.connected),
+                "connected": bool(acc.connected and allowed),
                 "error": str(acc.error or ""),
                 "strategy": list(acc.strategy or []),
                 "trade_allowed": bool(allowed),
@@ -1108,15 +1108,13 @@ def refresh_account_info() -> None:
         if not acc.enabled:
             acc.connected = False
             continue
-        # Do not force reconnects or status flips while the account is in a
-        # scheduled/manual halt. This keeps dashboard refreshes from causing
-        # ON/OFF churn during night_auto_stop or manual pauses.
         try:
             allowed_today, halt_reason = is_account_trade_allowed_today(int(acc.login))
         except Exception:
             allowed_today, halt_reason = True, ""
         if not allowed_today:
-            if halt_reason and not acc.error:
+            acc.connected = False
+            if halt_reason:
                 acc.error = halt_reason
             continue
         try:
@@ -1178,6 +1176,13 @@ def probe_marketwatch_symbols(login: int, password: str, server: str, path: str 
 
 def _reconnect_primary() -> None:
     """Reconnect to primary account after multi-account operations, if configured."""
+    try:
+        primary_login = int(getattr(_config, "MT5_LOGIN", 0) or 0)
+        allowed_today, _reason = is_account_trade_allowed_today(primary_login)
+        if not allowed_today:
+            return
+    except Exception:
+        pass
     primary = get_account("acc_1")
     if primary and primary.enabled:
         _connect_account(primary)
@@ -1240,6 +1245,18 @@ def ensure_any_account_connected() -> bool:
     """
     if not MT5_AVAILABLE:
         return False
+
+    try:
+        with _accounts_lock:
+            if any(
+                acc.enabled and is_account_trade_allowed_today(int(acc.login))[0]
+                for acc in _accounts
+            ):
+                pass
+            else:
+                return False
+    except Exception:
+        pass
 
     try:
         if mt5.terminal_info() is not None:
