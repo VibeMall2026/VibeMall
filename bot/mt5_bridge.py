@@ -123,6 +123,38 @@ def _launch_mt5_terminal(path: str) -> bool:
         return False
 
 
+def _terminate_mt5_terminal(path: str) -> bool:
+    terminal_path = str(path or "").strip().lower()
+    if not terminal_path or os.name != "nt":
+        return False
+    try:
+        import subprocess as _subprocess
+
+        result = _subprocess.run(
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                f"Get-CimInstance Win32_Process | Where-Object {{$_.Name -ieq 'terminal64.exe' -and $_.CommandLine -and ($_.CommandLine -like '*{terminal_path}*')}} | Select-Object -ExpandProperty ProcessId",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=8,
+        )
+        pids = [line.strip() for line in (result.stdout or "").splitlines() if line.strip()]
+        killed = False
+        for pid in pids:
+            try:
+                _subprocess.run(["taskkill", "/F", "/PID", pid], capture_output=True, timeout=10)
+                killed = True
+            except Exception:
+                continue
+        return killed
+    except Exception as exc:
+        logger.warning(f"Could not terminate MT5 terminal: {exc}")
+        return False
+
+
 # ── Bridge HTTP Client ────────────────────────────────────────────────────────
 
 def _call_bridge(endpoint: str, method: str = "GET", json_data: dict = None, timeout: int = 5) -> Optional[dict]:
@@ -205,8 +237,11 @@ def connect() -> bool:
             _mark_reconnect_failure()
             if "IPC send failed" in last_error or "IPC timeout" in last_error:
                 launch_path = config.MT5_PATH or ""
+                if launch_path:
+                    _terminate_mt5_terminal(launch_path)
+                    time.sleep(2)
                 if _launch_mt5_terminal(launch_path):
-                    time.sleep(4)
+                    time.sleep(8)
                     if mt5.initialize(**kwargs) and mt5.login(config.MT5_LOGIN, password=config.MT5_PASSWORD, server=config.MT5_SERVER):
                         info = mt5.account_info()
                         if info and int(getattr(info, "login", 0) or 0) == int(config.MT5_LOGIN):
