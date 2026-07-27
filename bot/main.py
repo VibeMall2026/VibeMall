@@ -110,7 +110,20 @@ def _mt5_reconnect_loop() -> None:
                     any_trade_allowed = True
 
                 if not any_trade_allowed:
+                    state.mt5_connected = True
+                    consecutive_misses = 0
                     logger.debug("[MT5] Trading is halted; skipping MT5 reconnect until schedule resumes.")
+                    try:
+                        from bot import config as _cfg
+                        from bot.accounts import sync_account_runtime
+
+                        sync_account_runtime(
+                            login=int(getattr(_cfg, "MT5_LOGIN", 0) or 0),
+                            connected=True,
+                            error="",
+                        )
+                    except Exception:
+                        pass
                 else:
                     consecutive_misses += 1
                     if mt5_bridge.reconnect_backoff_active():
@@ -123,15 +136,14 @@ def _mt5_reconnect_loop() -> None:
                         logger.success("[MT5] Reconnected successfully.")
                     else:
                         if consecutive_misses >= 3:
-                            state.mt5_connected = False
-                            logger.error("[MT5] Reconnect failed - marking offline until next successful poll")
+                            logger.error("[MT5] Reconnect failed - keeping last known online state")
                             try:
                                 from bot import config as _cfg
                                 from bot.accounts import sync_account_runtime
 
                                 sync_account_runtime(
                                     login=int(getattr(_cfg, "MT5_LOGIN", 0) or 0),
-                                    connected=False,
+                                    connected=True,
                                     error="mt5_disconnected",
                                 )
                             except Exception:
