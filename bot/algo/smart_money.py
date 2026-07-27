@@ -356,6 +356,48 @@ def _build_signal(symbol: str) -> Optional[dict]:
         and close < last_low
     )
 
+    buy_blockers: list[str] = []
+    sell_blockers: list[str] = []
+    if not enough_distance:
+        buy_blockers.append(f"enough_distance=False (bar_index={bar_index}, last_signal_bar={last_signal_bar}, min_signal_distance={algo_config.min_signal_distance})")
+        sell_blockers.append(f"enough_distance=False (bar_index={bar_index}, last_signal_bar={last_signal_bar}, min_signal_distance={algo_config.min_signal_distance})")
+    if algo_config.use_momentum_filter and not long_cond:
+        buy_blockers.append(
+            f"momentum=False (price_change={price_change:.5f} < threshold={momentum_threshold:.5f})"
+        )
+    if algo_config.use_momentum_filter and not short_cond:
+        sell_blockers.append(
+            f"momentum=False (price_change={price_change:.5f} > -threshold={-momentum_threshold:.5f})"
+        )
+    if algo_config.use_trend_filter and not buy_trend_ok:
+        buy_blockers.append(f"trend=False (higher_tf_trend={higher_tf_trend})")
+    if algo_config.use_trend_filter and not sell_trend_ok:
+        sell_blockers.append(f"trend=False (higher_tf_trend={higher_tf_trend})")
+    if algo_config.use_lower_tf_filter and not buy_lower_tf_ok:
+        buy_blockers.append(f"lower_tf=False (lower_tf_trend={lower_tf_trend})")
+    if algo_config.use_lower_tf_filter and not sell_lower_tf_ok:
+        sell_blockers.append(f"lower_tf=False (lower_tf_trend={lower_tf_trend})")
+    if algo_config.use_volume_filter and not buy_volume_ok:
+        buy_blockers.append("volume=False (recent volume not above average)")
+    if algo_config.use_volume_filter and not sell_volume_ok:
+        sell_blockers.append("volume=False (recent volume not above average)")
+    if algo_config.use_breakout_filter and not buy_breakout:
+        buy_blockers.append("breakout=False (close not above recent high)")
+    if algo_config.use_breakout_filter and not sell_breakout:
+        sell_blockers.append("breakout=False (close not below recent low)")
+    if not buy_allowed:
+        buy_blockers.append(
+            f"repeat_signal_blocked (last_signal={last_signal}, restrict_tf_trend={restrict_tf_trend}, last_restrict_trend={last_trend})"
+        )
+    if not sell_allowed:
+        sell_blockers.append(
+            f"repeat_signal_blocked (last_signal={last_signal}, restrict_tf_trend={restrict_tf_trend}, last_restrict_trend={last_trend})"
+        )
+    if last_high is None:
+        buy_blockers.append("pivot=False (last_high=None)")
+    if last_low is None:
+        sell_blockers.append("pivot=False (last_low=None)")
+
     return {
         "time": bar_time,
         "close": close,
@@ -371,6 +413,8 @@ def _build_signal(symbol: str) -> Optional[dict]:
         "last_low": last_low,
         "buy_signal": buy_signal,
         "sell_signal": sell_signal,
+        "buy_blockers": buy_blockers,
+        "sell_blockers": sell_blockers,
         "candles": candles,
     }
 
@@ -426,6 +470,12 @@ def _scan_symbol(symbol: str) -> None:
         f"buy={signal['buy_signal']} sell={signal['sell_signal']} "
         f"trend={signal['higher_tf_trend']} lower_tf={signal['lower_tf_trend']}"
     )
+    if not signal["buy_signal"] and not signal["sell_signal"]:
+        logger.info(
+            f"[SMART_MONEY] {symbol} blocked | "
+            f"BUY blockers: {signal['buy_blockers'] or ['none']} | "
+            f"SELL blockers: {signal['sell_blockers'] or ['none']}"
+        )
 
     if not algo_config.enabled:
         return
