@@ -62,12 +62,12 @@ class AlgoConfig:
     pre_momentum_factor_base: float = 0.5
     use_momentum_filter: bool = True
     use_trend_filter: bool = True
-    use_lower_tf_filter: bool = True
+    use_lower_tf_filter: bool = False
     use_volume_filter: bool = True
     use_breakout_filter: bool = True
     restrict_repeated_signals: bool = True
     higher_tf_choice: str = "15M"
-    lower_tf_choice: str = "1M"
+    lower_tf_choice: str = "15M"
     restrict_trend_tf_choice: str = "5M"
     enabled: bool = True
     risk_percent: float = runtime_config.RISK_PERCENT
