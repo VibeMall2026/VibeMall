@@ -199,7 +199,7 @@ $basePort = 8201
 for ($i = 0; $i -lt $accounts.Count; $i++) {
     $accounts[$i].ApiPort = $basePort + $i
 }
-$signalForgeBridgePort = ($accounts | Where-Object { $_.Label -eq "Signal Forge Gold" } | Select-Object -First 1 -ExpandProperty ApiPort)
+$signalForgeBridgePort = ($accounts | Where-Object { $_.Label -eq "The5ers Funded 10k" } | Select-Object -First 1 -ExpandProperty ApiPort)
 $managedPorts = @($accounts | ForEach-Object { [int]$_.ApiPort }) + @(8001)
 
 if ($Action -eq "stop" -or $Action -eq "restart") {

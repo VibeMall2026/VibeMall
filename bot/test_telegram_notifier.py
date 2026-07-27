@@ -10,9 +10,9 @@ class TelegramNotifierAllowlistTests(TestCase):
         with patch.object(
             telegram_notifier.config,
             "TG_EXECUTION_ALERT_ACCOUNT_LABELS",
-            ["Signal Forge Gold", "The5ers Funded"],
+            ["The5ers Funded 10k", "The5ers Funded"],
         ):
-            self.assertTrue(telegram_notifier._is_allowed_execution_account("Signal Forge Gold"))
+            self.assertTrue(telegram_notifier._is_allowed_execution_account("The5ers Funded 10k"))
             self.assertTrue(telegram_notifier._is_allowed_execution_account("The5ers Funded"))
             self.assertFalse(telegram_notifier._is_allowed_execution_account("Demo Account"))
 
@@ -20,7 +20,7 @@ class TelegramNotifierAllowlistTests(TestCase):
         with patch.object(
             telegram_notifier.config,
             "TG_EXECUTION_ALERT_ACCOUNT_LABELS",
-            ["Signal Forge Gold", "The5ers Funded"],
+            ["The5ers Funded 10k", "The5ers Funded"],
         ), patch.object(telegram_notifier, "_is_signal_forge_notice", return_value=True), patch.object(
             telegram_notifier, "_get_alert_destination", return_value="123456"
         ), patch.object(telegram_notifier, "_send_message", new=AsyncMock(return_value="bot_api")) as send_mock:
@@ -42,14 +42,14 @@ class TelegramNotifierAllowlistTests(TestCase):
         with patch.object(
             telegram_notifier.config,
             "TG_EXECUTION_ALERT_ACCOUNT_LABELS",
-            ["Signal Forge Gold", "The5ers Funded"],
+            ["The5ers Funded 10k", "The5ers Funded"],
         ), patch.object(telegram_notifier, "_is_signal_forge_notice", return_value=True), patch.object(
             telegram_notifier, "_get_alert_destination", return_value="123456"
         ), patch.object(telegram_notifier, "_send_message", new=AsyncMock(return_value="bot_api")) as send_mock:
             sent = telegram_notifier.send_algo_execution_alert(
                 symbol="XAUUSD",
                 side="buy",
-                account_label="Signal Forge Gold",
+                account_label="The5ers Funded 10k",
                 login=123,
                 ticket=456,
                 lot=0.01,

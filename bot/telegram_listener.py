@@ -114,8 +114,8 @@ def _build_help_text() -> str:
         "/start - Start the bot and strategies\n"
         "/stop - Stop the bot and strategies\n"
         "/status - Show account trading status\n"
-        "/signal_forge_stop [time] - Stop Signal Forge Gold until next XAUUSD reopen or a custom time\n"
-        "/signal_forge_start - Start Signal Forge Gold now\n"
+        "/signal_forge_stop [time] - Stop The5ers Funded 10k until next XAUUSD reopen or a custom time\n"
+        "/signal_forge_start - Start The5ers Funded 10k now\n"
         "Time examples: /signal_forge_stop 2026-07-12 18:00\n"
         "               /signal_forge_stop 18:00"
     )
@@ -232,11 +232,11 @@ def _build_signal_forge_overview_text(acc) -> str:
     from bot import mt5_bridge
 
     if not acc or not acc.enabled:
-        return "Signal Forge Gold overview unavailable: target account not available."
+        return "The5ers Funded 10k overview unavailable: target account not available."
 
     if not _connect_account(acc):
         return (
-            "Signal Forge Gold overview unavailable: could not connect to the account.\n"
+            "The5ers Funded 10k overview unavailable: could not connect to the account.\n"
             f"Account: {acc.label}\n"
             f"Login: {acc.login}"
         )
@@ -251,7 +251,7 @@ def _build_signal_forge_overview_text(acc) -> str:
         today_pnl = sum(float(t.get("pnl", 0) or 0) for t in today_trades)
         open_positions = mt5_bridge.get_open_positions() or []
         return (
-            "Signal Forge Gold overview\n"
+            "The5ers Funded 10k overview\n"
             f"Account: {acc.label}\n"
             f"Login: {acc.login}\n"
             f"Balance: {float(account_info.get('balance', acc.balance) or 0):.2f}\n"
