@@ -179,15 +179,18 @@ def _launch_mt5_terminal(path: str) -> bool:
         if not Path(terminal_path).exists():
             logger.warning(f"[ACCOUNTS] MT5 terminal path not found: {terminal_path}")
             return False
+        launch_args = [terminal_path]
+        if getattr(_config, "MT5_PORTABLE", False):
+            launch_args.append("/portable")
         subprocess.Popen(
-            [terminal_path],
+            launch_args,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             cwd=str(Path(terminal_path).parent),
             creationflags=getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
         )
         _last_terminal_launch_ts_by_path[terminal_path] = now_ts
-        logger.info(f"[ACCOUNTS] Launched MT5 terminal: {terminal_path}")
+        logger.info(f"[ACCOUNTS] Launched MT5 terminal: {terminal_path}{' /portable' if getattr(_config, 'MT5_PORTABLE', False) else ''}")
         return True
     except Exception as exc:
         logger.warning(f"[ACCOUNTS] Could not launch MT5 terminal: {exc}")
