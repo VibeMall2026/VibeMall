@@ -1,0 +1,165 @@
+"""
+Trade executor — takes a parsed signal, checks risk, and sends to MT5.
+
+On Ubuntu VPS: calls Windows MT5 Bridge via HTTP (MT5_BRIDGE_URL in .env).
+On Windows PC: calls mt5_bridge directly.
+"""
+import os
+import asyncio
+from datetime import datetime
+from loguru import logger
+
+from bot import config
+from bot.state import state
+from bot.signal_parser import ParsedSignal
+from bot import mt5_bridge
+from bot.risk_manager import can_trade
+
+# Windows MT5 Bridge URL — set this in bot/.env on VPS
+# e.g. MT5_BRIDGE_URL=http://YOUR_WINDOWS_PC_IP:8001
+MT5_BRIDGE_URL = os.environ.get("MT5_BRIDGE_URL", "").rstrip("/")
+
+
+async def _execute_via_bridge(sig: ParsedSignal, channel: str) -> dict:
+    """Call Windows MT5 Bridge HTTP API to execute trade."""
+    import httpx
+    tp = sig.tp[0] if sig.tp else 0.0
+    payload = {
+        "symbol": sig.symbol,
+        "side": sig.side,
+        "order_type": sig.order_type,
+        "sl": sig.sl,
+        "tp": tp,
+        "entry": sig.entry,
+        "risk_percent": state.risk_percent,
+        "comment": f"VPS:{channel}",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(
+                f"{MT5_BRIDGE_URL}/trade",
+                json=payload,
+                headers={"X-API-Key": config.API_KEY},
+            )
+            resp.raise_for_status()
+            return resp.json()
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+# Track last trade time per symbol for duplicate/min-seconds check
+_last_trade_time: dict[str, datetime] = {}
+
+
+async def execute_signal(sig: ParsedSignal, channel: str = "") -> dict:
+    """
+    Execute a parsed signal. Returns result dict.
+    """
+    if not sig.valid:
+        return {"success": False, "reason": sig.reason}
+
+    symbol = sig.symbol
+    side = sig.side
+
+    if not state.running:
+        reason = "Bot is stopped â€” signal execution paused"
+        logger.warning(reason)
+        _update_signal_log(symbol, "blocked", reason)
+        return {"success": False, "reason": reason}
+
+    if sig.order_type != "market" and not state.allow_pending_orders:
+        reason = "Pending orders are disabled in settings"
+        logger.warning(reason)
+        _update_signal_log(symbol, "blocked", reason)
+        return {"success": False, "reason": reason}
+
+    # ── Duplicate window check ────────────────────────────────────────────────
+    if state.duplicate_window_minutes > 0 and symbol in _last_trade_time:
+        elapsed = (datetime.now() - _last_trade_time[symbol]).total_seconds() / 60
+        if elapsed < state.duplicate_window_minutes:
+            reason = f"Duplicate signal for {symbol} within {state.duplicate_window_minutes}min window"
+            logger.warning(reason)
+            _update_signal_log(symbol, "rejected", reason)
+            return {"success": False, "reason": reason}
+
+    # ── Min seconds between trades ────────────────────────────────────────────
+    if state.min_seconds_between_trades > 0 and symbol in _last_trade_time:
+        elapsed_sec = (datetime.now() - _last_trade_time[symbol]).total_seconds()
+        if elapsed_sec < state.min_seconds_between_trades:
+            reason = f"Too soon after last trade ({elapsed_sec:.0f}s < {state.min_seconds_between_trades}s)"
+            logger.warning(reason)
+            _update_signal_log(symbol, "rejected", reason)
+            return {"success": False, "reason": reason}
+
+    # ── Risk checks ───────────────────────────────────────────────────────────
+    allowed, reason = can_trade(symbol)
+    if not allowed:
+        logger.warning(f"Trade blocked by risk manager: {reason}")
+        _update_signal_log(symbol, "blocked", reason)
+        return {"success": False, "reason": reason}
+
+    # ── Execute on MT5 ────────────────────────────────────────────────────────
+    tp = sig.tp[0] if sig.tp else 0.0
+    comment = f"TG:{channel}"
+
+    # Use Windows bridge if configured, else multi-account direct MT5
+    if MT5_BRIDGE_URL:
+        logger.info(f"Executing via Windows MT5 Bridge: {MT5_BRIDGE_URL}")
+        result = await _execute_via_bridge(sig, channel)
+        success = result.get("success")
+    else:
+        from bot.accounts import execute_on_all_accounts, get_all_accounts
+        eligible_accounts = [
+            a for a in get_all_accounts()
+            if a.enabled and "my_strategy" not in (a.strategy or [])
+        ]
+        if not eligible_accounts:
+            reason = "No eligible MT5 accounts enabled for signal execution"
+            logger.warning(reason)
+            _update_signal_log(symbol, "blocked", reason)
+            return {"success": False, "reason": reason}
+
+        results = execute_on_all_accounts(
+            symbol=symbol,
+            side=side,
+            sl=sig.sl,
+            tp=tp,
+            entry=sig.entry,
+            order_type=sig.order_type,
+            risk_percent=state.risk_percent,
+            comment=comment,
+            exclude_strategy_id="my_strategy",
+        )
+        success = any(r.get("success") for r in results)
+        succeeded = [r for r in results if r.get("success")]
+        failed = [r for r in results if not r.get("success")]
+        result = {
+            "success": success,
+            "message": f"Executed on {len(succeeded)}/{len(results)} accounts",
+            "ticket": succeeded[0].get("ticket") if succeeded else None,
+            "multi_results": results,
+        }
+        if failed:
+            logger.warning(f"[ACCOUNTS] Failed on: {[r['account_label'] for r in failed]}")
+
+    if result.get("success"):
+        _last_trade_time[symbol] = datetime.now()
+        with state._lock:
+            state.reset_daily_if_needed()
+            state.daily_trades += 1
+        _update_signal_log(symbol, "executed", result.get("message", "Trade opened successfully"))
+        logger.success(f"Trade executed: {symbol} {side.upper()} ticket={result.get('ticket')}")
+    else:
+        _update_signal_log(symbol, "failed", result.get("message", "Unknown error"))
+        logger.error(f"Trade failed: {result.get('message')}")
+
+    return result
+
+
+def _update_signal_log(symbol: str, status: str, reason: str) -> None:
+    """Update the most recent signal log entry for this symbol."""
+    for entry in state.signal_log:
+        if entry.get("symbol") == symbol and entry.get("status") in ("pending", ""):
+            entry["status"] = status
+            entry["reason"] = reason
+            break

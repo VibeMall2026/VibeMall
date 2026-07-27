@@ -1,0 +1,1451 @@
+"""
+FastAPI server — exposes bot control & data endpoints.
+Called by the Django dashboard (trading/ app).
+"""
+import asyncio
+import threading
+from datetime import datetime, date, timedelta, timezone
+from typing import Optional
+
+from loguru import logger
+from fastapi import FastAPI, HTTPException, Security, Depends, Request
+from fastapi.responses import JSONResponse
+from fastapi.security.api_key import APIKeyHeader
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import MetaTrader5 as mt5
+
+from bot import config
+from bot.state import state
+from bot import mt5_bridge
+
+# Ensure loguru is configured (console + logs/bot.log) even when running API-only.
+import bot.logger  # noqa: F401
+from bot.signal_parser import parse_signal
+from bot.algo.manager import (
+    get_active_strategy_id,
+    get_algo_status,
+    get_risk_status,
+    reset_risk_halts,
+    select_strategy,
+    start_algo,
+    stop_algo,
+    update_algo_config,
+)
+
+app = FastAPI(title="Trading Bot API", version="1.0.0")
+
+_accounts_refresh_lock = threading.Lock()
+_accounts_refresh_in_progress = False
+
+
+def _visible_dashboard_accounts(accounts):
+    try:
+        from bot import config
+    except Exception:
+        return list(accounts or [])
+    labels = {
+        label.strip().lower()
+        for label in (getattr(config, "TRADING_DASHBOARD_ACCOUNT_LABELS", []) or [])
+        if label
+    }
+    if not labels:
+        return list(accounts or [])
+    return [
+        acc for acc in (accounts or [])
+        if str(getattr(acc, "label", "")).strip().lower() in labels
+    ]
+
+
+def _parse_trade_date(raw_value) -> date | None:
+    """Parse trade datetime/date strings from MT5 payload."""
+    if raw_value is None:
+        return None
+    text = str(raw_value).strip()
+    if not text:
+        return None
+    try:
+        # Handle plain YYYY-MM-DD quickly.
+        if len(text) >= 10 and text[4] == "-" and text[7] == "-":
+            d = datetime.strptime(text[:10], "%Y-%m-%d").date()
+            return d
+    except Exception:
+        pass
+    try:
+        # Handle common "YYYY-MM-DD HH:MM:SS" and ISO.
+        iso = text.replace("Z", "+00:00").replace(" ", "T")
+        return datetime.fromisoformat(iso).date()
+    except Exception:
+        return None
+
+
+def _period_bounds_utc(today_utc: date) -> dict[str, tuple[date, date]]:
+    """Inclusive date windows."""
+    yesterday = today_utc - timedelta(days=1)
+    month_start = today_utc.replace(day=1)
+    prev_month_end = month_start - timedelta(days=1)
+    prev_month_start = prev_month_end.replace(day=1)
+    week_start = today_utc - timedelta(days=today_utc.weekday())  # Monday
+    last_week_end = week_start - timedelta(days=1)
+    last_week_start = last_week_end - timedelta(days=6)
+
+    # Last 6 calendar months including current month.
+    six_month_start = month_start
+    for _ in range(5):
+        six_month_start = (six_month_start - timedelta(days=1)).replace(day=1)
+    return {
+        "today": (today_utc, today_utc),
+        "yesterday": (yesterday, yesterday),
+        "this_week": (week_start, today_utc),
+        "last_week": (last_week_start, last_week_end),
+        "this_month": (month_start, today_utc),
+        "last_month": (prev_month_start, prev_month_end),
+        "last_6_months": (six_month_start, today_utc),
+    }
+
+
+def _format_strategy_list(values: list[str] | None) -> str:
+    items = [str(v).strip() for v in (values or []) if str(v).strip()]
+    return ", ".join(items) if items else "none"
+
+
+def _send_control_telegram_notice(title: str, lines: list[str]) -> None:
+    try:
+        from bot.telegram_notifier import send_text_alert
+
+        text_lines = [title] + [str(line).strip() for line in lines if str(line).strip()]
+        send_text_alert("\n".join(text_lines))
+    except Exception as exc:
+        logger.warning(f"[API] Could not send Telegram control notice: {exc}")
+
+
+def _send_account_summary_notice(title: str) -> None:
+    try:
+        from bot.telegram_listener import build_accounts_summary_text
+        from bot.telegram_notifier import send_text_alert
+
+        send_text_alert(f"{title}\n\n{build_accounts_summary_text()}")
+    except Exception as exc:
+        logger.warning(f"[API] Could not send account summary notice: {exc}")
+
+# ── CORS ──────────────────────────────────────────────────────────────────────
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=config.API_CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.middleware("http")
+async def restrict_client_ips(request: Request, call_next):
+    if request.url.path in ("/health", "/accounts/debug"):
+        return await call_next(request)
+
+    allowed_ips = {ip.strip() for ip in config.API_ALLOWED_IPS if ip.strip()}
+    if allowed_ips:
+        client_host = request.client.host if request.client else ""
+        if client_host and client_host not in allowed_ips:
+            return JSONResponse(status_code=403, content={"detail": f"IP not allowed: {client_host}"})
+
+    return await call_next(request)
+
+# ── Auth ──────────────────────────────────────────────────────────────────────
+_api_key_header = APIKeyHeader(name="X-API-Key", auto_error=True)
+
+
+async def verify_api_key(api_key: str = Security(_api_key_header)) -> str:
+    if api_key != config.API_KEY:
+        raise HTTPException(status_code=403, detail="Invalid API key")
+    return api_key
+
+
+@app.get("/candles", dependencies=[Depends(verify_api_key)])
+def get_candles(symbol: str, timeframe: int = 5, count: int = 100):
+    """Return OHLCV candles for strategy bridge consumers."""
+    if not mt5_bridge.ensure_connected():
+        raise HTTPException(status_code=503, detail="MT5 not connected")
+
+    tf_map = {
+        1: mt5.TIMEFRAME_M1,
+        5: mt5.TIMEFRAME_M5,
+        15: mt5.TIMEFRAME_M15,
+        30: mt5.TIMEFRAME_M30,
+        60: mt5.TIMEFRAME_H1,
+        240: mt5.TIMEFRAME_H4,
+        1440: mt5.TIMEFRAME_D1,
+    }
+    tf = tf_map.get(int(timeframe), mt5.TIMEFRAME_M5)
+
+    from bot.accounts import get_mt5_lock
+
+    with get_mt5_lock():
+        try:
+            mt5.symbol_select(symbol, True)
+        except Exception:
+            pass
+        rates = mt5.copy_rates_from_pos(symbol, tf, 0, count)
+        if rates is None or len(rates) == 0:
+            return []
+
+        result = []
+        for row in rates:
+            result.append(
+                {
+                    "time": datetime.fromtimestamp(row["time"], tz=timezone.utc).isoformat(),
+                    "open": float(row["open"]),
+                    "high": float(row["high"]),
+                    "low": float(row["low"]),
+                    "close": float(row["close"]),
+                    "volume": float(row.get("tick_volume", 0)),
+                }
+            )
+        return result
+
+
+# ── Pydantic models ───────────────────────────────────────────────────────────
+
+class ControlRequest(BaseModel):
+    action: str  # start | stop | restart | weekend_shutdown
+
+
+class SettingsUpdate(BaseModel):
+    risk_percent: Optional[float] = None
+    reward_ratio: Optional[float] = None
+    max_trades: Optional[int] = None
+    max_positions: Optional[int] = None
+    max_daily_loss: Optional[float] = None
+    max_consecutive_losses: Optional[int] = None
+    max_spread: Optional[int] = None
+    duplicate_window: Optional[int] = None
+    min_seconds: Optional[int] = None
+    allow_pending: Optional[bool] = None
+
+
+class ChannelRequest(BaseModel):
+    channel: str
+
+
+class ModifyPositionRequest(BaseModel):
+    sl: Optional[float] = None
+    tp: Optional[float] = None
+
+
+class ParseSignalRequest(BaseModel):
+    text: str
+
+
+# ── Endpoints ─────────────────────────────────────────────────────────────────
+
+@app.get("/status", dependencies=[Depends(verify_api_key)])
+async def get_status():
+    account = mt5_bridge.get_account_info()
+    # mt5.terminal_info() is not thread-safe from uvicorn thread
+    # state.mt5_connected is set by main/reconnect thread — use that
+    mt5_connected = state.mt5_connected
+    return {
+        "bot": {
+            "running": state.running,
+            "telegram_connected": state.telegram_connected,
+            "mt5_connected": mt5_connected,
+        },
+        "account": account,
+        "signals_processed": state.signals_processed,
+    }
+
+
+@app.get("/health")
+async def health():
+    """Quick health check — called by Django dashboard."""
+    return {
+        "running": state.running,
+        "mt5_connected": state.mt5_connected,
+        "telegram_connected": state.telegram_connected,
+    }
+
+
+@app.get("/stats", dependencies=[Depends(verify_api_key)])
+async def get_stats():
+    account = mt5_bridge.get_account_info()
+    open_pos = mt5_bridge.get_open_positions()
+    mt5_connected = state.mt5_connected
+    # Calculate stats from actual MT5 trade history (not in-memory counters)
+    trades = mt5_bridge.get_trade_history(limit=500)
+
+    from datetime import datetime, timezone, date
+    today = datetime.now(timezone.utc).date()
+
+    total_wins = sum(1 for t in trades if t.get('status') == 'win')
+    total_losses = sum(1 for t in trades if t.get('status') == 'loss')
+    total_pnl = sum(float(t.get('pnl', 0)) for t in trades)
+    total_trades = total_wins + total_losses
+
+    # Today's stats — filter by today's date
+    today_trades = [t for t in trades if _parse_trade_date(t.get("opened")) == today]
+    today_wins = sum(1 for t in today_trades if t.get('status') == 'win')
+    today_losses = sum(1 for t in today_trades if t.get('status') == 'loss')
+    today_pnl = sum(float(t.get('pnl', 0)) for t in today_trades)
+    today_total = today_wins + today_losses
+
+    win_rate = (total_wins / total_trades * 100) if total_trades > 0 else 0.0
+
+    return {
+        "bot": {
+            "running": state.running,
+            "telegram_connected": state.telegram_connected,
+            "mt5_connected": mt5_connected,
+        },
+        "account": account,
+        "trades": {
+            "total": total_trades,
+            "open": len(open_pos),
+        },
+        "performance": {
+            "winning_trades": total_wins,
+            "losing_trades": total_losses,
+            "win_rate": round(win_rate, 2),
+            "total_pnl": round(total_pnl, 2),
+        },
+        "daily": {
+            "wins": today_wins,
+            "losses": today_losses,
+            "trades_count": today_total,
+            "net_pnl": round(today_pnl, 2),
+        },
+    }
+
+
+@app.get("/open-trades", dependencies=[Depends(verify_api_key)])
+async def get_open_trades():
+    return mt5_bridge.get_open_positions()
+
+
+@app.get("/trades", dependencies=[Depends(verify_api_key)])
+async def get_trades():
+    return mt5_bridge.get_trade_history(limit=100)
+
+
+@app.get("/signals", dependencies=[Depends(verify_api_key)])
+async def get_signals():
+    return state.signal_log[:50]
+
+
+@app.get("/channel-messages", dependencies=[Depends(verify_api_key)])
+async def get_channel_messages():
+    """Return raw messages received from all monitored channels."""
+    return state.channel_messages[:100]
+
+
+@app.get("/messages", dependencies=[Depends(verify_api_key)])
+async def get_messages():
+    """Return raw channel messages log."""
+    return state.channel_messages[:100]
+
+
+@app.get("/settings", dependencies=[Depends(verify_api_key)])
+async def get_settings():
+    # Use state.channels if populated, otherwise fall back to config
+    channels = state.channels if state.channels else list(config.TG_CHANNELS)
+    return {
+        "channels": channels,
+        "risk": {
+            "risk_percent": state.risk_percent,
+            "reward_ratio": state.reward_ratio,
+            "max_trades": state.max_trades_per_day,
+            "max_positions": state.max_open_positions,
+            "max_daily_loss": state.max_daily_loss_percent,
+            "max_consecutive_losses": state.max_consecutive_losses,
+        },
+        "validation": {
+            "max_spread": state.max_spread_points,
+            "duplicate_window": state.duplicate_window_minutes,
+            "min_seconds": state.min_seconds_between_trades,
+            "allow_pending": state.allow_pending_orders,
+        },
+    }
+
+
+@app.put("/settings", dependencies=[Depends(verify_api_key)])
+async def update_settings(body: SettingsUpdate):
+    if body.risk_percent is not None:
+        state.risk_percent = body.risk_percent
+    if body.reward_ratio is not None:
+        state.reward_ratio = body.reward_ratio
+    if body.max_trades is not None:
+        state.max_trades_per_day = body.max_trades
+    if body.max_positions is not None:
+        state.max_open_positions = body.max_positions
+    if body.max_daily_loss is not None:
+        state.max_daily_loss_percent = body.max_daily_loss
+    if body.max_consecutive_losses is not None:
+        state.max_consecutive_losses = body.max_consecutive_losses
+    if body.max_spread is not None:
+        state.max_spread_points = body.max_spread
+    if body.duplicate_window is not None:
+        state.duplicate_window_minutes = body.duplicate_window
+    if body.min_seconds is not None:
+        state.min_seconds_between_trades = body.min_seconds
+    if body.allow_pending is not None:
+        state.allow_pending_orders = body.allow_pending
+    return {"success": True, "message": "Settings updated"}
+
+
+@app.post("/channels", dependencies=[Depends(verify_api_key)])
+async def add_channel(body: ChannelRequest):
+    ch = body.channel.strip()
+    # Ensure state.channels is populated from config first
+    if not state.channels:
+        state.channels = list(config.TG_CHANNELS)
+    if ch not in state.channels:
+        state.channels.append(ch)
+        _persist_channels()
+    return {"success": True, "channels": state.channels}
+
+
+@app.delete("/channels", dependencies=[Depends(verify_api_key)])
+async def remove_channel(body: ChannelRequest):
+    ch = body.channel.strip()
+    if not state.channels:
+        state.channels = list(config.TG_CHANNELS)
+    if ch in state.channels:
+        state.channels.remove(ch)
+        _persist_channels()
+    return {"success": True, "channels": state.channels}
+
+
+def _persist_channels() -> None:
+    """Write current state.channels back to bot/.env TG_CHANNELS."""
+    import re
+    from pathlib import Path
+    env_path = Path(__file__).parent / ".env"
+    try:
+        content = env_path.read_text(encoding="utf-8")
+        new_value = ",".join(state.channels)
+        content = re.sub(
+            r"^TG_CHANNELS=.*$",
+            f"TG_CHANNELS={new_value}",
+            content,
+            flags=re.MULTILINE,
+        )
+        env_path.write_text(content, encoding="utf-8")
+        logger.info(f"Persisted channels to bot/.env: {new_value}")
+    except Exception as e:
+        logger.warning(f"Could not persist channels: {e}")
+
+
+@app.put("/positions/{position_id}", dependencies=[Depends(verify_api_key)])
+async def modify_position(position_id: int, body: ModifyPositionRequest):
+    result = mt5_bridge.modify_position(position_id, sl=body.sl, tp=body.tp)
+    return result
+
+
+@app.post("/parse-signal", dependencies=[Depends(verify_api_key)])
+async def parse_signal_endpoint(body: ParseSignalRequest):
+    sig = parse_signal(body.text)
+    return sig.to_dict()
+
+
+@app.post("/control", dependencies=[Depends(verify_api_key)])
+async def control_bot(body: ControlRequest):
+    action = body.action
+    from bot.algo.runner import get_runner_status, start_all_strategies, stop_all_strategies
+
+    if action == "start":
+        if state.running:
+            running_strategies = get_runner_status().get("running_strategies", [])
+            _send_control_telegram_notice(
+                "Bot control: START requested",
+                [
+                    "Source: dashboard /control start",
+                    "Status: Bot already running",
+                    f"Running strategies: {_format_strategy_list(running_strategies)}",
+                ],
+            )
+            return {
+                "success": False,
+                "message": "Bot already running",
+                "status": "running",
+                "running_strategies": running_strategies,
+        }
+        state.running = True
+        started = start_all_strategies()
+        _send_control_telegram_notice(
+            "Bot control: START confirmed",
+            [
+                "Source: dashboard /control start",
+                "Status: Bot started",
+                f"Started strategies: {_format_strategy_list(started)}",
+                f"Running strategies: {_format_strategy_list(get_runner_status().get('running_strategies', []))}",
+            ],
+        )
+        _send_account_summary_notice("Account summary after bot start")
+        return {
+            "success": True,
+            "message": "Bot started",
+            "status": "running",
+            "started_strategies": started,
+            "running_strategies": get_runner_status().get("running_strategies", []),
+        }
+
+    elif action == "stop":
+        running_before = get_runner_status().get("running_strategies", [])
+        state.running = False
+        stop_all_strategies()
+        _send_control_telegram_notice(
+            "Bot control: STOP confirmed",
+            [
+                "Source: dashboard /control stop",
+                "Status: Bot stopped",
+                f"Stopped strategies: {_format_strategy_list(running_before)}",
+            ],
+        )
+        _send_account_summary_notice("Account summary after bot stop")
+        return {
+            "success": True,
+            "message": "Bot stopped",
+            "status": "stopped",
+            "stopped_strategies": running_before,
+        }
+
+    elif action == "restart":
+        running_before = get_runner_status().get("running_strategies", [])
+        state.running = False
+        stop_all_strategies()
+        await asyncio.sleep(1)
+        state.running = True
+        started = start_all_strategies()
+        _send_control_telegram_notice(
+            "Bot control: RESTART confirmed",
+            [
+                "Source: dashboard /control restart",
+                "Status: Bot restarted",
+                f"Stopped strategies: {_format_strategy_list(running_before)}",
+                f"Started strategies: {_format_strategy_list(started)}",
+            ],
+        )
+        _send_account_summary_notice("Account summary after bot restart")
+        return {
+            "success": True,
+            "message": "Bot restarted",
+            "status": "running",
+            "stopped_strategies": running_before,
+            "started_strategies": started,
+            "running_strategies": get_runner_status().get("running_strategies", []),
+        }
+
+    elif action == "weekend_shutdown":
+        running_before = get_runner_status().get("running_strategies", [])
+        state.running = False
+        stop_all_strategies()
+        weekend_close = mt5_bridge.close_positions_for_weekend(exempt_symbols={"BTCUSD"})
+        _send_control_telegram_notice(
+            "Bot control: WEEKEND SHUTDOWN confirmed",
+            [
+                "Source: dashboard /control weekend_shutdown",
+                "Status: Bot stopped",
+                f"Stopped strategies: {_format_strategy_list(running_before)}",
+                "Weekend close requested for non-BTCUSD positions",
+            ],
+        )
+        _send_account_summary_notice("Account summary after weekend shutdown")
+        return {
+            "success": weekend_close.get("success", True),
+            "message": "Weekend shutdown initiated (non-BTCUSD positions close attempted)",
+            "status": "stopped",
+            "stopped_strategies": running_before,
+            "weekend_close": weekend_close,
+        }
+
+    else:
+        raise HTTPException(status_code=400, detail=f"Unknown action: {action}")
+
+
+# ── Shortcut endpoints (called by Django trading/views.py) ────────────────────
+
+@app.post("/start", dependencies=[Depends(verify_api_key)])
+async def start_bot():
+    """Shortcut: start the bot."""
+    from bot.algo.runner import get_runner_status, start_all_strategies
+
+    if state.running:
+        running_strategies = get_runner_status().get("running_strategies", [])
+        _send_control_telegram_notice(
+            "Bot control: START requested",
+            [
+                "Source: dashboard /start",
+                "Status: Bot already running",
+                f"Running strategies: {_format_strategy_list(running_strategies)}",
+            ],
+        )
+        return {
+            "success": False,
+            "message": "Bot already running",
+            "status": "running",
+            "running_strategies": running_strategies,
+        }
+    state.running = True
+    started = start_all_strategies()
+    _send_control_telegram_notice(
+        "Bot control: START confirmed",
+        [
+            "Source: dashboard /start",
+            "Status: Bot started",
+            f"Started strategies: {_format_strategy_list(started)}",
+        ],
+    )
+    _send_account_summary_notice("Account summary after bot start")
+    return {
+        "success": True,
+        "message": "Bot started",
+        "status": "running",
+        "started_strategies": started,
+        "running_strategies": get_runner_status().get("running_strategies", []),
+    }
+
+
+@app.post("/stop", dependencies=[Depends(verify_api_key)])
+async def stop_bot():
+    """Shortcut: stop the bot."""
+    from bot.algo.runner import get_runner_status, stop_all_strategies
+
+    running_before = get_runner_status().get("running_strategies", [])
+    state.running = False
+    stop_all_strategies()
+    _send_control_telegram_notice(
+        "Bot control: STOP confirmed",
+        [
+            "Source: dashboard /stop",
+            "Status: Bot stopped",
+            f"Stopped strategies: {_format_strategy_list(running_before)}",
+        ],
+    )
+    _send_account_summary_notice("Account summary after bot stop")
+    return {
+        "success": True,
+        "message": "Bot stopped",
+        "status": "stopped",
+        "stopped_strategies": running_before,
+    }
+
+
+@app.get("/strategy/{strategy_id}/stats", dependencies=[Depends(verify_api_key)])
+async def strategy_stats(strategy_id: str, period: str = "today", account_login: str = ""):
+    """Return per-strategy dashboard stats — fetches history from ALL assigned accounts."""
+    from bot.accounts import get_all_accounts, _connect_account, _reconnect_primary
+    from bot.accounts import THE5ERS_FUNDED_LOGIN, THE5ERS_ACCOUNT_SIZE
+    from bot.algo.manager import get_risk_status as get_active_risk_status
+    from bot.strategies import get_strategy
+
+    strat = get_strategy(strategy_id)
+    if not strat:
+        raise HTTPException(status_code=404, detail=f"Strategy '{strategy_id}' not found")
+
+    def _strategy_values(acc) -> list[str]:
+        raw = getattr(acc, "strategy", None)
+        if raw is None:
+            return []
+        if isinstance(raw, (list, tuple, set)):
+            return [str(x).strip() for x in raw if str(x).strip()]
+        # Backward-compat: legacy single-string value
+        val = str(raw).strip()
+        if not val:
+            return []
+        if "," in val:
+            return [p.strip() for p in val.split(",") if p.strip()]
+        return [val]
+
+    assigned_accounts = [
+        acc for acc in get_all_accounts()
+        if strategy_id in _strategy_values(acc)
+    ]
+    all_assigned_accounts = list(assigned_accounts)
+    selected_account_login = str(account_login).strip() if account_login is not None else ""
+    # IMPORTANT:
+    # Drawdown / daily drawdown limits are enforced per-account, not combined.
+    # If no explicit account is selected, default to the first assigned account
+    # so the dashboard never shows a "combined" drawdown across multiple accounts.
+    if not selected_account_login and assigned_accounts:
+        selected_account_login = str(assigned_accounts[0].login)
+    if selected_account_login:
+        assigned_accounts = [acc for acc in assigned_accounts if str(acc.login) == selected_account_login]
+
+    comment_map = {
+        "breakout": "ALGO:BRK",
+        "signal_forge": "ALGO:SFG",
+        "smart_money": "ALGO:SMR",
+    }
+    comment_prefix = comment_map.get(strategy_id, f"ALGO:{strategy_id[:3].upper()}")
+    assigned_logins = {acc.login for acc in assigned_accounts}
+
+    all_history = []
+    all_positions = []
+
+    try:
+        import MetaTrader5 as _mt5
+        MT5_AVAIL = True
+    except ImportError:
+        MT5_AVAIL = False
+
+    if MT5_AVAIL and assigned_accounts:
+        for acc in assigned_accounts:
+            try:
+                if _connect_account(acc):
+                    acc_history = mt5_bridge.get_trade_history(limit=500)
+                    for t in acc_history:
+                        t["account_login"] = acc.login
+                        t["account_label"] = acc.label
+                    all_history.extend(acc_history)
+                    acc_positions = mt5_bridge.get_open_positions()
+                    for p in acc_positions:
+                        p["account_login"] = acc.login
+                        p["account_label"] = acc.label
+                    all_positions.extend(acc_positions)
+            except Exception as e:
+                logger.warning(f"[STRATEGY] Could not fetch history for {acc.label}: {e}")
+        _reconnect_primary()
+    else:
+        all_history = mt5_bridge.get_trade_history(limit=500)
+        all_positions = mt5_bridge.get_open_positions()
+
+    def _matches_selected_account(row: dict) -> bool:
+        if not selected_account_login:
+            return True
+        return str(row.get("account_login", "")) == selected_account_login
+
+    # Strict strategy + account filtering (prevents cross-strategy/cross-account mixing)
+    history = [
+        t for t in all_history
+        if comment_prefix in str(t.get("comment", ""))
+        and _matches_selected_account(t)
+    ]
+
+    open_trades = [
+        p for p in all_positions
+        if comment_prefix in str(p.get("comment", ""))
+        and _matches_selected_account(p)
+    ]
+
+    seen = set()
+    unique_history = []
+    for t in history:
+        key = t.get("ticket") or t.get("position_id")
+        if key not in seen:
+            seen.add(key)
+            unique_history.append(t)
+    history = unique_history
+
+    # Period stats + selected-period filtering
+    today_utc = datetime.now(timezone.utc).date()
+    periods = _period_bounds_utc(today_utc)
+    selected_period = period if period in periods else "today"
+    trade_rows = []
+    for t in history:
+        trade_date = (
+            _parse_trade_date(t.get("closed"))
+            or _parse_trade_date(t.get("opened"))
+            or _parse_trade_date(t.get("time"))
+        )
+        if not trade_date:
+            continue
+        trade_rows.append(
+            {
+                "date": trade_date,
+                "pnl": float(t.get("pnl", 0) or 0),
+                "status": str(t.get("status", "")).lower(),
+            }
+        )
+
+    # Approx baseline for return %, using currently assigned account balances.
+    balance_base = sum(float((acc.balance or 0)) for acc in assigned_accounts) if assigned_accounts else 0.0
+    if balance_base <= 0:
+        try:
+            acc = mt5_bridge.get_account_info() or {}
+            balance_base = float(acc.get("balance", 0) or 0)
+        except Exception:
+            balance_base = 0.0
+    if balance_base <= 0:
+        balance_base = 1.0
+
+    # Account-size-based drawdown model for dashboard risk card.
+    # Prevents cross-account peak mixing and keeps DD tied to selected account size.
+    active_risk = get_active_risk_status() or {}
+    limit_pct = float(active_risk.get("max_drawdown_pct", 10.0) or 10.0)
+
+    def _account_size(acc) -> float:
+        if int(acc.login) == int(THE5ERS_FUNDED_LOGIN):
+            return float(THE5ERS_ACCOUNT_SIZE)
+        bal = float(acc.balance or 0.0)
+        eq = float(acc.equity or 0.0)
+        if bal > 0:
+            return bal
+        if eq > 0:
+            return eq
+        return 0.0
+
+    selected_accounts_for_risk = assigned_accounts if assigned_accounts else all_assigned_accounts
+    reference_size = sum(_account_size(acc) for acc in selected_accounts_for_risk)
+    current_equity = sum(float(acc.equity or 0.0) for acc in selected_accounts_for_risk)
+    if reference_size <= 0:
+        reference_size = max(current_equity, 1.0)
+    dd_amount = max(reference_size - current_equity, 0.0)
+    dd_pct = (dd_amount / reference_size) * 100.0 if reference_size > 0 else 0.0
+    dd_used_pct = min((dd_pct / limit_pct) * 100.0, 100.0) if limit_pct > 0 else 0.0
+    remaining_pct = max(limit_pct - dd_pct, 0.0)
+    max_dd_amount = reference_size * (limit_pct / 100.0)
+    remaining_amount = max(max_dd_amount - dd_amount, 0.0)
+    dd_halted = bool(dd_pct >= limit_pct)
+
+    # Daily drawdown (account-size based)
+    today_rows = [r for r in trade_rows if r["date"] == today_utc]
+    today_pnl_total = round(sum(r["pnl"] for r in today_rows), 2)
+    daily_dd_amount = max(-today_pnl_total, 0.0)
+
+    selected_single_login = int(selected_accounts_for_risk[0].login) if len(selected_accounts_for_risk) == 1 else None
+    if selected_single_login == int(THE5ERS_FUNDED_LOGIN):
+        daily_limit_pct = 5.0
+    else:
+        daily_limit_amount = float(active_risk.get("daily_loss_limit", 0.0) or 0.0)
+        daily_limit_pct = (daily_limit_amount / reference_size) * 100.0 if (reference_size > 0 and daily_limit_amount > 0) else 5.0
+    daily_dd_pct = (daily_dd_amount / reference_size) * 100.0 if reference_size > 0 else 0.0
+    daily_used_pct = min((daily_dd_pct / daily_limit_pct) * 100.0, 100.0) if daily_limit_pct > 0 else 0.0
+    daily_remaining_pct = max(daily_limit_pct - daily_dd_pct, 0.0)
+    daily_limit_amount = reference_size * (daily_limit_pct / 100.0)
+    daily_remaining_amount = max(daily_limit_amount - daily_dd_amount, 0.0)
+
+    period_stats = {}
+    for period_key, (start_d, end_d) in periods.items():
+        rows = [r for r in trade_rows if start_d <= r["date"] <= end_d]
+        p_wins = sum(1 for r in rows if r["pnl"] > 0 or r["status"] == "win")
+        p_losses = sum(1 for r in rows if r["pnl"] < 0 or r["status"] == "loss")
+        p_trades = len(rows)
+        p_pnl = round(sum(r["pnl"] for r in rows), 2)
+        period_stats[period_key] = {
+            "trades": p_trades,
+            "wins": p_wins,
+            "losses": p_losses,
+            "pnl": p_pnl,
+            "return_pct": round((p_pnl / balance_base) * 100.0, 2),
+            "start": start_d.isoformat(),
+            "end": end_d.isoformat(),
+        }
+
+    selected_start, selected_end = periods[selected_period]
+    selected_rows = [r for r in trade_rows if selected_start <= r["date"] <= selected_end]
+    selected_wins = sum(1 for r in selected_rows if r["pnl"] > 0 or r["status"] == "win")
+    selected_losses = sum(1 for r in selected_rows if r["pnl"] < 0 or r["status"] == "loss")
+    selected_total = len(selected_rows)
+    selected_pnl = round(sum(r["pnl"] for r in selected_rows), 2)
+
+    # Graph: selected period cumulative pnl
+    graph_start = selected_start
+    graph_end = selected_end
+    daily_pnl = {}
+    for r in trade_rows:
+        if graph_start <= r["date"] <= graph_end:
+            key = r["date"].isoformat()
+            daily_pnl[key] = daily_pnl.get(key, 0.0) + r["pnl"]
+    labels = []
+    daily_values = []
+    cumulative_values = []
+    running = 0.0
+    day_count = (graph_end - graph_start).days + 1
+    for i in range(day_count):
+        d = graph_start + timedelta(days=i)
+        k = d.isoformat()
+        day_pnl = round(daily_pnl.get(k, 0.0), 2)
+        running = round(running + day_pnl, 2)
+        labels.append(k)
+        daily_values.append(day_pnl)
+        cumulative_values.append(running)
+
+    filtered_recent = []
+    for t in history:
+        t_date = (
+            _parse_trade_date(t.get("closed"))
+            or _parse_trade_date(t.get("opened"))
+            or _parse_trade_date(t.get("time"))
+        )
+        if t_date and selected_start <= t_date <= selected_end:
+            filtered_recent.append(t)
+
+    return {
+        "strategy": strat,
+        "all_accounts": [acc.to_dict() for acc in all_assigned_accounts],
+        "accounts": [acc.to_dict() for acc in assigned_accounts],
+        "selected_account_login": selected_account_login or None,
+        "risk": {
+            "dd_halted": dd_halted,
+            "peak_equity": round(reference_size, 2),
+            "equity": round(current_equity, 2),
+            "current_drawdown_pct": round(dd_pct, 2),
+            "current_drawdown_amount": round(dd_amount, 2),
+            "max_drawdown_pct": round(limit_pct, 2),
+            "max_drawdown_amount": round(max_dd_amount, 2),
+            "remaining_drawdown_pct": round(remaining_pct, 2),
+            "remaining_drawdown_amount": round(remaining_amount, 2),
+            "drawdown_used_pct_of_limit": round(dd_used_pct, 2),
+            "daily_drawdown_pct": round(daily_dd_pct, 2),
+            "daily_drawdown_amount": round(daily_dd_amount, 2),
+            "daily_limit_pct": round(daily_limit_pct, 2),
+            "daily_limit_amount": round(daily_limit_amount, 2),
+            "daily_remaining_pct": round(daily_remaining_pct, 2),
+            "daily_remaining_amount": round(daily_remaining_amount, 2),
+            "daily_used_pct_of_limit": round(daily_used_pct, 2),
+            "today_pnl": round(today_pnl_total, 2),
+        },
+        "open_trades": open_trades,
+        "recent_trades": filtered_recent[:50],
+        "stats": {
+            "wins": selected_wins,
+            "losses": selected_losses,
+            "total": selected_total,
+            "win_rate": round(selected_wins / selected_total * 100, 1) if selected_total > 0 else 0,
+            "total_pnl": selected_pnl,
+        },
+        "selected_period": selected_period,
+        "period_stats": period_stats,
+        "pnl_graph": {
+            "labels": labels,
+            "daily_pnl": daily_values,
+            "cumulative_pnl": cumulative_values,
+        },
+    }
+
+
+
+
+
+
+# ── Algo Trading Endpoints ────────────────────────────────────────────────────
+
+class AlgoConfigUpdate(BaseModel):
+    strategy_id: Optional[str] = None
+    symbol: Optional[str] = None
+    enabled: Optional[bool] = None
+    risk_reward: Optional[float] = None
+    risk_percent: Optional[float] = None
+    max_drawdown_pct: Optional[float] = None
+    daily_loss_limit: Optional[float] = None
+    analysis_tf: Optional[int] = None
+    execution_tf: Optional[int] = None
+    trail_atr_mult: Optional[float] = None
+    rr_breakeven: Optional[float] = None
+    rr_lock_profit: Optional[float] = None
+    use_human_mind_gate: Optional[bool] = None
+    quick_book_profit_usd: Optional[float] = None
+    extended_profit_min_usd: Optional[float] = None
+    extended_profit_max_usd: Optional[float] = None
+    early_sl_avoid_ratio: Optional[float] = None
+
+
+class AlgoRiskResetRequest(BaseModel):
+    reset_peak_equity: Optional[bool] = False
+
+
+# ── MT5 Accounts Endpoints ────────────────────────────────────────────────────
+
+class AccountAddRequest(BaseModel):
+    label: str
+    login: int
+    password: str
+    server: str
+    path: Optional[str] = ""
+    # Can be a string or a list of strings (multi-strategy per account).
+    strategy: Optional[object] = "signal_forge"
+    # None/empty = all symbols; otherwise whitelist.
+    allowed_symbols: Optional[list[str]] = None
+
+
+class ProbeMarketwatchRequest(BaseModel):
+    login: int
+    password: str
+    server: str
+    path: Optional[str] = ""
+
+
+class AccountTradeModeRequest(BaseModel):
+    action: str  # stop_today | stop_until | start_now
+    until: Optional[str] = None  # ISO datetime (browser sends UTC ISO via toISOString)
+
+
+@app.get("/strategies", dependencies=[Depends(verify_api_key)])
+async def list_strategies():
+    """List all available strategies."""
+    from bot.strategies import get_all_strategies
+    return get_all_strategies()
+
+
+@app.get("/accounts/debug")
+async def debug_accounts():
+    """Debug endpoint — shows raw .env read result and current account list."""
+    import os
+    from pathlib import Path
+
+    env_path = Path(__file__).parent / ".env"
+    raw_line = ""
+    env_exists = env_path.exists()
+    try:
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if stripped.startswith("MT5_EXTRA_ACCOUNTS="):
+                raw_line = stripped
+                break
+    except Exception as exc:
+        raw_line = f"ERROR: {exc}"
+
+    from bot.accounts import get_all_accounts, _accounts
+    return {
+        "env_path": str(env_path),
+        "env_exists": env_exists,
+        "raw_line_found": raw_line,
+        "MT5_EXTRA_ACCOUNTS_os_env": os.getenv("MT5_EXTRA_ACCOUNTS", "NOT SET"),
+        "accounts_count": len(_accounts),
+        "accounts": [a.to_dict() for a in _accounts],
+    }
+
+
+@app.get("/accounts", dependencies=[Depends(verify_api_key)])
+async def list_accounts():
+    """List all configured MT5 accounts."""
+    from bot.accounts import get_all_accounts
+    # Keep this endpoint ultra-fast for dashboard polling.
+    return [acc.to_dict() for acc in _visible_dashboard_accounts(get_all_accounts())]
+
+
+@app.post("/accounts", dependencies=[Depends(verify_api_key)])
+async def add_account(body: AccountAddRequest):
+    """Add a new MT5 account."""
+    from bot.accounts import add_account as _add
+    strategy = body.strategy or "signal_forge"
+    acc = _add(
+        label=body.label,
+        login=body.login,
+        password=body.password,
+        server=body.server,
+        path=body.path or "",
+        strategy=strategy,
+        allowed_symbols=body.allowed_symbols,
+    )
+    return {"success": True, "account": acc.to_dict()}
+
+
+@app.delete("/accounts/{account_id}", dependencies=[Depends(verify_api_key)])
+async def delete_account(account_id: str):
+    """Remove an MT5 account."""
+    from bot.accounts import remove_account as _remove
+    success = _remove(account_id)
+    return {"success": success, "message": "Removed" if success else "Account not found"}
+
+
+@app.post("/accounts/{account_id}/toggle", dependencies=[Depends(verify_api_key)])
+async def toggle_account(account_id: str, body: dict = {}):
+    """Enable or disable an MT5 account."""
+    from bot.accounts import toggle_account as _toggle
+    enabled = body.get("enabled", True)
+    success = _toggle(account_id, enabled)
+    return {"success": success}
+
+
+@app.put("/accounts/{account_id}/strategy", dependencies=[Depends(verify_api_key)])
+async def update_strategy(account_id: str, body: dict = {}):
+    """Update strategy for an account."""
+    from bot.accounts import update_account_strategy, update_account_strategies
+    strategy = body.get("strategy", "signal_forge")
+    if isinstance(strategy, list):
+        success = update_account_strategies(account_id, strategy)
+    else:
+        success = update_account_strategy(account_id, strategy)
+    return {"success": success}
+
+
+@app.put("/accounts/{account_id}/symbols", dependencies=[Depends(verify_api_key)])
+async def update_account_symbols(account_id: str, body: dict = {}):
+    """Update allowed symbols (whitelist) for an account. Set null/[] for all."""
+    from bot.accounts import update_account_allowed_symbols
+    allowed = body.get("allowed_symbols")
+    if allowed is None:
+        allowed_symbols = None
+    elif isinstance(allowed, list):
+        allowed_symbols = [str(s).strip() for s in allowed if str(s).strip()]
+        if not allowed_symbols:
+            allowed_symbols = None
+    else:
+        raise HTTPException(status_code=400, detail="allowed_symbols must be a list or null")
+    success = update_account_allowed_symbols(account_id, allowed_symbols)
+    return {"success": success}
+
+
+@app.post("/accounts/probe-marketwatch", dependencies=[Depends(verify_api_key)])
+async def probe_marketwatch(body: ProbeMarketwatchRequest):
+    """Return visible MarketWatch symbols for the provided account credentials."""
+    from bot.accounts import probe_marketwatch_symbols
+    syms = probe_marketwatch_symbols(
+        login=body.login,
+        password=body.password,
+        server=body.server,
+        path=body.path or "",
+    )
+    return {"success": True, "symbols": syms}
+
+
+@app.get("/accounts/{account_id}/marketwatch", dependencies=[Depends(verify_api_key)])
+async def account_marketwatch(account_id: str):
+    """Return visible MarketWatch symbols for an existing configured account."""
+    from bot.accounts import get_account, probe_marketwatch_symbols
+    acc = get_account(account_id)
+    if not acc:
+        raise HTTPException(status_code=404, detail="account not found")
+    syms = probe_marketwatch_symbols(
+        login=int(acc.login),
+        password=str(acc.password or ""),
+        server=str(acc.server or ""),
+        path=str(acc.path or ""),
+    )
+    return {"success": True, "symbols": syms}
+
+
+@app.post("/accounts/refresh", dependencies=[Depends(verify_api_key)])
+async def refresh_accounts():
+    """Trigger async refresh and immediately return cached account snapshot."""
+    from bot.accounts import refresh_account_info, get_all_accounts
+
+    def _refresh_worker() -> None:
+        global _accounts_refresh_in_progress
+        try:
+            refresh_account_info()
+        except Exception as exc:
+            logger.warning(f"[API] background accounts refresh failed: {exc}")
+        finally:
+            with _accounts_refresh_lock:
+                _accounts_refresh_in_progress = False
+
+    global _accounts_refresh_in_progress
+    with _accounts_refresh_lock:
+        if not _accounts_refresh_in_progress:
+            _accounts_refresh_in_progress = True
+            threading.Thread(target=_refresh_worker, daemon=True).start()
+
+    return [acc.to_dict() for acc in _visible_dashboard_accounts(get_all_accounts())]
+
+
+@app.get("/accounts/{login}/trade-mode", dependencies=[Depends(verify_api_key)])
+async def get_account_trade_mode(login: int):
+    from bot.accounts import get_account_trade_mode as _get_mode
+    return _get_mode(login)
+
+
+@app.post("/accounts/{login}/trade-mode", dependencies=[Depends(verify_api_key)])
+async def set_account_trade_mode(login: int, body: AccountTradeModeRequest):
+    from bot.accounts import (
+        get_account_trade_mode as _get_mode,
+        start_account_now as _start_now,
+        stop_account_for_today as _stop_today,
+        stop_account_until as _stop_until,
+    )
+    action = (body.action or "").strip().lower()
+    if action == "stop_today":
+        _stop_today(login)
+        _send_control_telegram_notice(
+            "Account trade-mode: STOP TODAY confirmed",
+            [
+                f"Login: {login}",
+                "Source: dashboard trade-mode",
+                "Status: Trading paused until next day",
+            ],
+        )
+    elif action == "stop_until":
+        if not body.until:
+            raise HTTPException(status_code=400, detail="until is required for stop_until")
+        try:
+            until_dt = datetime.fromisoformat(str(body.until).replace("Z", "+00:00"))
+            if until_dt.tzinfo is None:
+                until_dt = until_dt.replace(tzinfo=timezone.utc)
+            until_dt = until_dt.astimezone(timezone.utc)
+        except Exception:
+            raise HTTPException(status_code=400, detail="until must be an ISO datetime string")
+        _stop_until(login, until_dt)
+        _send_control_telegram_notice(
+            "Account trade-mode: STOP UNTIL confirmed",
+            [
+                f"Login: {login}",
+                "Source: dashboard trade-mode",
+                f"Resume at: {until_dt.strftime('%Y-%m-%d %H:%M UTC')}",
+            ],
+        )
+    elif action == "start_now":
+        _start_now(login)
+        _send_control_telegram_notice(
+            "Account trade-mode: START confirmed",
+            [
+                f"Login: {login}",
+                "Source: dashboard trade-mode",
+                "Status: Trading resumed now",
+            ],
+        )
+    else:
+        raise HTTPException(status_code=400, detail="action must be stop_today, stop_until, or start_now")
+    return {"success": True, **_get_mode(login)}
+
+
+@app.get("/algo/runner-status", dependencies=[Depends(verify_api_key)])
+async def algo_runner_status():
+    """Return live status for all strategy threads managed by the parallel runner."""
+    from bot.algo.runner import get_runner_status
+    return get_runner_status()
+
+
+@app.get("/algo/status", dependencies=[Depends(verify_api_key)])
+async def algo_status():
+    """Get current live algo strategy status."""
+    from bot.algo.runner import get_runner_status
+
+    status = get_algo_status()
+    runner_status = get_runner_status()
+    running_strategies = runner_status.get("running_strategies", [])
+    status["running_strategies"] = running_strategies
+    status["strategy_statuses"] = runner_status.get("statuses", {})
+    status["active_strategy"] = get_active_strategy_id()
+    status["running"] = bool(running_strategies)
+    status["risk"] = get_risk_status()
+    return status
+
+
+@app.post("/algo/start", dependencies=[Depends(verify_api_key)])
+async def algo_start(body: dict = {}):
+    """Start one strategy or all account-assigned strategies."""
+    strategy_id = body.get("strategy_id")
+    if strategy_id:
+        success = start_algo(strategy_id)
+        if success:
+            _send_control_telegram_notice(
+                "Algo control: START confirmed",
+                [
+                    f"Strategy: {strategy_id}",
+                    "Source: dashboard /algo/start",
+                    "Status: Strategy started",
+                ],
+            )
+        return {"success": success, "message": "Algo started" if success else "Algo already running"}
+
+    from bot.algo.runner import start_all_strategies
+
+    started = start_all_strategies()
+    if started:
+        _send_control_telegram_notice(
+            "Algo control: START confirmed",
+            [
+                "Source: dashboard /algo/start",
+                f"Started strategies: {_format_strategy_list(started)}",
+            ],
+        )
+    return {
+        "success": bool(started),
+        "started": started,
+        "message": f"Started strategies: {', '.join(started)}" if started else "No new strategies started",
+    }
+
+
+@app.post("/algo/stop", dependencies=[Depends(verify_api_key)])
+async def algo_stop():
+    """Stop all strategy threads managed by the parallel runner."""
+    from bot.algo.runner import get_runner_status, stop_all_strategies
+
+    before = get_runner_status().get("running_strategies", [])
+    stop_all_strategies()
+    _send_control_telegram_notice(
+        "Algo control: STOP confirmed",
+        [
+            "Source: dashboard /algo/stop",
+            f"Stopped strategies: {_format_strategy_list(before)}",
+            "Status: Strategy threads stopped",
+        ],
+    )
+    return {
+        "success": bool(before),
+        "stopped": before,
+        "message": f"Stopped strategies: {', '.join(before)}" if before else "Algo not running",
+    }
+
+
+@app.put("/algo/strategy", dependencies=[Depends(verify_api_key)])
+async def algo_select_strategy(body: dict = {}):
+    """Switch the active live algo strategy module."""
+    strategy_id = body.get("strategy_id")
+    if not strategy_id:
+        raise HTTPException(status_code=400, detail="strategy_id is required")
+    result = select_strategy(strategy_id)
+    return {"success": True, **result}
+
+
+@app.get("/algo/strategy", dependencies=[Depends(verify_api_key)])
+async def algo_active_strategy():
+    """Return the currently selected live algo strategy."""
+    return {"active_strategy": get_active_strategy_id()}
+
+
+@app.post("/algo/enable", dependencies=[Depends(verify_api_key)])
+async def algo_enable():
+    """Enable algo trading (will execute real trades)."""
+    update_algo_config(enabled=True)
+    return {"success": True, "message": "Algo trading enabled — will execute real trades"}
+
+
+@app.post("/algo/disable", dependencies=[Depends(verify_api_key)])
+async def algo_disable():
+    """Disable algo trading (scan only, no trades)."""
+    update_algo_config(enabled=False)
+    return {"success": True, "message": "Algo trading disabled — scan only mode"}
+
+
+@app.put("/algo/config", dependencies=[Depends(verify_api_key)])
+async def algo_update_config(body: AlgoConfigUpdate):
+    """Update algo strategy configuration at runtime."""
+    payload = {
+        "strategy_id": body.strategy_id,
+        "symbol": body.symbol,
+        "enabled": body.enabled,
+        "risk_reward": body.risk_reward,
+        "risk_percent": body.risk_percent,
+        "max_drawdown_pct": body.max_drawdown_pct,
+        "daily_loss_limit": body.daily_loss_limit,
+        "analysis_tf": body.analysis_tf,
+        "execution_tf": body.execution_tf,
+        "trail_atr_mult": body.trail_atr_mult,
+        "rr_breakeven": body.rr_breakeven,
+        "rr_lock_profit": body.rr_lock_profit,
+        "use_human_mind_gate": body.use_human_mind_gate,
+        "quick_book_profit_usd": body.quick_book_profit_usd,
+        "extended_profit_min_usd": body.extended_profit_min_usd,
+        "extended_profit_max_usd": body.extended_profit_max_usd,
+        "early_sl_avoid_ratio": body.early_sl_avoid_ratio,
+    }
+    payload = {k: v for k, v in payload.items() if v is not None}
+    status = update_algo_config(**payload)
+    return {"success": True, "config": status}
+
+
+@app.post("/algo/reset-risk", dependencies=[Depends(verify_api_key)])
+async def algo_reset_risk(body: AlgoRiskResetRequest):
+    """
+    Manually clear algo risk halt flags (daily halt and drawdown halt).
+    """
+    try:
+        status = reset_risk_halts(reset_peak_equity=bool(body.reset_peak_equity))
+        return {"success": True, "message": "Risk halts reset", "risk": status}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.get("/algo/trades", dependencies=[Depends(verify_api_key)])
+async def algo_trades():
+    """
+    Return all trades executed by the algo strategy.
+    Pulls from MT5 trade history filtered by ALGO comment.
+    Also includes in-memory signal_log entries for current session.
+    """
+    # From MT5 history (persistent across restarts)
+    mt5_trades = mt5_bridge.get_trade_history(limit=200)
+    algo_mt5 = [t for t in mt5_trades if "ALGO:" in str(t.get("comment", ""))]
+
+    # From in-memory signal log (current session) — merge detail fields
+    algo_mem = {s.get("ticket"): s for s in state.signal_log if str(s.get("source", "")).startswith("ALGO:")}
+
+    # Enrich MT5 trades with in-memory detail
+    for t in algo_mt5:
+        ticket = t.get("ticket")
+        if ticket in algo_mem:
+            mem = algo_mem[ticket]
+            t["entry_reason"] = mem.get("entry_reason")
+            t["initial_sl"] = mem.get("initial_sl")
+            t["initial_tp"] = mem.get("initial_tp")
+            t["sl_trail_log"] = mem.get("sl_trail_log", [])
+            t["exit_reason"] = mem.get("exit_reason")
+            t["risk_reward"] = mem.get("risk_reward")
+            t["one_r"] = mem.get("one_r")
+
+    # Add in-memory trades not yet in MT5 history
+    mt5_tickets = {t.get("ticket") for t in algo_mt5}
+    for ticket, s in algo_mem.items():
+        if ticket not in mt5_tickets:
+            algo_mt5.insert(0, s)
+
+    # Stats
+    total = len(algo_mt5)
+    wins = len([t for t in algo_mt5 if float(t.get("pnl", 0)) > 0 or t.get("status") == "win"])
+    losses = len([t for t in algo_mt5 if float(t.get("pnl", 0)) < 0 or t.get("status") == "loss"])
+    total_pnl = sum(float(t.get("pnl", 0)) for t in algo_mt5)
+
+    return {
+        "trades": algo_mt5,
+        "stats": {
+            "total": total,
+            "wins": wins,
+            "losses": losses,
+            "win_rate": round(wins / total * 100, 1) if total > 0 else 0,
+            "total_pnl": round(total_pnl, 2),
+        }
+    }
+
+
+@app.get("/algo/trade-detail/{ticket}", dependencies=[Depends(verify_api_key)])
+async def algo_trade_detail(ticket: int):
+    """Return full detail for a specific algo trade including entry reason, SL trail, exit reason."""
+    from bot.trade_journal import get_trade, enrich_trade
+
+    # 1. Check persistent journal first (survives restarts)
+    journal_entry = get_trade(ticket)
+
+    # 2. Check in-memory signal log
+    mem_entry = None
+    for entry in state.signal_log:
+        if entry.get("ticket") == ticket:
+            mem_entry = entry
+            break
+
+    # 3. Check MT5 history
+    mt5_entry = None
+    history = mt5_bridge.get_trade_history(limit=200)
+    for t in history:
+        if t.get("ticket") == ticket or t.get("position_id") == ticket:
+            mt5_entry = t
+            break
+
+    # Merge: journal > memory > mt5
+    if journal_entry:
+        detail = dict(journal_entry)
+        # Enrich with MT5 data if available
+        if mt5_entry:
+            detail["pnl"] = mt5_entry.get("pnl", detail.get("final_pnl"))
+            detail["status"] = mt5_entry.get("status", "")
+            detail["opened"] = mt5_entry.get("opened", detail.get("opened_at", ""))
+            detail["volume"] = mt5_entry.get("volume", "")
+        # Enrich with memory data
+        if mem_entry:
+            detail["sl_trail_log"] = mem_entry.get("sl_trail_log") or detail.get("sl_trail_log", [])
+        return {"found": True, "detail": detail}
+
+    if mem_entry:
+        return {"found": True, "detail": mem_entry}
+
+    if mt5_entry:
+        # Determine entry reason from comment
+        comment = mt5_entry.get("comment", "")
+        if "ALGO:OB" in comment:
+            entry_reason = "Order Block + FVG (Algo)"
+        elif "ALGO:BRK" in comment:
+            entry_reason = "Range Breakout Retest (Algo)"
+        elif "ALGO:CONF" in comment:
+            entry_reason = "OB + FVG + Breakout Confluence (Algo)"
+        elif comment.startswith("TG:"):
+            entry_reason = f"Telegram Signal — {comment.replace('TG:', '').strip()}"
+        else:
+            entry_reason = comment or "Telegram Signal / Manual"
+
+        mt5_entry["entry_reason"] = entry_reason
+        mt5_entry["sl_trail_log"] = []
+        mt5_entry["initial_sl"] = mt5_entry.get("sl", "-")
+        mt5_entry["initial_tp"] = mt5_entry.get("tp", "-")
+        return {"found": True, "detail": mt5_entry}
+
+    return {"found": False, "detail": {}}

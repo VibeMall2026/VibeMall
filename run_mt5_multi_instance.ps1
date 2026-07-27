@@ -199,7 +199,6 @@ $basePort = 8201
 for ($i = 0; $i -lt $accounts.Count; $i++) {
     $accounts[$i].ApiPort = $basePort + $i
 }
-$signalForgeBridgePort = ($accounts | Where-Object { $_.Label -eq "The5ers Funded 10k" } | Select-Object -First 1 -ExpandProperty ApiPort)
 $managedPorts = @($accounts | ForEach-Object { [int]$_.ApiPort }) + @(8001)
 
 if ($Action -eq "stop" -or $Action -eq "restart") {
@@ -234,12 +233,7 @@ if ($Action -eq "start" -or $Action -eq "restart") {
         $bridgeUrlEnv = ""
         $bridgeKeyEnv = ""
         $bridgeUrlOverride = "`$env:MT5_BRIDGE_URL=''; "
-        $showThisInstanceWindow = $showInstanceWindows -or ($a.Label -eq "The5ers Funded") -or ($a.Label -eq "The5ers Funded 10k")
-        if ($a.Label -eq "The5ers Funded 10k") {
-            $configDir = Join-Path $a.Path "Config"
-            Remove-Item -LiteralPath (Join-Path $configDir "accounts.dat") -Force -ErrorAction SilentlyContinue
-            Remove-Item -LiteralPath (Join-Path $configDir "terminal.ini") -Force -ErrorAction SilentlyContinue
-        }
+        $showThisInstanceWindow = $showInstanceWindows -or ($a.Label -eq "The5ers Funded")
         # Smart Money should read candles from its own local MT5 instance.
         # Do not route it through the Signal Forge bridge, because that can
         # return stale/failed candle data and trigger reconnect noise.
