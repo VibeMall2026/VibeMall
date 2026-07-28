@@ -2154,7 +2154,13 @@ class Coupon(models.Model):
         shipping_cost = Decimal(str(shipping_cost or 0))
 
         if self.is_free_shipping():
-            return min(shipping_cost, cart_total)
+            # The waiver is the shipping line itself, so it is not capped by the
+            # cart total the way a discount on the goods is. Capping it meant a
+            # cart cheaper than the delivery charge - a Rs.40 item against Rs.50
+            # shipping - only had Rs.40 waived and the shopper still paid Rs.10
+            # of a "free shipping" offer. The order total cannot go negative
+            # either way: it is subtotal + tax + shipping - this.
+            return shipping_cost
 
         if self.discount_type == 'PERCENTAGE':
             discount = (cart_total * self.discount_value) / 100
