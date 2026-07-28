@@ -1371,10 +1371,10 @@
         removeCouponButton.addEventListener('click', removeMobileCoupon);
     }
     if (redeemCheckbox) {
-        redeemCheckbox.addEventListener('change', updateFinalTotal);
+        redeemCheckbox.addEventListener('change', updateMobileFinalTotal);
     }
     if (pointsInput) {
-        pointsInput.addEventListener('input', updateFinalTotal);
+        pointsInput.addEventListener('input', updateMobileFinalTotal);
     }
     if (useDefaultAddress) {
         useDefaultAddress.addEventListener('change', applyDefaultAddress);
@@ -1545,6 +1545,239 @@ function applyOrderTypeUI() {
     updateFinalTotal();
 }
 
+// ===== DESKTOP COUPONS + FINAL TOTAL =====
+//
+// updateFinalTotal() is called from applyOrderTypeUI, the margin field and the
+// points controls, but was never defined - every one of those paths threw a
+// ReferenceError, which is why the desktop coupon box did nothing at all. It
+// is defined here, and the coupon controls in checkout_desktop_alt.html (which
+// ships no script of its own) are wired to it.
+const desktopCouponState = { applied: null };
+
+const couponCodeInput = document.getElementById('couponCode');
+const couponIdField = document.getElementById('appliedCouponId');
+const couponMessageBox = document.getElementById('couponMessage');
+const couponDiscountRow = document.getElementById('coupon_discount_row');
+const couponDiscountAmount = document.getElementById('coupon_discount_amount');
+const appliedCouponBox = document.getElementById('appliedCouponDisplay');
+const appliedCouponCodeEl = document.getElementById('appliedCouponCode');
+const appliedCouponAmountEl = document.getElementById('appliedCouponAmount');
+const applyCouponBtn = document.getElementById('applyCoupon');
+const removeCouponBtn = document.getElementById('removeCoupon');
+const viewCouponsBtn = document.getElementById('viewAvailableCoupons');
+const couponsPanel = document.getElementById('availableCouponsPanel');
+const couponsList = document.getElementById('availableCouponsList');
+const couponsStatus = document.getElementById('availableCouponsStatus');
+const finalTotalEl = document.getElementById('final_total_display');
+const pointsRowEl = document.getElementById('points_discount_row');
+const pointsAmountEl = document.getElementById('points_discount_amount');
+const pointsInputEl = document.getElementById('points_to_redeem');
+const redeemPointsEl = document.getElementById('redeem_points');
+
+function desktopCsrfToken() {
+    const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]*)/);
+    return match ? decodeURIComponent(match[1]) : '';
+}
+
+function desktopPointsDiscount() {
+    if (!redeemPointsEl || !redeemPointsEl.checked || !pointsInputEl) {
+        if (pointsRowEl) pointsRowEl.style.display = 'none';
+        return 0;
+    }
+    const points = parseInt(pointsInputEl.value, 10) || 0;
+    const discount = points * 10.00;  // 1 coin = Rs.10, same rate as mobile
+    if (pointsRowEl) pointsRowEl.style.display = points > 0 ? 'table-row' : 'none';
+    if (pointsAmountEl) pointsAmountEl.textContent = `-₹${discount.toFixed(2)}`;
+    return discount;
+}
+
+function updateFinalTotal() {
+    let total = calculateBaseTotalBeforeDiscounts();
+
+    const discount = desktopCouponState.applied
+        ? Number(desktopCouponState.applied.discount_amount || 0)
+        : 0;
+
+    if (couponDiscountRow) {
+        couponDiscountRow.style.display = discount > 0 ? 'table-row' : 'none';
+    }
+    if (couponDiscountAmount) {
+        couponDiscountAmount.textContent = `-₹${discount.toFixed(2)}`;
+    }
+    total -= discount;
+    total -= desktopPointsDiscount();
+
+    if (total < 0) {
+        total = 0;
+    }
+    if (finalTotalEl) {
+        finalTotalEl.textContent = `₹${total.toFixed(2)}`;
+    }
+    return total;
+}
+
+function showDesktopCouponMessage(text, kind) {
+    if (!couponMessageBox) return;
+    couponMessageBox.textContent = text || '';
+    couponMessageBox.style.color = kind === 'success' ? '#198754'
+        : kind === 'danger' ? '#dc3545' : '#6c757d';
+}
+
+function syncDesktopCouponUI() {
+    const applied = desktopCouponState.applied;
+
+    if (couponIdField) {
+        couponIdField.value = applied ? applied.coupon_id : '';
+    }
+    if (appliedCouponBox) {
+        appliedCouponBox.style.display = applied ? 'block' : 'none';
+    }
+    if (applied) {
+        if (appliedCouponCodeEl) appliedCouponCodeEl.textContent = applied.code;
+        if (appliedCouponAmountEl) {
+            appliedCouponAmountEl.textContent = Number(applied.discount_amount || 0).toFixed(2);
+        }
+    }
+    updateFinalTotal();
+}
+
+function applyDesktopCoupon(code) {
+    const trimmed = (code || '').trim().toUpperCase();
+    if (!trimmed) {
+        showDesktopCouponMessage('Please enter a coupon code.', 'danger');
+        return;
+    }
+
+    if (applyCouponBtn) applyCouponBtn.disabled = true;
+    showDesktopCouponMessage('Checking coupon…', 'info');
+
+    fetch('/api/validate-coupon/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': desktopCsrfToken()
+        },
+        body: JSON.stringify({
+            code: trimmed,
+            // Send the pre-discount total so the server checks min-purchase
+            // against the same number the shopper sees.
+            cart_total: calculateBaseTotalBeforeDiscounts()
+        })
+    })
+    .then(response => response.json().then(data => ({ ok: response.ok, data })))
+    .then(payload => {
+        if (!payload.ok || !payload.data.valid) {
+            throw new Error(payload.data.message || 'Unable to apply this coupon.');
+        }
+        desktopCouponState.applied = payload.data;
+        if (couponCodeInput) couponCodeInput.value = payload.data.code;
+        showDesktopCouponMessage(payload.data.message || 'Coupon applied.', 'success');
+        syncDesktopCouponUI();
+        if (couponsPanel) couponsPanel.style.display = 'none';
+    })
+    .catch(error => {
+        desktopCouponState.applied = null;
+        showDesktopCouponMessage(error.message || 'Error applying coupon.', 'danger');
+        syncDesktopCouponUI();
+    })
+    .finally(() => {
+        if (applyCouponBtn) applyCouponBtn.disabled = false;
+    });
+}
+
+function readAvailableCoupons() {
+    const node = document.getElementById('available-coupons-data');
+    if (!node) return [];
+    try {
+        const parsed = JSON.parse(node.textContent || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function renderAvailableCoupons() {
+    if (!couponsList) return;
+
+    const coupons = readAvailableCoupons();
+    if (!coupons.length) {
+        couponsList.innerHTML = '<p class="text-muted small mb-0">No coupons available for this order right now.</p>';
+        if (couponsStatus) couponsStatus.textContent = '';
+        return;
+    }
+
+    if (couponsStatus) {
+        couponsStatus.textContent = 'Tap apply to use one coupon';
+    }
+
+    // Markup matches the .vm-checkout-d-coupon-card rules already in
+    // checkout-desktop-alt.css - the styles were written for this list, only
+    // the code that fills it was missing.
+    const escapeHtml = value => String(value == null ? '' : value).replace(
+        /[&<>"']/g,
+        ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch])
+    );
+
+    couponsList.innerHTML = coupons.map(coupon => {
+        const used = !!coupon.used;
+        const code = escapeHtml(coupon.code);
+        const action = used
+            ? '<button type="button" disabled>Used</button>'
+            : `<button type="button" data-coupon-code="${code}">Apply</button>`;
+        const minSpend = Number(coupon.min_purchase_amount || 0);
+        return `
+            <div class="vm-checkout-d-coupon-card${used ? ' is-used' : ''}">
+                <div>
+                    <h5>${code}</h5>
+                    <p>${escapeHtml(coupon.title)}</p>
+                    <div class="vm-checkout-d-coupon-meta">
+                        <span>${escapeHtml(coupon.discount)}</span>
+                        ${minSpend > 0 ? `<span>Min ₹${minSpend.toFixed(0)}</span>` : ''}
+                        <span>Till ${escapeHtml(coupon.valid_until)}</span>
+                    </div>
+                </div>
+                <div>${action}</div>
+            </div>`;
+    }).join('');
+
+    couponsList.querySelectorAll('button[data-coupon-code]').forEach(button => {
+        button.addEventListener('click', () => applyDesktopCoupon(button.dataset.couponCode));
+    });
+}
+
+if (viewCouponsBtn && couponsPanel) {
+    viewCouponsBtn.addEventListener('click', () => {
+        const isHidden = couponsPanel.style.display === 'none' || !couponsPanel.style.display;
+        if (isHidden) {
+            renderAvailableCoupons();
+            couponsPanel.style.display = 'block';
+        } else {
+            couponsPanel.style.display = 'none';
+        }
+    });
+}
+
+if (applyCouponBtn && couponCodeInput) {
+    applyCouponBtn.addEventListener('click', () => applyDesktopCoupon(couponCodeInput.value));
+    couponCodeInput.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+            // The coupon input lives inside the checkout form; Enter would
+            // otherwise submit the order instead of applying the coupon.
+            event.preventDefault();
+            applyDesktopCoupon(couponCodeInput.value);
+        }
+    });
+}
+
+if (removeCouponBtn) {
+    removeCouponBtn.addEventListener('click', () => {
+        desktopCouponState.applied = null;
+        if (couponCodeInput) couponCodeInput.value = '';
+        showDesktopCouponMessage('Coupon removed.', 'info');
+        syncDesktopCouponUI();
+    });
+}
+
 if (checkoutFormEl) {
     if (orderTypeSelf) {
         orderTypeSelf.addEventListener('change', applyOrderTypeUI);
@@ -1556,6 +1789,7 @@ if (checkoutFormEl) {
         marginField.addEventListener('input', updateFinalTotal);
     }
     applyOrderTypeUI();
+    syncDesktopCouponUI();
 }
 
 // Sync radio button with accordion
