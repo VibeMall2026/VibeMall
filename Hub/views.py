@@ -12147,6 +12147,64 @@ def _process_cancellation_refund(order, cancel_request):
     return refund_success, refund_notes
 
 
+def _razorpay_payment_summary(order):
+    """
+    Snapshot of the payment a refund would travel back along.
+
+    A Razorpay refund always returns to the source instrument, so the customer's
+    bank or UPI details are never needed - but whoever approves the refund still
+    wants to see where the money lands and how much of the payment is still
+    refundable. Best-effort: this is a live API call on a page render, so any
+    failure returns None and the panel is simply left out rather than breaking
+    the page or blocking the refund.
+    """
+    if not _can_refund_to_source(order):
+        return None
+
+    key = getattr(settings, 'RAZORPAY_KEY_ID', '')
+    secret = getattr(settings, 'RAZORPAY_KEY_SECRET', '')
+    if not key or not secret:
+        return None
+
+    try:
+        import razorpay
+        client = razorpay.Client(auth=(key, secret))
+        payment = client.payment.fetch((order.razorpay_payment_id or '').strip())
+    except Exception as exc:
+        logger.warning(
+            f'Could not fetch Razorpay payment for order {order.order_number}: {exc}'
+        )
+        return None
+
+    method = (payment.get('method') or '').lower()
+    if method == 'upi':
+        instrument = payment.get('vpa') or 'UPI'
+    elif method == 'card':
+        card = payment.get('card') or {}
+        last4 = card.get('last4')
+        parts = [card.get('network'), f'****{last4}' if last4 else None, card.get('issuer')]
+        instrument = ' '.join(p for p in parts if p) or 'Card'
+    elif method == 'netbanking':
+        instrument = payment.get('bank') or 'Netbanking'
+    elif method == 'wallet':
+        instrument = payment.get('wallet') or 'Wallet'
+    else:
+        instrument = method.upper() or 'Unknown'
+
+    captured = Decimal(str(payment.get('amount') or 0)) / Decimal('100')
+    refunded = Decimal(str(payment.get('amount_refunded') or 0)) / Decimal('100')
+    return {
+        'payment_id': payment.get('id') or order.razorpay_payment_id,
+        'method': method.upper() or 'UNKNOWN',
+        'instrument': instrument,
+        'contact': payment.get('contact') or '',
+        'email': payment.get('email') or '',
+        'captured': captured.quantize(Decimal('0.01')),
+        'refunded': refunded.quantize(Decimal('0.01')),
+        'refundable': max(captured - refunded, Decimal('0.00')).quantize(Decimal('0.01')),
+    }
+
+
 def _record_refund(order, payment_id, refund_id, amount, reason, requested_by=None):
     """
     Store the Razorpay refund id against the order.
@@ -12221,7 +12279,18 @@ def _create_razorpay_refund(payment_id, amount, notes=None, order=None, requeste
 
     try:
         import razorpay
-        from razorpay.errors import BadRequestError, NoDataError, ServerError, SignatureVerificationError
+        from razorpay.errors import BadRequestError, ServerError
+        try:
+            from razorpay.errors import NoDataError
+        except ImportError:
+            # razorpay 1.4.1 (the pinned version) ships only BadRequestError,
+            # GatewayError, ServerError and SignatureVerificationError. Asking
+            # for NoDataError raised ImportError, which dropped this whole
+            # function into its "SDK not installed" branch - so every refund
+            # failed with a message telling you to install a package that was
+            # already there. A missing payment surfaces as BadRequestError on
+            # that version, so aliasing keeps the handler below meaningful.
+            NoDataError = BadRequestError
 
         client = razorpay.Client(auth=(razorpay_key, razorpay_secret))
         
@@ -13013,6 +13082,7 @@ def admin_return_detail(request, return_id):
         'open_days': max((timezone.now() - return_request_obj.requested_at).days, 0),
         'attachments': return_request_obj.attachments.all(),
         'linked_rto_case': getattr(return_request_obj.order, 'rto_case', None),
+        'razorpay_payment': _razorpay_payment_summary(return_request_obj.order),
     })
 
 

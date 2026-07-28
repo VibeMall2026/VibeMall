@@ -192,9 +192,24 @@
                             <p class="mb-1"><strong>Account No:</strong> {{ return_request.bank_account_number|default:"-" }}</p>
                             <p class="mb-0"><strong>IFSC:</strong> {{ return_request.bank_ifsc|default:"-" }}</p>
                         </div>
-                    {% elif return_request.refund_method == 'RAZORPAY' %}
-                        <div class="border rounded p-2 mt-2" style="background: #f8fafc;">
-                            <p class="mb-0"><strong>UPI ID:</strong> {{ return_request.upi_id|default:"-" }}</p>
+                    {% endif %}
+                    {% if razorpay_payment %}
+                        {# Live from Razorpay. A gateway refund goes back to this
+                           instrument on its own - no bank or UPI detail is ever
+                           collected from the customer for a prepaid return. #}
+                        <div class="border rounded p-2 mt-2" style="background: #f0fdf4; border-color:#86efac !important;">
+                            <p class="mb-1"><strong>Refund goes back to:</strong>
+                                <span class="badge bg-label-success">{{ razorpay_payment.method }}</span>
+                                {{ razorpay_payment.instrument }}
+                            </p>
+                            <p class="mb-1"><strong>Paid:</strong> ₹{{ razorpay_payment.captured }}
+                                &nbsp;|&nbsp; <strong>Already refunded:</strong> ₹{{ razorpay_payment.refunded }}
+                            </p>
+                            <p class="mb-1"><strong>Still refundable:</strong> ₹{{ razorpay_payment.refundable }}</p>
+                            {% if razorpay_payment.contact or razorpay_payment.email %}
+                                <p class="mb-1 text-muted"><small>Paid by {{ razorpay_payment.contact }}{% if razorpay_payment.email %} · {{ razorpay_payment.email }}{% endif %}</small></p>
+                            {% endif %}
+                            <p class="mb-0 text-muted"><small>Payment {{ razorpay_payment.payment_id }}</small></p>
                         </div>
                     {% endif %}
                     <p class="mb-0"><strong>Notes:</strong> {{ return_request.reason_notes|default:"-" }}</p>
