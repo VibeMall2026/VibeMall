@@ -99,8 +99,18 @@ class AlgoConfig:
     symbol: str = "XAUUSD"
     symbols: list[str] | None = None
 
-    # Chart timeframe the indicator is applied to.
+    # Chart timeframes the indicator is applied to.
+    #
+    # Every filter except the trend block is measured on the chart's own bars,
+    # so the same settings on a 5m and a 30m chart are genuinely different
+    # strategies: a 30m bar carries ~6x the volume and its 5-bar breakout looks
+    # back 2.5 hours instead of 25 minutes. Running several means each gets its
+    # own independent signal stream, exactly like opening three charts.
+    #
+    # analysis_timeframe stays as the primary, for the dashboard and for
+    # callers that still pass a single value.
     analysis_timeframe: int = 5
+    analysis_timeframes: list[int] = field(default_factory=lambda: [5, 15, 30])
     scan_interval_seconds: int = 15
 
     # --- Pine: main inputs ---
@@ -134,6 +144,19 @@ class AlgoConfig:
     enabled: bool = True
     risk_percent: float = field(default_factory=lambda: runtime_config.RISK_PERCENT)
 
+    def get_timeframes(self) -> list[int]:
+        """Analysis timeframes, de-duplicated and ordered fastest first."""
+        raw = self.analysis_timeframes or [self.analysis_timeframe]
+        seen: list[int] = []
+        for value in raw:
+            try:
+                minutes = int(value)
+            except (TypeError, ValueError):
+                continue
+            if minutes in _TF_BARS and minutes not in seen:
+                seen.append(minutes)
+        return sorted(seen) or [5]
+
     def get_symbols(self) -> list[str]:
         if self.symbols:
             return list(self.symbols)
@@ -152,12 +175,21 @@ _running = False
 _thread: Optional[threading.Thread] = None
 _lock = threading.Lock()
 
-# Per-symbol state. Mirrors the Pine `var` declarations, which persist across
+# Per-stream state. Mirrors the Pine `var` declarations, which persist across
 # bars and reset when the script reloads.
+#
+# Keyed by "SYMBOL@TF", not by symbol: each analysis timeframe is a separate
+# chart with its own bar clock and its own last signal. Sharing a key would let
+# a 5m entry suppress a 30m one through restrict_repeated_signals, and would
+# make the "already evaluated this bar" guard fire on the wrong stream.
 _last_closed_bar: dict[str, datetime] = {}
 _last_signal_bar_time: dict[str, datetime] = {}
 _last_signal_direction: dict[str, str] = {}
 _last_restrict_trend: dict[str, int] = {}
+
+
+def _stream_key(symbol: str, timeframe: int) -> str:
+    return f"{symbol}@{int(timeframe)}"
 
 _last_scan_at: Optional[str] = None
 _last_scan_summary: dict[str, dict] = {}
@@ -207,33 +239,40 @@ def _load_signal_state() -> None:
             )
             return
 
-        symbols = data.get("symbols")
-        if not isinstance(symbols, dict):
+        # "streams" is the current shape (keys are SYMBOL@TF). "symbols" is the
+        # single-timeframe shape written before multi-timeframe support; those
+        # keys carry no timeframe, so they are attached to the primary one
+        # rather than silently restoring onto a stream they never belonged to.
+        streams = data.get("streams")
+        legacy = not isinstance(streams, dict)
+        if legacy:
+            streams = data.get("symbols")
+        if not isinstance(streams, dict):
             return
 
         restored = 0
-        for symbol, entry in symbols.items():
+        for raw_key, entry in streams.items():
             if not isinstance(entry, dict):
                 continue
+            key = raw_key if not legacy else _stream_key(raw_key, algo_config.analysis_timeframe)
             direction = str(entry.get("last_signal") or "").strip()
             if direction in ("Buy", "Sell"):
-                _last_signal_direction[symbol] = direction
+                _last_signal_direction[key] = direction
             trend = entry.get("last_restrict_trend")
             if isinstance(trend, int):
-                _last_restrict_trend[symbol] = trend
+                _last_restrict_trend[key] = trend
             bar_time = str(entry.get("last_signal_bar_time") or "").strip()
             if bar_time:
                 try:
-                    _last_signal_bar_time[symbol] = datetime.fromisoformat(bar_time)
+                    _last_signal_bar_time[key] = datetime.fromisoformat(bar_time)
                 except ValueError:
                     pass
             restored += 1
 
         if restored:
             summary = ", ".join(
-                f"{sym}={_last_signal_direction.get(sym, 'Neutral')}"
-                f"@trend{_last_restrict_trend.get(sym, 0)}"
-                for sym in symbols
+                f"{k}={v}@trend{_last_restrict_trend.get(k, 0)}"
+                for k, v in _last_signal_direction.items()
             )
             logger.info(f"[SMART_MONEY] Restored repeat-signal state for {today} | {summary}")
     except Exception as exc:
@@ -244,18 +283,18 @@ def _save_signal_state() -> None:
     """Best-effort persist of repeat-signal state. Never raises into the scan loop."""
     try:
         with _state_file_lock:
-            symbols: dict[str, dict] = {}
-            for symbol, direction in _last_signal_direction.items():
-                bar_time = _last_signal_bar_time.get(symbol)
-                symbols[symbol] = {
+            streams: dict[str, dict] = {}
+            for key, direction in _last_signal_direction.items():
+                bar_time = _last_signal_bar_time.get(key)
+                streams[key] = {
                     "last_signal": direction,
-                    "last_restrict_trend": int(_last_restrict_trend.get(symbol, 0)),
+                    "last_restrict_trend": int(_last_restrict_trend.get(key, 0)),
                     "last_signal_bar_time": bar_time.isoformat() if bar_time else None,
                 }
             payload = {
                 "updated_at": datetime.now(timezone.utc).isoformat(),
                 "trading_day": _trading_day(),
-                "symbols": symbols,
+                "streams": streams,
             }
             _STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
             _STATE_PATH.write_text(json.dumps(payload, indent=2), encoding="utf-8")
@@ -448,28 +487,45 @@ def _cvd_at(candles: list[Candle], index: int) -> float:
 # Multi-timeframe trend engine
 # ---------------------------------------------------------------------------
 
-def _trend_for_timeframe(symbol: str, timeframe_minutes: int, reference_close: float) -> int:
+def build_trend_context(symbol: str) -> dict[str, tuple[Optional[float], Optional[float]]]:
+    """
+    Fetch the EMA20 and session VWAP of all seven timeframes, once.
+
+    Pine re-reads these per chart, but they do not depend on which chart you
+    are on - only the close they get compared against does. Computing them
+    once per scan keeps three analysis timeframes at seven MT5 fetches instead
+    of twenty-one.
+    """
+    context: dict[str, tuple[Optional[float], Optional[float]]] = {}
+    for name, minutes in _TF_MINUTES.items():
+        candles = _get_candles(symbol, minutes, _TF_BARS.get(minutes, 300))
+        if len(candles) < 25:
+            context[name] = (None, None)
+            continue
+        index = len(candles) - 1  # developing bar, as request.security returns live
+        context[name] = (
+            _ema_at([c.close for c in candles], 20, index),
+            _session_vwap_at(candles, index),
+        )
+    return context
+
+
+def _trend_from_context(context, name: str, reference_close: float) -> int:
     """
     Pine:
-        [emaTF, vwapTF] = request.security(tickerid, TF, [ta.ema(close,20), ta.vwap(hlc3)])
-        trendTF = close > emaTF and close > vwapTF ? 1 : close < emaTF and close < vwapTF ? -1 : 0
+        trendTF = close > emaTF and close > vwapTF ? 1
+                : close < emaTF and close < vwapTF ? -1 : 0
 
-    Note the operand on the comparison is the CHART's close, not the higher
-    timeframe's close — so `reference_close` is passed in from the analysis
-    timeframe, matching Pine exactly.
+    The operand is the CHART's close, not the higher timeframe's, so
+    `reference_close` comes from whichever analysis timeframe is being
+    evaluated - which is why the same context yields different trend readings
+    for the 5m and 30m streams.
 
     Returns 0 whenever price sits between EMA and VWAP. With use_trend_filter
     on that blocks BOTH directions, which is the single most common reason
     this strategy sits flat in a ranging market.
     """
-    bars = _TF_BARS.get(timeframe_minutes, 300)
-    candles = _get_candles(symbol, timeframe_minutes, bars)
-    if len(candles) < 25:
-        return 0
-
-    index = len(candles) - 1  # developing bar, as request.security returns live
-    ema = _ema_at([c.close for c in candles], 20, index)
-    vwap = _session_vwap_at(candles, index)
+    ema, vwap = context.get(name, (None, None))
     if ema is None or vwap is None:
         return 0
     if reference_close > ema and reference_close > vwap:
@@ -479,11 +535,11 @@ def _trend_for_timeframe(symbol: str, timeframe_minutes: int, reference_close: f
     return 0
 
 
-def _all_trends(symbol: str, reference_close: float) -> dict[str, int]:
+def _all_trends(context, reference_close: float) -> dict[str, int]:
     """Pine computes all seven timeframes every bar; so do we."""
     return {
-        name: _trend_for_timeframe(symbol, minutes, reference_close)
-        for name, minutes in _TF_MINUTES.items()
+        name: _trend_from_context(context, name, reference_close)
+        for name in _TF_MINUTES
     }
 
 
@@ -503,17 +559,28 @@ def _system_confidence(trend_strength_raw: int) -> float:
 # Signal construction
 # ---------------------------------------------------------------------------
 
-def _build_signal(symbol: str) -> Optional[dict]:
-    timeframe = int(algo_config.analysis_timeframe)
+def _build_signal(symbol: str, timeframe: int, trend_context) -> Optional[dict]:
+    timeframe = int(timeframe)
+    key = _stream_key(symbol, timeframe)
     needed = max(
         algo_config.volume_long_period,
         algo_config.breakout_period,
         algo_config.pivot_length * 2,
         30,
     ) + 40
-    candles = _get_candles(symbol, timeframe, max(400, needed))
+    # Ask for the per-timeframe window, not a flat 400. MT5 returns an EMPTY
+    # array - not a short one - when asked for more history than the terminal
+    # has downloaded, so a fixed 400 silently killed the 30m stream while the
+    # 160-bar trend fetch on the same timeframe worked fine.
+    candles = _get_candles(symbol, timeframe, max(needed, _TF_BARS.get(timeframe, 300)))
     if len(candles) < needed:
-        logger.debug(f"[SMART_MONEY] Not enough candles for {symbol} (got {len(candles)})")
+        # Retry asking for the bare minimum before giving up on this bar.
+        candles = _get_candles(symbol, timeframe, needed)
+    if len(candles) < needed:
+        logger.debug(
+            f"[SMART_MONEY] Not enough {timeframe}m candles for {symbol} "
+            f"(got {len(candles)}, need {needed})"
+        )
         return None
 
     # index -1 is the bar currently forming. Everything below evaluates the
@@ -522,9 +589,9 @@ def _build_signal(symbol: str) -> Optional[dict]:
     signal_bar = candles[idx]
     bar_time = signal_bar.time
 
-    if _last_closed_bar.get(symbol) == bar_time:
+    if _last_closed_bar.get(key) == bar_time:
         return None
-    _last_closed_bar[symbol] = bar_time
+    _last_closed_bar[key] = bar_time
 
     closes = [c.close for c in candles]
     highs = [c.high for c in candles]
@@ -545,7 +612,7 @@ def _build_signal(symbol: str) -> Optional[dict]:
     pre_momentum_threshold = momentum_threshold * pre_momentum_factor
 
     # --- multi-timeframe trend ---
-    trends = _all_trends(symbol, close)
+    trends = _all_trends(trend_context, close)
     trend_strength_raw = sum(trends.values())
     trend_strength = (trend_strength_raw / 7.0) * 100.0
     confidence = _system_confidence(trend_strength_raw)
@@ -602,8 +669,8 @@ def _build_signal(symbol: str) -> Optional[dict]:
     sell_breakout_ok = raw_sell_breakout if algo_config.use_breakout_filter else True
 
     # --- repeated-signal restriction (Pine) ---
-    last_signal = _last_signal_direction.get(symbol, "Neutral")
-    last_trend = _last_restrict_trend.get(symbol, 0)
+    last_signal = _last_signal_direction.get(key, "Neutral")
+    last_trend = _last_restrict_trend.get(key, 0)
     buy_allowed = (not algo_config.restrict_repeated_signals) or (
         last_signal != "Buy" or (restrict_tf_trend != last_trend and restrict_tf_trend != 1)
     )
@@ -614,7 +681,7 @@ def _build_signal(symbol: str) -> Optional[dict]:
     # --- min signal distance (Pine: bar_index - last_signal_bar) ---
     # Tracked by bar timestamp rather than bar index, because the fetch window
     # slides and an index would not survive between scans.
-    last_sig_time = _last_signal_bar_time.get(symbol)
+    last_sig_time = _last_signal_bar_time.get(key)
     if last_sig_time is None:
         enough_distance = True
         bars_since_signal = None
@@ -726,6 +793,8 @@ def _build_signal(symbol: str) -> Optional[dict]:
         )
 
     return {
+        "timeframe": timeframe,
+        "key": key,
         "time": bar_time,
         "open": signal_bar.open,
         "high": signal_bar.high,
@@ -849,17 +918,19 @@ def _execute_signal(symbol: str, side: str, entry: float, signal: dict) -> None:
         strategy_id="smart_money",
     )
 
+    tf = signal.get("timeframe", "?")
     succeeded = [row for row in results or [] if row.get("success")]
     if succeeded:
         for row in succeeded:
             logger.success(
                 f"[SMART_MONEY] Trade on {row.get('account_label')} ({row.get('login')}) "
-                f"{symbol} {side.upper()} ticket={row.get('ticket')} "
+                f"{symbol} {tf}m {side.upper()} ticket={row.get('ticket')} "
                 f"entry={entry:.{digits}f} sl={sl:.{digits}f} tp={tp:.{digits}f}"
             )
     else:
         logger.warning(
-            f"[SMART_MONEY] Signal not executed on mapped accounts | {symbol} {side.upper()} | {results}"
+            f"[SMART_MONEY] Signal not executed on mapped accounts | "
+            f"{symbol} {tf}m {side.upper()} | {results}"
         )
 
 
@@ -868,14 +939,31 @@ def _execute_signal(symbol: str, side: str, entry: float, signal: dict) -> None:
 # ---------------------------------------------------------------------------
 
 def _scan_symbol(symbol: str) -> None:
+    """Evaluate every configured analysis timeframe as its own chart."""
+    timeframes = algo_config.get_timeframes()
+
+    # One fetch of the seven trend timeframes, shared by every stream.
+    trend_context = build_trend_context(symbol)
+
+    for timeframe in timeframes:
+        try:
+            _scan_stream(symbol, timeframe, trend_context)
+        except Exception as exc:
+            # One timeframe failing must not stop the others from trading.
+            logger.error(f"[SMART_MONEY] {symbol} {timeframe}m scan failed: {exc}")
+
+
+def _scan_stream(symbol: str, timeframe: int, trend_context) -> None:
     global _last_scan_at
 
-    signal = _build_signal(symbol)
+    signal = _build_signal(symbol, timeframe, trend_context)
     if not signal:
         return
 
+    key = signal["key"]
     _last_scan_at = datetime.now(timezone.utc).isoformat()
-    _last_scan_summary[symbol] = {
+    _last_scan_summary[key] = {
+        "timeframe": timeframe,
         "time": signal["time"].isoformat(),
         "close": signal["close"],
         "buy_signal": signal["buy_signal"],
@@ -894,21 +982,22 @@ def _scan_symbol(symbol: str) -> None:
         "choch_sell": signal["choch_sell"],
     }
 
+    tag = f"{symbol} {timeframe}m"
     trend_map = " ".join(f"{name}:{value:+d}" for name, value in signal["trends"].items())
     logger.info(
-        f"[SMART_MONEY] {symbol} bar={signal['time']} close={signal['close']:.5f} "
+        f"[SMART_MONEY] {tag} bar={signal['time']} close={signal['close']:.5f} "
         f"buy={signal['buy_signal']} sell={signal['sell_signal']} "
         f"strength={signal['trend_strength']:.0f} conf={signal['confidence']:.0f}% | {trend_map}"
     )
     if not signal["buy_signal"] and not signal["sell_signal"]:
         logger.info(
-            f"[SMART_MONEY] {symbol} blocked | "
+            f"[SMART_MONEY] {tag} blocked | "
             f"BUY blockers: {signal['buy_blockers'] or ['none']} | "
             f"SELL blockers: {signal['sell_blockers'] or ['none']}"
         )
     if algo_config.show_get_ready and (signal["get_ready_buy"] or signal["get_ready_sell"]):
         direction = "BUY" if signal["get_ready_buy"] else "SELL"
-        logger.info(f"[SMART_MONEY] {symbol} GET READY {direction} (momentum building)")
+        logger.info(f"[SMART_MONEY] {tag} GET READY {direction} (momentum building)")
 
     if not algo_config.enabled:
         return
@@ -924,12 +1013,12 @@ def _scan_symbol(symbol: str) -> None:
 
     price = _get_tick_price(symbol, side)
     if price is None:
-        logger.warning(f"[SMART_MONEY] {symbol} {side.upper()} skipped — no tick price available")
+        logger.warning(f"[SMART_MONEY] {tag} {side.upper()} skipped — no tick price available")
         return
 
-    _last_signal_bar_time[symbol] = signal["time"]
-    _last_signal_direction[symbol] = "Buy" if side == "buy" else "Sell"
-    _last_restrict_trend[symbol] = int(signal["restrict_tf_trend"])
+    _last_signal_bar_time[key] = signal["time"]
+    _last_signal_direction[key] = "Buy" if side == "buy" else "Sell"
+    _last_restrict_trend[key] = int(signal["restrict_tf_trend"])
     # Persist before executing: if the order send crashes the process, the
     # restriction must still be in force on the way back up.
     _save_signal_state()
@@ -940,7 +1029,7 @@ def _loop() -> None:
     global _running
     logger.info(
         f"[SMART_MONEY] Started | symbols={algo_config.get_symbols()} "
-        f"tf={algo_config.analysis_timeframe}m pivot_length={algo_config.pivot_length} "
+        f"timeframes={algo_config.get_timeframes()}m pivot_length={algo_config.pivot_length} "
         f"htf={algo_config.higher_tf_choice} ltf={algo_config.lower_tf_choice} "
         f"tp={algo_config.tp_points} sl={algo_config.sl_points} (price units)"
     )
@@ -985,6 +1074,7 @@ def update_algo_config(
     symbol: Optional[str] = None,
     symbols: Optional[list[str]] = None,
     analysis_timeframe: Optional[int] = None,
+    analysis_timeframes: Optional[list[int]] = None,
     scan_interval_seconds: Optional[int] = None,
     pivot_length: Optional[int] = None,
     momentum_threshold_base: Optional[float] = None,
@@ -1019,6 +1109,15 @@ def update_algo_config(
                 value = str(value).strip().upper()
                 if value not in _TF_MINUTES:
                     raise ValueError(f"{key} must be one of {list(_TF_MINUTES)}")
+            if key == "analysis_timeframes":
+                value = [int(v) for v in value]
+                unsupported = [v for v in value if v not in _TF_BARS]
+                if unsupported:
+                    raise ValueError(
+                        f"analysis_timeframes must be from {sorted(_TF_BARS)}; got {unsupported}"
+                    )
+                if not value:
+                    raise ValueError("analysis_timeframes cannot be empty")
             setattr(algo_config, key, value)
         # Timeframe or filter changes invalidate the "already seen this bar"
         # guard; clearing it makes the next scan re-evaluate immediately.
@@ -1040,6 +1139,7 @@ def get_algo_status() -> dict:
             "strategy": "smart_money",
             "symbols": algo_config.get_symbols(),
             "analysis_timeframe": algo_config.analysis_timeframe,
+            "analysis_timeframes": algo_config.get_timeframes(),
             "risk_percent": algo_config.risk_percent,
             "managed_trades": 0,
             "assigned_accounts": assigned,
