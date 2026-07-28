@@ -8010,6 +8010,258 @@ def seller_portal(request: HttpRequest) -> HttpResponse:
     return render(request, "seller_portal.html", context)
 
 
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_seller_earnings(request):
+    """
+    Earnings ledger for a seller's own product sales.
+
+    Sellers see only their own rows; admins see every seller's, matching how
+    get_order_scope / get_product_scope already split the rest of the panel.
+    Read-only: money moves through the order lifecycle signals, never here.
+    """
+    from .models import SellerEarning
+    from .seller_earnings_service import get_seller_earnings_summary
+
+    seller_mode = is_seller_user(request.user)
+
+    earnings = (
+        SellerEarning.objects
+        .select_related('order', 'seller', 'payout')
+        .order_by('-created_at')
+    )
+    if seller_mode:
+        earnings = earnings.filter(seller=request.user)
+
+    status_filter = (request.GET.get('status') or 'all').strip().upper()
+    valid_statuses = {choice[0] for choice in SellerEarning.EARNING_STATUS_CHOICES}
+    if status_filter in valid_statuses:
+        earnings = earnings.filter(status=status_filter)
+    else:
+        status_filter = 'ALL'
+
+    search_query = (request.GET.get('search') or '').strip()
+    if search_query:
+        earnings = earnings.filter(
+            Q(order__order_number__icontains=search_query) |
+            Q(seller__username__icontains=search_query)
+        )
+
+    paginator = Paginator(earnings, 25)
+    page_number = request.GET.get('page')
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
+    # A seller gets their own totals; an admin has no single balance to show.
+    summary = get_seller_earnings_summary(request.user) if seller_mode else None
+
+    context = {
+        'earnings': page_obj,
+        'page_obj': page_obj,
+        'summary': summary,
+        'seller_mode': seller_mode,
+        'status_filter': status_filter,
+        'search_query': search_query,
+        'status_choices': SellerEarning.EARNING_STATUS_CHOICES,
+        'total_count': paginator.count,
+    }
+    return render(request, 'admin_panel/seller_earnings.html', context)
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_seller_payout(request):
+    """Seller-facing page: see the balance and ask to withdraw it."""
+    from .models import ResellerProfile, SellerPayout
+    from .seller_earnings_service import get_seller_earnings_summary
+    from .seller_payout_service import (
+        get_settleable_earnings,
+        get_settleable_total,
+        min_payout_amount,
+        notify_payout_requested,
+        request_payout,
+    )
+
+    if not is_seller_user(request.user):
+        messages.info(request, 'Payout requests are made by sellers. Use Seller Payouts to review them.')
+        return redirect('admin_seller_payouts')
+
+    profile, _ = ResellerProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        details = {
+            'bank_account_name': (request.POST.get('bank_account_name') or '').strip(),
+            'bank_account_number': (request.POST.get('bank_account_number') or '').strip(),
+            'bank_ifsc_code': (request.POST.get('bank_ifsc_code') or '').strip(),
+            'upi_id': (request.POST.get('upi_id') or '').strip(),
+        }
+        try:
+            payout = request_payout(
+                seller=request.user,
+                requested_amount=request.POST.get('amount') or '0',
+                payout_method=request.POST.get('payout_method') or '',
+                payment_details=details,
+            )
+        except (ValidationError, InvalidOperation, TypeError, ValueError) as exc:
+            # ValidationError messages here are written for the seller to read.
+            detail = getattr(exc, 'messages', None)
+            messages.error(request, ' '.join(detail) if detail else 'Enter a valid amount.')
+        else:
+            notify_payout_requested(payout)
+            messages.success(
+                request,
+                f'Payout request for Rs.{payout.amount} submitted. You will be notified once it is reviewed.',
+            )
+            return redirect('admin_seller_payout')
+
+    context = {
+        'summary': get_seller_earnings_summary(request.user),
+        'profile': profile,
+        'settleable_total': get_settleable_total(request.user),
+        'settleable_earnings': get_settleable_earnings(request.user)[:20],
+        'min_payout': min_payout_amount(),
+        'payouts': SellerPayout.objects.filter(seller=request.user)[:25],
+        'method_choices': SellerPayout.PAYOUT_METHOD_CHOICES,
+    }
+    return render(request, 'admin_panel/seller_payout_request.html', context)
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_seller_payouts(request):
+    """Admin-facing queue: approve, reject, complete or fail seller payouts."""
+    from .models import SellerPayout
+    from .seller_payout_service import (
+        approve_payout,
+        complete_payout,
+        fail_payout,
+        gateway_enabled,
+        notify_payout_decision,
+        reject_payout,
+        send_via_gateway,
+    )
+
+    seller_mode = is_seller_user(request.user)
+
+    if request.method == 'POST':
+        if seller_mode:
+            messages.error(request, 'Sellers cannot approve payouts.')
+            return redirect('admin_seller_payouts')
+
+        action = (request.POST.get('action') or '').strip()
+        payout_id = request.POST.get('payout_id')
+        note = (request.POST.get('note') or '').strip()
+
+        try:
+            if action == 'approve':
+                payout = approve_payout(payout_id, request.user, notes=note)
+            elif action == 'reject':
+                payout = reject_payout(payout_id, request.user, reason=note)
+            elif action == 'complete':
+                payout = complete_payout(payout_id, transaction_id=note, admin_user=request.user)
+            elif action == 'fail':
+                payout = fail_payout(payout_id, reason=note or 'Transfer failed', admin_user=request.user)
+            elif action == 'gateway':
+                payout = send_via_gateway(payout_id, request.user)
+            else:
+                raise ValidationError('Unknown action.')
+        except SellerPayout.DoesNotExist:
+            messages.error(request, 'Payout not found.')
+        except ValidationError as exc:
+            detail = getattr(exc, 'messages', None)
+            messages.error(request, ' '.join(detail) if detail else str(exc))
+        else:
+            notify_payout_decision(payout)
+            messages.success(request, f'Payout #{payout.id} is now {payout.get_status_display()}.')
+        return redirect('admin_seller_payouts')
+
+    payouts = SellerPayout.objects.select_related('seller', 'processed_by')
+    if seller_mode:
+        payouts = payouts.filter(seller=request.user)
+
+    status_filter = (request.GET.get('status') or 'all').strip().upper()
+    if status_filter in {c[0] for c in SellerPayout.PAYOUT_STATUS_CHOICES}:
+        payouts = payouts.filter(status=status_filter)
+    else:
+        status_filter = 'ALL'
+
+    paginator = Paginator(payouts, 25)
+    try:
+        page_obj = paginator.page(request.GET.get('page'))
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
+    context = {
+        'payouts': page_obj,
+        'page_obj': page_obj,
+        'seller_mode': seller_mode,
+        'status_filter': status_filter,
+        'status_choices': SellerPayout.PAYOUT_STATUS_CHOICES,
+        'pending_count': SellerPayout.objects.filter(status='PENDING').count() if not seller_mode else 0,
+        'gateway_enabled': gateway_enabled(),
+        'total_count': paginator.count,
+    }
+    return render(request, 'admin_panel/seller_payouts.html', context)
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_seller_settlements(request):
+    """Per-seller settlement report: gross, commission, TDS, paid, outstanding."""
+    from .seller_payout_service import seller_settlement_report
+
+    date_from = (request.GET.get('from') or '').strip() or None
+    date_to = (request.GET.get('to') or '').strip() or None
+
+    rows = seller_settlement_report(
+        date_from=date_from,
+        date_to=date_to,
+        seller=request.user if is_seller_user(request.user) else None,
+    )
+
+    totals = {
+        'gross': sum((r['gross'] for r in rows), Decimal('0')),
+        'commission': sum((r['commission'] for r in rows), Decimal('0')),
+        'tds': sum((r['tds'] for r in rows), Decimal('0')),
+        'net': sum((r['net'] for r in rows), Decimal('0')),
+        'paid': sum((r['paid'] for r in rows), Decimal('0')),
+        'outstanding': sum((r['outstanding'] for r in rows), Decimal('0')),
+    }
+
+    if request.GET.get('export') == 'csv':
+        import csv
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="seller_settlements.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['Seller', 'Gross', 'Commission', 'TDS', 'Net', 'Paid', 'Outstanding'])
+        for row in rows:
+            writer.writerow([
+                row['seller'], row['gross'], row['commission'],
+                row['tds'], row['net'], row['paid'], row['outstanding'],
+            ])
+        writer.writerow([
+            'TOTAL', totals['gross'], totals['commission'], totals['tds'],
+            totals['net'], totals['paid'], totals['outstanding'],
+        ])
+        return response
+
+    context = {
+        'rows': rows,
+        'totals': totals,
+        'date_from': date_from or '',
+        'date_to': date_to or '',
+        'seller_mode': is_seller_user(request.user),
+    }
+    return render(request, 'admin_panel/seller_settlements.html', context)
+
+
 
 
 def my_account(request): return render(request, 'profile.html')

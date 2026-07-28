@@ -136,6 +136,55 @@ def auto_cancel_reseller_earnings(sender, instance, created, **kwargs):
 
 
 # ============================================
+# SELLER (OWN-PRODUCT) EARNINGS SIGNALS
+# ============================================
+
+@receiver(post_save, sender=Order)
+def sync_seller_earnings(sender, instance, created, **kwargs):
+    """
+    Keep seller earnings in step with the order's lifecycle.
+
+    Paid      -> create PENDING earnings for each seller in the order
+    Delivered -> confirm them, crediting each seller's balance
+    Cancelled -> cancel them, reversing any balance already credited
+
+    Deliberately mirrors auto_confirm_reseller_earnings above, including the
+    swallow-and-log: an accounting failure must never block an order status
+    update, or a customer's order gets stuck because a seller's books did not
+    balance. The service layer is idempotent, so a replayed signal is safe.
+    """
+    if created:
+        return
+
+    import logging
+    logger = logging.getLogger(__name__)
+
+    try:
+        from .seller_earnings_service import (
+            cancel_seller_earnings_for_order,
+            confirm_seller_earnings_for_order,
+            create_seller_earnings,
+        )
+
+        if instance.order_status == 'CANCELLED' or instance.payment_status == 'REFUNDED':
+            reason = 'Order cancelled' if instance.order_status == 'CANCELLED' else 'Payment refunded'
+            cancel_seller_earnings_for_order(instance, reason=reason)
+            return
+
+        if instance.payment_status == 'PAID':
+            create_seller_earnings(instance)
+
+        if instance.order_status == 'DELIVERED' and instance.payment_status == 'PAID':
+            confirm_seller_earnings_for_order(instance)
+
+    except Exception as exc:
+        logger.error(
+            f"Failed to sync seller earnings for order {instance.order_number}: {exc}",
+            exc_info=True,
+        )
+
+
+# ============================================
 # LOYALTY POINTS SYSTEM SIGNALS
 # ============================================
 

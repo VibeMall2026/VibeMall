@@ -1,0 +1,187 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load static %}
+
+{% block title %}Seller Earnings - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="fw-bold py-3 mb-4">
+        <span class="text-muted fw-light">Resell Management /</span> Seller Earnings
+    </h4>
+
+    {% if summary %}
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 col-12 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="card-title d-flex align-items-start justify-content-between">
+                        <div class="avatar flex-shrink-0">
+                            <i class="bx bx-wallet bx-sm text-success"></i>
+                        </div>
+                    </div>
+                    <span class="fw-semibold d-block mb-1">Available Balance</span>
+                    <h3 class="card-title mb-2 text-success">₹{{ summary.available_balance }}</h3>
+                    <small class="text-muted">Ready to withdraw</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 col-12 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="card-title d-flex align-items-start justify-content-between">
+                        <div class="avatar flex-shrink-0">
+                            <i class="bx bx-time-five bx-sm text-warning"></i>
+                        </div>
+                    </div>
+                    <span class="fw-semibold d-block mb-1">Pending</span>
+                    <h3 class="card-title mb-2">₹{{ summary.pending_amount }}</h3>
+                    <small class="text-muted">Awaiting delivery</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 col-12 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="card-title d-flex align-items-start justify-content-between">
+                        <div class="avatar flex-shrink-0">
+                            <i class="bx bx-check-circle bx-sm text-primary"></i>
+                        </div>
+                    </div>
+                    <span class="fw-semibold d-block mb-1">Paid Out</span>
+                    <h3 class="card-title mb-2">₹{{ summary.paid_amount }}</h3>
+                    <small class="text-muted">{{ summary.total_orders }} order{{ summary.total_orders|pluralize }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 col-12 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="card-title d-flex align-items-start justify-content-between">
+                        <div class="avatar flex-shrink-0">
+                            <i class="bx bx-receipt bx-sm text-secondary"></i>
+                        </div>
+                    </div>
+                    <span class="fw-semibold d-block mb-1">Platform Commission</span>
+                    <h3 class="card-title mb-2">₹{{ summary.commission_paid }}</h3>
+                    <small class="text-muted">Deducted to date</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h5 class="mb-0">Earnings Ledger <span class="text-muted fs-6">({{ total_count }})</span></h5>
+            <form method="get" class="d-flex flex-wrap gap-2">
+                <input type="text" name="search" class="form-control form-control-sm" style="width: 200px;"
+                       placeholder="Order number{% if not seller_mode %} or seller{% endif %}"
+                       value="{{ search_query }}">
+                <select name="status" class="form-select form-select-sm" style="width: 150px;">
+                    <option value="all"{% if status_filter == 'ALL' %} selected{% endif %}>All statuses</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}"{% if status_filter == value %} selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+                {% if search_query or status_filter != 'ALL' %}
+                <a href="{% url 'admin_seller_earnings' %}" class="btn btn-sm btn-outline-secondary">Reset</a>
+                {% endif %}
+            </form>
+        </div>
+
+        <div class="table-responsive text-nowrap">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Order</th>
+                        {% if not seller_mode %}<th>Seller</th>{% endif %}
+                        <th>Units</th>
+                        <th class="text-end">Gross</th>
+                        <th class="text-end">Commission</th>
+                        <th class="text-end">Net</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody class="table-border-bottom-0">
+                    {% for earning in earnings %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'admin_order_details' earning.order.id %}">
+                                #{{ earning.order.order_number }}
+                            </a>
+                        </td>
+                        {% if not seller_mode %}<td>{{ earning.seller.username }}</td>{% endif %}
+                        <td>{{ earning.item_count }}</td>
+                        <td class="text-end">₹{{ earning.gross_amount }}</td>
+                        <td class="text-end text-muted">
+                            −₹{{ earning.commission_amount }}
+                            <small class="d-block">{{ earning.commission_percent }}%</small>
+                        </td>
+                        <td class="text-end fw-semibold">₹{{ earning.net_amount }}</td>
+                        <td>
+                            {% if earning.status == 'CONFIRMED' %}
+                                <span class="badge bg-label-success">Confirmed</span>
+                            {% elif earning.status == 'PENDING' %}
+                                <span class="badge bg-label-warning">Pending</span>
+                            {% elif earning.status == 'PAID' %}
+                                <span class="badge bg-label-primary">Paid</span>
+                            {% else %}
+                                <span class="badge bg-label-danger" {% if earning.cancel_reason %}title="{{ earning.cancel_reason }}"{% endif %}>Cancelled</span>
+                            {% endif %}
+                        </td>
+                        <td><small class="text-muted">{{ earning.created_at|date:"d M Y" }}</small></td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="{% if seller_mode %}7{% else %}8{% endif %}" class="text-center py-5 text-muted">
+                            No earnings yet. Earnings appear here once an order containing your products is paid.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if page_obj.has_other_pages %}
+        <div class="card-footer">
+            <nav>
+                <ul class="pagination pagination-sm mb-0 justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}&status={{ status_filter|lower }}&search={{ search_query }}">Previous</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">Previous</span></li>
+                    {% endif %}
+
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                    </li>
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}&status={{ status_filter|lower }}&search={{ search_query }}">Next</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">Next</span></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if seller_mode %}
+    <div class="alert alert-info mt-4 mb-0" role="alert">
+        <h6 class="alert-heading mb-1">How earnings work</h6>
+        <span class="small">
+            An earning is created when an order containing your products is paid, and stays
+            <strong>Pending</strong> until the order is delivered. Once confirmed it moves to your
+            available balance. Cancelled or refunded orders reverse the earning.
+        </span>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -344,6 +344,28 @@
                     <div data-i18n="Reports">Reports</div>
                   </a>
                 </li>
+                <li class="menu-item">
+                  <a href="{% url 'admin_seller_earnings' %}" class="menu-link">
+                    <div data-i18n="Seller Earnings">Seller Earnings</div>
+                  </a>
+                </li>
+                {% if admin_panel_mode == 'seller' %}
+                <li class="menu-item">
+                  <a href="{% url 'admin_seller_payout' %}" class="menu-link">
+                    <div data-i18n="Withdraw">Withdraw Earnings</div>
+                  </a>
+                </li>
+                {% endif %}
+                <li class="menu-item">
+                  <a href="{% url 'admin_seller_payouts' %}" class="menu-link">
+                    <div data-i18n="Seller Payouts">Seller Payouts</div>
+                  </a>
+                </li>
+                <li class="menu-item">
+                  <a href="{% url 'admin_seller_settlements' %}" class="menu-link">
+                    <div data-i18n="Settlements">Settlements</div>
+                  </a>
+                </li>
                 {% if admin_panel_mode != 'seller' %}
                 <li class="menu-item">
                   <a href="{% url 'admin_seller_invites' %}" class="menu-link">

@@ -2308,14 +2308,50 @@ class ResellLink(models.Model):
         super().save(*args, **kwargs)
 
 
+# Platform commission charged on a seller's own product sales, in percent.
+# Applied to (base_price x quantity); shipping and tax are never commissioned.
+# Overridable per seller via ResellerProfile.seller_commission_percent.
+DEFAULT_SELLER_COMMISSION_PERCENT = Decimal('10.00')
+
+
 class ResellerProfile(models.Model):
-    """Extended profile for users who are resellers"""
+    """
+    Payee profile for a user who earns money on the platform.
+
+    Covers both ways a user can earn, kept in separate balances because they
+    are different businesses and must reconcile independently:
+
+    - reseller (affiliate): margin earned on ResellLink orders -> available_balance
+    - seller (vendor): revenue on their own products, minus platform commission
+      -> seller_available_balance
+
+    Bank/UPI/PAN details are deliberately shared: it is the same person and the
+    same account, whichever way the money was earned.
+    """
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='reseller_profile')
     is_reseller_enabled = models.BooleanField(default=False)
     business_name = models.CharField(max_length=200, blank=True)
     total_earnings = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     available_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_orders = models.PositiveIntegerField(default=0)
+
+    # ── Seller (own-product) money, tracked separately from reseller margin ──
+    seller_total_earnings = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        help_text="Lifetime net earnings from this user's own product sales",
+    )
+    seller_available_balance = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        help_text="Confirmed seller earnings not yet paid out",
+    )
+    seller_total_orders = models.PositiveIntegerField(
+        default=0, help_text="Number of orders containing this user's own products",
+    )
+    seller_commission_percent = models.DecimalField(
+        max_digits=5, decimal_places=2, default=DEFAULT_SELLER_COMMISSION_PERCENT,
+        help_text="Platform commission % on this seller's own product sales",
+    )
+
     bank_account_name = models.CharField(max_length=200, blank=True)
     bank_account_number = models.CharField(max_length=50, blank=True)
     bank_ifsc_code = models.CharField(max_length=20, blank=True)
@@ -2323,21 +2359,28 @@ class ResellerProfile(models.Model):
     pan_number = models.CharField(max_length=10, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         verbose_name = "Reseller Profile"
         verbose_name_plural = "Reseller Profiles"
-    
+
     def __str__(self):
         return f"Reseller Profile - {self.user.username}"
-    
+
     def clean(self):
-        """Validate available balance cannot be negative"""
+        """Balances are money owed to this user and can never go negative."""
         from django.core.exceptions import ValidationError
-        
+
+        errors = {}
         if self.available_balance < 0:
-            raise ValidationError({'available_balance': 'Available balance cannot be negative.'})
-    
+            errors['available_balance'] = 'Available balance cannot be negative.'
+        if self.seller_available_balance < 0:
+            errors['seller_available_balance'] = 'Seller available balance cannot be negative.'
+        if not (Decimal('0') <= self.seller_commission_percent <= Decimal('100')):
+            errors['seller_commission_percent'] = 'Commission percent must be between 0 and 100.'
+        if errors:
+            raise ValidationError(errors)
+
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
@@ -2428,6 +2471,183 @@ class PayoutTransaction(models.Model):
             if not self.upi_id:
                 raise ValidationError({'upi_id': 'UPI ID required for UPI payout.'})
     
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+
+# ==================== SELLER (OWN-PRODUCT) EARNINGS ====================
+#
+# Distinct from ResellerEarning, which pays affiliate margin on ResellLink
+# orders. This pays a seller for their OWN products (Product.created_by),
+# minus platform commission.
+#
+# The important structural difference: ResellerEarning is OneToOne with Order
+# because a resell order has exactly one reseller. A normal order can contain
+# products from several sellers, so this is a ForeignKey with a per-seller
+# uniqueness constraint instead.
+
+
+class SellerEarning(models.Model):
+    """What one seller earned from one order."""
+
+    EARNING_STATUS_CHOICES = [
+        ('PENDING', 'Pending'),       # order paid, not yet delivered/held
+        ('CONFIRMED', 'Confirmed'),   # cleared hold period, added to balance
+        ('PAID', 'Paid'),             # included in a completed payout
+        ('CANCELLED', 'Cancelled'),   # order cancelled or returned
+    ]
+
+    seller = models.ForeignKey(User, on_delete=models.CASCADE, related_name='seller_earnings')
+    order = models.ForeignKey('Order', on_delete=models.CASCADE, related_name='seller_earnings')
+
+    gross_amount = models.DecimalField(
+        max_digits=12, decimal_places=2,
+        help_text="Sum of base_price x quantity for this seller's items in the order",
+    )
+    commission_percent = models.DecimalField(
+        max_digits=5, decimal_places=2,
+        help_text="Commission rate snapshot at earning time; later rate changes never rewrite history",
+    )
+    commission_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    tds_amount = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        help_text="Tax deducted at source, if applicable. Reserved; no deduction logic yet.",
+    )
+    net_amount = models.DecimalField(
+        max_digits=12, decimal_places=2,
+        help_text="gross_amount - commission_amount - tds_amount; what the seller is owed",
+    )
+
+    status = models.CharField(max_length=20, choices=EARNING_STATUS_CHOICES, default='PENDING')
+    item_count = models.PositiveIntegerField(default=0, help_text="Units sold by this seller in the order")
+
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    cancel_reason = models.CharField(max_length=200, blank=True)
+
+    payout = models.ForeignKey(
+        'SellerPayout', on_delete=models.SET_NULL, null=True, blank=True, related_name='earnings',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Seller Earning"
+        verbose_name_plural = "Seller Earnings"
+        ordering = ['-created_at']
+        # One earning row per seller per order. Also makes earning creation
+        # idempotent: a duplicate post_save signal hits this instead of
+        # crediting the seller twice.
+        constraints = [
+            models.UniqueConstraint(fields=['order', 'seller'], name='uniq_seller_earning_per_order'),
+        ]
+        indexes = [
+            models.Index(fields=['seller', 'status']),
+            models.Index(fields=['status']),
+        ]
+
+    def __str__(self):
+        return f"Seller Earning {self.status} - {self.seller.username} - Order #{self.order.order_number}"
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        errors = {}
+        if self.gross_amount < 0:
+            errors['gross_amount'] = 'Gross amount cannot be negative.'
+        if self.commission_amount < 0:
+            errors['commission_amount'] = 'Commission amount cannot be negative.'
+        if self.tds_amount < 0:
+            errors['tds_amount'] = 'TDS amount cannot be negative.'
+        if self.net_amount < 0:
+            errors['net_amount'] = 'Net amount cannot be negative.'
+        if self.net_amount > self.gross_amount:
+            errors['net_amount'] = 'Net amount cannot exceed gross amount.'
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+
+class SellerPayout(models.Model):
+    """A seller's request to withdraw their confirmed earnings."""
+
+    PAYOUT_STATUS_CHOICES = [
+        ('PENDING', 'Pending Approval'),
+        ('APPROVED', 'Approved'),
+        ('PROCESSING', 'Processing'),
+        ('COMPLETED', 'Completed'),
+        ('REJECTED', 'Rejected'),
+        ('FAILED', 'Failed'),
+    ]
+
+    PAYOUT_METHOD_CHOICES = [
+        ('BANK_TRANSFER', 'Bank Transfer'),
+        ('UPI', 'UPI'),
+    ]
+
+    seller = models.ForeignKey(User, on_delete=models.CASCADE, related_name='seller_payouts')
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    payout_method = models.CharField(max_length=20, choices=PAYOUT_METHOD_CHOICES)
+    status = models.CharField(max_length=20, choices=PAYOUT_STATUS_CHOICES, default='PENDING')
+
+    # Payment details are snapshotted so a later profile edit cannot change
+    # where an already-approved payout was sent.
+    bank_account_name = models.CharField(max_length=200, blank=True)
+    bank_account_number = models.CharField(max_length=50, blank=True)
+    bank_ifsc_code = models.CharField(max_length=20, blank=True)
+    upi_id = models.CharField(max_length=100, blank=True)
+
+    transaction_id = models.CharField(max_length=100, blank=True)
+    admin_notes = models.TextField(blank=True)
+    rejection_reason = models.CharField(max_length=300, blank=True)
+    processed_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name='processed_seller_payouts',
+    )
+
+    requested_at = models.DateTimeField(auto_now_add=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Seller Payout"
+        verbose_name_plural = "Seller Payouts"
+        ordering = ['-requested_at']
+        indexes = [
+            models.Index(fields=['seller', 'status']),
+            models.Index(fields=['status']),
+        ]
+
+    def __str__(self):
+        return f"Seller Payout {self.status} - {self.seller.username} - Rs.{self.amount}"
+
+    @property
+    def is_open(self):
+        """Still holding the seller's money (not yet settled or returned)."""
+        return self.status in ('PENDING', 'APPROVED', 'PROCESSING')
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        errors = {}
+        if self.amount is None or self.amount <= 0:
+            errors['amount'] = 'Payout amount must be greater than zero.'
+        if self.payout_method == 'BANK_TRANSFER':
+            if not self.bank_account_number:
+                errors['bank_account_number'] = 'Bank account number required for bank transfer.'
+            if not self.bank_ifsc_code:
+                errors['bank_ifsc_code'] = 'IFSC code required for bank transfer.'
+        elif self.payout_method == 'UPI':
+            if not self.upi_id:
+                errors['upi_id'] = 'UPI ID required for UPI payout.'
+        if self.status == 'REJECTED' and not self.rejection_reason:
+            errors['rejection_reason'] = 'A rejection reason is required when rejecting a payout.'
+        if errors:
+            raise ValidationError(errors)
+
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)

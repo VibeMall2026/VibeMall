@@ -1,0 +1,97 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load static %}
+
+{% block title %}Settlements - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="fw-bold py-3 mb-4">
+        <span class="text-muted fw-light">Resell Management /</span> Seller Settlements
+    </h4>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label" for="from">From</label>
+                    <input type="date" class="form-control" id="from" name="from" value="{{ date_from }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="to">To</label>
+                    <input type="date" class="form-control" id="to" name="to" value="{{ date_to }}">
+                </div>
+                <div class="col-md-6 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Apply</button>
+                    <a href="?from={{ date_from }}&to={{ date_to }}&export=csv" class="btn btn-outline-secondary">
+                        Export CSV
+                    </a>
+                    {% if date_from or date_to %}
+                    <a href="{% url 'admin_seller_settlements' %}" class="btn btn-outline-secondary">Reset</a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header py-3">
+            <h5 class="mb-0">{% if seller_mode %}Your settlement{% else %}Settlement by seller{% endif %}</h5>
+        </div>
+        <div class="table-responsive text-nowrap">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        {% if not seller_mode %}<th>Seller</th>{% endif %}
+                        <th class="text-end">Gross sales</th>
+                        <th class="text-end">Commission</th>
+                        <th class="text-end">TDS</th>
+                        <th class="text-end">Net earned</th>
+                        <th class="text-end">Paid out</th>
+                        <th class="text-end">Outstanding</th>
+                    </tr>
+                </thead>
+                <tbody class="table-border-bottom-0">
+                    {% for row in rows %}
+                    <tr>
+                        {% if not seller_mode %}<td>{{ row.seller }}</td>{% endif %}
+                        <td class="text-end">₹{{ row.gross }}</td>
+                        <td class="text-end text-muted">−₹{{ row.commission }}</td>
+                        <td class="text-end text-muted">{% if row.tds %}−₹{{ row.tds }}{% else %}—{% endif %}</td>
+                        <td class="text-end fw-semibold">₹{{ row.net }}</td>
+                        <td class="text-end text-success">₹{{ row.paid }}</td>
+                        <td class="text-end {% if row.outstanding %}text-warning fw-semibold{% else %}text-muted{% endif %}">
+                            ₹{{ row.outstanding }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="{% if seller_mode %}6{% else %}7{% endif %}" class="text-center py-5 text-muted">
+                            No settlement data for this period.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% if rows %}
+                <tfoot class="table-light fw-semibold">
+                    <tr>
+                        {% if not seller_mode %}<td>Total</td>{% endif %}
+                        <td class="text-end">₹{{ totals.gross }}</td>
+                        <td class="text-end">−₹{{ totals.commission }}</td>
+                        <td class="text-end">{% if totals.tds %}−₹{{ totals.tds }}{% else %}—{% endif %}</td>
+                        <td class="text-end">₹{{ totals.net }}</td>
+                        <td class="text-end text-success">₹{{ totals.paid }}</td>
+                        <td class="text-end text-warning">₹{{ totals.outstanding }}</td>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+
+    <div class="alert alert-secondary mt-4 mb-0 small">
+        <strong>Gross</strong> is the seller's own product value before commission — shipping, tax
+        and coupon discounts are excluded. <strong>Outstanding</strong> is net earned minus what has
+        actually been paid out, so it includes earnings still pending delivery.
+    </div>
+</div>
+{% endblock %}

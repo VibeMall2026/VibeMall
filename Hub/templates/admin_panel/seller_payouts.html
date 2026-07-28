@@ -1,0 +1,180 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load static %}
+
+{% block title %}Seller Payouts - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="fw-bold py-3 mb-4">
+        <span class="text-muted fw-light">Resell Management /</span> Seller Payouts
+    </h4>
+
+    {% if not seller_mode and pending_count %}
+    <div class="alert alert-warning">
+        <strong>{{ pending_count }}</strong> payout request{{ pending_count|pluralize }} awaiting your review.
+    </div>
+    {% endif %}
+
+    {% if not seller_mode and not gateway_enabled %}
+    <div class="alert alert-secondary small mb-4">
+        Automated transfers are off. Approve a payout, send the money through your bank or
+        Razorpay dashboard, then mark it <strong>Completed</strong> with the reference number.
+        Set <code>SELLER_PAYOUT_GATEWAY_ENABLED=1</code> to enable in-app transfers.
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h5 class="mb-0">Payouts <span class="text-muted fs-6">({{ total_count }})</span></h5>
+            <form method="get" class="d-flex gap-2">
+                <select name="status" class="form-select form-select-sm" style="width: 170px;">
+                    <option value="all"{% if status_filter == 'ALL' %} selected{% endif %}>All statuses</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}"{% if status_filter == value %} selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+            </form>
+        </div>
+
+        <div class="table-responsive text-nowrap">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        {% if not seller_mode %}<th>Seller</th>{% endif %}
+                        <th class="text-end">Amount</th>
+                        <th>Method</th>
+                        <th>Destination</th>
+                        <th>Status</th>
+                        <th>Requested</th>
+                        {% if not seller_mode %}<th>Action</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody class="table-border-bottom-0">
+                    {% for p in payouts %}
+                    <tr>
+                        <td>{{ p.id }}</td>
+                        {% if not seller_mode %}<td>{{ p.seller.username }}</td>{% endif %}
+                        <td class="text-end fw-semibold">₹{{ p.amount }}</td>
+                        <td><small>{{ p.get_payout_method_display }}</small></td>
+                        <td>
+                            <small class="text-muted">
+                                {% if p.payout_method == 'UPI' %}{{ p.upi_id }}
+                                {% else %}{{ p.bank_account_number }} / {{ p.bank_ifsc_code }}{% endif %}
+                            </small>
+                        </td>
+                        <td>
+                            {% if p.status == 'COMPLETED' %}
+                                <span class="badge bg-label-success">Completed</span>
+                            {% elif p.status == 'PENDING' %}
+                                <span class="badge bg-label-warning">Pending</span>
+                            {% elif p.status == 'APPROVED' %}
+                                <span class="badge bg-label-info">Approved</span>
+                            {% elif p.status == 'PROCESSING' %}
+                                <span class="badge bg-label-info">Processing</span>
+                            {% elif p.status == 'REJECTED' %}
+                                <span class="badge bg-label-danger">Rejected</span>
+                            {% else %}
+                                <span class="badge bg-label-danger">Failed</span>
+                            {% endif %}
+                            {% if '[ALERT]' in p.admin_notes %}
+                                <span class="badge bg-danger" title="{{ p.admin_notes }}">Needs review</span>
+                            {% endif %}
+                        </td>
+                        <td><small class="text-muted">{{ p.requested_at|date:"d M Y H:i" }}</small></td>
+
+                        {% if not seller_mode %}
+                        <td>
+                            {% if p.status == 'PENDING' %}
+                            <form method="post" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="payout_id" value="{{ p.id }}">
+                                <input type="hidden" name="action" value="approve">
+                                <button class="btn btn-xs btn-success">Approve</button>
+                            </form>
+                            <button class="btn btn-xs btn-outline-danger" data-bs-toggle="collapse"
+                                    data-bs-target="#reject{{ p.id }}">Reject</button>
+                            <div class="collapse mt-2" id="reject{{ p.id }}">
+                                <form method="post" class="d-flex gap-1">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="payout_id" value="{{ p.id }}">
+                                    <input type="hidden" name="action" value="reject">
+                                    <input type="text" name="note" class="form-control form-control-sm"
+                                           placeholder="Reason (required)" required>
+                                    <button class="btn btn-xs btn-danger">Confirm</button>
+                                </form>
+                            </div>
+
+                            {% elif p.status == 'APPROVED' or p.status == 'PROCESSING' %}
+                            {% if gateway_enabled and p.status == 'APPROVED' %}
+                            <form method="post" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="payout_id" value="{{ p.id }}">
+                                <input type="hidden" name="action" value="gateway">
+                                <button class="btn btn-xs btn-primary">Send via gateway</button>
+                            </form>
+                            {% endif %}
+                            <button class="btn btn-xs btn-outline-success" data-bs-toggle="collapse"
+                                    data-bs-target="#done{{ p.id }}">Mark paid</button>
+                            <div class="collapse mt-2" id="done{{ p.id }}">
+                                <form method="post" class="d-flex gap-1 mb-1">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="payout_id" value="{{ p.id }}">
+                                    <input type="hidden" name="action" value="complete">
+                                    <input type="text" name="note" class="form-control form-control-sm"
+                                           placeholder="Bank/UTR reference">
+                                    <button class="btn btn-xs btn-success">Confirm</button>
+                                </form>
+                                <form method="post" class="d-flex gap-1">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="payout_id" value="{{ p.id }}">
+                                    <input type="hidden" name="action" value="fail">
+                                    <input type="text" name="note" class="form-control form-control-sm"
+                                           placeholder="Why it failed">
+                                    <button class="btn btn-xs btn-outline-danger">Mark failed</button>
+                                </form>
+                            </div>
+
+                            {% else %}
+                            <small class="text-muted">
+                                {% if p.processed_by %}by {{ p.processed_by.username }}{% endif %}
+                                {% if p.transaction_id %}<br>{{ p.transaction_id }}{% endif %}
+                            </small>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="{% if seller_mode %}6{% else %}8{% endif %}" class="text-center py-5 text-muted">
+                            No payouts yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if page_obj.has_other_pages %}
+        <div class="card-footer">
+            <nav>
+                <ul class="pagination pagination-sm mb-0 justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&status={{ status_filter|lower }}">Previous</a></li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">Previous</span></li>
+                    {% endif %}
+                    <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+                    {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&status={{ status_filter|lower }}">Next</a></li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">Next</span></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

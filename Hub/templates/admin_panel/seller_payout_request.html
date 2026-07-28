@@ -1,0 +1,161 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load static %}
+
+{% block title %}Withdraw Earnings - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="fw-bold py-3 mb-4">
+        <span class="text-muted fw-light">Resell Management /</span> Withdraw Earnings
+    </h4>
+
+    <div class="row">
+        <div class="col-lg-5 mb-4">
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    <span class="fw-semibold d-block mb-1 text-muted">Available to withdraw</span>
+                    <h1 class="mb-1 text-success">₹{{ settleable_total }}</h1>
+                    <small class="text-muted">Minimum withdrawal ₹{{ min_payout }}</small>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Pending (awaiting delivery)</span>
+                        <span>₹{{ summary.pending_amount }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Paid out to date</span>
+                        <span>₹{{ summary.paid_amount }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Platform commission</span>
+                        <span>−₹{{ summary.commission_paid }}</span>
+                    </div>
+                    {% if summary.tds_withheld %}
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">TDS withheld</span>
+                        <span>−₹{{ summary.tds_withheld }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if settleable_earnings %}
+            <div class="card">
+                <div class="card-header py-3"><h6 class="mb-0">Earnings ready to withdraw</h6></div>
+                <ul class="list-group list-group-flush">
+                    {% for e in settleable_earnings %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <small class="text-muted">#{{ e.order.order_number }}</small>
+                        <span class="fw-semibold">₹{{ e.net_amount }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-lg-7 mb-4">
+            <div class="card mb-4">
+                <div class="card-header py-3"><h6 class="mb-0">Request a withdrawal</h6></div>
+                <div class="card-body">
+                    {% if settleable_total < min_payout %}
+                    <div class="alert alert-secondary mb-0">
+                        You need at least ₹{{ min_payout }} in confirmed earnings to withdraw.
+                        Earnings become available once the order is delivered.
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info small">
+                        A withdrawal settles whole earnings, oldest first. If the amount you enter
+                        does not fit a whole earning, you will be told the nearest amount that does.
+                    </div>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label" for="amount">Amount (₹)</label>
+                            <input type="number" step="0.01" min="0" class="form-control" id="amount"
+                                   name="amount" value="{{ settleable_total }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="payout_method">Method</label>
+                            <select class="form-select" id="payout_method" name="payout_method" required>
+                                {% for value, label in method_choices %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="upi_id">UPI ID</label>
+                                <input type="text" class="form-control" id="upi_id" name="upi_id"
+                                       value="{{ profile.upi_id }}" placeholder="name@bank">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="bank_account_name">Account holder</label>
+                                <input type="text" class="form-control" id="bank_account_name"
+                                       name="bank_account_name" value="{{ profile.bank_account_name }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="bank_account_number">Account number</label>
+                                <input type="text" class="form-control" id="bank_account_number"
+                                       name="bank_account_number" value="{{ profile.bank_account_number }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="bank_ifsc_code">IFSC</label>
+                                <input type="text" class="form-control" id="bank_ifsc_code"
+                                       name="bank_ifsc_code" value="{{ profile.bank_ifsc_code }}">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Request withdrawal</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header py-3"><h6 class="mb-0">Your withdrawal history</h6></div>
+                <div class="table-responsive text-nowrap">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Requested</th>
+                                <th class="text-end">Amount</th>
+                                <th>Method</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="table-border-bottom-0">
+                            {% for p in payouts %}
+                            <tr>
+                                <td><small>{{ p.requested_at|date:"d M Y" }}</small></td>
+                                <td class="text-end fw-semibold">₹{{ p.amount }}</td>
+                                <td><small>{{ p.get_payout_method_display }}</small></td>
+                                <td>
+                                    {% if p.status == 'COMPLETED' %}
+                                        <span class="badge bg-label-success">Completed</span>
+                                    {% elif p.status == 'PENDING' %}
+                                        <span class="badge bg-label-warning">Pending</span>
+                                    {% elif p.status == 'APPROVED' or p.status == 'PROCESSING' %}
+                                        <span class="badge bg-label-info">{{ p.get_status_display }}</span>
+                                    {% elif p.status == 'REJECTED' %}
+                                        <span class="badge bg-label-danger" title="{{ p.rejection_reason }}">Rejected</span>
+                                    {% else %}
+                                        <span class="badge bg-label-danger">Failed</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-center py-4 text-muted">No withdrawals yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
