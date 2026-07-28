@@ -156,18 +156,33 @@ class CheckoutCouponWiringTests(TestCase):
         .vm-checkout-d-coupon-card button only set min-width, so Apply rendered
         as a bare browser default next to the styled Remove button on the
         applied-coupon card. It must carry the same treatment.
+
+        Asserted against the served page, not the stylesheet on disk: the panel
+        rules previously sat in checkout-desktop-alt.css, which a deploy without
+        collectstatic served in a truncated form. A file-level check passed while
+        shoppers still saw unstyled text.
         """
-        from pathlib import Path
-
-        from django.conf import settings
-
-        css = Path(settings.BASE_DIR, 'Hub', 'static', 'assets', 'css',
-                   'checkout-desktop-alt.css').read_text(encoding='utf-8')
-        rule = css.split('.vm-checkout-d-coupon-card button {', 1)
-        self.assertEqual(len(rule), 2, "no rule for the coupon-card button")
+        html = self._page()
+        rule = html.split('.vm-checkout-d-coupon-card button {', 1)
+        self.assertEqual(len(rule), 2, "the served page carries no coupon-card button rule")
         block = rule[1].split('}', 1)[0]
         for prop in ('background', 'color', 'height', 'text-transform'):
             self.assertIn(prop, block, f"Apply button is missing {prop}")
+
+    def test_coupon_panel_css_ships_with_the_page(self):
+        """
+        The panel styling must not depend on collectstatic having run - that is
+        exactly how it went missing. These rules have to be in the HTML itself.
+        """
+        html = self._page()
+        for rule in ('.vm-checkout-d-coupon-panel__head {',
+                     '.vm-checkout-d-coupon-panel__list {',
+                     '.vm-checkout-d-coupon-card {',
+                     '.vm-checkout-d-coupon-meta span {'):
+            self.assertIn(rule, html, f"{rule} is not served with the page")
+        # and the dark treatment that matches the applied-coupon card
+        card = html.split('.vm-checkout-d-coupon-card {', 1)[1].split('}', 1)[0]
+        self.assertIn('#171818', card)
 
     def test_coupon_card_markup_matches_the_stylesheet(self):
         """The renderer's class names have to be the ones the CSS targets."""

@@ -494,117 +494,13 @@
     color: #fff;
   }
 
-  .vm-checkout-d-coupon-panel {
-    margin-top: 12px;
-    padding: 16px;
-    border: 1px solid rgba(220, 195, 151, 0.9);
-    border-radius: 10px;
-    background: rgba(250, 223, 177, 0.12);
-  }
-
-  .vm-checkout-d-coupon-panel__head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
-  }
-
-  .vm-checkout-d-coupon-panel__head strong {
-    color: #171818;
-    font-size: 13px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-
-  .vm-checkout-d-coupon-panel__head span {
-    color: rgba(23, 24, 24, 0.65);
-    font-size: 12px;
-  }
-
-  .vm-checkout-d-coupon-panel__list {
-    display: grid;
-    gap: 10px;
-  }
-
-  /* Same dark treatment as #appliedCouponDisplay so the list a shopper picks
-     from and the card they end up with read as one component. */
-  .vm-checkout-d-coupon-card {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 12px;
-    align-items: center;
-    padding: 16px;
-    border-radius: 8px;
-    background: #171818;
-    color: #fff;
-  }
-
-  .vm-checkout-d-coupon-card.is-used {
-    opacity: 0.55;
-  }
-
-  .vm-checkout-d-coupon-card h5 {
-    margin: 0 0 4px;
-    font-size: 16px;
-    font-weight: 800;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: #fff;
-  }
-
-  .vm-checkout-d-coupon-card p {
-    margin: 0 0 8px;
-    color: rgba(255, 255, 255, 0.68);
-    font-size: 13px;
-    line-height: 1.5;
-  }
-
-  .vm-checkout-d-coupon-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .vm-checkout-d-coupon-meta span {
-    display: inline-flex;
-    align-items: center;
-    min-height: 26px;
-    padding: 0 10px;
-    border-radius: 999px;
-    background: rgba(220, 195, 151, 0.16);
-    color: #dcc397;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  /* Sits where REMOVE sits on the applied card, and matches it. */
-  .vm-checkout-d-coupon-card button {
-    min-width: 92px;
-    height: 48px;
-    border: 0;
-    border-radius: 6px;
-    background: #6f5c37;
-    color: #fff;
-    padding: 0 16px;
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    cursor: pointer;
-  }
-
-  .vm-checkout-d-coupon-card button:hover:not(:disabled) {
-    background: #877044;
-  }
-
-  .vm-checkout-d-coupon-card button:disabled {
-    background: rgba(255, 255, 255, 0.14);
-    color: rgba(255, 255, 255, 0.55);
-    cursor: not-allowed;
-  }
+  /* The available-coupons panel, its cards and the Apply button used to be
+     styled here. They now live in a <style> block inside checkout.html.
+     Reason: this stylesheet only reaches a browser after collectstatic, and
+     staticfiles/ is gitignored, so a deploy that skipped that step served a
+     build truncated right at .vm-checkout-d-coupon-panel - the panel rendered
+     as unstyled text while everything above the cut looked fine. Template
+     markup, its JS and now its CSS ship together and cannot fall out of sync. */
 
   .vm-checkout-d-side-note {
     margin-top: 22px;
