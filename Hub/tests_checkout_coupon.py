@@ -107,6 +107,47 @@ class CheckoutCouponWiringTests(TestCase):
         self.assertGreater(called, 0)
         self.assertEqual(defined, 1, "updateFinalTotal must be defined exactly once")
 
+    # ── template comments must not reach the browser ─────────────────────────
+
+    def test_no_template_comment_text_is_rendered(self):
+        """
+        {# #} is single-line only: a multi-line one is not a comment at all and
+        Django prints it as page copy. One had been left above the phone field
+        and showed up mid-page for shoppers.
+        """
+        html = self._page()
+        for leak in ('firstof, not', 'VariableDoesNotExist', 'ignore_failures',
+                     'a failed lookup inside a filter'):
+            self.assertNotIn(leak, html, f"template comment leaked: {leak!r}")
+        # the field the comment documented must still be there
+        self.assertIn('id="phoneField"', html)
+
+    # ── the Apply button must actually look like a button ────────────────────
+
+    def test_available_coupon_card_apply_button_is_styled(self):
+        """
+        .vm-checkout-d-coupon-card button only set min-width, so Apply rendered
+        as a bare browser default next to the styled Remove button on the
+        applied-coupon card. It must carry the same treatment.
+        """
+        from pathlib import Path
+
+        from django.conf import settings
+
+        css = Path(settings.BASE_DIR, 'Hub', 'static', 'assets', 'css',
+                   'checkout-desktop-alt.css').read_text(encoding='utf-8')
+        rule = css.split('.vm-checkout-d-coupon-card button {', 1)
+        self.assertEqual(len(rule), 2, "no rule for the coupon-card button")
+        block = rule[1].split('}', 1)[0]
+        for prop in ('background', 'color', 'height', 'text-transform'):
+            self.assertIn(prop, block, f"Apply button is missing {prop}")
+
+    def test_coupon_card_markup_matches_the_stylesheet(self):
+        """The renderer's class names have to be the ones the CSS targets."""
+        html = self._page()
+        self.assertIn('vm-checkout-d-coupon-card', html)
+        self.assertIn('vm-checkout-d-coupon-meta', html)
+
     # ── data plumbing ────────────────────────────────────────────────────────
 
     def test_available_coupons_payload_is_rendered(self):

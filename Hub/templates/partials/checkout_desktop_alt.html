@@ -72,10 +72,12 @@
                             <label for="phoneField">Phone Number</label>
                             <div class="vm-checkout-d-phone">
                                 <span class="vm-checkout-d-country-prefix">+91</span>
-                                {# firstof, not |default: - a failed lookup inside a filter ARGUMENT raises
-                                   VariableDoesNotExist instead of being swallowed, so any shopper without a
-                                   saved default address used to 500 on this page. firstof resolves with
-                                   ignore_failures, so a missing address is simply skipped. #}
+                                {% comment %}
+                                firstof, not |default: - a failed lookup inside a filter ARGUMENT raises
+                                VariableDoesNotExist instead of being swallowed, so any shopper without a
+                                saved default address used to 500 on this page. firstof resolves with
+                                ignore_failures, so a missing address is simply skipped.
+                                {% endcomment %}
                                 <input type="text" id="phoneField" name="phone" value="{% firstof checkout_form.phone default_address.mobile_number user_profile.mobile_number '' %}" placeholder="98765 43210" required>
                             </div>
                         </div>

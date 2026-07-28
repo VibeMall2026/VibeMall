@@ -4,10 +4,12 @@
     <p>Join the inner circle for early access to collections and private atelier events.</p>
     <form class="js-newsletter-form" action="{% url 'subscribe_newsletter' %}" method="post" novalidate>
         {% csrf_token %}
-        {# firstof, not |default: - Django resolves a filter's ARGUMENT even when the
-           filter never uses it, and a failed lookup there raises instead of being
-           swallowed. resolver_match is None while an error page renders, which turned
-           any error on a page including this footer into a second, confusing 500. #}
+        {% comment %}
+        firstof, not |default: - Django resolves a filter's ARGUMENT even when the
+        filter never uses it, and a failed lookup there raises instead of being
+        swallowed. resolver_match is None while an error page renders, which turned
+        any error on a page including this footer into a second, confusing 500.
+        {% endcomment %}
         <input type="hidden" name="source_page" value="{% firstof newsletter_source request.resolver_match.url_name 'mobile-alt' %}">
         <input type="email" name="email" placeholder="YOUR EMAIL ADDRESS" required>
         <button type="submit">Subscribe</button>

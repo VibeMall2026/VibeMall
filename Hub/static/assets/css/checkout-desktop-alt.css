@@ -527,30 +527,35 @@
     gap: 10px;
   }
 
+  /* Same dark treatment as #appliedCouponDisplay so the list a shopper picks
+     from and the card they end up with read as one component. */
   .vm-checkout-d-coupon-card {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 12px;
     align-items: center;
-    padding: 14px;
+    padding: 16px;
     border-radius: 8px;
-    background: #fff;
-    border: 1px solid rgba(196, 199, 199, 0.32);
+    background: #171818;
+    color: #fff;
   }
 
   .vm-checkout-d-coupon-card.is-used {
-    opacity: 0.6;
+    opacity: 0.55;
   }
 
   .vm-checkout-d-coupon-card h5 {
-    margin: 0 0 6px;
+    margin: 0 0 4px;
     font-size: 16px;
-    color: #171818;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #fff;
   }
 
   .vm-checkout-d-coupon-card p {
-    margin: 0 0 6px;
-    color: rgba(23, 24, 24, 0.68);
+    margin: 0 0 8px;
+    color: rgba(255, 255, 255, 0.68);
     font-size: 13px;
     line-height: 1.5;
   }
@@ -567,16 +572,38 @@
     min-height: 26px;
     padding: 0 10px;
     border-radius: 999px;
-    background: rgba(111, 92, 55, 0.1);
-    color: #6f5c37;
+    background: rgba(220, 195, 151, 0.16);
+    color: #dcc397;
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
 
+  /* Sits where REMOVE sits on the applied card, and matches it. */
   .vm-checkout-d-coupon-card button {
     min-width: 92px;
+    height: 48px;
+    border: 0;
+    border-radius: 6px;
+    background: #6f5c37;
+    color: #fff;
+    padding: 0 16px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .vm-checkout-d-coupon-card button:hover:not(:disabled) {
+    background: #877044;
+  }
+
+  .vm-checkout-d-coupon-card button:disabled {
+    background: rgba(255, 255, 255, 0.14);
+    color: rgba(255, 255, 255, 0.55);
+    cursor: not-allowed;
   }
 
   .vm-checkout-d-side-note {
