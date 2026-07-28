@@ -106,28 +106,6 @@ def _extract_strategy_name(strategy_id: str | None, comment: str | None) -> str:
     return "algo"
 
 
-def _is_signal_forge_notice(
-    strategy_id: str | None,
-    comment: str | None,
-    account_label: str | None = None,
-) -> bool:
-    sid = str(strategy_id or "").strip().lower()
-    if sid in {"signal_forge", "sfg"}:
-        label = str(account_label or "").strip().lower()
-        return any(
-            marker in label
-            for marker in (
-                "signal forge gold",
-                "signalforgegold",
-                "the5ers funded",
-                "signal forge gold 5%",
-                "signal forge gold demo",
-            )
-        )
-    raw = str(comment or "").strip().upper()
-    return raw.startswith("ALGO:SFG") or "SIGNAL_FORGE" in raw
-
-
 async def _send_via_bot_api(chat_id: str, text: str) -> None:
     import httpx
 
@@ -225,9 +203,11 @@ def send_algo_execution_alert(
     strategy_id: str | None = None,
     comment: str | None = None,
 ) -> bool:
+    # Which accounts get alerts is controlled by TG_EXECUTION_ALERT_ACCOUNT_LABELS.
+    # There used to be a second, hardcoded gate here that only let Signal Forge
+    # trades through, so every other strategy (Smart Money, Breakout) executed
+    # silently with no Telegram notification at all.
     if not _is_allowed_execution_account(account_label):
-        return False
-    if not _is_signal_forge_notice(strategy_id, comment, account_label=account_label):
         return False
     chat_id = _get_alert_destination()
     if not chat_id:
@@ -278,8 +258,6 @@ def send_algo_error_alert(
     if not getattr(config, "TG_ALGO_ERROR_ALERTS_ENABLED", True):
         return False
     if not _is_allowed_execution_account(account_label):
-        return False
-    if not _is_signal_forge_notice(strategy_id, comment, account_label=account_label):
         return False
     if _is_expected_algo_block_reason(reason):
         return False
