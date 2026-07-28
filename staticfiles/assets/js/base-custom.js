@@ -114,55 +114,84 @@
     const guestBox = document.getElementById('supportChatGuest');
     const guestName = document.getElementById('supportGuestName');
     const guestEmail = document.getElementById('supportGuestEmail');
+    const quickReplyButtons = Array.from(document.querySelectorAll('.chat-quick'));
     let threadId = null;
+    let threadLoaded = false;
+    let isSending = false;
+
+    if (!toggleBtn || !closeBtn || !panel || !messagesEl || !inputEl || !sendBtn) {
+        return;
+    }
 
     function getCsrfToken() {
         const cookie = document.cookie.split('; ').find(row => row.startsWith('csrftoken='));
         return cookie ? decodeURIComponent(cookie.split('=')[1]) : '';
     }
 
-    function renderMessages(messages) {
-        messagesEl.innerHTML = '';
-        messages.forEach((msg) => {
-            const bubble = document.createElement('div');
-            bubble.className = 'chat-bubble ' + (msg.sender === 'ADMIN' ? 'admin' : 'user');
-            if (msg.message) {
-                const textEl = document.createElement('div');
-                textEl.textContent = msg.message;
-                bubble.appendChild(textEl);
-            }
+    function createBubble(msg) {
+        const bubble = document.createElement('div');
+        bubble.className = 'chat-bubble ' + (msg.sender === 'ADMIN' ? 'admin' : 'user');
+        if (msg.message) {
+            const textEl = document.createElement('div');
+            textEl.textContent = msg.message;
+            bubble.appendChild(textEl);
+        }
 
-            if (msg.attachments && msg.attachments.length) {
-                const list = document.createElement('div');
-                list.className = 'chat-attachment-list';
-                msg.attachments.forEach((att) => {
-                    const link = document.createElement('a');
-                    link.className = 'chat-attachment-item';
-                    link.href = att.url;
-                    link.target = '_blank';
-                    if (att.is_image) {
-                        const img = document.createElement('img');
-                        img.src = att.url;
-                        img.alt = att.name;
-                        link.appendChild(img);
-                    } else {
-                        link.textContent = att.name;
-                    }
-                    list.appendChild(link);
-                });
-                bubble.appendChild(list);
-            }
-            messagesEl.appendChild(bubble);
+        if (msg.attachments && msg.attachments.length) {
+            const list = document.createElement('div');
+            list.className = 'chat-attachment-list';
+            msg.attachments.forEach((att) => {
+                const link = document.createElement('a');
+                link.className = 'chat-attachment-item';
+                link.href = att.url;
+                link.target = '_blank';
+                if (att.is_image) {
+                    const img = document.createElement('img');
+                    img.src = att.url;
+                    img.alt = att.name;
+                    link.appendChild(img);
+                } else {
+                    link.textContent = att.name;
+                }
+                list.appendChild(link);
+            });
+            bubble.appendChild(list);
+        }
+
+        return bubble;
+    }
+
+    function renderMessages(messages, replaceExisting = true) {
+        if (replaceExisting) {
+            messagesEl.innerHTML = '';
+        }
+        messages.forEach((msg) => {
+            messagesEl.appendChild(createBubble(msg));
         });
         messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
-    function loadThread() {
+    function setSendingState(sending) {
+        isSending = sending;
+        sendBtn.disabled = sending;
+        inputEl.disabled = sending;
+        if (fileInput) fileInput.disabled = sending;
+        quickReplyButtons.forEach((btn) => {
+            btn.disabled = sending;
+        });
+    }
+
+    function loadThread(forceReload = false) {
+        if (threadLoaded && !forceReload) {
+            return Promise.resolve();
+        }
+
         fetch('/chat/thread/')
             .then(res => res.json())
             .then((data) => {
                 threadId = data.thread_id;
-                renderMessages(data.messages || []);
+                renderMessages(data.messages || [], true);
+                threadLoaded = true;
                 if (guestBox) {
                     if (!userAuthenticated && data.requires_profile) {
                         guestBox.classList.remove('chat-hidden');
@@ -176,6 +205,10 @@
     }
 
     function sendMessage(text) {
+        if (isSending) {
+            return;
+        }
+
         const formData = new FormData();
         formData.append('message', text || '');
         if (threadId) formData.append('thread_id', threadId);
@@ -189,6 +222,7 @@
             });
         }
 
+        setSendingState(true);
         fetch('/chat/message/', {
             method: 'POST',
             headers: {
@@ -202,9 +236,16 @@
                 alert(data.error);
                 return;
             }
+            threadId = data.thread_id || threadId;
             inputEl.value = '';
             if (fileInput) fileInput.value = '';
-            loadThread();
+            renderMessages(data.messages || [], false);
+        })
+        .catch(() => {
+            alert('Unable to send message right now. Please try again.');
+        })
+        .finally(() => {
+            setSendingState(false);
         });
     }
 
@@ -239,7 +280,7 @@
         }
     });
 
-    document.querySelectorAll('.chat-quick').forEach((btn) => {
+    quickReplyButtons.forEach((btn) => {
         btn.addEventListener('click', () => {
             sendMessage(btn.dataset.text);
         });
@@ -664,7 +705,7 @@ async function buyNowCard(productId) {
 
 // Newsletter subscription forms (About/404 CTA blocks)
 document.addEventListener('DOMContentLoaded', function() {
-    const forms = document.querySelectorAll('.js-newsletter-form');
+    const forms = document.querySelectorAll('.js-newsletter-form, [data-vm-newsletter-form], form[action*="/newsletter/subscribe/"]');
     if (!forms.length) return;
 
     const setFeedback = (el, message, type) => {
@@ -676,7 +717,25 @@ document.addEventListener('DOMContentLoaded', function() {
         if (type === 'info') el.classList.add('text-warning');
     };
 
+    const ensureHoneypot = (form) => {
+        if (form.querySelector('input[name="company_website"], input[name="website"]')) return;
+        const honeypot = document.createElement('input');
+        honeypot.type = 'text';
+        honeypot.name = 'company_website';
+        honeypot.autocomplete = 'off';
+        honeypot.tabIndex = -1;
+        honeypot.setAttribute('aria-hidden', 'true');
+        honeypot.setAttribute('data-newsletter-honeypot', 'true');
+        honeypot.style.position = 'absolute';
+        honeypot.style.left = '-9999px';
+        honeypot.style.width = '1px';
+        honeypot.style.height = '1px';
+        honeypot.style.opacity = '0';
+        form.appendChild(honeypot);
+    };
+
     forms.forEach((form) => {
+        ensureHoneypot(form);
         const emailInput = form.querySelector('input[name=\"email\"]');
         const submitBtn = form.querySelector('button[type=\"submit\"]');
         const feedbackEl = form.parentElement.querySelector('.newsletter-feedback');

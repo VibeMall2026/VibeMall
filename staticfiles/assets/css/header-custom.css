@@ -2,6 +2,7 @@
 
 .search-suggest {
     position: relative;
+    isolation: isolate;
 }
 
 .search-results {
@@ -9,6 +10,9 @@
     top: 100%;
     left: 0;
     right: 0;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     background: #fff;
     border: 1px solid #e5e7eb;
     border-radius: 12px;
@@ -26,11 +30,13 @@
 
 .search-item {
     display: flex;
+    align-items: center;
     gap: 12px;
     padding: 10px 12px;
     border-bottom: 1px solid #f1f5f9;
     text-decoration: none;
     color: #0f172a;
+    min-width: 0;
 }
 
 .search-item:last-child {
@@ -54,14 +60,22 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+    min-width: 0;
+    flex: 1 1 auto;
 }
 
 .search-name {
+    display: block;
     font-weight: 600;
     font-size: 14px;
+    line-height: 1.35;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 .search-price {
+    display: block;
     font-size: 12px;
     color: #475569;
 }
@@ -79,6 +93,29 @@
 
 .offcanvas__search .search-item {
     padding: 12px 14px;
+}
+
+.vm-copy-search.search-suggest {
+    position: relative;
+    flex: 0 0 clamp(250px, 24vw, 380px);
+    min-width: clamp(250px, 24vw, 380px);
+    overflow: visible;
+}
+
+.vm-copy-search.search-suggest .search-results {
+    left: -1px;
+    right: -1px;
+    width: auto;
+}
+
+body[data-ui-chrome="desktop"] [aria-label="Support"],
+body[data-ui-chrome="desktop"] .support-button,
+body[data-ui-chrome="desktop"] .support-btn,
+body[data-ui-chrome="desktop"] #supportButton,
+body[data-ui-chrome="desktop"] #support-button,
+body[data-ui-chrome="desktop"] iframe[title*="support" i],
+body[data-ui-chrome="desktop"] iframe[title*="chat" i] {
+    display: none !important;
 }
 
 @media (max-width: 991.98px) {

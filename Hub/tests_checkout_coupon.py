@@ -122,6 +122,33 @@ class CheckoutCouponWiringTests(TestCase):
         # the field the comment documented must still be there
         self.assertIn('id="phoneField"', html)
 
+    # ── only one implementation may wire the coupon controls ─────────────────
+
+    def test_only_one_coupon_implementation_claims_the_controls(self):
+        """
+        base.html loads assets/js/checkout-coupons.js, which binds the same ids
+        as the inline block. Two click handlers on #viewAvailableCoupons toggle
+        the panel open and shut again, which reads as "the button does nothing".
+        Both sides must respect the shared claim flag.
+        """
+        html = self._page()
+        self.assertIn('window.__vmCheckoutCouponsInitialized = true;', html)
+        self.assertIn('const couponsAlreadyWired', html)
+        # every coupon listener must sit behind the claim
+        for guarded in ('!couponsAlreadyWired && viewCouponsBtn',
+                        '!couponsAlreadyWired && applyCouponBtn',
+                        '!couponsAlreadyWired && removeCouponBtn'):
+            self.assertIn(guarded, html)
+
+    def test_inline_block_renders_before_the_external_coupon_script(self):
+        """The claim flag only helps if the inline block gets to set it first."""
+        html = self._page()
+        inline_at = html.find('DESKTOP COUPONS + FINAL TOTAL')
+        external_at = html.find('checkout-coupons.js')
+        self.assertNotEqual(inline_at, -1)
+        self.assertNotEqual(external_at, -1)
+        self.assertLess(inline_at, external_at)
+
     # ── the Apply button must actually look like a button ────────────────────
 
     def test_available_coupon_card_apply_button_is_styled(self):

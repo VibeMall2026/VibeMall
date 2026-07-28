@@ -1552,6 +1552,15 @@ function applyOrderTypeUI() {
 // ReferenceError, which is why the desktop coupon box did nothing at all. It
 // is defined here, and the coupon controls in checkout_desktop_alt.html (which
 // ships no script of its own) are wired to it.
+//
+// base.html also loads assets/js/checkout-coupons.js, which binds the very same
+// element ids. Both sets of listeners on #viewAvailableCoupons would toggle the
+// panel open and straight back shut, so the two implementations share a claim
+// flag: whichever runs first wires the controls and the other stands down.
+// This inline block renders above that <script>, so it normally wins.
+const couponsAlreadyWired = window.__vmCheckoutCouponsInitialized === true;
+window.__vmCheckoutCouponsInitialized = true;
+
 const desktopCouponState = { applied: null };
 
 const couponCodeInput = document.getElementById('couponCode');
@@ -1745,7 +1754,7 @@ function renderAvailableCoupons() {
     });
 }
 
-if (viewCouponsBtn && couponsPanel) {
+if (!couponsAlreadyWired && viewCouponsBtn && couponsPanel) {
     viewCouponsBtn.addEventListener('click', () => {
         const isHidden = couponsPanel.style.display === 'none' || !couponsPanel.style.display;
         if (isHidden) {
@@ -1757,7 +1766,7 @@ if (viewCouponsBtn && couponsPanel) {
     });
 }
 
-if (applyCouponBtn && couponCodeInput) {
+if (!couponsAlreadyWired && applyCouponBtn && couponCodeInput) {
     applyCouponBtn.addEventListener('click', () => applyDesktopCoupon(couponCodeInput.value));
     couponCodeInput.addEventListener('keydown', event => {
         if (event.key === 'Enter') {
@@ -1769,7 +1778,7 @@ if (applyCouponBtn && couponCodeInput) {
     });
 }
 
-if (removeCouponBtn) {
+if (!couponsAlreadyWired && removeCouponBtn) {
     removeCouponBtn.addEventListener('click', () => {
         desktopCouponState.applied = null;
         if (couponCodeInput) couponCodeInput.value = '';
