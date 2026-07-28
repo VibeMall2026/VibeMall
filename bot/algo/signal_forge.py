@@ -316,12 +316,27 @@ def _compose_signal(symbol: str, f: dict) -> tuple[bool, bool, bool, bool]:
         long_cond = False
         short_cond = False
 
-    prev_long = _last_long_cond.get(symbol, False)
-    prev_short = _last_short_cond.get(symbol, False)
-    long_signal = bool(long_cond and (not prev_long))
-    short_signal = bool(short_cond and (not prev_short))
+    prev_long = _last_long_cond.get(symbol)
+    prev_short = _last_short_cond.get(symbol)
+
+    # First scan after process start: there is no previous bar in memory, so a
+    # condition that has been true for hours would look like a fresh crossover
+    # and fire an entry the market never actually triggered. Seed the state and
+    # emit nothing - the next real transition produces the signal.
+    first_scan = prev_long is None or prev_short is None
+
+    long_signal = bool(long_cond and not prev_long) and not first_scan
+    short_signal = bool(short_cond and not prev_short) and not first_scan
+
     _last_long_cond[symbol] = bool(long_cond)
     _last_short_cond[symbol] = bool(short_cond)
+
+    if first_scan:
+        logger.info(
+            f"[SIGNAL_FORGE] {symbol} baseline seeded on startup "
+            f"(long_cond={long_cond} short_cond={short_cond}) - no entry from this bar"
+        )
+
     return long_cond, short_cond, long_signal, short_signal
 
 

@@ -372,6 +372,16 @@ def main() -> None:
         api_thread.join()
         return
 
+    # Mark the bot running BEFORE the strategy threads start.
+    #
+    # Strategy threads scan immediately on start, but execute_on_all_accounts()
+    # rejects algo trades while state.running is False. state.running was only
+    # set once start_bot() reached its Telegram loop below, so a signal landing
+    # in that gap was dropped with "Algo execution blocked: bot is stopped".
+    # start_bot() sets the same flag, so this only closes the window - the
+    # night window is enforced per-account via trade_allowed, not this flag.
+    _state.running = True
+
     # Start ALL algo strategies assigned to accounts (parallel execution)
     from bot.algo.runner import start_all_strategies
     started = start_all_strategies()

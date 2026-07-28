@@ -15,7 +15,36 @@ from loguru import logger
 from bot.strategies import get_strategy
 
 
-_active_strategy_id = "order_block"
+def _default_strategy_id() -> str:
+    """
+    Pick the strategy this instance should report on by default.
+
+    Prefers whatever the instance is configured to trade (MT5_PRIMARY_STRATEGY),
+    falling back to the first registered strategy that has a live algo module.
+
+    This used to be hardcoded to "order_block", which is not in the strategy
+    registry at all — so _get_strategy_module() raised ValueError and every
+    /algo/* endpoint returned 500 until something called select_strategy().
+    """
+    from bot import config
+    from bot.strategies import get_available_strategies
+
+    configured = str(getattr(config, "MT5_PRIMARY_STRATEGY", "") or "").strip()
+    if configured:
+        strategy = get_strategy(configured)
+        if strategy and strategy.get("module"):
+            return configured
+
+    for strategy in get_available_strategies():
+        if strategy.get("module"):
+            return str(strategy["id"])
+
+    # Registry has no runnable module at all; keep the configured id so the
+    # error message names something the user recognises.
+    return configured or "signal_forge"
+
+
+_active_strategy_id = _default_strategy_id()
 
 
 def get_active_strategy_id() -> str:
