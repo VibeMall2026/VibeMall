@@ -130,6 +130,14 @@ TRAILING_STOP_ENABLED: bool = _bool("TRAILING_STOP_ENABLED", False)
 TRAILING_STOP_DISTANCE_R: float = _float("TRAILING_STOP_DISTANCE_R", 1.0)
 CLOSE_OPPOSITE_DUPLICATES: bool = _bool("CLOSE_OPPOSITE_DUPLICATES", False)
 
+# Signal Forge manages its own exits (partial booking, breakeven, profit lock,
+# ATR trailing, adverse-candle close) and does NOT read the settings above - it
+# uses its own AlgoConfig fields. Turned off because the account owner manages
+# exits by hand; the entry SL/TP are still sent to the broker as the safety net.
+# Note there is a second, time-based pause (is_manual_management_window, 10:00-
+# 22:00 IST) that other strategies honour. This switch is unconditional.
+SIGNAL_FORGE_AUTO_MANAGE: bool = _bool("SIGNAL_FORGE_AUTO_MANAGE", False)
+
 # ── Signal validation ─────────────────────────────────────────────────────────
 MAX_SPREAD_POINTS: int = _int("MAX_SPREAD_POINTS", 80)
 DUPLICATE_WINDOW_MINUTES: int = _int("DUPLICATE_WINDOW_MINUTES", 0)

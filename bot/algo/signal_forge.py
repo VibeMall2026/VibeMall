@@ -9,10 +9,12 @@ Implements the same core logic as the provided Pine script:
 """
 from __future__ import annotations
 
+import json
 import threading
 import time
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional
 
 from loguru import logger
@@ -46,6 +48,10 @@ class AlgoConfig:
     enable_ts: bool = False
     ts_mult: float = 1.0
     risk_check_interval_seconds: int = 1
+    # When false the bot opens the trade with SL/TP and then leaves it alone:
+    # no partial booking, no breakeven, no profit lock, no trailing, no
+    # adverse-candle exit. Everything below is only consulted when it is true.
+    auto_manage_trades: bool = runtime_config.SIGNAL_FORGE_AUTO_MANAGE
     partial_close_r: float = 0.5
     partial_close_fraction: float = 0.5
     rr_breakeven: float = 0.8
@@ -110,6 +116,110 @@ _last_bar_time: dict[str, datetime] = {}
 _last_long_cond: dict[str, bool] = {}
 _last_short_cond: dict[str, bool] = {}
 _managed_trades: dict[int, dict] = {}
+
+# _managed_trades drives every protective action: partial booking, breakeven,
+# profit lock, ATR trailing and the adverse-candle exit. It used to live only in
+# memory, so a restart silently abandoned every open position - they kept nothing
+# but whatever stop happened to be sitting at the broker. Restarts are not rare
+# (27 Jul 2026 saw 43 of them), so this was the normal case, not an edge case.
+_STATE_PATH = Path(__file__).resolve().parent.parent / "sessions" / "signal_forge_managed.json"
+_state_file_lock = threading.Lock()
+_resynced = False
+
+
+def _save_managed_trades() -> None:
+    """Best-effort persist. Never raises into the scan or risk loop."""
+    try:
+        with _state_file_lock:
+            payload = {
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "trades": {str(ticket): tr for ticket, tr in _managed_trades.items()},
+            }
+            _STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+            _STATE_PATH.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    except Exception as exc:
+        logger.warning(f"[SIGNAL_FORGE] Could not persist managed trades: {exc}")
+
+
+def _load_managed_trades() -> None:
+    """Best-effort restore. A missing or corrupt file just means an empty table."""
+    try:
+        if not _STATE_PATH.exists():
+            return
+        raw = _STATE_PATH.read_text(encoding="utf-8").strip()
+        if not raw:
+            return
+        trades = json.loads(raw).get("trades")
+        if not isinstance(trades, dict):
+            return
+        for key, tr in trades.items():
+            try:
+                ticket = int(key)
+            except (TypeError, ValueError):
+                continue
+            # one_r is what every trigger is measured against; an entry without
+            # it would make _manage_open_trade bail out on every pass anyway.
+            if isinstance(tr, dict) and float(tr.get("one_r") or 0) > 0:
+                _managed_trades[ticket] = tr
+    except Exception as exc:
+        logger.warning(f"[SIGNAL_FORGE] Could not restore managed trades: {exc}")
+
+
+def _resync_managed_trades() -> None:
+    """Reconcile the restored table against what is actually open at the broker."""
+    global _resynced
+
+    positions = mt5_bridge.get_open_positions()
+    live = {}
+    for pos in positions:
+        try:
+            ticket = int(pos.get("id") or pos.get("position_id") or 0)
+        except (TypeError, ValueError):
+            continue
+        if ticket > 0:
+            live[ticket] = pos
+
+    dropped = [ticket for ticket in _managed_trades if ticket not in live]
+    for ticket in dropped:
+        _managed_trades.pop(ticket, None)
+
+    adopted = 0
+    for ticket, pos in live.items():
+        if ticket in _managed_trades:
+            continue
+        if "ALGO:SFG" not in str(pos.get("comment") or ""):
+            continue  # not this strategy's position - leave it alone
+        entry = float(pos.get("entry") or 0.0)
+        sl = float(pos.get("sl") or 0.0)
+        if entry <= 0 or sl <= 0:
+            continue
+        # The original 1R cannot be recovered once the stop has been trailed, so
+        # the live stop distance stands in for it. That can only understate 1R,
+        # which makes breakeven and profit-lock arm earlier than intended - the
+        # safe direction to be wrong in.
+        one_r = abs(entry - sl)
+        if one_r <= 0:
+            continue
+        _managed_trades[ticket] = {
+            "symbol": str(pos.get("symbol") or ""),
+            "side": str(pos.get("side") or "").lower(),
+            "entry": entry,
+            "initial_sl": sl,
+            "one_r": one_r,
+            "partial_closed": False,
+            "r_stage": 0,
+            "adverse_count": 0,
+            "adopted_on_restart": True,
+        }
+        adopted += 1
+
+    _resynced = True
+    if dropped or adopted:
+        _save_managed_trades()
+    logger.info(
+        f"[SIGNAL_FORGE] Managed-trade resync | now_managing={len(_managed_trades)} "
+        f"adopted={adopted} dropped_closed={len(dropped)}"
+    )
 
 
 def _normalize_symbols(symbol_value: Optional[str]) -> list[str]:
@@ -383,9 +493,11 @@ def _execute_signal(symbol: str, side: str, atr_val: float) -> None:
     )
     succ = [r for r in (results or []) if r.get("success")]
     if succ:
+        registered = False
         for s in succ:
             t = int(s.get("ticket") or 0)
             if t > 0:
+                registered = True
                 _managed_trades[t] = {
                     "symbol": symbol,
                     "side": side,
@@ -401,6 +513,8 @@ def _execute_signal(symbol: str, side: str, atr_val: float) -> None:
                 f"{symbol} {side.upper()} ticket={s.get('ticket')} lot={s.get('lot')} "
                 f"entry={float(price):.5f} sl={float(sl):.5f} tp={float(tp):.5f}"
             )
+        if registered:
+            _save_managed_trades()
     else:
         logger.warning(f"[SIGNAL_FORGE] Signal not executed on mapped accounts | {symbol} {side.upper()} | {results}")
 
@@ -459,10 +573,14 @@ def _loop() -> None:
 def _manage_open_trade(ticket: int, tr: dict) -> None:
     from bot.algo.human_mind import execute_partial_close, close_trade, is_manual_management_window
 
+    if not bool(algo_config.auto_manage_trades):
+        return  # exits are handled by hand; never touch a live position
+
     positions = mt5_bridge.get_open_positions()
     pos = next((p for p in positions if int(p.get("id") or p.get("position_id") or 0) == int(ticket)), None)
     if not pos:
-        _managed_trades.pop(ticket, None)
+        if _managed_trades.pop(ticket, None) is not None:
+            _save_managed_trades()
         return
     if is_manual_management_window():
         return
@@ -486,6 +604,7 @@ def _manage_open_trade(ticket: int, tr: dict) -> None:
         vol = float(pos.get("volume") or 0.0)
         if vol > 0 and execute_partial_close(ticket, symbol, vol, close_fraction=float(algo_config.partial_close_fraction)):
             tr["partial_closed"] = True
+            _save_managed_trades()
             logger.success(f"[SIGNAL_FORGE] Partial close | ticket={ticket} at R={profit_r:.2f}")
 
     # Breakeven / profit lock / trailing
@@ -520,7 +639,11 @@ def _manage_open_trade(ticket: int, tr: dict) -> None:
         if improved:
             res = mt5_bridge.modify_position(ticket, sl=float(new_sl))
             if res.get("success"):
-                tr["r_stage"] = stage
+                if stage != int(tr.get("r_stage", 0)):
+                    # The stop moves many times a minute; only a stage change is
+                    # worth a disk write, and it is the part a restart must know.
+                    tr["r_stage"] = stage
+                    _save_managed_trades()
                 logger.info(f"[SIGNAL_FORGE] SL trail | ticket={ticket} old={current_sl:.5f} new={new_sl:.5f} stage={stage}")
 
     # Adverse momentum pre-SL close
@@ -539,6 +662,7 @@ def _manage_open_trade(ticket: int, tr: dict) -> None:
                     if close_trade(ticket, symbol, side, "ALGO:SFG_ADVERSE_EXIT"):
                         logger.warning(f"[SIGNAL_FORGE] Adverse pre-SL close | ticket={ticket} profit_r={profit_r:.2f}")
                         _managed_trades.pop(ticket, None)
+                        _save_managed_trades()
 
 
 def _risk_loop() -> None:
@@ -546,18 +670,27 @@ def _risk_loop() -> None:
     while _running:
         try:
             if mt5_bridge.ensure_connected():
-                for ticket, tr in list(_managed_trades.items()):
-                    _manage_open_trade(int(ticket), tr)
+                # Done on the first connected pass rather than in start_algo,
+                # because MT5 is often not up yet at the moment the thread starts.
+                # Runs even with auto-management off so the table - and the
+                # managed_trades count in the status - still reflects reality.
+                if not _resynced:
+                    _resync_managed_trades()
+                if bool(algo_config.auto_manage_trades):
+                    for ticket, tr in list(_managed_trades.items()):
+                        _manage_open_trade(int(ticket), tr)
         except Exception as exc:
             logger.error(f"[SIGNAL_FORGE] Risk loop error: {exc}")
         time.sleep(max(1, int(algo_config.risk_check_interval_seconds)))
 
 
 def start_algo() -> bool:
-    global _running, _thread, _risk_thread
+    global _running, _thread, _risk_thread, _resynced
     if _running:
         return True
     _running = True
+    _resynced = False
+    _load_managed_trades()
     _thread = threading.Thread(target=_loop, daemon=True, name="SignalForgeAlgo")
     _risk_thread = threading.Thread(target=_risk_loop, daemon=True, name="SignalForgeRisk")
     _thread.start()
@@ -588,6 +721,7 @@ def get_algo_status() -> dict:
             "analysis_timeframe": algo_config.analysis_timeframe,
             "risk_percent": algo_config.risk_percent,
             "require_all": algo_config.require_all,
+            "auto_manage_trades": algo_config.auto_manage_trades,
             "managed_trades": len(_managed_trades),
             "assigned_accounts": assigned,
             "last_scan_at": _last_scan_at,
@@ -602,6 +736,7 @@ def update_algo_config(
     analysis_tf: Optional[int] = None,
     scan_interval_seconds: Optional[int] = None,
     require_all: Optional[bool] = None,
+    auto_manage_trades: Optional[bool] = None,
 ) -> dict:
     if symbol is not None:
         syms = _normalize_symbols(symbol)
@@ -618,5 +753,11 @@ def update_algo_config(
         algo_config.scan_interval_seconds = int(scan_interval_seconds)
     if require_all is not None:
         algo_config.require_all = bool(require_all)
+    if auto_manage_trades is not None:
+        algo_config.auto_manage_trades = bool(auto_manage_trades)
+        logger.warning(
+            f"[SIGNAL_FORGE] Auto trade management "
+            f"{'ENABLED - the bot will move stops and close positions' if algo_config.auto_manage_trades else 'DISABLED - exits are manual'}"
+        )
     logger.info(f"[SIGNAL_FORGE] Config updated: {algo_config}")
     return get_algo_status()

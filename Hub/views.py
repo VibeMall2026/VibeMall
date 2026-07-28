@@ -11182,7 +11182,9 @@ def razorpay_refund(request, order_id):
     refund_success, refund_error = _create_razorpay_refund(
         order.razorpay_payment_id,
         refund_amount_value,
-        notes=refund_notes
+        notes=refund_notes,
+        order=order,
+        requested_by=request.user,
     )
     
     if refund_success:
@@ -12036,6 +12038,15 @@ def _clear_return_draft_for_order(request, order_id):
         request.session.pop('return_draft', None)
 
 
+def _can_refund_to_source(order):
+    """True when there is a captured Razorpay payment that can be reversed."""
+    return (
+        (order.payment_method or '').strip().upper() == 'RAZORPAY'
+        and (order.payment_status or '').strip().upper() == 'PAID'
+        and bool((order.razorpay_payment_id or '').strip())
+    )
+
+
 def _process_refund(return_request, amount, refund_method=''):
     order = return_request.order
     refund_method = refund_method or return_request.refund_method or order.payment_method
@@ -12067,7 +12078,9 @@ def _process_refund(return_request, amount, refund_method=''):
                 notes={
                     'return_id': str(return_request.id),
                     'order_number': order.order_number,
+                    'reason': f'Return #{return_request.id}',
                 },
+                order=order,
             )
     elif refund_method == 'WALLET':
         profile, _ = UserProfile.objects.get_or_create(user=return_request.user)
@@ -12110,7 +12123,9 @@ def _process_cancellation_refund(order, cancel_request):
             notes={
                 'cancel_id': str(cancel_request.id),
                 'order_number': order.order_number,
+                'reason': f'Cancellation #{cancel_request.id}',
             },
+            order=order,
         )
     elif refund_method == 'WALLET':
         profile, _ = UserProfile.objects.get_or_create(user=order.user)
@@ -12132,15 +12147,47 @@ def _process_cancellation_refund(order, cancel_request):
     return refund_success, refund_notes
 
 
-def _create_razorpay_refund(payment_id, amount, notes=None):
+def _record_refund(order, payment_id, refund_id, amount, reason, requested_by=None):
+    """
+    Store the Razorpay refund id against the order.
+
+    Without this the refund id came back from Razorpay and was thrown away, so
+    a refund issued through a return could not be reconciled against the
+    gateway later. Never raises: a bookkeeping failure must not make a refund
+    that already went through look like it failed.
+    """
+    if order is None or not refund_id:
+        return
+    # Imported here rather than at module scope: views.py already pulls a long
+    # list of models at import time and Refund is only needed on this path.
+    from .models import Refund
+    try:
+        Refund.objects.get_or_create(
+            order=order,
+            razorpay_refund_id=refund_id,
+            defaults={
+                'razorpay_payment_id': payment_id,
+                'refund_amount': Decimal(str(amount)),
+                'status': 'SUCCESS',
+                'reason': (reason or '')[:2000],
+                'requested_by': requested_by if getattr(requested_by, 'is_authenticated', False) else None,
+            },
+        )
+    except Exception as exc:
+        logger.error(f'Refund {refund_id} succeeded but could not be recorded: {exc}')
+
+
+def _create_razorpay_refund(payment_id, amount, notes=None, order=None, requested_by=None):
     """
     Create a Razorpay refund with proper validation and error handling.
-    
+
     Args:
         payment_id: Razorpay payment ID (must start with 'pay_')
         amount: Refund amount as Decimal
         notes: Optional dict of notes to attach to refund
-    
+        order: Order the refund belongs to; when given the refund id is stored
+        requested_by: User who triggered it, for the audit row
+
     Returns:
         (success: bool, error_message: str)
         - If success=True, error_message is empty ('')
@@ -12206,6 +12253,15 @@ def _create_razorpay_refund(payment_id, amount, notes=None):
                 'amount': refund_paisa,
                 'notes': notes,
             })
+            _record_refund(
+                order=order,
+                payment_id=payment_id,
+                refund_id=(refund_result or {}).get('id', ''),
+                # what Razorpay actually accepted, which may be the capped figure
+                amount=Decimal(refund_paisa) / Decimal('100'),
+                reason=str(notes.get('reason') or notes.get('order_number') or 'Refund'),
+                requested_by=requested_by,
+            )
             return True, ''
         except BadRequestError as e:
             error_msg = str(e)
@@ -12469,7 +12525,16 @@ def return_request(request, order_id):
     order = get_object_or_404(Order, id=order_id, user=request.user)
     is_eligible, ineligible_reason, deadline, eligible_items = _return_eligibility(order)
     existing_return = _latest_order_return(order, request.user)
-    refund_options = [
+    # A prepaid order can be sent back down the rail it came in on. That is
+    # offered first so it is the pre-selected choice (the template checks
+    # forloop.first), while wallet stays available for anyone who wants the
+    # money instantly instead of waiting 5-7 days for the card/UPI credit.
+    # COD orders never get this option - there is no captured payment to
+    # reverse - and the POST validation below is driven off this same list.
+    refund_options = []
+    if _can_refund_to_source(order):
+        refund_options.append(('RAZORPAY', 'Back to original payment method'))
+    refund_options += [
         ('WALLET', 'VibeMall Wallet'),
         ('BANK', 'Direct Bank Transfer'),
         ('UPI', 'UPI ID'),
