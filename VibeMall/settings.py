@@ -62,7 +62,12 @@ SECRET_KEY = os.getenv(
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = _env_bool('DEBUG', True)
+# Defaults to False. It used to default to True, so a deploy that simply had no
+# DEBUG variable set served Django's debug pages on the live domain - the 404
+# page listed every admin-panel URL, and any unhandled exception would have
+# exposed the traceback along with settings. Developers opt in with DEBUG=1 in
+# their local .env; forgetting to set it can now only make a machine safer.
+DEBUG = _env_bool('DEBUG', False)
 
 ALLOWED_HOSTS = [
     host.strip() for host in os.getenv(

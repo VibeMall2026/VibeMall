@@ -8900,13 +8900,48 @@ def wishlist(request: HttpRequest) -> HttpResponse:
 
 def page_404(request): return render(request, '404.html', status=404)
 
+def _render_error_page(request, template_name, status, headline, message):
+    """
+    Render an error page without letting the error page become the error.
+
+    404.html and 500.html both extend base.html, which runs six database-backed
+    context processors. When the thing that failed IS the database, those raise
+    all over again while rendering the apology, and Django gives up and serves
+    its bare "A server error occurred (500)" text. The inline fallback below is
+    that last resort in VibeMall's own words - no template, no context
+    processors, no database.
+    """
+    try:
+        return render(request, template_name, status=status)
+    except Exception:
+        logger.exception('Error page %s could not be rendered', template_name)
+        return HttpResponse(
+            '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+            '<meta name="viewport" content="width=device-width, initial-scale=1">'
+            f'<title>{status} - VibeMall</title></head><body>'
+            '<div style="font-family:system-ui,-apple-system,sans-serif;max-width:32rem;'
+            'margin:15vh auto;padding:0 1.5rem;text-align:center;color:#171818">'
+            f'<h1 style="font-size:3.5rem;margin:0 0 .5rem">{headline}</h1>'
+            f'<p style="color:#666;line-height:1.6">{message}</p>'
+            '<p><a href="/" style="color:#6f5c37;font-weight:600">Back to VibeMall</a></p>'
+            '</div></body></html>',
+            status=status,
+        )
+
+
 def custom_404(request, exception=None):
-    """Custom 404 error handler"""
-    return render(request, '404.html', status=404)
+    """Handles 404, and is also wired to 400 and 403 in VibeMall/urls.py."""
+    return _render_error_page(
+        request, '404.html', 404, '404',
+        'We could not find that page. It may have been moved or removed.',
+    )
 
 def custom_500(request):
     """Custom 500 error handler"""
-    return render(request, '500.html', status=500)
+    return _render_error_page(
+        request, '500.html', 500, '500',
+        'Something went wrong at our end. Please try again in a moment.',
+    )
 
 def order_tracking(request):return render(request, 'order-tracking.html')
 
