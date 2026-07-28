@@ -1,1 +1,0 @@
-# Algorithmic trading strategies package
