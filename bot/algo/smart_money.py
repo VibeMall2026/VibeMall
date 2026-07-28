@@ -27,11 +27,14 @@ means $10, not $0.10.
 """
 from __future__ import annotations
 
+import json
 import threading
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Optional
+from zoneinfo import ZoneInfo
 
 from loguru import logger
 
@@ -158,6 +161,106 @@ _last_restrict_trend: dict[str, int] = {}
 
 _last_scan_at: Optional[str] = None
 _last_scan_summary: dict[str, dict] = {}
+
+# ---------------------------------------------------------------------------
+# Repeat-signal state persistence
+#
+# restrict_repeated_signals is enforced from _last_signal_direction /
+# _last_restrict_trend, which used to live only in memory. A process restart
+# wiped them, silently lifting the restriction: after a SELL the rule blocks
+# further SELLs until the trend leaves bearish, but a restarted process has no
+# "after a SELL" to remember and takes the duplicate. That is a risk change,
+# not a strategy change, so the state is persisted here.
+#
+# Scoped to one IST trading day. The bot's own window is 09:00-22:00 IST, so
+# midnight IST falls inside the idle window and never splits a session. A
+# stale file from a previous day is ignored rather than blocking the first
+# trade of a new day.
+# ---------------------------------------------------------------------------
+_IST = ZoneInfo("Asia/Kolkata")
+_STATE_PATH = Path(__file__).resolve().parent.parent / "sessions" / "smart_money_state.json"
+_state_file_lock = threading.Lock()
+
+
+def _trading_day() -> str:
+    return datetime.now(timezone.utc).astimezone(_IST).date().isoformat()
+
+
+def _load_signal_state() -> None:
+    """Best-effort restore of repeat-signal state for the current trading day."""
+    try:
+        if not _STATE_PATH.exists():
+            return
+        raw = _STATE_PATH.read_text(encoding="utf-8").strip()
+        if not raw:
+            return
+        data = json.loads(raw)
+        if not isinstance(data, dict):
+            return
+
+        saved_day = str(data.get("trading_day") or "")
+        today = _trading_day()
+        if saved_day != today:
+            logger.info(
+                f"[SMART_MONEY] Ignoring repeat-signal state from {saved_day or 'unknown day'} "
+                f"(today is {today}) - starting fresh"
+            )
+            return
+
+        symbols = data.get("symbols")
+        if not isinstance(symbols, dict):
+            return
+
+        restored = 0
+        for symbol, entry in symbols.items():
+            if not isinstance(entry, dict):
+                continue
+            direction = str(entry.get("last_signal") or "").strip()
+            if direction in ("Buy", "Sell"):
+                _last_signal_direction[symbol] = direction
+            trend = entry.get("last_restrict_trend")
+            if isinstance(trend, int):
+                _last_restrict_trend[symbol] = trend
+            bar_time = str(entry.get("last_signal_bar_time") or "").strip()
+            if bar_time:
+                try:
+                    _last_signal_bar_time[symbol] = datetime.fromisoformat(bar_time)
+                except ValueError:
+                    pass
+            restored += 1
+
+        if restored:
+            summary = ", ".join(
+                f"{sym}={_last_signal_direction.get(sym, 'Neutral')}"
+                f"@trend{_last_restrict_trend.get(sym, 0)}"
+                for sym in symbols
+            )
+            logger.info(f"[SMART_MONEY] Restored repeat-signal state for {today} | {summary}")
+    except Exception as exc:
+        logger.warning(f"[SMART_MONEY] Could not load repeat-signal state: {exc}")
+
+
+def _save_signal_state() -> None:
+    """Best-effort persist of repeat-signal state. Never raises into the scan loop."""
+    try:
+        with _state_file_lock:
+            symbols: dict[str, dict] = {}
+            for symbol, direction in _last_signal_direction.items():
+                bar_time = _last_signal_bar_time.get(symbol)
+                symbols[symbol] = {
+                    "last_signal": direction,
+                    "last_restrict_trend": int(_last_restrict_trend.get(symbol, 0)),
+                    "last_signal_bar_time": bar_time.isoformat() if bar_time else None,
+                }
+            payload = {
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "trading_day": _trading_day(),
+                "symbols": symbols,
+            }
+            _STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+            _STATE_PATH.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    except Exception as exc:
+        logger.warning(f"[SMART_MONEY] Could not persist repeat-signal state: {exc}")
 
 
 # ---------------------------------------------------------------------------
@@ -827,6 +930,9 @@ def _scan_symbol(symbol: str) -> None:
     _last_signal_bar_time[symbol] = signal["time"]
     _last_signal_direction[symbol] = "Buy" if side == "buy" else "Sell"
     _last_restrict_trend[symbol] = int(signal["restrict_tf_trend"])
+    # Persist before executing: if the order send crashes the process, the
+    # restriction must still be in force on the way back up.
+    _save_signal_state()
     _execute_signal(symbol, side, float(price), signal)
 
 
@@ -859,6 +965,7 @@ def start_algo() -> bool:
     global _running, _thread
     if _running:
         return True
+    _load_signal_state()
     _running = True
     _thread = threading.Thread(target=_loop, daemon=True, name="SmartMoneyAlgo")
     _thread.start()
