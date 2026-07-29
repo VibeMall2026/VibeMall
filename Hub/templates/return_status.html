@@ -6,6 +6,43 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'assets/css/returnstatus-mobile-alt.css' %}?v=20260329-01">
+<style>
+/* Refund panel. Inline rather than in returnstatus-mobile-alt.css because that
+   file only reaches a browser once collectstatic has run on the serving box,
+   and staticfiles/ is gitignored - a push alone leaves the old stylesheet in
+   place. These few rules ship with the page. */
+.vm-rs-refund-card {
+    border-left: 4px solid #c9c4b8;
+    padding-left: 14px;
+}
+.vm-rs-refund-card--done { border-left-color: #16a34a; }
+.vm-rs-refund-card--processing { border-left-color: #6f5c37; }
+.vm-rs-refund-card--waiting { border-left-color: #c9c4b8; }
+.vm-rs-refund-card--none { border-left-color: #b95656; }
+
+.vm-rs-refund-headline {
+    margin: 2px 0 4px;
+    font-size: 17px;
+    font-weight: 700;
+    color: #171818;
+}
+.vm-rs-refund-card--done .vm-rs-refund-headline { color: #15803d; }
+.vm-rs-refund-card--none .vm-rs-refund-headline { color: #a03f3f; }
+
+.vm-rs-refund-detail {
+    margin: 0 0 10px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: rgba(23, 24, 24, 0.7);
+}
+
+.vm-rs-refund-meta {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: rgba(23, 24, 24, 0.55);
+    word-break: break-all;
+}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -45,16 +82,32 @@
             </div>
             {% endfor %}
 
-            {# refund amount #}
-            {% if return_request.refund_amount %}
-            <div class="vm-rs-m-refund">
-                <p class="vm-rs-m-label">Refund Amount</p>
+            {% comment %}
+            "Where is my money" - the question support gets asked. The page used
+            to show only an amount, and only once one had been set, so before
+            the refund was released there was nothing here at all.
+            {% endcomment %}
+            {% if refund_progress %}
+            <div class="vm-rs-m-refund vm-rs-refund-card vm-rs-refund-card--{{ refund_progress.stage }}">
+                <p class="vm-rs-m-label">Refund</p>
+                <p class="vm-rs-refund-headline">{{ refund_progress.headline }}</p>
+                <p class="vm-rs-refund-detail">{{ refund_progress.detail }}</p>
+
+                {% if refund_progress.net or refund_progress.gross %}
                 <p class="vm-rs-m-refund-amount">
-                    &#8377;{{ return_request.refund_amount_net|default:return_request.refund_amount }}
-                    {% if return_request.refund_method %}<span>via {{ return_request.refund_method }}</span>{% endif %}
+                    &#8377;{{ refund_progress.net|default:refund_progress.gross }}
+                    {% if refund_progress.method_label %}<span>to {{ refund_progress.method_label }}</span>{% endif %}
                 </p>
-                {% if return_request.refund_fee %}
-                <p class="vm-rs-m-refund-fee">Return fee: &#8377;{{ return_request.refund_fee }}</p>
+                {% if refund_progress.fee %}
+                <p class="vm-rs-m-refund-fee">Return fee: &#8377;{{ refund_progress.fee }}</p>
+                {% endif %}
+                {% endif %}
+
+                {% if refund_progress.issued_at and refund_progress.stage == 'done' %}
+                <p class="vm-rs-refund-meta">Issued on {{ refund_progress.issued_at|date:"d M Y" }}</p>
+                {% endif %}
+                {% if refund_progress.gateway_reference %}
+                <p class="vm-rs-refund-meta">Reference: {{ refund_progress.gateway_reference }}</p>
                 {% endif %}
             </div>
             {% endif %}

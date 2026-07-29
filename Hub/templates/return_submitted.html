@@ -11,6 +11,62 @@
 <link rel="stylesheet" href="{% static 'assets/css/home-tablet-alt.css' %}?v=20260329-01">
 <link rel="stylesheet" href="{% static 'assets/css/return-submitted.css' %}?v=20260407-01">
 <style>
+/* Refund status panel. Inline, not in return-submitted.css: that file only
+   reaches a browser once collectstatic has run on the serving box, and
+   staticfiles/ is gitignored, so a push alone leaves the old stylesheet. */
+.vm-refund-progress {
+    border-left: 4px solid #c9c4b8;
+    padding: 12px 0 12px 14px;
+    margin-top: 12px;
+}
+.vm-refund-progress--done { border-left-color: #16a34a; }
+.vm-refund-progress--processing { border-left-color: #6f5c37; }
+.vm-refund-progress--waiting { border-left-color: #c9c4b8; }
+.vm-refund-progress--none { border-left-color: #b95656; }
+
+.vm-refund-progress__label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: rgba(23, 24, 24, .55);
+    font-weight: 800;
+}
+.vm-refund-progress__headline {
+    margin: 4px 0 4px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #171818;
+}
+.vm-refund-progress--done .vm-refund-progress__headline { color: #15803d; }
+.vm-refund-progress--none .vm-refund-progress__headline { color: #a03f3f; }
+
+.vm-refund-progress__detail {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.55;
+    color: rgba(23, 24, 24, .7);
+}
+.vm-refund-progress__amount {
+    margin: 8px 0 0;
+    font-size: 18px;
+    font-weight: 800;
+    color: #171818;
+}
+.vm-refund-progress__amount span {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(23, 24, 24, .6);
+}
+.vm-refund-progress__meta {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: rgba(23, 24, 24, .55);
+    word-break: break-all;
+}
+</style>
+<style>
 /* Inline critical styles so this view still renders correctly if the page-only CSS asset misses cache/static resolution. */
 .vm-rsub-mobile-only,
 .vm-rsub-tablet-only,
@@ -981,6 +1037,7 @@
                     <strong>&#8377;{{ estimated_refund|floatformat:2 }}</strong>
                     <p class="vm-rsub-mobile-note">Includes collection fee of &#8377;{{ fee|floatformat:2 }}</p>
                 </div>
+                {% include 'partials/refund_progress_card.html' %}
             </div>
         </article>
 
@@ -1157,6 +1214,7 @@
                             <strong>&#8377;{{ estimated_refund|floatformat:2 }}</strong>
                             <p>Includes collection fee of &#8377;{{ fee|floatformat:2 }}</p>
                         </div>
+                        {% include 'partials/refund_progress_card.html' %}
                     </div>
 
                     <h3 class="vm-rsub-mobile-section-title">Latest Updates</h3>
@@ -1307,6 +1365,7 @@
                             <strong>&#8377;{{ estimated_refund|floatformat:2 }}</strong>
                             <p>Includes collection fee of &#8377;{{ fee|floatformat:2 }}</p>
                         </div>
+                        {% include 'partials/refund_progress_card.html' %}
                     </div>
 
                     <h3 class="vm-rsub-desktop-finance-title"><i class="far fa-clock"></i> Latest Updates</h3>

@@ -7,9 +7,9 @@ from django.http import JsonResponse, HttpResponse, HttpRequest
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Count, Q, Avg, Sum, F, DecimalField, ExpressionWrapper, Case, When, Value, IntegerField, QuerySet, Min, Max, Prefetch
-from django.db.models.functions import Coalesce, Lower, Trim
+from django.db.models.functions import Coalesce, Greatest, Lower, Trim
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger, Page
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime, parse_date
@@ -72,31 +72,11 @@ CANCEL_WINDOW_HOURS = 2
 MAX_RETURN_ATTEMPTS = 1
 NON_RETURNABLE_CATEGORIES = set()
 
-MOBILE_REVIEW_PROMPT_SESSION_KEY = 'mobile_review_prompt_seen_count'
-MOBILE_REVIEW_PROMPT_MAX_SHOWN = 2
-
-
-def _get_review_prompt_count(user):
-    """Get how many times the review prompt has been shown to this user (persists across logins)."""
-    cache_key = f'review_prompt_count_u{user.id}'
-    val = cache.get(cache_key)
-    if val is None:
-        # Fall back to session-based count for backward compat (first login after deploy)
-        val = 0
-    return int(val)
-
-
-def _increment_review_prompt_count(user, request):
-    """Increment the persistent review prompt count for this user."""
-    cache_key = f'review_prompt_count_u{user.id}'
-    current = _get_review_prompt_count(user)
-    new_count = min(current + 1, MOBILE_REVIEW_PROMPT_MAX_SHOWN)
-    # Store for 1 year (365 days)
-    cache.set(cache_key, new_count, 60 * 60 * 24 * 365)
-    # Also keep session in sync
-    request.session[MOBILE_REVIEW_PROMPT_SESSION_KEY] = new_count
-    request.session.modified = True
-    return new_count
+# The review prompt used to be rate-limited by a counter in the cache. The cache
+# backend is LocMemCache - per-process, wiped on restart, not shared between
+# workers - so the counter read back as zero and the popup returned on every
+# login. It is now guarded by a ReviewPromptLog row instead; see
+# Hub/context_processors.mobile_review_prompt_context.
 
 RETURN_STATUS_FLOW = {
     'REQUESTED': ['APPROVED', 'REJECTED', 'CANCELLED'],
@@ -2548,21 +2528,8 @@ def admin_toggle_stock(request, product_id):
     product.is_active = True
     product.save(update_fields=['stock', 'is_active'])
 
-    # Notify subscribers when restocked from zero
-    if previous_stock <= 0 and product.stock > 0:
-        notifications = ProductStockNotification.objects.filter(product=product, is_sent=False)
-        for note in notifications:
-            try:
-                send_mail(
-                    subject=f"{product.name} is back in stock",
-                    message=f"Good news! {product.name} is available again. Visit the product page to purchase.",
-                    from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
-                    recipient_list=[note.email],
-                    fail_silently=False,
-                )
-                note.mark_sent()
-            except Exception:
-                pass
+    from .email_utils import notify_back_in_stock
+    notify_back_in_stock(product, previous_stock)
 
     return JsonResponse({
         'success': True,
@@ -5214,10 +5181,10 @@ def admin_order_details(request, order_id):
                 order.order_status = 'CANCELLED'
                 order.save(update_fields=['order_status'])
 
-                for item in order.items.select_related('product'):
-                    if item.product:
-                        item.product.stock = F('stock') + item.quantity
-                        item.product.save(update_fields=['stock'])
+                # Put the goods back and undo the sale. This used to add stock
+                # without ever having taken any out, so every cancellation
+                # inflated the product's stock.
+                _release_stock_for_order(order)
 
                 if not cancel_request.refund_method and order.payment_method != 'COD' and order.payment_status == 'PAID':
                     cancel_request.refund_method = 'WALLET'
@@ -5784,32 +5751,20 @@ def admin_update_inventory(request):
             product.save(update_fields=['stock', 'is_active'])
             messages.success(request, f'Updated stock for {product.name} to {new_stock}.')
 
-        # Notify subscribers when restocked from zero
-        if previous_stock <= 0 and product.stock > 0:
-            notifications = ProductStockNotification.objects.filter(product=product, is_sent=False)
-            sent_count = 0
-            failed_count = 0
-            last_error = ''
-            for note in notifications:
-                try:
-                    send_mail(
-                        subject=f"{product.name} is back in stock",
-                        message=f"Good news! {product.name} is available again. Visit the product page to purchase.",
-                        from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
-                        recipient_list=[note.email],
-                        fail_silently=False,
-                    )
-                    note.mark_sent()
-                    sent_count += 1
-                except Exception as exc:
-                    failed_count += 1
-                    last_error = str(exc)
-            if notifications.exists():
-                messages.info(request, f"Restock notifications attempted: sent {sent_count}, failed {failed_count}.")
-                if failed_count and last_error:
-                    messages.warning(request, f"Email error: {last_error}")
-            else:
-                messages.info(request, "No pending restock notifications for this product.")
+        # Notify subscribers when restocked from zero. The mail itself lives in
+        # email_utils.notify_back_in_stock, which every restock path now shares.
+        waiting = ProductStockNotification.objects.filter(
+            product=product, is_sent=False).count()
+        if waiting:
+            from .email_utils import notify_back_in_stock
+            sent_count = notify_back_in_stock(product, previous_stock)
+            if previous_stock <= 0 and product.stock > 0:
+                messages.info(
+                    request,
+                    f"Restock notifications: sent {sent_count} of {waiting} waiting.",
+                )
+        elif previous_stock <= 0 and product.stock > 0:
+            messages.info(request, "No pending restock notifications for this product.")
     except ValueError:
         messages.error(request, 'Invalid stock value')
     except Exception as exc:
@@ -6999,6 +6954,11 @@ def checkout(request: HttpRequest) -> HttpResponse:
                 messages.error(request, f'Margin cannot exceed 50% of item price (max ₹{max_margin:.2f} per item).')
                 return redirect('checkout')
 
+        # One token per trip through checkout. checkout_confirm stamps it on the
+        # order it creates, and the column is unique, so a double-click, a
+        # back-then-resubmit or a retried gateway callback lands on the order
+        # that already exists instead of creating a second one.
+        request.session['checkout_token'] = uuid.uuid4().hex
         request.session['checkout_form'] = {
             'first_name': first_name,
             'last_name': last_name,
@@ -7244,6 +7204,26 @@ def checkout_confirm(request):
         total_amount = Decimal('0')
 
     if request.method == 'POST':
+        # If this checkout already produced an order, show that one rather than
+        # placing a second. Covers the double-click, the browser back button and
+        # a gateway callback that arrives twice.
+        checkout_token = request.session.get('checkout_token')
+        if checkout_token:
+            already = Order.objects.filter(
+                user=request.user, idempotency_key=checkout_token
+            ).first()
+            if already:
+                messages.info(
+                    request,
+                    f'Your order #{already.order_number} was already placed.',
+                )
+                # An unpaid prepaid order goes back to the payment page rather
+                # than the confirmation, so the shopper can finish paying for
+                # the order that exists instead of starting a new one.
+                if already.payment_method == 'RAZORPAY' and already.payment_status != 'PAID':
+                    return redirect('razorpay_payment', order_id=already.id)
+                return redirect('order_confirmation', order_id=already.id)
+
         first_name = checkout_form.get('first_name')
         last_name = checkout_form.get('last_name')
         email = (checkout_form.get('email') or '').strip().lower()
@@ -7364,7 +7344,26 @@ def checkout_confirm(request):
                         'base_amount': base_amount,
                         'total_margin': total_margin,
                     })
-                order = Order.objects.create(**order_kwargs)
+                # None rather than '' when there is no token: the column is
+                # unique and NULLs do not collide, empty strings do.
+                order_kwargs['idempotency_key'] = checkout_token or None
+                try:
+                    order = Order.objects.create(**order_kwargs)
+                except IntegrityError:
+                    # Two submits raced past the lookup above and this one lost.
+                    # The winner's order is the real one.
+                    existing = Order.objects.filter(
+                        user=request.user, idempotency_key=checkout_token
+                    ).first()
+                    if existing:
+                        messages.info(
+                            request,
+                            f'Your order #{existing.order_number} was already placed.',
+                        )
+                        if existing.payment_method == 'RAZORPAY' and existing.payment_status != 'PAID':
+                            return redirect('razorpay_payment', order_id=existing.id)
+                        return redirect('order_confirmation', order_id=existing.id)
+                    raise
 
             if wallet_payment:
                 wallet_profile, _ = UserProfile.objects.get_or_create(user=request.user)
@@ -7431,6 +7430,17 @@ def checkout_confirm(request):
             if not OrderItem.objects.filter(order=order).exists():
                 order.delete()
                 messages.error(request, 'Checkout failed: cart was empty or items could not be added. Please try again.')
+                return redirect('cart')
+
+            # Take the goods out of stock. Done here, after the lines exist and
+            # before payment, so the last unit cannot be sold twice.
+            stock_ok, stock_message = _reserve_stock_for_order(order)
+            if not stock_ok:
+                order.delete()
+                messages.error(
+                    request,
+                    f'Checkout failed: {stock_message} Please adjust your cart and try again.',
+                )
                 return redirect('cart')
 
             if is_resell and not resell_link and total_margin > 0:
@@ -9608,9 +9618,20 @@ def vote_review(request, review_id):
 @login_required(login_url='login')
 @require_POST
 def mobile_review_prompt_dismiss(request):
-    """Dismiss mobile delivered-order review prompt — keep session flag so it won't re-appear on refresh."""
-    # Do NOT clear the session flag here — we want it to stay so the popup
-    # doesn't reappear on page refresh within the same session.
+    """
+    Dismiss the after-delivery review prompt.
+
+    The prompt is already recorded in ReviewPromptLog when it is shown, so it
+    will not come back for that product whatever happens here. This only marks
+    that the shopper acted on it, which separates "saw it and closed it" from
+    "the page was rendered" in the data.
+    """
+    product_id = request.POST.get('product_id')
+    if product_id:
+        from .models import ReviewPromptLog
+        ReviewPromptLog.objects.filter(
+            user=request.user, product_id=product_id
+        ).update(responded=True)
     return JsonResponse({'success': True})
 
 
@@ -12014,6 +12035,80 @@ def _can_refund_to_source(order):
     )
 
 
+def _reserve_stock_for_order(order):
+    """
+    Take the ordered quantities out of stock and add them to `sold`.
+
+    Nothing reduced stock before this. Only cancellations and returns touched
+    it, and only upwards, which meant three things at once: a product could be
+    sold any number of times over, it never showed as out of stock, and every
+    return added back a quantity that had never been taken out, so stock grew
+    on its own.
+
+    Returns (ok, message). The product rows are locked for the check and the
+    write together, so two shoppers racing for the last unit cannot both win.
+    """
+    wanted = {}
+    for item in order.items.all():
+        if item.product_id:
+            wanted[item.product_id] = wanted.get(item.product_id, 0) + int(item.quantity or 0)
+    if not wanted:
+        return True, ''
+
+    with transaction.atomic():
+        locked = {
+            product.id: product
+            for product in Product.objects.select_for_update().filter(id__in=wanted.keys())
+        }
+        # Check every line before writing any of them, so a part-filled order
+        # is impossible.
+        for product_id, quantity in wanted.items():
+            product = locked.get(product_id)
+            if product is None:
+                continue
+            if product.stock < quantity:
+                return False, (
+                    f'{product.name} has only {product.stock} left, '
+                    f'but {quantity} were ordered.'
+                )
+        for product_id, quantity in wanted.items():
+            if product_id in locked:
+                Product.objects.filter(id=product_id).update(
+                    stock=F('stock') - quantity,
+                    sold=F('sold') + quantity,
+                )
+    return True, ''
+
+
+def _release_stock_for_order(order):
+    """
+    Put stock back when an order is cancelled, and undo the sale.
+
+    `sold` is a PositiveIntegerField, so it is floored at zero rather than
+    allowed to go negative on data that predates stock reservation.
+
+    A cancellation is the most common way a sold-out item becomes available
+    again, so anyone on the waiting list is told - that used to happen only when
+    an admin edited the stock by hand.
+    """
+    from .email_utils import notify_back_in_stock
+
+    for item in order.items.select_related('product'):
+        if not item.product_id:
+            continue
+        quantity = int(item.quantity or 0)
+        if quantity <= 0:
+            continue
+        previous_stock = item.product.stock if item.product else 0
+        Product.objects.filter(id=item.product_id).update(
+            stock=F('stock') + quantity,
+            sold=Greatest(F('sold') - quantity, Value(0)),
+        )
+        product = Product.objects.filter(id=item.product_id).first()
+        if product:
+            notify_back_in_stock(product, previous_stock)
+
+
 def _process_refund(return_request, amount, refund_method=''):
     order = return_request.order
     refund_method = refund_method or return_request.refund_method or order.payment_method
@@ -12855,16 +12950,82 @@ def return_submitted(request, return_id):
         'estimated_refund': estimated_refund,
         'refund_method_meta': refund_method_meta,
         'label_url': label_url,
+        # "Where is my money" - the page showed an estimated amount but never
+        # said whether the refund had actually gone out, by what route, or when
+        # to expect it.
+        'refund_progress': _refund_progress(return_request_obj),
     })
 
 
 @login_required(login_url='login')
+def _refund_progress(return_request):
+    """
+    "Where is my money" in one dict.
+
+    A shopper could see the return moving through pickup and QC but nothing
+    about the refund itself - no amount, no route, no idea when it lands. That
+    is the question support gets asked, so the page answers it.
+    """
+    from .models import Refund
+
+    status = (return_request.status or '').upper()
+    method = (return_request.refund_method or '').strip().upper()
+
+    method_labels = {
+        'RAZORPAY': 'Back to your original payment method',
+        'WALLET': 'VibeMall Wallet',
+        'BANK': 'Bank transfer',
+        'UPI': 'UPI',
+    }
+    # Wallet is instant; a card or UPI reversal sits with the bank for days.
+    eta = {'RAZORPAY': '5-7 working days', 'WALLET': 'instantly',
+           'BANK': '3-5 working days', 'UPI': '2-3 working days'}.get(method, '')
+
+    if status == 'REFUNDED':
+        stage, headline = 'done', 'Refund issued'
+        detail = (f'Sent to {method_labels.get(method, "your chosen method").lower()}. '
+                  f'It should reach you {eta}.' if eta else 'Refund has been issued.')
+    elif status in ('REFUND_PENDING', 'QC_PASSED', 'WRONG_RETURN'):
+        stage, headline = 'processing', 'Refund being processed'
+        detail = 'Your return passed our checks and the refund is being released.'
+    elif status in ('REJECTED', 'CANCELLED'):
+        stage, headline = 'none', 'No refund due'
+        detail = 'This return was closed without a refund.'
+    else:
+        stage, headline = 'waiting', 'Refund not started yet'
+        detail = 'It is released once we receive the item and complete the quality check.'
+
+    gateway_reference = ''
+    if method == 'RAZORPAY':
+        record = (Refund.objects
+                  .filter(order=return_request.order)
+                  .exclude(razorpay_refund_id='')
+                  .order_by('-created_at')
+                  .first())
+        if record:
+            gateway_reference = record.razorpay_refund_id
+
+    return {
+        'stage': stage,
+        'headline': headline,
+        'detail': detail,
+        'method_label': method_labels.get(method, method),
+        'eta': eta,
+        'gross': return_request.refund_amount,
+        'fee': return_request.refund_fee,
+        'net': return_request.refund_amount_net,
+        'issued_at': return_request.refund_date or return_request.resolved_at,
+        'gateway_reference': gateway_reference,
+    }
+
+
 def return_status(request, return_id):
     """Show return request status for a user"""
     return_request_obj = get_object_or_404(ReturnRequest, id=return_id, user=request.user)
     return render(request, 'return_status.html', {
         'return_request': return_request_obj,
-        'history': return_request_obj.history.select_related('changed_by')
+        'history': return_request_obj.history.select_related('changed_by'),
+        'refund_progress': _refund_progress(return_request_obj),
     })
 
 
@@ -12969,10 +13130,21 @@ def admin_return_detail(request, return_id):
         elif action in ['QC_PASSED', 'QC_FAILED']:
             return_request_obj.qc_checked_at = now
             if action == 'QC_PASSED':
+                # Only the returned lines go back, not the whole order, so this
+                # walks the return's own items rather than calling
+                # _release_stock_for_order. `sold` is floored at zero for orders
+                # placed before stock reservation existed.
+                from .email_utils import notify_back_in_stock
                 for item in return_request_obj.items.select_related('product'):
-                    if item.product:
-                        item.product.stock = F('stock') + item.quantity
-                        item.product.save(update_fields=['stock'])
+                    if item.product_id and int(item.quantity or 0) > 0:
+                        previous_stock = item.product.stock if item.product else 0
+                        Product.objects.filter(id=item.product_id).update(
+                            stock=F('stock') + item.quantity,
+                            sold=Greatest(F('sold') - item.quantity, Value(0)),
+                        )
+                        restocked = Product.objects.filter(id=item.product_id).first()
+                        if restocked:
+                            notify_back_in_stock(restocked, previous_stock)
         elif action == 'QC_PENDING':
             return_request_obj.qc_checked_at = now
         elif action == 'WRONG_RETURN':

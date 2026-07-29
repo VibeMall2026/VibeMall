@@ -895,11 +895,17 @@
 
             const dismissPrompt = () => {
                 const dismissUrl = overlay.getAttribute('data-dismiss-url');
+                // Send the product so the server can mark that row as answered.
+                // The prompt is already recorded when it is shown, so closing
+                // this does not decide whether it comes back - it never does.
+                const body = new FormData();
+                body.append('product_id', overlay.getAttribute('data-product-id') || '');
                 fetch(dismissUrl, {
                     method: 'POST',
                     headers: {
                         'X-CSRFToken': getCookie('csrftoken'),
                     },
+                    body: body,
                 }).finally(closePrompt);
             };
 

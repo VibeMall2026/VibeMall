@@ -1023,6 +1023,14 @@ class Order(models.Model):
     razorpay_order_id = models.CharField(max_length=100, blank=True, help_text="Razorpay Order ID")
     razorpay_payment_id = models.CharField(max_length=100, blank=True, help_text="Razorpay Payment ID")
     razorpay_signature = models.CharField(max_length=200, blank=True, help_text="Razorpay Payment Signature")
+    # Stamped from the shopper's checkout session. Unique, so a double-click, a
+    # back-then-resubmit or a retried gateway callback cannot turn one checkout
+    # into two orders. NULL for orders created before this existed and for any
+    # path that does not go through checkout_confirm; NULLs do not collide.
+    idempotency_key = models.CharField(
+        max_length=64, null=True, blank=True, unique=True,
+        help_text="One checkout session; prevents duplicate orders.",
+    )
     
     # Resell functionality (Enhanced)
     is_resell = models.BooleanField(default=False, help_text="Is this a resell order?")
@@ -3287,3 +3295,34 @@ class VerificationTestLog(models.Model):
     
     def __str__(self):
         return f"Test {self.test_type} - {self.user.username} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+
+
+class ReviewPromptLog(models.Model):
+    """
+    One row per product a shopper has already been asked to review.
+
+    The prompt used to be rate-limited by a counter in the cache, and the cache
+    backend is LocMemCache: per-process, wiped on every restart, and not shared
+    between workers. The counter therefore read back as zero almost every time,
+    so the "show at most twice" rule never held and the popup reappeared on
+    every login. A row in the database is the only thing that actually persists.
+    """
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='review_prompts')
+    product = models.ForeignKey('Product', on_delete=models.CASCADE, related_name='review_prompts')
+    shown_at = models.DateTimeField(auto_now_add=True)
+    responded = models.BooleanField(
+        default=False,
+        help_text='True once the shopper reviewed or dismissed it, rather than just seeing it.',
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'product'],
+                                    name='uniq_review_prompt_per_user_product'),
+        ]
+        indexes = [models.Index(fields=['user', 'shown_at'])]
+        ordering = ['-shown_at']
+
+    def __str__(self):
+        return f"Review prompt: {self.user.username} / {self.product_id}"

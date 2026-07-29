@@ -1504,3 +1504,82 @@ def send_refund_invoice_email(return_request):
             return_request.return_number, exc, exc_info=True,
         )
         return False
+
+
+def notify_back_in_stock(product, previous_stock=0):
+    """
+    Tell everyone waiting that a product is available again.
+
+    The waiting list (ProductStockNotification) has always been collected, and
+    two admin screens sent a plain-text note when they restocked from zero - the
+    same block of code copied twice. Stock coming back through a cancellation or
+    a return sent nothing at all, which is the most common way a sold-out item
+    reappears. This is the one place that does it, for every route.
+
+    Only fires on the zero-to-available edge; topping up an item that was
+    already in stock is not news. Returns the number of people notified.
+    """
+    from datetime import datetime
+
+    from .models import ProductStockNotification
+
+    if previous_stock > 0 or (product.stock or 0) <= 0 or not product.is_active:
+        return 0
+
+    waiting = ProductStockNotification.objects.filter(product=product, is_sent=False)
+    if not waiting.exists():
+        return 0
+
+    site_url = getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000').rstrip('/')
+    try:
+        # The id route is named with a hyphen: 'product-details'. Getting this
+        # wrong silently sends everyone to the home page instead of the item.
+        product_url = f"{site_url}{reverse('product-details', args=[product.id])}"
+    except Exception:
+        logger.warning("Could not build a product URL for %s; linking home.", product.name)
+        product_url = site_url
+
+    image_url = ''
+    try:
+        if product.image:
+            image_url = f"{site_url}{product.image.url}"
+    except Exception:
+        image_url = ''
+
+    sent = 0
+    for note in waiting:
+        try:
+            context = {
+                'product': product,
+                'product_url': product_url,
+                'image_url': image_url,
+                'site_url': site_url,
+                'company_name': 'VibeMall',
+                'company_email': 'info.vibemall@gmail.com',
+                'current_year': datetime.now().year,
+            }
+            text_content = (
+                f"Good news - {product.name} is back in stock.\n\n"
+                f"Price: Rs.{product.price}\n"
+                f"Order it here: {product_url}\n\n"
+                f"Stock is limited, so it may not stay available for long.\n\n"
+                f"- VibeMall\n{site_url}\n"
+            )
+            email = EmailMultiAlternatives(
+                subject=f"Back in stock: {product.name} - VibeMall",
+                body=text_content,
+                from_email=_get_from_email(),
+                to=[note.email],
+            )
+            email.attach_alternative(
+                render_to_string('emails/back_in_stock.html', context), "text/html")
+            email.send(fail_silently=False)
+            note.mark_sent()
+            sent += 1
+        except Exception as exc:
+            # One bad address must not stop the rest of the list.
+            logger.warning("Back-in-stock email to %s failed: %s", note.email, exc)
+
+    logger.info("Back-in-stock: notified %s of %s waiting for %s",
+                sent, waiting.count(), product.name)
+    return sent

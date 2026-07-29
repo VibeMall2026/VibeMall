@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Back in Stock - VibeMall</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #6f5c37 0%, #4a3d24 100%);
+            padding: 36px 20px;
+            text-align: center;
+            color: white;
+        }
+        .header h1 { font-size: 22px; margin-bottom: 6px; font-weight: 600; }
+        .header p { font-size: 14px; opacity: 0.95; }
+        .content { padding: 30px 20px; text-align: center; }
+        .product-image {
+            max-width: 220px;
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 18px;
+        }
+        .product-name { font-size: 20px; font-weight: 700; color: #171818; margin-bottom: 6px; }
+        .product-price { font-size: 22px; font-weight: 800; color: #6f5c37; margin-bottom: 22px; }
+        .btn {
+            display: inline-block;
+            background: #171818;
+            color: #ffffff !important;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 13px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        .note { font-size: 13px; color: #6b7280; margin-top: 20px; }
+        .footer {
+            background: #f9fafb;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #6b7280;
+            border-top: 1px solid #e5e7eb;
+        }
+        .footer a { color: #6f5c37; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h1>It's back</h1>
+            <p>The piece you asked us to watch is available again</p>
+        </div>
+
+        <div class="content">
+            {% if image_url %}
+            <img class="product-image" src="{{ image_url }}" alt="{{ product.name }}">
+            {% endif %}
+
+            <div class="product-name">{{ product.name }}</div>
+            <div class="product-price">&#8377;{{ product.price }}</div>
+
+            <a class="btn" href="{{ product_url }}">Shop it now</a>
+
+            <p class="note">
+                Stock is limited and we cannot hold it, so it may sell out again.
+                You will not receive another alert for this item.
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>{{ company_name }} &middot; <a href="mailto:{{ company_email }}">{{ company_email }}</a></p>
+            <p>&copy; {{ current_year }} {{ company_name }}. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

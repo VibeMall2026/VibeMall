@@ -1,0 +1,31 @@
+{% comment %}
+"Where is my money" for a return. The page already showed an estimated amount,
+but never whether the refund had actually gone out, by which route, or when it
+should land - which is exactly what shoppers write in to ask.
+
+Included once per layout (mobile, tablet, desktop) in return_submitted.html.
+Styles are inline in that template rather than in return-submitted.css, because
+that stylesheet only reaches a browser after collectstatic has run on the
+serving box and staticfiles/ is gitignored.
+{% endcomment %}
+{% if refund_progress %}
+<div class="vm-refund-progress vm-refund-progress--{{ refund_progress.stage }}">
+    <span class="vm-refund-progress__label">Refund Status</span>
+    <h4 class="vm-refund-progress__headline">{{ refund_progress.headline }}</h4>
+    <p class="vm-refund-progress__detail">{{ refund_progress.detail }}</p>
+
+    {% if refund_progress.net %}
+    <p class="vm-refund-progress__amount">
+        &#8377;{{ refund_progress.net|floatformat:2 }}
+        {% if refund_progress.method_label %}<span>to {{ refund_progress.method_label }}</span>{% endif %}
+    </p>
+    {% endif %}
+
+    {% if refund_progress.stage == 'done' and refund_progress.issued_at %}
+    <p class="vm-refund-progress__meta">Issued on {{ refund_progress.issued_at|date:"d M Y" }}</p>
+    {% endif %}
+    {% if refund_progress.gateway_reference %}
+    <p class="vm-refund-progress__meta">Reference: {{ refund_progress.gateway_reference }}</p>
+    {% endif %}
+</div>
+{% endif %}

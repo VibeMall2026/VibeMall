@@ -15,8 +15,9 @@ from .models import Cart, Wishlist, SiteSettings, LoyaltyPoints, CategoryIcon, P
 from django.db.models import F, Sum
 from .panel_access import get_panel_label, get_panel_mode, get_panel_permissions
 
+# Kept only so an old session value does not break anything; the prompt is now
+# gated by a ReviewPromptLog row, not by a counter. See the context processor.
 MOBILE_REVIEW_PROMPT_SESSION_KEY = 'mobile_review_prompt_seen_count'
-MOBILE_REVIEW_PROMPT_MAX_SHOWN = 2
 
 
 def cart_wishlist_context(request):
@@ -317,9 +318,15 @@ def admin_panel_context(request):
 
 
 def mobile_review_prompt_context(request):
-    """Provide after-delivery review prompt context for delivered products.
-    The prompt shows at most once per session (session guard) and at most
-    twice total across all logins (persistent counter).
+    """
+    After-delivery review prompt: shown once for a delivered product, then never
+    again for that product - not on the next login, not after a restart.
+
+    The old rule ("at most twice ever") was enforced with a counter in the
+    cache, and the cache backend is LocMemCache: per-process, wiped on every
+    restart, and not shared between gunicorn workers. The counter read back as
+    zero nearly every time, so the popup reappeared on every login. The guard is
+    now a ReviewPromptLog row, which is the only thing that actually persists.
     """
     context = {
         'mobile_review_prompt': None,
@@ -333,14 +340,9 @@ def mobile_review_prompt_context(request):
     if request.path.startswith('/admin-panel/'):
         return context
 
-    # Session guard: once shown in this session, never show again until new session.
+    # Cheap session guard so one page load per session does the DB work.
     session_key = f'review_prompt_shown_session_{user.id}'
     if request.session.get(session_key):
-        return context
-
-    # Show at most twice across all logins (persistent counter).
-    from Hub.views import _get_review_prompt_count, _increment_review_prompt_count, MOBILE_REVIEW_PROMPT_MAX_SHOWN
-    if _get_review_prompt_count(user) >= MOBILE_REVIEW_PROMPT_MAX_SHOWN:
         return context
 
     delivered_items = (
@@ -352,6 +354,8 @@ def mobile_review_prompt_context(request):
             product__is_active=True,
         )
         .exclude(product__reviews__user=user)
+        # already asked about this product once - that is the whole rule
+        .exclude(product__review_prompts__user=user)
         .select_related('product', 'order')
         .order_by('-order__delivery_date', '-order__created_at', '-id')
     )
@@ -368,9 +372,17 @@ def mobile_review_prompt_context(request):
     except Exception:
         image_url = ''
 
-    # Mark as shown for this session and increment persistent count.
-    # This runs only once — the session guard above prevents re-entry.
-    _increment_review_prompt_count(user, request)
+    # Record it before returning it, so this product is never offered again.
+    # get_or_create rather than create: two parallel requests would otherwise
+    # race on the unique constraint and raise on a page render.
+    from Hub.models import ReviewPromptLog
+    try:
+        ReviewPromptLog.objects.get_or_create(user=user, product=product)
+    except Exception:
+        # A prompt is not worth a 500. If the row cannot be written the shopper
+        # may see it once more, which is the old behaviour, not a new fault.
+        pass
+
     request.session[session_key] = True
     request.session.modified = True
 
