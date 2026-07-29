@@ -4823,6 +4823,12 @@ def admin_orders(request):
     # Remove invalid leftovers so stats and delete actions stay in sync.
     _cleanup_orphan_orders()
 
+    # Resolved before the POST branch below, which uses it. It used to be
+    # assigned only further down, after that branch, so every bulk action -
+    # delete and status update alike - raised UnboundLocalError and returned a
+    # 500. Sellers stay scoped to their own orders either way.
+    order_scope = get_order_scope(request.user)
+
     # Handle Bulk Actions (POST)
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -4872,15 +4878,19 @@ def admin_orders(request):
                 messages.success(request, f"{orders.count()} orders updated to {action}")
 
             elif action == 'delete':
-                # Bulk delete
-                deleted_count, _ = orders.delete()
+                # Re-select by id before deleting. get_order_scope returns a
+                # .distinct() queryset for sellers, and Django refuses delete()
+                # on one of those - so a seller's bulk delete raised TypeError.
+                # The ids have already been through the scope, so nothing widens.
+                deletable_ids = list(orders.values_list('id', flat=True))
+                deleted_count, _ = Order.objects.filter(id__in=deletable_ids).delete()
                 _cleanup_orphan_orders()
                 messages.success(request, f"{deleted_count} records deleted (orders and related items).")
 
             return redirect('admin_orders')
     
-    # Get all order items (individual products with their order details)
-    order_scope = get_order_scope(request.user)
+    # Get all order items (individual products with their order details).
+    # order_scope is already resolved above, before the POST branch needs it.
     all_orders = get_order_item_scope(request.user).select_related('order', 'order__user', 'order__cancellation_request', 'product').order_by('-order__created_at')
     
     # === FILTERS ===

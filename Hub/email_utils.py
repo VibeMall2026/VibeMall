@@ -561,20 +561,17 @@ def send_order_status_update_email(order, old_status, new_status):
         bool: True if email sent successfully, False otherwise
     """
     try:
-        from .models import LoyaltyPoints
-        
-        # Award loyalty points when order is delivered
-        if new_status == 'DELIVERED' and old_status != 'DELIVERED':
-            try:
-                # Calculate points: â‚¹1 = 33 points (1 point = â‚¹0.03)
-                points_earned = int(order.total_amount * 33)
-                
-                loyalty, _ = LoyaltyPoints.objects.get_or_create(user=order.user)
-                loyalty.add_points(points_earned, f"Order #{order.order_number} delivered - â‚¹{order.total_amount}")
-                
-                logger.info(f"Awarded {points_earned} loyalty points to {order.user.username} for order #{order.order_number}")
-            except Exception as e:
-                logger.error(f"Failed to award loyalty points for order {order.order_number}: {str(e)}")
+        # This function used to award loyalty points itself, on a third rate of
+        # its own - Rs.1 = 33 points - with no return-window wait and no guard
+        # against awarding twice. An order of Rs.1,260 handed out 41,580 points,
+        # and one live account reached 476,665, worth Rs.47,666 at the real
+        # redemption rate.
+        #
+        # Points belong to one place: signals.award_loyalty_points_on_delivery,
+        # which calls LoyaltyPointsManager.process_order_delivery_points. That
+        # waits out the return window, refuses orders with an open return, and
+        # will not award the same order twice. Sending an email must not move
+        # money.
         
         # Validate recipient and sender configuration
         to_email = _get_customer_notification_email(order)
