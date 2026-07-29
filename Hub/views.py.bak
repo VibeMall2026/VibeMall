@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect, get_object_or_404
+﻿from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib import messages 
@@ -5330,6 +5330,44 @@ def admin_api_search_orders(request):
 
 @login_required(login_url='login')
 @staff_member_required(login_url='login')
+def admin_api_search_orders(request):
+    """Dynamic order search for admin navbar (order ID / number)."""
+    from django.http import JsonResponse
+    from django.db.models import Q
+    from django.urls import reverse
+
+    query = (request.GET.get('q') or '').strip()
+    if not query:
+        return JsonResponse({'results': []})
+
+    orders = Order.objects.select_related('user').filter(
+        Q(order_number__icontains=query)
+    )
+
+    if query.isdigit():
+        orders = orders | Order.objects.select_related('user').filter(id=int(query))
+
+    orders = orders.order_by('-created_at')[:10]
+
+    results = []
+    for order in orders:
+        customer_name = f"{order.user.first_name} {order.user.last_name}".strip() or order.user.username
+        results.append({
+            'id': order.id,
+            'order_number': order.order_number,
+            'customer': customer_name,
+            'total_amount': float(order.total_amount),
+            'order_status': order.order_status,
+            'payment_status': order.payment_status,
+            'created_at': order.created_at.strftime('%d %b %Y, %I:%M %p'),
+            'detail_url': reverse('admin_order_details', args=[order.id]),
+        })
+
+    return JsonResponse({'results': results})
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
 def admin_approve_order(request, order_id):
     """Approve a pending order"""
     order = get_object_or_404(get_order_scope(request.user), id=order_id) if is_seller_user(request.user) else get_object_or_404(Order, id=order_id)
@@ -6860,6 +6898,49 @@ def cart(request: HttpRequest) -> HttpResponse:
 
 
 
+def buy_now(request, product_id):
+    """Buy Now - Redirect directly to checkout with product"""
+    try:
+        product = Product.objects.get(id=product_id, is_active=True)
+        quantity = int(request.POST.get('quantity', 1))
+        selected_color = (request.POST.get('selected_color') or request.POST.get('color') or '').strip()[:50]
+        selected_size = (request.POST.get('selected_size') or request.POST.get('size') or '').strip()[:20]
+        
+        if quantity < 1:
+            return JsonResponse({
+                'success': False,
+                'message': 'Invalid quantity'
+            }, status=400)
+        
+        # Check stock
+        if product.stock < quantity:
+            return JsonResponse({
+                'success': False,
+                'message': f'Only {product.stock} items available in stock'
+            }, status=400)
+        
+        # Store in session for checkout
+        request.session['buy_now_item'] = {
+            'product_id': product.id,
+            'quantity': quantity,
+            'price': str(product.price),
+            'color': selected_color,
+            'size': selected_size,
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'{product.name} added to checkout!',
+            'redirect_url': '/checkout/'
+        })
+        
+    except Product.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': 'Product not found'
+        }, status=404)
+
+
 @login_required(login_url='login')
 def checkout(request: HttpRequest) -> HttpResponse:
     """Dynamic Checkout Page"""
@@ -8184,18 +8265,7 @@ def admin_seller_settlements(request):
 
 
 def my_account(request): return render(request, 'profile.html')
-
-
-def product(request):
-    """
-    Legacy /product/ URL.
-
-    It used to render product.html, a template that does not exist in this
-    project, so the URL answered every request with a 500. Nothing links to it,
-    but it is a public address that may sit in old bookmarks or search results,
-    so it forwards to the catalogue instead of being deleted outright.
-    """
-    return redirect('shop')
+def product(request): return render(request, 'product.html')
 
 
 def product_detail(request: HttpRequest, slug: str) -> HttpResponse:
@@ -8740,13 +8810,7 @@ def product_search_api(request):
             })
 
     return JsonResponse({'results': results})
-def shop_details(request):
-    """
-    Legacy /shop-details/ URL - shop-details.html was never added, so this
-    answered with a 500. Forwarded to the catalogue for the same reason as
-    product() above.
-    """
-    return redirect('shop')
+def shop_details(request): return render(request, 'shop-details.html')
 
 
 @login_required(login_url='login')
@@ -8878,6 +8942,10 @@ def custom_500(request):
         request, '500.html', 500, '500',
         'Something went wrong at our end. Please try again in a moment.',
     )
+
+def order_tracking(request):return render(request, 'order-tracking.html')
+
+
 
 def register_view(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
@@ -13838,6 +13906,40 @@ from .views_reel import admin_generate_reel
 
 @login_required(login_url='login')
 @staff_member_required(login_url='login')
+def admin_reels(request):
+    """Admin reel management list"""
+    from Hub.models import Reel
+    
+    reels = Reel.objects.all().order_by('order', '-created_at')
+    
+    # Search functionality
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        reels = reels.filter(
+            Q(title__icontains=search_query) |
+            Q(description__icontains=search_query)
+        )
+    
+    # Filter by status
+    status_filter = request.GET.get('status', '')
+    if status_filter == 'published':
+        reels = reels.filter(is_published=True)
+    elif status_filter == 'draft':
+        reels = reels.filter(is_published=False)
+    elif status_filter == 'processing':
+        reels = reels.filter(is_processing=True)
+    
+    context = {
+        'reels': reels,
+        'search_query': search_query,
+        'status_filter': status_filter,
+    }
+    
+    return render(request, 'admin_panel/reels.html', context)
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
 def reel_studio(request):
     """Professional Reel Studio - Canva-style editor"""
     return render(request, 'admin_panel/reel_studio.html')
@@ -14448,6 +14550,199 @@ def payment_methods_view(request):
 # ============================================
 # COUPON SYSTEM VIEWS
 # ============================================
+
+@require_POST
+def validate_coupon(request):
+    """Validate coupon code and return discount details."""
+    try:
+        data = json.loads(request.body)
+        code = data.get('code', '').upper().strip()
+        cart_total = float(data.get('cart_total', 0))
+        
+        if not code:
+            return JsonResponse({'valid': False, 'message': 'Please enter a coupon code'})
+        
+        # Get coupon
+        try:
+            coupon = Coupon.objects.get(code=code)
+        except Coupon.DoesNotExist:
+            return JsonResponse({'valid': False, 'message': 'Invalid coupon code'})
+        
+        # Check if valid
+        if not coupon.is_valid():
+            return JsonResponse({'valid': False, 'message': 'This coupon has expired'})
+        
+        # Check if user is authenticated
+        if not request.user.is_authenticated:
+            return JsonResponse({'valid': False, 'message': 'Please login to use coupons'})
+        
+        # Check if already used by this user
+        already_used = CouponUsage.objects.filter(
+            coupon=coupon, 
+            user=request.user
+        ).exists()
+        
+        if already_used:
+            return JsonResponse({'valid': False, 'message': 'Coupon already used'})
+        
+        # Check first order coupon
+        if coupon.coupon_type == 'FIRST_ORDER':
+            has_orders = Order.objects.filter(user=request.user, payment_status='PAID').exists()
+            if has_orders:
+                return JsonResponse({'valid': False, 'message': 'This coupon is only for first-time orders'})
+        
+        # Check minimum purchase
+        if cart_total < coupon.min_purchase_amount:
+            return JsonResponse({
+                'valid': False, 
+                'message': f'Minimum purchase of ₹{coupon.min_purchase_amount} required'
+            })
+        
+        # Check usage limit
+        if coupon.usage_limit:
+            total_uses = CouponUsage.objects.filter(coupon=coupon).count()
+            if total_uses >= coupon.usage_limit:
+                return JsonResponse({'valid': False, 'message': 'Coupon usage limit reached'})
+        
+        # Calculate discount
+        discount_amount = coupon.get_discount_amount(cart_total)
+        
+        return JsonResponse({
+            'valid': True,
+            'coupon_id': coupon.id,
+            'code': coupon.code,
+            'discount_amount': float(discount_amount),
+            'discount_type': coupon.discount_type,
+            'discount_value': float(coupon.discount_value),
+            'message': f'Coupon applied! You saved ₹{discount_amount:.2f}'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'valid': False, 'message': f'Error validating coupon: {str(e)}'})
+
+
+@require_POST
+def get_available_coupons(request):
+    """Get list of available coupons for the user."""
+    try:
+        if not request.user.is_authenticated:
+            return JsonResponse({'coupons': []})
+        
+        user = request.user
+        data = json.loads(request.body)
+        cart_total = float(data.get('cart_total', 0))
+        
+        available_coupons = []
+        
+        # 1. First Order Coupon (15%)
+        has_paid_orders = Order.objects.filter(user=user, payment_status='PAID').exists()
+        if not has_paid_orders:
+            first_coupon = Coupon.objects.filter(
+                coupon_type='FIRST_ORDER',
+                is_active=True
+            ).first()
+            
+            if first_coupon and first_coupon.is_valid():
+                used = CouponUsage.objects.filter(coupon=first_coupon, user=user).exists()
+                discount_amount = first_coupon.get_discount_amount(cart_total)
+                
+                available_coupons.append({
+                    'code': first_coupon.code,
+                    'title': 'First Order Discount',
+                    'description': first_coupon.description,
+                    'discount': f"{first_coupon.discount_value}% OFF",
+                    'discount_amount': float(discount_amount),
+                    'min_purchase': float(first_coupon.min_purchase_amount),
+                    'used': used,
+                    'type': 'FIRST_ORDER'
+                })
+        
+        # 2. Spend 5K Coupon (5%)
+        tracker, _ = UserSpendTracker.objects.get_or_create(user=user)
+        
+        if tracker.can_earn_5k_coupon():
+            spend_coupon_code = f"SPEND5K{user.id}"
+            
+            # Create or get the coupon
+            spend_coupon, created = Coupon.objects.get_or_create(
+                code=spend_coupon_code,
+                defaults={
+                    'coupon_type': 'SPEND_5K',
+                    'description': f'Congratulations! You spent ₹5000. Enjoy 5% off!',
+                    'discount_type': 'PERCENTAGE',
+                    'discount_value': 5,
+                    'min_purchase_amount': 0,
+                    'max_discount_amount': 250,
+                    'usage_per_user': 1,
+                    'valid_from': timezone.now(),
+                    'valid_to': timezone.now() + timedelta(days=30),
+                    'is_active': True
+                }
+            )
+            
+            used = CouponUsage.objects.filter(coupon=spend_coupon, user=user).exists()
+            discount_amount = spend_coupon.get_discount_amount(cart_total)
+            
+            available_coupons.append({
+                'code': spend_coupon.code,
+                'title': 'Spend ₹5000 Reward',
+                'description': spend_coupon.description,
+                'discount': '5% OFF',
+                'discount_amount': float(discount_amount),
+                'min_purchase': 0,
+                'used': used,
+                'type': 'SPEND_5K',
+                'spent_amount': float(tracker.current_cycle_spent)
+            })
+
+        # 3. Manual coupons created by admin
+        already_shown_codes = {c['code'] for c in available_coupons}
+        manual_coupons = Coupon.objects.filter(
+            coupon_type='MANUAL',
+            is_active=True,
+        ).exclude(code__in=already_shown_codes)
+
+        for coupon in manual_coupons:
+            if not coupon.is_valid():
+                continue
+            # Skip if user already used it
+            if CouponUsage.objects.filter(coupon=coupon, user=user).exists():
+                continue
+            # Skip if usage limit reached
+            if coupon.usage_limit and CouponUsage.objects.filter(coupon=coupon).count() >= coupon.usage_limit:
+                continue
+            # Skip if cart doesn't meet minimum purchase
+            if cart_total < float(coupon.min_purchase_amount):
+                continue
+
+            discount_amount = coupon.get_discount_amount(cart_total)
+            if coupon.discount_type == 'PERCENTAGE':
+                discount_label = f"{coupon.discount_value}% OFF"
+            else:
+                discount_label = f"₹{coupon.discount_value} OFF"
+
+            available_coupons.append({
+                'code': coupon.code,
+                'title': coupon.description or f'{discount_label} Coupon',
+                'description': coupon.description,
+                'discount': discount_label,
+                'discount_amount': float(discount_amount),
+                'min_purchase': float(coupon.min_purchase_amount),
+                'used': False,
+                'type': 'MANUAL',
+            })
+
+        return JsonResponse({
+            'success': True,
+            'coupons': available_coupons,
+            'total_spent': float(tracker.total_spent),
+            'cycle_spent': float(tracker.current_cycle_spent)
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'coupons': [], 'error': str(e)})
+
+# ===== MAIN PAGE BANNER MANAGEMENT VIEWS =====
 
 @login_required(login_url='login')
 @staff_member_required(login_url='login')

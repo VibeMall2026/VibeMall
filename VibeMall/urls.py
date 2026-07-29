@@ -32,7 +32,12 @@ urlpatterns = [
     path('shop-details/', views.shop_details, name='shop-details'),
     path('wishlist/', views.wishlist, name='wishlist'),
     path('404/', views.page_404, name='404'),
-    path('order-tracking/', views.order_tracking, name='order-tracking'),
+    # order_tracking takes an order_number, so this argument-less path raised a
+    # TypeError - a 500 - on every request. There was once a second, one-argument
+    # order_tracking defined earlier in views.py, but Python kept only the later
+    # definition, so this route has never worked. Send it to the real lookup page.
+    path('order-tracking/', RedirectView.as_view(pattern_name='track_order', permanent=False),
+         name='order-tracking'),
     path('register/', views.register_view, name='register'),
     path('terms-and-conditions/', views.terms_and_conditions, name='terms-and-conditions'),
     path('privacy-policy/', views.privacy_policy, name='privacy-policy'),
