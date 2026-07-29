@@ -156,6 +156,11 @@
         color: #1b1c19;
         font-weight: 700;
         padding: 0 22px 0 0;
+        /* All three are needed. The unprefixed property alone left the browser's
+           own dropdown arrow in place next to the ::after chevron below, so the
+           control showed two arrows. */
+        -webkit-appearance: none;
+        -moz-appearance: none;
         appearance: none;
         cursor: pointer;
     }
@@ -599,7 +604,10 @@
         display: grid;
         grid-template-columns: 240px minmax(0, 1fr);
         gap: 22px;
-        align-items: start;
+        /* Centred, not top-aligned: whatever height difference is left between
+           the image and the details reads as balance rather than a gap hanging
+           under the text. */
+        align-items: center;
         border: 1px solid #e6e2da;
         background: #fff;
         padding: 14px;
@@ -607,8 +615,15 @@
 
     .vm-shop-d-grid.list-view .vm-shop-d-thumb {
         margin-bottom: 0;
-        aspect-ratio: 4 / 4.8;
-        min-height: 340px;
+        /* The row height was pinned to a 340px thumbnail while the details
+           column needs about 190px, so every card carried a slab of empty white
+           below the text. The image now sizes itself within a cap.
+           min-height must be cleared explicitly: the base .vm-shop-d-thumb rule
+           sets 340px for the grid, and a min-height always beats a max-height,
+           so leaving it would keep the tall row exactly as it was. */
+        aspect-ratio: 4 / 4.4;
+        min-height: 0;
+        max-height: 240px;
     }
 
     .vm-shop-d-grid.list-view .vm-shop-d-thumb img {
