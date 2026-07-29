@@ -34,6 +34,15 @@
     <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicon.ico' %}?v=20260503-01">
     <link rel="apple-touch-icon" href="{% static 'assets/img/favicon.png' %}?v=20260503-01">
     <link rel="stylesheet" href="{% static 'assets/css/preloader.css' %}">
+    {% comment %}
+    Outside the branch below on purpose: this carries the .search-results
+    dropdown styles and every page needs them. It used to be pulled in only by
+    header.html, while partials/vm_copy_header.html renders the same suggestions
+    panel and is included from this file - so on those pages the results had no
+    positioning, no background and no display:none, and typing in the search box
+    dropped raw product images into the page flow.
+    {% endcomment %}
+    <link rel="stylesheet" href="{% static 'assets/css/header-custom.css' %}?v=20260729-01">
     {% if request.resolver_match and request.resolver_match.url_name == 'index' %}
     <link rel="stylesheet" href="{% static 'assets/css/font-awesome-pro.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/buttons-rounded.css' %}">
