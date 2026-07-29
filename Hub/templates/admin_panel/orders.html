@@ -238,13 +238,13 @@
             <div class="d-flex align-items-center gap-2">
                 <label class="mb-0 me-2 fw-semibold">Quick Filters:</label>
                 <a href="?date_range=today" class="btn btn-sm {% if date_range == 'today' %}btn-primary{% else %}btn-outline-primary{% endif %}">
-                    <i class='bx bx-calendar-check'></i> આજ (Today)
+                    <i class='bx bx-calendar-check'></i> Today
                 </a>
                 <a href="?date_range=yesterday" class="btn btn-sm {% if date_range == 'yesterday' %}btn-primary{% else %}btn-outline-primary{% endif %}">
-                    <i class='bx bx-calendar-minus'></i> ગઈકાલે (Yesterday)
+                    <i class='bx bx-calendar-minus'></i> Yesterday
                 </a>
                 <a href="?date_range=last_week" class="btn btn-sm {% if date_range == 'last_week' %}btn-primary{% else %}btn-outline-primary{% endif %}">
-                    <i class='bx bx-calendar-week'></i> છેલ્લું અઠવાડિયું (Last Week)
+                    <i class='bx bx-calendar-week'></i> Last Week
                 </a>
                 {% if date_range %}
                 <a href="{% url 'admin_orders' %}" class="btn btn-sm btn-outline-secondary">
@@ -720,7 +720,7 @@
                         {% csrf_token %}
                         <div class="modal-body">
                             <div class="alert alert-success">
-                                <i class='bx bx-check-circle'></i> આ order approve કરો અને processing શરૂ કરો.
+                                <i class='bx bx-check-circle'></i> Approve this order and start processing it.
                             </div>
                             
                             <div class="card bg-light-success p-3 mb-3">
@@ -801,7 +801,7 @@
                         {% csrf_token %}
                         <div class="modal-body">
                             <div class="alert alert-warning">
-                                <i class='bx bx-error-circle'></i> આ order reject કરવાનું confirm કરો. આ action undo નહીં થઈ શકે.
+                                <i class='bx bx-error-circle'></i> Confirm that you want to reject this order. This cannot be undone.
                             </div>
                             
                             <div class="mb-3">

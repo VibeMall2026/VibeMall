@@ -1,6 +1,6 @@
 """
 Reel Creator Utility for Admin Panel
-Images ને video/reel માં convert કરે છે
+Converts images into a video/reel.
 Standardized video size: 1080x1920 (vertical/portrait)
 """
 
