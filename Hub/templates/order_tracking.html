@@ -552,12 +552,14 @@
                     </div>
                     {% endif %}
 
-                    {# Steps run oldest to newest. They used to be emitted as
-                       In Transit, Processing, Order Received, Delivered, which
-                       read as though the parcel shipped before the order was
-                       placed. A cancelled order was not handled at all: every
-                       later step kept saying "Pending", so a cancelled order
-                       looked like it was still on its way. #}
+                    {% comment %}
+                    Steps run oldest to newest. They used to be emitted as
+                    In Transit, Processing, Order Received, Delivered, which
+                    read as though the parcel shipped before the order was
+                    placed. A cancelled order was not handled at all: every
+                    later step kept saying "Pending", so a cancelled order
+                    looked like it was still on its way.
+                    {% endcomment %}
                     <div class="vm-tod-track">
                         <article class="vm-tod-event vm-tod-event--done">
                             <span class="vm-tod-event-dot"><i class="fas fa-check" aria-hidden="true"></i></span>
