@@ -4,7 +4,7 @@ Handles all loyalty points operations correctly
 """
 
 from datetime import timedelta
-from decimal import Decimal, ROUND_DOWN
+from decimal import Decimal, ROUND_DOWN, ROUND_UP
 from django.utils import timezone
 from django.db import transaction
 import logging
@@ -12,14 +12,26 @@ import logging
 logger = logging.getLogger('vibemall')
 
 # Loyalty Points Configuration
-# Rs.100 spent = 1 coin | 1 coin = Rs.10
-POINTS_PER_RUPEE = Decimal('0.01')
-RUPEES_PER_POINT = Decimal('10.00')
+#   Earning   : Rs.100 spent = 10 points
+#   Redeeming : 10 points    = Rs.1
+# Which is a 1% return: Rs.100 spent earns points worth Rs.1.
+#
+# The previous rates were Rs.100 = 1 point and 1 point = Rs.10 - a 10% return,
+# ten times more expensive. Balances earned under those rates are worth ten
+# times too much at the new redemption rate, which is why they are cleared by
+# `manage.py reset_loyalty_points` rather than carried over.
+POINTS_PER_RUPEE = Decimal('0.10')
+RUPEES_PER_POINT = Decimal('0.10')
 DEFAULT_RETURN_WINDOW_DAYS = 7
 
 
 class LoyaltyPointsManager:
     """Centralized loyalty points management"""
+
+    # Exposed so templates and JS can quote the same rate the server charges,
+    # instead of each carrying their own copy of the number.
+    POINTS_PER_RUPEE_VALUE = POINTS_PER_RUPEE
+    RUPEES_PER_POINT_VALUE = RUPEES_PER_POINT
 
     @staticmethod
     @transaction.atomic
@@ -104,8 +116,25 @@ class LoyaltyPointsManager:
 
     @staticmethod
     def calculate_rupee_value(points):
-        """Calculate rupee value of points (for redemption)"""
-        return Decimal(str(points)) * RUPEES_PER_POINT
+        """
+        Rupee value of a points balance, at 10 points to Rs.1.
+
+        Rounded down to the paisa. A balance that is not a multiple of ten
+        (15 points, say) is worth Rs.1.50, and rounding up would let someone
+        redeem value they had not earned.
+        """
+        value = Decimal(str(points or 0)) * RUPEES_PER_POINT
+        if value <= 0:
+            return Decimal('0.00')
+        return value.quantize(Decimal('0.01'), rounding=ROUND_DOWN)
+
+    @staticmethod
+    def points_needed_for_rupees(rupees):
+        """How many points buy a given rupee discount. Rounds up, never down."""
+        amount = Decimal(str(rupees or 0))
+        if amount <= 0:
+            return 0
+        return int((amount / RUPEES_PER_POINT).quantize(Decimal('1'), rounding=ROUND_UP))
 
     @staticmethod
     def _get_order_return_window_days(order):

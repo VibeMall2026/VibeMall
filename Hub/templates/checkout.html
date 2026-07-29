@@ -142,6 +142,13 @@
 {% endblock %}
 
 {% block content %}
+<script>
+/* The redemption rate comes from the server (LoyaltyPointsManager). Both the
+   mobile and desktop total calculators used to multiply by a hardcoded 10.00,
+   so changing the rate in Python quietly left the checkout showing a discount
+   ten times too large - the shopper saw one number and was charged another. */
+const VM_RUPEES_PER_POINT = {{ loyalty_rupees_per_point|default:"0.10" }};
+</script>
 
 <section class="vm-checkout-mobile-only" aria-label="Checkout mobile view">
     <nav class="vm-checkout-mobile-nav" aria-label="Checkout top bar">
@@ -1086,7 +1093,7 @@
             points = 0;
         }
         pointsInput.value = points;
-        const discount = points * 10.00;  // 1 coin = Rs.10
+        const discount = points * VM_RUPEES_PER_POINT;
         pointsRow.style.display = points > 0 ? 'flex' : 'none';
         pointsAmount.textContent = `-${formatCurrency(discount)}`;
         return discount;
@@ -1721,7 +1728,7 @@ function desktopPointsDiscount() {
         return 0;
     }
     const points = parseInt(pointsInputEl.value, 10) || 0;
-    const discount = points * 10.00;  // 1 coin = Rs.10, same rate as mobile
+    const discount = points * VM_RUPEES_PER_POINT;
     if (pointsRowEl) pointsRowEl.style.display = points > 0 ? 'table-row' : 'none';
     if (pointsAmountEl) pointsAmountEl.textContent = `-₹${discount.toFixed(2)}`;
     return discount;

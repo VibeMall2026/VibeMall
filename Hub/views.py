@@ -7091,8 +7091,12 @@ def checkout(request: HttpRequest) -> HttpResponse:
         'shipping_cost': shipping_cost,
         'final_total': final_total,
         'available_coupons': _build_available_coupons_for_user(request.user, cart_total=final_total, limit=20),
+        # The checkout JS multiplies points by this. It used to be hardcoded to
+        # 10.00 in two places, so changing the rate in Python left the page
+        # quoting a discount the server would never honour.
+        'loyalty_rupees_per_point': _loyalty_rupees_per_point(),
     }
-    
+
     return render(request, 'checkout.html', context)
 
 
@@ -7194,7 +7198,7 @@ def checkout_confirm(request):
             # Verify user has enough points (non-atomic check for display)
             loyalty_account = LoyaltyPoints.objects.get(user=request.user)
             if points_to_redeem <= loyalty_account.points_available:
-                # Calculate rupee value (1 coin = Rs.10)
+                # 10 points = Rs.1; the manager owns the rate.
                 points_discount = LoyaltyPointsManager.calculate_rupee_value(points_to_redeem)
         except LoyaltyPoints.DoesNotExist:
             redeem_points = False
@@ -10649,7 +10653,8 @@ def order_confirmation(request, order_id):
         messages.warning(request, 'Please complete your payment to confirm the order.')
         return redirect('razorpay_payment', order_id=order.id)
     
-    # Display estimated loyalty coins based on current rule: Rs.100 = 1 coin
+    # Estimated points for this order. The rule lives in LoyaltyPointsManager
+    # (Rs.100 = 10 points); this only displays what it works out.
     from .loyalty_manager import LoyaltyPointsManager
     loyalty_points_earned = LoyaltyPointsManager.calculate_points_earned(order.total_amount)
 
@@ -12033,6 +12038,12 @@ def _can_refund_to_source(order):
         and (order.payment_status or '').strip().upper() == 'PAID'
         and bool((order.razorpay_payment_id or '').strip())
     )
+
+
+def _loyalty_rupees_per_point():
+    """The redemption rate, for pages that need to quote it in JavaScript."""
+    from .loyalty_manager import RUPEES_PER_POINT
+    return RUPEES_PER_POINT
 
 
 def _reserve_stock_for_order(order):
