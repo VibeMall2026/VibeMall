@@ -1307,3 +1307,200 @@ def send_welcome_email_with_terms(user, request=None):
             pass
 
         return False
+
+
+def build_refund_invoice_context(return_request):
+    """
+    Context for the refund credit note.
+
+    Built on top of build_invoice_context so the credit note carries the same
+    company block, customer block and formatting as the original invoice - a
+    refund document that looked nothing like the invoice it reverses would be
+    hard for a shopper to match up.
+    """
+    from datetime import datetime
+    from decimal import Decimal
+
+    order = return_request.order
+    context = build_invoice_context(order)
+
+    gross = Decimal(str(return_request.refund_amount or 0))
+    fee = Decimal(str(return_request.refund_fee or 0))
+    net = return_request.refund_amount_net
+    net = Decimal(str(net)) if net is not None else max(gross - fee, Decimal('0.00'))
+
+    method = (return_request.refund_method or '').strip().upper()
+    method_labels = {
+        'RAZORPAY': 'Back to original payment method',
+        'WALLET': 'VibeMall Wallet',
+        'BANK': 'Bank transfer',
+        'UPI': 'UPI',
+    }
+
+    returned_items = []
+    for item in return_request.items.select_related('order_item', 'product').all():
+        order_item = item.order_item
+        unit_price = Decimal(str(getattr(order_item, 'product_price', None) or 0))
+        quantity = int(item.quantity or 0)
+        returned_items.append({
+            'name': getattr(order_item, 'product_name', '') or getattr(item.product, 'name', ''),
+            'quantity': quantity,
+            'unit_price': unit_price,
+            'line_total': unit_price * quantity,
+        })
+
+    refund_date = return_request.refund_date or return_request.resolved_at or datetime.now()
+
+    context.update({
+        'return_request': return_request,
+        'credit_note_number': f'CN-{return_request.return_number}',
+        'refund_date': refund_date,
+        'returned_items': returned_items,
+        'refund_gross': gross,
+        'refund_fee': fee,
+        'refund_net': net,
+        'refund_method': method,
+        'refund_method_label': method_labels.get(method, method or 'Original payment method'),
+        # A gateway credit shows on the shopper's statement days later; wallet is
+        # instant. Saying so up front saves a support message.
+        'refund_eta': '5-7 working days' if method == 'RAZORPAY' else (
+            'instantly' if method == 'WALLET' else '3-5 working days'
+        ),
+    })
+    return context
+
+
+def send_refund_invoice_email(return_request):
+    """
+    Email the shopper a credit note once their refund has actually been issued.
+
+    Mirrors send_order_confirmation_email: plain-text body, HTML alternative and
+    a PDF attachment through WeasyPrint, falling back to ReportLab where
+    WeasyPrint's native libraries are missing. Returns True when the message was
+    handed to the mail backend.
+    """
+    from io import BytesIO
+
+    try:
+        from weasyprint import HTML
+        pdf_generation_available = True
+    except (ImportError, OSError) as exc:
+        logger.warning("WeasyPrint unavailable; credit note PDF will be the simple one: %s", exc)
+        pdf_generation_available = False
+
+    order = return_request.order
+    to_email = _get_customer_notification_email(order)
+    if not to_email:
+        logger.warning(
+            "Return %s was refunded but has no customer email address for the credit note.",
+            return_request.return_number,
+        )
+        return False
+
+    try:
+        context = build_refund_invoice_context(return_request)
+        site_url = context['site_url']
+
+        subject = f"Refund Processed - {return_request.return_number} - VibeMall"
+        text_content = (
+            f"Hello {context['customer_name']},\n\n"
+            f"Your refund for order #{order.order_number} has been processed.\n\n"
+            f"Return Number : {return_request.return_number}\n"
+            f"Credit Note   : {context['credit_note_number']}\n"
+            f"Refund Amount : Rs.{context['refund_gross']}\n"
+            f"Return Fee    : Rs.{context['refund_fee']}\n"
+            f"Amount Paid   : Rs.{context['refund_net']}\n"
+            f"Refunded To   : {context['refund_method_label']}\n\n"
+            f"The amount should reach you {context['refund_eta']}.\n"
+            f"A credit note is attached for your records.\n\n"
+            f"- VibeMall\n{site_url}\n"
+        )
+
+        html_content = render_to_string('emails/refund_invoice.html', context)
+
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body=text_content,
+            from_email=_get_from_email(),
+            to=[to_email],
+        )
+        email.attach_alternative(html_content, "text/html")
+
+        pdf_bytes = b''
+        if pdf_generation_available:
+            try:
+                pdf_html = render_to_string('refund_invoice_pdf.html', context)
+                buffer = BytesIO()
+                HTML(string=pdf_html, base_url=site_url).write_pdf(buffer)
+                buffer.seek(0)
+                pdf_bytes = buffer.read()
+            except Exception as pdf_error:
+                logger.error(
+                    "Credit note PDF failed for return %s: %s",
+                    return_request.return_number, pdf_error, exc_info=True,
+                )
+
+        if not pdf_bytes:
+            # Same ladder as the order invoice: a plain ReportLab page beats
+            # sending a refund confirmation with nothing attached.
+            try:
+                from reportlab.lib.pagesizes import A4
+                from reportlab.lib.units import mm
+                from reportlab.pdfgen import canvas
+
+                buffer = BytesIO()
+                pdf = canvas.Canvas(buffer, pagesize=A4)
+                width, height = A4
+                pdf.setFont('Helvetica-Bold', 18)
+                pdf.drawCentredString(width / 2, height - 30 * mm, 'VibeMall')
+                pdf.setFont('Helvetica', 11)
+                pdf.drawCentredString(
+                    width / 2, height - 38 * mm,
+                    f"Credit Note {context['credit_note_number']}",
+                )
+                y = height - 52 * mm
+                for line in [
+                    f"Date: {context['refund_date']:%d %b %Y}",
+                    f"Customer: {context['customer_name']}",
+                    f"Order: {order.order_number}",
+                    f"Return: {return_request.return_number}",
+                    "",
+                    f"Refund amount: Rs.{context['refund_gross']}",
+                    f"Return fee: Rs.{context['refund_fee']}",
+                    f"Amount refunded: Rs.{context['refund_net']}",
+                    f"Refunded to: {context['refund_method_label']}",
+                ]:
+                    pdf.drawString(20 * mm, y, line)
+                    y -= 7 * mm
+                pdf.showPage()
+                pdf.save()
+                buffer.seek(0)
+                pdf_bytes = buffer.read()
+            except Exception as fallback_error:
+                logger.error(
+                    "Fallback credit note PDF also failed for return %s: %s",
+                    return_request.return_number, fallback_error,
+                )
+
+        if pdf_bytes:
+            email.attach(
+                f"CreditNote_{return_request.return_number}.pdf",
+                pdf_bytes,
+                'application/pdf',
+            )
+
+        email.send(fail_silently=False)
+        logger.info(
+            "Credit note emailed for return %s to %s",
+            return_request.return_number, to_email,
+        )
+        return True
+
+    except Exception as exc:
+        # The money has already moved. A mail failure must never be reported as
+        # a failed refund; it is logged so the admin can resend.
+        logger.error(
+            "Could not email credit note for return %s: %s",
+            return_request.return_number, exc, exc_info=True,
+        )
+        return False

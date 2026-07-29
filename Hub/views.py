@@ -13017,6 +13017,7 @@ def admin_return_detail(request, return_id):
         return_request_obj.status = action
 
         refund_notes = ''
+        send_credit_note = False
 
         if action == 'APPROVED':
             return_request_obj.approved_at = now
@@ -13063,6 +13064,13 @@ def admin_return_detail(request, return_id):
                 if not refund_success:
                     return_request_obj.status = 'REFUND_PENDING'
                     return_request_obj.resolved_at = None
+                else:
+                    # Sent after the save below, not here: _process_refund only
+                    # sets the amounts on the instance, so a credit note built
+                    # now would be raised off unsaved figures.
+                    send_credit_note = True
+                    if not return_request_obj.refund_date:
+                        return_request_obj.refund_date = now
 
         if notes:
             stamped_notes = f"[{now.strftime('%d %b %Y %H:%M')}] {notes}"
@@ -13073,6 +13081,13 @@ def admin_return_detail(request, return_id):
             return_request_obj.admin_notes = f"{stamped_refund_note}\n{return_request_obj.admin_notes}".strip()
 
         return_request_obj.save()
+
+        if send_credit_note:
+            # Best effort. The money has already left; a mail problem must not
+            # be reported to the admin as a refund that failed.
+            from .email_utils import send_refund_invoice_email
+            send_refund_invoice_email(return_request_obj)
+
         final_action = return_request_obj.status
         history_notes = notes
         if refund_notes:

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+{# Credit note for a processed refund. Deliberately mirrors invoice_pdf.html's
+   page setup, palette and type scale so the document a shopper receives after a
+   return sits next to the original invoice and reads as the same stationery. #}
+<head>
+    <meta charset="UTF-8">
+    <title>VibeMall | Credit Note {{ credit_note_number }}</title>
+    <style>
+        @page { size: A4; margin: 10mm; }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            color: #1b1c19;
+            background: #fbf9f4;
+            font-family: "Helvetica", "Arial", sans-serif;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .page {
+            width: 100%;
+            background: #ffffff;
+            padding: 16px 18px 18px;
+            border: 1px solid #ebe7df;
+        }
+
+        .top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #1b1c19;
+            padding-bottom: 12px;
+            margin-bottom: 14px;
+        }
+
+        .brand { font-size: 22px; font-weight: bold; letter-spacing: 0.08em; }
+        .brand small { display: block; font-size: 9px; font-weight: normal; letter-spacing: 0.16em; color: #6f5c37; }
+
+        .doc-title { text-align: right; }
+        .doc-title h1 {
+            margin: 0;
+            font-size: 18px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #15803d;
+        }
+        .doc-title .meta { margin-top: 4px; font-size: 10px; color: #55564f; }
+
+        .parties { display: flex; gap: 14px; margin-bottom: 14px; }
+        .party { flex: 1; border: 1px solid #ebe7df; padding: 10px; }
+        .party h3 {
+            margin: 0 0 6px;
+            font-size: 9px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #6f5c37;
+        }
+        .party p { margin: 0 0 2px; }
+
+        .banner {
+            border: 1px solid #86efac;
+            background: #f0fdf4;
+            padding: 10px 12px;
+            margin-bottom: 14px;
+        }
+        .banner .label {
+            font-size: 9px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #15803d;
+        }
+        .banner .amount { font-size: 22px; font-weight: bold; color: #14532d; }
+        .banner .to { font-size: 10px; color: #40483f; }
+
+        table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+        thead th {
+            background: #1b1c19;
+            color: #ffffff;
+            text-align: left;
+            padding: 7px 8px;
+            font-size: 9px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+        tbody td { padding: 7px 8px; border-bottom: 1px solid #ebe7df; }
+        .num { text-align: right; }
+
+        .totals { width: 46%; margin-left: auto; }
+        .totals td { padding: 5px 8px; }
+        .totals tr.grand td {
+            border-top: 2px solid #1b1c19;
+            font-weight: bold;
+            font-size: 13px;
+            color: #14532d;
+        }
+
+        .foot {
+            margin-top: 16px;
+            border-top: 1px solid #ebe7df;
+            padding-top: 10px;
+            font-size: 9px;
+            color: #6f6f66;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+
+    <div class="top">
+        <div class="brand">
+            {{ company_name }}
+            <small>CREDIT NOTE</small>
+        </div>
+        <div class="doc-title">
+            <h1>Refund</h1>
+            <div class="meta">
+                {{ credit_note_number }}<br>
+                {{ refund_date|date:"d M Y" }}
+            </div>
+        </div>
+    </div>
+
+    <div class="parties">
+        <div class="party">
+            <h3>Issued by</h3>
+            <p><strong>{{ company_name }}</strong></p>
+            {% for line in company_address_lines %}<p>{{ line }}</p>{% endfor %}
+            <p>{{ company_email }}</p>
+            {% if company_phone %}<p>{{ company_phone }}</p>{% endif %}
+        </div>
+        <div class="party">
+            <h3>Refunded to</h3>
+            <p><strong>{{ customer_name }}</strong></p>
+            <p>{{ customer_email }}</p>
+            {% if customer_phone %}<p>{{ customer_phone }}</p>{% endif %}
+            {% for line in billing_lines %}<p>{{ line }}</p>{% endfor %}
+        </div>
+        <div class="party">
+            <h3>Reference</h3>
+            <p>Order: <strong>{{ order.order_number }}</strong></p>
+            <p>Return: <strong>{{ return_request.return_number }}</strong></p>
+            <p>Customer ID: {{ customer_id }}</p>
+            <p>Paid via: {{ payment_method_display }}</p>
+        </div>
+    </div>
+
+    <div class="banner">
+        <div class="label">Amount refunded</div>
+        <div class="amount">&#8377;{{ refund_net }}</div>
+        <div class="to">To {{ refund_method_label }} &middot; expected {{ refund_eta }}</div>
+    </div>
+
+    {% if returned_items %}
+    <table>
+        <thead>
+            <tr>
+                <th>Item returned</th>
+                <th class="num">Qty</th>
+                <th class="num">Unit price</th>
+                <th class="num">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in returned_items %}
+            <tr>
+                <td>{{ item.name }}</td>
+                <td class="num">{{ item.quantity }}</td>
+                <td class="num">&#8377;{{ item.unit_price }}</td>
+                <td class="num">&#8377;{{ item.line_total }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <table class="totals">
+        <tr>
+            <td>Refund amount</td>
+            <td class="num">&#8377;{{ refund_gross }}</td>
+        </tr>
+        {% if refund_fee %}
+        <tr>
+            <td>Return collection fee</td>
+            <td class="num">&#8722;&#8377;{{ refund_fee }}</td>
+        </tr>
+        {% endif %}
+        <tr class="grand">
+            <td>Total refunded</td>
+            <td class="num">&#8377;{{ refund_net }}</td>
+        </tr>
+    </table>
+
+    <div class="foot">
+        This credit note confirms a refund against invoice {{ order.order_number }}.
+        No payment is due from you.<br>
+        {{ company_name }} &middot; {{ company_email }} &middot; {{ site_host }}
+    </div>
+
+</div>
+</body>
+</html>

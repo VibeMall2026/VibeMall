@@ -189,6 +189,22 @@
     color: #fff;
 }
 
+.vm-tod-event--stopped .vm-tod-event-dot {
+    background: #b95656;
+    border-color: #b95656;
+    color: #fff;
+}
+
+/* Steps that will now never happen. Kept visible so the sequence still reads,
+   but clearly not "waiting". */
+.vm-tod-event--void {
+    opacity: 0.45;
+}
+
+.vm-tod-event--void h4 {
+    text-decoration: line-through;
+}
+
 .vm-tod-event-head {
     display: flex;
     justify-content: space-between;
@@ -536,31 +552,13 @@
                     </div>
                     {% endif %}
 
+                    {# Steps run oldest to newest. They used to be emitted as
+                       In Transit, Processing, Order Received, Delivered, which
+                       read as though the parcel shipped before the order was
+                       placed. A cancelled order was not handled at all: every
+                       later step kept saying "Pending", so a cancelled order
+                       looked like it was still on its way. #}
                     <div class="vm-tod-track">
-                        <article class="vm-tod-event {% if order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}vm-tod-event--active{% endif %}">
-                            <span class="vm-tod-event-dot"><i class="fas fa-map-marker-alt" aria-hidden="true"></i></span>
-                            <div class="vm-tod-event-head">
-                                <h4>In Transit</h4>
-                                <time>{% if order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}{{ order.updated_at|date:'d M, h:i A' }}{% else %}Pending{% endif %}</time>
-                            </div>
-                            <p>{% if order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}Parcel has been handed to courier and is moving through regional checkpoints.{% else %}Shipment will move to courier once processing is complete.{% endif %}</p>
-                            {% if order.tracking_number %}
-                            <div class="vm-tod-tracking-chip">
-                                <i class="fas fa-barcode" aria-hidden="true"></i>
-                                <span>Tracking Number: {{ order.tracking_number }}</span>
-                            </div>
-                            {% endif %}
-                        </article>
-
-                        <article class="vm-tod-event {% if order.order_status == 'PROCESSING' %}vm-tod-event--active{% elif order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}vm-tod-event--done{% endif %}">
-                            <span class="vm-tod-event-dot"><i class="fas fa-cog" aria-hidden="true"></i></span>
-                            <div class="vm-tod-event-head">
-                                <h4>Processing</h4>
-                                <time>{% if order.order_status == 'PROCESSING' or order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}{{ order.updated_at|date:'d M, h:i A' }}{% else %}Pending{% endif %}</time>
-                            </div>
-                            <p>Hand-crafting and quality checks are performed before dispatch.</p>
-                        </article>
-
                         <article class="vm-tod-event vm-tod-event--done">
                             <span class="vm-tod-event-dot"><i class="fas fa-check" aria-hidden="true"></i></span>
                             <div class="vm-tod-event-head">
@@ -570,14 +568,49 @@
                             <p>Your order has been confirmed and queued for fulfillment.</p>
                         </article>
 
-                        <article class="vm-tod-event {% if order.order_status == 'DELIVERED' %}vm-tod-event--done{% endif %}">
+                        <article class="vm-tod-event {% if order.order_status == 'CANCELLED' %}vm-tod-event--void{% elif order.order_status == 'PROCESSING' %}vm-tod-event--active{% elif order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}vm-tod-event--done{% endif %}">
+                            <span class="vm-tod-event-dot"><i class="fas fa-cog" aria-hidden="true"></i></span>
+                            <div class="vm-tod-event-head">
+                                <h4>Processing</h4>
+                                <time>{% if order.order_status == 'CANCELLED' %}Not applicable{% elif order.order_status == 'PROCESSING' or order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}{{ order.updated_at|date:'d M, h:i A' }}{% else %}Pending{% endif %}</time>
+                            </div>
+                            <p>{% if order.order_status == 'CANCELLED' %}This step was not reached because the order was cancelled.{% else %}Hand-crafting and quality checks are performed before dispatch.{% endif %}</p>
+                        </article>
+
+                        <article class="vm-tod-event {% if order.order_status == 'CANCELLED' %}vm-tod-event--void{% elif order.order_status == 'SHIPPED' %}vm-tod-event--active{% elif order.order_status == 'DELIVERED' %}vm-tod-event--done{% endif %}">
+                            <span class="vm-tod-event-dot"><i class="fas fa-map-marker-alt" aria-hidden="true"></i></span>
+                            <div class="vm-tod-event-head">
+                                <h4>In Transit</h4>
+                                <time>{% if order.order_status == 'CANCELLED' %}Not applicable{% elif order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}{{ order.updated_at|date:'d M, h:i A' }}{% else %}Pending{% endif %}</time>
+                            </div>
+                            <p>{% if order.order_status == 'CANCELLED' %}This step was not reached because the order was cancelled.{% elif order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}Parcel has been handed to courier and is moving through regional checkpoints.{% else %}Shipment will move to courier once processing is complete.{% endif %}</p>
+                            {% if order.tracking_number and order.order_status != 'CANCELLED' %}
+                            <div class="vm-tod-tracking-chip">
+                                <i class="fas fa-barcode" aria-hidden="true"></i>
+                                <span>Tracking Number: {{ order.tracking_number }}</span>
+                            </div>
+                            {% endif %}
+                        </article>
+
+                        <article class="vm-tod-event {% if order.order_status == 'CANCELLED' %}vm-tod-event--void{% elif order.order_status == 'DELIVERED' %}vm-tod-event--done{% endif %}">
                             <span class="vm-tod-event-dot"><i class="fas fa-home" aria-hidden="true"></i></span>
                             <div class="vm-tod-event-head">
                                 <h4>Delivered</h4>
-                                <time>{% if order.order_status == 'DELIVERED' %}{{ order.delivery_date|default:order.updated_at|date:'d M, h:i A' }}{% else %}{% if order.delivery_date %}Expected {{ order.delivery_date|date:'d M' }}{% else %}Pending{% endif %}{% endif %}</time>
+                                <time>{% if order.order_status == 'CANCELLED' %}Not applicable{% elif order.order_status == 'DELIVERED' %}{{ order.delivery_date|default:order.updated_at|date:'d M, h:i A' }}{% elif order.delivery_date %}Expected {{ order.delivery_date|date:'d M' }}{% else %}Pending{% endif %}</time>
                             </div>
-                            <p>{% if order.order_status == 'DELIVERED' %}Order delivered successfully to your shipping destination.{% else %}Final-mile delivery will begin after courier handoff in your destination city.{% endif %}</p>
+                            <p>{% if order.order_status == 'CANCELLED' %}This step was not reached because the order was cancelled.{% elif order.order_status == 'DELIVERED' %}Order delivered successfully to your shipping destination.{% else %}Final-mile delivery will begin after courier handoff in your destination city.{% endif %}</p>
                         </article>
+
+                        {% if order.order_status == 'CANCELLED' %}
+                        <article class="vm-tod-event vm-tod-event--stopped">
+                            <span class="vm-tod-event-dot"><i class="fas fa-times" aria-hidden="true"></i></span>
+                            <div class="vm-tod-event-head">
+                                <h4>Cancelled</h4>
+                                <time>{{ order.updated_at|date:'d M, h:i A' }}</time>
+                            </div>
+                            <p>This order was cancelled.{% if order.payment_status == 'REFUNDED' %} The amount paid has been refunded.{% elif order.payment_status == 'PAID' %} Any amount paid will be refunded to the original payment method.{% endif %}</p>
+                        </article>
+                        {% endif %}
                     </div>
 
                     <section class="vm-tod-address">
