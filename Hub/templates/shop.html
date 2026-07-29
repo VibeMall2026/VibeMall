@@ -12,6 +12,41 @@
 <link rel="stylesheet" href="{% static 'assets/css/quickview-mobile-alt.css' %}?v=20260329-01">
 <link rel="stylesheet" href="{% static 'assets/css/shop-tablet-alt.css' %}?v=20260404-02">
 <link rel="stylesheet" href="{% static 'assets/css/shop-desktop-alt.css' %}?v=20260729-01">
+<style>
+/* Two desktop shop fixes, deliberately inline.
+
+   They also exist in shop-desktop-alt.css, but that file only reaches a browser
+   after collectstatic runs on the serving box, and staticfiles/ is gitignored -
+   so a push alone leaves the old stylesheet in place. These rules load with the
+   page and take effect immediately; they carry the same values as the
+   stylesheet, so nothing changes once the static build does catch up.
+
+   Same 1200px+ shell as the rest of the desktop layout. */
+@media (min-width: 992px) {
+  /* Two arrows on the sort control: the unprefixed appearance:none in the
+     stylesheet left the browser's own dropdown arrow drawn next to the ::after
+     chevron. All three properties are needed to suppress it. */
+  .vm-shop-d-sort-wrap select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+
+  /* List rows were as tall as a forced 340px thumbnail while the details column
+     needs about 190px, leaving a slab of white under every product.
+     min-height must be reset explicitly - the base .vm-shop-d-thumb rule sets
+     340px, and a min-height always wins over a max-height. */
+  .vm-shop-d-grid.list-view .vm-shop-d-thumb {
+    aspect-ratio: 4 / 4.4;
+    min-height: 0;
+    max-height: 240px;
+  }
+
+  .vm-shop-d-grid.list-view .vm-shop-d-card {
+    align-items: center;
+  }
+}
+</style>
 {% endblock %}
 
 {% block content %}
