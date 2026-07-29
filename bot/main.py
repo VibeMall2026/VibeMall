@@ -203,14 +203,18 @@ def _daily_schedule_loop() -> None:
             if 9 <= now_ist.hour < 10:
                 if last_sent.get("morning") != today:
                     last_sent["morning"] = today
-                    if not state.running:
-                        from bot.algo.runner import start_all_strategies
+                    from bot.algo.runner import start_all_strategies
 
-                        state.running = True
-                        started = start_all_strategies()
-                        logger.info(f"[SCHEDULE] Morning auto-start triggered | strategies={started}")
-                    else:
-                        logger.info("[SCHEDULE] Morning summary triggered while bot already running")
+                    # Called unconditionally. state.running is a bot-wide flag
+                    # and says nothing about whether the strategy threads are
+                    # alive: on 29 Jul it was True while every strategy had been
+                    # stopped by the night halt, so this branch logged "already
+                    # running", started nothing, and the account sat idle for
+                    # the whole session. start_all_strategies skips whatever is
+                    # genuinely running, so it is the only honest check.
+                    state.running = True
+                    started = start_all_strategies()
+                    logger.info(f"[SCHEDULE] Morning auto-start | strategies={started or 'none new'}")
 
                     from bot.telegram_listener import build_schedule_notice_text
                     from bot.telegram_notifier import send_text_alert
@@ -220,14 +224,14 @@ def _daily_schedule_loop() -> None:
             if now_ist.hour >= 22:
                 if last_sent.get("night") != today:
                     last_sent["night"] = today
-                    if state.running:
-                        from bot.algo.runner import stop_all_strategies
+                    from bot.algo.runner import stop_all_strategies
 
-                        state.running = False
-                        stop_all_strategies()
-                        logger.info("[SCHEDULE] Night auto-stop triggered")
-                    else:
-                        logger.info("[SCHEDULE] Night summary triggered while bot already stopped")
+                    # Unconditional for the same reason as the morning branch:
+                    # a stale state.running of False would otherwise leave live
+                    # strategies scanning right through the night.
+                    state.running = False
+                    stop_all_strategies()
+                    logger.info("[SCHEDULE] Night auto-stop")
 
                     from bot.telegram_listener import build_schedule_notice_text
                     from bot.telegram_notifier import send_text_alert
