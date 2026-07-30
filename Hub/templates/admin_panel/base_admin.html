@@ -292,6 +292,14 @@
                   </a>
                 </li>
                 <li class="menu-item">
+                  <a href="/admin-panel/product-drafts/" class="menu-link">
+                    <div data-i18n="Telegram Queue">Telegram Queue</div>
+                    {% if pending_product_drafts %}
+                      <span class="badge bg-danger rounded-pill ms-auto">{{ pending_product_drafts }}</span>
+                    {% endif %}
+                  </a>
+                </li>
+                <li class="menu-item">
                   <a href="/admin-panel/categories/" class="menu-link">
                     <div data-i18n="Categories">Categories</div>
                   </a>

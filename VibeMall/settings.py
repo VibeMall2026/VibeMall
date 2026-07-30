@@ -302,3 +302,44 @@ WEBHOOK_LOG_LEVEL = os.getenv('WEBHOOK_LOG_LEVEL', 'INFO')
 # n8n HTTP Request node must send: Authorization: Bearer <N8N_API_KEY>
 N8N_API_KEY = os.getenv('N8N_API_KEY', '').strip()
 # ───────────────────────────────────────────────────────────────────────────
+
+# ── Telegram → AI Product Automation ───────────────────────────────────────
+# Products sent to the Telegram bot are staged as ProductDraft rows, enriched
+# by Claude, and published only after an admin selects a Category and approves.
+#
+# Run these two processes alongside the web server:
+#   python manage.py telegram_product_bot        (message intake)
+#   python manage.py process_product_drafts      (AI + image pipeline)
+
+# Bot token from @BotFather. Keep it in .env — never commit it.
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '').strip()
+
+# Optional allow-list of chat/channel IDs the bot will accept products from.
+# Empty means "every chat the bot can see" — set this in production.
+TELEGRAM_ALLOWED_CHAT_IDS = [
+    chat.strip() for chat in os.getenv('TELEGRAM_ALLOWED_CHAT_IDS', '').split(',') if chat.strip()
+]
+
+# Where the Bot API update offset is persisted between restarts.
+TELEGRAM_OFFSET_FILE = os.getenv('TELEGRAM_OFFSET_FILE', str(BASE_DIR / 'logs' / 'telegram_offset.json'))
+
+# Anthropic credentials for extraction, copywriting and image analysis.
+# Without a key the pipeline still runs, using rule-based extraction only.
+ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', '').strip()
+AUTOMATION_AI_MODEL = os.getenv('AUTOMATION_AI_MODEL', 'claude-opus-5').strip()
+AUTOMATION_AI_MAX_TOKENS = _env_int('AUTOMATION_AI_MAX_TOKENS', 8000)
+# low | medium | high | xhigh | max — 'medium' balances cost against quality
+# for catalogue extraction. Raise it if descriptions need more polish.
+AUTOMATION_AI_EFFORT = os.getenv('AUTOMATION_AI_EFFORT', 'medium').strip()
+
+# Telegram albums arrive as several updates; wait this long after the last one
+# before parsing, so a multi-photo post is treated as a single product.
+AUTOMATION_ALBUM_SETTLE_SECONDS = _env_int('AUTOMATION_ALBUM_SETTLE_SECONDS', 10)
+
+# Retry budget per draft before it is marked FAILED.
+AUTOMATION_MAX_ATTEMPTS = _env_int('AUTOMATION_MAX_ATTEMPTS', 4)
+
+# Guard rails on inbound media.
+AUTOMATION_MAX_IMAGE_BYTES = _env_int('AUTOMATION_MAX_IMAGE_BYTES', 12 * 1024 * 1024)
+AUTOMATION_MAX_IMAGES_PER_DRAFT = _env_int('AUTOMATION_MAX_IMAGES_PER_DRAFT', 40)
+# ───────────────────────────────────────────────────────────────────────────

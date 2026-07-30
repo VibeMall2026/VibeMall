@@ -1,0 +1,167 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Telegram Product Queue - VibeMall Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="mb-1">Telegram Product Queue</h4>
+    <p class="text-muted mb-0">
+      Products sent to the bot arrive here fully prepared. Pick a Category and Sub Category, then approve.
+    </p>
+  </div>
+  <form method="get" class="d-flex gap-2 mt-3 mt-md-0">
+    <input type="hidden" name="status" value="{{ active_status }}">
+    <input type="text" name="q" value="{{ search }}" class="form-control" placeholder="Search product or message…">
+    <button class="btn btn-outline-primary" type="submit"><i class="bx bx-search"></i></button>
+  </form>
+</div>
+
+<!-- Status tabs -->
+<ul class="nav nav-pills flex-wrap mb-4">
+  {% for key, label, count in tabs %}
+    <li class="nav-item mb-2">
+      <a class="nav-link {% if active_status == key %}active{% endif %}"
+         href="?status={{ key }}{% if search %}&q={{ search }}{% endif %}">
+        {{ label }}
+        {% if count %}<span class="badge bg-label-secondary ms-1">{{ count }}</span>{% endif %}
+      </a>
+    </li>
+  {% endfor %}
+  <li class="nav-item mb-2">
+    <a class="nav-link {% if active_status == 'all' %}active{% endif %}" href="?status=all">All</a>
+  </li>
+</ul>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th style="width:90px">Image</th>
+          <th>Product</th>
+          <th>Price</th>
+          <th>AI Category</th>
+          <th>Status</th>
+          <th>Received</th>
+          <th class="text-end">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for draft in drafts %}
+          <tr>
+            <td>
+              {% with preview=draft.images.first %}
+                {% if preview %}
+                  <img src="{{ preview.image.url }}" alt="{{ preview.alt_text }}"
+                       class="rounded" style="width:64px;height:80px;object-fit:cover;">
+                {% else %}
+                  <div class="bg-label-secondary rounded d-flex align-items-center justify-content-center"
+                       style="width:64px;height:80px;">
+                    <i class="bx bx-image text-muted"></i>
+                  </div>
+                {% endif %}
+              {% endwith %}
+            </td>
+            <td>
+              <div class="fw-semibold">{{ draft.display_name|truncatechars:70 }}</div>
+              <small class="text-muted">
+                #{{ draft.pk }} · {{ draft.image_count }} image{{ draft.image_count|pluralize }}
+                {% if draft.source_author %} · from {{ draft.source_author }}{% endif %}
+              </small>
+              {% if draft.duplicate_of %}
+                <div><small class="text-warning">
+                  <i class="bx bx-copy"></i>
+                  Possible duplicate of
+                  <a href="{% url 'admin_edit_product' draft.duplicate_of.id %}">{{ draft.duplicate_of.name|truncatechars:40 }}</a>
+                </small></div>
+              {% endif %}
+              {% if draft.last_error %}
+                <div><small class="text-danger">{{ draft.last_error|truncatechars:90 }}</small></div>
+              {% endif %}
+            </td>
+            <td>
+              {% if draft.parsed.price %}
+                <span class="fw-semibold">₹{{ draft.parsed.price }}</span>
+                {% if draft.parsed.old_price %}
+                  <br><small class="text-muted text-decoration-line-through">₹{{ draft.parsed.old_price }}</small>
+                {% endif %}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if draft.ai_suggestions.category %}
+                <span class="badge bg-label-info">{{ draft.ai_suggestions.category }}</span>
+                {% if draft.ai_suggestions.sub_category %}
+                  <br><small class="text-muted">{{ draft.ai_suggestions.sub_category }}</small>
+                {% endif %}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if draft.status == 'PENDING' %}
+                <span class="badge bg-label-success">Ready</span>
+              {% elif draft.status == 'DUPLICATE' %}
+                <span class="badge bg-label-warning">Duplicate?</span>
+              {% elif draft.status == 'PUBLISHED' %}
+                <span class="badge bg-label-primary">Published</span>
+              {% elif draft.status == 'FAILED' %}
+                <span class="badge bg-label-danger">Failed</span>
+              {% elif draft.status == 'REJECTED' %}
+                <span class="badge bg-label-secondary">Rejected</span>
+              {% else %}
+                <span class="badge bg-label-info">
+                  <i class="bx bx-loader-alt bx-spin"></i> {{ draft.get_status_display }}
+                </span>
+              {% endif %}
+            </td>
+            <td><small class="text-muted">{{ draft.created_at|date:"d M Y, H:i" }}</small></td>
+            <td class="text-end">
+              {% if draft.published_product %}
+                <a href="{% url 'admin_edit_product' draft.published_product.id %}" class="btn btn-sm btn-outline-primary">
+                  View Product
+                </a>
+              {% else %}
+                <a href="{% url 'admin_review_product_draft' draft.pk %}" class="btn btn-sm btn-primary">
+                  Review
+                </a>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="7" class="text-center py-5">
+              <i class="bx bx-package display-6 text-muted d-block mb-2"></i>
+              <p class="text-muted mb-1">Nothing here.</p>
+              <small class="text-muted">
+                Send a product to your Telegram bot, and make sure
+                <code>manage.py telegram_product_bot</code> and
+                <code>manage.py process_product_drafts</code> are running.
+              </small>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.has_other_pages %}
+    <div class="card-footer d-flex justify-content-between align-items-center">
+      <small class="text-muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</small>
+      <div class="btn-group">
+        {% if page_obj.has_previous %}
+          <a class="btn btn-sm btn-outline-secondary"
+             href="?status={{ active_status }}&page={{ page_obj.previous_page_number }}{% if search %}&q={{ search }}{% endif %}">Previous</a>
+        {% endif %}
+        {% if page_obj.has_next %}
+          <a class="btn btn-sm btn-outline-secondary"
+             href="?status={{ active_status }}&page={{ page_obj.next_page_number }}{% if search %}&q={{ search }}{% endif %}">Next</a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

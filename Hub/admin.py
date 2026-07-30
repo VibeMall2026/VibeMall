@@ -1610,3 +1610,31 @@ admin.site.register(VerificationTestLog, VerificationTestLogAdmin)
 
 # Load backup model admin registrations
 from . import backup_admin  # noqa: E402,F401
+
+
+# ── Telegram / AI product automation ───────────────────────────────────────
+# The primary workflow lives in the custom admin panel at
+# /admin-panel/product-drafts/. These registrations exist for debugging and
+# bulk cleanup from the Django admin.
+from .models_product_automation import ProductDraft, ProductDraftImage  # noqa: E402
+
+
+class ProductDraftImageInline(admin.TabularInline):
+    model = ProductDraftImage
+    extra = 0
+    fields = ('image', 'role', 'color', 'alt_text', 'order', 'phash')
+    readonly_fields = ('phash',)
+
+
+@admin.register(ProductDraft)
+class ProductDraftAdmin(admin.ModelAdmin):
+    list_display = ('id', 'display_name', 'source', 'status', 'category', 'attempts', 'created_at')
+    list_filter = ('status', 'source', 'created_at')
+    search_fields = ('raw_text', 'source_message_id', 'source_author')
+    readonly_fields = (
+        'reference', 'source', 'source_chat_id', 'source_message_id', 'source_group_id',
+        'source_author', 'raw_payload', 'parsed', 'ai_suggestions', 'ai_model',
+        'ai_tokens_used', 'events', 'attempts', 'claimed_at', 'created_at', 'updated_at',
+    )
+    inlines = [ProductDraftImageInline]
+    date_hierarchy = 'created_at'

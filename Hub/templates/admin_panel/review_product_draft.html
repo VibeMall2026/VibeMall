@@ -1,0 +1,364 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block title %}Review Draft #{{ draft.pk }} - VibeMall Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start mb-4">
+  <div>
+    <h4 class="mb-1">{{ record.name|default:draft.display_name }}</h4>
+    <small class="text-muted">
+      Draft #{{ draft.pk }} · {{ draft.get_source_display }}
+      {% if draft.source_author %}· from {{ draft.source_author }}{% endif %}
+      · {{ draft.created_at|date:"d M Y, H:i" }}
+      {% if draft.ai_model %}· {{ draft.ai_model }}{% endif %}
+    </small>
+  </div>
+  <a href="{% url 'admin_product_drafts' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bx bx-arrow-back"></i> Back to queue
+  </a>
+</div>
+
+{% if draft.status == 'DUPLICATE' and draft.duplicate_of %}
+  <div class="alert alert-warning">
+    <h6 class="alert-heading mb-2"><i class="bx bx-copy"></i> Possible Duplicate Product Found</h6>
+    <p class="mb-2">
+      This looks like
+      <a href="{% url 'admin_edit_product' draft.duplicate_of.id %}" class="fw-semibold">{{ draft.duplicate_of.name }}</a>,
+      which is already in your catalogue.
+    </p>
+    <ul class="mb-0 small">
+      {% for reason in draft.duplicate_reasons %}<li>{{ reason }}</li>{% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+{% if not images %}
+  <div class="alert alert-warning">
+    <i class="bx bx-image"></i>
+    <strong>No images.</strong> This product will publish without a main image, which most
+    storefront listings expect. Consider resending it to the bot with photos, or add images
+    on the product page after approving.
+  </div>
+{% endif %}
+
+{% if record.warnings %}
+  <div class="alert alert-info">
+    <strong>Worth checking:</strong>
+    <ul class="mb-0 small mt-2">
+      {% for warning in record.warnings %}<li>{{ warning }}</li>{% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+{% if draft.published_product %}
+  <div class="alert alert-success">
+    Already published as
+    <a href="{% url 'admin_edit_product' draft.published_product.id %}">{{ draft.published_product.name }}</a>.
+  </div>
+{% endif %}
+
+<form method="post" id="reviewForm">
+  {% csrf_token %}
+  <div class="row">
+
+    <!-- ============ LEFT: images ============ -->
+    <div class="col-lg-5 mb-4">
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">Images</h6>
+          <small class="text-muted">{{ images|length }} total · sorted automatically</small>
+        </div>
+        <div class="card-body">
+          {% if images %}
+            <div class="row g-2">
+              {% for image in images %}
+                <div class="col-4">
+                  <div class="position-relative">
+                    <img src="{{ image.image.url }}" alt="{{ image.alt_text }}"
+                         class="img-fluid rounded w-100" style="aspect-ratio:4/5;object-fit:cover;">
+                    <span class="badge position-absolute top-0 start-0 m-1
+                      {% if image.role == 'main' %}bg-primary{% elif image.role == 'description' %}bg-dark{% else %}bg-secondary{% endif %}">
+                      {{ image.get_role_display|cut:" Image"|cut:" Product" }}
+                    </span>
+                  </div>
+                  {% if image.color %}
+                    <small class="d-block text-center text-muted mt-1">{{ image.color }}</small>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-muted mb-0">No images were supplied with this product.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if colorways|length > 1 %}
+        <div class="card mb-4">
+          <div class="card-header"><h6 class="mb-0">Detected Colour Variants</h6></div>
+          <div class="card-body">
+            {% for group in colorways %}
+              <div class="d-flex align-items-center mb-2">
+                <span class="badge bg-label-primary me-2">{{ group.color }}</span>
+                <small class="text-muted">{{ group.images|length }} image{{ group.images|length|pluralize }}</small>
+              </div>
+            {% endfor %}
+            <small class="text-muted d-block mt-2">
+              A colour variant will be created for each of these on approval.
+            </small>
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="card">
+        <div class="card-header"><h6 class="mb-0">Original Supplier Message</h6></div>
+        <div class="card-body">
+          <pre class="small mb-0" style="white-space:pre-wrap;max-height:260px;overflow:auto;">{{ draft.raw_text|default:"(images only — no text)" }}</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ RIGHT: the two fields you fill, then everything else ============ -->
+    <div class="col-lg-7">
+
+      <!-- The only manual step -->
+      <div class="card border-primary mb-4">
+        <div class="card-header bg-label-primary">
+          <h6 class="mb-0"><i class="bx bx-category"></i> Select Category &amp; Sub Category</h6>
+        </div>
+        <div class="card-body">
+          {% if suggestion.category %}
+            <div class="alert alert-light border mb-3 py-2">
+              <small>
+                <strong>AI suggests:</strong>
+                {{ suggestion.category }}
+                {% if suggestion.sub_category %} → {{ suggestion.sub_category }}{% endif %}
+                <span class="badge bg-label-{% if suggestion.confidence == 'high' %}success{% elif suggestion.confidence == 'medium' %}warning{% else %}secondary{% endif %} ms-1">
+                  {{ suggestion.confidence }} confidence
+                </span>
+                {% if suggestion.reasoning %}<br><span class="text-muted">{{ suggestion.reasoning }}</span>{% endif %}
+              </small>
+            </div>
+          {% endif %}
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="category">Category <span class="text-danger">*</span></label>
+              <select id="category" name="category" class="form-select" required>
+                <option value="">Select Category</option>
+                {% for category in categories %}
+                  <option value="{{ category.category_key }}"
+                    {% if draft.category == category.category_key %}selected{% endif %}>
+                    {{ category.name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="sub_category">Sub Category</label>
+              <select class="form-select" id="sub_category" name="sub_category">
+                <option value="">Select Sub Category</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Everything below is pre-filled; editable but rarely needs touching -->
+      <div class="card mb-4">
+        <div class="card-header"><h6 class="mb-0">Product Details <small class="text-muted fw-normal">— filled automatically</small></h6></div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label" for="name">Product Name</label>
+            <input type="text" class="form-control" id="name" name="name" value="{{ record.name }}" maxlength="200">
+          </div>
+
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="price">Selling Price (₹)</label>
+              <input type="text" class="form-control" id="price" name="price" value="{{ record.price }}">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="old_price">Original / MRP (₹)</label>
+              <input type="text" class="form-control" id="old_price" name="old_price" value="{{ record.old_price }}">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="stock">Stock</label>
+              <input type="text" class="form-control" id="stock" name="stock" value="{{ record.stock }}">
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="sku">SKU / Style Code</label>
+              <input type="text" class="form-control" id="sku" name="sku" value="{{ record.sku }}" maxlength="100">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="brand">Brand</label>
+              <input type="text" class="form-control" id="brand" name="brand" value="{{ record.brand }}" maxlength="100">
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="sizes">Sizes <small class="text-muted">(comma separated)</small></label>
+              <input type="text" class="form-control" id="sizes" name="sizes" value="{{ record.sizes|join:', ' }}">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="colors">Colours <small class="text-muted">(comma separated)</small></label>
+              <input type="text" class="form-control" id="colors" name="colors" value="{{ record.colors|join:', ' }}">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="short_description">Short Description</label>
+            <input type="text" class="form-control" id="short_description" name="short_description"
+                   value="{{ record.short_description }}" maxlength="160">
+          </div>
+
+          <div class="mb-0">
+            <label class="form-label" for="description">Description</label>
+            <textarea class="form-control" id="description" name="description" rows="5">{{ record.description }}</textarea>
+          </div>
+        </div>
+      </div>
+
+      {% if record.highlights %}
+        <div class="card mb-4">
+          <div class="card-header"><h6 class="mb-0">Highlights</h6></div>
+          <div class="card-body">
+            <ul class="mb-0">
+              {% for highlight in record.highlights %}<li>{{ highlight }}</li>{% endfor %}
+            </ul>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if extended_attributes %}
+        <div class="card mb-4">
+          <div class="card-header">
+            <h6 class="mb-0">Extracted Specifications</h6>
+            <small class="text-muted">Saved into the product description, care info and tags on approval.</small>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              {% for label, value in extended_attributes %}
+                <div class="col-md-6 mb-2">
+                  <small class="text-muted d-block">{{ label }}</small>
+                  <span>{{ value }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="card mb-4">
+        <div class="card-header"><h6 class="mb-0">SEO</h6></div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label" for="meta_title">Meta Title <small class="text-muted">(max 60)</small></label>
+            <input type="text" class="form-control" id="meta_title" name="meta_title"
+                   value="{{ record.meta_title }}" maxlength="60">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="meta_description">Meta Description <small class="text-muted">(max 160)</small></label>
+            <textarea class="form-control" id="meta_description" name="meta_description" rows="2"
+                      maxlength="160">{{ record.meta_description }}</textarea>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="meta_keywords">Meta Keywords</label>
+              <input type="text" class="form-control" id="meta_keywords" name="meta_keywords"
+                     value="{{ record.meta_keywords|join:', ' }}">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="tags">Tags</label>
+              <input type="text" class="form-control" id="tags" name="tags" value="{{ record.tags|join:', ' }}">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="card mb-4">
+        <div class="card-body d-flex flex-wrap gap-2">
+          {% if draft.published_product %}
+            <span class="text-muted align-self-center">This draft has already been published.</span>
+          {% else %}
+            <button type="submit" name="action" value="approve" class="btn btn-success">
+              <i class="bx bx-check-circle"></i> Approve &amp; Publish
+            </button>
+            <button type="submit" name="action" value="reject" class="btn btn-outline-danger"
+                    formnovalidate
+                    onclick="return confirm('Reject this draft? It will not be published.');">
+              <i class="bx bx-x-circle"></i> Reject
+            </button>
+            <button type="submit" name="action" value="requeue" class="btn btn-outline-secondary" formnovalidate>
+              <i class="bx bx-refresh"></i> Re-run AI
+            </button>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if events %}
+        <div class="card">
+          <div class="card-header"><h6 class="mb-0">Processing Log</h6></div>
+          <div class="card-body">
+            <ul class="list-unstyled mb-0 small">
+              {% for event in events %}
+                <li class="mb-1">
+                  <span class="badge bg-label-{% if event.level == 'error' %}danger{% elif event.level == 'warning' %}warning{% else %}secondary{% endif %}">
+                    {{ event.stage }}
+                  </span>
+                  {{ event.message }}
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+      {% endif %}
+
+    </div>
+  </div>
+</form>
+
+<script>
+// Dependent Category -> Sub Category select, matching the Add Product page.
+(function () {
+  var subCategories = {{ sub_categories_json|safe }};
+  var categorySelect = document.getElementById('category');
+  var subCategorySelect = document.getElementById('sub_category');
+  var preselected = "{{ draft.sub_category|escapejs }}";
+
+  function refresh() {
+    var key = categorySelect.value;
+    subCategorySelect.innerHTML = '<option value="">Select Sub Category</option>';
+
+    subCategories
+      .filter(function (item) { return item.category_key === key; })
+      .forEach(function (item) {
+        var option = document.createElement('option');
+        option.value = item.name;
+        option.textContent = item.name;
+        if (item.name === preselected) { option.selected = true; }
+        subCategorySelect.appendChild(option);
+      });
+
+    // The AI may suggest a sub-category that is not yet in the list; keep it
+    // rather than silently discarding the suggestion.
+    if (preselected && !subCategorySelect.value) {
+      var extra = document.createElement('option');
+      extra.value = preselected;
+      extra.textContent = preselected + ' (new)';
+      extra.selected = true;
+      subCategorySelect.appendChild(extra);
+    }
+  }
+
+  categorySelect.addEventListener('change', refresh);
+  refresh();
+})();
+</script>
+{% endblock %}

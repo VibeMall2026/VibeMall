@@ -7,8 +7,32 @@ from . import backup_views
 from . import views_comprehensive_features
 from . import views_new_features
 from . import views_n8n  # n8n AI product ingestion
+from . import views_product_automation  # Telegram -> AI -> approval queue
 
 urlpatterns = [
+
+    # ── Telegram / AI Product Automation ───────────────────────────────────
+    path(
+        'admin-panel/product-drafts/',
+        views_product_automation.admin_product_drafts,
+        name='admin_product_drafts',
+    ),
+    path(
+        'admin-panel/product-drafts/status/',
+        views_product_automation.admin_product_drafts_status,
+        name='admin_product_drafts_status',
+    ),
+    path(
+        'admin-panel/product-drafts/<int:draft_id>/',
+        views_product_automation.admin_review_product_draft,
+        name='admin_review_product_draft',
+    ),
+    path(
+        'admin-panel/product-drafts/<int:draft_id>/delete/',
+        views_product_automation.admin_delete_product_draft,
+        name='admin_delete_product_draft',
+    ),
+    # ───────────────────────────────────────────────────────────────────────
 
     # ── n8n AI Automation ──────────────────────────────────────────────────
     path('api/n8n/product/', views_n8n.n8n_product_ingest, name='n8n_product_ingest'),

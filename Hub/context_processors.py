@@ -276,6 +276,21 @@ def admin_panel_context(request):
     context['admin_panel_mode'] = get_panel_mode(user)
     context.update(get_panel_permissions(user))
 
+    # Sidebar badge for Telegram products awaiting approval. Cached briefly so
+    # every admin page view does not add a COUNT query.
+    try:
+        drafts_cache_key = 'admin_pending_product_drafts'
+        pending_drafts = cache.get(drafts_cache_key)
+        if pending_drafts is None:
+            from Hub.models import ProductDraft
+            pending_drafts = ProductDraft.objects.filter(
+                status__in=[ProductDraft.STATUS_PENDING, ProductDraft.STATUS_DUPLICATE]
+            ).count()
+            cache.set(drafts_cache_key, pending_drafts, 30)
+        context['pending_product_drafts'] = pending_drafts
+    except Exception:
+        context['pending_product_drafts'] = 0
+
     try:
         profile = user.userprofile
         if profile.profile_image and profile.profile_image.name != 'profile_images/default.png':
