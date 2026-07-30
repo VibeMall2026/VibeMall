@@ -505,3 +505,72 @@ class AdminScreenTests(TestCase):
         self.client.force_login(plain)
         response = self.get('/admin-panel/product-drafts/')
         self.assertIn(response.status_code, (302, 403), 'non-staff must not reach the queue')
+
+
+class OllamaProviderTests(TestCase):
+    """The Ollama client must present the same surface as the hosted ones."""
+
+    def _client(self):
+        from Hub.automation.ai.ollama import OllamaClient
+        return OllamaClient()
+
+    def test_content_blocks_are_flattened_for_ollama(self):
+        from Hub.automation.ai.ollama import OllamaClient
+
+        texts, images = OllamaClient._split_content([
+            {'type': 'text', 'text': 'Image index 0:'},
+            {'type': 'image', 'source': {'type': 'base64', 'media_type': 'image/jpeg', 'data': 'QUJD'}},
+            {'type': 'text', 'text': 'Classify these.'},
+        ])
+        self.assertEqual(texts, ['Image index 0:', 'Classify these.'])
+        self.assertEqual(images, ['QUJD'])
+
+    def test_thinking_tags_are_stripped(self):
+        client = self._client()
+        parsed = client._parse({
+            'message': {'content': '<think>weighing options</think>{"name": "Kurti"}'},
+            'prompt_eval_count': 10, 'eval_count': 5,
+        })
+        self.assertEqual(parsed['name'], 'Kurti')
+        self.assertEqual(client.total_tokens, 15)
+
+    def test_json_wrapped_in_prose_is_recovered(self):
+        parsed = self._client()._parse({
+            'message': {'content': 'Here is the record:\n{"name": "Saree"}\nHope that helps.'},
+        })
+        self.assertEqual(parsed['name'], 'Saree')
+
+    def test_empty_response_is_an_error(self):
+        with self.assertRaises(ValueError):
+            self._client()._parse({'message': {'content': '   '}, 'done_reason': 'length'})
+
+    def test_pipeline_skips_vision_for_a_text_only_model(self):
+        """A text-only model must not be sent images it cannot read."""
+        from unittest.mock import patch
+
+        send('-40', 1, media=[image_media(1)])
+        send('-40', 2, text='Kurti\nPrice 799')
+        draft = ProductDraft.objects.get()
+        age(draft, 300)
+
+        class TextOnly:
+            model = 'qwen3:8b'
+            supports_vision = False
+            total_tokens = 0
+
+            def complete_json(self, **kwargs):
+                raise AssertionError('extraction is stubbed separately')
+
+        with patch('Hub.automation.pipeline.is_configured', return_value=True), \
+             patch('Hub.automation.pipeline.get_client', return_value=TextOnly()), \
+             patch('Hub.automation.pipeline.analyse_images') as vision, \
+             patch('Hub.automation.pipeline.extract', return_value=({'name': 'Kurti', 'warnings': []}, False)):
+            pipeline.process_once()
+
+        vision.assert_not_called()
+        draft.refresh_from_db()
+        self.assertEqual(draft.status, ProductDraft.STATUS_PENDING)
+        self.assertTrue(
+            any('text-only' in e['message'] for e in draft.events),
+            'the skip should be recorded on the draft',
+        )

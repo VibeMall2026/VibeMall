@@ -154,40 +154,71 @@ would remove more than 60% of an image's height is refused.
 
 ## 4c. Choosing an AI provider
 
-Two providers are supported. The pipeline calls a shared interface, so
-switching is a `.env` change — no code, no re-processing.
+Three providers are supported. The pipeline calls a shared interface, so
+switching is a `.env` change — no code, no re-processing, identical prompts,
+schema and output.
 
-| | Google Gemini | Anthropic Claude |
-|---|---|---|
-| Cost | **Free tier**, no credit card | Paid |
-| Sign-up | Any Google account | Anthropic Console account |
-| Key from | https://aistudio.google.com/apikey | https://console.anthropic.com |
-| Vision | Yes | Yes |
-| Extra install | None (uses `requests`) | `pip install anthropic` |
-| Quality | Good | Best |
+| | Ollama (local) | Google Gemini | Anthropic Claude |
+|---|---|---|---|
+| Cost | **Free**, unlimited | Free tier | Paid |
+| Needs a key | No | Yes | Yes |
+| Data leaves your server | **No** | Yes | Yes |
+| Vision | Model-dependent | Yes | Yes |
+| Speed | Slow on CPU | Fast | Fast |
+| Quality | Good | Good | Best |
+
+### Ollama — the default
 
 ```ini
-# Free — recommended if you have no Anthropic account
-GEMINI_API_KEY=your-key-here
-
-# Or paid
-ANTHROPIC_API_KEY=sk-ant-...
-
-# 'auto' (default) picks whichever key exists, preferring Claude.
-# Pin one with 'gemini' or 'claude'.
-AUTOMATION_AI_PROVIDER=auto
+AUTOMATION_AI_PROVIDER=ollama
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+AUTOMATION_OLLAMA_MODEL=qwen3:8b
+AUTOMATION_OLLAMA_TIMEOUT=900
 ```
 
-`python manage.py telegram_doctor` reports which provider is active, and for
-Gemini also checks that the configured model is available to your key.
+Set up the server it points at:
 
-Free-tier quotas are per-minute, so the Gemini client backs off and retries
-rather than failing a draft. If you hit the daily cap, drafts simply retry
-later — nothing is lost.
+```bash
+ollama serve            # or: systemctl enable --now ollama
+ollama pull qwen3:8b
+```
 
-**Adding a third provider** means one class with `complete_json(system,
-content, schema)`, `.model` and `.total_tokens`, plus a branch in
-`Hub/automation/ai/__init__.py`.
+`OLLAMA_BASE_URL` does not have to be this machine. Pointing it at a GPU box
+on your network is the single biggest speed win — an 8B model on 2 CPU cores
+takes minutes per product, on a GPU it takes seconds.
+
+**`qwen3:8b` is text-only.** Names, descriptions, highlights, SEO and category
+suggestions all work. Image role/colour/alt-text detection does not, and falls
+back to the positional heuristic (first image becomes the main one). To get AI
+image sorting back, pull a multimodal model and point at it:
+
+```bash
+ollama pull qwen2.5vl:7b
+# AUTOMATION_OLLAMA_MODEL=qwen2.5vl:7b
+```
+
+Vision support is read from the model's own metadata, so no other change is
+needed — the pipeline enables the image pass automatically.
+
+### Hosted alternatives
+
+```ini
+AUTOMATION_AI_PROVIDER=gemini
+GEMINI_API_KEY=...          # https://aistudio.google.com/apikey
+
+AUTOMATION_AI_PROVIDER=claude
+ANTHROPIC_API_KEY=sk-ant-...  # needs: pip install anthropic
+```
+
+`AUTOMATION_AI_PROVIDER=auto` picks a reachable Ollama first, then Claude, then
+Gemini — useful if you want a hosted fallback for when Ollama is down.
+
+`python manage.py telegram_doctor` reports the active provider, whether the
+Ollama model is pulled, and whether it supports vision.
+
+**Adding a fourth provider** means one class with `complete_json(system,
+content, schema)`, `.model`, `.total_tokens` and optionally `supports_vision`,
+plus a branch in `Hub/automation/ai/__init__.py`.
 
 ---
 

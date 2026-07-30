@@ -174,36 +174,52 @@ class Command(BaseCommand):
 
         status = provider_status()
 
-        if status['active'] == 'gemini':
-            self.ok(f"Provider: Google Gemini (model: {status['model']}) - FREE tier")
-            from Hub.automation.ai.gemini import list_models
+        if status['active'] == 'ollama':
+            self.ok(f"Provider: Ollama (local) at {status['ollama_url']}")
+            from Hub.automation.ai.ollama import OllamaClient, list_models
 
             available = list_models()
-            if available and status['model'] not in available:
-                self.warn(
-                    f"Model '{status['model']}' is not available to this key.",
-                    'Set AUTOMATION_GEMINI_MODEL in .env to one of: ' + ', '.join(available[:8]),
+            if status['model'] in available:
+                self.ok(f"Model {status['model']} is pulled and ready")
+            else:
+                hint = (
+                    'Available: ' + ', '.join(available[:6])
+                    if available else 'No models are pulled on this server yet.'
                 )
-            elif available:
-                self.ok(f'Model reachable ({len(available)} models on this key)')
+                self.bad(
+                    f"Model {status['model']} is not on the Ollama server.",
+                    f"Pull it:  ollama pull {status['model']}\n{hint}",
+                )
+
+            try:
+                if OllamaClient().supports_vision:
+                    self.ok('Model supports vision - images will be classified by AI')
+                else:
+                    self.warn(
+                        f"{status['model']} is text-only.",
+                        'Image role, colour and alt text fall back to a positional\n'
+                        'heuristic (first image becomes the main one). Everything\n'
+                        'else - name, description, SEO, category - is unaffected.\n'
+                        'For AI image sorting, pull a multimodal model and set\n'
+                        'AUTOMATION_OLLAMA_MODEL, e.g. qwen2.5vl:7b or llava.',
+                    )
+            except Exception as exc:
+                self.warn(f'Could not read model capabilities: {exc}')
+        elif status['active'] == 'gemini':
+            self.ok(f"Provider: Google Gemini (model: {status['model']}) - FREE tier")
         elif status['active'] == 'claude':
             self.ok(f"Provider: Anthropic Claude (model: {status['model']})")
-            try:
-                import anthropic  # noqa: F401
-                self.ok('anthropic package installed')
-            except ImportError:
-                self.warn('anthropic package not installed.', 'Fix:  pip install anthropic')
         else:
             self.warn(
-                'No AI key set - running on rule-based extraction only.',
-                'You lose generated names, descriptions, SEO copy, category\n'
-                'suggestions and image role/colour detection.\n\n'
-                'FREE option - Google Gemini (no credit card needed):\n'
-                '  1. Open https://aistudio.google.com/apikey\n'
-                '  2. Sign in with a Google account, click Create API key\n'
-                '  3. Add to .env:   GEMINI_API_KEY=your-key-here\n'
-                '  4. Restart the worker\n\n'
-                'Paid option - Anthropic Claude: set ANTHROPIC_API_KEY instead.',
+                'No AI provider available - running on rule-based extraction only.',
+                'You lose generated names, descriptions, SEO copy and category\n'
+                'suggestions.\n'
+                '\n'
+                'LOCAL option - Ollama (no key, no quota, no cost):\n'
+                '  ollama serve\n'
+                '  ollama pull qwen3:8b\n'
+                '\n'
+                'Hosted options: set GEMINI_API_KEY or ANTHROPIC_API_KEY in .env',
             )
 
         # --- 7. Queue state ------------------------------------------------

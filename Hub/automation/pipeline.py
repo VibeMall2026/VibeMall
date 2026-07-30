@@ -197,13 +197,24 @@ def process_draft(draft: Any) -> Any:
     # --- 2. Vision ----------------------------------------------------------
     findings: dict = {}
     if images and client is not None:
-        findings = analyse_images(client, images, context=draft.raw_text)
-        draft.log_event(
-            'vision',
-            f'Analysed {findings.get("_analysed_count", 0)}/{len(images)} image(s).'
-            if findings else 'Image analysis unavailable; using positional fallback.',
-            save=False,
-        )
+        if getattr(client, 'supports_vision', True):
+            findings = analyse_images(client, images, context=draft.raw_text)
+            draft.log_event(
+                'vision',
+                f'Analysed {findings.get("_analysed_count", 0)}/{len(images)} image(s).'
+                if findings else 'Image analysis unavailable; using positional fallback.',
+                save=False,
+            )
+        else:
+            # A text-only model cannot read images; sending them would waste a
+            # slow local request and return nothing useful.
+            draft.log_event(
+                'vision',
+                f'{client.model} is text-only — image roles and colours use the '
+                'positional fallback. Configure a multimodal model to enable them.',
+                level='warning',
+                save=False,
+            )
     apply_to_images(images, findings)
 
     # --- 3. Extraction ------------------------------------------------------

@@ -323,9 +323,28 @@ TELEGRAM_ALLOWED_CHAT_IDS = [
 # Where the Bot API update offset is persisted between restarts.
 TELEGRAM_OFFSET_FILE = os.getenv('TELEGRAM_OFFSET_FILE', str(BASE_DIR / 'logs' / 'telegram_offset.json'))
 
-# Which AI provider enriches drafts: 'auto', 'claude' or 'gemini'.
-# 'auto' uses whichever key is present, preferring Claude when both are.
-AUTOMATION_AI_PROVIDER = os.getenv('AUTOMATION_AI_PROVIDER', 'auto').strip().lower()
+# Which AI provider enriches drafts: 'auto', 'ollama', 'claude' or 'gemini'.
+# 'auto' prefers a reachable Ollama server, then Claude, then Gemini.
+AUTOMATION_AI_PROVIDER = os.getenv('AUTOMATION_AI_PROVIDER', 'ollama').strip().lower()
+
+# ── Ollama (local models — no API key, no quota, no per-token cost) ────────
+# Point this at any machine running `ollama serve`; it does not have to be
+# this server. A GPU box on the LAN will be far faster than CPU inference.
+OLLAMA_BASE_URL = os.getenv('OLLAMA_BASE_URL', 'http://127.0.0.1:11434').strip()
+AUTOMATION_OLLAMA_MODEL = os.getenv('AUTOMATION_OLLAMA_MODEL', 'qwen3:8b').strip()
+
+# Local generation is slow — an 8B model on CPU can take minutes for a long
+# structured response, so this is a ceiling rather than an expectation.
+AUTOMATION_OLLAMA_TIMEOUT = _env_int('AUTOMATION_OLLAMA_TIMEOUT', 900)
+AUTOMATION_OLLAMA_CONTEXT = _env_int('AUTOMATION_OLLAMA_CONTEXT', 8192)
+
+# Vision is detected from the model's own metadata. Set this only to override
+# that — e.g. force it off while testing a multimodal model.
+_ollama_vision = os.getenv('AUTOMATION_OLLAMA_VISION', '').strip()
+AUTOMATION_OLLAMA_VISION = (
+    None if not _ollama_vision else _ollama_vision.lower() in ('1', 'true', 'yes', 'on')
+)
+# ───────────────────────────────────────────────────────────────────────────
 
 # Google Gemini — has a FREE tier with vision and needs no credit card.
 # Create a key at https://aistudio.google.com/apikey
