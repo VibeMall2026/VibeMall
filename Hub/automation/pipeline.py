@@ -116,10 +116,10 @@ def claim_next() -> Any | None:
 
 
 def _is_half_complete(draft: Any) -> bool:
-    """True when a draft has text but no images, or images but no text."""
+    """True when a draft has text but no media, or media but no text."""
     has_text = bool((draft.raw_text or '').strip())
-    has_images = draft.images.exists()
-    return has_text != has_images
+    has_files = draft.images.exists() or draft.videos.exists()
+    return has_text != has_files
 
 
 def _due(now: Any) -> Any:

@@ -131,6 +131,7 @@ def admin_review_product_draft(request, draft_id: int):
         'record': record,
         'suggestion': suggestion,
         'images': images,
+        'videos': draft.videos.all().order_by('order', 'id'),
         'any_footer_detected': any(image.suggested_crop_bottom_px for image in images),
         'events': list(reversed(draft.events or []))[:25],
         # Attributes with no Product column — shown so the admin can see what
@@ -184,11 +185,21 @@ def _save_crops(request, draft: ProductDraft) -> int:
     return updated
 
 
+def _save_reel_settings(request, draft: ProductDraft) -> None:
+    """Persist per-video reel title and publish choices from the review screen."""
+    for video in draft.videos.all():
+        video.title = (request.POST.get(f'reel_title_{video.pk}') or '').strip()[:200]
+        video.create_reel = bool(request.POST.get(f'reel_create_{video.pk}'))
+        video.publish_reel = bool(request.POST.get(f'reel_publish_{video.pk}'))
+        video.save(update_fields=['title', 'create_reel', 'publish_reel'])
+
+
 def _handle_review_post(request, draft: ProductDraft):
     action = request.POST.get('action')
 
     if action == 'save_crops':
         count = _save_crops(request, draft)
+        _save_reel_settings(request, draft)
         messages.success(request, f'Crop updated on {count} image{"" if count == 1 else "s"}.')
         return redirect('admin_review_product_draft', draft_id=draft.pk)
 
@@ -219,6 +230,7 @@ def _handle_review_post(request, draft: ProductDraft):
     # Crops are applied to the live images by the publisher, so they must be
     # saved before publish() reads them.
     _save_crops(request, draft)
+    _save_reel_settings(request, draft)
 
     draft.category = (request.POST.get('category') or '').strip()
     draft.sub_category = (request.POST.get('sub_category') or '').strip()[:100]

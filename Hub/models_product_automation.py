@@ -39,6 +39,15 @@ def draft_image_upload_to(instance: "ProductDraftImage", filename: str) -> str:
     return f"product_drafts/{instance.draft.reference}/{filename}"
 
 
+def draft_video_upload_to(instance: "ProductDraftVideo", filename: str) -> str:
+    """Store staged videos away from the live ``reels/`` media tree."""
+    return f"product_drafts/{instance.draft.reference}/videos/{filename}"
+
+
+def draft_thumbnail_upload_to(instance: "ProductDraftVideo", filename: str) -> str:
+    return f"product_drafts/{instance.draft.reference}/videos/thumbs/{filename}"
+
+
 class ProductDraft(models.Model):
     """An inbound product awaiting AI processing and admin approval."""
 
@@ -276,3 +285,54 @@ class ProductDraftImage(models.Model):
     def __str__(self) -> str:
         label = self.color or 'default'
         return f"Draft {self.draft_id} — {self.get_role_display()} ({label})"
+
+
+class ProductDraftVideo(models.Model):
+    """
+    A staged video that becomes a ``Reel`` when the product is approved.
+
+    Suppliers send product videos alongside photos. Rather than a separate
+    upload step in the admin, a video sent to the bot is staged here and, on
+    approval, written to the existing ``Reel`` model already linked to
+    ``Product`` for watch-and-shop.
+    """
+
+    draft = models.ForeignKey(ProductDraft, on_delete=models.CASCADE, related_name='videos')
+    video = models.FileField(upload_to=draft_video_upload_to)
+    thumbnail = models.ImageField(upload_to=draft_thumbnail_upload_to, blank=True, null=True)
+
+    title = models.CharField(
+        max_length=200,
+        blank=True,
+        default='',
+        help_text="Reel title; falls back to the product name on approval",
+    )
+    duration = models.PositiveIntegerField(default=0, help_text="Seconds, as reported by Telegram")
+    width = models.PositiveIntegerField(default=0)
+    height = models.PositiveIntegerField(default=0)
+    size_bytes = models.PositiveBigIntegerField(default=0)
+
+    create_reel = models.BooleanField(
+        default=True,
+        help_text="Create a Reel for this video when the product is approved",
+    )
+    publish_reel = models.BooleanField(
+        default=False,
+        help_text="Publish the Reel immediately (otherwise it is created unpublished)",
+    )
+
+    source_file_id = models.CharField(max_length=200, blank=True, default='')
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', 'id']
+        verbose_name = 'Product Draft Video'
+        verbose_name_plural = 'Product Draft Videos'
+
+    def __str__(self) -> str:
+        return f"Draft {self.draft_id} — video {self.order}"
+
+    @property
+    def size_mb(self) -> float:
+        return round((self.size_bytes or 0) / (1024 * 1024), 1)

@@ -186,14 +186,66 @@ def _extract_prices(text: str) -> tuple[Decimal | None, Decimal | None]:
 
     if not found:
         return None, None
+
     if len(found) == 1:
+        # A single unlabelled price in a supplier message is the supplier's own
+        # price — i.e. the MRP / original price, not what we sell at. The
+        # selling price is a margin decision the admin makes at approval, so
+        # it is deliberately left empty rather than guessed.
+        if supplier_price_is_mrp():
+            return None, found[0]
         return found[0], None
 
     lowest, highest = min(found), max(found)
     # Two identical values, or a spread so wide it is probably not a discount pair.
     if highest == lowest or highest > lowest * 20:
-        return lowest, None
+        return (None, lowest) if supplier_price_is_mrp() else (lowest, None)
     return lowest, highest
+
+
+def supplier_price_is_mrp() -> bool:
+    """
+    Whether an unlabelled supplier price means MRP rather than selling price.
+
+    Defaults to True: suppliers quote their own price, and the store sets its
+    own selling price per product.
+    """
+    from django.conf import settings
+
+    return bool(getattr(settings, 'AUTOMATION_SUPPLIER_PRICE_IS_MRP', True))
+
+
+#: Matches a whole line that is essentially just a price statement.
+_PRICE_LINE = re.compile(
+    r'^\s*(?:(?:offer|sale|deal|selling|our|net|final|mrp|m\.r\.p\.?|retail|original)\s*)?'
+    r'price\b.*$|^\s*(?:₹|rs\.?|inr)\s*[\d,]+.*$|^\s*[\d,]+\s*/-\s*$',
+    re.IGNORECASE,
+)
+
+
+def strip_price_mentions(text: str) -> str:
+    """
+    Remove prices from copy that will be shown to shoppers.
+
+    The price belongs in the price field, not the description — a stale number
+    baked into the description text outlives every repricing.
+    """
+    if not text:
+        return ''
+
+    lines = []
+    for line in text.splitlines():
+        if _PRICE_LINE.match(line.strip()):
+            continue
+        cleaned = line
+        for pattern in _PRICE_PATTERNS + _ORIGINAL_PRICE_PATTERNS + _SELLING_PRICE_PATTERNS:
+            cleaned = pattern.sub('', cleaned)
+        # Tidy up punctuation left behind by the removal.
+        cleaned = re.sub(r'\s{2,}', ' ', cleaned).strip(' ,;:-–|')
+        if cleaned:
+            lines.append(cleaned)
+
+    return '\n'.join(lines).strip()
 
 
 def _normalise_size(token: str) -> str:

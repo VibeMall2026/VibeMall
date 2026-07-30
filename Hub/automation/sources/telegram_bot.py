@@ -47,6 +47,9 @@ API_ROOT = 'https://api.telegram.org'
 #: Documents with these MIME types are treated as product images.
 IMAGE_MIME_PREFIXES = ('image/',)
 
+#: Documents with these MIME types become Reels on approval.
+VIDEO_MIME_PREFIXES = ('video/',)
+
 #: A bare bot command such as ``/start`` or ``/help@VibeMallBot``. Users press
 #: Start before their first message, and that must not become a draft.
 BOT_COMMAND = re.compile(r'^/[A-Za-z0-9_]{1,32}(@[A-Za-z0-9_]+)?\s*$')
@@ -85,6 +88,9 @@ class TelegramBotSource(ProductSource):
 
         self.long_poll_seconds = long_poll_seconds
         self.max_image_bytes = int(getattr(settings, 'AUTOMATION_MAX_IMAGE_BYTES', 12 * 1024 * 1024))
+        # Telegram's Bot API refuses getFile above 20 MB, so there is no point
+        # allowing a larger ceiling here.
+        self.max_video_bytes = int(getattr(settings, 'AUTOMATION_MAX_VIDEO_BYTES', 20 * 1024 * 1024))
         self.offset_path = offset_path or Path(
             getattr(settings, 'TELEGRAM_OFFSET_FILE', settings.BASE_DIR / 'logs' / 'telegram_offset.json')
         )
@@ -121,16 +127,33 @@ class TelegramBotSource(ProductSource):
             raise RuntimeError(f"Telegram {method} failed: {payload.get('description')}")
         return payload.get('result')
 
-    def _download(self, file_id: str) -> tuple[bytes, str] | None:
+    def _download(
+        self, file_id: str, *, limit: int | None = None, label: str = 'image'
+    ) -> tuple[bytes, str] | None:
         """Resolve a ``file_id`` to its bytes. Returns ``None`` if unusable."""
+        limit = limit if limit is not None else self.max_image_bytes
         try:
             meta = self._api('getFile', file_id=file_id)
         except Exception as exc:
+            # The Bot API refuses getFile above 20 MB, which is the usual reason
+            # a supplier's video does not arrive. Say so plainly.
+            message = str(exc)
+            if 'too big' in message.lower() or 'file is too big' in message.lower():
+                self.skipped.append(
+                    f'{label} is larger than Telegram\'s 20 MB bot limit - '
+                    'compress it or send a shorter clip'
+                )
+            else:
+                self.skipped.append(f'{label} could not be fetched from Telegram ({message[:80]})')
             logger.warning('[telegram] getFile failed for %s: %s', file_id, exc)
             return None
 
         size = int(meta.get('file_size') or 0)
-        if size and size > self.max_image_bytes:
+        if size and size > limit:
+            self.skipped.append(
+                f'{label} is {size // (1024 * 1024)} MB, over the configured '
+                f'{limit // (1024 * 1024)} MB limit'
+            )
             logger.warning('[telegram] Skipping %s: %d bytes exceeds limit', file_id, size)
             return None
 
@@ -144,7 +167,7 @@ class TelegramBotSource(ProductSource):
             logger.warning('[telegram] Download failed for %s: %s', file_id, exc)
             return None
 
-        if len(data) > self.max_image_bytes:
+        if len(data) > limit:
             logger.warning('[telegram] Skipping %s: downloaded %d bytes exceeds limit', file_id, len(data))
             return None
 
@@ -172,10 +195,38 @@ class TelegramBotSource(ProductSource):
                     )
                 )
 
+        # Videos: `video` for normal uploads, `animation` for GIF-style clips.
+        for key in ('video', 'animation'):
+            clip = message.get(key) or {}
+            if not clip:
+                continue
+            downloaded = self._download(
+                clip.get('file_id', ''), limit=self.max_video_bytes, label='video'
+            )
+            if not downloaded:
+                continue
+            data, filename = downloaded
+            media.append(
+                IncomingMedia(
+                    data=data,
+                    filename=clip.get('file_name') or filename,
+                    source_file_id=clip.get('file_unique_id') or clip.get('file_id', ''),
+                    kind=IncomingMedia.KIND_VIDEO,
+                    duration=int(clip.get('duration') or 0),
+                    width=int(clip.get('width') or 0),
+                    height=int(clip.get('height') or 0),
+                )
+            )
+
         document = message.get('document') or {}
         mime = (document.get('mime_type') or '').lower()
-        if document and mime.startswith(IMAGE_MIME_PREFIXES):
-            downloaded = self._download(document.get('file_id', ''))
+        if document and (mime.startswith(IMAGE_MIME_PREFIXES) or mime.startswith(VIDEO_MIME_PREFIXES)):
+            is_video = mime.startswith(VIDEO_MIME_PREFIXES)
+            downloaded = self._download(
+                document.get('file_id', ''),
+                limit=self.max_video_bytes if is_video else self.max_image_bytes,
+                label='video' if is_video else 'image',
+            )
             if downloaded:
                 data, filename = downloaded
                 media.append(
@@ -183,6 +234,7 @@ class TelegramBotSource(ProductSource):
                         data=data,
                         filename=document.get('file_name') or filename,
                         source_file_id=document.get('file_unique_id') or document.get('file_id', ''),
+                        kind=IncomingMedia.KIND_VIDEO if is_video else IncomingMedia.KIND_IMAGE,
                     )
                 )
 
@@ -223,11 +275,13 @@ class TelegramBotSource(ProductSource):
             return None
 
         if not text.strip() and not media:
-            had_photo = bool(message.get('photo') or message.get('document'))
-            self.skipped.append(
-                'photo could not be downloaded from Telegram' if had_photo
-                else 'message had no text and no image'
+            had_file = bool(
+                message.get('photo') or message.get('document')
+                or message.get('video') or message.get('animation')
             )
+            # _download already recorded a specific reason for a failed fetch.
+            if not had_file:
+                self.skipped.append('message had no text, image or video')
             return None
 
         incoming = IncomingProduct(

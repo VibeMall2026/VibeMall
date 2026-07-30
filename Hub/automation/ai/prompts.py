@@ -32,6 +32,14 @@ there and produce the best complete record you can.
 availability must come only from the supplier message or the verified data \
 supplied to you. If a value is absent, return an empty string. A wrong price \
 on a live listing loses real money.
+1b. A price quoted by the supplier is the ORIGINAL / MRP price. Put it in \
+`old_price`. Leave `price` (the selling price) EMPTY unless the message \
+clearly distinguishes two prices, such as "MRP 2999, Offer Price 1499" — only \
+then does the discounted figure become `price`. The store sets its own selling \
+price at approval time; never guess it.
+1c. NEVER put a price, discount or delivery charge in `description`, \
+`short_description` or `highlights`. Those fields are shown to shoppers \
+alongside a live price, and a number baked into the text goes stale.
 2. NEVER contradict the verified data block. It was extracted deterministically \
 and is more reliable than your reading of the prose. If the message is \
 ambiguous and the verified block has a value, use the verified value.

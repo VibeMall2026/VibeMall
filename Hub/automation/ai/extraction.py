@@ -25,7 +25,12 @@ from typing import Any
 
 from django.utils.text import slugify
 
-from ..parsing.rules import RuleExtraction, extract_rules
+from ..parsing.rules import (
+    RuleExtraction,
+    extract_rules,
+    strip_price_mentions,
+    supplier_price_is_mrp,
+)
 from .client import AIUnavailable, ClaudeClient
 from .prompts import EXTRACTION_SYSTEM, build_extraction_content
 from .schema import EXTENDED_ATTRIBUTE_FIELDS, build_extraction_schema
@@ -127,8 +132,10 @@ def build_from_rules(rules: RuleExtraction, raw_text: str) -> dict[str, Any]:
     record.update(
         {
             'name': name[:200],
-            'short_description': (rules.fabric and f'{name} in {rules.fabric}.' or name)[:160],
-            'description': _fallback_description(rules, raw_text),
+            'short_description': strip_price_mentions(
+                (rules.fabric and f'{name} in {rules.fabric}.' or name)
+            )[:160],
+            'description': strip_price_mentions(_fallback_description(rules, raw_text)),
             'sku': rules.sku,
             'price': str(rules.price) if rules.price is not None else '',
             'old_price': str(rules.old_price) if rules.old_price is not None else '',
@@ -141,7 +148,17 @@ def build_from_rules(rules: RuleExtraction, raw_text: str) -> dict[str, Any]:
             'colors': rules.colors,
             'category_confidence': 'low',
             'category_reasoning': 'AI categorisation unavailable — please select manually.',
-            'warnings': ['Generated without AI: descriptions and attributes need review.'],
+            'warnings': (
+                ['Generated without AI: descriptions and attributes need review.']
+                + (
+                    [
+                        f'Supplier price Rs.{rules.old_price} was recorded as the ORIGINAL price. '
+                        'Enter your selling price before approving.'
+                    ]
+                    if rules.old_price is not None and rules.price is None
+                    else []
+                )
+            ),
             'tags': [t for t in [rules.fabric, *rules.colors] if t][:10],
             'meta_keywords': [t for t in [name, rules.fabric, *rules.colors] if t][:10],
         }
@@ -166,6 +183,21 @@ def _merge(ai: dict[str, Any], rules: RuleExtraction) -> dict[str, Any]:
     # --- Commercial facts: rules are authoritative -------------------------
     record['price'] = str(rules.price) if rules.price is not None else _number_str(record['price'])
     record['old_price'] = str(rules.old_price) if rules.old_price is not None else _number_str(record['old_price'])
+
+    # The supplier quotes MRP, not our selling price. If the deterministic pass
+    # read exactly one price and treated it as MRP, do not let the model's
+    # guess sneak into the selling-price field — that number is the admin's
+    # margin decision, made at approval.
+    if supplier_price_is_mrp() and rules.old_price is not None and rules.price is None:
+        record['price'] = ''
+        record['warnings'].append(
+            f'Supplier price Rs.{rules.old_price} was recorded as the ORIGINAL price. '
+            'Enter your selling price before approving.'
+        )
+
+    # Prices must never live inside shopper-facing copy.
+    record['description'] = strip_price_mentions(record['description'])
+    record['short_description'] = strip_price_mentions(record['short_description'])
     record['stock'] = str(rules.stock) if rules.stock is not None else _number_str(record['stock'])
     if rules.sku:
         record['sku'] = rules.sku

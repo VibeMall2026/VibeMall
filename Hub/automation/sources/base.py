@@ -19,7 +19,10 @@ from typing import Any, Iterable, Iterator
 
 @dataclass(slots=True)
 class IncomingMedia:
-    """One image attached to an inbound product message."""
+    """One file attached to an inbound product message — a photo or a video."""
+
+    KIND_IMAGE = 'image'
+    KIND_VIDEO = 'video'
 
     data: bytes
     filename: str
@@ -27,10 +30,21 @@ class IncomingMedia:
     source_file_id: str = ''
     #: Optional caption / label the provider attached to this specific file.
     caption: str = ''
+    #: ``image`` becomes a ProductDraftImage; ``video`` becomes a Reel on approval.
+    kind: str = KIND_IMAGE
+    #: Video metadata, when the provider supplies it.
+    duration: int = 0
+    width: int = 0
+    height: int = 0
 
     def __post_init__(self) -> None:
         if not self.filename:
-            self.filename = f"{self.source_file_id or 'image'}.jpg"
+            extension = 'mp4' if self.kind == self.KIND_VIDEO else 'jpg'
+            self.filename = f"{self.source_file_id or self.kind}.{extension}"
+
+    @property
+    def is_video(self) -> bool:
+        return self.kind == self.KIND_VIDEO
 
 
 @dataclass(slots=True)

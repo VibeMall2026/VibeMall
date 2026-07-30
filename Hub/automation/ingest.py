@@ -27,7 +27,7 @@ from django.core.files.base import ContentFile
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from Hub.models import ProductDraft, ProductDraftImage
+from Hub.models import ProductDraft, ProductDraftImage, ProductDraftVideo
 
 from .sources.base import IncomingProduct
 
@@ -35,6 +35,9 @@ logger = logging.getLogger(__name__)
 
 #: Hard ceiling on staged images per draft, so a runaway album cannot fill the disk.
 MAX_IMAGES_PER_DRAFT = 40
+
+#: Reels are heavy; a product rarely needs more than a handful.
+MAX_VIDEOS_PER_DRAFT = 5
 
 
 def _find_group_draft(incoming: IncomingProduct) -> ProductDraft | None:
@@ -86,21 +89,52 @@ def _find_pairable_draft(incoming: IncomingProduct) -> ProductDraft | None:
 
     for draft in candidates:
         draft_has_text = bool((draft.raw_text or '').strip())
-        draft_has_images = draft.images.exists()
-        if has_text and draft_has_images and not draft_has_text:
+        draft_has_files = draft.images.exists() or draft.videos.exists()
+        if has_text and draft_has_files and not draft_has_text:
             return draft
-        if has_media and draft_has_text and not draft_has_images:
+        if has_media and draft_has_text and not draft_has_files:
             return draft
 
     return None
 
 
+def _attach_videos(draft: ProductDraft, incoming: IncomingProduct) -> int:
+    """Save inbound videos as staged reels. Returns how many were stored."""
+    stored = 0
+    existing = draft.videos.count()
+
+    for media in incoming.media:
+        if not media.is_video:
+            continue
+        if existing + stored >= MAX_VIDEOS_PER_DRAFT:
+            break
+        if media.source_file_id and draft.videos.filter(source_file_id=media.source_file_id).exists():
+            continue
+
+        video = ProductDraftVideo(
+            draft=draft,
+            source_file_id=media.source_file_id,
+            duration=media.duration,
+            width=media.width,
+            height=media.height,
+            size_bytes=len(media.data),
+            order=existing + stored,
+        )
+        video.video.save(media.filename, ContentFile(media.data), save=False)
+        video.save()
+        stored += 1
+
+    return stored
+
+
 def _attach_media(draft: ProductDraft, incoming: IncomingProduct) -> int:
-    """Save inbound files as staged images. Returns how many were stored."""
+    """Save inbound images as staged photos. Returns how many were stored."""
     existing = draft.images.count()
     stored = 0
 
     for media in incoming.media:
+        if media.is_video:
+            continue
         if existing + stored >= MAX_IMAGES_PER_DRAFT:
             draft.log_event(
                 'ingest',
@@ -146,8 +180,11 @@ def ingest(incoming: IncomingProduct) -> ProductDraft | None:
             draft.raw_text = incoming.text
 
         stored = _attach_media(draft, incoming)
+        clips = _attach_videos(draft, incoming)
         draft.last_message_at = timezone.now()
-        draft.log_event('ingest', f'Album part merged (+{stored} image(s)).', save=False)
+        draft.log_event(
+            'ingest', f'Album part merged (+{stored} image(s), +{clips} video(s)).', save=False
+        )
         draft.save(update_fields=['raw_text', 'last_message_at', 'events', 'updated_at'])
         logger.info('[automation] Merged album part into draft %s (+%d images)', draft.pk, stored)
         return draft
@@ -158,6 +195,7 @@ def ingest(incoming: IncomingProduct) -> ProductDraft | None:
         if incoming.text.strip() and not partner.raw_text.strip():
             partner.raw_text = incoming.text
         stored = _attach_media(partner, incoming)
+        stored += _attach_videos(partner, incoming)
         partner.last_message_at = timezone.now()
         partner.log_event(
             'ingest',
@@ -193,7 +231,12 @@ def ingest(incoming: IncomingProduct) -> ProductDraft | None:
         return None
 
     stored = _attach_media(draft, incoming)
-    draft.log_event('ingest', f'Received from {incoming.source} with {stored} image(s).', save=False)
+    clips = _attach_videos(draft, incoming)
+    draft.log_event(
+        'ingest',
+        f'Received from {incoming.source} with {stored} image(s) and {clips} video(s).',
+        save=False,
+    )
     draft.save(update_fields=['events', 'updated_at'])
 
     logger.info('[automation] Created draft %s from %s (%d images)', draft.pk, incoming.source, stored)

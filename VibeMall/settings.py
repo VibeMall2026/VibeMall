@@ -342,4 +342,16 @@ AUTOMATION_MAX_ATTEMPTS = _env_int('AUTOMATION_MAX_ATTEMPTS', 4)
 # Guard rails on inbound media.
 AUTOMATION_MAX_IMAGE_BYTES = _env_int('AUTOMATION_MAX_IMAGE_BYTES', 12 * 1024 * 1024)
 AUTOMATION_MAX_IMAGES_PER_DRAFT = _env_int('AUTOMATION_MAX_IMAGES_PER_DRAFT', 40)
+# Telegram's Bot API refuses downloads above 20 MB, so a larger value here
+# would only produce failures further along.
+AUTOMATION_MAX_VIDEO_BYTES = _env_int('AUTOMATION_MAX_VIDEO_BYTES', 20 * 1024 * 1024)
+
+# A single unlabelled price in a supplier message is the supplier's own price,
+# i.e. the MRP / original price - not what the store sells at. With this on,
+# that value fills `old_price` and the selling price is left for the admin to
+# set at approval. Turn it off to treat a lone price as the selling price.
+AUTOMATION_SUPPLIER_PRICE_IS_MRP = _env_bool('AUTOMATION_SUPPLIER_PRICE_IS_MRP', True)
+
+# Videos sent to the bot become Reels linked to the product on approval.
+AUTOMATION_CREATE_REELS = _env_bool('AUTOMATION_CREATE_REELS', True)
 # ───────────────────────────────────────────────────────────────────────────

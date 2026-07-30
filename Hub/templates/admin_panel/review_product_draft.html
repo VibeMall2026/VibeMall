@@ -144,6 +144,45 @@
         </div>
       {% endif %}
 
+      {% if videos %}
+        <div class="card mb-4">
+          <div class="card-header">
+            <h6 class="mb-0">Videos → Reels</h6>
+            <small class="text-muted">Each ticked video becomes a Reel linked to this product.</small>
+          </div>
+          <div class="card-body">
+            {% for video in videos %}
+              <div class="mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+                <video src="{{ video.video.url }}" controls preload="metadata"
+                       class="w-100 rounded mb-2" style="max-height:280px;background:#000;"></video>
+                <div class="mb-2">
+                  <input type="text" class="form-control form-control-sm"
+                         name="reel_title_{{ video.pk }}" value="{{ video.title }}"
+                         placeholder="Reel title (defaults to the product name)" maxlength="200">
+                </div>
+                <div class="d-flex flex-wrap gap-3 align-items-center">
+                  <div class="form-check mb-0">
+                    <input class="form-check-input" type="checkbox" value="1"
+                           id="reel_create_{{ video.pk }}" name="reel_create_{{ video.pk }}"
+                           {% if video.create_reel %}checked{% endif %}>
+                    <label class="form-check-label small" for="reel_create_{{ video.pk }}">Create Reel</label>
+                  </div>
+                  <div class="form-check mb-0">
+                    <input class="form-check-input" type="checkbox" value="1"
+                           id="reel_publish_{{ video.pk }}" name="reel_publish_{{ video.pk }}"
+                           {% if video.publish_reel %}checked{% endif %}>
+                    <label class="form-check-label small" for="reel_publish_{{ video.pk }}">Publish immediately</label>
+                  </div>
+                  <small class="text-muted ms-auto">
+                    {{ video.size_mb }} MB{% if video.duration %} · {{ video.duration }}s{% endif %}
+                  </small>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
       <div class="card">
         <div class="card-header"><h6 class="mb-0">Original Supplier Message</h6></div>
         <div class="card-body">
@@ -209,12 +248,20 @@
 
           <div class="row">
             <div class="col-md-4 mb-3">
-              <label class="form-label" for="price">Selling Price (₹)</label>
-              <input type="text" class="form-control" id="price" name="price" value="{{ record.price }}">
+              <label class="form-label" for="price">
+                Selling Price (₹) <span class="text-danger">*</span>
+              </label>
+              <input type="text" class="form-control {% if not record.price %}border-danger{% endif %}"
+                     id="price" name="price" value="{{ record.price }}"
+                     placeholder="Enter your price">
+              {% if not record.price %}
+                <small class="text-danger">Required — set your selling price.</small>
+              {% endif %}
             </div>
             <div class="col-md-4 mb-3">
               <label class="form-label" for="old_price">Original / MRP (₹)</label>
               <input type="text" class="form-control" id="old_price" name="old_price" value="{{ record.old_price }}">
+              <small class="text-muted">Taken from the supplier message.</small>
             </div>
             <div class="col-md-4 mb-3">
               <label class="form-label" for="stock">Stock</label>

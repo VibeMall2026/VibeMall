@@ -298,6 +298,68 @@ def create_variants(product: Any, record: dict[str, Any], images: list[Any]) -> 
     return created
 
 
+def create_reels(product: Any, draft: Any, user: Any) -> int:
+    """
+    Turn staged videos into ``Reel`` rows linked to the product.
+
+    Uses the project's existing Reel model — the same one the manual Add
+    Product page writes — so watch-and-shop, the homepage carousel and the
+    reel admin all work unchanged.
+
+    ``Reel.created_by`` is a non-nullable CASCADE FK, so a reel can only be
+    created when an approving user is known; without one the videos stay on
+    the draft rather than blocking the product.
+    """
+    from Hub.models import Reel
+
+    videos = [v for v in draft.videos.all().order_by('order', 'id') if v.create_reel]
+    if not videos:
+        return 0
+
+    if user is None:
+        logger.warning(
+            '[publish] Draft %s has %d video(s) but no approving user; skipping reels.',
+            draft.pk, len(videos),
+        )
+        return 0
+
+    created = 0
+    for index, staged in enumerate(videos):
+        reel = Reel(
+            title=(staged.title or product.name)[:200],
+            description='',
+            product=product,
+            duration=staged.duration or 0,
+            order=index,
+            is_published=staged.publish_reel,
+            is_processing=False,
+            created_by=user,
+        )
+        staged.video.open('rb')
+        try:
+            reel.video_file.save(
+                os.path.basename(staged.video.name), ContentFile(staged.video.read()), save=False
+            )
+        finally:
+            staged.video.close()
+
+        if staged.thumbnail:
+            staged.thumbnail.open('rb')
+            try:
+                reel.thumbnail.save(
+                    os.path.basename(staged.thumbnail.name),
+                    ContentFile(staged.thumbnail.read()),
+                    save=False,
+                )
+            finally:
+                staged.thumbnail.close()
+
+        reel.save()
+        created += 1
+
+    return created
+
+
 def create_seo(product: Any, record: dict[str, Any]) -> None:
     """Write the ``ProductSEO`` row (also linked by plain ``product_id``)."""
     from Hub.models import ProductSEO
@@ -431,9 +493,10 @@ def publish(draft: Any, *, user: Any = None) -> Any:
         )
         gallery.save()
 
-    # --- Variants and SEO --------------------------------------------------
+    # --- Variants, SEO and reels -------------------------------------------
     variant_count = create_variants(product, record, images)
     create_seo(product, record)
+    reel_count = create_reels(product, draft, user)
 
     # --- Close the draft ---------------------------------------------------
     draft.status = ProductDraft.STATUS_PUBLISHED
@@ -443,7 +506,7 @@ def publish(draft: Any, *, user: Any = None) -> Any:
     draft.log_event(
         'publish',
         f'Published as product #{product.pk} '
-        f'({order} gallery image(s), {variant_count} variant(s)).',
+        f'({order} gallery image(s), {variant_count} variant(s), {reel_count} reel(s)).',
         save=False,
     )
     draft.save(
