@@ -89,10 +89,49 @@ def _number_str(value: Any) -> str:
     return str(number.quantize(Decimal('0.01')).normalize())
 
 
-def category_keys() -> list[str]:
-    from Hub.models import Product
+def category_options() -> list[tuple[str, str]]:
+    """
+    The categories this store actually sells under, as ``(key, label)``.
 
-    return [key for key, _label in Product.CATEGORY_CHOICES]
+    These come from ``CategoryIcon`` — the same rows that fill the storefront
+    header and the Category dropdown on the review screen. ``Product``'s
+    hardcoded ``CATEGORY_CHOICES`` is a stale template list (Mobiles,
+    Furniture, Auto Acc, Sports) that this shop does not use, and offering it
+    to the model meant a kurti had no correct answer available: "Furniture" was
+    the least-wrong pick from a menu of wrong ones, and the admin could not
+    even accept it, because the dropdown lists the real categories instead.
+
+    Falls back to the model's list only when no categories are configured.
+    """
+    from Hub.models import CategoryIcon, Product
+
+    rows = [
+        ((icon.category_key or '').strip(), (icon.name or '').strip())
+        for icon in CategoryIcon.objects.filter(is_active=True).order_by('order', 'id')
+    ]
+    options = [(key, label or key) for key, label in rows if key]
+    return options or list(Product.CATEGORY_CHOICES)
+
+
+def category_keys() -> list[str]:
+    return [key for key, _label in category_options()]
+
+
+def sub_category_options() -> list[str]:
+    """Sub-category labels already in use, so a suggestion is selectable."""
+    from Hub.models import SubCategory
+
+    names = (
+        SubCategory.objects.filter(is_active=True)
+        .order_by('category_key', 'order', 'name')
+        .values_list('name', flat=True)
+    )
+    seen: list[str] = []
+    for name in names:
+        cleaned = (name or '').strip()
+        if cleaned and cleaned.lower() not in {s.lower() for s in seen}:
+            seen.append(cleaned)
+    return seen
 
 
 # --------------------------------------------------------------------------
@@ -260,6 +299,8 @@ def extract(
     if client is None:
         return build_from_rules(rules, raw_text), False
 
+    categories = category_options()
+
     try:
         ai_output = client.complete_json(
             system=EXTRACTION_SYSTEM,
@@ -268,8 +309,10 @@ def extract(
                 verified=rules.as_context(),
                 image_findings=image_findings,
                 source_label=source_label,
+                categories=categories,
+                sub_categories=sub_category_options(),
             ),
-            schema=build_extraction_schema(category_keys()),
+            schema=build_extraction_schema([key for key, _ in categories]),
         )
     except AIUnavailable as exc:
         logger.warning('[extraction] AI unavailable, falling back to rules: %s', exc)

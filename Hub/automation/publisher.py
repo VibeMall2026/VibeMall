@@ -150,13 +150,22 @@ def build_description(record: dict[str, Any]) -> str:
         parts.append(f'Key Highlights\n{bullets}')
 
     # Styling and construction attributes live here rather than in care_info,
-    # which the page renders as "Care Guide".
+    # which the page renders as "Care Guide". Fabric is excluded too: it is the
+    # first line of the Care Guide, and repeating it here — once per component,
+    # all of them usually the same fabric — is what made the block unreadable.
+    excluded = set(CARE_INFO_FIELDS) | set(FABRIC_FIELDS)
+    known = [f for f in SPECIFICATION_FIELDS if f not in excluded]
+
+    # Any attribute added to the schema later still gets shown, but ahead of
+    # ``occasion`` so it stays the closing line of the block.
+    extras = [
+        f for f in EXTENDED_ATTRIBUTE_FIELDS
+        if f not in excluded and f not in SPECIFICATION_FIELDS
+    ]
+    order = [f for f in known if f != 'occasion'] + extras + ['occasion']
+
     specs: list[str] = []
-    seen: set[str] = set()
-    for field in SPECIFICATION_FIELDS + EXTENDED_ATTRIBUTE_FIELDS:
-        if field in CARE_INFO_FIELDS or field in seen:
-            continue
-        seen.add(field)
+    for field in order:
         value = str(record.get(field) or '').strip()
         if value:
             specs.append(f'{_label(field)}: {value}')
@@ -166,34 +175,139 @@ def build_description(record: dict[str, Any]) -> str:
     return '\n\n'.join(parts)
 
 
-#: Fields that genuinely belong under "Care Guide" on the product page —
-#: how to look after the item and what arrives in the parcel. Fabric is
-#: included because washing instructions depend on it.
-CARE_INFO_FIELDS = [
-    'fabric', 'material', 'top_fabric', 'bottom_fabric', 'dupatta_fabric', 'inner_fabric',
-    'wash_care', 'package_contents', 'country_of_origin',
-]
+#: Fields consumed when writing the Care Guide. They are *inputs* to it, not
+#: lines of it — listing them raw is what produced "Fabric: Georgette |
+#: Material: Georgette | Top Fabric: Georgette | Bottom Fabric: Georgette |
+#: Dupatta Fabric: Georgette", which is a spec dump, not care advice.
+CARE_INFO_FIELDS = ['wash_care', 'package_contents']
 
-#: Construction and styling attributes. These are specifications, not care
-#: instructions, so they belong with the description rather than in the Care
-#: Guide panel.
+#: The fabric of each component. Suppliers repeat the same fabric across all of
+#: them, so these are collapsed before being shown.
+FABRIC_FIELDS = ['fabric', 'material', 'top_fabric', 'bottom_fabric', 'dupatta_fabric', 'inner_fabric']
+
+#: Construction and styling attributes, in the order they read best.
+#: ``occasion`` is deliberately last: it is the natural closing line of the
+#: specification block, and nothing should follow it.
 SPECIFICATION_FIELDS = [
     'product_type', 'sleeve_type', 'neck_type', 'length', 'pattern',
-    'work_type', 'style', 'fit', 'stitch_type', 'occasion',
+    'work_type', 'style', 'fit', 'stitch_type', 'country_of_origin', 'occasion',
 ]
+
+#: Fabrics that a washing machine ruins. Indian womenswear is dominated by
+#: these, so an unrecognised fabric is treated as delicate too — advising a
+#: gentle wash for a sturdy fabric costs nothing, the reverse ruins a garment.
+DELICATE_FABRICS = {
+    'silk', 'georgette', 'chiffon', 'organza', 'net', 'tissue', 'velvet', 'satin',
+    'banarasi', 'chanderi', 'brasso', 'taffeta', 'tafeta', 'jacquard', 'brocade',
+    'tussar', 'kanjivaram', 'paithani', 'chinnon', 'chinon', 'vichitra', 'sequin',
+    'zari', 'shimmer', 'lace', 'raw silk', 'art silk',
+}
+
+#: Fabrics that take an ordinary gentle machine cycle.
+WASHABLE_FABRICS = {
+    'cotton', 'linen', 'khadi', 'denim', 'rayon', 'viscose', 'modal', 'crepe',
+    'lycra', 'polyester', 'poly', 'nylon', 'jersey', 'knit', 'terry', 'fleece',
+    'muslin', 'cambric', 'poplin', 'dobby',
+}
+
+#: Surface work that must never meet a hot iron directly.
+EMBELLISHMENT_HINTS = {
+    'embroider', 'zari', 'sequin', 'sequence', 'mirror', 'stone', 'bead',
+    'thread work', 'hand work', 'zardosi', 'gota', 'applique', 'foil', 'print',
+}
+
+
+def _fabric_values(record: dict[str, Any]) -> list[str]:
+    """Every distinct fabric named on the product, in declaration order."""
+    seen: list[str] = []
+    for field in FABRIC_FIELDS:
+        value = str(record.get(field) or '').strip()
+        if value and value.lower() not in {s.lower() for s in seen}:
+            seen.append(value)
+    return seen
+
+
+def _is_delicate(record: dict[str, Any]) -> bool:
+    """True unless every named fabric is one that survives a machine."""
+    fabrics = ' '.join(_fabric_values(record)).lower()
+    if not fabrics:
+        return True
+    if any(word in fabrics for word in DELICATE_FABRICS):
+        return True
+    return not any(word in fabrics for word in WASHABLE_FABRICS)
+
+
+def _is_embellished(record: dict[str, Any]) -> bool:
+    haystack = ' '.join(
+        str(record.get(field) or '') for field in ('work_type', 'pattern', 'style', 'name')
+    ).lower()
+    return any(hint in haystack for hint in EMBELLISHMENT_HINTS)
 
 
 def build_care_info(record: dict[str, Any]) -> str:
     """
-    Care and pack information only — the product page renders this under
-    "Care Guide", so styling attributes would read as noise there.
+    Write a real care guide for the garment.
+
+    The product page renders this under "Care Guide", so it has to read as
+    instructions a customer can follow — not as a list of the fabric fields
+    with their labels, which is what it used to be.
+
+    The advice is derived deterministically from the fabric rather than asked
+    of the model: care is the one section where a confident wrong answer
+    ("machine washable" for georgette) actually destroys the customer's
+    purchase, and the fabric alone is enough to get it right.
     """
-    parts = []
-    for field in CARE_INFO_FIELDS:
-        value = str(record.get(field) or '').strip()
-        if value:
-            parts.append(f'{_label(field)}: {value}')
-    return ' | '.join(parts)[:5000]
+    delicate = _is_delicate(record)
+    supplier_wash = str(record.get('wash_care') or '').strip()
+
+    wash: list[str] = []
+    if supplier_wash and supplier_wash.lower() not in {'na', 'n/a', '-'}:
+        wash.append(supplier_wash.rstrip('.') + '.')
+    elif delicate:
+        wash.append(
+            'Dry clean recommended. If washing at home, hand wash separately in cold '
+            'water with a mild detergent.'
+        )
+    else:
+        wash.append('Machine wash cold on a gentle cycle with similar colours.')
+
+    wash.append('Do not bleach. Do not soak or wring the garment.')
+    wash.append('Wash dark shades separately for the first few washes.')
+
+    drying = ['Dry in shade, inside out — direct sunlight fades the colour.']
+    if delicate:
+        drying.append('Iron on low heat.')
+    else:
+        drying.append('Iron on medium heat.')
+    if _is_embellished(record):
+        drying.append(
+            'Press embroidered and embellished areas from the reverse, or with a thin '
+            'cloth over the work.'
+        )
+
+    storage = ['Fold and store in a dry place, away from direct sunlight.']
+    if delicate:
+        storage.append('Keep in a cotton or muslin bag rather than plastic, so the fabric can breathe.')
+
+    sections = [
+        ('Wash Care', wash),
+        ('Drying & Ironing', drying),
+        ('Storage', storage),
+    ]
+
+    fabrics = _fabric_values(record)
+    if fabrics:
+        sections.insert(0, ('Fabric', [', '.join(fabrics)]))
+
+    contents = str(record.get('package_contents') or '').strip()
+    if contents:
+        sections.append(('Package Contents', [contents]))
+
+    blocks = [
+        heading + '\n' + '\n'.join(f'• {line}' for line in lines)
+        for heading, lines in sections
+    ]
+    return '\n\n'.join(blocks)[:5000]
 
 
 def build_tags(record: dict[str, Any]) -> str:

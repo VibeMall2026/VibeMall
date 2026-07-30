@@ -654,18 +654,12 @@ body.vm-pd-original-card-image .pddx-reco__image img {
                     {% else %}
                     <p>No description available for this product.</p>
                     {% endif %}
-                    {% if product.get_tags_list %}
-                    <ul class="pddx-tag-points">
-                        {% for tag in product.get_tags_list %}
-                        <li>{{ tag }}</li>
-                        {% endfor %}
-                    </ul>
-                    {% endif %}
+                    {% comment %}Tags are search and SEO metadata. Listing them here just repeated the specifications above in a worse format.{% endcomment %}
                 </article>
 
                 <article class="pddx-copy-card">
                     <h3>Care Guide</h3>
-                    <p>{% if product.care_info %}{{ product.care_info }}{% else %}Store this piece in a clean, dry place and handle with care to preserve its finish and structure over time.{% endif %}</p>
+                    {% if product.care_info %}{{ product.care_info|linebreaks }}{% else %}<p>Store this piece in a clean, dry place and handle with care to preserve its finish and structure over time.</p>{% endif %}
                     {% if initial_description_image_url %}
                     <div class="pddx-detail-image">
                         <img id="pddxDetailImage" src="{{ initial_description_image_url }}" data-default-src="{{ initial_description_image_url }}" alt="{{ product.name }}">
@@ -1875,7 +1869,7 @@ function openDesktopProductImage() {
                                {% if product.care_info %}
                                <li>
                                   <h6>Care Info</h6>
-                                  <span>{{ product.care_info }}</span>
+                                  <span>{{ product.care_info|linebreaksbr }}</span>
                                </li>
                                {% endif %}
                                

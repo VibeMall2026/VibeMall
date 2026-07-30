@@ -22,6 +22,7 @@ from django.utils import timezone
 from PIL import Image, ImageDraw
 
 from Hub.automation import pipeline
+from Hub.automation.ai.extraction import category_keys, category_options
 from Hub.automation.ingest import ingest, settle_seconds
 from Hub.automation.parsing.rules import extract_rules, strip_price_mentions
 from Hub.automation.publisher import (
@@ -32,6 +33,7 @@ from Hub.automation.publisher import (
 )
 from Hub.automation.sources.base import IncomingMedia, IncomingProduct
 from Hub.automation.sources.telegram_bot import BOT_COMMAND
+from Hub.views import normalize_sku
 from Hub.models import (
     CategoryIcon,
     Product,
@@ -305,12 +307,87 @@ class ContentLayoutTests(TestCase):
         self.assertIn('Key Highlights', text)
         self.assertIn('Sleeve Type: 3/4 Sleeves', text)
 
-    def test_care_guide_holds_only_care_information(self):
+    def test_nothing_follows_the_occasion_line(self):
+        text = build_description(self.RECORD)
+        tail = text.split('Occasion: Festive')[-1].strip()
+        self.assertEqual(tail, '', 'Occasion closes the specification block')
+
+    def test_fabric_is_not_repeated_in_the_description(self):
+        text = build_description(self.RECORD)
+        self.assertNotIn('Fabric: Georgette', text, 'fabric belongs to the Care Guide')
+        self.assertNotIn('Material:', text)
+
+    def test_care_guide_reads_as_instructions(self):
         care = build_care_info(self.RECORD)
-        self.assertIn('Wash Care: Dry Clean', care)
-        self.assertIn('Fabric: Georgette', care)
+        self.assertIn('Dry Clean', care)
+        self.assertIn('Do not bleach', care)
+        self.assertIn('Dry in shade', care)
+        self.assertIn('Storage', care)
+        self.assertIn('1 Kurta', care)
         self.assertNotIn('Sleeve Type', care, 'styling attributes are not care instructions')
         self.assertNotIn('Occasion', care)
+
+    def test_care_guide_does_not_repeat_one_fabric_per_component(self):
+        care = build_care_info({
+            'fabric': 'Georgette', 'material': 'Georgette', 'top_fabric': 'Georgette',
+            'bottom_fabric': 'Georgette', 'dupatta_fabric': 'Georgette',
+        })
+        self.assertEqual(care.count('Georgette'), 1)
+
+    def test_delicate_fabric_is_never_sent_to_a_machine(self):
+        care = build_care_info({'fabric': 'Georgette', 'work_type': 'Embroidered'})
+        self.assertIn('Dry clean recommended', care)
+        self.assertNotIn('Machine wash', care)
+        self.assertIn('from the reverse', care, 'embroidery needs iron protection')
+
+    def test_cotton_takes_an_ordinary_machine_wash(self):
+        care = build_care_info({'fabric': 'Cotton'})
+        self.assertIn('Machine wash cold', care)
+
+
+class CategorySourceTests(TestCase):
+    """The AI must choose from the categories this store actually has."""
+
+    def test_options_come_from_the_storefront_categories(self):
+        CategoryIcon.objects.create(name='Women Wear', category_key='Women Wear', is_active=True)
+        CategoryIcon.objects.create(name='Mens Wear', category_key='Means Wear', is_active=True)
+        CategoryIcon.objects.create(name='Retired', category_key='OLD', is_active=False)
+
+        keys = category_keys()
+        self.assertIn('Women Wear', keys)
+        self.assertIn('Means Wear', keys)
+        self.assertNotIn('OLD', keys, 'inactive categories are not sold')
+        self.assertNotIn(
+            'FURNITURE', keys,
+            "Product.CATEGORY_CHOICES is a stale template list — offering it left "
+            "a kurti with no correct answer, so the model picked Furniture",
+        )
+
+    def test_labels_are_supplied_because_keys_are_not_self_explanatory(self):
+        CategoryIcon.objects.create(name='Mens Wear', category_key='Means Wear', is_active=True)
+        self.assertIn(('Means Wear', 'Mens Wear'), category_options())
+
+    def test_falls_back_when_no_categories_are_configured(self):
+        self.assertTrue(category_keys(), 'never hand the model an empty enum')
+
+
+class SkuTests(TestCase):
+    """``Product.sku`` is unique but nullable — blank must not collide."""
+
+    def test_blank_skus_do_not_collide(self):
+        self.assertIsNone(normalize_sku(''))
+        self.assertIsNone(normalize_sku('   '))
+
+    def test_taken_sku_is_suffixed(self):
+        Product.objects.create(name='A', price=10, sku='T-1')
+        self.assertEqual(normalize_sku('T-1'), 'T-1-1')
+
+    def test_a_product_keeps_its_own_sku_when_edited(self):
+        product = Product.objects.create(name='A', price=10, sku='T-1')
+        self.assertEqual(
+            normalize_sku('T-1', exclude_pk=product.pk), 'T-1',
+            'editing a product must not rename its own SKU on every save',
+        )
 
 
 @override_settings(MEDIA_ROOT=MEDIA, AUTOMATION_AI_PROVIDER='none')

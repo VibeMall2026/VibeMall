@@ -53,8 +53,24 @@ def _category_context() -> dict:
         'categories': categories,
         'sub_categories': sub_categories,
         'sub_categories_json': json.dumps(sub_categories),
-        'category_labels': dict(Product.CATEGORY_CHOICES),
+        'category_labels': _category_labels(),
     }
+
+
+def _category_labels() -> dict:
+    """
+    Key -> display name for every category, this store's first.
+
+    ``Product.CATEGORY_CHOICES`` is a stale template list, so it is only a
+    fallback for keys on older products that predate the CategoryIcon rows.
+    """
+    labels = dict(Product.CATEGORY_CHOICES)
+    labels.update({
+        (icon.category_key or '').strip(): (icon.name or '').strip()
+        for icon in CategoryIcon.objects.filter(is_active=True)
+        if (icon.category_key or '').strip()
+    })
+    return labels
 
 
 @login_required(login_url='login')
@@ -321,7 +337,7 @@ def _handle_review_post(request, draft: ProductDraft):
     messages.success(
         request,
         f'"{product.name}" is now live. '
-        f'Category: {dict(Product.CATEGORY_CHOICES).get(product.category, product.category)}.',
+        f'Category: {_category_labels().get(product.category, product.category)}.',
     )
     return redirect('admin_edit_product', product_id=product.pk)
 

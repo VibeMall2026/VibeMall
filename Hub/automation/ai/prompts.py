@@ -103,6 +103,8 @@ def build_extraction_content(
     verified: dict,
     image_findings: dict | None,
     source_label: str,
+    categories: list[tuple[str, str]] | None = None,
+    sub_categories: list[str] | None = None,
 ) -> list[dict]:
     """Assemble the user content blocks for the extraction call."""
     import json
@@ -113,6 +115,27 @@ def build_extraction_content(
         '## Verified data (extracted deterministically — treat as ground truth)\n\n'
         f'```json\n{json.dumps(verified, indent=2, ensure_ascii=False)}\n```',
     ]
+
+    # The schema constrains ``suggested_category`` to these keys, but several
+    # read nothing like their meaning ("Means Wear" is menswear), so the model
+    # is shown the labels too rather than left to guess from the key alone.
+    if categories:
+        listing = '\n'.join(f'- `{key}` — {label}' for key, label in categories)
+        sections.append(
+            "## This store's categories\n\n"
+            f'{listing}\n\n'
+            'Pick the one a shopper would browse to find this product. These are '
+            'the only categories the store has — if none fits, return an empty '
+            'string rather than the nearest wrong one.'
+        )
+
+    if sub_categories:
+        sections.append(
+            '## Sub-categories already in use\n\n'
+            + ', '.join(sub_categories)
+            + '\n\nReuse one of these exactly when it fits, so the catalogue stays '
+            'consistent. Only propose a new label if none of them describes the item.'
+        )
 
     if image_findings:
         sections.append(

@@ -1201,6 +1201,33 @@ def calc_discount_percent(current_price, original_price):
     return int(((original_value - current_value) / original_value) * Decimal('100'))
 
 
+def normalize_sku(raw_sku, exclude_pk=None):
+    """
+    Make a submitted SKU safe to save against ``Product.sku`` (unique, nullable).
+
+    Two traps, both of which raised "UNIQUE constraint failed: Hub_product.sku"
+    on an ordinary save:
+
+    * An empty box posts ``''``, which the database treats as a real value — so
+      the *second* product without a SKU collided with the first. ``NULL`` is
+      the value that may repeat, so blank becomes ``None``.
+    * A SKU already used by a different product is suffixed rather than
+      rejected. ``exclude_pk`` keeps a product's own SKU from colliding with
+      itself when editing, which would otherwise rename it on every save.
+    """
+    cleaned = (raw_sku or '').strip()
+    if not cleaned:
+        return None
+
+    taken = Product.objects.exclude(pk=exclude_pk) if exclude_pk else Product.objects.all()
+    unique_sku = cleaned
+    counter = 1
+    while taken.filter(sku=unique_sku).exists():
+        unique_sku = f"{cleaned}-{counter}"
+        counter += 1
+    return unique_sku
+
+
 def normalize_decimal_input(raw_value):
     if raw_value is None:
         return ''
@@ -2079,17 +2106,6 @@ def admin_add_product(request):
                     except Exception:
                         pass
             
-            def normalize_sku(raw_sku):
-                cleaned = (raw_sku or '').strip()
-                if not cleaned:
-                    return None
-                unique_sku = cleaned
-                counter = 1
-                while Product.objects.filter(sku=unique_sku).exists():
-                    unique_sku = f"{cleaned}-{counter}"
-                    counter += 1
-                return unique_sku
-
             sku = normalize_sku(sku)
 
             # Create product
@@ -2577,7 +2593,7 @@ def admin_edit_product(request, product_id):
             product.is_top_deal = request.POST.get('is_top_deal') == 'on'
             
             # Update new fields
-            product.sku = request.POST.get('sku', '')
+            product.sku = normalize_sku(request.POST.get('sku', ''), exclude_pk=product.pk)
             product.brand = request.POST.get('brand', '')
             product.product_link = request.POST.get('product_link', '').strip()
             product.tags = request.POST.get('tags', '')
@@ -9961,7 +9977,7 @@ def add_product(request):
                 image=image,
                 descriptionImage=descriptionImage,
                 category=category if category else None,
-                sku=sku,
+                sku=normalize_sku(sku),
                 brand=brand,
                 description=description,
                 weight=weight,
