@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import json
 import logging
+import re
+from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
@@ -25,7 +27,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from Hub.automation.publisher import PublishError, publish
+from Hub.automation.publisher import PublishError, next_sku, publish, sku_prefix
 from Hub.models import CategoryIcon, Product, ProductDraft, SubCategory
 
 logger = logging.getLogger(__name__)
@@ -138,9 +140,14 @@ def admin_review_product_draft(request, draft_id: int):
     if request.method == 'POST':
         return _handle_review_post(request, draft)
 
-    record = draft.parsed or {}
+    record = dict(draft.parsed or {})
     suggestion = draft.ai_suggestions or {}
     images = list(draft.images.all().order_by('order', 'id'))
+
+    # The supplier's price is the MRP, so the cost and margin boxes start empty
+    # for the admin to fill. Once either has been set they are shown back.
+    record.setdefault('base_price', '')
+    record.setdefault('margin', '')
 
     context = {
         'draft': draft,
@@ -149,6 +156,11 @@ def admin_review_product_draft(request, draft_id: int):
         'images': images,
         'videos': draft.videos.all().order_by('order', 'id'),
         'any_footer_detected': any(image.suggested_crop_bottom_px for image in images),
+        # Derived from the crops themselves rather than stored, so the toggle
+        # can never disagree with what will actually be published.
+        'crop_mode': 'meesho' if any(image.crop_bottom_px for image in images) else 'market',
+        'meesho_crop_px': meesho_crop_px(),
+        'suggested_sku': next_sku(draft.sub_category or record.get('suggested_sub_category') or ''),
         'events': list(reversed(draft.events or []))[:25],
         # Attributes with no Product column — shown so the admin can see what
         # was extracted before it is folded into description/care_info/tags.
@@ -176,6 +188,72 @@ def _colorways(draft: ProductDraft) -> list[dict]:
     for image in draft.images.all().order_by('order', 'id'):
         grouped.setdefault(image.color or 'Default', []).append(image)
     return [{'color': color, 'images': images} for color, images in grouped.items()]
+
+
+def meesho_crop_px() -> int:
+    """
+    Fallback strip height for the Meesho toggle.
+
+    Detection fills each image's own suggestion; this is what the toggle uses
+    when a photo was cropped tightly enough that no band was found, so one
+    missed detection cannot leave a code visible on a single image.
+    """
+    from django.conf import settings
+
+    return max(int(getattr(settings, 'AUTOMATION_MEESHO_CROP_PX', 28)), 0)
+
+
+def _money(raw, default: Decimal | None = None) -> Decimal | None:
+    """Parse a rupee amount from a form field, tolerating ``1,299`` and ``₹``."""
+    text = re.sub(r'[^\d.\-]', '', str(raw or ''))
+    if not text:
+        return default
+    try:
+        value = Decimal(text)
+    except (InvalidOperation, ValueError):
+        return default
+    return value if value >= 0 else default
+
+
+def _apply_pricing(request, record: dict) -> None:
+    """
+    Resolve the four price boxes into what the catalogue stores.
+
+    The review screen asks for cost, margin and MRP the way the manual Add
+    Product page does, because that is how the shop reasons about a product::
+
+        original price (what the supplier charges)
+      + margin         (the profit on this item)
+      = selling price  (what the customer pays)         -> Product.price
+        MRP            (the struck-through comparison)  -> Product.old_price
+
+    The browser computes the selling price live, but it is recomputed here as
+    well: a posted total must never be trusted over the two numbers it claims
+    to be the sum of, or a stale field silently books the wrong profit.
+    """
+    base = _money(request.POST.get('base_price'))
+    margin = _money(request.POST.get('margin'), Decimal('0')) or Decimal('0')
+
+    if base is not None:
+        record['base_price'] = str(base)
+        record['margin'] = str(margin)
+        record['price'] = str(base + margin)
+        return
+
+    # No cost given — keep whatever selling price was typed and treat the whole
+    # of it as unattributed, rather than inventing a profit figure.
+    record['margin'] = str(margin)
+    price = _money(record.get('price'))
+    if price is not None:
+        record['base_price'] = str(max(price - margin, Decimal('0')))
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_next_sku(request):
+    """Suggest a SKU for the sub-category the admin just picked."""
+    sub_category = (request.GET.get('sub_category') or '').strip()
+    return JsonResponse({'sku': next_sku(sub_category), 'prefix': sku_prefix(sub_category)})
 
 
 def _save_crops(request, draft: ProductDraft) -> int:
@@ -308,6 +386,13 @@ def _handle_review_post(request, draft: ProductDraft):
                   'short_description', 'description', 'meta_title', 'meta_description'):
         if field in request.POST:
             record[field] = (request.POST.get(field) or '').strip()
+
+    _apply_pricing(request, record)
+
+    # A blank SKU is filled from the sub-category, so every product carries a
+    # traceable code even when the admin never touched the field.
+    if not (record.get('sku') or '').strip():
+        record['sku'] = next_sku(draft.sub_category or record.get('suggested_sub_category') or '')
     for field in ('sizes', 'colors', 'tags', 'meta_keywords'):
         if field in request.POST:
             raw = request.POST.get(field) or ''

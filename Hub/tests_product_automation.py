@@ -14,6 +14,7 @@ import io
 import shutil
 import tempfile
 from datetime import timedelta
+from decimal import Decimal
 
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
@@ -29,7 +30,9 @@ from Hub.automation.publisher import (
     PublishError,
     build_care_info,
     build_description,
+    next_sku,
     publish,
+    sku_prefix,
 )
 from Hub.automation.sources.base import IncomingMedia, IncomingProduct
 from Hub.automation.sources.telegram_bot import BOT_COMMAND
@@ -371,6 +374,79 @@ class CategorySourceTests(TestCase):
         self.assertTrue(category_keys(), 'never hand the model an empty enum')
 
 
+class AutoSkuTests(TestCase):
+    """SKUs are serialised per sub-category so codes stay traceable."""
+
+    def test_prefix_is_readable_letters_from_the_sub_category(self):
+        self.assertEqual(sku_prefix('Kurtis'), 'KURTIS')
+        self.assertEqual(sku_prefix('Top_Pallazo set'), 'TOPPALLAZO')
+        self.assertEqual(sku_prefix('lehenga choli'), 'LEHENGACHO')
+        self.assertEqual(sku_prefix('Necklace&Chain'), 'NECKLACECH')
+
+    def test_unset_sub_category_still_yields_a_code(self):
+        self.assertEqual(sku_prefix(''), 'PROD')
+        self.assertTrue(next_sku('').startswith('PROD-'))
+
+    def test_serial_starts_at_one_and_increments(self):
+        self.assertEqual(next_sku('Kurtis'), 'KURTIS-0001')
+        Product.objects.create(name='A', price=10, sku='KURTIS-0001')
+        self.assertEqual(next_sku('Kurtis'), 'KURTIS-0002')
+
+    def test_serial_continues_from_the_highest_not_the_count(self):
+        Product.objects.create(name='A', price=10, sku='KURTIS-0007')
+        self.assertEqual(
+            next_sku('Kurtis'), 'KURTIS-0008',
+            'deleting a product must not re-issue a code that was already used',
+        )
+
+    def test_sub_categories_are_numbered_independently(self):
+        Product.objects.create(name='A', price=10, sku='KURTIS-0001')
+        self.assertEqual(next_sku('Sarees'), 'SAREES-0001')
+
+
+class PricingTests(TestCase):
+    """Cost + margin = selling price, recomputed server-side."""
+
+    def _record(self, **post):
+        from django.test import RequestFactory
+
+        from Hub.views_product_automation import _apply_pricing
+
+        request = RequestFactory().post('/', post)
+        record = {}
+        _apply_pricing(request, record)
+        return record
+
+    def test_selling_price_is_cost_plus_margin(self):
+        record = self._record(base_price='600', margin='299')
+        self.assertEqual(record['price'], '899')
+        self.assertEqual(record['margin'], '299')
+        self.assertEqual(record['base_price'], '600')
+
+    def test_a_posted_total_never_overrides_the_sum(self):
+        record = self._record(base_price='600', margin='299', price='1')
+        self.assertEqual(
+            record['price'], '899',
+            'a stale total from the browser must not book the wrong profit',
+        )
+
+    def test_margin_defaults_to_zero(self):
+        self.assertEqual(self._record(base_price='500')['price'], '500')
+
+    def test_rupee_symbols_and_separators_are_tolerated(self):
+        self.assertEqual(self._record(base_price='₹1,200', margin='300')['price'], '1500')
+
+    def test_cost_is_derived_when_only_a_selling_price_is_known(self):
+        from django.test import RequestFactory
+
+        from Hub.views_product_automation import _apply_pricing
+
+        record = {'price': '899'}
+        _apply_pricing(RequestFactory().post('/', {'margin': '299'}), record)
+        self.assertEqual(record['base_price'], '600')
+        self.assertEqual(record['price'], '899', 'the typed selling price stands')
+
+
 class SkuTests(TestCase):
     """``Product.sku`` is unique but nullable — blank must not collide."""
 
@@ -581,6 +657,51 @@ class AdminScreenTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.draft.refresh_from_db()
         self.assertEqual(self.draft.status, ProductDraft.STATUS_PUBLISHED)
+
+    def test_review_screen_offers_the_meesho_toggle_and_price_boxes(self):
+        body = self.get(f'/admin-panel/product-drafts/{self.draft.pk}/').content.decode('utf-8', 'replace')
+        for needle in ('supplier_meesho', 'supplier_market', 'Meesho', 'Market',
+                       'base_price', 'name="margin"', 'Selling Price', 'MRP',
+                       'generateSku'):
+            self.assertIn(needle, body, f'review screen missing {needle!r}')
+
+    def test_approve_stores_cost_margin_and_selling_price(self):
+        self.post(
+            f'/admin-panel/product-drafts/{self.draft.pk}/',
+            {
+                'action': 'approve', 'category': 'GENZ_TRENDS', 'sub_category': 'Kurtis',
+                'name': 'Purple Sharara Suit', 'base_price': '600', 'margin': '299',
+                'price': '1', 'old_price': '2999', 'stock': '5',
+                'is_returnable': '1', 'return_days': '7',
+            },
+        )
+        self.draft.refresh_from_db()
+        product = self.draft.published_product
+        self.assertIsNotNone(product)
+        self.assertEqual(product.price, Decimal('899'), 'selling price is cost + margin')
+        self.assertEqual(product.margin, Decimal('299'))
+        self.assertEqual(product.old_price, Decimal('2999'))
+        self.assertEqual(
+            product.price - product.margin, Decimal('600'),
+            'the edit page re-derives the cost this way',
+        )
+
+    def test_approve_fills_a_blank_sku_from_the_sub_category(self):
+        self.post(
+            f'/admin-panel/product-drafts/{self.draft.pk}/',
+            {
+                'action': 'approve', 'category': 'GENZ_TRENDS', 'sub_category': 'Kurtis',
+                'name': 'Purple Sharara Suit', 'base_price': '600', 'margin': '299',
+                'sku': '', 'stock': '5', 'is_returnable': '1', 'return_days': '7',
+            },
+        )
+        self.draft.refresh_from_db()
+        self.assertEqual(self.draft.published_product.sku, 'KURTIS-0001')
+
+    def test_next_sku_endpoint_answers_the_review_screen(self):
+        response = self.get('/admin-panel/product-drafts/next-sku/?sub_category=Sarees')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['sku'], 'SAREES-0001')
 
     def test_reject_and_requeue(self):
         self.post(f'/admin-panel/product-drafts/{self.draft.pk}/', {'action': 'reject'})

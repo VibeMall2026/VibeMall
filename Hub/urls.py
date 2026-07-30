@@ -37,6 +37,11 @@ urlpatterns = [
         views_product_automation.admin_bulk_delete_product_drafts,
         name='admin_bulk_delete_product_drafts',
     ),
+    path(
+        'admin-panel/product-drafts/next-sku/',
+        views_product_automation.admin_next_sku,
+        name='admin_next_sku',
+    ),
     # ───────────────────────────────────────────────────────────────────────
 
     # ── n8n AI Automation ──────────────────────────────────────────────────

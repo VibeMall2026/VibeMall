@@ -386,6 +386,11 @@ AUTOMATION_MAX_VIDEO_BYTES = _env_int('AUTOMATION_MAX_VIDEO_BYTES', 20 * 1024 * 
 # set at approval. Turn it off to treat a lone price as the selling price.
 AUTOMATION_SUPPLIER_PRICE_IS_MRP = _env_bool('AUTOMATION_SUPPLIER_PRICE_IS_MRP', True)
 
+# Height of the catalogue-code strip Meesho prints below a product photo. Used
+# by the Meesho/Market toggle on the review screen for any image where the band
+# was not detected automatically; each detected image keeps its own measurement.
+AUTOMATION_MEESHO_CROP_PX = _env_int('AUTOMATION_MEESHO_CROP_PX', 28)
+
 # Videos sent to the bot become Reels linked to the product on approval.
 AUTOMATION_CREATE_REELS = _env_bool('AUTOMATION_CREATE_REELS', True)
 # ───────────────────────────────────────────────────────────────────────────

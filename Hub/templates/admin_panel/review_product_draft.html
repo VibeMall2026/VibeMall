@@ -76,16 +76,28 @@
         </div>
         <div class="card-body">
           {% if images %}
+            <div class="border rounded p-2 mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <div class="btn-group btn-group-sm" role="group" aria-label="Image source">
+                <input type="radio" class="btn-check" name="supplier_kind" id="supplier_meesho"
+                       value="meesho" autocomplete="off" {% if crop_mode == 'meesho' %}checked{% endif %}>
+                <label class="btn btn-outline-primary" for="supplier_meesho">
+                  <i class="bx bx-crop"></i> Meesho
+                </label>
+
+                <input type="radio" class="btn-check" name="supplier_kind" id="supplier_market"
+                       value="market" autocomplete="off" {% if crop_mode != 'meesho' %}checked{% endif %}>
+                <label class="btn btn-outline-primary" for="supplier_market">
+                  <i class="bx bx-image"></i> Market
+                </label>
+              </div>
+              <small class="text-muted" id="cropModeHint"></small>
+            </div>
             {% if any_footer_detected %}
-              <div class="alert alert-info py-2 px-3 mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <div class="alert alert-info py-2 px-3 mb-3">
                 <small>
                   <i class="bx bx-crop"></i>
-                  A supplier code strip was detected and will be trimmed on approval.
+                  A supplier code strip was detected on this product's images.
                 </small>
-                <span>
-                  <button type="button" class="btn btn-xs btn-outline-secondary" data-crop-all="suggested">Re-apply</button>
-                  <button type="button" class="btn btn-xs btn-outline-secondary" data-crop-all="0">Keep full images</button>
-                </span>
               </div>
             {% endif %}
 
@@ -265,34 +277,57 @@
           </div>
 
           <div class="row">
-            <div class="col-md-4 mb-3">
+            <div class="col-md-3 mb-3">
+              <label class="form-label" for="base_price">
+                Original Price (₹) <span class="text-danger">*</span>
+              </label>
+              <input type="text" inputmode="decimal" class="form-control"
+                     id="base_price" name="base_price" value="{{ record.base_price }}"
+                     placeholder="What you pay">
+              <small class="text-muted">Your cost.</small>
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label" for="margin">Margin (₹)</label>
+              <input type="text" inputmode="decimal" class="form-control"
+                     id="margin" name="margin" value="{{ record.margin }}" placeholder="0.00">
+              <small class="text-muted">Your profit.</small>
+            </div>
+            <div class="col-md-3 mb-3">
               <label class="form-label" for="price">
                 Selling Price (₹) <span class="text-danger">*</span>
               </label>
-              <input type="text" class="form-control {% if not record.price %}border-danger{% endif %}"
+              <input type="text" inputmode="decimal"
+                     class="form-control fw-bold {% if not record.price %}border-danger{% endif %}"
                      id="price" name="price" value="{{ record.price }}"
-                     placeholder="Enter your price">
-              {% if not record.price %}
-                <small class="text-danger">Required — set your selling price.</small>
-              {% endif %}
+                     placeholder="Cost + margin">
+              <small class="text-muted" id="priceHint">Cost + margin.</small>
             </div>
-            <div class="col-md-4 mb-3">
-              <label class="form-label" for="old_price">Original / MRP (₹)</label>
-              <input type="text" class="form-control" id="old_price" name="old_price" value="{{ record.old_price }}">
-              <small class="text-muted">Taken from the supplier message.</small>
-            </div>
-            <div class="col-md-4 mb-3">
-              <label class="form-label" for="stock">Stock</label>
-              <input type="text" class="form-control" id="stock" name="stock" value="{{ record.stock }}">
+            <div class="col-md-3 mb-3">
+              <label class="form-label" for="old_price">MRP (₹)</label>
+              <input type="text" inputmode="decimal" class="form-control"
+                     id="old_price" name="old_price" value="{{ record.old_price }}">
+              <small class="text-muted" id="mrpHint">Struck-through price.</small>
             </div>
           </div>
 
           <div class="row">
-            <div class="col-md-6 mb-3">
-              <label class="form-label" for="sku">SKU / Style Code</label>
-              <input type="text" class="form-control" id="sku" name="sku" value="{{ record.sku }}" maxlength="100">
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="stock">Stock</label>
+              <input type="text" class="form-control" id="stock" name="stock" value="{{ record.stock }}">
             </div>
-            <div class="col-md-6 mb-3">
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="sku">SKU / Style Code</label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="sku" name="sku"
+                       value="{{ record.sku }}" maxlength="100" placeholder="{{ suggested_sku }}">
+                <button class="btn btn-outline-secondary" type="button" id="generateSku"
+                        title="Generate from the sub-category">
+                  <i class="bx bx-refresh"></i>
+                </button>
+              </div>
+              <small class="text-muted">Filled from the sub-category if left blank.</small>
+            </div>
+            <div class="col-md-4 mb-3">
               <label class="form-label" for="brand">Brand</label>
               <input type="text" class="form-control" id="brand" name="brand" value="{{ record.brand }}" maxlength="100">
             </div>
@@ -494,15 +529,154 @@
   var inputs = Array.prototype.slice.call(document.querySelectorAll('.crop-input'));
   inputs.forEach(apply);
 
-  document.querySelectorAll('[data-crop-all]').forEach(function (button) {
-    button.addEventListener('click', function () {
-      var mode = button.dataset.cropAll;
-      inputs.forEach(function (input) {
-        input.value = mode === 'suggested' ? (input.dataset.suggested || 0) : 0;
-        input.dispatchEvent(new Event('input'));
-      });
+  // --- Meesho / Market -----------------------------------------------------
+  // Meesho prints a catalogue code on a strip below the photo; market
+  // suppliers do not. One switch sets every image rather than making the
+  // admin type the same number into each box.
+  var defaultCrop = {{ meesho_crop_px }};
+  var hint = document.getElementById('cropModeHint');
+
+  function setMode(mode) {
+    inputs.forEach(function (input) {
+      var suggested = parseInt(input.dataset.suggested, 10) || 0;
+      input.value = mode === 'meesho' ? (suggested || defaultCrop) : 0;
+      input.dispatchEvent(new Event('input'));
+    });
+    if (hint) {
+      hint.textContent = mode === 'meesho'
+        ? 'Trimming the code strip from the bottom of every image. Adjust any box below to fine-tune.'
+        : 'Publishing every image at full height.';
+    }
+  }
+
+  document.querySelectorAll('input[name="supplier_kind"]').forEach(function (radio) {
+    radio.addEventListener('change', function () {
+      if (radio.checked) { setMode(radio.value); }
     });
   });
+
+  // Describe the state the page loaded in without overwriting saved crops.
+  var current = document.querySelector('input[name="supplier_kind"]:checked');
+  if (hint && current) {
+    hint.textContent = current.value === 'meesho'
+      ? 'Trimming the code strip from the bottom of every image. Adjust any box below to fine-tune.'
+      : 'Publishing every image at full height.';
+  }
+})();
+</script>
+
+<script>
+// Live pricing: cost + margin = selling price, with the profit spelled out.
+(function () {
+  var base = document.getElementById('base_price');
+  var margin = document.getElementById('margin');
+  var price = document.getElementById('price');
+  var mrp = document.getElementById('old_price');
+  var priceHint = document.getElementById('priceHint');
+  var mrpHint = document.getElementById('mrpHint');
+  if (!base || !margin || !price) { return; }
+
+  function num(field) {
+    var value = parseFloat(String(field.value).replace(/[^\d.\-]/g, ''));
+    return isNaN(value) ? 0 : value;
+  }
+
+  function money(value) {
+    return '₹' + value.toFixed(2).replace(/\.00$/, '');
+  }
+
+  function recalc() {
+    var cost = num(base);
+    var profit = num(margin);
+    var selling = cost + profit;
+
+    if (base.value.trim() !== '') {
+      price.value = selling ? selling.toFixed(2).replace(/\.00$/, '') : '';
+      price.classList.remove('border-danger');
+    }
+    describe();
+  }
+
+  function describe() {
+    var cost = num(base);
+    var selling = num(price);
+    var profit = selling - cost;
+
+    if (priceHint) {
+      if (selling > 0 && cost > 0) {
+        var onCost = (profit / cost) * 100;
+        priceHint.textContent = 'Profit ' + money(profit) + ' — ' + onCost.toFixed(1) + '% on cost.';
+        priceHint.className = profit > 0 ? 'text-success' : 'text-danger';
+      } else {
+        priceHint.textContent = 'Cost + margin.';
+        priceHint.className = 'text-muted';
+      }
+    }
+
+    if (mrpHint && mrp) {
+      var compare = num(mrp);
+      if (compare > selling && selling > 0) {
+        var off = ((compare - selling) / compare) * 100;
+        mrpHint.textContent = off.toFixed(0) + '% off shown to customers.';
+        mrpHint.className = 'text-muted';
+      } else if (compare > 0 && selling > 0) {
+        mrpHint.textContent = 'Must be above the selling price, or no discount shows.';
+        mrpHint.className = 'text-warning';
+      } else {
+        mrpHint.textContent = 'Struck-through price.';
+        mrpHint.className = 'text-muted';
+      }
+    }
+  }
+
+  base.addEventListener('input', recalc);
+  margin.addEventListener('input', recalc);
+
+  // Typing a selling price directly re-derives the margin, so the two numbers
+  // can never disagree about what the profit is.
+  price.addEventListener('input', function () {
+    var cost = num(base);
+    if (cost > 0) { margin.value = Math.max(num(price) - cost, 0).toFixed(2).replace(/\.00$/, ''); }
+    describe();
+  });
+  if (mrp) { mrp.addEventListener('input', describe); }
+
+  describe();
+})();
+</script>
+
+<script>
+// Auto SKU from the chosen sub-category.
+(function () {
+  var sku = document.getElementById('sku');
+  var button = document.getElementById('generateSku');
+  var subCategory = document.getElementById('sub_category');
+  if (!sku || !subCategory) { return; }
+
+  var endpoint = "{% url 'admin_next_sku' %}";
+  var touched = sku.value.trim() !== '';
+
+  sku.addEventListener('input', function () { touched = sku.value.trim() !== ''; });
+
+  function fill(force) {
+    if (!force && touched) { return; }
+    var value = subCategory.value;
+    if (!value) { return; }
+
+    fetch(endpoint + '?sub_category=' + encodeURIComponent(value), {
+      headers: {'X-Requested-With': 'XMLHttpRequest'},
+    })
+      .then(function (response) { return response.ok ? response.json() : null; })
+      .then(function (data) {
+        if (!data || !data.sku) { return; }
+        sku.placeholder = data.sku;
+        if (force || !touched) { sku.value = data.sku; }
+      })
+      .catch(function () { /* the publisher fills it in anyway */ });
+  }
+
+  subCategory.addEventListener('change', function () { fill(false); });
+  if (button) { button.addEventListener('click', function () { fill(true); }); }
 })();
 </script>
 

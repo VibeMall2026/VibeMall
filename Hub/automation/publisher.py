@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
@@ -97,6 +98,40 @@ def _decimal(value: Any, default: Decimal | None = None) -> Decimal | None:
     except (InvalidOperation, TypeError, ValueError, AttributeError):
         return default
     return result if result > 0 else default
+
+
+def sku_prefix(sub_category: str) -> str:
+    """
+    Turn a sub-category into the letters that start its SKUs.
+
+    ``Top_Pallazo set`` -> ``TOPPALLAZO``, ``lehenga choli`` -> ``LEHENGACHO``.
+    Capped at ten characters so the serial stays readable beside it.
+    """
+    letters = re.sub(r'[^A-Za-z0-9]', '', sub_category or '').upper()
+    return letters[:10] or 'PROD'
+
+
+def next_sku(sub_category: str) -> str:
+    """
+    The next free SKU for a sub-category, as ``PREFIX-0001``.
+
+    Numbered from the highest serial already issued rather than from how many
+    products exist, so deleting one never re-issues its code. A collision is
+    still impossible either way: ``_unique_sku`` suffixes anything that slips
+    through, including a code an admin typed by hand.
+    """
+    from Hub.models import Product
+
+    prefix = sku_prefix(sub_category)
+    pattern = re.compile(rf'^{re.escape(prefix)}-(\d+)$')
+
+    highest = 0
+    for sku in Product.objects.filter(sku__startswith=f'{prefix}-').values_list('sku', flat=True):
+        match = pattern.match((sku or '').strip().upper())
+        if match:
+            highest = max(highest, int(match.group(1)))
+
+    return f'{prefix}-{highest + 1:04d}'
 
 
 def _unique_sku(candidate: str) -> str | None:
@@ -550,6 +585,12 @@ def publish(draft: Any, *, user: Any = None) -> Any:
     if old_price is not None and old_price <= price:
         old_price = None
 
+    # Profit carried inside the selling price, so the reports that read
+    # Product.margin attribute this product correctly. Never more than the
+    # price itself: a margin above it would report a negative cost.
+    margin = _decimal(record.get('margin'), Decimal('0')) or Decimal('0')
+    margin = min(margin, price)
+
     try:
         stock = max(int(float(record.get('stock') or 0)), 0)
     except (TypeError, ValueError):
@@ -564,13 +605,18 @@ def publish(draft: Any, *, user: Any = None) -> Any:
         name=name,
         price=price,
         old_price=old_price,
-        margin=Decimal('0'),
+        margin=margin,
         discount_percent=calc_discount_percent(price, old_price) if old_price else 0,
         stock=stock,
         sold=0,
         category=draft.category,
         sub_category=(draft.sub_category or record.get('suggested_sub_category') or '')[:100],
-        sku=_unique_sku(record.get('sku') or ''),
+        # Falls back to a serial derived from the sub-category, so every
+        # product carries a traceable code even if nobody typed one.
+        sku=_unique_sku(
+            (record.get('sku') or '').strip()
+            or next_sku(draft.sub_category or record.get('suggested_sub_category') or '')
+        ),
         brand=(record.get('brand') or '')[:100],
         description=build_description(record),
         care_info=build_care_info(record),
