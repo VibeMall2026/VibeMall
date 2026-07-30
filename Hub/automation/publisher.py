@@ -100,6 +100,13 @@ def _decimal(value: Any, default: Decimal | None = None) -> Decimal | None:
     return result if result > 0 else default
 
 
+def default_stock() -> int:
+    """Stock to publish with when the supplier message states none."""
+    from django.conf import settings
+
+    return max(int(getattr(settings, 'AUTOMATION_DEFAULT_STOCK', 50)), 0)
+
+
 def _ordered_colors(record: dict[str, Any], main_image: Any) -> list[str]:
     """
     The product's colours, with the hero image's colour first.
@@ -609,10 +616,14 @@ def publish(draft: Any, *, user: Any = None) -> Any:
     margin = _decimal(record.get('margin'), Decimal('0')) or Decimal('0')
     margin = min(margin, price)
 
+    # Suppliers rarely state a quantity, and publishing at zero puts the
+    # product straight into "out of stock" where nobody can buy it.
     try:
         stock = max(int(float(record.get('stock') or 0)), 0)
     except (TypeError, ValueError):
         stock = 0
+    if stock == 0:
+        stock = default_stock()
 
     images = list(draft.images.all().order_by('order', 'id'))
     main_image = next((i for i in images if i.role == 'main'), None)

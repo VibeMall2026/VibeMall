@@ -311,9 +311,11 @@ def process_draft_images(draft: Any, *, slug: str) -> dict[str, int]:
         draft_image.suggested_crop_bottom_px = suggested
         if suggested:
             stats['footer_detected'] += 1
-            # Pre-apply so the common case needs no clicks; the review screen
-            # exposes it as an editable value the admin can zero out.
-            draft_image.crop_bottom_px = suggested
+
+        # Detection informs the review screen but does not crop on its own.
+        # Most suppliers are not Meesho, and a detected "band" is sometimes
+        # just a plain-coloured floor, so the admin chooses with the
+        # Meesho/Market toggle and the screen opens on Market.
 
         if not draft_image.alt_text:
             label = f'{draft_image.color} ' if draft_image.color else ''

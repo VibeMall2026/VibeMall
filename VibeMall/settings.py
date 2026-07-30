@@ -386,10 +386,18 @@ AUTOMATION_MAX_VIDEO_BYTES = _env_int('AUTOMATION_MAX_VIDEO_BYTES', 20 * 1024 * 
 # set at approval. Turn it off to treat a lone price as the selling price.
 AUTOMATION_SUPPLIER_PRICE_IS_MRP = _env_bool('AUTOMATION_SUPPLIER_PRICE_IS_MRP', True)
 
-# Height of the catalogue-code strip Meesho prints below a product photo. Used
-# by the Meesho/Market toggle on the review screen for any image where the band
-# was not detected automatically; each detected image keeps its own measurement.
+# Height of the catalogue-code strip Meesho prints below a product photo. The
+# Meesho/Market toggle on the review screen applies this to every image at
+# once; detection is only used to tell the admin a strip is there.
 AUTOMATION_MEESHO_CROP_PX = _env_int('AUTOMATION_MEESHO_CROP_PX', 28)
+
+# Stock a product is published with when the supplier message states none.
+# Publishing at zero would put it straight into "out of stock".
+AUTOMATION_DEFAULT_STOCK = _env_int('AUTOMATION_DEFAULT_STOCK', 50)
+
+# Most of one item a single order may contain, enforced on add-to-cart, cart
+# updates and Buy Now. Stock still wins when it is the smaller number.
+MAX_QUANTITY_PER_ITEM = _env_int('MAX_QUANTITY_PER_ITEM', 2)
 
 # Videos sent to the bot become Reels linked to the product on approval.
 AUTOMATION_CREATE_REELS = _env_bool('AUTOMATION_CREATE_REELS', True)

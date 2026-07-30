@@ -351,9 +351,9 @@ body.vm-pd-original-card-image .pddx-reco__image img {
 
             <div class="vm-pd-m-qty-row">
                 <span>Quantity</span>
-                <div class="vm-pd-m-qty-control" data-max="{{ product.stock|default:999 }}">
+                <div class="vm-pd-m-qty-control" data-max="{{ max_quantity_per_item }}">
                     <button type="button" class="vm-pd-m-qty-btn" data-step="-1" aria-label="Decrease quantity"><i class="far fa-minus"></i></button>
-                    <input id="vmPdMobileQty" type="number" class="vm-pd-m-qty-input" value="1" min="1" max="{{ product.stock|default:999 }}" inputmode="numeric" aria-label="Quantity">
+                    <input id="vmPdMobileQty" type="number" class="vm-pd-m-qty-input" value="1" min="1" max="{{ max_quantity_per_item }}" inputmode="numeric" aria-label="Quantity">
                     <button type="button" class="vm-pd-m-qty-btn" data-step="1" aria-label="Increase quantity"><i class="far fa-plus"></i></button>
                 </div>
             </div>
@@ -604,9 +604,9 @@ body.vm-pd-original-card-image .pddx-reco__image img {
                     <input type="hidden" name="product_id" value="{{ product.id }}">
                     <input type="hidden" name="selected_color" data-selected-color-input value="">
                     <input type="hidden" name="selected_size" data-selected-size-input value="">
-                    <div class="pddx-qty-control" data-max="{{ product.stock|default:999 }}">
+                    <div class="pddx-qty-control" data-max="{{ max_quantity_per_item }}">
                         <button type="button" class="pddx-qty-btn" data-step="-1" aria-label="Decrease quantity">-</button>
-                        <input type="number" class="pddx-qty-input" id="pddxQtyInput" name="quantity" value="1" min="1" max="{{ product.stock|default:999 }}" inputmode="numeric" aria-label="Quantity">
+                        <input type="number" class="pddx-qty-input" id="pddxQtyInput" name="quantity" value="1" min="1" max="{{ max_quantity_per_item }}" inputmode="numeric" aria-label="Quantity">
                         <button type="button" class="pddx-qty-btn" data-step="1" aria-label="Increase quantity">+</button>
                     </div>
                     <button type="submit" class="pddx-btn pddx-btn--primary" {% if product.stock == 0 %}disabled{% endif %}>Add to Bag</button>
@@ -1764,7 +1764,7 @@ function openDesktopProductImage() {
                                     {% csrf_token %}
                                     <input type="hidden" name="product_id" value="{{ product.id }}">
                                     <div class="d-flex flex-wrap align-items-center gap-3">
-                                        <div class="qty-control" data-max="{{ product.stock|default:999 }}">
+                                        <div class="qty-control" data-max="{{ max_quantity_per_item }}">
                                             <button type="button" class="qty-btn" data-step="-1" aria-label="Decrease quantity">-</button>
                                             <input class="qty-input" type="number" name="quantity" value="1" min="1" max="{{ product.stock }}" inputmode="numeric" aria-label="Quantity">
                                             <button type="button" class="qty-btn" data-step="1" aria-label="Increase quantity">+</button>

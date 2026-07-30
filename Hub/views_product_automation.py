@@ -27,7 +27,13 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from Hub.automation.publisher import PublishError, next_sku, publish, sku_prefix
+from Hub.automation.publisher import (
+    PublishError,
+    default_stock,
+    next_sku,
+    publish,
+    sku_prefix,
+)
 from Hub.models import CategoryIcon, Product, ProductDraft, SubCategory
 
 logger = logging.getLogger(__name__)
@@ -148,6 +154,11 @@ def admin_review_product_draft(request, draft_id: int):
     # for the admin to fill. Once either has been set they are shown back.
     record.setdefault('base_price', '')
     record.setdefault('margin', '')
+
+    # Show the stock the product would publish with, rather than a blank box
+    # that silently becomes 50 on approval.
+    if not str(record.get('stock') or '').strip():
+        record['stock'] = str(default_stock())
 
     context = {
         'draft': draft,

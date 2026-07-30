@@ -1201,6 +1201,22 @@ def calc_discount_percent(current_price, original_price):
     return int(((original_value - current_value) / original_value) * Decimal('100'))
 
 
+def max_quantity_per_item(product=None) -> int:
+    """
+    How many of one item a single order may contain.
+
+    Wholesale resellers buying out a line in one order is the thing this
+    stops, so the cap is enforced server-side on every path that can set a
+    quantity — the storefront's ``max`` attribute is a hint, not a control.
+    Stock still wins when it is the smaller number.
+    """
+    cap = max(int(getattr(settings, 'MAX_QUANTITY_PER_ITEM', 2)), 1)
+    if product is None:
+        return cap
+    stock = max(int(getattr(product, 'stock', 0) or 0), 0)
+    return min(cap, stock) if stock else 0
+
+
 def normalize_sku(raw_sku, exclude_pk=None):
     """
     Make a submitted SKU safe to save against ``Product.sku`` (unique, nullable).
@@ -8450,6 +8466,9 @@ def product_details(request: HttpRequest, product_id: Optional[int] = None) -> H
                 'available_color_options': available_color_options,
                 'available_color_options_csv': available_color_options_csv,
                 'selected_color_label': selected_color_label,
+                # The selector's ceiling. Server-side checks still cap it — this
+                # only stops a shopper picking a number that will be refused.
+                'max_quantity_per_item': max_quantity_per_item(product),
                 'initial_description_image_url': initial_description_image_url,
                 'recommended_products': recommended_products,
             })
@@ -9289,33 +9308,43 @@ def add_to_cart(request: HttpRequest) -> JsonResponse:
             messages.error(request, f"{product.name} is out of stock")
             return redirect('product-details', product_id=product.id)
 
+        allowed = max_quantity_per_item(product)
+
         cart_item, created = Cart.objects.get_or_create(
             user=request.user,
             product=product,
             color=selected_color,
             size=selected_size,
-            defaults={'quantity': quantity}
+            defaults={'quantity': min(max(quantity, 1), allowed)}
         )
-        
+
+        capped = False
         if not created:
-            new_qty = cart_item.quantity + quantity
-            if new_qty > product.stock:
-                new_qty = product.stock
+            new_qty = min(cart_item.quantity + quantity, allowed)
+            capped = new_qty < cart_item.quantity + quantity
             cart_item.quantity = new_qty
             cart_item.save()
-        
+        else:
+            capped = quantity > allowed
+
         # Get total cart count
         cart_count = Cart.objects.filter(user=request.user).count()
-        
+
+        note = f'{product.name} added to cart!'
+        if capped:
+            note = f'Limit {allowed} per order — cart set to {cart_item.quantity}.'
+
         if is_ajax:
             return JsonResponse({
                 'success': True,
-                'message': f'{product.name} added to cart!',
+                'message': note,
                 'cart_count': cart_count,
-                'product_name': product.name
+                'product_name': product.name,
+                'quantity': cart_item.quantity,
+                'max_quantity': allowed,
             })
         else:
-            messages.success(request, f"{product.name} added to cart!")
+            messages.success(request, note)
             return redirect('cart')
     except Product.DoesNotExist:
         if is_ajax:
@@ -9455,9 +9484,13 @@ def update_cart_quantity(request, cart_id):
             cart_item.delete()
             messages.success(request, "Item removed from cart")
         else:
-            cart_item.quantity = quantity
+            allowed = max_quantity_per_item(cart_item.product)
+            cart_item.quantity = min(quantity, allowed)
             cart_item.save()
-            messages.success(request, "Quantity updated")
+            if quantity > allowed:
+                messages.warning(request, f"Limit {allowed} per order — quantity set to {allowed}.")
+            else:
+                messages.success(request, "Quantity updated")
     except (Cart.DoesNotExist, ValueError):
         messages.error(request, "Error updating quantity")
     
@@ -10111,7 +10144,15 @@ def buy_now(request, product_id):
                 'success': False,
                 'message': f'Only {product.stock} items available in stock'
             }, status=400)
-        
+
+        allowed = max_quantity_per_item(product)
+        if quantity > allowed:
+            return JsonResponse({
+                'success': False,
+                'message': f'You can order up to {allowed} of this item per order.',
+                'max_quantity': allowed,
+            }, status=400)
+
         # Store in session for checkout
         request.session['buy_now_item'] = {
             'product_id': product.id,

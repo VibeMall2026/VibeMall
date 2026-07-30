@@ -404,6 +404,85 @@ class AutoSkuTests(TestCase):
         self.assertEqual(next_sku('Sarees'), 'SAREES-0001')
 
 
+@override_settings(MEDIA_ROOT=MEDIA, AUTOMATION_AI_PROVIDER='none')
+class CropDefaultTests(TestCase):
+    """The review screen opens on Market; Meesho is a deliberate choice."""
+
+    def test_detection_records_but_does_not_crop(self):
+        send('-60', 1, media=[image_media(1, footer=70)])
+        send('-60', 2, text='Kurti\nPrice 799')
+        draft = ProductDraft.objects.get()
+        age(draft, 300)
+        pipeline.process_once()
+
+        image = draft.images.first()
+        self.assertGreater(image.suggested_crop_bottom_px, 0, 'the strip is still detected')
+        self.assertEqual(
+            image.crop_bottom_px, 0,
+            'nothing is cropped until the admin picks Meesho',
+        )
+
+    def test_review_screen_opens_on_market(self):
+        send('-61', 1, media=[image_media(1, footer=70)])
+        send('-61', 2, text='Kurti\nPrice 799')
+        draft = ProductDraft.objects.get()
+        age(draft, 300)
+        pipeline.process_once()
+
+        user = User.objects.create_user('crop_admin', is_staff=True, is_superuser=True)
+        client = Client(SERVER_NAME='localhost')
+        client.force_login(user)
+        body = client.get(
+            f'/admin-panel/product-drafts/{draft.pk}/', secure=True
+        ).content.decode('utf-8', 'replace')
+
+        market = body.split('id="supplier_market"')[1][:120]
+        self.assertIn('checked', market, 'Market is the default')
+
+
+@override_settings(MEDIA_ROOT=MEDIA, AUTOMATION_AI_PROVIDER='none')
+class DefaultStockTests(TestCase):
+    """A product with no stated stock must still be buyable."""
+
+    def setUp(self):
+        self.user = User.objects.create_user('stock_admin', is_staff=True, is_superuser=True)
+
+    def test_missing_stock_publishes_at_the_default(self):
+        send('-62', 1, media=[image_media(1)])
+        send('-62', 2, text='Kurti\nMRP 1999')
+        draft = ProductDraft.objects.get()
+        age(draft, 300)
+        pipeline.process_once()
+        draft.refresh_from_db()
+
+        draft.category = 'GENZ_TRENDS'
+        record = dict(draft.parsed)
+        record['price'] = '899'
+        record['stock'] = ''
+        draft.parsed = record
+        draft.save()
+
+        product = publish(draft, user=self.user)
+        self.assertEqual(product.stock, 50)
+
+    def test_a_stated_stock_is_respected(self):
+        send('-63', 1, media=[image_media(1)])
+        send('-63', 2, text='Kurti\nMRP 1999\nStock 7')
+        draft = ProductDraft.objects.get()
+        age(draft, 300)
+        pipeline.process_once()
+        draft.refresh_from_db()
+
+        draft.category = 'GENZ_TRENDS'
+        record = dict(draft.parsed)
+        record['price'] = '899'
+        draft.parsed = record
+        draft.save()
+
+        product = publish(draft, user=self.user)
+        self.assertEqual(product.stock, 7, 'the supplier figure wins over the default')
+
+
 class PricingTests(TestCase):
     """Cost + margin = selling price, recomputed server-side."""
 
@@ -552,11 +631,37 @@ class PublishTests(TestCase):
         self.assertEqual(reels.count(), 1)
         self.assertTrue(reels.first().video_file)
 
-    def test_supplier_code_strip_is_cropped_out(self):
+    def test_a_chosen_crop_is_applied_to_the_published_image(self):
+        """
+        Detection only flags the strip — the Meesho toggle is what sets the
+        crop. Once set, the published file must actually be shorter.
+        """
+        import io
+
+        from PIL import Image as PILImage
+
+        from Hub.automation.publisher import staged_file
+
         draft = self._ready_draft(footer=70)
         image = draft.images.first()
         self.assertGreater(image.suggested_crop_bottom_px, 0, 'code strip should be detected')
-        self.assertEqual(image.crop_bottom_px, image.suggested_crop_bottom_px)
+        self.assertEqual(image.crop_bottom_px, 0, 'nothing is cropped by default')
+
+        with PILImage.open(image.image.path) as staged:
+            staged_height = staged.height
+
+        # Uncropped, the publisher hands over the file untouched.
+        with PILImage.open(io.BytesIO(staged_file(image).read())) as untouched:
+            self.assertEqual(untouched.height, staged_height)
+
+        image.crop_bottom_px = 28
+        image.save(update_fields=['crop_bottom_px'])
+
+        with PILImage.open(io.BytesIO(staged_file(image).read())) as cropped:
+            self.assertEqual(
+                cropped.height, staged_height - 28,
+                'the crop is applied when the file is copied onto the product',
+            )
 
     def test_return_policy_is_applied(self):
         draft = self._ready_draft()

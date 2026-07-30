@@ -533,20 +533,41 @@
   // Meesho prints a catalogue code on a strip below the photo; market
   // suppliers do not. One switch sets every image rather than making the
   // admin type the same number into each box.
+  //
+  // The same number goes into every box. Per-image detection is shown as a
+  // hint, but using it here produced a ragged 12 / 28 / 28 / 13 across one
+  // product's photos — the strip is a fixed height, so a uniform crop is both
+  // what the supplier actually prints and what looks right in a grid.
   var defaultCrop = {{ meesho_crop_px }};
   var hint = document.getElementById('cropModeHint');
+  var brand = document.getElementById('brand');
+  var MEESHO = 'Meesho';
+
+  function describeMode(mode) {
+    if (!hint) { return; }
+    hint.textContent = mode === 'meesho'
+      ? 'Trimming ' + defaultCrop + 'px off every image. Adjust any box below to fine-tune.'
+      : 'Publishing every image at full height.';
+  }
 
   function setMode(mode) {
     inputs.forEach(function (input) {
-      var suggested = parseInt(input.dataset.suggested, 10) || 0;
-      input.value = mode === 'meesho' ? (suggested || defaultCrop) : 0;
+      input.value = mode === 'meesho' ? defaultCrop : 0;
       input.dispatchEvent(new Event('input'));
     });
-    if (hint) {
-      hint.textContent = mode === 'meesho'
-        ? 'Trimming the code strip from the bottom of every image. Adjust any box below to fine-tune.'
-        : 'Publishing every image at full height.';
+
+    // Meesho is the brand as well as the crop. Only ever overwrite an empty
+    // box or the value this switch put there, so a real brand is never lost.
+    if (brand) {
+      var current = brand.value.trim();
+      if (mode === 'meesho') {
+        if (!current) { brand.value = MEESHO; }
+      } else if (current.toLowerCase() === MEESHO.toLowerCase()) {
+        brand.value = '';
+      }
     }
+
+    describeMode(mode);
   }
 
   document.querySelectorAll('input[name="supplier_kind"]').forEach(function (radio) {
@@ -556,12 +577,8 @@
   });
 
   // Describe the state the page loaded in without overwriting saved crops.
-  var current = document.querySelector('input[name="supplier_kind"]:checked');
-  if (hint && current) {
-    hint.textContent = current.value === 'meesho'
-      ? 'Trimming the code strip from the bottom of every image. Adjust any box below to fine-tune.'
-      : 'Publishing every image at full height.';
-  }
+  var checked = document.querySelector('input[name="supplier_kind"]:checked');
+  describeMode(checked ? checked.value : 'market');
 })();
 </script>
 
