@@ -33,11 +33,29 @@ logger = logging.getLogger(__name__)
 
 API_ROOT = 'https://generativelanguage.googleapis.com/v1beta'
 
-#: Free-tier default. `gemini-flash-latest` tracks the current Flash release
-#: and carries a workable free per-minute token quota; the pinned
-#: `gemini-2.0-flash` alias has a much smaller free input-token allowance that
-#: a single vision request can exhaust on its own.
-DEFAULT_MODEL = 'gemini-flash-latest'
+#: Free-tier default.
+#:
+#: Measured against this project's own extraction prompt: a full product
+#: record in **3.6s**, with the right category at high confidence. The
+#: full-size Flash aliases (`gemini-flash-latest`, `gemini-2.0-flash-lite`)
+#: return 429 almost immediately on the free tier, which is what "Gemini only
+#: gives a few tries" actually was — the wrong model, not an exhausted key.
+DEFAULT_MODEL = 'gemini-3.1-flash-lite'
+
+#: Free-tier quota is counted **per model**, not per key: the 429 detail names
+#: ``GenerateRequestsPerMinutePerProjectPerModel-FreeTier``. Measured at 15
+#: requests/minute per model, after which Google asks for a ~39s wait.
+#:
+#: So when one model is rate limited the cheapest response is not to sleep —
+#: it is to ask a different model, which has its own untouched bucket. These
+#: are the lite-class models that answer on the free tier, in preference
+#: order; each one added roughly multiplies the sustainable throughput.
+FALLBACK_MODELS = [
+    'gemini-3.1-flash-lite',
+    'gemini-flash-lite-latest',
+    'gemini-2.0-flash-lite',
+    'gemini-flash-latest',
+]
 
 DEFAULT_MAX_TOKENS = 8192
 
@@ -191,56 +209,105 @@ class GeminiClient:
             },
         }
 
-        url = f'{API_ROOT}/models/{self.model}:generateContent'
+        rotation = self.model_rotation()
         last_error: Exception | None = None
+        quota_delay = 20
 
         for attempt in range(1, self.max_retries + 1):
-            try:
-                response = self.session.post(
-                    url,
-                    params={'key': self._key},
-                    json=body,
-                    timeout=180,
-                    headers={'Content-Type': 'application/json'},
-                )
-            except requests.RequestException as exc:
-                last_error = exc
-                logger.warning('[gemini] Network error on attempt %d/%d: %s', attempt, self.max_retries, exc)
-            else:
-                if response.status_code == 200:
-                    try:
-                        return self._parse(response.json())
-                    except ValueError as exc:
-                        last_error = exc
-                        logger.warning('[gemini] Bad response on attempt %d: %s', attempt, exc)
-                elif response.status_code == 429:
-                    # Google tells us exactly how long to wait; obeying it beats
-                    # a guessed backoff, which is what turns a transient
-                    # per-minute quota into a failed draft.
-                    delay = self._retry_delay(response)
-                    last_error = RuntimeError(
-                        f'Free-tier quota exceeded: {self._error_detail(response)}'
-                    )
+            rate_limited = 0
+
+            for model in rotation:
+                outcome, payload = self._call(model, body)
+
+                if outcome == 'ok':
+                    # Report the model that actually answered, so the draft's
+                    # audit trail names the one that produced the copy.
+                    self.model = model
+                    return payload
+
+                if outcome == 'quota':
+                    # This model's per-minute bucket is empty. Another model has
+                    # its own, so try that before spending 39 seconds asleep.
+                    rate_limited += 1
+                    # A retired model reports 0; it must not shorten the wait a
+                    # genuinely rate-limited model asked for.
+                    if payload:
+                        quota_delay = max(quota_delay, payload) if rate_limited > 1 else payload
+                    continue
+
+                if outcome == 'fatal':
+                    raise payload
+
+                last_error = payload
+                break  # network or server-side: back off rather than hammer
+
+            if rate_limited == len(rotation):
+                last_error = RuntimeError('Free-tier quota exceeded on every model.')
+                if attempt < self.max_retries:
                     logger.warning(
-                        '[gemini] Rate limited on attempt %d/%d; waiting %ss',
-                        attempt, self.max_retries, delay,
+                        '[gemini] All %d models rate limited on attempt %d/%d; waiting %ss',
+                        len(rotation), attempt, self.max_retries, quota_delay,
                     )
-                    if attempt < self.max_retries:
-                        time.sleep(delay)
-                        continue
-                elif response.status_code in (500, 503):
-                    last_error = RuntimeError(f'Server error {response.status_code}.')
-                    logger.warning('[gemini] Server error %s on attempt %d', response.status_code, attempt)
-                else:
-                    # 400/403 will not fix themselves — surface immediately.
-                    detail = self._error_detail(response)
-                    raise GeminiUnavailable(f'Gemini rejected the request ({response.status_code}): {detail}')
+                    time.sleep(quota_delay)
+                continue
 
             if attempt < self.max_retries:
-                # Free-tier quotas are per-minute, so back off generously.
                 time.sleep(min(5 * attempt, 30))
 
         raise GeminiUnavailable(f'Gemini request failed after {self.max_retries} attempts: {last_error}')
+
+    def model_rotation(self) -> list[str]:
+        """The configured model first, then the other free-tier lite models."""
+        ordered = [self.model]
+        for name in FALLBACK_MODELS:
+            if name not in ordered:
+                ordered.append(name)
+        return ordered
+
+    def _call(self, model: str, body: dict[str, Any]) -> tuple[str, Any]:
+        """
+        One request to one model.
+
+        Returns ``(outcome, payload)`` where outcome is ``ok`` (parsed record),
+        ``quota`` (seconds to wait), ``fatal`` (exception to raise) or
+        ``retry`` (exception, worth another attempt).
+        """
+        try:
+            response = self.session.post(
+                f'{API_ROOT}/models/{model}:generateContent',
+                params={'key': self._key},
+                json=body,
+                timeout=180,
+                headers={'Content-Type': 'application/json'},
+            )
+        except requests.RequestException as exc:
+            logger.warning('[gemini] Network error on %s: %s', model, exc)
+            return 'retry', exc
+
+        if response.status_code == 200:
+            try:
+                return 'ok', self._parse(response.json())
+            except ValueError as exc:
+                logger.warning('[gemini] Bad response from %s: %s', model, exc)
+                return 'retry', exc
+
+        if response.status_code == 429:
+            logger.info('[gemini] %s is rate limited; trying the next model.', model)
+            return 'quota', self._retry_delay(response)
+
+        if response.status_code == 404:
+            # Google retires model aliases for new keys. Treat it like an empty
+            # bucket so the rotation simply moves on instead of failing.
+            logger.info('[gemini] %s is unavailable on this key; skipping.', model)
+            return 'quota', 0
+
+        if response.status_code in (500, 503):
+            return 'retry', RuntimeError(f'Server error {response.status_code} from {model}.')
+
+        # 400/403 will not fix themselves — surface immediately.
+        return 'fatal', GeminiUnavailable(
+            f'Gemini rejected the request ({response.status_code}): {self._error_detail(response)}'
+        )
 
     # -- Helpers ------------------------------------------------------------
 

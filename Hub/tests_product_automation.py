@@ -616,6 +616,96 @@ class AdminScreenTests(TestCase):
         self.assertIn(response.status_code, (302, 403), 'non-staff must not reach the queue')
 
 
+@override_settings(GEMINI_API_KEY='test-key')
+class GeminiRotationTests(TestCase):
+    """Free-tier quota is per model, so a 429 should move on, not sleep."""
+
+    def _client(self):
+        from Hub.automation.ai.gemini import GeminiClient
+        return GeminiClient()
+
+    def _response(self, status, payload=None):
+        from unittest.mock import Mock
+        response = Mock()
+        response.status_code = status
+        response.json.return_value = payload or {}
+        response.text = ''
+        return response
+
+    def _ok(self):
+        return self._response(200, {
+            'candidates': [{'content': {'parts': [{'text': '{"name": "Kurti"}'}]}}],
+            'usageMetadata': {'totalTokenCount': 100},
+        })
+
+    def _rate_limited(self):
+        return self._response(429, {'error': {
+            'message': 'You exceeded your current quota',
+            'details': [{'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '39s'}],
+        }})
+
+    def test_rotation_starts_with_the_configured_model(self):
+        client = self._client()
+        rotation = client.model_rotation()
+        self.assertEqual(rotation[0], client.model)
+        self.assertEqual(len(rotation), len(set(rotation)), 'no model tried twice')
+
+    def test_a_rate_limited_model_falls_through_to_the_next(self):
+        from unittest.mock import patch
+
+        client = self._client()
+        expected = client.model_rotation()[1]  # before the call reorders it
+
+        responses = [self._rate_limited(), self._ok()]
+        with patch.object(client.session, 'post', side_effect=responses) as post, \
+             patch('Hub.automation.ai.gemini.time.sleep') as slept:
+            result = client.complete_json(system='s', content=[], schema={'type': 'object'})
+
+        self.assertEqual(result['name'], 'Kurti')
+        self.assertEqual(post.call_count, 2)
+        slept.assert_not_called()
+        self.assertEqual(
+            client.model, expected,
+            'the model that answered should be the one reported',
+        )
+
+    def test_only_sleeps_once_every_model_is_exhausted(self):
+        from unittest.mock import patch
+
+        client = self._client()
+        depth = len(client.model_rotation())
+        with patch.object(client.session, 'post', return_value=self._rate_limited()), \
+             patch('Hub.automation.ai.gemini.time.sleep') as slept:
+            with self.assertRaises(Exception):
+                client.complete_json(system='s', content=[], schema={'type': 'object'})
+
+        self.assertTrue(slept.called, 'a full sweep of 429s should back off')
+        self.assertEqual(slept.call_args_list[0][0][0], 41, "obey Google's retryDelay")
+        self.assertGreaterEqual(depth, 2, 'rotation needs somewhere to fall through to')
+
+    def test_a_retired_model_is_skipped_not_waited_on(self):
+        from unittest.mock import patch
+
+        client = self._client()
+        with patch.object(client.session, 'post', side_effect=[self._response(404), self._ok()]), \
+             patch('Hub.automation.ai.gemini.time.sleep') as slept:
+            result = client.complete_json(system='s', content=[], schema={'type': 'object'})
+
+        self.assertEqual(result['name'], 'Kurti')
+        slept.assert_not_called()
+
+    def test_a_rejected_request_fails_immediately(self):
+        from unittest.mock import patch
+
+        from Hub.automation.ai.gemini import GeminiUnavailable
+
+        client = self._client()
+        with patch.object(client.session, 'post', return_value=self._response(400)) as post:
+            with self.assertRaises(GeminiUnavailable):
+                client.complete_json(system='s', content=[], schema={'type': 'object'})
+        self.assertEqual(post.call_count, 1, 'a bad request will not fix itself')
+
+
 class OllamaProviderTests(TestCase):
     """The Ollama client must present the same surface as the hosted ones."""
 
