@@ -98,6 +98,15 @@
                     </span>
                   </div>
 
+                  <select class="form-select form-select-sm mt-1" name="role_{{ image.pk }}"
+                          aria-label="Image role">
+                    <option value="main" {% if image.role == 'main' %}selected{% endif %}>Main image</option>
+                    <option value="gallery" {% if image.role == 'gallery' %}selected{% endif %}>Gallery</option>
+                    <option value="description" {% if image.role == 'description' %}selected{% endif %}>
+                      Description image (size chart / details)
+                    </option>
+                  </select>
+
                   <div class="d-flex align-items-center gap-1 mt-1">
                     <label class="form-label mb-0 small text-muted flex-shrink-0"
                            for="crop_{{ image.pk }}" title="Pixels trimmed from the bottom">
@@ -119,7 +128,11 @@
               {% endfor %}
             </div>
             <small class="text-muted d-block mt-3">
-              The preview shows exactly what will be published. Set a value to 0 to keep the full image.
+              The preview shows exactly what will be published. Set a crop to 0 to keep the full image.
+              <br>
+              <strong>Main image</strong> is the hero shot. <strong>Description image</strong> is the
+              large informational picture shown below the description — a size chart, fabric card or
+              brand infographic. Only one of each is used; extras fall back to Gallery.
             </small>
           {% else %}
             <p class="text-muted mb-0">No images were supplied with this product.</p>

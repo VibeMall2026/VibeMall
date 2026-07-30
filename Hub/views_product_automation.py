@@ -185,6 +185,50 @@ def _save_crops(request, draft: ProductDraft) -> int:
     return updated
 
 
+def _save_image_roles(request, draft: ProductDraft) -> None:
+    """
+    Apply the admin's per-image role choices.
+
+    The vision pass only ever marks an image as ``description`` when it looks
+    informational (a size chart or fabric card). When a supplier sends none,
+    this is how an admin nominates one by hand.
+
+    Exactly one main and one description image are used on publish, so extra
+    selections are demoted to gallery rather than silently ignored — the
+    reloaded page then shows what will actually happen.
+    """
+    from Hub.models import ProductDraftImage
+
+    valid = {
+        ProductDraftImage.ROLE_MAIN,
+        ProductDraftImage.ROLE_GALLERY,
+        ProductDraftImage.ROLE_DESCRIPTION,
+    }
+    seen_main = False
+    seen_description = False
+
+    for image in draft.images.all().order_by('order', 'id'):
+        posted = (request.POST.get(f'role_{image.pk}') or '').strip()
+        if posted not in valid:
+            continue
+
+        role = posted
+        if role == ProductDraftImage.ROLE_MAIN:
+            if seen_main:
+                role = ProductDraftImage.ROLE_GALLERY
+            else:
+                seen_main = True
+        elif role == ProductDraftImage.ROLE_DESCRIPTION:
+            if seen_description:
+                role = ProductDraftImage.ROLE_GALLERY
+            else:
+                seen_description = True
+
+        if role != image.role:
+            image.role = role
+            image.save(update_fields=['role'])
+
+
 def _save_reel_settings(request, draft: ProductDraft) -> None:
     """Persist per-video reel title and publish choices from the review screen."""
     for video in draft.videos.all():
@@ -199,6 +243,7 @@ def _handle_review_post(request, draft: ProductDraft):
 
     if action == 'save_crops':
         count = _save_crops(request, draft)
+        _save_image_roles(request, draft)
         _save_reel_settings(request, draft)
         messages.success(request, f'Crop updated on {count} image{"" if count == 1 else "s"}.')
         return redirect('admin_review_product_draft', draft_id=draft.pk)
@@ -230,6 +275,7 @@ def _handle_review_post(request, draft: ProductDraft):
     # Crops are applied to the live images by the publisher, so they must be
     # saved before publish() reads them.
     _save_crops(request, draft)
+    _save_image_roles(request, draft)
     _save_reel_settings(request, draft)
 
     draft.category = (request.POST.get('category') or '').strip()
