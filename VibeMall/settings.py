@@ -391,6 +391,15 @@ AUTOMATION_SUPPLIER_PRICE_IS_MRP = _env_bool('AUTOMATION_SUPPLIER_PRICE_IS_MRP',
 # once; detection is only used to tell the admin a strip is there.
 AUTOMATION_MEESHO_CROP_PX = _env_int('AUTOMATION_MEESHO_CROP_PX', 28)
 
+# How long a draft with photos and a description waits for a rate sent as its
+# own follow-up message, before the worker treats it as complete.
+AUTOMATION_PRICE_WINDOW_SECONDS = _env_int('AUTOMATION_PRICE_WINDOW_SECONDS', 45)
+
+# A rate sent as its own message is the supplier quoting their price, so it is
+# recorded as this shop's COST and the margin is added on top. Set false to
+# treat it as the selling price instead.
+AUTOMATION_SEPARATE_PRICE_IS_COST = _env_bool('AUTOMATION_SEPARATE_PRICE_IS_COST', True)
+
 # Stock a product is published with when the supplier message states none.
 # Publishing at zero would put it straight into "out of stock".
 AUTOMATION_DEFAULT_STOCK = _env_int('AUTOMATION_DEFAULT_STOCK', 50)

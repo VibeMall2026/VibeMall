@@ -173,10 +173,28 @@ class ProductDraft(models.Model):
     intake_closed = models.BooleanField(
         default=False,
         help_text=(
-            "Set once the description has arrived for photos already staged. "
-            "Suppliers send photos, then the description, then the next "
-            "product — so a closed draft is a finished item and the next "
-            "message starts a new one."
+            "Set once nothing further can join this draft. Suppliers send "
+            "photos, then the description, then sometimes the rate as its own "
+            "message — so the draft stays open for a short window after the "
+            "description in case that price is still coming."
+        ),
+    )
+    awaiting_rate = models.BooleanField(
+        default=False,
+        help_text=(
+            "The description arrived for photos already staged, so the only "
+            "message that may still join is the rate. Distinct from a draft "
+            "whose description came first — there, photos are still arriving."
+        ),
+    )
+    follow_up_price = models.CharField(
+        max_length=20,
+        blank=True,
+        default='',
+        help_text=(
+            "Price sent as its own message after the description, kept apart "
+            "from the prices inside the catalogue text because it means "
+            "something different: it is the rate this shop pays."
         ),
     )
     created_at = models.DateTimeField(auto_now_add=True)

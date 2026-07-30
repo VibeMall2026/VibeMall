@@ -215,6 +215,52 @@ def supplier_price_is_mrp() -> bool:
     return bool(getattr(settings, 'AUTOMATION_SUPPLIER_PRICE_IS_MRP', True))
 
 
+#: A message that is nothing but a price. Suppliers send the rate as its own
+#: message after the catalogue text — "899", "₹899", "Price 899/-", "Rate 899
+#: free ship" — so it has to be told apart from the next product's caption.
+_BARE_PRICE = re.compile(
+    rf'^\s*(?:price|rate|rt|final|net|offer|deal|cost|amount|amt)?\s*[:\-]?\s*'
+    rf'(?:₹|rs\.?|inr)?\s*{_MONEY}\s*(?:/-|/\s*-|rs\.?|₹)?\s*'
+    rf'(?:(?:free|with|incl\.?|including|plus|\+)?\s*'
+    rf'(?:ship(?:ping)?|delivery|courier|gst|tax|all)?\s*)*$',
+    re.IGNORECASE,
+)
+
+#: Longest a message can be and still be read as "just the price". A real
+#: product caption is far longer; this keeps a short next-product line from
+#: being swallowed into the previous draft.
+PRICE_MESSAGE_MAX_CHARS = 60
+
+
+def looks_like_price_message(text: str) -> bool:
+    """
+    True when a message carries a price and essentially nothing else.
+
+    Used at ingest: for suppliers who send image -> description -> price, that
+    third message belongs to the product already in flight, not to a new one.
+    Anything with real content — a product name, fabric, sizes — fails here and
+    starts its own draft, which is the safer error to make.
+    """
+    cleaned = (text or '').strip()
+    if not cleaned or len(cleaned) > PRICE_MESSAGE_MAX_CHARS:
+        return False
+
+    lines = [line.strip() for line in cleaned.splitlines() if line.strip()]
+    if not lines or len(lines) > 2:
+        return False
+
+    return all(_BARE_PRICE.match(line) for line in lines)
+
+
+def first_price(text: str):
+    """The first money value in a message, as a string, or ``''``."""
+    for pattern in (*_PRICE_PATTERNS, re.compile(_MONEY)):
+        match = pattern.search(text or '')
+        if match:
+            return match.group(1)
+    return ''
+
+
 #: Matches a whole line that is essentially just a price statement.
 _PRICE_LINE = re.compile(
     r'^\s*(?:(?:offer|sale|deal|selling|our|net|final|mrp|m\.r\.p\.?|retail|original)\s*)?'

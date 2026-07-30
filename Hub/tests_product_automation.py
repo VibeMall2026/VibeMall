@@ -24,8 +24,13 @@ from PIL import Image, ImageDraw
 
 from Hub.automation import pipeline
 from Hub.automation.ai.extraction import category_keys, category_options
-from Hub.automation.ingest import ingest, settle_seconds
-from Hub.automation.parsing.rules import extract_rules, strip_price_mentions
+from Hub.automation.ingest import ingest, price_window_seconds, settle_seconds
+from Hub.automation.parsing.rules import (
+    extract_rules,
+    first_price,
+    looks_like_price_message,
+    strip_price_mentions,
+)
 from Hub.automation.publisher import (
     PublishError,
     build_care_info,
@@ -164,6 +169,53 @@ class IngestGroupingTests(TestCase):
         self.assertIn('Georgette', black.raw_text)
         self.assertIn('Sharara', cream.raw_text)
 
+    def test_rate_sent_after_the_description_joins_the_product(self):
+        """Meesho flow: image -> description -> price, as three messages."""
+        send('-5c', 1, media=[image_media(1, shade=40)])
+        send('-5c', 2, media=[image_media(2, shade=60)])
+        send('-5c', 3, text='Chanderi Silk Women Kurti\nKurta Fabric: Chanderi\nMRP 1599')
+        send('-5c', 4, text='899')
+
+        self.assertEqual(ProductDraft.objects.count(), 1, 'the rate is not a new product')
+        draft = ProductDraft.objects.get()
+        self.assertEqual(draft.follow_up_price, '899')
+        self.assertTrue(draft.intake_closed, 'the rate finishes the product')
+        self.assertEqual(draft.images.count(), 2)
+
+    def test_the_next_product_still_starts_a_new_draft(self):
+        send('-5d', 1, media=[image_media(1, shade=40)])
+        send('-5d', 2, text='Chanderi Kurti\nMRP 1599')
+        send('-5d', 3, text='899')
+        send('-5d', 4, media=[image_media(2, shade=200)])
+        send('-5d', 5, text='Georgette Sharara\nMRP 2499')
+        send('-5d', 6, text='Rs. 1299/-')
+
+        self.assertEqual(ProductDraft.objects.count(), 2)
+        first, second = ProductDraft.objects.order_by('created_at')
+        self.assertEqual(first.follow_up_price, '899')
+        self.assertEqual(second.follow_up_price, '1299')
+
+    def test_a_photo_after_the_description_closes_the_draft(self):
+        """Not every supplier sends a rate; the next photo must still split."""
+        send('-5e', 1, media=[image_media(1, shade=40)])
+        send('-5e', 2, text='Chanderi Kurti\nMRP 1599')
+        send('-5e', 3, media=[image_media(2, shade=200)])
+
+        self.assertEqual(ProductDraft.objects.count(), 2)
+        first = ProductDraft.objects.order_by('created_at').first()
+        self.assertTrue(first.intake_closed)
+        self.assertEqual(first.follow_up_price, '')
+
+    def test_a_real_caption_is_never_mistaken_for_a_rate(self):
+        send('-5f', 1, media=[image_media(1, shade=40)])
+        send('-5f', 2, text='Chanderi Kurti\nMRP 1599')
+        send('-5f', 3, text='Georgette Sharara Suit 1299')
+
+        self.assertEqual(
+            ProductDraft.objects.count(), 2,
+            'a caption that merely contains a number is the next product',
+        )
+
     def test_videos_join_the_product(self):
         send('-6', 1, media=[image_media(1)])
         send('-6', 2, media=[video_media(2)])
@@ -209,13 +261,18 @@ class WorkerGatingTests(TestCase):
 
     def test_completed_draft_is_claimed_without_waiting(self):
         """
-        Once the description lands the product is closed, so the long quiet
-        window no longer applies. Claiming promptly is also what stops the next
-        product's photos from ever reaching this draft.
+        A draft nothing can join no longer waits out the quiet window. Claiming
+        promptly is also what stops the next product's photos reaching it.
+
+        A description alone does not finish the product any more — the rate may
+        still follow — so the next product's photo is what closes this one.
         """
         send('-10b', 1, media=[image_media(1)])
         send('-10b', 2, text='Kurti\nPrice 799')
-        draft = ProductDraft.objects.get()
+        send('-10b', 3, media=[image_media(2, shade=210)])  # the next product
+
+        draft = ProductDraft.objects.order_by('created_at').first()
+        self.assertTrue(draft.intake_closed)
         age(draft, settle_seconds() + 2)
         self.assertIsNotNone(pipeline.claim_next(), 'a finished draft should not wait')
 
@@ -481,6 +538,95 @@ class DefaultStockTests(TestCase):
 
         product = publish(draft, user=self.user)
         self.assertEqual(product.stock, 7, 'the supplier figure wins over the default')
+
+
+class PriceMessageDetectionTests(TestCase):
+    """Telling "the rate" apart from "the next product"."""
+
+    def test_bare_rates_are_recognised(self):
+        for text in ('899', '₹899', 'Rs. 899', '899/-', 'Price 899', 'price: 1,299',
+                     'Rate 899', '899 free shipping', 'RS 1299/- with shipping',
+                     'Final 1,299'):
+            self.assertTrue(looks_like_price_message(text), f'{text!r} is a rate')
+
+    def test_product_captions_are_not_rates(self):
+        for text in ('Georgette Sharara Suit 1299',
+                     'Chanderi Silk Women Kurti With Dupatta\nMRP 1599',
+                     'Sizes M L XL 899',
+                     'Black kurti',
+                     '',
+                     'Catalog Name:*Georgette Kurti* 899'):
+            self.assertFalse(looks_like_price_message(text), f'{text!r} is not a rate')
+
+    def test_a_long_message_is_never_a_rate(self):
+        self.assertFalse(looks_like_price_message('899 ' + 'x' * 80))
+
+    def test_the_value_is_extracted(self):
+        self.assertEqual(first_price('₹1,299/-'), '1,299')
+        self.assertEqual(first_price('Price 899'), '899')
+        self.assertEqual(first_price('no digits here'), '')
+
+
+@override_settings(MEDIA_ROOT=MEDIA, AUTOMATION_AI_PROVIDER='none')
+class FollowUpPriceTests(TestCase):
+    """A separately-sent rate is the cost, not the selling price."""
+
+    def _draft_with_rate(self):
+        send('-64', 1, media=[image_media(1)])
+        send('-64', 2, text='Chanderi Silk Women Kurti\nMRP 1599\nSizes M L XL')
+        send('-64', 3, text='899')
+        draft = ProductDraft.objects.get()
+        age(draft, 300)
+        pipeline.process_once()
+        draft.refresh_from_db()
+        return draft
+
+    def test_the_rate_fills_the_cost_box(self):
+        draft = self._draft_with_rate()
+        self.assertEqual(draft.parsed.get('base_price'), '899')
+        self.assertEqual(
+            draft.parsed.get('old_price'), '1599',
+            'the catalogue MRP is untouched by the follow-up rate',
+        )
+
+    def test_the_assumption_is_stated_on_the_review_screen(self):
+        draft = self._draft_with_rate()
+        warnings = ' '.join(draft.parsed.get('warnings') or [])
+        self.assertIn('899', warnings)
+        self.assertIn('COST', warnings)
+
+    @override_settings(AUTOMATION_SEPARATE_PRICE_IS_COST=False)
+    def test_it_can_be_treated_as_the_selling_price_instead(self):
+        draft = self._draft_with_rate()
+        self.assertEqual(draft.parsed.get('price'), '899')
+        self.assertIn('SELLING', ' '.join(draft.parsed.get('warnings') or []))
+
+
+@override_settings(MEDIA_ROOT=MEDIA, AUTOMATION_AI_PROVIDER='none')
+class PriceWindowTests(TestCase):
+    """The worker waits briefly for a rate rather than publishing without it."""
+
+    def test_a_draft_awaiting_its_rate_is_not_claimed(self):
+        send('-65', 1, media=[image_media(1)])
+        send('-65', 2, text='Chanderi Kurti\nMRP 1599')
+        draft = ProductDraft.objects.get()
+        age(draft, settle_seconds() + 2)
+        self.assertIsNone(pipeline.claim_next(), 'the rate may still be coming')
+
+    def test_it_is_claimed_once_the_rate_arrives(self):
+        send('-66', 1, media=[image_media(1)])
+        send('-66', 2, text='Chanderi Kurti\nMRP 1599')
+        send('-66', 3, text='899')
+        draft = ProductDraft.objects.get()
+        age(draft, settle_seconds() + 2)
+        self.assertIsNotNone(pipeline.claim_next(), 'nothing left to wait for')
+
+    def test_it_is_claimed_once_the_window_expires(self):
+        send('-67', 1, media=[image_media(1)])
+        send('-67', 2, text='Chanderi Kurti\nMRP 1599')
+        draft = ProductDraft.objects.get()
+        age(draft, price_window_seconds() + 5)
+        self.assertIsNotNone(pipeline.claim_next(), 'suppliers who never send a rate')
 
 
 class PricingTests(TestCase):

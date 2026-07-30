@@ -32,7 +32,12 @@ from .ai.extraction import extract, suggested_slug
 from .ai.vision import analyse_images, apply_to_images
 from .duplicates import find_duplicate
 from .images import process_draft_images
-from .ingest import group_quiet_seconds, pair_window_seconds, settle_seconds
+from .ingest import (
+    group_quiet_seconds,
+    pair_window_seconds,
+    price_window_seconds,
+    settle_seconds,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +90,7 @@ def claim_next() -> Any | None:
 
     pair_deadline = now - timedelta(seconds=pair_window_seconds())
     quiet_deadline = now - timedelta(seconds=group_quiet_seconds())
+    price_deadline = now - timedelta(seconds=price_window_seconds())
 
     candidates = (
         ProductDraft.objects.filter(
@@ -96,11 +102,16 @@ def claim_next() -> Any | None:
     )
 
     for draft in candidates:
-        # A closed draft is a finished product — its description has arrived for
-        # photos already staged, so nothing more can join and there is nothing
-        # to wait for. Claiming it now also takes it out of the claimable
-        # window, so the next product's photos cannot land on it by any route.
+        # A closed draft is finished — the rate arrived, or the next product
+        # started. Nothing more can join, so there is nothing to wait for, and
+        # claiming it now takes it out of the claimable window as well.
         if not draft.intake_closed:
+            # Photos and a description, but no rate yet. Suppliers who price
+            # separately send it moments later; publishing before it lands
+            # would cost the admin the one number they cannot look up.
+            if draft.awaiting_rate and draft.last_message_at > price_deadline:
+                continue
+
             # Messages sent one at a time need a longer pause than an album,
             # which arrives in a single burst. Processing a chat draft the
             # moment a photo lands would strand the ones still being sent.
@@ -125,6 +136,44 @@ def claim_next() -> Any | None:
             return ProductDraft.objects.get(pk=draft.pk)
 
     return None
+
+
+def separate_price_is_cost() -> bool:
+    """
+    Whether a separately-sent rate is what this shop *pays*, not what it charges.
+
+    Defaults to True. A supplier who sends the catalogue text and then the rate
+    is quoting their own price, which is this shop's cost — the number the
+    margin calculation starts from. Set ``AUTOMATION_SEPARATE_PRICE_IS_COST``
+    to false to treat it as the selling price instead.
+    """
+    return bool(getattr(settings, 'AUTOMATION_SEPARATE_PRICE_IS_COST', True))
+
+
+def _apply_follow_up_price(draft: Any, record: dict) -> None:
+    """
+    Place a rate that arrived as its own message.
+
+    It is deliberately not merged with the prices found inside the catalogue
+    text: those are the supplier's MRP, this one is the deal. Recorded loudly
+    in the warnings so the admin sees which box it filled rather than
+    discovering it in a profit report later.
+    """
+    price = (getattr(draft, 'follow_up_price', '') or '').strip()
+    if not price:
+        return
+
+    if separate_price_is_cost():
+        record['base_price'] = price
+        record.setdefault('warnings', []).append(
+            f'Rate Rs.{price} was sent separately and recorded as your COST. '
+            'Add your margin to set the selling price.'
+        )
+    else:
+        record['price'] = price
+        record.setdefault('warnings', []).append(
+            f'Rate Rs.{price} was sent separately and recorded as the SELLING price.'
+        )
 
 
 def _is_half_complete(draft: Any) -> bool:
@@ -229,6 +278,8 @@ def process_draft(draft: Any) -> Any:
         image_findings=findings or None,
         source_label=draft.get_source_display(),
     )
+    _apply_follow_up_price(draft, record)
+
     draft.parsed = record
     draft.log_event('extraction', f'Extracted via {"AI" if used_ai else "rules"}: "{record.get("name")}".', save=False)
 

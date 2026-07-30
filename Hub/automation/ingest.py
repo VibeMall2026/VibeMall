@@ -29,6 +29,7 @@ from django.utils import timezone
 
 from Hub.models import ProductDraft, ProductDraftImage, ProductDraftVideo
 
+from .parsing.rules import first_price, looks_like_price_message
 from .sources.base import IncomingProduct
 
 logger = logging.getLogger(__name__)
@@ -79,11 +80,14 @@ def _find_open_draft(incoming: IncomingProduct) -> ProductDraft | None:
     * anything after that — another photo or another description — belongs to
       the next product and starts a new draft.
 
-    The description is the terminator, not merely a separator: a draft whose
-    description followed its photos is a finished product, so the next photo can
-    never be mistaken for one more angle of it. That is recorded on the draft as
-    ``intake_closed`` when it happens, because the order matters and cannot be
-    re-derived later — a supplier who sends the description *first* is still
+    The description ends the *photos*, but not always the product: Meesho
+    resellers send the rate as a third message. So a draft holding photos and a
+    description stays open a little longer, and only a message that is nothing
+    but a price may join it. Anything else — another photo, another caption —
+    is the next product, and closes this one on its way past.
+
+    ``intake_closed`` records that, because the order matters and cannot be
+    re-derived later: a supplier who sends the description *first* is still
     mid-product, and their photos must keep joining.
 
     Only the most recent open draft is considered, which is what makes it work.
@@ -110,6 +114,15 @@ def _find_open_draft(incoming: IncomingProduct) -> ProductDraft | None:
 
     candidate_has_text = bool((candidate.raw_text or '').strip())
 
+    # The description has landed on top of its photos: only the rate may still
+    # arrive. A draft whose description came *first* is not in this state —
+    # there the photos are still on their way.
+    if candidate.awaiting_rate:
+        if has_text and looks_like_price_message(incoming.text):
+            return candidate
+        _close(candidate, 'The next product started.')
+        return None
+
     # Two descriptions in a row mean two products.
     if has_text and candidate_has_text:
         return None
@@ -121,6 +134,15 @@ def _find_open_draft(incoming: IncomingProduct) -> ProductDraft | None:
             return None
 
     return candidate
+
+
+def _close(draft: ProductDraft, reason: str) -> None:
+    """Mark a draft final so nothing else can land on it."""
+    if draft.intake_closed:
+        return
+    draft.intake_closed = True
+    draft.log_event('ingest', f'Closed for new messages. {reason}', save=False)
+    draft.save(update_fields=['intake_closed', 'events', 'updated_at'])
 
 
 def _attach_videos(draft: ProductDraft, incoming: IncomingProduct) -> int:
@@ -208,15 +230,15 @@ def ingest(incoming: IncomingProduct) -> ProductDraft | None:
         clips = _attach_videos(draft, incoming)
         draft.last_message_at = timezone.now()
 
-        # Remaining album parts still merge on ``source_group_id``; closing only
-        # stops *other* messages from landing here once the caption has arrived.
-        draft.intake_closed = bool(draft.raw_text.strip()) and draft.images.exists()
+        # Remaining album parts still merge on ``source_group_id``; this only
+        # governs which *other* messages may land here once the caption exists.
+        draft.awaiting_rate = bool(draft.raw_text.strip()) and draft.images.exists()
 
         draft.log_event(
             'ingest', f'Album part merged (+{stored} image(s), +{clips} video(s)).', save=False
         )
         draft.save(
-            update_fields=['raw_text', 'last_message_at', 'intake_closed', 'events', 'updated_at']
+            update_fields=['raw_text', 'last_message_at', 'awaiting_rate', 'events', 'updated_at']
         )
         logger.info('[automation] Merged album part into draft %s (+%d images)', draft.pk, stored)
         return draft
@@ -224,25 +246,42 @@ def ingest(incoming: IncomingProduct) -> ProductDraft | None:
     # --- Consecutive messages for one product: join them -------------------
     partner = _find_open_draft(incoming)
     if partner is not None:
-        # The description arriving for photos already staged completes the
-        # product — nothing sent after this belongs to it.
-        closing = bool(incoming.text.strip()) and partner.images.exists()
+        text = incoming.text.strip()
 
-        if incoming.text.strip() and not partner.raw_text.strip():
-            partner.raw_text = incoming.text
-        images = _attach_media(partner, incoming)
-        clips = _attach_videos(partner, incoming)
+        # The rate, sent as its own message. It is the last thing that arrives,
+        # and it is kept apart from the catalogue text because it means
+        # something different — see ``follow_up_price``.
+        is_price = bool(text) and partner.raw_text.strip() and looks_like_price_message(text)
+
+        if is_price:
+            partner.follow_up_price = (first_price(text) or '')[:20]
+            partner.raw_text = f'{partner.raw_text}\n{text}'.strip()
+            partner.intake_closed = True
+            partner.awaiting_rate = False
+            note = f'Rate received separately: {partner.follow_up_price or text}. Product complete.'
+        else:
+            # A description landing on staged photos leaves only the rate
+            # outstanding; anything else after this belongs to the next product.
+            if text and partner.images.exists():
+                partner.awaiting_rate = True
+
+            if text and not partner.raw_text.strip():
+                partner.raw_text = incoming.text
+            images = _attach_media(partner, incoming)
+            clips = _attach_videos(partner, incoming)
+            note = (
+                f'Grouped with the previous message (+{images} image(s), '
+                f'+{clips} video(s)'
+                f'{", description added" if text else ""}).'
+            )
+
         partner.last_message_at = timezone.now()
-        partner.intake_closed = closing
-        partner.log_event(
-            'ingest',
-            f'Grouped with the previous message (+{images} image(s), +{clips} video(s)'
-            f'{", description added — product complete" if closing else ""}'
-            f'{", text added" if incoming.text.strip() and not closing else ""}).',
-            save=False,
-        )
+        partner.log_event('ingest', note, save=False)
         partner.save(
-            update_fields=['raw_text', 'last_message_at', 'intake_closed', 'events', 'updated_at']
+            update_fields=[
+                'raw_text', 'follow_up_price', 'last_message_at',
+                'intake_closed', 'awaiting_rate', 'events', 'updated_at',
+            ]
         )
         logger.info('[automation] Grouped message into draft %s', partner.pk)
         return partner
@@ -273,15 +312,16 @@ def ingest(incoming: IncomingProduct) -> ProductDraft | None:
     stored = _attach_media(draft, incoming)
     clips = _attach_videos(draft, incoming)
 
-    # A photo captioned with its description is a whole product in one message.
-    draft.intake_closed = bool(incoming.text.strip()) and stored > 0 and not incoming.group_id
+    # A photo captioned with its description is a whole product in one message,
+    # but the rate may still follow — so it waits for one rather than closing.
+    draft.awaiting_rate = bool(incoming.text.strip()) and stored > 0 and not incoming.group_id
 
     draft.log_event(
         'ingest',
         f'Received from {incoming.source} with {stored} image(s) and {clips} video(s).',
         save=False,
     )
-    draft.save(update_fields=['intake_closed', 'events', 'updated_at'])
+    draft.save(update_fields=['awaiting_rate', 'events', 'updated_at'])
 
     logger.info('[automation] Created draft %s from %s (%d images)', draft.pk, incoming.source, stored)
     return draft
@@ -316,6 +356,17 @@ def burst_seconds() -> int:
     same product ("text first, then photos") or starts the next one.
     """
     return int(getattr(settings, 'AUTOMATION_BURST_SECONDS', 30))
+
+
+def price_window_seconds() -> int:
+    """
+    How long a photos-plus-description draft waits for a separate rate message.
+
+    Meesho resellers send image -> description -> price, seconds apart. Waiting
+    briefly costs nothing; publishing first would drop the one number the admin
+    cannot recover from the catalogue text.
+    """
+    return int(getattr(settings, 'AUTOMATION_PRICE_WINDOW_SECONDS', 45))
 
 
 def group_quiet_seconds() -> int:
