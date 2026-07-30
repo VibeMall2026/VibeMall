@@ -124,12 +124,14 @@ def admin_review_product_draft(request, draft_id: int):
 
     record = draft.parsed or {}
     suggestion = draft.ai_suggestions or {}
+    images = list(draft.images.all().order_by('order', 'id'))
 
     context = {
         'draft': draft,
         'record': record,
         'suggestion': suggestion,
-        'images': draft.images.all().order_by('order', 'id'),
+        'images': images,
+        'any_footer_detected': any(image.suggested_crop_bottom_px for image in images),
         'events': list(reversed(draft.events or []))[:25],
         # Attributes with no Product column — shown so the admin can see what
         # was extracted before it is folded into description/care_info/tags.
@@ -159,8 +161,36 @@ def _colorways(draft: ProductDraft) -> list[dict]:
     return [{'color': color, 'images': images} for color, images in grouped.items()]
 
 
+def _save_crops(request, draft: ProductDraft) -> int:
+    """
+    Persist per-image bottom crops posted from the review screen.
+
+    Values are stored as intent — the file is untouched until publish — so an
+    admin can adjust or clear a crop as many times as they like.
+    """
+    updated = 0
+    for image in draft.images.all():
+        field = f'crop_{image.pk}'
+        if field not in request.POST:
+            continue
+        try:
+            value = max(int(request.POST.get(field) or 0), 0)
+        except (TypeError, ValueError):
+            continue
+        if value != image.crop_bottom_px:
+            image.crop_bottom_px = value
+            image.save(update_fields=['crop_bottom_px'])
+            updated += 1
+    return updated
+
+
 def _handle_review_post(request, draft: ProductDraft):
     action = request.POST.get('action')
+
+    if action == 'save_crops':
+        count = _save_crops(request, draft)
+        messages.success(request, f'Crop updated on {count} image{"" if count == 1 else "s"}.')
+        return redirect('admin_review_product_draft', draft_id=draft.pk)
 
     if action == 'reject':
         draft.status = ProductDraft.STATUS_REJECTED
@@ -186,6 +216,10 @@ def _handle_review_post(request, draft: ProductDraft):
         return redirect('admin_review_product_draft', draft_id=draft.pk)
 
     # --- Approve -----------------------------------------------------------
+    # Crops are applied to the live images by the publisher, so they must be
+    # saved before publish() reads them.
+    _save_crops(request, draft)
+
     draft.category = (request.POST.get('category') or '').strip()
     draft.sub_category = (request.POST.get('sub_category') or '').strip()[:100]
 
@@ -232,7 +266,12 @@ def admin_delete_product_draft(request, draft_id: int):
     """Discard a draft and its staged images entirely."""
     draft = get_object_or_404(ProductDraft, pk=draft_id)
     for image in draft.images.all():
-        image.image.delete(save=False)
+        try:
+            image.image.delete(save=False)
+        except OSError as exc:
+            # A locked file on Windows must not block removing the draft row;
+            # the orphaned file is harmless and can be swept up later.
+            logger.warning('[review] Could not delete staged file for image %s: %s', image.pk, exc)
     draft.delete()
     messages.success(request, f'Draft #{draft_id} deleted.')
     return redirect('admin_product_drafts')

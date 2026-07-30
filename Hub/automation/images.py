@@ -89,6 +89,106 @@ def hamming(a: str, b: str) -> int:
         return 64
 
 
+# --------------------------------------------------------------------------
+# Supplier code strip detection
+# --------------------------------------------------------------------------
+
+#: A row counts as "background" when at least this fraction of its pixels match
+#: the bottom-corner colour.
+FOOTER_ROW_BACKGROUND_RATIO = 0.80
+
+#: How close a pixel must be to the background colour, per channel.
+FOOTER_COLOUR_TOLERANCE = 20
+
+#: Never suggest trimming more than this fraction of the image height.
+FOOTER_MAX_FRACTION = 0.22
+
+#: Ignore strips thinner than this fraction — not worth a crop.
+FOOTER_MIN_FRACTION = 0.015
+
+
+def detect_footer_band(path_or_file: Any) -> int:
+    """
+    Height in pixels of the plain strip at the bottom of an image.
+
+    Wholesale suppliers print a catalogue code ("s-558186268") on a solid band
+    beneath the product shot. Detection walks up from the bottom edge counting
+    rows that are overwhelmingly the background colour — small dark text still
+    leaves a row ~95% background, whereas the first row containing the garment
+    drops well below the threshold and stops the scan.
+
+    Returns 0 when no meaningful strip is found.
+    """
+    Image = _pillow()
+    if Image is None:
+        return 0
+
+    try:
+        with Image.open(path_or_file) as img:
+            img = img.convert('RGB')
+            width, height = img.size
+            if height < 50:
+                return 0
+
+            # Narrow the image so each row is cheap to scan; height is kept
+            # exact because the result is measured in source pixels.
+            sample_width = min(width, 120)
+            if sample_width != width:
+                img = img.resize((sample_width, height), Image.NEAREST)
+            pixels = img.load()
+
+        background = pixels[0, height - 1]
+        tolerance = FOOTER_COLOUR_TOLERANCE
+
+        def is_background(pixel) -> bool:
+            return all(abs(a - b) <= tolerance for a, b in zip(pixel, background))
+
+        limit = int(height * FOOTER_MAX_FRACTION)
+        band = 0
+        for y in range(height - 1, height - 1 - limit, -1):
+            matches = sum(1 for x in range(sample_width) if is_background(pixels[x, y]))
+            if matches / sample_width < FOOTER_ROW_BACKGROUND_RATIO:
+                break
+            band += 1
+    except Exception as exc:
+        logger.warning('[images] Footer detection failed: %s', exc)
+        return 0
+
+    if band < height * FOOTER_MIN_FRACTION:
+        return 0
+    return band
+
+
+def cropped_bytes(path: str, crop_bottom_px: int) -> bytes | None:
+    """Re-encode an image with ``crop_bottom_px`` trimmed off the bottom."""
+    Image = _pillow()
+    if Image is None or crop_bottom_px <= 0:
+        return None
+
+    try:
+        import io
+
+        with Image.open(path) as img:
+            img = img.convert('RGB')
+            width, height = img.size
+            keep = height - int(crop_bottom_px)
+            # Refuse to crop away the whole photo.
+            if keep < height * 0.4:
+                logger.warning(
+                    '[images] Ignoring crop of %dpx on a %dpx-tall image (too aggressive).',
+                    crop_bottom_px, height,
+                )
+                return None
+            cropped = img.crop((0, 0, width, keep))
+
+            buffer = io.BytesIO()
+            cropped.save(buffer, format='JPEG', quality=STAGE_JPEG_QUALITY, optimize=True)
+            return buffer.getvalue()
+    except Exception as exc:
+        logger.warning('[images] Could not crop %s: %s', path, exc)
+        return None
+
+
 def _compress(draft_image: Any, filename: str) -> bool:
     """Re-encode a staged image in place. Returns True if it was rewritten."""
     Image = _pillow()
@@ -190,14 +290,41 @@ def process_draft_images(draft: Any, *, slug: str) -> dict[str, int]:
     role_rank = {'main': 0, 'gallery': 1, 'description': 2}
     kept.sort(key=lambda i: (role_rank.get(i.role, 1), i.order, i.pk))
 
+    stats['footer_detected'] = 0
+
     for index, draft_image in enumerate(kept):
         draft_image.order = index
         if _compress(draft_image, _seo_filename(slug, draft_image, index + 1)):
             stats['compressed'] += 1
+
+        # Detect the supplier code strip *after* compression, since that step
+        # may resize the file and the crop is stored in final-image pixels.
+        # Size charts and infographics are legitimately text on a plain
+        # background, so they are exempt.
+        suggested = 0
+        if draft_image.role != 'description':
+            try:
+                suggested = detect_footer_band(draft_image.image.path)
+            except (ValueError, OSError):
+                suggested = 0
+
+        draft_image.suggested_crop_bottom_px = suggested
+        if suggested:
+            stats['footer_detected'] += 1
+            # Pre-apply so the common case needs no clicks; the review screen
+            # exposes it as an editable value the admin can zero out.
+            draft_image.crop_bottom_px = suggested
+
         if not draft_image.alt_text:
             label = f'{draft_image.color} ' if draft_image.color else ''
             draft_image.alt_text = f'{label}{slug.replace("-", " ")}'.strip()[:255]
-        draft_image.save(update_fields=['order', 'image', 'phash', 'alt_text'])
+
+        draft_image.save(
+            update_fields=[
+                'order', 'image', 'phash', 'alt_text',
+                'crop_bottom_px', 'suggested_crop_bottom_px',
+            ]
+        )
 
     stats['kept'] = len(kept)
     return stats

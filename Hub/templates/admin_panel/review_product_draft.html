@@ -71,23 +71,56 @@
         </div>
         <div class="card-body">
           {% if images %}
-            <div class="row g-2">
+            {% if any_footer_detected %}
+              <div class="alert alert-info py-2 px-3 mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <small>
+                  <i class="bx bx-crop"></i>
+                  A supplier code strip was detected and will be trimmed on approval.
+                </small>
+                <span>
+                  <button type="button" class="btn btn-xs btn-outline-secondary" data-crop-all="suggested">Re-apply</button>
+                  <button type="button" class="btn btn-xs btn-outline-secondary" data-crop-all="0">Keep full images</button>
+                </span>
+              </div>
+            {% endif %}
+
+            <div class="row g-3">
               {% for image in images %}
-                <div class="col-4">
-                  <div class="position-relative">
+                <div class="col-6">
+                  <div class="position-relative border rounded overflow-hidden" style="background:#f5f5f5;">
                     <img src="{{ image.image.url }}" alt="{{ image.alt_text }}"
-                         class="img-fluid rounded w-100" style="aspect-ratio:4/5;object-fit:cover;">
+                         class="img-fluid w-100 draft-image"
+                         data-image-id="{{ image.pk }}"
+                         style="display:block;">
                     <span class="badge position-absolute top-0 start-0 m-1
                       {% if image.role == 'main' %}bg-primary{% elif image.role == 'description' %}bg-dark{% else %}bg-secondary{% endif %}">
                       {{ image.get_role_display|cut:" Image"|cut:" Product" }}
                     </span>
                   </div>
+
+                  <div class="d-flex align-items-center gap-1 mt-1">
+                    <label class="form-label mb-0 small text-muted flex-shrink-0"
+                           for="crop_{{ image.pk }}" title="Pixels trimmed from the bottom">
+                      <i class="bx bx-crop"></i> Crop
+                    </label>
+                    <input type="number" min="0" step="4"
+                           class="form-control form-control-sm crop-input"
+                           id="crop_{{ image.pk }}"
+                           name="crop_{{ image.pk }}"
+                           value="{{ image.crop_bottom_px }}"
+                           data-image-id="{{ image.pk }}"
+                           data-suggested="{{ image.suggested_crop_bottom_px }}">
+                    <span class="small text-muted flex-shrink-0">px</span>
+                  </div>
                   {% if image.color %}
-                    <small class="d-block text-center text-muted mt-1">{{ image.color }}</small>
+                    <small class="d-block text-muted mt-1">{{ image.color }}</small>
                   {% endif %}
                 </div>
               {% endfor %}
             </div>
+            <small class="text-muted d-block mt-3">
+              The preview shows exactly what will be published. Set a value to 0 to keep the full image.
+            </small>
           {% else %}
             <p class="text-muted mb-0">No images were supplied with this product.</p>
           {% endif %}
@@ -295,6 +328,9 @@
                     onclick="return confirm('Reject this draft? It will not be published.');">
               <i class="bx bx-x-circle"></i> Reject
             </button>
+            <button type="submit" name="action" value="save_crops" class="btn btn-outline-secondary" formnovalidate>
+              <i class="bx bx-crop"></i> Save Crop Only
+            </button>
             <button type="submit" name="action" value="requeue" class="btn btn-outline-secondary" formnovalidate>
               <i class="bx bx-refresh"></i> Re-run AI
             </button>
@@ -323,6 +359,49 @@
     </div>
   </div>
 </form>
+
+<script>
+// Live crop preview. The value is in source pixels, but the preview is scaled,
+// so convert through naturalHeight and clip the rendered image.
+(function () {
+  function apply(input) {
+    var img = document.querySelector('.draft-image[data-image-id="' + input.dataset.imageId + '"]');
+    if (!img) { return; }
+
+    function clip() {
+      var px = parseInt(input.value, 10) || 0;
+      var natural = img.naturalHeight || 0;
+      if (!natural || px <= 0) {
+        img.style.clipPath = '';
+        img.style.marginBottom = '';
+        return;
+      }
+      var ratio = Math.min(px / natural, 0.6);
+      img.style.clipPath = 'inset(0 0 ' + (ratio * 100).toFixed(2) + '% 0)';
+      // Pull the following content up so the card does not keep a gap where
+      // the clipped strip used to be.
+      img.style.marginBottom = '-' + (img.clientHeight * ratio).toFixed(0) + 'px';
+    }
+
+    if (img.complete) { clip(); } else { img.addEventListener('load', clip); }
+    input.addEventListener('input', clip);
+    window.addEventListener('resize', clip);
+  }
+
+  var inputs = Array.prototype.slice.call(document.querySelectorAll('.crop-input'));
+  inputs.forEach(apply);
+
+  document.querySelectorAll('[data-crop-all]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var mode = button.dataset.cropAll;
+      inputs.forEach(function (input) {
+        input.value = mode === 'suggested' ? (input.dataset.suggested || 0) : 0;
+        input.dispatchEvent(new Event('input'));
+      });
+    });
+  });
+})();
+</script>
 
 <script>
 // Dependent Category -> Sub Category select, matching the Add Product page.

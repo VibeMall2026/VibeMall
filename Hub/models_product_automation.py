@@ -249,6 +249,19 @@ class ProductDraftImage(models.Model):
         db_index=True,
         help_text="Perceptual hash — used for near-duplicate detection",
     )
+
+    # Suppliers (Meesho and similar) burn a catalogue code into a strip along
+    # the bottom of every photo. Cropping is stored as intent rather than
+    # applied to the file, so the admin can adjust or undo it right up until
+    # approval; the publisher bakes it in when the product goes live.
+    crop_bottom_px = models.PositiveIntegerField(
+        default=0,
+        help_text="Pixels trimmed from the bottom when published (0 = no crop)",
+    )
+    suggested_crop_bottom_px = models.PositiveIntegerField(
+        default=0,
+        help_text="Auto-detected height of the supplier code strip",
+    )
     source_file_id = models.CharField(max_length=200, blank=True, default='')
     analysis = models.JSONField(default=dict, blank=True, help_text="Raw vision output for this image")
 

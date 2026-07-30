@@ -50,8 +50,38 @@ from django.utils.html import escape
 from django.utils.text import slugify
 
 from .ai.schema import EXTENDED_ATTRIBUTE_FIELDS
+from .images import cropped_bytes
 
 logger = logging.getLogger(__name__)
+
+
+def staged_file(staged: Any) -> ContentFile:
+    """
+    Read a staged image, applying the admin's bottom crop if one is set.
+
+    The crop is stored as intent on the draft rather than burned into the
+    staged file, so it stays adjustable until approval. This is where it
+    actually gets applied.
+    """
+    if staged.crop_bottom_px:
+        try:
+            payload = cropped_bytes(staged.image.path, staged.crop_bottom_px)
+        except (ValueError, OSError):
+            payload = None
+        if payload:
+            return ContentFile(payload)
+        logger.warning(
+            '[publish] Crop of %dpx could not be applied to draft image %s; using the original.',
+            staged.crop_bottom_px, staged.pk,
+        )
+
+    # Read and close explicitly. On Windows an open handle blocks the file from
+    # being deleted, which would break "delete draft" straight after publishing.
+    try:
+        staged.image.open('rb')
+        return ContentFile(staged.image.read())
+    finally:
+        staged.image.close()
 
 
 class PublishError(RuntimeError):
@@ -369,13 +399,13 @@ def publish(draft: Any, *, user: Any = None) -> Any:
     if main_image:
         product.image.save(
             os.path.basename(main_image.image.name),
-            ContentFile(main_image.image.read()),
+            staged_file(main_image),
             save=False,
         )
     if description_image:
         product.descriptionImage.save(
             os.path.basename(description_image.image.name),
-            ContentFile(description_image.image.read()),
+            staged_file(description_image),
             save=False,
         )
 
@@ -394,10 +424,9 @@ def publish(draft: Any, *, user: Any = None) -> Any:
             order=order,
             is_active=True,
         )
-        staged.image.seek(0)
         gallery.image.save(
             os.path.basename(staged.image.name),
-            ContentFile(staged.image.read()),
+            staged_file(staged),
             save=False,
         )
         gallery.save()

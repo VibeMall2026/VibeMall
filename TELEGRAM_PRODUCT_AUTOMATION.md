@@ -129,6 +129,29 @@ them; only `publisher.py` needs to change.
 
 ---
 
+## 4b. Supplier code strips
+
+Wholesale suppliers (Meesho and similar) print a catalogue code on a plain band
+below the product photo — `s-558186268` in the bottom-left corner.
+
+The pipeline detects that band automatically and pre-fills a crop. On the
+review screen each image shows a **Crop … px** box, and the preview above it is
+clipped live so you see exactly what will be published.
+
+* **Re-apply** / **Keep full images** set every image at once.
+* Type any pixel value to fine-tune, or `0` to keep the full photo.
+* **Save Crop Only** persists without publishing, so you can iterate.
+
+The crop is stored as *intent*, not baked into the staged file, so it stays
+adjustable right up until you approve. The publisher applies it when copying
+images onto the live product; the original staged file is never destroyed.
+
+Detection is skipped for images classified as `description` (size charts and
+fabric cards are legitimately text on a plain background), and a crop that
+would remove more than 60% of an image's height is refused.
+
+---
+
 ## 5. Running without an Anthropic key
 
 The pipeline still works. It falls back to the rule-based extractor, which
