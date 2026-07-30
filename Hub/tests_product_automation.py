@@ -22,7 +22,7 @@ from django.utils import timezone
 from PIL import Image, ImageDraw
 
 from Hub.automation import pipeline
-from Hub.automation.ingest import ingest
+from Hub.automation.ingest import ingest, settle_seconds
 from Hub.automation.parsing.rules import extract_rules, strip_price_mentions
 from Hub.automation.publisher import (
     PublishError,
@@ -94,7 +94,7 @@ def age(draft: ProductDraft, seconds: int) -> None:
     )
 
 
-@override_settings(MEDIA_ROOT=MEDIA)
+@override_settings(MEDIA_ROOT=MEDIA, AUTOMATION_AI_PROVIDER='none')
 class IngestGroupingTests(TestCase):
     """Messages belonging to one product must land in one draft."""
 
@@ -139,6 +139,26 @@ class IngestGroupingTests(TestCase):
         send('-5', 3, media=[image_media(2, shade=200)])
         self.assertEqual(ProductDraft.objects.count(), 2)
 
+    def test_description_closes_the_product_even_with_no_pause(self):
+        """
+        The supplier's rhythm is photos -> description -> next product, sent
+        back to back. The photo after a description opens the next item, so it
+        must not be swept into the finished draft however fast it follows.
+        """
+        send('-5b', 1, media=[image_media(1, shade=40)])
+        send('-5b', 2, media=[image_media(2, shade=60)])
+        send('-5b', 3, text='Black Georgette Kurti\nPrice 1999')
+        send('-5b', 4, media=[image_media(3, shade=200)])
+        send('-5b', 5, media=[image_media(4, shade=220)])
+        send('-5b', 6, text='Cream Sharara Suit\nPrice 2499')
+
+        self.assertEqual(ProductDraft.objects.count(), 2)
+        black, cream = ProductDraft.objects.order_by('created_at')
+        self.assertEqual(black.images.count(), 2)
+        self.assertEqual(cream.images.count(), 2)
+        self.assertIn('Georgette', black.raw_text)
+        self.assertIn('Sharara', cream.raw_text)
+
     def test_videos_join_the_product(self):
         send('-6', 1, media=[image_media(1)])
         send('-6', 2, media=[video_media(2)])
@@ -170,7 +190,7 @@ class IngestGroupingTests(TestCase):
             self.assertFalse(BOT_COMMAND.match(real))
 
 
-@override_settings(MEDIA_ROOT=MEDIA)
+@override_settings(MEDIA_ROOT=MEDIA, AUTOMATION_AI_PROVIDER='none')
 class WorkerGatingTests(TestCase):
     """A draft must not be processed while more messages may still arrive."""
 
@@ -181,6 +201,18 @@ class WorkerGatingTests(TestCase):
         self.assertIsNone(pipeline.claim_next(), 'claimed too early')
         age(draft, 300)
         self.assertIsNotNone(pipeline.claim_next())
+
+    def test_completed_draft_is_claimed_without_waiting(self):
+        """
+        Once the description lands the product is closed, so the long quiet
+        window no longer applies. Claiming promptly is also what stops the next
+        product's photos from ever reaching this draft.
+        """
+        send('-10b', 1, media=[image_media(1)])
+        send('-10b', 2, text='Kurti\nPrice 799')
+        draft = ProductDraft.objects.get()
+        age(draft, settle_seconds() + 2)
+        self.assertIsNotNone(pipeline.claim_next(), 'a finished draft should not wait')
 
     def test_failed_draft_backs_off_then_fails_permanently(self):
         send('-11', 1, text='Kurti\nPrice 799')
@@ -281,7 +313,7 @@ class ContentLayoutTests(TestCase):
         self.assertNotIn('Occasion', care)
 
 
-@override_settings(MEDIA_ROOT=MEDIA)
+@override_settings(MEDIA_ROOT=MEDIA, AUTOMATION_AI_PROVIDER='none')
 class PublishTests(TestCase):
     """Approval writes the full set of live rows, atomically."""
 
@@ -401,7 +433,7 @@ class PublishTests(TestCase):
         self.assertIsNotNone(second.duplicate_of_id)
 
 
-@override_settings(MEDIA_ROOT=MEDIA)
+@override_settings(MEDIA_ROOT=MEDIA, AUTOMATION_AI_PROVIDER='none')
 class AdminScreenTests(TestCase):
     """Every admin route must render and every action must work."""
 

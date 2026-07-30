@@ -96,17 +96,22 @@ def claim_next() -> Any | None:
     )
 
     for draft in candidates:
-        # Messages sent one at a time need a longer pause than an album, which
-        # arrives in a single burst. Processing a chat draft the moment it
-        # looks complete would strand every photo the supplier sends next.
-        if not draft.source_group_id and draft.last_message_at > quiet_deadline:
-            continue
+        # A closed draft is a finished product — its description has arrived for
+        # photos already staged, so nothing more can join and there is nothing
+        # to wait for. Claiming it now also takes it out of the claimable
+        # window, so the next product's photos cannot land on it by any route.
+        if not draft.intake_closed:
+            # Messages sent one at a time need a longer pause than an album,
+            # which arrives in a single burst. Processing a chat draft the
+            # moment a photo lands would strand the ones still being sent.
+            if not draft.source_group_id and draft.last_message_at > quiet_deadline:
+                continue
 
-        # A draft missing either half is probably one of a photo/description
-        # pair that has not fully arrived. Hold it for the pairing window so
-        # ingest can join them, rather than publishing two half-products.
-        if draft.last_message_at > pair_deadline and _is_half_complete(draft):
-            continue
+            # Still missing a half — probably one of a photo/description pair
+            # that has not fully arrived. Hold it for the pairing window so
+            # ingest can join them, rather than publishing two half-products.
+            if draft.last_message_at > pair_deadline and _is_half_complete(draft):
+                continue
 
         claimed = ProductDraft.objects.filter(
             pk=draft.pk, status__in=ProductDraft.CLAIMABLE_STATUSES

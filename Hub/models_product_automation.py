@@ -170,6 +170,15 @@ class ProductDraft(models.Model):
         default=timezone.now,
         help_text="Bumped as album parts arrive; parsing waits for this to settle",
     )
+    intake_closed = models.BooleanField(
+        default=False,
+        help_text=(
+            "Set once the description has arrived for photos already staged. "
+            "Suppliers send photos, then the description, then the next "
+            "product — so a closed draft is a finished item and the next "
+            "message starts a new one."
+        ),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     reviewed_at = models.DateTimeField(null=True, blank=True)

@@ -70,16 +70,23 @@ def _find_open_draft(incoming: IncomingProduct) -> ProductDraft | None:
     product turns one item into fifteen, and multiplies the AI cost by fifteen
     with it.
 
-    So messages from the same chat are grouped by time instead:
+    So messages from the same chat are grouped by time instead, following the
+    order suppliers actually send in — **photos, then the description, then the
+    next product**:
 
-    * media (photos/videos) joins whatever draft is currently open;
-    * a description joins a draft that has none yet;
-    * **text is the separator** — when the open draft already has a description
-      and this message brings another, it is a different product and starts a
-      new draft.
+    * photos join whatever draft is still open;
+    * the description joins the draft those photos are in, and *closes* it;
+    * anything after that — another photo or another description — belongs to
+      the next product and starts a new draft.
 
-    Only the most recent open draft is considered, which is what makes the
-    separator rule work.
+    The description is the terminator, not merely a separator: a draft whose
+    description followed its photos is a finished product, so the next photo can
+    never be mistaken for one more angle of it. That is recorded on the draft as
+    ``intake_closed`` when it happens, because the order matters and cannot be
+    re-derived later — a supplier who sends the description *first* is still
+    mid-product, and their photos must keep joining.
+
+    Only the most recent open draft is considered, which is what makes it work.
     """
     if incoming.group_id:
         return None
@@ -92,6 +99,7 @@ def _find_open_draft(incoming: IncomingProduct) -> ProductDraft | None:
             source=incoming.source,
             source_chat_id=str(incoming.chat_id or ''),
             status__in=ProductDraft.CLAIMABLE_STATUSES,
+            intake_closed=False,
             last_message_at__gte=now - timedelta(seconds=group_window_seconds()),
         )
         .order_by('-last_message_at')
@@ -106,12 +114,10 @@ def _find_open_draft(incoming: IncomingProduct) -> ProductDraft | None:
     if has_text and candidate_has_text:
         return None
 
-    # Media for a draft that already has its description is ambiguous: more
-    # photos of the same item, or the first photo of the next one. A rapid
-    # burst is still the same item; a pause means the supplier moved on.
+    # Description first, photos after — the reverse order. Still one product
+    # while the photos keep coming, but only for as long as they keep coming.
     if not has_text and candidate_has_text:
-        gap = (now - candidate.last_message_at).total_seconds()
-        if gap > burst_seconds():
+        if (now - candidate.last_message_at).total_seconds() > burst_seconds():
             return None
 
     return candidate
@@ -201,28 +207,43 @@ def ingest(incoming: IncomingProduct) -> ProductDraft | None:
         stored = _attach_media(draft, incoming)
         clips = _attach_videos(draft, incoming)
         draft.last_message_at = timezone.now()
+
+        # Remaining album parts still merge on ``source_group_id``; closing only
+        # stops *other* messages from landing here once the caption has arrived.
+        draft.intake_closed = bool(draft.raw_text.strip()) and draft.images.exists()
+
         draft.log_event(
             'ingest', f'Album part merged (+{stored} image(s), +{clips} video(s)).', save=False
         )
-        draft.save(update_fields=['raw_text', 'last_message_at', 'events', 'updated_at'])
+        draft.save(
+            update_fields=['raw_text', 'last_message_at', 'intake_closed', 'events', 'updated_at']
+        )
         logger.info('[automation] Merged album part into draft %s (+%d images)', draft.pk, stored)
         return draft
 
     # --- Consecutive messages for one product: join them -------------------
     partner = _find_open_draft(incoming)
     if partner is not None:
+        # The description arriving for photos already staged completes the
+        # product — nothing sent after this belongs to it.
+        closing = bool(incoming.text.strip()) and partner.images.exists()
+
         if incoming.text.strip() and not partner.raw_text.strip():
             partner.raw_text = incoming.text
         images = _attach_media(partner, incoming)
         clips = _attach_videos(partner, incoming)
         partner.last_message_at = timezone.now()
+        partner.intake_closed = closing
         partner.log_event(
             'ingest',
             f'Grouped with the previous message (+{images} image(s), +{clips} video(s)'
-            f'{", text added" if incoming.text.strip() else ""}).',
+            f'{", description added — product complete" if closing else ""}'
+            f'{", text added" if incoming.text.strip() and not closing else ""}).',
             save=False,
         )
-        partner.save(update_fields=['raw_text', 'last_message_at', 'events', 'updated_at'])
+        partner.save(
+            update_fields=['raw_text', 'last_message_at', 'intake_closed', 'events', 'updated_at']
+        )
         logger.info('[automation] Grouped message into draft %s', partner.pk)
         return partner
 
@@ -251,12 +272,16 @@ def ingest(incoming: IncomingProduct) -> ProductDraft | None:
 
     stored = _attach_media(draft, incoming)
     clips = _attach_videos(draft, incoming)
+
+    # A photo captioned with its description is a whole product in one message.
+    draft.intake_closed = bool(incoming.text.strip()) and stored > 0 and not incoming.group_id
+
     draft.log_event(
         'ingest',
         f'Received from {incoming.source} with {stored} image(s) and {clips} video(s).',
         save=False,
     )
-    draft.save(update_fields=['events', 'updated_at'])
+    draft.save(update_fields=['intake_closed', 'events', 'updated_at'])
 
     logger.info('[automation] Created draft %s from %s (%d images)', draft.pk, incoming.source, stored)
     return draft

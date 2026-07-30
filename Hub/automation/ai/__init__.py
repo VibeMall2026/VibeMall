@@ -59,6 +59,11 @@ PROVIDER_CLAUDE = 'claude'
 PROVIDER_GEMINI = 'gemini'
 PROVIDER_OLLAMA = 'ollama'
 
+#: Values that switch AI off deliberately, rather than for want of a key.
+#: The pipeline then runs purely on the rule-based extractor — which is also
+#: what the test suite wants, so a test run can never call a live model.
+PROVIDER_OFF = {'none', 'off', 'disabled', 'rules'}
+
 
 def _configured_provider() -> str:
     return (getattr(settings, 'AUTOMATION_AI_PROVIDER', 'auto') or 'auto').strip().lower()
@@ -68,6 +73,8 @@ def active_provider() -> str:
     """Which provider will actually be used, or ``''`` if none can be."""
     choice = _configured_provider()
 
+    if choice in PROVIDER_OFF:
+        return ''
     if choice == PROVIDER_OLLAMA:
         return PROVIDER_OLLAMA if ollama_configured() else ''
     if choice == PROVIDER_CLAUDE:
@@ -112,6 +119,11 @@ def get_client(**kwargs: Any):
             raise AIUnavailable(str(exc)) from exc
 
     choice = _configured_provider()
+    if choice in PROVIDER_OFF:
+        raise AIUnavailable(
+            f'AI is switched off (AUTOMATION_AI_PROVIDER={choice}). Drafts are '
+            'extracted by the rule-based parser only.'
+        )
     if choice == PROVIDER_OLLAMA:
         raise AIUnavailable(
             f'AUTOMATION_AI_PROVIDER=ollama but no server answered at '
