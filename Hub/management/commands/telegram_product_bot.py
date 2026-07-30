@@ -64,6 +64,10 @@ class Command(BaseCommand):
         signal.signal(signal.SIGINT, stop)
         signal.signal(signal.SIGTERM, stop)
 
+        self.stdout.write('Waiting for products. Send one to the bot with the description as its caption.')
+        self.stdout.write('(The bot never replies in chat - watch this window and the admin queue.)')
+        self.stdout.flush()
+
         total = 0
         while running:
             try:
@@ -74,8 +78,21 @@ class Command(BaseCommand):
                         self.stdout.write(
                             console_safe(f'  -> draft #{draft.pk}  {draft.display_name[:60]}')
                         )
+                    else:
+                        self.stdout.write(
+                            console_safe(f'  .. ignored duplicate delivery of {incoming.message_id}')
+                        )
+
+                # Explain anything the source dropped, so a silent queue is
+                # never a mystery.
+                for reason in source.skipped:
+                    self.stdout.write(self.style.WARNING(console_safe(f'  .. skipped: {reason}')))
+
+                self.stdout.flush()
             except Exception:
                 logger.exception('[telegram] Poll cycle failed; continuing')
+                self.stdout.write(self.style.ERROR('  !! poll failed; retrying in 5s (see logs)'))
+                self.stdout.flush()
                 time.sleep(5)
 
             if options['once']:

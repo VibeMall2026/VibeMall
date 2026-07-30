@@ -90,6 +90,9 @@ class TelegramBotSource(ProductSource):
         )
         self.session = session or requests.Session()
         self._offset = self._load_offset()
+        #: Reasons updates were discarded during the last poll. Surfaced by the
+        #: management command so "nothing arrived" is never a silent outcome.
+        self.skipped: list[str] = []
 
     # -- Offset persistence -------------------------------------------------
 
@@ -206,7 +209,9 @@ class TelegramBotSource(ProductSource):
 
         chat_id = str((message.get('chat') or {}).get('id', ''))
         if self.allowed_chats and chat_id not in self.allowed_chats:
-            logger.debug('[telegram] Ignoring message from unlisted chat %s', chat_id)
+            self.skipped.append(
+                f'chat {chat_id} is not in TELEGRAM_ALLOWED_CHAT_IDS - add it to .env to accept it'
+            )
             return None
 
         text = message.get('text') or message.get('caption') or ''
@@ -214,7 +219,15 @@ class TelegramBotSource(ProductSource):
 
         # "/start", "/help" and friends are chat plumbing, not products.
         if not media and BOT_COMMAND.match(text.strip()):
-            logger.debug('[telegram] Ignoring bot command %r', text.strip())
+            self.skipped.append(f'bot command {text.strip()!r} (not a product)')
+            return None
+
+        if not text.strip() and not media:
+            had_photo = bool(message.get('photo') or message.get('document'))
+            self.skipped.append(
+                'photo could not be downloaded from Telegram' if had_photo
+                else 'message had no text and no image'
+            )
             return None
 
         incoming = IncomingProduct(
@@ -239,6 +252,7 @@ class TelegramBotSource(ProductSource):
 
     def poll(self) -> Iterable[IncomingProduct]:
         """One long-poll cycle. Never raises on transient failure."""
+        self.skipped = []
         try:
             updates = self._api(
                 'getUpdates',
