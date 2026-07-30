@@ -304,6 +304,38 @@
         </div>
       </div>
 
+      <div class="card mb-4">
+        <div class="card-header"><h6 class="mb-0">Returns</h6></div>
+        <div class="card-body">
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" role="switch" value="1"
+                   id="is_returnable" name="is_returnable"
+                   {% if record.is_returnable|default_if_none:True %}checked{% endif %}>
+            <label class="form-check-label" for="is_returnable">
+              <strong>Return available</strong>
+              <small class="d-block text-muted">
+                Turning this off also removes Cash on Delivery for this product,
+                matching how the rest of the store treats non-returnable items.
+              </small>
+            </label>
+          </div>
+
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="return_days">Return window (days)</label>
+              <input type="number" min="0" max="90" class="form-control" id="return_days"
+                     name="return_days" value="{{ record.return_days|default:7 }}">
+            </div>
+            <div class="col-md-8 mb-3">
+              <label class="form-label" for="return_policy">Return policy note <small class="text-muted">(optional)</small></label>
+              <input type="text" class="form-control" id="return_policy" name="return_policy"
+                     value="{{ record.return_policy|default:'' }}"
+                     placeholder="e.g. Return accepted only if the tag is intact">
+            </div>
+          </div>
+        </div>
+      </div>
+
       {% if record.highlights %}
         <div class="card mb-4">
           <div class="card-header"><h6 class="mb-0">Highlights</h6></div>

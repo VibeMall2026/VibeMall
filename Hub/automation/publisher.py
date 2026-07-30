@@ -46,7 +46,6 @@ from typing import Any
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils import timezone
-from django.utils.html import escape
 from django.utils.text import slugify
 
 from .ai.schema import EXTENDED_ATTRIBUTE_FIELDS
@@ -126,53 +125,60 @@ def _label(field: str) -> str:
     return field.replace('_', ' ').title()
 
 
-def build_specification_html(record: dict[str, Any]) -> str:
-    """
-    Render extracted attributes that have no Product column as an HTML block.
-
-    Only tags on the sanitizer's allow-list are used, so this survives
-    ``Product.save()`` intact.
-    """
-    rows = [
-        (_label(field), str(record.get(field) or '').strip())
-        for field in EXTENDED_ATTRIBUTE_FIELDS
-    ]
-    rows = [(label, value) for label, value in rows if value]
-    if not rows:
-        return ''
-
-    items = ''.join(
-        f'<li><strong>{escape(label)}:</strong> {escape(value)}</li>' for label, value in rows
-    )
-    return f'<h3>Product Specifications</h3><ul>{items}</ul>'
-
-
-def build_highlights_html(record: dict[str, Any]) -> str:
-    highlights = [str(h).strip() for h in (record.get('highlights') or []) if str(h).strip()]
-    if not highlights:
-        return ''
-    items = ''.join(f'<li>{escape(h)}</li>' for h in highlights[:8])
-    return f'<h3>Key Highlights</h3><ul>{items}</ul>'
-
-
 def build_description(record: dict[str, Any]) -> str:
-    """Long description + highlights + specification table, as safe HTML."""
+    """
+    Build the product description as **plain text**.
+
+    The storefront renders it with ``{{ product.description|linebreaks }}``,
+    which escapes HTML — so markup here would be shown to shoppers as literal
+    ``<p>`` and ``<li>`` tags. Plain text with blank lines is what that filter
+    expects, and it matches what the manual Add Product page produces.
+
+    The specification list is deliberately *not* repeated here: those
+    attributes go into ``care_info``, which the product page already renders in
+    its own panel. Duplicating them would show every spec twice.
+    """
+    parts: list[str] = []
+
     body = str(record.get('description') or '').strip()
-    blocks = [f'<p>{escape(body)}</p>' if body else '']
-    blocks.append(build_highlights_html(record))
-    blocks.append(build_specification_html(record))
-    return ''.join(block for block in blocks if block)
+    if body:
+        parts.append(body)
+
+    highlights = [str(h).strip() for h in (record.get('highlights') or []) if str(h).strip()]
+    if highlights:
+        bullets = '\n'.join(f'• {h}' for h in highlights[:8])
+        parts.append(f'Key Highlights\n{bullets}')
+
+    return '\n\n'.join(parts)
+
+
+#: Order attributes are presented in on the product page. Fabrics first, then
+#: construction, then care and pack details — how a shopper reads a spec sheet.
+CARE_INFO_FIELD_ORDER = [
+    'product_type', 'fabric', 'material',
+    'top_fabric', 'bottom_fabric', 'dupatta_fabric', 'inner_fabric',
+    'sleeve_type', 'neck_type', 'length', 'pattern', 'work_type',
+    'style', 'fit', 'stitch_type', 'occasion',
+    'wash_care', 'package_contents', 'country_of_origin',
+]
 
 
 def build_care_info(record: dict[str, Any]) -> str:
-    """Fabric composition plus wash-care, into the existing ``care_info`` field."""
-    parts: list[str] = []
-    for field in ('fabric', 'material', 'top_fabric', 'bottom_fabric', 'dupatta_fabric', 'inner_fabric'):
-        value = str(record.get(field) or '').strip()
-        if value:
-            parts.append(f'{_label(field)}: {value}')
+    """
+    Every extracted attribute, as the pipe-separated spec line the product
+    page already renders.
 
-    for field in ('wash_care', 'package_contents', 'country_of_origin'):
+    This is where attributes with no ``Product`` column live. It carries the
+    full set — including sleeve type, neck type, occasion and fit — because the
+    description is plain text and no longer repeats them.
+    """
+    seen: list[str] = []
+    parts: list[str] = []
+
+    for field in CARE_INFO_FIELD_ORDER + EXTENDED_ATTRIBUTE_FIELDS:
+        if field in seen:
+            continue
+        seen.append(field)
         value = str(record.get(field) or '').strip()
         if value:
             parts.append(f'{_label(field)}: {value}')
@@ -449,6 +455,11 @@ def publish(draft: Any, *, user: Any = None) -> Any:
         dimensions=(record.get('dimensions') or '')[:100],
         color=', '.join(record.get('colors') or [])[:100],
         size=', '.join(record.get('sizes') or [])[:100],
+        # Return policy chosen by the admin on the review screen. Product.save()
+        # drops COD automatically when a product is not returnable.
+        is_returnable=bool(record.get('is_returnable', True)),
+        return_days=int(record.get('return_days') or 7),
+        return_policy=str(record.get('return_policy') or '')[:2000],
         is_active=True,
         is_top_deal=False,
         rating=0,

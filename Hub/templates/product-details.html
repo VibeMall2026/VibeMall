@@ -580,7 +580,8 @@ body.vm-pd-original-card-image .pddx-reco__image img {
             <div class="pddx-benefits">
                 <article>
                     <strong>{% if product.stock > 0 %}In stock{% else %}Sold out{% endif %}</strong>
-                    <span>{% if product.stock > 0 %}{{ product.stock }} unit{% if product.stock != 1 %}s{% endif %} ready to dispatch{% else %}Join the waitlist below{% endif %}</span>
+                    {# Availability yes/no only - the exact quantity is commercial information and is not shown to shoppers. #}
+                    <span>{% if product.stock > 0 %}Ready to dispatch{% else %}Join the waitlist below{% endif %}</span>
                 </article>
                 <article>
                     <strong>Delivery</strong>
@@ -683,7 +684,7 @@ body.vm-pd-original-card-image .pddx-reco__image img {
             <div class="pddx-spec-grid">
                 <div><span>Category</span><strong>{{ product.get_category_display|default:"General" }}</strong></div>
                 <div><span>Sub-category</span><strong>{{ product.sub_category|default:"Standard" }}</strong></div>
-                <div><span>Stock</span><strong>{% if product.stock > 0 %}{{ product.stock }} available{% else %}Unavailable{% endif %}</strong></div>
+                <div><span>Availability</span><strong>{% if product.stock > 0 %}In stock{% else %}Unavailable{% endif %}</strong></div>
                 {% if product.weight %}<div><span>Weight</span><strong>{{ product.weight }}</strong></div>{% endif %}
                 {% if product.dimensions %}<div><span>Dimensions</span><strong>{{ product.dimensions }}</strong></div>{% endif %}
                 {% if product.color %}<div><span>Colors</span><strong>{{ product.color }}</strong></div>{% endif %}

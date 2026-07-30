@@ -250,6 +250,15 @@ def _handle_review_post(request, draft: ProductDraft):
         if field in request.POST:
             raw = request.POST.get(field) or ''
             record[field] = [part.strip() for part in raw.split(',') if part.strip()]
+
+    # Return policy — an unchecked switch posts nothing, so absence means "off".
+    record['is_returnable'] = bool(request.POST.get('is_returnable'))
+    try:
+        record['return_days'] = max(min(int(request.POST.get('return_days') or 7), 90), 0)
+    except (TypeError, ValueError):
+        record['return_days'] = 7
+    record['return_policy'] = (request.POST.get('return_policy') or '').strip()[:2000]
+
     draft.parsed = record
     draft.save(update_fields=['category', 'sub_category', 'parsed', 'updated_at'])
 
