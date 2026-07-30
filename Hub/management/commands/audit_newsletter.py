@@ -27,6 +27,13 @@ SUSPECT_PREFIXES = (
     '51.', '54.37.', '54.38.', '5.135.', '5.196.', '178.32.', '217.182.',  # OVH
 )
 
+#: Distinct addresses one IP may sign up before it stops looking like a
+#: household. This is the rule that does the real work: a hand-maintained list
+#: of hosting ranges is always a step behind whoever rents the next one,
+#: whereas "one connection, forty different people's email addresses" is the
+#: shape of the abuse itself and needs no list to keep current.
+MAX_EMAILS_PER_IP = 3
+
 
 class Command(BaseCommand):
     help = 'Report or quarantine newsletter subscribers that were never genuine opt-ins.'
@@ -51,6 +58,11 @@ class Command(BaseCommand):
         total = rows.count()
         self.stdout.write(self.style.MIGRATE_HEADING(f'\n{total} subscriber(s) under review\n'))
 
+        # How many different people each connection claims to be.
+        per_ip = Counter(
+            (row.ip_address or '').strip() for row in rows if (row.ip_address or '').strip()
+        )
+
         suspects = []
         for row in rows:
             reasons = []
@@ -59,7 +71,9 @@ class Command(BaseCommand):
             if not ip:
                 reasons.append('no IP recorded')
             elif ip.startswith(SUSPECT_PREFIXES):
-                reasons.append(f'datacenter IP {ip}')
+                reasons.append('datacenter IP')
+            elif per_ip[ip] > MAX_EMAILS_PER_IP:
+                reasons.append(f'{per_ip[ip]} addresses from one IP')
 
             if not (row.user_agent or '').strip():
                 reasons.append('no user agent')
@@ -70,11 +84,13 @@ class Command(BaseCommand):
         self.stdout.write(f'  suspect : {len(suspects)}')
         self.stdout.write(f'  genuine : {total - len(suspects)}')
 
-        counts = Counter(reason for _, reasons in suspects for reason in reasons)
+        def label(reason: str) -> str:
+            return 'many addresses from one IP' if 'from one IP' in reason else reason
+
+        counts = Counter(label(reason) for _, reasons in suspects for reason in reasons)
         self.stdout.write('\n  why:')
         for reason, n in counts.most_common():
-            label = reason if not reason.startswith('datacenter IP') else 'datacenter IP'
-            self.stdout.write(f'    {n:5}  {label}')
+            self.stdout.write(f'    {n:5}  {reason}')
 
         self.stdout.write('\n  examples:')
         for row, reasons in suspects[:8]:

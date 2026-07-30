@@ -108,6 +108,35 @@ class MailBombingTests(TestCase):
 
 
 class AuditCommandTests(TestCase):
+    def test_many_addresses_from_one_ip_are_flagged(self):
+        from io import StringIO
+
+        from django.core.management import call_command
+
+        # A residential IP, but claiming to be six different people.
+        for index in range(6):
+            NewsletterSubscription.objects.create(
+                email=f'person{index}@example.com', ip_address='49.36.99.1',
+                user_agent='Mozilla', is_active=True,
+            )
+        # A household: two people sharing one connection.
+        for index in range(2):
+            NewsletterSubscription.objects.create(
+                email=f'family{index}@example.com', ip_address='49.36.99.2',
+                user_agent='Mozilla', is_active=True,
+            )
+
+        call_command('audit_newsletter', '--deactivate', stdout=StringIO())
+
+        self.assertEqual(
+            NewsletterSubscription.objects.filter(ip_address='49.36.99.1', is_active=True).count(),
+            0, 'six people behind one IP is a list being stuffed, not a household',
+        )
+        self.assertEqual(
+            NewsletterSubscription.objects.filter(ip_address='49.36.99.2', is_active=True).count(),
+            2, 'a shared connection must not be punished',
+        )
+
     def test_it_reports_without_changing_anything(self):
         from io import StringIO
 
