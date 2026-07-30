@@ -1411,9 +1411,21 @@ function initProductColorImageSync() {
         applyFilter('.vm-pd-m-thumb');
     }
 
-    function applyColorSelection(colorValue, preferredSrc) {
+    function applyColorSelection(colorValue, preferredSrc, keepCurrentImage) {
         // 0. Filter thumbnails — show only matching color thumbs
         filterThumbsByColor(colorValue);
+
+        // On first paint the page must open on the product's own main image.
+        // The colour still needs applying — the swatch, the thumbnail filter
+        // and the description image all depend on it — but swapping the stage
+        // here landed the viewer on whichever gallery photo happened to match
+        // the colour first, so the hero was never what you saw.
+        if (keepCurrentImage) {
+            syncDesktopColorSelection(colorValue);
+            syncMobileColorSelection(colorValue);
+            setDescriptionImageByColor(colorValue);
+            return;
+        }
 
         // 1. Prefer the exact thumb the user clicked (prevents wrong image swapping),
         //    otherwise try exact match from hidden variant data.
@@ -1464,15 +1476,17 @@ function initProductColorImageSync() {
     const initiallySelectedColor =
         desktopColorRoot && desktopColorRoot.querySelector('.pddx-swatch.is-active')
         || mobileColorRoot && mobileColorRoot.querySelector('.vm-pd-m-swatch-btn.is-active');
+    // Both initial calls keep the main image: this runs on page load, not in
+    // response to anyone choosing a colour.
     if (initiallySelectedColor) {
-        applyColorSelection(initiallySelectedColor.getAttribute('data-value') || '');
+        applyColorSelection(initiallySelectedColor.getAttribute('data-value') || '', null, true);
     } else {
         // No swatch selected yet — apply filter for first available color
         var firstSwatch =
             desktopColorRoot && desktopColorRoot.querySelector('.pddx-swatch')
             || mobileColorRoot && mobileColorRoot.querySelector('.vm-pd-m-swatch-btn');
         if (firstSwatch) {
-            applyColorSelection(firstSwatch.getAttribute('data-value') || '');
+            applyColorSelection(firstSwatch.getAttribute('data-value') || '', null, true);
         }
     }
 }
