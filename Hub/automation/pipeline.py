@@ -27,7 +27,7 @@ from typing import Any
 from django.conf import settings
 from django.utils import timezone
 
-from .ai import client as ai_client
+from .ai import AIUnavailable, active_provider, get_client, is_configured
 from .ai.extraction import extract, suggested_slug
 from .ai.vision import analyse_images, apply_to_images
 from .duplicates import find_duplicate
@@ -170,15 +170,17 @@ def process_draft(draft: Any) -> Any:
 
     # --- 1. AI client (optional) -------------------------------------------
     client = None
-    if ai_client.is_configured():
+    if is_configured():
         try:
-            client = ai_client.get_client()
-        except ai_client.AIUnavailable as exc:
+            client = get_client()
+            draft.log_event('pipeline', f'Using AI provider: {active_provider()}.', save=False)
+        except AIUnavailable as exc:
             draft.log_event('pipeline', f'AI disabled: {exc}', level='warning', save=False)
     else:
         draft.log_event(
             'pipeline',
-            'ANTHROPIC_API_KEY not configured — using rule-based extraction only.',
+            'No AI key configured (GEMINI_API_KEY or ANTHROPIC_API_KEY) — '
+            'using rule-based extraction only.',
             level='warning',
             save=False,
         )

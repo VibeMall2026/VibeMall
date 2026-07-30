@@ -152,7 +152,46 @@ would remove more than 60% of an image's height is refused.
 
 ---
 
-## 5. Running without an Anthropic key
+## 4c. Choosing an AI provider
+
+Two providers are supported. The pipeline calls a shared interface, so
+switching is a `.env` change — no code, no re-processing.
+
+| | Google Gemini | Anthropic Claude |
+|---|---|---|
+| Cost | **Free tier**, no credit card | Paid |
+| Sign-up | Any Google account | Anthropic Console account |
+| Key from | https://aistudio.google.com/apikey | https://console.anthropic.com |
+| Vision | Yes | Yes |
+| Extra install | None (uses `requests`) | `pip install anthropic` |
+| Quality | Good | Best |
+
+```ini
+# Free — recommended if you have no Anthropic account
+GEMINI_API_KEY=your-key-here
+
+# Or paid
+ANTHROPIC_API_KEY=sk-ant-...
+
+# 'auto' (default) picks whichever key exists, preferring Claude.
+# Pin one with 'gemini' or 'claude'.
+AUTOMATION_AI_PROVIDER=auto
+```
+
+`python manage.py telegram_doctor` reports which provider is active, and for
+Gemini also checks that the configured model is available to your key.
+
+Free-tier quotas are per-minute, so the Gemini client backs off and retries
+rather than failing a draft. If you hit the daily cap, drafts simply retry
+later — nothing is lost.
+
+**Adding a third provider** means one class with `complete_json(system,
+content, schema)`, `.model` and `.total_tokens`, plus a branch in
+`Hub/automation/ai/__init__.py`.
+
+---
+
+## 5. Running without any AI key
 
 The pipeline still works. It falls back to the rule-based extractor, which
 reliably handles prices (`₹799`, `1299/-`, `MRP Rs. 2,499`), sizes

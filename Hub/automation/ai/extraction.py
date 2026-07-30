@@ -31,7 +31,7 @@ from ..parsing.rules import (
     strip_price_mentions,
     supplier_price_is_mrp,
 )
-from .client import AIUnavailable, ClaudeClient
+from .client import AIUnavailable
 from .prompts import EXTRACTION_SYSTEM, build_extraction_content
 from .schema import EXTENDED_ATTRIBUTE_FIELDS, build_extraction_schema
 
@@ -246,7 +246,7 @@ def _merge(ai: dict[str, Any], rules: RuleExtraction) -> dict[str, Any]:
 def extract(
     *,
     raw_text: str,
-    client: ClaudeClient | None,
+    client: Any | None,
     image_findings: dict[str, Any] | None = None,
     source_label: str = 'Telegram',
 ) -> tuple[dict[str, Any], bool]:

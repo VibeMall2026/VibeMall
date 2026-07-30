@@ -323,8 +323,17 @@ TELEGRAM_ALLOWED_CHAT_IDS = [
 # Where the Bot API update offset is persisted between restarts.
 TELEGRAM_OFFSET_FILE = os.getenv('TELEGRAM_OFFSET_FILE', str(BASE_DIR / 'logs' / 'telegram_offset.json'))
 
+# Which AI provider enriches drafts: 'auto', 'claude' or 'gemini'.
+# 'auto' uses whichever key is present, preferring Claude when both are.
+AUTOMATION_AI_PROVIDER = os.getenv('AUTOMATION_AI_PROVIDER', 'auto').strip().lower()
+
+# Google Gemini — has a FREE tier with vision and needs no credit card.
+# Create a key at https://aistudio.google.com/apikey
+GEMINI_API_KEY = (os.getenv('GEMINI_API_KEY', '') or os.getenv('GOOGLE_API_KEY', '')).strip()
+AUTOMATION_GEMINI_MODEL = os.getenv('AUTOMATION_GEMINI_MODEL', 'gemini-2.0-flash').strip()
+
 # Anthropic credentials for extraction, copywriting and image analysis.
-# Without a key the pipeline still runs, using rule-based extraction only.
+# Without any key the pipeline still runs, using rule-based extraction only.
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', '').strip()
 AUTOMATION_AI_MODEL = os.getenv('AUTOMATION_AI_MODEL', 'claude-opus-5').strip()
 AUTOMATION_AI_MAX_TOKENS = _env_int('AUTOMATION_AI_MAX_TOKENS', 8000)

@@ -23,7 +23,7 @@ from typing import Any
 
 from django.conf import settings
 
-from .client import AIUnavailable, ClaudeClient
+from .client import AIUnavailable
 from .prompts import VISION_SYSTEM
 from .schema import build_image_schema
 
@@ -58,7 +58,7 @@ def _encode(path_or_file: Any) -> tuple[str, str] | None:
         return None
 
 
-def analyse_images(client: ClaudeClient, images: list[Any], *, context: str = '') -> dict[str, Any]:
+def analyse_images(client: Any, images: list[Any], *, context: str = '') -> dict[str, Any]:
     """
     Classify staged images.
 

@@ -170,24 +170,41 @@ class Command(BaseCommand):
 
         # --- 6. AI ---------------------------------------------------------
         self.section('6. AI enrichment')
-        try:
-            import anthropic  # noqa: F401
-            self.ok('anthropic package installed')
-            package_ok = True
-        except ImportError:
-            package_ok = False
-            self.warn('anthropic package not installed.', 'Fix:  pip install anthropic')
+        from Hub.automation.ai import provider_status
 
-        if (getattr(settings, 'ANTHROPIC_API_KEY', '') or '').strip():
-            self.ok(f"ANTHROPIC_API_KEY set (model: {getattr(settings, 'AUTOMATION_AI_MODEL', '')})")
+        status = provider_status()
+
+        if status['active'] == 'gemini':
+            self.ok(f"Provider: Google Gemini (model: {status['model']}) - FREE tier")
+            from Hub.automation.ai.gemini import list_models
+
+            available = list_models()
+            if available and status['model'] not in available:
+                self.warn(
+                    f"Model '{status['model']}' is not available to this key.",
+                    'Set AUTOMATION_GEMINI_MODEL in .env to one of: ' + ', '.join(available[:8]),
+                )
+            elif available:
+                self.ok(f'Model reachable ({len(available)} models on this key)')
+        elif status['active'] == 'claude':
+            self.ok(f"Provider: Anthropic Claude (model: {status['model']})")
+            try:
+                import anthropic  # noqa: F401
+                self.ok('anthropic package installed')
+            except ImportError:
+                self.warn('anthropic package not installed.', 'Fix:  pip install anthropic')
         else:
             self.warn(
-                'ANTHROPIC_API_KEY not set.',
-                'The pipeline still runs using rule-based extraction only — you lose\n'
-                'generated descriptions, SEO copy, category suggestions and image\n'
-                'role/colour detection. Add the key to .env to enable them.',
+                'No AI key set - running on rule-based extraction only.',
+                'You lose generated names, descriptions, SEO copy, category\n'
+                'suggestions and image role/colour detection.\n\n'
+                'FREE option - Google Gemini (no credit card needed):\n'
+                '  1. Open https://aistudio.google.com/apikey\n'
+                '  2. Sign in with a Google account, click Create API key\n'
+                '  3. Add to .env:   GEMINI_API_KEY=your-key-here\n'
+                '  4. Restart the worker\n\n'
+                'Paid option - Anthropic Claude: set ANTHROPIC_API_KEY instead.',
             )
-            package_ok = package_ok  # keep flake happy; not a failure
 
         # --- 7. Queue state ------------------------------------------------
         self.section('7. Draft queue')
