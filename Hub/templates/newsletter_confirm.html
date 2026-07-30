@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Confirm your subscription - VibeMall{% endblock %}
+
+{% block content %}
+<section class="container" style="max-width:560px;margin:80px auto;padding:0 20px;text-align:center;">
+  <h1 style="font-size:1.6rem;margin-bottom:12px;">Confirm your subscription</h1>
+
+  <p style="color:#555;line-height:1.6;">
+    Click the button below to start receiving VibeMall updates at
+    <strong>{{ email }}</strong>.
+  </p>
+
+  {% comment %}
+    The button is what actually subscribes. Opening this page does nothing on
+    its own, because corporate mail scanners fetch every link in an email
+    automatically -- that is how thousands of addresses nobody typed ended up
+    on the list. A scanner will not submit this form.
+  {% endcomment %}
+  <form method="post" style="margin-top:28px;">
+    {% csrf_token %}
+    <button type="submit"
+            style="background:#111;color:#fff;border:0;border-radius:8px;
+                   padding:14px 28px;font-size:1rem;cursor:pointer;">
+      Yes, subscribe me
+    </button>
+  </form>
+
+  <p style="color:#888;font-size:0.85rem;margin-top:24px;line-height:1.6;">
+    Did not sign up? Close this page and nothing happens — you will not be
+    added, and we will not email you again.
+  </p>
+</section>
+{% endblock %}

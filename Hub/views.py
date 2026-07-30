@@ -6764,16 +6764,30 @@ def subscribe_newsletter(request):
         messages.info(request, message)
         return redirect(redirect_to)
 
+    # One confirmation per address per day, whoever asks. The form is a way to
+    # make this shop email a stranger, and a bot working through a scraped list
+    # turns that into outbound spam sent from our own domain — which costs the
+    # deliverability of order confirmations, not just goodwill.
+    message = 'Thanks for subscribing. Please check your email to confirm your newsletter subscription.'
+    cooldown_key = f'newsletter:sent:{email}'
+    if cache.get(cooldown_key):
+        logger.info('[newsletter] Suppressed a repeat confirmation email to %s from %s', email, client_ip)
+        if is_ajax:
+            return JsonResponse({'success': True, 'status': 'pending_confirmation', 'message': message})
+        messages.success(request, message)
+        return redirect(redirect_to)
+    cache.set(cooldown_key, 1, 60 * 60 * 24)
+
     confirm_url = _build_newsletter_confirmation_url(request, email, source_page, client_ip, user_agent)
     from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@vibemall.com')
     subject = 'Confirm your VibeMall newsletter subscription'
     plain_message = (
         'Thanks for subscribing to VibeMall.\n\n'
-        'Please confirm your subscription by opening this link:\n'
+        'Open this link and press the confirm button to start receiving updates:\n'
         f'{confirm_url}\n\n'
-        'If you did not request this, you can ignore this email.'
+        'If you did not request this, ignore this email — opening the link\n'
+        'alone does not subscribe you, and we will not write again.'
     )
-    message = 'Thanks for subscribing. Please check your email to confirm your newsletter subscription.'
     try:
         send_mail(
             subject,
@@ -6792,9 +6806,18 @@ def subscribe_newsletter(request):
     return redirect(redirect_to)
 
 
-@require_http_methods(['GET'])
+@require_http_methods(['GET', 'POST'])
 def confirm_newsletter_subscription(request, token):
-    """Activate a newsletter subscriber after email confirmation."""
+    """
+    Activate a newsletter subscriber after email confirmation.
+
+    A GET only *shows* the confirmation button; the POST behind it is what
+    subscribes. Corporate mail filters and link scanners fetch every URL in an
+    incoming email to check it for malware, and they issue GETs — so while a
+    bare GET activated the subscription, double opt-in protected nothing. That
+    is how thousands of scraped addresses nobody typed ended up active, several
+    confirmed from datacenter IPs in a different country to the shop.
+    """
     try:
         payload = signing.loads(token, salt=NEWSLETTER_CONFIRMATION_SALT, max_age=60 * 60 * 24 * 7)
     except signing.BadSignature:
@@ -6809,6 +6832,9 @@ def confirm_newsletter_subscription(request, token):
     if not email:
         messages.error(request, 'This newsletter confirmation link is invalid.')
         return redirect('index')
+
+    if request.method == 'GET':
+        return render(request, 'newsletter_confirm.html', {'email': email, 'token': token})
 
     subscriber, created = NewsletterSubscription.objects.get_or_create(
         email=email,
