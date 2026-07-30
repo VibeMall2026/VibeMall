@@ -100,6 +100,24 @@ def _decimal(value: Any, default: Decimal | None = None) -> Decimal | None:
     return result if result > 0 else default
 
 
+def _ordered_colors(record: dict[str, Any], main_image: Any) -> list[str]:
+    """
+    The product's colours, with the hero image's colour first.
+
+    The storefront preselects the first colour and tags the main thumbnail with
+    it. If the hero were not that colour, the colour filter would hide the main
+    photo the moment the page loaded — so the order is not cosmetic.
+    """
+    colors = [str(c).strip() for c in (record.get('colors') or []) if str(c).strip()]
+    hero = str(getattr(main_image, 'color', '') or '').strip()
+
+    if not hero:
+        return colors
+
+    rest = [c for c in colors if c.lower() != hero.lower()]
+    return [hero] + rest
+
+
 def sku_prefix(sub_category: str) -> str:
     """
     Turn a sub-category into the letters that start its SKUs.
@@ -600,6 +618,8 @@ def publish(draft: Any, *, user: Any = None) -> Any:
     main_image = next((i for i in images if i.role == 'main'), None)
     description_image = next((i for i in images if i.role == 'description'), None)
 
+    colors = _ordered_colors(record, main_image)
+
     # --- Core product ------------------------------------------------------
     product = Product(
         name=name,
@@ -623,7 +643,7 @@ def publish(draft: Any, *, user: Any = None) -> Any:
         tags=build_tags(record),
         weight=(record.get('weight') or '')[:50],
         dimensions=(record.get('dimensions') or '')[:100],
-        color=', '.join(record.get('colors') or [])[:100],
+        color=', '.join(colors)[:100],
         size=', '.join(record.get('sizes') or [])[:100],
         # Return policy chosen by the admin on the review screen. Product.save()
         # drops COD automatically when a product is not returnable.

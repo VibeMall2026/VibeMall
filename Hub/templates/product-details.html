@@ -312,7 +312,7 @@ body.vm-pd-original-card-image .pddx-reco__image img {
                 {% endif %}
             </div>
             <div class="vm-pd-m-thumbs" role="tablist" aria-label="Product image thumbnails">
-                <button type="button" class="vm-pd-m-thumb is-active" data-image-src="{% if product.image and product.image.name %}{{ product.image.url }}{% else %}{% static 'assets/img/product/tp-1.jpg' %}{% endif %}" data-image-color="" aria-label="Main image">
+                <button type="button" class="vm-pd-m-thumb is-active" data-image-src="{% if product.image and product.image.name %}{{ product.image.url }}{% else %}{% static 'assets/img/product/tp-1.jpg' %}{% endif %}" data-image-color="{{ selected_color_label|default:'' }}" aria-label="Main image">
                     {% if product.image and product.image.name %}
                     <img src="{{ product.image.url }}" alt="{{ product.name }} thumbnail">
                     {% else %}
@@ -478,7 +478,8 @@ body.vm-pd-original-card-image .pddx-reco__image img {
 
     <div class="pddx-layout">
         <aside class="pddx-thumbs" aria-label="Product image thumbnails">
-            <button type="button" class="pddx-thumb is-active" data-image-src="{% if product.image and product.image.name %}{{ product.image.url }}{% else %}{% static 'assets/img/product/tp-1.jpg' %}{% endif %}" data-image-color="" aria-label="Main product image">
+            {% comment %}The hero belongs to the colour shown by default. Leaving it blank made the colour filter treat it as a generic image and hide it whenever the gallery carried colour tags, so the main photo vanished from products the automation had labelled.{% endcomment %}
+            <button type="button" class="pddx-thumb is-active" data-image-src="{% if product.image and product.image.name %}{{ product.image.url }}{% else %}{% static 'assets/img/product/tp-1.jpg' %}{% endif %}" data-image-color="{{ selected_color_label|default:'' }}" aria-label="Main product image">
                 {% if product.image and product.image.name %}
                 <img src="{{ product.image.url }}" alt="{{ product.name }} thumbnail">
                 {% else %}

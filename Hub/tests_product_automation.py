@@ -570,6 +570,43 @@ class PublishTests(TestCase):
         self.assertEqual(product.return_policy, 'Final sale')
         self.assertNotIn('COD', product.get_payment_methods_list())
 
+    def test_hero_colour_is_listed_first(self):
+        """
+        The storefront tags the main thumbnail with the product's first colour.
+        If the hero is not that colour the colour filter hides it on load — the
+        bug where a published product showed no main image at all.
+        """
+        draft = self._ready_draft(chat='-24')
+        draft.category = 'GENZ_TRENDS'
+        record = dict(draft.parsed)
+        record['colors'] = ['Red', 'Cream']
+        draft.parsed = record
+        draft.save()
+
+        main = draft.images.filter(role='main').first() or draft.images.first()
+        main.role = 'main'
+        main.color = 'Cream'
+        main.save(update_fields=['role', 'color'])
+
+        product = publish(draft, user=self.user)
+        self.assertTrue(
+            product.color.startswith('Cream'),
+            f"hero colour must lead the list, got {product.color!r}",
+        )
+        self.assertIn('Red', product.color, 'other colours are kept')
+
+    def test_colourless_hero_leaves_the_colour_order_alone(self):
+        draft = self._ready_draft(chat='-25')
+        draft.category = 'GENZ_TRENDS'
+        record = dict(draft.parsed)
+        record['colors'] = ['Red', 'Cream']
+        draft.parsed = record
+        draft.save()
+        draft.images.update(color='')
+
+        product = publish(draft, user=self.user)
+        self.assertEqual(product.color, 'Red, Cream')
+
     def test_duplicate_repost_is_flagged(self):
         draft = self._ready_draft(chat='-21')
         draft.category = 'GENZ_TRENDS'
