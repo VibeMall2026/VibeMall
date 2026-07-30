@@ -58,11 +58,16 @@ _SELLING_PRICE_PATTERNS = [
 
 # --- Fabric ------------------------------------------------------------------
 
+# Trailing \w* matters: suppliers write "Bottomwear Fabric: Georgette", and a
+# strict \bbottom\b never matches inside "Bottomwear".
 _FABRIC_COMPONENTS = {
-    'top_fabric': re.compile(r'\b(top|kurti|kurta|shirt|upper)\b', re.IGNORECASE),
-    'bottom_fabric': re.compile(r'\b(bottom|pant|palazzo|plazo|salwar|sharara|lower|skirt)\b', re.IGNORECASE),
-    'dupatta_fabric': re.compile(r'\b(dupatta|duppatta|stole|scarf)\b', re.IGNORECASE),
-    'inner_fabric': re.compile(r'\b(inner|lining|slip)\b', re.IGNORECASE),
+    'top_fabric': re.compile(r'\b(top|topwear|kurti|kurta|shirt|upper|blouse)\w*\b', re.IGNORECASE),
+    'bottom_fabric': re.compile(
+        r'\b(bottom|bottomwear|pant|palazzo|plazo|salwar|sharara|lehenga|lower|skirt)\w*\b',
+        re.IGNORECASE,
+    ),
+    'dupatta_fabric': re.compile(r'\b(dupatta|duppatta|stole|scarf)\w*\b', re.IGNORECASE),
+    'inner_fabric': re.compile(r'\b(inner|lining|slip)\w*\b', re.IGNORECASE),
 }
 
 #: Common fabric names. Used to recognise a bare word on its own line as a fabric.
@@ -241,13 +246,17 @@ def _extract_sizes(text: str) -> tuple[list[str], dict[str, str]]:
             if match.group(2):
                 measurements[size] = match.group(2)
 
-    # Bare numeric sizes only count on a line that says "size" — otherwise
-    # "40 pieces" or a percentage would be swept up as a size.
-    for line in text.splitlines():
-        if not _SIZE_LINE_HINT.search(line):
-            continue
-        for match in _NUMERIC_SIZE.finditer(line):
-            add(match.group(1))
+    # Bare numeric sizes only count on a line that says "size", and only when
+    # no letter sizes were found anywhere. A catalogue that already lists
+    # "S M L XL" and then a chest chart ("34 36 38 40") is giving
+    # measurements, not additional sizes — collecting both produced a
+    # 16-entry size list on real supplier text.
+    if not sizes:
+        for line in text.splitlines():
+            if not _SIZE_LINE_HINT.search(line):
+                continue
+            for match in _NUMERIC_SIZE.finditer(line):
+                add(match.group(1))
 
     order = {s: i for i, s in enumerate(['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', '4XL', '5XL', 'Free Size'])}
     sizes.sort(key=lambda s: order.get(s, 99))
@@ -334,10 +343,19 @@ _HEADER_LINE = re.compile(
 )
 
 
+#: Label prefixes suppliers put in front of the actual product name, e.g.
+#: "Catalog Name:*Georgette Women Kurti*".
+_NAME_LABEL = re.compile(
+    r'^\s*(catalog(ue)?\s*name|product\s*name|item\s*name|name|title)\s*[:\-]\s*',
+    re.IGNORECASE,
+)
+
+
 def _guess_name(text: str) -> str:
-    """First substantive line, minus any price noise and section headers."""
+    """First substantive line, minus label prefixes, price noise and headers."""
     for line in text.splitlines():
-        candidate = line.strip(' *_-•\t')
+        candidate = _NAME_LABEL.sub('', line)
+        candidate = candidate.strip(' *_-•\t')
         if len(candidate) < 3:
             continue
         if re.fullmatch(r'[\W\d\s]+', candidate):

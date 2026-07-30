@@ -20,6 +20,7 @@ Two properties matter here:
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -49,6 +50,49 @@ def _find_group_draft(incoming: IncomingProduct) -> ProductDraft | None:
         .order_by('created_at')
         .first()
     )
+
+
+def _find_pairable_draft(incoming: IncomingProduct) -> ProductDraft | None:
+    """
+    Find a recent draft from the same chat that this message completes.
+
+    Suppliers forward a catalogue as *two* messages: the photo, then the
+    description (often a forward from someone else). Neither carries a
+    ``media_group_id``, so album grouping cannot join them, and the naive
+    result is two useless half-products — one with an image and no text, one
+    with text and no image.
+
+    This pairs them: a text-only message merges into a recent image-only
+    draft, and vice versa. The complementary requirement is deliberate — two
+    photos, or two descriptions, are two different products and must not be
+    merged.
+    """
+    if incoming.group_id:
+        return None
+
+    has_text = bool(incoming.text.strip())
+    has_media = bool(incoming.media)
+    # Only a message supplying exactly one half can complete another draft.
+    if has_text == has_media:
+        return None
+
+    cutoff = timezone.now() - timedelta(seconds=pair_window_seconds())
+    candidates = ProductDraft.objects.filter(
+        source=incoming.source,
+        source_chat_id=str(incoming.chat_id or ''),
+        status__in=ProductDraft.CLAIMABLE_STATUSES,
+        last_message_at__gte=cutoff,
+    ).order_by('-last_message_at')[:5]
+
+    for draft in candidates:
+        draft_has_text = bool((draft.raw_text or '').strip())
+        draft_has_images = draft.images.exists()
+        if has_text and draft_has_images and not draft_has_text:
+            return draft
+        if has_media and draft_has_text and not draft_has_images:
+            return draft
+
+    return None
 
 
 def _attach_media(draft: ProductDraft, incoming: IncomingProduct) -> int:
@@ -108,6 +152,23 @@ def ingest(incoming: IncomingProduct) -> ProductDraft | None:
         logger.info('[automation] Merged album part into draft %s (+%d images)', draft.pk, stored)
         return draft
 
+    # --- Separate photo / description messages: join them ------------------
+    partner = _find_pairable_draft(incoming)
+    if partner is not None:
+        if incoming.text.strip() and not partner.raw_text.strip():
+            partner.raw_text = incoming.text
+        stored = _attach_media(partner, incoming)
+        partner.last_message_at = timezone.now()
+        partner.log_event(
+            'ingest',
+            f'Paired with a separate message (+{stored} image(s), '
+            f'{"text added" if incoming.text.strip() else "images added"}).',
+            save=False,
+        )
+        partner.save(update_fields=['raw_text', 'last_message_at', 'events', 'updated_at'])
+        logger.info('[automation] Paired message into draft %s', partner.pk)
+        return partner
+
     # --- New draft ---------------------------------------------------------
     try:
         with transaction.atomic():
@@ -142,3 +203,14 @@ def ingest(incoming: IncomingProduct) -> ProductDraft | None:
 def settle_seconds() -> int:
     """How long an album must be quiet before the worker treats it as complete."""
     return int(getattr(settings, 'AUTOMATION_ALBUM_SETTLE_SECONDS', 10))
+
+
+def pair_window_seconds() -> int:
+    """
+    How long to keep accepting a partner message for a half-complete draft.
+
+    Generous by design: forwarding a catalogue description after the photo
+    takes a supplier a little while, and a product split in two is far more
+    annoying than a draft that waits an extra minute.
+    """
+    return int(getattr(settings, 'AUTOMATION_PAIR_WINDOW_SECONDS', 180))

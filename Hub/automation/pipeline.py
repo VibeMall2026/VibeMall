@@ -32,7 +32,7 @@ from .ai.extraction import extract, suggested_slug
 from .ai.vision import analyse_images, apply_to_images
 from .duplicates import find_duplicate
 from .images import process_draft_images
-from .ingest import settle_seconds
+from .ingest import pair_window_seconds, settle_seconds
 
 logger = logging.getLogger(__name__)
 
@@ -83,19 +83,26 @@ def claim_next() -> Any | None:
     now = timezone.now()
     settled_before = now - timedelta(seconds=settle_seconds())
 
+    pair_deadline = now - timedelta(seconds=pair_window_seconds())
+
     candidates = (
         ProductDraft.objects.filter(
             status__in=ProductDraft.CLAIMABLE_STATUSES,
             last_message_at__lte=settled_before,
         )
         .filter(_due(now))
-        .order_by('created_at')
-        .values_list('pk', flat=True)[:20]
+        .order_by('created_at')[:20]
     )
 
-    for pk in list(candidates):
+    for draft in candidates:
+        # A draft missing either half is probably one of a photo/description
+        # pair that has not fully arrived. Hold it for the pairing window so
+        # ingest can join them, rather than publishing two half-products.
+        if draft.last_message_at > pair_deadline and _is_half_complete(draft):
+            continue
+
         claimed = ProductDraft.objects.filter(
-            pk=pk, status__in=ProductDraft.CLAIMABLE_STATUSES
+            pk=draft.pk, status__in=ProductDraft.CLAIMABLE_STATUSES
         ).update(
             status=ProductDraft.STATUS_PROCESSING,
             claimed_at=now,
@@ -103,9 +110,16 @@ def claim_next() -> Any | None:
             updated_at=now,
         )
         if claimed:
-            return ProductDraft.objects.get(pk=pk)
+            return ProductDraft.objects.get(pk=draft.pk)
 
     return None
+
+
+def _is_half_complete(draft: Any) -> bool:
+    """True when a draft has text but no images, or images but no text."""
+    has_text = bool((draft.raw_text or '').strip())
+    has_images = draft.images.exists()
+    return has_text != has_images
 
 
 def _due(now: Any) -> Any:
