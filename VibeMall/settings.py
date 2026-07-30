@@ -117,9 +117,13 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # Above ComingSoonModeMiddleware on purpose. Responses travel back up the
+    # list, so a middleware that short-circuits during its request phase is
+    # only seen by the ones above it — with this below, the coming-soon
+    # redirect went out with no X-Frame-Options at all.
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'Hub.middleware.ComingSoonModeMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'Hub.middleware.BlockedUserMiddleware',
     'Hub.middleware.ResellLinkMiddleware',
     'Hub.rate_limiter.check_rate_limit_middleware',
