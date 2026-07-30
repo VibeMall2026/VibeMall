@@ -29,13 +29,16 @@ from .schema import build_image_schema
 
 logger = logging.getLogger(__name__)
 
-#: Long-edge pixels for vision uploads. Well under Claude's high-resolution
-#: ceiling — catalogue classification does not need full resolution, and this
+#: Long-edge pixels for vision uploads. Well under the providers' resolution
+#: ceilings — catalogue classification does not need full resolution, and this
 #: keeps per-image token cost roughly 4x lower.
-VISION_MAX_EDGE = 1024
+VISION_MAX_EDGE = int(getattr(settings, 'AUTOMATION_VISION_MAX_EDGE', 768))
 
-#: Maximum images sent in one vision request.
-VISION_MAX_IMAGES = 14
+#: Maximum images sent in one vision request. Gemini's free tier caps
+#: *input tokens per minute*, and images are the expensive part — a large batch
+#: can exhaust the window in a single call, so the default is deliberately
+#: modest. Raise it on a paid key.
+VISION_MAX_IMAGES = int(getattr(settings, 'AUTOMATION_VISION_MAX_IMAGES', 8))
 
 
 def _encode(path_or_file: Any) -> tuple[str, str] | None:

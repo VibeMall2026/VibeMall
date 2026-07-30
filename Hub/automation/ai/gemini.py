@@ -33,8 +33,11 @@ logger = logging.getLogger(__name__)
 
 API_ROOT = 'https://generativelanguage.googleapis.com/v1beta'
 
-#: Free-tier default. Fast, has vision, and generous daily limits.
-DEFAULT_MODEL = 'gemini-2.0-flash'
+#: Free-tier default. `gemini-flash-latest` tracks the current Flash release
+#: and carries a workable free per-minute token quota; the pinned
+#: `gemini-2.0-flash` alias has a much smaller free input-token allowance that
+#: a single vision request can exhaust on its own.
+DEFAULT_MODEL = 'gemini-flash-latest'
 
 DEFAULT_MAX_TOKENS = 8192
 
@@ -211,8 +214,20 @@ class GeminiClient:
                         last_error = exc
                         logger.warning('[gemini] Bad response on attempt %d: %s', attempt, exc)
                 elif response.status_code == 429:
-                    last_error = RuntimeError('Rate limited (free-tier quota).')
-                    logger.warning('[gemini] Rate limited on attempt %d/%d', attempt, self.max_retries)
+                    # Google tells us exactly how long to wait; obeying it beats
+                    # a guessed backoff, which is what turns a transient
+                    # per-minute quota into a failed draft.
+                    delay = self._retry_delay(response)
+                    last_error = RuntimeError(
+                        f'Free-tier quota exceeded: {self._error_detail(response)}'
+                    )
+                    logger.warning(
+                        '[gemini] Rate limited on attempt %d/%d; waiting %ss',
+                        attempt, self.max_retries, delay,
+                    )
+                    if attempt < self.max_retries:
+                        time.sleep(delay)
+                        continue
                 elif response.status_code in (500, 503):
                     last_error = RuntimeError(f'Server error {response.status_code}.')
                     logger.warning('[gemini] Server error %s on attempt %d', response.status_code, attempt)
@@ -228,6 +243,20 @@ class GeminiClient:
         raise GeminiUnavailable(f'Gemini request failed after {self.max_retries} attempts: {last_error}')
 
     # -- Helpers ------------------------------------------------------------
+
+    @staticmethod
+    def _retry_delay(response: requests.Response, default: int = 20) -> int:
+        """Seconds to wait, taken from Google's ``RetryInfo`` when present."""
+        try:
+            for detail in response.json().get('error', {}).get('details', []):
+                if detail.get('@type', '').endswith('RetryInfo'):
+                    raw = str(detail.get('retryDelay', '')).rstrip('s')
+                    # A couple of seconds of headroom: the quota window is
+                    # per-minute and the boundary is not ours to measure.
+                    return min(max(int(float(raw)) + 2, 5), 90)
+        except (ValueError, TypeError, AttributeError):
+            pass
+        return default
 
     @staticmethod
     def _error_detail(response: requests.Response) -> str:

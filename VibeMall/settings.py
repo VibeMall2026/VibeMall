@@ -330,7 +330,12 @@ AUTOMATION_AI_PROVIDER = os.getenv('AUTOMATION_AI_PROVIDER', 'auto').strip().low
 # Google Gemini — has a FREE tier with vision and needs no credit card.
 # Create a key at https://aistudio.google.com/apikey
 GEMINI_API_KEY = (os.getenv('GEMINI_API_KEY', '') or os.getenv('GOOGLE_API_KEY', '')).strip()
-AUTOMATION_GEMINI_MODEL = os.getenv('AUTOMATION_GEMINI_MODEL', 'gemini-2.0-flash').strip()
+AUTOMATION_GEMINI_MODEL = os.getenv('AUTOMATION_GEMINI_MODEL', 'gemini-flash-latest').strip()
+
+# Vision cost controls. Gemini's free tier limits *input tokens per minute*,
+# and images dominate that budget, so keep batches small on a free key.
+AUTOMATION_VISION_MAX_IMAGES = _env_int('AUTOMATION_VISION_MAX_IMAGES', 8)
+AUTOMATION_VISION_MAX_EDGE = _env_int('AUTOMATION_VISION_MAX_EDGE', 768)
 
 # Anthropic credentials for extraction, copywriting and image analysis.
 # Without any key the pipeline still runs, using rule-based extraction only.
