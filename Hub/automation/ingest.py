@@ -33,11 +33,15 @@ from .sources.base import IncomingProduct
 
 logger = logging.getLogger(__name__)
 
-#: Hard ceiling on staged images per draft, so a runaway album cannot fill the disk.
-MAX_IMAGES_PER_DRAFT = 40
 
-#: Reels are heavy; a product rarely needs more than a handful.
-MAX_VIDEOS_PER_DRAFT = 5
+def max_images_per_draft() -> int:
+    """Ceiling on staged images, so a runaway album cannot fill the disk."""
+    return int(getattr(settings, 'AUTOMATION_MAX_IMAGES_PER_DRAFT', 40))
+
+
+def max_videos_per_draft() -> int:
+    """Reels are heavy; a product rarely needs more than a handful."""
+    return int(getattr(settings, 'AUTOMATION_MAX_VIDEOS_PER_DRAFT', 5))
 
 
 def _find_group_draft(incoming: IncomingProduct) -> ProductDraft | None:
@@ -121,7 +125,7 @@ def _attach_videos(draft: ProductDraft, incoming: IncomingProduct) -> int:
     for media in incoming.media:
         if not media.is_video:
             continue
-        if existing + stored >= MAX_VIDEOS_PER_DRAFT:
+        if existing + stored >= max_videos_per_draft():
             break
         if media.source_file_id and draft.videos.filter(source_file_id=media.source_file_id).exists():
             continue
@@ -150,10 +154,10 @@ def _attach_media(draft: ProductDraft, incoming: IncomingProduct) -> int:
     for media in incoming.media:
         if media.is_video:
             continue
-        if existing + stored >= MAX_IMAGES_PER_DRAFT:
+        if existing + stored >= max_images_per_draft():
             draft.log_event(
                 'ingest',
-                f'Image limit ({MAX_IMAGES_PER_DRAFT}) reached; ignoring further files.',
+                f'Image limit ({max_images_per_draft()}) reached; ignoring further files.',
                 level='warning',
                 save=False,
             )

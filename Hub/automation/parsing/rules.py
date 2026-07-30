@@ -338,16 +338,40 @@ def _extract_fabric(text: str) -> tuple[str, dict[str, str]]:
                 return fabric.title()
         return ''
 
+    def literal_value(value: str) -> str:
+        """
+        Accept the text after a ``Label:`` as the fabric even when it is not a
+        name we know.
+
+        Suppliers invent and rebrand fabric names constantly — real catalogues
+        in this store list "Vichitra", "Tesla" and "Chinnon", none of which can
+        be in a fixed list. Requiring a known name silently dropped them.
+        """
+        candidate = value.split(':')[-1].strip(' .,-–|')
+        if not candidate or len(candidate) > 40:
+            return ''
+        # Letters and spaces only, so a stray price or size never lands here.
+        if not re.fullmatch(r'[A-Za-z][A-Za-z\s/&-]*', candidate):
+            return ''
+        return candidate.title()
+
     for index, line in enumerate(lines):
         if not line:
             continue
+        # The component word must OPEN the line. A product title such as
+        # "Georgette Women Kurti With Dupatta & Bottomwear" mentions every
+        # garment part, and a loose search let that one line define all three
+        # fabrics as whatever the title happened to contain.
+        stripped = line.lstrip(' *•−–-\t')
         for key, pattern in _FABRIC_COMPONENTS.items():
-            if key in components or not pattern.search(line):
+            if key in components or not pattern.match(stripped):
                 continue
 
-            # Inline: "Top - Cotton"
-            tail = pattern.sub('', line, count=1).strip(' :-–')
+            # Inline: "Top - Cotton" or "Dupatta Fabric: Vichitra"
+            tail = pattern.sub('', stripped, count=1).strip(' :-–')
             fabric = match_fabric_word(tail)
+            if not fabric and ':' in stripped:
+                fabric = literal_value(stripped)
 
             # Block layout: fabric is on the next non-empty line.
             if not fabric:
@@ -362,7 +386,7 @@ def _extract_fabric(text: str) -> tuple[str, dict[str, str]]:
     overall = ''
     label = _FABRIC_LABEL.search(text)
     if label:
-        overall = match_fabric_word(label.group(2))
+        overall = match_fabric_word(label.group(2)) or literal_value(label.group(2))
     if not overall:
         overall = match_fabric_word(text)
     if not overall and components:

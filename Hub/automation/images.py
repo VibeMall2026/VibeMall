@@ -329,6 +329,3 @@ def process_draft_images(draft: Any, *, slug: str) -> dict[str, int]:
     stats['kept'] = len(kept)
     return stats
 
-
-def max_images_per_draft() -> int:
-    return int(getattr(settings, 'AUTOMATION_MAX_IMAGES_PER_DRAFT', 40))

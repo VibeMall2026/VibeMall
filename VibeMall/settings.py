@@ -356,6 +356,7 @@ AUTOMATION_MAX_ATTEMPTS = _env_int('AUTOMATION_MAX_ATTEMPTS', 4)
 # Guard rails on inbound media.
 AUTOMATION_MAX_IMAGE_BYTES = _env_int('AUTOMATION_MAX_IMAGE_BYTES', 12 * 1024 * 1024)
 AUTOMATION_MAX_IMAGES_PER_DRAFT = _env_int('AUTOMATION_MAX_IMAGES_PER_DRAFT', 40)
+AUTOMATION_MAX_VIDEOS_PER_DRAFT = _env_int('AUTOMATION_MAX_VIDEOS_PER_DRAFT', 5)
 # Telegram's Bot API refuses downloads above 20 MB, so a larger value here
 # would only produce failures further along.
 AUTOMATION_MAX_VIDEO_BYTES = _env_int('AUTOMATION_MAX_VIDEO_BYTES', 20 * 1024 * 1024)
