@@ -35,6 +35,23 @@
 </ul>
 
 <div class="card">
+  {% if drafts and active_status != 'PUBLISHED' %}
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <small class="text-muted">
+        Photos and videos sent within a few minutes of each other are grouped into one product.
+        A new description starts a new product.
+      </small>
+      <form method="post" action="{% url 'admin_bulk_delete_product_drafts' %}"
+            onsubmit="return confirm('Delete every draft shown in this tab? This cannot be undone.');">
+        {% csrf_token %}
+        <input type="hidden" name="status" value="{{ active_status }}">
+        <button type="submit" class="btn btn-sm btn-outline-danger">
+          <i class="bx bx-trash"></i> Delete all in this tab
+        </button>
+      </form>
+    </div>
+  {% endif %}
+
   <div class="table-responsive">
     <table class="table table-hover align-middle mb-0">
       <thead>
@@ -120,15 +137,24 @@
             </td>
             <td><small class="text-muted">{{ draft.created_at|date:"d M Y, H:i" }}</small></td>
             <td class="text-end">
-              {% if draft.published_product %}
-                <a href="{% url 'admin_edit_product' draft.published_product.id %}" class="btn btn-sm btn-outline-primary">
-                  View Product
-                </a>
-              {% else %}
-                <a href="{% url 'admin_review_product_draft' draft.pk %}" class="btn btn-sm btn-primary">
-                  Review
-                </a>
-              {% endif %}
+              <div class="d-inline-flex gap-1">
+                {% if draft.published_product %}
+                  <a href="{% url 'admin_edit_product' draft.published_product.id %}" class="btn btn-sm btn-outline-primary">
+                    View Product
+                  </a>
+                {% else %}
+                  <a href="{% url 'admin_review_product_draft' draft.pk %}" class="btn btn-sm btn-primary">
+                    Review
+                  </a>
+                {% endif %}
+                <form method="post" action="{% url 'admin_delete_product_draft' draft.pk %}"
+                      onsubmit="return confirm('Delete draft #{{ draft.pk }} and its images permanently?');">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete this draft">
+                    <i class="bx bx-trash"></i>
+                  </button>
+                </form>
+              </div>
             </td>
           </tr>
         {% empty %}

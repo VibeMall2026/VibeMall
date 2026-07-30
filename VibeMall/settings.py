@@ -369,3 +369,15 @@ AUTOMATION_SUPPLIER_PRICE_IS_MRP = _env_bool('AUTOMATION_SUPPLIER_PRICE_IS_MRP',
 # Videos sent to the bot become Reels linked to the product on approval.
 AUTOMATION_CREATE_REELS = _env_bool('AUTOMATION_CREATE_REELS', True)
 # ───────────────────────────────────────────────────────────────────────────
+
+# ── Message grouping (chat sources) ────────────────────────────────────────
+# Telegram only sets media_group_id for a true album. Suppliers often send
+# photos one at a time, so messages from the same chat are also grouped by
+# time: a new message joins the draft in progress for this many seconds.
+AUTOMATION_GROUP_WINDOW_SECONDS = _env_int('AUTOMATION_GROUP_WINDOW_SECONDS', 180)
+
+# How long a chat draft must be idle before the worker processes it — i.e.
+# how long to assume the supplier is still sending. Longer than the album
+# settle window, because a person is slower than a single album upload.
+AUTOMATION_GROUP_QUIET_SECONDS = _env_int('AUTOMATION_GROUP_QUIET_SECONDS', 45)
+# ───────────────────────────────────────────────────────────────────────────

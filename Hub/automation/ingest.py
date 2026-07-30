@@ -55,47 +55,62 @@ def _find_group_draft(incoming: IncomingProduct) -> ProductDraft | None:
     )
 
 
-def _find_pairable_draft(incoming: IncomingProduct) -> ProductDraft | None:
+def _find_open_draft(incoming: IncomingProduct) -> ProductDraft | None:
     """
-    Find a recent draft from the same chat that this message completes.
+    Find the in-progress draft this message belongs to.
 
-    Suppliers forward a catalogue as *two* messages: the photo, then the
-    description (often a forward from someone else). Neither carries a
-    ``media_group_id``, so album grouping cannot join them, and the naive
-    result is two useless half-products — one with an image and no text, one
-    with text and no image.
+    Telegram only sets ``media_group_id`` when photos are posted as a single
+    album. Suppliers routinely send fifteen photos one at a time, and a
+    forwarded catalogue arrives as photo(s) plus a separate description
+    message — none of which carry a group id. Treating each message as its own
+    product turns one item into fifteen, and multiplies the AI cost by fifteen
+    with it.
 
-    This pairs them: a text-only message merges into a recent image-only
-    draft, and vice versa. The complementary requirement is deliberate — two
-    photos, or two descriptions, are two different products and must not be
-    merged.
+    So messages from the same chat are grouped by time instead:
+
+    * media (photos/videos) joins whatever draft is currently open;
+    * a description joins a draft that has none yet;
+    * **text is the separator** — when the open draft already has a description
+      and this message brings another, it is a different product and starts a
+      new draft.
+
+    Only the most recent open draft is considered, which is what makes the
+    separator rule work.
     """
     if incoming.group_id:
         return None
 
+    now = timezone.now()
     has_text = bool(incoming.text.strip())
-    has_media = bool(incoming.media)
-    # Only a message supplying exactly one half can complete another draft.
-    if has_text == has_media:
+
+    candidate = (
+        ProductDraft.objects.filter(
+            source=incoming.source,
+            source_chat_id=str(incoming.chat_id or ''),
+            status__in=ProductDraft.CLAIMABLE_STATUSES,
+            last_message_at__gte=now - timedelta(seconds=group_window_seconds()),
+        )
+        .order_by('-last_message_at')
+        .first()
+    )
+    if candidate is None:
         return None
 
-    cutoff = timezone.now() - timedelta(seconds=pair_window_seconds())
-    candidates = ProductDraft.objects.filter(
-        source=incoming.source,
-        source_chat_id=str(incoming.chat_id or ''),
-        status__in=ProductDraft.CLAIMABLE_STATUSES,
-        last_message_at__gte=cutoff,
-    ).order_by('-last_message_at')[:5]
+    candidate_has_text = bool((candidate.raw_text or '').strip())
 
-    for draft in candidates:
-        draft_has_text = bool((draft.raw_text or '').strip())
-        draft_has_files = draft.images.exists() or draft.videos.exists()
-        if has_text and draft_has_files and not draft_has_text:
-            return draft
-        if has_media and draft_has_text and not draft_has_files:
-            return draft
+    # Two descriptions in a row mean two products.
+    if has_text and candidate_has_text:
+        return None
 
-    return None
+    # Media for a draft that already has its description is ambiguous: more
+    # photos of the same item, or the first photo of the next one. A rapid
+    # burst is still the same item; a pause means the supplier moved on.
+    if not has_text and candidate_has_text:
+        gap = (now - candidate.last_message_at).total_seconds()
+        if gap > burst_seconds():
+            return None
+
+    return candidate
 
 
 def _attach_videos(draft: ProductDraft, incoming: IncomingProduct) -> int:
@@ -189,22 +204,22 @@ def ingest(incoming: IncomingProduct) -> ProductDraft | None:
         logger.info('[automation] Merged album part into draft %s (+%d images)', draft.pk, stored)
         return draft
 
-    # --- Separate photo / description messages: join them ------------------
-    partner = _find_pairable_draft(incoming)
+    # --- Consecutive messages for one product: join them -------------------
+    partner = _find_open_draft(incoming)
     if partner is not None:
         if incoming.text.strip() and not partner.raw_text.strip():
             partner.raw_text = incoming.text
-        stored = _attach_media(partner, incoming)
-        stored += _attach_videos(partner, incoming)
+        images = _attach_media(partner, incoming)
+        clips = _attach_videos(partner, incoming)
         partner.last_message_at = timezone.now()
         partner.log_event(
             'ingest',
-            f'Paired with a separate message (+{stored} image(s), '
-            f'{"text added" if incoming.text.strip() else "images added"}).',
+            f'Grouped with the previous message (+{images} image(s), +{clips} video(s)'
+            f'{", text added" if incoming.text.strip() else ""}).',
             save=False,
         )
         partner.save(update_fields=['raw_text', 'last_message_at', 'events', 'updated_at'])
-        logger.info('[automation] Paired message into draft %s', partner.pk)
+        logger.info('[automation] Grouped message into draft %s', partner.pk)
         return partner
 
     # --- New draft ---------------------------------------------------------
@@ -257,3 +272,30 @@ def pair_window_seconds() -> int:
     annoying than a draft that waits an extra minute.
     """
     return int(getattr(settings, 'AUTOMATION_PAIR_WINDOW_SECONDS', 180))
+
+
+def group_window_seconds() -> int:
+    """How long a new message may still join the draft in progress."""
+    return int(getattr(settings, 'AUTOMATION_GROUP_WINDOW_SECONDS', 180))
+
+
+def burst_seconds() -> int:
+    """
+    Gap below which consecutive messages are still one burst.
+
+    Used to decide whether media arriving after a description belongs to the
+    same product ("text first, then photos") or starts the next one.
+    """
+    return int(getattr(settings, 'AUTOMATION_BURST_SECONDS', 30))
+
+
+def group_quiet_seconds() -> int:
+    """
+    How long a chat draft must be idle before the worker may process it.
+
+    Sending fifteen photos by hand takes a while, and processing after the
+    first one would strand the rest in a second draft. This is the pause that
+    means "they have finished sending", so it is much longer than the
+    album settle window — an album arrives in one burst, a human does not.
+    """
+    return int(getattr(settings, 'AUTOMATION_GROUP_QUIET_SECONDS', 45))

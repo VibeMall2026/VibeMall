@@ -149,40 +149,50 @@ def build_description(record: dict[str, Any]) -> str:
         bullets = '\n'.join(f'• {h}' for h in highlights[:8])
         parts.append(f'Key Highlights\n{bullets}')
 
+    # Styling and construction attributes live here rather than in care_info,
+    # which the page renders as "Care Guide".
+    specs: list[str] = []
+    seen: set[str] = set()
+    for field in SPECIFICATION_FIELDS + EXTENDED_ATTRIBUTE_FIELDS:
+        if field in CARE_INFO_FIELDS or field in seen:
+            continue
+        seen.add(field)
+        value = str(record.get(field) or '').strip()
+        if value:
+            specs.append(f'{_label(field)}: {value}')
+    if specs:
+        parts.append('Product Details\n' + '\n'.join(specs))
+
     return '\n\n'.join(parts)
 
 
-#: Order attributes are presented in on the product page. Fabrics first, then
-#: construction, then care and pack details — how a shopper reads a spec sheet.
-CARE_INFO_FIELD_ORDER = [
-    'product_type', 'fabric', 'material',
-    'top_fabric', 'bottom_fabric', 'dupatta_fabric', 'inner_fabric',
-    'sleeve_type', 'neck_type', 'length', 'pattern', 'work_type',
-    'style', 'fit', 'stitch_type', 'occasion',
+#: Fields that genuinely belong under "Care Guide" on the product page —
+#: how to look after the item and what arrives in the parcel. Fabric is
+#: included because washing instructions depend on it.
+CARE_INFO_FIELDS = [
+    'fabric', 'material', 'top_fabric', 'bottom_fabric', 'dupatta_fabric', 'inner_fabric',
     'wash_care', 'package_contents', 'country_of_origin',
+]
+
+#: Construction and styling attributes. These are specifications, not care
+#: instructions, so they belong with the description rather than in the Care
+#: Guide panel.
+SPECIFICATION_FIELDS = [
+    'product_type', 'sleeve_type', 'neck_type', 'length', 'pattern',
+    'work_type', 'style', 'fit', 'stitch_type', 'occasion',
 ]
 
 
 def build_care_info(record: dict[str, Any]) -> str:
     """
-    Every extracted attribute, as the pipe-separated spec line the product
-    page already renders.
-
-    This is where attributes with no ``Product`` column live. It carries the
-    full set — including sleeve type, neck type, occasion and fit — because the
-    description is plain text and no longer repeats them.
+    Care and pack information only — the product page renders this under
+    "Care Guide", so styling attributes would read as noise there.
     """
-    seen: list[str] = []
-    parts: list[str] = []
-
-    for field in CARE_INFO_FIELD_ORDER + EXTENDED_ATTRIBUTE_FIELDS:
-        if field in seen:
-            continue
-        seen.append(field)
+    parts = []
+    for field in CARE_INFO_FIELDS:
         value = str(record.get(field) or '').strip()
         if value:
             parts.append(f'{_label(field)}: {value}')
-
     return ' | '.join(parts)[:5000]
 
 

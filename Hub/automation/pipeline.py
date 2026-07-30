@@ -32,7 +32,7 @@ from .ai.extraction import extract, suggested_slug
 from .ai.vision import analyse_images, apply_to_images
 from .duplicates import find_duplicate
 from .images import process_draft_images
-from .ingest import pair_window_seconds, settle_seconds
+from .ingest import group_quiet_seconds, pair_window_seconds, settle_seconds
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +84,7 @@ def claim_next() -> Any | None:
     settled_before = now - timedelta(seconds=settle_seconds())
 
     pair_deadline = now - timedelta(seconds=pair_window_seconds())
+    quiet_deadline = now - timedelta(seconds=group_quiet_seconds())
 
     candidates = (
         ProductDraft.objects.filter(
@@ -95,6 +96,12 @@ def claim_next() -> Any | None:
     )
 
     for draft in candidates:
+        # Messages sent one at a time need a longer pause than an album, which
+        # arrives in a single burst. Processing a chat draft the moment it
+        # looks complete would strand every photo the supplier sends next.
+        if not draft.source_group_id and draft.last_message_at > quiet_deadline:
+            continue
+
         # A draft missing either half is probably one of a photo/description
         # pair that has not fully arrived. Hold it for the pairing window so
         # ingest can join them, rather than publishing two half-products.

@@ -332,16 +332,62 @@ def _handle_review_post(request, draft: ProductDraft):
 def admin_delete_product_draft(request, draft_id: int):
     """Discard a draft and its staged images entirely."""
     draft = get_object_or_404(ProductDraft, pk=draft_id)
+    # A locked file on Windows must not block removing the draft row; an
+    # orphaned file is harmless and can be swept up later.
+    _delete_draft_files(draft)
+    draft.delete()
+    messages.success(request, f'Draft #{draft_id} deleted.')
+    return redirect('admin_product_drafts')
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+@require_POST
+def admin_bulk_delete_product_drafts(request):
+    """
+    Discard every draft in one status tab.
+
+    A supplier sending photos one at a time used to create a draft per photo,
+    so clearing up meant dozens of individual deletes. Published drafts are
+    never touched — deleting those would orphan the audit trail of a live
+    product.
+    """
+    status = (request.POST.get('status') or '').strip()
+
+    drafts = ProductDraft.objects.exclude(status=ProductDraft.STATUS_PUBLISHED)
+    if status == ProductDraft.STATUS_RECEIVED:
+        drafts = drafts.filter(
+            status__in=[
+                ProductDraft.STATUS_RECEIVED,
+                ProductDraft.STATUS_QUEUED,
+                ProductDraft.STATUS_PROCESSING,
+            ]
+        )
+    elif status and status != 'all':
+        drafts = drafts.filter(status=status)
+
+    count = 0
+    for draft in drafts:
+        _delete_draft_files(draft)
+        draft.delete()
+        count += 1
+
+    messages.success(request, f'Deleted {count} draft{"" if count == 1 else "s"}.')
+    return redirect('admin_product_drafts')
+
+
+def _delete_draft_files(draft: ProductDraft) -> None:
+    """Remove staged media, tolerating files locked or already gone."""
     for image in draft.images.all():
         try:
             image.image.delete(save=False)
         except OSError as exc:
-            # A locked file on Windows must not block removing the draft row;
-            # the orphaned file is harmless and can be swept up later.
-            logger.warning('[review] Could not delete staged file for image %s: %s', image.pk, exc)
-    draft.delete()
-    messages.success(request, f'Draft #{draft_id} deleted.')
-    return redirect('admin_product_drafts')
+            logger.warning('[review] Could not delete staged image %s: %s', image.pk, exc)
+    for video in draft.videos.all():
+        try:
+            video.video.delete(save=False)
+        except OSError as exc:
+            logger.warning('[review] Could not delete staged video %s: %s', video.pk, exc)
 
 
 @login_required(login_url='login')

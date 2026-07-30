@@ -32,6 +32,11 @@ urlpatterns = [
         views_product_automation.admin_delete_product_draft,
         name='admin_delete_product_draft',
     ),
+    path(
+        'admin-panel/product-drafts/bulk-delete/',
+        views_product_automation.admin_bulk_delete_product_drafts,
+        name='admin_bulk_delete_product_drafts',
+    ),
     # ───────────────────────────────────────────────────────────────────────
 
     # ── n8n AI Automation ──────────────────────────────────────────────────
