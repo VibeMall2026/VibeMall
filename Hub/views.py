@@ -4605,15 +4605,20 @@ def admin_main_page_products(request):
         'active_section': active_section,
         'categories': categories,
         'category_products': category_products,
-        'available_products': available_products[:50],  # Limit to 50 for dropdown
+        # Every active product, deliberately unsliced. These were capped at 50,
+        # 200 and 500, and since the ordering is by units sold the products cut
+        # off were the newest ones — the exact products an admin comes here to
+        # feature. The dropdowns have a filter box instead, which scales with
+        # the catalogue rather than against it.
+        'available_products': available_products,
         'all_products_count': Product.objects.filter(is_active=True).count(),
         'main_category_item_count': main_page_items.count(),
         'sub_categories': sub_categories,
         'main_page_subcategory_banners': main_page_subcategory_banners,
         'subcat_banner_count': main_page_subcategory_banners.count(),
         'ready_ship_items': ready_ship_items,
-        'ready_ship_available_products': ready_ship_available_products[:200],
-        'ready_ship_all_products': ready_ship_all_products[:500],
+        'ready_ship_available_products': ready_ship_available_products,
+        'ready_ship_all_products': ready_ship_all_products,
         'ready_ship_hero_id': ready_ship_hero_id,
         'ready_ship_count': ready_ship_items.count(),
     }

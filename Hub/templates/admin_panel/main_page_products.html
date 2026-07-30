@@ -228,7 +228,9 @@
                 <div class="form-group-inline">
                     <div class="flex-grow-1">
                         <label class="form-label mb-2">Select Product</label>
-                        <select name="product_id" class="form-select" required>
+                        <input type="search" class="form-control mb-2" data-filters="mainPageProductSelect"
+                               placeholder="Type to filter products..." autocomplete="off">
+                        <select name="product_id" id="mainPageProductSelect" class="form-select" required>
                             <option value="">-- Choose a product --</option>
                             {% for product in available_products %}
                             <option value="{{ product.id }}">{{ product.name }} (&#8377;{{ product.price }})</option>
@@ -236,9 +238,9 @@
                             <option value="" disabled>No products available</option>
                             {% endfor %}
                         </select>
-                        {% if available_products.count == 0 and all_products_count > 0 %}
-                        <small class="text-muted d-block mt-2">All products are already added to main page</small>
-                        {% endif %}
+                        <small class="text-muted d-block mt-2">
+                            Showing all {{ all_products_count }} active product{{ all_products_count|pluralize }}.
+                        </small>
                     </div>
                     <div>
                         <label class="form-label mb-2">Select Section</label>
@@ -473,7 +475,9 @@
                 <div class="row g-3 align-items-end">
                     <div class="col-lg-4">
                         <label class="form-label">Product</label>
-                        <select name="product_id" class="form-select" required>
+                        <input type="search" class="form-control mb-2" data-filters="readyShipProductSelect"
+                               placeholder="Type to filter..." autocomplete="off">
+                        <select name="product_id" id="readyShipProductSelect" class="form-select" required>
                             <option value="">Select product</option>
                             {% for product in ready_ship_available_products %}
                             <option value="{{ product.id }}">{{ product.name }} (&#8377;{{ product.price }})</option>
@@ -632,6 +636,38 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!window.confirm(message)) {
                 event.preventDefault();
             }
+        });
+    });
+
+    /* Filter a long product dropdown by typing.
+       The lists are no longer truncated, so finding one product among
+       hundreds has to be typing rather than scrolling. Options are detached
+       and re-attached rather than hidden, because `display:none` on an
+       <option> is ignored by Safari and several mobile browsers. */
+    document.querySelectorAll('[data-filters]').forEach(function (box) {
+        const select = document.getElementById(box.getAttribute('data-filters'));
+        if (!select) { return; }
+
+        const all = Array.from(select.options).map(function (option) {
+            return { option: option, text: option.textContent.toLowerCase() };
+        });
+
+        box.addEventListener('input', function () {
+            const needle = box.value.trim().toLowerCase();
+            const chosen = select.value;
+
+            select.innerHTML = '';
+            all.forEach(function (entry) {
+                if (!needle || !entry.option.value || entry.text.indexOf(needle) !== -1) {
+                    select.appendChild(entry.option);
+                }
+            });
+
+            // Keep the current choice if it survived the filter, so typing
+            // never silently changes what is about to be submitted.
+            select.value = Array.from(select.options).some(function (o) { return o.value === chosen; })
+                ? chosen
+                : '';
         });
     });
 });
