@@ -1,7 +1,9 @@
 @echo off
 setlocal enabledelayedexpansion
 
-cd /d "d:\Iu University\OneDrive - IU International University of Applied Sciences\Desktop\VibeMall"
+REM Always work from the folder this script lives in, so the project can be
+REM moved or cloned anywhere without editing a hardcoded path again.
+cd /d "%~dp0"
 
 echo.
 echo ====================================================================
