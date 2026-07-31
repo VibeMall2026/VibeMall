@@ -178,34 +178,34 @@
                 <a class="section-card {% if active_section == 'categories' %}active{% endif %}"
                    href="{% url 'admin_main_page_products' %}?section=categories">
                     <h6>Homepage Product Sections</h6>
-                    <p>Top Deals, Top Selling, Top Featured ane Recommended for You manage karo.</p>
+                    <p>Manage Top Deals, Top Selling, Top Featured and Recommended for You.</p>
                     <span class="section-pill">{{ main_category_item_count }} Items</span>
                 </a>
                 <a class="section-card {% if active_section == 'subcat_banners' %}active{% endif %}"
                    href="{% url 'admin_main_page_products' %}?section=subcat_banners">
                     <h6>Shop by Sub-category Banners</h6>
-                    <p>Custom image set kari sub-category page par redirect karo.</p>
+                    <p>Set a custom image that links through to a sub-category page.</p>
                     <span class="section-pill">{{ subcat_banner_count }} Banners</span>
                 </a>
                 <a class="section-card {% if active_section == 'ready_ship' %}active{% endif %}"
                    href="{% url 'admin_main_page_products' %}?section=ready_ship">
                     <h6>Ready-to-Ship Styles</h6>
-                    <p>Hero + grid cards mate product/image order manage karo.</p>
+                    <p>Order the products and images for the hero and grid cards.</p>
                     <span class="section-pill">{{ ready_ship_count }} Styles</span>
                 </a>
                 <a class="section-card" href="{% url 'admin_main_page_banners' %}">
                     <h6>Main Page Banners</h6>
-                    <p>First & Second banner area manage karo homepage mate.</p>
+                    <p>Manage the first and second banner areas on the homepage.</p>
                     <span class="section-pill">Manage Banners</span>
                 </a>
                 <a class="section-card" href="/admin-panel/brand-partners/">
                     <h6>Brand Partners</h6>
-                    <p>Homepage par brand partner logos manage karo.</p>
+                    <p>Manage the brand partner logos shown on the homepage.</p>
                     <span class="section-pill">Manage Brands</span>
                 </a>
                 <a class="section-card" href="{% url 'admin_upload_reel_file' %}">
                     <h6>Upload Reel Video</h6>
-                    <p>Direct reel upload tool open karva mate ahiya click karo.</p>
+                    <p>Open the direct reel upload tool.</p>
                     <span class="section-pill">Open Tool</span>
                 </a>
             </div>
@@ -214,7 +214,7 @@
 
     {% if not active_section %}
     <div class="alert alert-info">
-        Section card par click karo. Tame je section select karso, ae j section niche open thase.
+        Pick a section card above. Whichever you choose opens below.
     </div>
     {% endif %}
 
@@ -256,7 +256,7 @@
                 </div>
             </form>
             <div class="alert alert-info mt-3 mb-0">
-                <strong>Recommended for You:</strong> ahiya je products tame <strong>Recommended for You</strong> section ma add karso, homepage par ej products show thase.
+                <strong>Recommended for You:</strong> the products you add to the <strong>Recommended for You</strong> section are the ones shown on the homepage.
             </div>
         </div>
     </div>
@@ -331,7 +331,7 @@
     <div class="card mt-4">
         <div class="card-body">
             <h5 class="card-title mb-3">Sub-category Image Redirect Banners</h5>
-            <p class="text-muted mb-3">Image par click karine user selected sub-category vala shop page par redirect thase.</p>
+            <p class="text-muted mb-3">Clicking the image takes the shopper to that sub-category's shop page.</p>
 
             <form method="POST" action="{% url 'admin_main_page_products' %}" enctype="multipart/form-data" class="add-product-form mb-4">
                 {% csrf_token %}
