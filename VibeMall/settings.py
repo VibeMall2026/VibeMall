@@ -357,7 +357,14 @@ AUTOMATION_OLLAMA_VISION = (
 # Google Gemini — has a FREE tier with vision and needs no credit card.
 # Create a key at https://aistudio.google.com/apikey
 GEMINI_API_KEY = (os.getenv('GEMINI_API_KEY', '') or os.getenv('GOOGLE_API_KEY', '')).strip()
-AUTOMATION_GEMINI_MODEL = os.getenv('AUTOMATION_GEMINI_MODEL', 'gemini-flash-latest').strip()
+# Left empty on purpose so the client's own DEFAULT_MODEL applies. This used to
+# default to 'gemini-flash-latest', which always won because the setting was
+# never unset - so gemini.py's carefully chosen free-tier default was dead code
+# and every request went to a full-size Flash alias. Those are the ones that
+# 429 almost immediately on the free tier, which is what "Gemini only gives a
+# few tries" actually was. Measured on this project's own prompt:
+# gemini-3.1-flash-lite answers in 0.76s, gemini-flash-latest in 2.80s.
+AUTOMATION_GEMINI_MODEL = os.getenv('AUTOMATION_GEMINI_MODEL', '').strip()
 
 # Vision cost controls. Gemini's free tier limits *input tokens per minute*,
 # and images dominate that budget, so keep batches small on a free key.

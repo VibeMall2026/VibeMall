@@ -178,7 +178,14 @@ class GeminiClient:
             )
 
         self._key = key
-        self.model = model or getattr(settings, 'AUTOMATION_GEMINI_MODEL', DEFAULT_MODEL)
+        # An unset AUTOMATION_GEMINI_MODEL arrives as '' rather than missing, so
+        # a plain getattr default would hand back the empty string and DEFAULT_MODEL
+        # would never apply.
+        self.model = (
+            model
+            or (getattr(settings, 'AUTOMATION_GEMINI_MODEL', '') or '').strip()
+            or DEFAULT_MODEL
+        )
         self.max_tokens = max_tokens or int(
             getattr(settings, 'AUTOMATION_AI_MAX_TOKENS', DEFAULT_MAX_TOKENS)
         )
