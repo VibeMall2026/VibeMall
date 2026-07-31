@@ -244,6 +244,21 @@ def _tf_to_mt5(minutes: int):
 def _fetch_rates(symbol: str, timeframe_min: int, count: int):
     if not MT5_AVAILABLE or not mt5_bridge.ensure_connected():
         return None
+
+    # Put the symbol in Market Watch before asking for its history. Rates were
+    # fetched blind, which happens to work while the terminal still has cached
+    # bars but returns nothing on a fresh terminal where the symbol was never
+    # selected - the strategy would then sit there scanning silently forever.
+    # A newly added account is exactly that case: The5ers Funded 10k shipped
+    # with only the 17 default forex pairs in Market Watch, no XAUUSD.
+    # smart_money.py already does this; signal_forge did not.
+    try:
+        info = mt5.symbol_info(symbol)
+        if info is not None and not info.visible:
+            mt5.symbol_select(symbol, True)
+    except Exception as exc:
+        logger.debug(f"[SIGNAL_FORGE] Could not select {symbol}: {exc}")
+
     return mt5.copy_rates_from_pos(symbol, _tf_to_mt5(timeframe_min), 0, count)
 
 
