@@ -163,9 +163,13 @@ DATABASES = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
         'CONN_MAX_AGE': 0,  # Don't persist connections
+        # The PRAGMAs that make this survivable with several writers are applied
+        # in Hub.db_pragmas, not here: `init_command` and `transaction_mode`
+        # need Django 5.1+, and this project runs 4.2 locally against 5.2 on the
+        # server. A connection_created hook works on both.
         'OPTIONS': {
-            'timeout': 30,  # Increase SQLite timeout to 30 seconds to handle locks
-        }
+            'timeout': 30,
+        },
     }
 }
 

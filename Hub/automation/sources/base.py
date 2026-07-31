@@ -83,7 +83,31 @@ class ProductSource(abc.ABC):
         log and return an empty iterable so the driver loop keeps running.
         """
 
+    def commit(self) -> None:
+        """
+        Acknowledge that everything the last :meth:`poll` returned is stored.
+
+        A source that can redeliver — anything with a cursor, offset or ack —
+        must not advance it inside ``poll``: a failure between fetching a
+        message and saving it would drop the product silently, and the person
+        who sent it sees nothing wrong. Hold the position here instead, so a
+        failed cycle simply fetches the same messages again.
+
+        The default is a no-op, for sources that cannot redeliver anyway.
+        """
+
+    def skip_batch(self) -> None:
+        """
+        Abandon the current batch and move past it.
+
+        The escape hatch for a message that fails every single time, so one bad
+        product cannot wedge every product behind it. Callers should log loudly
+        before using it — this is the one path that loses data on purpose.
+        """
+
     def run_forever(self) -> Iterator[IncomingProduct]:
         """Convenience driver: poll in a loop, yielding everything it sees."""
         while True:
-            yield from self.poll()
+            batch = list(self.poll())
+            yield from batch
+            self.commit()

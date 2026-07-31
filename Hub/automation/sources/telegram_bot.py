@@ -96,6 +96,8 @@ class TelegramBotSource(ProductSource):
         )
         self.session = session or requests.Session()
         self._offset = self._load_offset()
+        #: Where the offset moves to once the caller confirms the batch landed.
+        self._pending_offset = self._offset
         #: Reasons updates were discarded during the last poll. Surfaced by the
         #: management command so "nothing arrived" is never a silent outcome.
         self.skipped: list[str] = []
@@ -334,11 +336,34 @@ class TelegramBotSource(ProductSource):
             if incoming:
                 results.append(incoming)
 
-        if highest != self._offset:
-            self._offset = highest
-            self._save_offset(highest)
-
+        # Held, not saved. Acknowledging here would tell Telegram the batch was
+        # handled before the caller has stored a single draft — and a failure
+        # after that point loses the product for good, with the sender seeing
+        # nothing wrong. The caller calls commit() once the batch is safe.
+        self._pending_offset = highest
         return results
+
+    def commit(self) -> None:
+        """
+        Acknowledge the batch returned by the last :meth:`poll`.
+
+        Until this is called the offset stays where it was, so a crashed or
+        failed cycle re-fetches the same updates on the next poll. Re-ingesting
+        is harmless: ``(source, source_message_id)`` is unique, so a repeat is
+        a no-op.
+        """
+        if self._pending_offset > self._offset:
+            self._offset = self._pending_offset
+            self._save_offset(self._offset)
+
+    def skip_batch(self) -> None:
+        """
+        Give up on the current batch and move past it.
+
+        Only for an update that fails every time — one poisonous message must
+        not wedge the queue behind it forever.
+        """
+        self.commit()
 
     def describe(self) -> str:
         """Human-readable summary for the management command banner."""

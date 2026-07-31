@@ -69,6 +69,11 @@ class Command(BaseCommand):
         self.stdout.flush()
 
         total = 0
+        #: Consecutive failures on the same batch. A message that fails every
+        #: time must not wedge every product behind it forever.
+        failures = 0
+        MAX_BATCH_FAILURES = 5
+
         while running:
             try:
                 for incoming in source.poll():
@@ -88,10 +93,33 @@ class Command(BaseCommand):
                 for reason in source.skipped:
                     self.stdout.write(self.style.WARNING(console_safe(f'  .. skipped: {reason}')))
 
+                # Everything in this batch is stored, so it is now safe to tell
+                # Telegram not to send it again.
+                source.commit()
+                failures = 0
                 self.stdout.flush()
             except Exception:
-                logger.exception('[telegram] Poll cycle failed; continuing')
-                self.stdout.write(self.style.ERROR('  !! poll failed; retrying in 5s (see logs)'))
+                failures += 1
+                logger.exception(
+                    '[telegram] Poll cycle failed (%d/%d); the batch will be retried',
+                    failures, MAX_BATCH_FAILURES,
+                )
+                self.stdout.write(self.style.ERROR(
+                    f'  !! poll failed ({failures}/{MAX_BATCH_FAILURES}); '
+                    'messages kept for retry (see logs)'
+                ))
+
+                if failures >= MAX_BATCH_FAILURES:
+                    logger.error(
+                        '[telegram] Giving up on this batch after %d attempts and '
+                        'skipping past it. Those messages are lost — resend them.',
+                        failures,
+                    )
+                    self.stdout.write(self.style.ERROR(
+                        '  !! skipping the stuck batch; resend those products'
+                    ))
+                    source.skip_batch()
+                    failures = 0
                 self.stdout.flush()
                 time.sleep(5)
 
