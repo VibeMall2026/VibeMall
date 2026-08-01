@@ -27,7 +27,7 @@ from typing import Any
 from django.conf import settings
 from django.utils import timezone
 
-from .ai import AIUnavailable, active_provider, get_client, is_configured
+from .ai import AIUnavailable, active_provider, get_client, get_vision_client, is_configured
 from .ai.extraction import extract, suggested_slug
 from .ai.vision import analyse_images, apply_to_images
 from .duplicates import find_duplicate
@@ -249,23 +249,30 @@ def process_draft(draft: Any) -> Any:
     images = list(draft.images.all().order_by('order', 'id'))
 
     # --- 2. Vision ----------------------------------------------------------
+    # A separate acquisition from the extraction client below: they do not
+    # have to be the same provider. Groq is fast and free for text but has no
+    # vision model on the free tier, so a Groq-primary setup still gets a
+    # real vision pass from whichever configured provider can see images
+    # (Gemini today) — see ai.get_vision_client.
     findings: dict = {}
     if images and client is not None:
-        if getattr(client, 'supports_vision', True):
-            findings = analyse_images(client, images, context=draft.raw_text)
+        vision_client = get_vision_client()
+        if getattr(vision_client, 'supports_vision', True):
+            findings = analyse_images(vision_client, images, context=draft.raw_text)
             draft.log_event(
                 'vision',
-                f'Analysed {findings.get("_analysed_count", 0)}/{len(images)} image(s).'
+                f'Analysed {findings.get("_analysed_count", 0)}/{len(images)} image(s) '
+                f'via {vision_client.model}.'
                 if findings else 'Image analysis unavailable; using positional fallback.',
                 save=False,
             )
         else:
-            # A text-only model cannot read images; sending them would waste a
-            # slow local request and return nothing useful.
+            # No configured provider can read images; sending them would waste
+            # a request and return nothing useful.
             draft.log_event(
                 'vision',
-                f'{client.model} is text-only — image roles and colours use the '
-                'positional fallback. Configure a multimodal model to enable them.',
+                f'{client.model} is text-only and no vision-capable provider is '
+                'configured — image roles and colours use the positional fallback.',
                 level='warning',
                 save=False,
             )

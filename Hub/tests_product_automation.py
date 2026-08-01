@@ -1115,6 +1115,167 @@ class GeminiRotationTests(TestCase):
         self.assertEqual(post.call_count, 1, 'a bad request will not fix itself')
 
 
+@override_settings(GROQ_API_KEY='test-key')
+class GroqRotationTests(TestCase):
+    """
+    Same shape as GeminiRotationTests: quota is per model, so a 429 should
+    move on, not sleep. Groq additionally has a real strict/best-effort split
+    (only gpt-oss-* honours strict mode) which the other providers don't.
+    """
+
+    def _client(self):
+        from Hub.automation.ai.groq import GroqClient
+        return GroqClient()
+
+    def _response(self, status, payload=None, headers=None):
+        from unittest.mock import Mock
+        response = Mock()
+        response.status_code = status
+        response.json.return_value = payload or {}
+        response.text = ''
+        response.headers = headers or {}
+        return response
+
+    def _ok(self):
+        return self._response(200, {
+            'choices': [{'message': {'content': '{"name": "Kurti"}'}, 'finish_reason': 'stop'}],
+            'usage': {'prompt_tokens': 80, 'completion_tokens': 20},
+        })
+
+    def _rate_limited(self, retry_after='39'):
+        return self._response(429, {'error': {'message': 'Rate limit reached'}},
+                              headers={'Retry-After': retry_after})
+
+    def test_rotation_starts_with_the_configured_model_then_covers_every_free_model(self):
+        from Hub.automation.ai.groq import FALLBACK_MODELS
+
+        client = self._client()
+        rotation = client.model_rotation()
+        self.assertEqual(rotation[0], client.model)
+        self.assertEqual(len(rotation), len(set(rotation)), 'no model tried twice')
+        self.assertEqual(set(rotation), set(FALLBACK_MODELS))
+
+    def test_only_the_gpt_oss_models_get_strict_mode(self):
+        from unittest.mock import patch
+
+        client = self._client()
+        seen_strict = {}
+
+        def capture(url, json=None, **kwargs):
+            seen_strict[json['model']] = json['response_format']['json_schema']['strict']
+            return self._rate_limited()
+
+        with patch.object(client.session, 'post', side_effect=capture), \
+             patch('Hub.automation.ai.groq.time.sleep'):
+            with self.assertRaises(Exception):
+                client.complete_json(system='s', content=[{'type': 'text', 'text': 'hi'}], schema={'type': 'object'})
+
+        self.assertTrue(seen_strict['openai/gpt-oss-120b'])
+        self.assertTrue(seen_strict['openai/gpt-oss-20b'])
+        self.assertFalse(seen_strict['llama-3.1-8b-instant'])
+
+    def test_a_rate_limited_model_falls_through_to_the_next(self):
+        from unittest.mock import patch
+
+        client = self._client()
+        expected = client.model_rotation()[1]
+
+        with patch.object(client.session, 'post', side_effect=[self._rate_limited(), self._ok()]) as post, \
+             patch('Hub.automation.ai.groq.time.sleep') as slept:
+            result = client.complete_json(system='s', content=[{'type': 'text', 'text': 'hi'}], schema={'type': 'object'})
+
+        self.assertEqual(result['name'], 'Kurti')
+        self.assertEqual(post.call_count, 2)
+        slept.assert_not_called()
+        self.assertEqual(client.model, expected, 'the model that answered should be the one reported')
+
+    def test_only_sleeps_once_every_model_is_exhausted(self):
+        from unittest.mock import patch
+
+        client = self._client()
+        depth = len(client.model_rotation())
+        with patch.object(client.session, 'post', return_value=self._rate_limited('41')), \
+             patch('Hub.automation.ai.groq.time.sleep') as slept:
+            with self.assertRaises(Exception):
+                client.complete_json(system='s', content=[{'type': 'text', 'text': 'hi'}], schema={'type': 'object'})
+
+        self.assertTrue(slept.called, 'a full sweep of 429s should back off')
+        self.assertEqual(slept.call_args_list[0][0][0], 43, "obey Groq's Retry-After header (+2s headroom)")
+        self.assertGreaterEqual(depth, 2, 'rotation needs somewhere to fall through to')
+
+    def test_a_rejected_request_fails_immediately(self):
+        from unittest.mock import patch
+
+        from Hub.automation.ai.groq import GroqUnavailable
+
+        client = self._client()
+        with patch.object(client.session, 'post', return_value=self._response(400)) as post:
+            with self.assertRaises(GroqUnavailable):
+                client.complete_json(system='s', content=[{'type': 'text', 'text': 'hi'}], schema={'type': 'object'})
+        self.assertEqual(post.call_count, 1, 'a bad request will not fix itself')
+
+    def test_text_only_content_collapses_to_a_plain_string(self):
+        from Hub.automation.ai.groq import to_groq_content
+
+        result = to_groq_content([{'type': 'text', 'text': 'a'}, {'type': 'text', 'text': 'b'}])
+        self.assertIsInstance(result, str)
+        self.assertIn('a', result)
+        self.assertIn('b', result)
+
+    def test_image_content_becomes_a_data_uri(self):
+        from Hub.automation.ai.groq import to_groq_content
+
+        result = to_groq_content([
+            {'type': 'text', 'text': 'caption'},
+            {'type': 'image', 'source': {'type': 'base64', 'media_type': 'image/jpeg', 'data': 'QUJD'}},
+        ])
+        self.assertIsInstance(result, list)
+        urls = [p['image_url']['url'] for p in result if p.get('type') == 'image_url']
+        self.assertEqual(urls, ['data:image/jpeg;base64,QUJD'])
+
+    def test_supports_vision_is_false(self):
+        """No vision model exists on the free tier at the time this was written."""
+        self.assertFalse(self._client().supports_vision)
+
+
+class VisionProviderSplitTests(TestCase):
+    """
+    Extraction and vision can use different providers. A Groq-primary setup
+    (fast, free, text-only) still needs a real vision pass, so it should fall
+    back to whichever configured provider can actually see images.
+    """
+
+    @override_settings(AUTOMATION_AI_PROVIDER='groq', GROQ_API_KEY='test-key', GEMINI_API_KEY='')
+    def test_falls_back_to_rules_when_nothing_can_see_images(self):
+        from unittest.mock import patch
+
+        from Hub.automation.ai import get_vision_client
+
+        # override_settings alone is not enough here: gemini.api_key() also
+        # falls through to os.getenv(...) directly, which still sees a real
+        # key on a machine whose actual environment (not just Django
+        # settings) has one set for live development use.
+        with patch('Hub.automation.ai.gemini_configured', return_value=False), \
+             patch('Hub.automation.ai.claude_configured', return_value=False), \
+             patch('Hub.automation.ai.ollama_configured', return_value=False):
+            client = get_vision_client()
+        self.assertFalse(getattr(client, 'supports_vision', True))
+
+    @override_settings(AUTOMATION_AI_PROVIDER='groq', GROQ_API_KEY='test-key', GEMINI_API_KEY='test-key')
+    def test_falls_back_to_gemini_when_configured(self):
+        from Hub.automation.ai import get_vision_client
+        from Hub.automation.ai.gemini import GeminiClient
+
+        client = get_vision_client()
+        self.assertIsInstance(client, GeminiClient)
+
+    @override_settings(AUTOMATION_AI_PROVIDER='gemini', GEMINI_API_KEY='test-key')
+    def test_a_vision_capable_primary_is_used_directly(self):
+        from Hub.automation.ai import get_client, get_vision_client
+
+        self.assertIs(type(get_vision_client()), type(get_client()))
+
+
 class OllamaProviderTests(TestCase):
     """The Ollama client must present the same surface as the hosted ones."""
 
@@ -1153,7 +1314,14 @@ class OllamaProviderTests(TestCase):
             self._client()._parse({'message': {'content': '   '}, 'done_reason': 'length'})
 
     def test_pipeline_skips_vision_for_a_text_only_model(self):
-        """A text-only model must not be sent images it cannot read."""
+        """
+        A text-only model must not be sent images it cannot read - and this
+        covers the case where no OTHER configured provider can either
+        (get_vision_client falls back to the same text-only client). The
+        case where a different provider *can* see images is
+        test_pipeline_uses_a_different_provider_for_vision_when_available
+        below.
+        """
         from unittest.mock import patch
 
         send('-40', 1, media=[image_media(1)])
@@ -1169,8 +1337,10 @@ class OllamaProviderTests(TestCase):
             def complete_json(self, **kwargs):
                 raise AssertionError('extraction is stubbed separately')
 
+        text_only = TextOnly()
         with patch('Hub.automation.pipeline.is_configured', return_value=True), \
-             patch('Hub.automation.pipeline.get_client', return_value=TextOnly()), \
+             patch('Hub.automation.pipeline.get_client', return_value=text_only), \
+             patch('Hub.automation.pipeline.get_vision_client', return_value=text_only), \
              patch('Hub.automation.pipeline.analyse_images') as vision, \
              patch('Hub.automation.pipeline.extract', return_value=({'name': 'Kurti', 'warnings': []}, False)):
             pipeline.process_once()
@@ -1182,3 +1352,40 @@ class OllamaProviderTests(TestCase):
             any('text-only' in e['message'] for e in draft.events),
             'the skip should be recorded on the draft',
         )
+
+    def test_pipeline_uses_a_different_provider_for_vision_when_available(self):
+        """
+        A text-only primary (Groq, or Ollama on a text-only model) must not
+        block vision outright when another configured provider can see
+        images - get_vision_client is what makes that swap, and the
+        pipeline has to actually call it rather than reusing the primary
+        client for both steps.
+        """
+        from unittest.mock import patch
+
+        send('-40', 1, media=[image_media(1)])
+        send('-40', 2, text='Kurti\nPrice 799')
+        draft = ProductDraft.objects.get()
+        age(draft, 300)
+
+        class TextOnly:
+            model = 'gpt-oss-120b'
+            supports_vision = False
+            total_tokens = 0
+
+            def complete_json(self, **kwargs):
+                raise AssertionError('extraction is stubbed separately')
+
+        class Vision:
+            model = 'gemini-3.1-flash-lite'
+            supports_vision = True
+
+        with patch('Hub.automation.pipeline.is_configured', return_value=True), \
+             patch('Hub.automation.pipeline.get_client', return_value=TextOnly()), \
+             patch('Hub.automation.pipeline.get_vision_client', return_value=Vision()), \
+             patch('Hub.automation.pipeline.analyse_images', return_value={}) as vision, \
+             patch('Hub.automation.pipeline.extract', return_value=({'name': 'Kurti', 'warnings': []}, False)):
+            pipeline.process_once()
+
+        vision.assert_called_once()
+        self.assertIsInstance(vision.call_args[0][0], Vision, 'vision must run on the vision-capable client')

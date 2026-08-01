@@ -331,8 +331,9 @@ TELEGRAM_ALLOWED_CHAT_IDS = [
 # Where the Bot API update offset is persisted between restarts.
 TELEGRAM_OFFSET_FILE = os.getenv('TELEGRAM_OFFSET_FILE', str(BASE_DIR / 'logs' / 'telegram_offset.json'))
 
-# Which AI provider enriches drafts: 'auto', 'ollama', 'claude' or 'gemini'.
-# 'auto' prefers a reachable Ollama server, then Claude, then Gemini.
+# Which AI provider enriches drafts: 'auto', 'ollama', 'claude', 'gemini' or
+# 'groq'. 'auto' prefers a reachable Ollama server, then Claude, then Gemini,
+# then Groq.
 AUTOMATION_AI_PROVIDER = os.getenv('AUTOMATION_AI_PROVIDER', 'ollama').strip().lower()
 
 # ── Ollama (local models — no API key, no quota, no per-token cost) ────────
@@ -370,6 +371,15 @@ AUTOMATION_GEMINI_MODEL = os.getenv('AUTOMATION_GEMINI_MODEL', '').strip()
 # and images dominate that budget, so keep batches small on a free key.
 AUTOMATION_VISION_MAX_IMAGES = _env_int('AUTOMATION_VISION_MAX_IMAGES', 8)
 AUTOMATION_VISION_MAX_EDGE = _env_int('AUTOMATION_VISION_MAX_EDGE', 768)
+
+# Groq — free tier, no credit card, text only (no vision model available on
+# the free tier at the time this was written). Create a key at
+# https://console.groq.com/keys
+GROQ_API_KEY = os.getenv('GROQ_API_KEY', '').strip()
+# Left empty on purpose, same reasoning as AUTOMATION_GEMINI_MODEL above — an
+# unset env var must resolve to groq.py's own DEFAULT_MODEL, not the empty
+# string winning over it.
+AUTOMATION_GROQ_MODEL = os.getenv('AUTOMATION_GROQ_MODEL', '').strip()
 
 # Anthropic credentials for extraction, copywriting and image analysis.
 # Without any key the pipeline still runs, using rule-based extraction only.
