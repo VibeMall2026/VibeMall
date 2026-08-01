@@ -228,6 +228,14 @@
         color: #fff; display: inline-flex; align-items: center; justify-content: center;
         font-size: 13px; font-weight: 800; flex-shrink: 0;
       }
+      /* A real uploaded logo had the same problem as the fallback mark, just
+         hardcoded inline instead of in a class: a pale-blue Bootstrap-demo
+         box (#e3f2fd/#90caf9) that never matched the palette around it. */
+      .vm-brand-logo-wrap {
+        display: inline-flex; align-items: center; background: var(--vm-card);
+        padding: 6px 10px; border-radius: 6px; border: 1px solid var(--vm-line);
+      }
+      .vm-brand-logo-wrap img { max-height: 32px; max-width: 160px; display: block; }
       #layout-menu .app-brand-text { display: block; }
       #layout-menu .app-brand-text::after {
         content: "Admin Portal"; display: block; font-size: 10px; font-weight: 500;
@@ -291,12 +299,12 @@
           <div class="app-brand demo">
             <a href="/admin-panel/" class="app-brand-link">
               {% if site_settings and site_settings.admin_logo %}
-              <span style="display: inline-block; background: #e3f2fd; padding: 8px; border-radius: 6px; border: 1px solid #90caf9;">
-                <img src="{{ site_settings.admin_logo.url }}" alt="{{ site_settings.site_name }}" style="max-height: 40px; max-width: 180px; display: block;">
+              <span class="vm-brand-logo-wrap">
+                <img src="{{ site_settings.admin_logo.url }}" alt="{{ site_settings.site_name }}">
               </span>
               {% elif site_settings and site_settings.site_logo %}
-              <span style="display: inline-block; background: #e3f2fd; padding: 8px; border-radius: 6px; border: 1px solid #90caf9;">
-                <img src="{{ site_settings.site_logo.url }}" alt="{{ site_settings.site_name }}" style="max-height: 40px; max-width: 180px; display: block;">
+              <span class="vm-brand-logo-wrap">
+                <img src="{{ site_settings.site_logo.url }}" alt="{{ site_settings.site_name }}">
               </span>
               {% else %}
               <span class="vm-brand-mark">{{ site_settings.site_name|default:"VibeMall"|first|upper }}</span>
