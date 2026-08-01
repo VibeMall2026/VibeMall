@@ -1237,6 +1237,26 @@ class GroqRotationTests(TestCase):
         """No vision model exists on the free tier at the time this was written."""
         self.assertFalse(self._client().supports_vision)
 
+    def test_default_max_tokens_fits_inside_the_tightest_free_tier_tpm(self):
+        """
+        Regression: this was 8192, which alone exceeds gpt-oss-120b's and
+        llama-3.1-8b-instant's free-tier TPM ceilings (8K and 6K) before a
+        single prompt token is counted - every real request 413'd. A live
+        product prompt runs ~2,700 input tokens, so this needs to leave that
+        much headroom under 6,000 too.
+        """
+        from Hub.automation.ai.groq import DEFAULT_MAX_TOKENS
+
+        self.assertLessEqual(DEFAULT_MAX_TOKENS + 2700, 6000)
+
+    def test_max_tokens_does_not_fall_back_to_the_shared_claude_gemini_setting(self):
+        """
+        AUTOMATION_AI_MAX_TOKENS defaults to 8000 for Claude/Gemini - the
+        same overshoot bug in a different form if Groq ever reads it.
+        """
+        with self.settings(AUTOMATION_AI_MAX_TOKENS=8000, AUTOMATION_GROQ_MAX_TOKENS=0):
+            self.assertLess(self._client().max_tokens, 4096)
+
 
 class VisionProviderSplitTests(TestCase):
     """

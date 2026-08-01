@@ -53,7 +53,14 @@ FALLBACK_MODELS = [
 #: honoured on these; every other model gets best-effort JSON mode instead.
 STRICT_CAPABLE_MODELS = {'openai/gpt-oss-120b', 'openai/gpt-oss-20b'}
 
-DEFAULT_MAX_TOKENS = 8192
+#: Deliberately far below AUTOMATION_AI_MAX_TOKENS (Claude's 8000 default,
+#: shared with Gemini). Groq's per-minute limit is charged against *max*
+#: completion tokens requested, not what the model actually returns - the
+#: strict-mode gpt-oss models cap at 8K TPM total, so asking for an 8192
+#: completion budget alone blows the whole window before a single prompt
+#: token is counted. A product record's JSON runs a few hundred tokens; this
+#: leaves comfortable headroom without eating the rate limit.
+DEFAULT_MAX_TOKENS = 2048
 
 
 def api_key() -> str:
@@ -135,8 +142,11 @@ class GroqClient:
             or (getattr(settings, 'AUTOMATION_GROQ_MODEL', '') or '').strip()
             or DEFAULT_MODEL
         )
+        # A dedicated setting, not AUTOMATION_AI_MAX_TOKENS - that one is
+        # shared with Claude/Gemini, defaults to 8000, and would reintroduce
+        # the TPM problem DEFAULT_MAX_TOKENS above exists to avoid.
         self.max_tokens = max_tokens or int(
-            getattr(settings, 'AUTOMATION_AI_MAX_TOKENS', DEFAULT_MAX_TOKENS)
+            getattr(settings, 'AUTOMATION_GROQ_MAX_TOKENS', 0) or DEFAULT_MAX_TOKENS
         )
         self.max_retries = max_retries
         self.session = session or requests.Session()
@@ -315,7 +325,7 @@ class GroqClient:
             return json.loads(text)
         except json.JSONDecodeError as exc:
             if reason == 'length':
-                raise ValueError('Response truncated — raise AUTOMATION_AI_MAX_TOKENS.') from exc
+                raise ValueError('Response truncated — raise AUTOMATION_GROQ_MAX_TOKENS.') from exc
             raise ValueError(f'Response was not valid JSON: {exc}') from exc
 
     @property

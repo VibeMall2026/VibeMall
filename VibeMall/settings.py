@@ -380,6 +380,13 @@ GROQ_API_KEY = os.getenv('GROQ_API_KEY', '').strip()
 # unset env var must resolve to groq.py's own DEFAULT_MODEL, not the empty
 # string winning over it.
 AUTOMATION_GROQ_MODEL = os.getenv('AUTOMATION_GROQ_MODEL', '').strip()
+# Deliberately NOT AUTOMATION_AI_MAX_TOKENS (Claude/Gemini's shared 8000
+# default) — Groq's strict-mode models cap at 6-8K tokens *per minute*,
+# counted against the completion budget requested rather than what comes
+# back, so reusing 8000 here exhausts the whole window on one request before
+# a single prompt token is counted. 0 means unset, so groq.py's own
+# DEFAULT_MAX_TOKENS applies.
+AUTOMATION_GROQ_MAX_TOKENS = _env_int('AUTOMATION_GROQ_MAX_TOKENS', 0)
 
 # Anthropic credentials for extraction, copywriting and image analysis.
 # Without any key the pipeline still runs, using rule-based extraction only.
