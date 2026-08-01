@@ -154,6 +154,66 @@
       }
     </style>
 
+    <!-- Editorial theme for the sidebar and top navbar. Same tokens as the
+         dashboard (Hub/templates/admin_panel/dashboard.html); Sneat's own
+         classes and JS (menu-toggle, perfect-scrollbar, dropdowns) are left
+         completely alone - every rule below only recolours/retypes what
+         Sneat already renders, at the same selectors Sneat itself uses, so
+         nothing structural can break. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --vm-surface: #fbf9f4;
+        --vm-card: #ffffff;
+        --vm-ink: #171818;
+        --vm-ink-soft: #444748;
+        --vm-ink-faint: #747878;
+        --vm-line: #e6e2da;
+        --vm-gold: #6f5c37;
+        --vm-gold-tint: #dcc397;
+      }
+      body { font-family: 'Manrope', "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; }
+      .layout-page { background: var(--vm-surface); }
+
+      /* --- sidebar ------------------------------------------------------ */
+      #layout-menu.bg-menu-theme { border-right: 1px solid var(--vm-line); box-shadow: none !important; }
+      #layout-menu .app-brand { border-bottom: 1px solid var(--vm-line); }
+      #layout-menu .app-brand-text { color: var(--vm-ink) !important; font-weight: 800 !important; letter-spacing: 0.04em; text-transform: uppercase; font-size: 13px; }
+      .bg-menu-theme { color: var(--vm-ink-soft); }
+      .bg-menu-theme .menu-link { color: var(--vm-ink-soft); font-weight: 500; font-size: 13.5px; }
+      .bg-menu-theme .menu-link:hover, .bg-menu-theme .menu-link:focus { color: var(--vm-ink); }
+      .bg-menu-theme .menu-link.active { color: var(--vm-ink); }
+      .bg-menu-theme .menu-item.open:not(.menu-item-closing) > .menu-toggle,
+      .bg-menu-theme .menu-item.active > .menu-link { color: var(--vm-ink); font-weight: 700; }
+      .bg-menu-theme .menu-item.active > .menu-link:not(.menu-toggle) { background-color: var(--vm-surface); }
+      .layout-wrapper:not(.layout-horizontal) .bg-menu-theme .menu-inner > .menu-item.active:before { background: var(--vm-gold); }
+      .bg-menu-theme .menu-sub > .menu-item > .menu-link:before { background: var(--vm-line); }
+      .bg-menu-theme .menu-sub > .menu-item.active > .menu-link:not(.menu-toggle):before { background: var(--vm-gold); }
+      .bg-menu-theme .menu-text { color: var(--vm-ink-soft); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; }
+      .menu-link .menu-icon { color: var(--vm-ink-faint); }
+      .bg-menu-theme .menu-item.active > .menu-link .menu-icon,
+      .bg-menu-theme .menu-link:hover .menu-icon { color: var(--vm-gold); }
+
+      /* --- top navbar ----------------------------------------------------- */
+      #layout-navbar.bg-navbar-theme { border-bottom: 1px solid var(--vm-line); box-shadow: none !important; background: var(--vm-card) !important; }
+      .bg-navbar-theme .navbar-nav > .nav-link,
+      .bg-navbar-theme .navbar-nav > .nav-item > .nav-link { color: var(--vm-ink-soft); }
+      .bg-navbar-theme .navbar-nav > .nav-link:hover,
+      .bg-navbar-theme .navbar-nav > .nav-item > .nav-link:hover { color: var(--vm-ink); }
+      .admin-search-wrapper input { font-family: 'Manrope', sans-serif; }
+      .admin-search-wrapper input:focus { box-shadow: none !important; }
+
+      /* Restated on top of the block already in <head> so the search /
+         notification chrome reads on the same palette as the rest of the
+         page instead of Sneat's default blue-grey and Bootstrap's red badge
+         tint - the badge itself stays red on purpose, it is a count, not
+         brand chrome. */
+      .admin-search-results { border-color: var(--vm-line); }
+      .admin-notification-item { border-bottom-color: var(--vm-line) !important; }
+    </style>
+
     <!-- Page CSS -->
     {% block extra_css %}{% endblock %}
 
