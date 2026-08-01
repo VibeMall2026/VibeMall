@@ -1,981 +1,671 @@
-﻿{% extends 'admin_panel/base_admin.html' %}
+{% extends 'admin_panel/base_admin.html' %}
 {% load static %}
 
-{% block title %}Dashboard - FashioHub Admin{% endblock %}
+{% block title %}Dashboard - VibeMall Admin{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'admin/assets/vendor/libs/apex-charts/apex-charts.css' %}" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;700;800&display=swap" rel="stylesheet">
 <style>
-    .stat-card {
-        transition: transform 0.2s;
-    }
-    .stat-card:hover {
-        transform: translateY(-5px);
-    }
-    .chart-xs { min-height: 90px; }
-    .chart-sm { min-height: 120px; }
-    .chart-md { min-height: 220px; }
-    .chart-lg { min-height: 320px; }
+/* ===========================================================================
+   VibeMall Editorial Admin - dashboard
+   Same data as the previous dashboard, rebuilt on the design system: warm bone
+   background, white surfaces, hairline separators, no shadows, oversized light
+   numbers against tiny bold uppercase labels.
+   Everything is scoped under .vm-adm so none of it leaks into the rest of the
+   admin theme.
+   =========================================================================== */
+.vm-adm {
+    --surface: #fbf9f4;
+    --card: #ffffff;
+    --ink: #171818;
+    --ink-soft: #444748;
+    --ink-faint: #747878;
+    --line: #e6e2da;
+    --gold: #6f5c37;
+    --gold-tint: #dcc397;
+    --ok: #16a34a;
+    --warn: #8a6d1f;
+    --err: #ba1a1a;
+    --err-tint: #ffdad6;
 
-    .sales-card-body {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 8px;
-    }
+    font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+    background: var(--surface);
+    color: var(--ink);
+    padding: 40px;
+    min-height: 100vh;
+}
+@media (max-width: 991.98px) { .vm-adm { padding: 20px; } }
 
-    .sales-range-btn {
-        min-width: 120px;
-        white-space: nowrap;
-    }
+.vm-adm * { box-sizing: border-box; }
 
-    .sales-range-dropdown {
-        flex-shrink: 0;
-    }
+/* --- type roles ---------------------------------------------------------- */
+.vm-adm .vm-label {
+    font-size: 11px; font-weight: 800; line-height: 16px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-faint); margin: 0;
+}
+.vm-adm .vm-stat {
+    font-size: 40px; font-weight: 300; line-height: 48px; letter-spacing: -0.02em;
+    color: var(--ink); font-variant-numeric: tabular-nums; margin: 4px 0 0;
+}
+.vm-adm .vm-stat-sm {
+    font-size: 28px; font-weight: 300; line-height: 34px; letter-spacing: -0.01em;
+    color: var(--ink); font-variant-numeric: tabular-nums; margin: 4px 0 0;
+}
+.vm-adm .vm-body { font-size: 14px; line-height: 22px; color: var(--ink-soft); margin: 0; }
+.vm-adm .vm-body-sm { font-size: 13px; line-height: 20px; color: var(--ink-faint); margin: 0; }
+.vm-adm .vm-num { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* --- page head ----------------------------------------------------------- */
+.vm-adm .vm-adm-head {
+    display: flex; justify-content: space-between; align-items: flex-end; gap: 24px;
+    padding-bottom: 24px; border-bottom: 1px solid var(--line); margin-bottom: 32px;
+}
+.vm-adm .vm-adm-head h1 {
+    font-size: 28px; font-weight: 300; letter-spacing: -0.01em; margin: 6px 0 0; color: var(--ink);
+}
+
+/* --- band 1: hero stats, hairlines instead of four separate boxes -------- */
+.vm-adm .vm-hero {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    background: var(--card); border: 1px solid var(--line); border-radius: 8px; margin-bottom: 32px;
+}
+.vm-adm .vm-hero > div { padding: 28px 32px; border-left: 1px solid var(--line); }
+.vm-adm .vm-hero > div:first-child { border-left: 0; }
+@media (max-width: 1199.98px) {
+    .vm-adm .vm-hero { grid-template-columns: repeat(2, 1fr); }
+    .vm-adm .vm-hero > div:nth-child(odd) { border-left: 0; }
+    .vm-adm .vm-hero > div:nth-child(n+3) { border-top: 1px solid var(--line); }
+}
+@media (max-width: 575.98px) {
+    .vm-adm .vm-hero { grid-template-columns: 1fr; }
+    .vm-adm .vm-hero > div { border-left: 0; border-top: 1px solid var(--line); }
+    .vm-adm .vm-hero > div:first-child { border-top: 0; }
+}
+
+.vm-adm .vm-chip {
+    display: inline-flex; align-items: center; gap: 4px; margin-top: 10px;
+    padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
+}
+.vm-adm .vm-chip--up { background: rgba(22,163,74,.10); color: var(--ok); }
+.vm-adm .vm-chip--down { background: var(--err-tint); color: var(--err); }
+.vm-adm .vm-chip--flat { background: #f0eee9; color: var(--ink-faint); }
+
+/* --- grid + cards -------------------------------------------------------- */
+.vm-adm .vm-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; margin-bottom: 32px; }
+.vm-adm .vm-grid:last-child { margin-bottom: 0; }
+.vm-adm .c4 { grid-column: span 4; }
+.vm-adm .c8 { grid-column: span 8; }
+.vm-adm .c12 { grid-column: span 12; }
+@media (max-width: 1199.98px) { .vm-adm .c4 { grid-column: span 6; } .vm-adm .c8 { grid-column: span 12; } }
+@media (max-width: 767.98px) { .vm-adm .c4, .vm-adm .c8 { grid-column: span 12; } }
+
+.vm-adm .vm-card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 24px; }
+.vm-adm .vm-card__head {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    padding-bottom: 16px; margin-bottom: 20px; border-bottom: 1px solid var(--line);
+}
+.vm-adm .vm-card--alert { background: #fffaf9; border-color: #f0c9c4; }
+
+/* --- rows ---------------------------------------------------------------- */
+.vm-adm .vm-row {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+    padding: 12px 0; border-bottom: 1px solid var(--line);
+}
+.vm-adm .vm-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.vm-adm .vm-row__v { font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--ink); }
+
+/* --- progress ------------------------------------------------------------ */
+.vm-adm .vm-bar { height: 4px; background: #f0eee9; border-radius: 999px; overflow: hidden; margin-top: 10px; }
+.vm-adm .vm-bar > span { display: block; height: 100%; background: var(--gold); border-radius: 999px; }
+
+/* --- pipeline segmented bar ---------------------------------------------- */
+.vm-adm .vm-seg { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: #f0eee9; }
+.vm-adm .vm-seg > span { display: block; height: 100%; }
+.vm-adm .vm-seg-key { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 16px; margin-top: 18px; }
+.vm-adm .vm-seg-key > div { display: flex; align-items: baseline; gap: 8px; }
+.vm-adm .vm-dot { width: 8px; height: 8px; border-radius: 2px; flex: 0 0 auto; display: inline-block; }
+
+/* --- funnel -------------------------------------------------------------- */
+.vm-adm .vm-funnel__step { display: flex; align-items: center; gap: 12px; }
+.vm-adm .vm-funnel__track { flex: 1; height: 24px; background: #f5f3ee; border-radius: 4px; overflow: hidden; }
+.vm-adm .vm-funnel__fill { height: 100%; background: var(--gold-tint); }
+.vm-adm .vm-funnel__n { min-width: 70px; text-align: right; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.vm-adm .vm-funnel__cap { margin: 4px 0 14px; }
+
+/* --- tables -------------------------------------------------------------- */
+.vm-adm .vm-table { width: 100%; border-collapse: collapse; }
+.vm-adm .vm-table th {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-faint); text-align: left; padding: 0 12px 12px 0; border-bottom: 1px solid var(--line);
+}
+.vm-adm .vm-table td { padding: 14px 12px 14px 0; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--ink); }
+.vm-adm .vm-table tr:last-child td { border-bottom: 0; }
+.vm-adm .vm-table tbody tr:hover { background: var(--surface); }
+.vm-adm .vm-table .num { text-align: right; font-variant-numeric: tabular-nums; padding-right: 0; }
+
+/* --- status chips -------------------------------------------------------- */
+.vm-adm .vm-pill {
+    display: inline-block; padding: 3px 9px; border-radius: 4px;
+    font-size: 11px; font-weight: 700; letter-spacing: .02em; white-space: nowrap;
+}
+.vm-adm .p-pending    { background: #fdf3d8; color: #8a6d1f; }
+.vm-adm .p-processing { background: #e0edfb; color: #1f5b8a; }
+.vm-adm .p-shipped    { background: #e6e4f7; color: #443c8a; }
+.vm-adm .p-delivered  { background: rgba(22,163,74,.10); color: var(--ok); }
+.vm-adm .p-cancelled  { background: var(--err-tint); color: var(--err); }
+.vm-adm .p-returned   { background: #eceae5; color: var(--ink-faint); }
+
+/* --- misc ---------------------------------------------------------------- */
+.vm-adm .vm-link { color: var(--gold); font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; text-decoration: none; }
+.vm-adm .vm-link:hover { color: var(--ink); }
+.vm-adm .vm-empty { padding: 26px 0; text-align: center; color: var(--ink-faint); font-size: 13px; }
+.vm-adm .vm-list-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.vm-adm .vm-list-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.vm-adm .vm-list-row .grow { flex: 1; min-width: 0; }
+.vm-adm .vm-list-row .name { font-size: 13px; font-weight: 500; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vm-adm .vm-avatar {
+    width: 34px; height: 34px; border-radius: 999px; background: #f0eee9;
+    display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--gold); flex: 0 0 auto;
+}
+.vm-adm .vm-stars { color: var(--gold-tint); font-size: 12px; letter-spacing: 1px; }
+.vm-adm .vm-returns-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px; }
+@media (max-width: 991.98px) { .vm-adm .vm-returns-grid { grid-template-columns: repeat(2, 1fr); } }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Top Row -->
-<div class="row">
-    <!-- Best Seller / Achievement -->
-    <div class="col-xl-4 col-lg-6 mb-4">
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex align-items-start justify-content-between">
-                    <div>
-                        <h5 class="card-title mb-1">Top Selling Product</h5>
-                        <p class="text-muted mb-2">Highest sales overall</p>
-                        <h4 class="mb-1">₹{{ top_selling_sales|floatformat:2 }}</h4>
-                        <small class="text-muted">{{ top_selling_target_percent }}% of target • {{ top_selling_qty }} sold</small>
-                    </div>
-                    <div class="avatar avatar-xl">
-                        <span class="avatar-initial rounded bg-label-warning"><i class="bx bx-trophy"></i></span>
-                    </div>
-                </div>
-                <div class="mt-3">
-                    <span class="badge bg-label-primary">{{ top_selling_name|truncatewords:4 }}</span>
-                </div>
-                <a href="{% url 'admin_orders' %}" class="btn btn-sm btn-primary mt-3">View Sales</a>
-            </div>
+<div class="vm-adm">
+
+    <div class="vm-adm-head">
+        <div>
+            <p class="vm-label">VibeMall Atelier</p>
+            <h1>Dashboard</h1>
+        </div>
+        <a href="{% url 'admin_orders' %}" class="vm-link">View all orders &rarr;</a>
+    </div>
+
+    {% comment %}
+    BAND 1 - the four figures that answer "how is the shop doing".
+    Divided by hairlines rather than sitting in four separate cards, so the row
+    reads as one object instead of four competing tiles.
+    {% endcomment %}
+    <div class="vm-hero">
+        <div>
+            <p class="vm-label">Total Revenue</p>
+            <p class="vm-stat">&#8377;{{ total_revenue|floatformat:0 }}</p>
+            <span class="vm-chip {% if revenue_growth_percent >= 0 %}vm-chip--up{% else %}vm-chip--down{% endif %}">
+                {{ revenue_growth_percent }}% vs last period
+            </span>
+        </div>
+        <div>
+            <p class="vm-label">Orders</p>
+            <p class="vm-stat">{{ total_orders }}</p>
+            <span class="vm-chip {% if transactions_change_percent >= 0 %}vm-chip--up{% else %}vm-chip--down{% endif %}">
+                {{ transactions_change_percent }}% transactions
+            </span>
+        </div>
+        <div>
+            <p class="vm-label">Customers</p>
+            <p class="vm-stat">{{ total_users }}</p>
+            <span class="vm-chip vm-chip--flat">{{ total_products }} products &middot; {{ active_products }} active</span>
+        </div>
+        <div>
+            <p class="vm-label">Conversion Rate</p>
+            <p class="vm-stat">{{ conversion_rate }}%</p>
+            <span class="vm-chip vm-chip--flat">{{ purchased_count }} of {{ impressions_count }} views</span>
         </div>
     </div>
 
-    <!-- New Visitors -->
-    <div class="col-xl-4 col-lg-6 mb-4">
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex align-items-start justify-content-between mb-2">
+    {% comment %} BAND 2 - the year, with the money summary beside it. {% endcomment %}
+    <div class="vm-grid">
+        <div class="c8">
+            <div class="vm-card">
+                <div class="vm-card__head">
                     <div>
-                        <h6 class="mb-1">New Visitors</h6>
-                        <h3 class="mb-0" id="newVisitorsValue">{{ visitors_today_count }}</h3>
-                        <small class="text-muted" id="newVisitorsSubtitle">Today</small>
+                        <p class="vm-label">Income, Expense &amp; Profit</p>
+                        <p class="vm-body-sm" style="margin-top:4px;">Trailing twelve months</p>
                     </div>
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" id="newVisitorsRangeBtn" data-bs-toggle="dropdown" aria-expanded="false">
-                            Today
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="newVisitorsRangeBtn">
-                            <li><button class="dropdown-item" type="button" data-range="today">Today</button></li>
-                            <li><button class="dropdown-item" type="button" data-range="yesterday">Yesterday</button></li>
-                            <li><button class="dropdown-item" type="button" data-range="last_month">Last Month</button></li>
-                        </ul>
+                    <div style="text-align:right;">
+                        <p class="vm-label">Last 30 Days</p>
+                        <p class="vm-stat-sm">&#8377;{{ last_30_revenue|floatformat:0 }}</p>
                     </div>
                 </div>
-                <div id="newVisitorsChart" class="chart-sm"></div>
+                <div id="vmYearChart" style="min-height:300px;"></div>
             </div>
         </div>
-    </div>
+        <div class="c4">
+            <div class="vm-card" style="height:100%;">
+                <div class="vm-card__head">
+                    <p class="vm-label">Report</p>
+                    <span class="vm-chip {% if report_income_change >= 0 %}vm-chip--up{% else %}vm-chip--down{% endif %}">{{ report_income_change }}%</span>
+                </div>
+                <div class="vm-row"><span class="vm-body">Total Income</span><span class="vm-row__v">&#8377;{{ report_income|floatformat:0 }}</span></div>
+                <div class="vm-row"><span class="vm-body">Total Expense</span><span class="vm-row__v">&#8377;{{ report_expense|floatformat:0 }}</span></div>
+                <div class="vm-row"><span class="vm-body">Net Profit</span><span class="vm-row__v" style="color:var(--ok);">&#8377;{{ report_profit|floatformat:0 }}</span></div>
+                <div class="vm-row"><span class="vm-body">Profit (30 days)</span><span class="vm-row__v">&#8377;{{ profit_last_30|floatformat:0 }}</span></div>
+                <div class="vm-row"><span class="vm-body">Expenses (30 days)</span><span class="vm-row__v">&#8377;{{ expenses_last_30|floatformat:0 }}</span></div>
+                <div class="vm-row">
+                    <span class="vm-body">Sales today</span>
+                    <span class="vm-row__v">&#8377;{{ sales_today|floatformat:0 }}
+                        <span class="vm-chip {% if sales_change_percent >= 0 %}vm-chip--up{% else %}vm-chip--down{% endif %}" style="margin:0 0 0 6px;">{{ sales_change_percent }}%</span>
+                    </span>
+                </div>
+                <div class="vm-row"><span class="vm-body">Sales yesterday</span><span class="vm-row__v">&#8377;{{ sales_yesterday|floatformat:0 }}</span></div>
+                <div class="vm-row"><span class="vm-body">This month</span><span class="vm-row__v">&#8377;{{ monthly_revenue|floatformat:0 }}</span></div>
+                <div class="vm-row"><span class="vm-body">This week</span><span class="vm-row__v">&#8377;{{ weekly_revenue|floatformat:0 }}</span></div>
+                <div class="vm-row"><span class="vm-body">Last month</span><span class="vm-row__v">&#8377;{{ sales_last_month|floatformat:0 }}</span></div>
+                <div class="vm-row"><span class="vm-body">Last 6 months</span><span class="vm-row__v">&#8377;{{ sales_last_6_months|floatformat:0 }}</span></div>
 
-    <!-- Activity -->
-    <div class="col-xl-4 col-lg-6 mb-4">
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex align-items-start justify-content-between mb-2">
-                    <div>
-                        <h6 class="mb-1">Activity</h6>
-                        <h3 class="mb-0">{{ activity_weekly_percent }}%</h3>
-                        <small class="text-muted">Last week</small>
+                <div style="margin-top:22px;">
+                    <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                        <p class="vm-label">Sales Target</p>
+                        <span class="vm-row__v">{{ sales_target_percent }}%</span>
                     </div>
-                    <div class="badge bg-label-success">Week</div>
-                </div>
-                <div id="activityChart" class="chart-sm"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- KPI Row -->
-<div class="row">
-    <div class="col-xl-3 col-lg-6 mb-4">
-        <div class="card sales-card">
-            <div class="card-body sales-card-body">
-                <div class="d-flex align-items-start justify-content-between">
-                    <div class="d-flex align-items-center">
-                        <div class="avatar me-3">
-                            <span class="avatar-initial rounded bg-label-primary"><i class="bx bx-cart"></i></span>
-                        </div>
-                        <div>
-                            <p class="mb-1">Sales</p>
-                            <h4 class="mb-0" id="salesValue">₹{{ sales_today|floatformat:0 }}</h4>
-                            <small class="text-muted" id="salesSubtitle">Today</small>
-                        </div>
-                    </div>
-                    <div class="dropdown sales-range-dropdown">
-                        <button class="btn btn-sm btn-outline-primary dropdown-toggle sales-range-btn" type="button" id="salesRangeBtn" data-bs-toggle="dropdown" aria-expanded="false">
-                            Today
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="salesRangeBtn">
-                            <li><button class="dropdown-item" type="button" data-range="today">Today</button></li>
-                            <li><button class="dropdown-item" type="button" data-range="yesterday">Yesterday</button></li>
-                            <li><button class="dropdown-item" type="button" data-range="last_month">Last Month</button></li>
-                            <li><button class="dropdown-item" type="button" data-range="last_6_months">Last 6 Months</button></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-lg-6 mb-4">
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex align-items-start justify-content-between mb-2">
-                    <div>
-                        <p class="mb-1">Profit</p>
-                        <h4 class="mb-0">₹{{ profit_last_30|floatformat:0 }}</h4>
-                    </div>
-                </div>
-                <div id="profitChart" class="chart-sm"></div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-lg-6 mb-4">
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <p class="mb-1">Expenses</p>
-                        <h4 class="mb-0">{{ expenses_percent }}%</h4>
-                        <small class="text-muted">₹{{ expenses_last_30|floatformat:0 }}</small>
-                    </div>
-                    <div id="expensesChart" class="chart-xs"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-lg-6 mb-4">
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="avatar me-3">
-                        <span class="avatar-initial rounded bg-label-warning"><i class="bx bx-transfer"></i></span>
-                    </div>
-                    <div>
-                        <p class="mb-1">Transactions</p>
-                        <h4 class="mb-0">{{ transactions_last_30 }}</h4>
-                        <small class="text-{% if transactions_change_percent >= 0 %}success{% else %}danger{% endif %}">
-                            {% if transactions_change_percent >= 0 %}+{% endif %}{{ transactions_change_percent }}%
-                        </small>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Return Analytics Row -->
-<div class="row">
-    <div class="col-md-12 mb-3">
-        <div class="d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">📊 Return Analytics</h5>
-            <a href="{% url 'admin_return_analytics' %}" class="btn btn-sm btn-primary">
-                <i class="bx bx-bar-chart"></i> View Full Analytics
-            </a>
-        </div>
-    </div>
-    <div class="col-xl-2 col-lg-4 col-md-6 mb-4">
-        <div class="card stat-card">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="avatar me-3">
-                        <span class="avatar-initial rounded bg-label-info"><i class="bx bx-undo"></i></span>
-                    </div>
-                    <div>
-                        <p class="mb-1 small">Total Returns</p>
-                        <h4 class="mb-0">{{ total_returns }}</h4>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-2 col-lg-4 col-md-6 mb-4">
-        <div class="card stat-card">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="avatar me-3">
-                        <span class="avatar-initial rounded bg-label-warning"><i class="bx bx-time"></i></span>
-                    </div>
-                    <div>
-                        <p class="mb-1 small">Pending</p>
-                        <h4 class="mb-0">{{ pending_returns }}</h4>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
-        <div class="card stat-card">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="avatar me-3">
-                        <span class="avatar-initial rounded bg-label-danger"><i class="bx bx-money"></i></span>
-                    </div>
-                    <div>
-                        <p class="mb-1 small">Refunded</p>
-                        <h4 class="mb-0">₹{{ total_refund_amount|floatformat:0 }}</h4>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-2 col-lg-4 col-md-6 mb-4">
-        <div class="card stat-card">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="avatar me-3">
-                        <span class="avatar-initial rounded bg-label-primary"><i class="bx bx-trending-up"></i></span>
-                    </div>
-                    <div>
-                        <p class="mb-1 small">Last 7 Days</p>
-                        <h4 class="mb-0">{{ returns_last_7 }}</h4>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
-        <div class="card stat-card">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="avatar me-3">
-                        <span class="avatar-initial rounded bg-label-success"><i class="bx bx-percentage"></i></span>
-                    </div>
-                    <div>
-                        <p class="mb-1 small">Return Rate</p>
-                        <h4 class="mb-0">{{ return_rate }}%</h4>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Total Income + Report -->
-<div class="row">
-    <div class="col-xl-8 mb-4">
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div>
-                        <h5 class="mb-1">Total Income</h5>
-                        <small class="text-muted">Yearly report overview</small>
-                    </div>
-                </div>
-                <div id="totalIncomeChart" class="chart-lg"></div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-4 mb-4">
-        <div class="card">
-            <div class="card-body">
-                <h6 class="mb-3">Report</h6>
-                <div class="d-flex align-items-center justify-content-between mb-3">
-                    <div class="d-flex align-items-center">
-                        <span class="badge bg-label-primary p-2 me-2"><i class="bx bx-wallet"></i></span>
-                        <div>
-                            <small class="text-muted">Income</small>
-                            <h6 class="mb-0">₹{{ report_income|floatformat:0 }}</h6>
-                        </div>
-                    </div>
-                    <small class="text-success">+{{ report_income_change }}%</small>
-                </div>
-                <div class="d-flex align-items-center justify-content-between mb-3">
-                    <div class="d-flex align-items-center">
-                        <span class="badge bg-label-danger p-2 me-2"><i class="bx bx-trending-down"></i></span>
-                        <div>
-                            <small class="text-muted">Expense</small>
-                            <h6 class="mb-0">₹{{ report_expense|floatformat:0 }}</h6>
-                        </div>
-                    </div>
-                    <small class="text-danger">-{{ expenses_percent }}%</small>
-                </div>
-                <div class="d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center">
-                        <span class="badge bg-label-success p-2 me-2"><i class="bx bx-trending-up"></i></span>
-                        <div>
-                            <small class="text-muted">Profit</small>
-                            <h6 class="mb-0">₹{{ report_profit|floatformat:0 }}</h6>
-                        </div>
-                    </div>
-                    <small class="text-success">+{{ report_income_change }}%</small>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Order Statistics + Finance Tabs + Transactions -->
-<div class="row">
-    <!-- Order Statistics -->
-    <div class="col-xl-4 mb-4">
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="mb-1">Order Statistics</h6>
-                        <small class="text-muted">{{ total_sales_count }} Total Sales</small>
-                    </div>
-                    <div class="dropdown">
-                        <button class="btn p-0" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <i class="bx bx-dots-vertical-rounded"></i>
-                        </button>
-                        <div class="dropdown-menu dropdown-menu-end">
-                            <a class="dropdown-item" href="{% url 'admin_orders' %}">View Orders</a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="d-flex align-items-center justify-content-between mt-3">
-                    <div>
-                        <h3 class="mb-0">{{ total_orders }}</h3>
-                        <small class="text-muted">Total Orders</small>
-                    </div>
-                    <div id="orderStatisticsRadial" class="chart-sm"></div>
+                    <div class="vm-bar"><span style="width:{{ sales_target_percent }}%;"></span></div>
+                    <p class="vm-body-sm" style="margin-top:8px;">Target &#8377;{{ sales_target|floatformat:0 }}</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Finance Tabs -->
-    <div class="col-xl-4 mb-4">
-        <div class="card">
-            <div class="card-body">
-                <ul class="nav nav-pills mb-3" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#finance-income" type="button" role="tab">Income</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#finance-expenses" type="button" role="tab">Expenses</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#finance-profit" type="button" role="tab">Profit</button>
-                    </li>
-                </ul>
-                <div class="tab-content">
-                    <div class="tab-pane fade show active" id="finance-income" role="tabpanel">
-                        <div class="d-flex align-items-center mb-2">
-                            <span class="badge bg-label-primary p-2 me-2"><i class="bx bx-wallet"></i></span>
-                            <div>
-                                <small class="text-muted">Total Balance</small>
-                                <div class="fw-semibold">₹{{ total_revenue|floatformat:2 }}</div>
-                            </div>
-                        </div>
-                        <div id="financeChart" class="chart-md"></div>
-                    </div>
-                    <div class="tab-pane fade" id="finance-expenses" role="tabpanel">
-                        <div class="d-flex align-items-center mb-2">
-                            <span class="badge bg-label-danger p-2 me-2"><i class="bx bx-trending-down"></i></span>
-                            <div>
-                                <small class="text-muted">Total Expenses</small>
-                                <div class="fw-semibold">₹{{ expenses_last_30|floatformat:2 }}</div>
-                            </div>
-                        </div>
-                        <div id="financeExpenseChart" class="chart-md"></div>
-                    </div>
-                    <div class="tab-pane fade" id="finance-profit" role="tabpanel">
-                        <div class="d-flex align-items-center mb-2">
-                            <span class="badge bg-label-success p-2 me-2"><i class="bx bx-trending-up"></i></span>
-                            <div>
-                                <small class="text-muted">Total Profit</small>
-                                <div class="fw-semibold">₹{{ profit_last_30|floatformat:2 }}</div>
-                            </div>
-                        </div>
-                        <div id="financeProfitChart" class="chart-md"></div>
-                    </div>
+    {% comment %} BAND 3 - operations: where orders are, where shoppers drop off, who visits. {% endcomment %}
+    <div class="vm-grid">
+        <div class="c4">
+            <div class="vm-card" style="height:100%;">
+                <div class="vm-card__head"><p class="vm-label">Order Pipeline</p><span class="vm-body-sm">{{ total_orders }} total</span></div>
+                {% widthratio pending_orders total_orders 100 as pct_pending %}
+                {% widthratio processing_orders total_orders 100 as pct_processing %}
+                {% widthratio shipped_orders total_orders 100 as pct_shipped %}
+                {% widthratio delivered_orders total_orders 100 as pct_delivered %}
+                <div class="vm-seg">
+                    <span style="width:{{ pct_pending }}%;background:#e0c76b;"></span>
+                    <span style="width:{{ pct_processing }}%;background:#7aa7d0;"></span>
+                    <span style="width:{{ pct_shipped }}%;background:#8f86c9;"></span>
+                    <span style="width:{{ pct_delivered }}%;background:#16a34a;"></span>
                 </div>
+                <div class="vm-seg-key">
+                    <div><i class="vm-dot" style="background:#e0c76b;"></i><span class="vm-body-sm">Pending</span><b class="vm-num">{{ pending_orders }}</b></div>
+                    <div><i class="vm-dot" style="background:#7aa7d0;"></i><span class="vm-body-sm">Processing</span><b class="vm-num">{{ processing_orders }}</b></div>
+                    <div><i class="vm-dot" style="background:#8f86c9;"></i><span class="vm-body-sm">Shipped</span><b class="vm-num">{{ shipped_orders }}</b></div>
+                    <div><i class="vm-dot" style="background:#16a34a;"></i><span class="vm-body-sm">Delivered</span><b class="vm-num">{{ delivered_orders }}</b></div>
+                </div>
+                <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
+                    <div id="vmOrdersRadial" style="min-height:130px;"></div>
+                    <div class="vm-row"><span class="vm-body">Orders this week</span><span class="vm-row__v">{{ weekly_orders }}</span></div>
+                    <div class="vm-row"><span class="vm-body">Units sold</span><span class="vm-row__v">{{ total_sales_count }}</span></div>
+                </div>
+            </div>
+        </div>
 
-                <div class="d-flex align-items-center justify-content-between mt-3">
-                    <div class="d-flex align-items-center">
-                        <div id="weeklyExpenseRadial" class="chart-xs me-2"></div>
-                        <div>
-                            <div class="fw-semibold">Expenses This Week</div>
-                            <small class="text-muted">₹{{ weekly_expense|floatformat:0 }} · {{ weekly_expense_percent }}%</small>
-                        </div>
-                    </div>
+        <div class="c4">
+            <div class="vm-card" style="height:100%;">
+                <div class="vm-card__head"><p class="vm-label">Conversion Funnel</p><span class="vm-body-sm">{{ conversion_rate }}%</span></div>
+
+                <div class="vm-funnel__step">
+                    <div class="vm-funnel__track"><div class="vm-funnel__fill" style="width:100%;"></div></div>
+                    <span class="vm-funnel__n">{{ impressions_count }}</span>
+                </div>
+                <p class="vm-body-sm vm-funnel__cap">Impressions</p>
+
+                <div class="vm-funnel__step">
+                    <div class="vm-funnel__track"><div class="vm-funnel__fill" style="width:{% widthratio cart_count impressions_count 100 %}%;"></div></div>
+                    <span class="vm-funnel__n">{{ cart_count }}</span>
+                </div>
+                <p class="vm-body-sm vm-funnel__cap">Added to cart</p>
+
+                <div class="vm-funnel__step">
+                    <div class="vm-funnel__track"><div class="vm-funnel__fill" style="width:{% widthratio checkout_count impressions_count 100 %}%;"></div></div>
+                    <span class="vm-funnel__n">{{ checkout_count }}</span>
+                </div>
+                <p class="vm-body-sm vm-funnel__cap">Reached checkout</p>
+
+                <div class="vm-funnel__step">
+                    <div class="vm-funnel__track"><div class="vm-funnel__fill" style="width:{% widthratio purchased_count impressions_count 100 %}%;background:var(--gold);"></div></div>
+                    <span class="vm-funnel__n">{{ purchased_count }}</span>
+                </div>
+                <p class="vm-body-sm vm-funnel__cap" style="margin-bottom:0;">Purchased</p>
+            </div>
+        </div>
+
+        <div class="c4">
+            <div class="vm-card" style="height:100%;">
+                <div class="vm-card__head">
+                    <p class="vm-label">New Visitors</p>
+                    <span class="vm-chip {% if visitors_weekly_percent >= 0 %}vm-chip--up{% else %}vm-chip--down{% endif %}">{{ visitors_weekly_percent }}%</span>
+                </div>
+                <p class="vm-stat-sm">{{ visitors_today_count }}</p>
+                <p class="vm-body-sm">today</p>
+                <div id="vmVisitorsChart" style="min-height:110px;margin-top:6px;"></div>
+                <div class="vm-row"><span class="vm-body">Yesterday</span><span class="vm-row__v">{{ visitors_yesterday_count }}</span></div>
+                <div class="vm-row"><span class="vm-body">Last month</span><span class="vm-row__v">{{ visitors_last_month_count }}</span></div>
+                <div class="vm-row"><span class="vm-body">Activity this week</span><span class="vm-row__v">{{ activity_weekly_percent }}%</span></div>
+                <div id="vmActivityChart" style="min-height:70px;"></div>
+            </div>
+        </div>
+    </div>
+
+    {% comment %}
+    BAND 4 - returns get their own tinted band. They used to sit among the other
+    tiles, which is the wrong weight for the number that quietly eats margin.
+    {% endcomment %}
+    <div class="vm-grid">
+        <div class="c12">
+            <div class="vm-card vm-card--alert">
+                <div class="vm-card__head" style="border-color:#f0c9c4;">
+                    <p class="vm-label" style="color:var(--err);">Returns &amp; Refunds</p>
+                    <a href="{% url 'admin_returns' %}" class="vm-link">Manage returns &rarr;</a>
+                </div>
+                <div class="vm-returns-grid">
+                    <div><p class="vm-label">Total Returns</p><p class="vm-stat-sm">{{ total_returns }}</p></div>
+                    <div><p class="vm-label">Pending</p><p class="vm-stat-sm" style="color:var(--warn);">{{ pending_returns }}</p></div>
+                    <div><p class="vm-label">Refunded</p><p class="vm-stat-sm">&#8377;{{ total_refund_amount|floatformat:0 }}</p></div>
+                    <div><p class="vm-label">Last 7 Days</p><p class="vm-stat-sm">{{ returns_last_7 }}</p></div>
+                    <div><p class="vm-label">Return Rate</p><p class="vm-stat-sm" style="color:var(--err);">{{ return_rate }}%</p></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Transactions -->
-    <div class="col-xl-4 mb-4">
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <h6 class="mb-0">Transactions</h6>
-                    <div class="dropdown">
-                        <button class="btn p-0" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <i class="bx bx-dots-vertical-rounded"></i>
-                        </button>
-                        <div class="dropdown-menu dropdown-menu-end">
-                            <a class="dropdown-item" href="{% url 'admin_orders' %}">View All</a>
-                        </div>
-                    </div>
+    {% comment %} BAND 5 - the working lists. {% endcomment %}
+    <div class="vm-grid">
+        <div class="c8">
+            <div class="vm-card">
+                <div class="vm-card__head">
+                    <p class="vm-label">Recent Orders</p>
+                    <span class="vm-body-sm">{{ recent_order_items|length }} recent items</span>
+                    <a href="{% url 'admin_orders' %}" class="vm-link">View all</a>
                 </div>
-
-                <ul class="list-unstyled mb-0">
-                    {% for tx in recent_transactions %}
-                    <li class="d-flex align-items-center justify-content-between mb-3">
-                        <div class="d-flex align-items-center">
-                            <span class="badge bg-label-primary me-2" style="width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px;">
-                                <i class="bx bx-credit-card"></i>
-                            </span>
-                            <div>
-                                <div class="fw-semibold">{{ tx.method }}</div>
-                                <small class="text-muted">{{ tx.label }}</small>
-                            </div>
-                        </div>
-                        <span class="fw-semibold {% if tx.status == 'PAID' %}text-success{% else %}text-danger{% endif %}">
-                            {% if tx.status == 'PAID' %}+{% else %}-{% endif %}₹{{ tx.amount|floatformat:2 }}
-                        </span>
-                    </li>
+                <table class="vm-table">
+                    <thead>
+                        <tr><th>Order</th><th>Customer</th><th>Status</th><th>Payment</th><th class="num">Amount</th><th class="num">Date</th></tr>
+                    </thead>
+                    <tbody>
+                    {% for order in recent_orders %}
+                        <tr>
+                            <td><a href="{% url 'admin_order_details' order.id %}" style="color:var(--ink);font-weight:600;text-decoration:none;">{{ order.order_number }}</a></td>
+                            <td>{{ order.user.get_full_name|default:order.user.username }}</td>
+                            <td><span class="vm-pill p-{{ order.order_status|lower }}">{{ order.get_order_status_display }}</span></td>
+                            <td><span class="vm-body-sm">{{ order.get_payment_method_display }}</span></td>
+                            <td class="num">&#8377;{{ order.total_amount|floatformat:0 }}</td>
+                            <td class="num"><span class="vm-body-sm">{{ order.created_at|date:"d M" }}</span></td>
+                        </tr>
                     {% empty %}
-                    <li class="text-muted">No transactions</li>
+                        <tr><td colspan="6"><p class="vm-empty">No orders yet.</p></td></tr>
                     {% endfor %}
-                </ul>
+                    </tbody>
+                </table>
             </div>
-        </div>
-    </div>
-</div>
 
-<!-- Performance + Conversion + Revenue + Target -->
-<div class="row">
-    <div class="col-xl-4 mb-4">
-        <div class="card">
-            <div class="card-body">
-                <h6 class="mb-3">Performance</h6>
-                <div id="performanceChart" class="chart-md"></div>
+            <div class="vm-card" style="margin-top:24px;">
+                <div class="vm-card__head">
+                    <p class="vm-label">Performance</p>
+                    <span class="vm-body-sm">Income, profit and sales by month</span>
+                </div>
+                <div id="vmPerformanceChart" style="min-height:260px;"></div>
+            </div>
+
+            {% comment %}
+            Finance and daily sales. These were separate tiles before; they sit
+            together here because they answer the same question at two zoom
+            levels - the week in detail, the period in aggregate.
+            {% endcomment %}
+            <div class="vm-card" style="margin-top:24px;">
+                <div class="vm-card__head">
+                    <p class="vm-label">Finance</p>
+                    <span class="vm-body-sm">Weekly expense {{ weekly_expense_percent }}% &middot; &#8377;{{ weekly_expense|floatformat:0 }}</span>
+                </div>
+                <div id="vmFinanceChart" style="min-height:220px;"></div>
+                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:0 24px;margin-top:8px;">
+                    <div class="vm-row"><span class="vm-body">Expenses used</span><span class="vm-row__v">{{ expenses_percent }}%</span></div>
+                    <div class="vm-row"><span class="vm-body">Remaining</span><span class="vm-row__v">{{ expenses_remaining_percent }}%</span></div>
+                </div>
+            </div>
+
+            <div class="vm-card" style="margin-top:24px;">
+                <div class="vm-card__head"><p class="vm-label">Daily Sales</p><span class="vm-body-sm">Last 7 days</span></div>
+                <div id="vmDailySalesChart" style="min-height:150px;"></div>
             </div>
         </div>
-    </div>
-    <div class="col-xl-4 mb-4">
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h6 class="mb-1">Conversion Rate</h6>
-                        <h4 class="mb-0">{{ conversion_rate }}%</h4>
-                        <small class="text-muted">Compared to last month</small>
+
+        <div class="c4">
+            <div class="vm-card">
+                <div class="vm-card__head"><p class="vm-label">Top Selling</p><span class="vm-body-sm">{{ top_selling_qty }} units</span></div>
+                <p class="vm-body" style="font-weight:600;color:var(--ink);">{{ top_selling_name|default:"No sales yet" }}</p>
+                <p class="vm-stat-sm">&#8377;{{ top_selling_sales|floatformat:0 }}</p>
+                <div class="vm-bar"><span style="width:{{ top_selling_target_percent }}%;"></span></div>
+                <p class="vm-body-sm" style="margin-top:8px;">{{ top_selling_target_percent }}% of target</p>
+            </div>
+
+            <div class="vm-card" style="margin-top:24px;">
+                <div class="vm-card__head"><p class="vm-label">Top Products</p><a href="{% url 'admin_product_list' %}" class="vm-link">All</a></div>
+                {% for product in top_products %}
+                    <div class="vm-list-row">
+                        <div class="vm-avatar">{{ forloop.counter }}</div>
+                        <div class="grow">
+                            <div class="name">{{ product.name }}</div>
+                            <span class="vm-body-sm">{{ product.sold }} sold</span>
+                        </div>
+                        <span class="vm-row__v">&#8377;{{ product.price|floatformat:0 }}</span>
                     </div>
-                </div>
-                <div id="conversionChart" class="chart-sm mt-3"></div>
-                <ul class="list-unstyled mt-3 mb-0">
-                    <li class="d-flex justify-content-between mb-2"><span>Impressions</span><span>{{ impressions_count }}</span></li>
-                    <li class="d-flex justify-content-between mb-2"><span>Added to Cart</span><span>{{ cart_count }}</span></li>
-                    <li class="d-flex justify-content-between mb-2"><span>Checkout</span><span>{{ checkout_count }}</span></li>
-                    <li class="d-flex justify-content-between"><span>Purchased</span><span>{{ purchased_count }}</span></li>
-                </ul>
+                {% empty %}
+                    <p class="vm-empty">No sales yet.</p>
+                {% endfor %}
             </div>
-        </div>
-    </div>
-    <div class="col-xl-2 col-md-6 mb-4">
-        <div class="card">
-            <div class="card-body">
-                <h6 class="mb-1">Revenue</h6>
-                <h4 class="mb-0">₹{{ total_revenue|floatformat:0 }}</h4>
-                <small class="text-{% if revenue_growth_percent >= 0 %}success{% else %}danger{% endif %}">
-                    {% if revenue_growth_percent >= 0 %}+{% endif %}{{ revenue_growth_percent }}%
-                </small>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-2 col-md-6 mb-4">
-        <div class="card">
-            <div class="card-body">
-                <h6 class="mb-1">Sales Target</h6>
-                <h4 class="mb-2">₹{{ sales_target|floatformat:0 }}</h4>
-                <div class="progress" style="height: 6px;">
-                    <div class="progress-bar bg-primary" style="width: {{ sales_target_percent }}%"></div>
-                </div>
-                <small class="text-muted">{{ sales_target_percent }}% achieved</small>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Expenses Yearly + Controls -->
-<div class="row">
-    <div class="col-xl-8 mb-4">
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="mb-0">Yearly Summary</h6>
-                    <div class="d-flex align-items-center gap-2">
-                        <select id="yearlyMetricSelect" class="form-select form-select-sm" style="width: 150px;">
-                            <option value="total_sales" selected>Total Sale</option>
-                            <option value="profit">Profit</option>
-                        </select>
-                        <span class="badge bg-label-secondary">{% now "Y" %}</span>
+            <div class="vm-card" style="margin-top:24px;">
+                <div class="vm-card__head"><p class="vm-label">Low Stock</p><a href="{% url 'admin_product_list' %}" class="vm-link">All</a></div>
+                {% for product in low_stock_products %}
+                    <div class="vm-list-row">
+                        <div class="grow"><div class="name">{{ product.name }}</div></div>
+                        <span class="vm-pill {% if product.stock == 0 %}p-cancelled{% else %}p-pending{% endif %}">{{ product.stock }} left</span>
                     </div>
-                </div>
-                <div id="expensesYearlyChart" class="chart-lg"></div>
+                {% empty %}
+                    <p class="vm-empty">Every product is well stocked.</p>
+                {% endfor %}
+            </div>
+
+            <div class="vm-card" style="margin-top:24px;">
+                <div class="vm-card__head"><p class="vm-label">Recent Reviews</p></div>
+                {% for review in recent_reviews %}
+                    <div class="vm-list-row">
+                        <div class="grow">
+                            <div class="name">{{ review.product.name }}</div>
+                            <span class="vm-stars">{% for star in "12345"|make_list %}{% if forloop.counter <= review.rating %}&#9733;{% else %}&#9734;{% endif %}{% endfor %}</span>
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="vm-empty">No reviews yet.</p>
+                {% endfor %}
+            </div>
+
+            <div class="vm-card" style="margin-top:24px;">
+                <div class="vm-card__head"><p class="vm-label">Recent Customers</p></div>
+                {% for customer in recent_customers %}
+                    <div class="vm-list-row">
+                        <div class="vm-avatar">{{ customer.username|first|upper }}</div>
+                        <div class="grow">
+                            <div class="name">{{ customer.get_full_name|default:customer.username }}</div>
+                            <span class="vm-body-sm">{{ customer.date_joined|date:"d M Y" }}</span>
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="vm-empty">No customers yet.</p>
+                {% endfor %}
+            </div>
+
+            <div class="vm-card" style="margin-top:24px;">
+                <div class="vm-card__head"><p class="vm-label">Transactions</p><span class="vm-body-sm">{{ transactions_last_30 }} in 30d</span></div>
+                {% for tx in recent_transactions %}
+                    <div class="vm-list-row">
+                        <div class="grow">
+                            <div class="name">{{ tx.label }}</div>
+                            <span class="vm-body-sm">{{ tx.method }}</span>
+                        </div>
+                        <span class="vm-row__v">&#8377;{{ tx.amount|floatformat:0 }}</span>
+                    </div>
+                {% empty %}
+                    <p class="vm-empty">No transactions yet.</p>
+                {% endfor %}
             </div>
         </div>
     </div>
-    <div class="col-xl-4 mb-4"></div>
-</div>
 
-<!-- Recent Orders Table (Image Layout) -->
-<div class="row">
-    <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table align-middle">
-                        <thead>
-                            <tr class="text-uppercase text-muted" style="font-size: 12px; letter-spacing: .04em;">
-                                <th>Products</th>
-                                <th>Order #</th>
-                                <th>Payment</th>
-                                <th>Order Status</th>
-                                <th class="text-end">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for order in recent_order_items %}
-                            <tr>
-                                <td>
-                                    <div class="d-flex flex-column gap-1">
-                                        {% for item in order.items.all|slice:":2" %}
-                                        <div class="d-flex align-items-center">
-                                            {% if item.product_image %}
-                                                <img src="{{ item.product_image }}" alt="{{ item.product_name }}" class="me-2" style="width: 36px; height: 36px; object-fit: cover; border-radius: 6px;">
-                                            {% else %}
-                                                <div class="me-2" style="width: 36px; height: 36px; border-radius: 6px; background: #eef2ff; display: grid; place-items: center;">
-                                                    <i class="bx bx-package"></i>
-                                                </div>
-                                            {% endif %}
-                                            <div>
-                                                <div class="fw-semibold" style="font-size: 13px;">{{ item.product_name|truncatewords:3 }}</div>
-                                                <small class="text-muted">₹{{ item.product_price }}</small>
-                                            </div>
-                                        </div>
-                                        {% endfor %}
-                                        {% if order.items.count > 2 %}
-                                        <small class="text-muted ms-5">+{{ order.items.count|add:"-2" }} more</small>
-                                        {% endif %}
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="fw-semibold">#{{ order.order_number }}</div>
-                                    <small class="text-muted">{{ order.user.get_full_name|default:order.user.username }}</small>
-                                </td>
-                                <td>
-                                    <div class="fw-semibold">₹{{ order.total_amount|floatformat:0 }}</div>
-                                    <small class="text-muted">
-                                        {% if order.payment_status == 'PAID' %}
-                                            Fully Paid
-                                        {% elif order.payment_method == 'COD' and order.order_status == 'DELIVERED' %}
-                                            Fully Paid
-                                        {% elif order.payment_status == 'REFUNDED' %}
-                                            Refunded
-                                        {% else %}
-                                            Unpaid
-                                        {% endif %}
-                                    </small>
-                                </td>
-                                <td>
-                                    {% with latest_return=order.return_requests.first %}
-                                        {% if latest_return %}
-                                        <span class="badge d-inline-flex align-items-center
-                                            {% if latest_return.status == 'REQUESTED' %}bg-label-warning
-                                            {% elif latest_return.status == 'APPROVED' %}bg-label-info
-                                            {% elif latest_return.status == 'PICKUP_SCHEDULED' %}bg-label-primary
-                                            {% elif latest_return.status == 'RECEIVED' %}bg-label-info
-                                            {% elif latest_return.status == 'UNABLE_TO_REACH' %}bg-label-danger
-                                            {% elif latest_return.status == 'RESCHEDULED' %}bg-label-warning
-                                            {% elif latest_return.status == 'QC_PENDING' %}bg-label-warning
-                                            {% elif latest_return.status == 'QC_PASSED' %}bg-label-success
-                                            {% elif latest_return.status == 'QC_FAILED' %}bg-label-danger
-                                            {% elif latest_return.status == 'REFUND_PENDING' %}bg-label-info
-                                            {% elif latest_return.status == 'WRONG_RETURN' %}bg-label-danger
-                                            {% elif latest_return.status == 'REFUNDED' %}bg-label-success
-                                            {% elif latest_return.status == 'REPLACED' %}bg-label-success
-                                            {% elif latest_return.status == 'REJECTED' %}bg-label-danger
-                                            {% elif latest_return.status == 'CANCELLED' %}bg-label-secondary
-                                            {% else %}bg-label-secondary{% endif %}">
-                                            {{ latest_return.get_status_display }}
-                                        </span>
-                                        {% else %}
-                                        <span class="badge 
-                                            {% if order.order_status == 'DELIVERED' %}bg-label-success
-                                            {% elif order.order_status == 'SHIPPED' %}bg-label-info
-                                            {% elif order.order_status == 'PROCESSING' %}bg-label-primary
-                                            {% elif order.order_status == 'CANCELLED' %}bg-label-danger
-                                            {% else %}bg-label-warning{% endif %}">
-                                            {{ order.order_status|title }}
-                                        </span>
-                                        {% endif %}
-                                    {% endwith %}
-                                </td>
-                                <td class="text-end">
-                                    <div class="dropdown">
-                                        <button class="btn p-0" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                            <i class="bx bx-dots-vertical-rounded"></i>
-                                        </button>
-                                        <div class="dropdown-menu dropdown-menu-end">
-                                            <a class="dropdown-item" href="{% url 'admin_order_details' order.id %}">View</a>
-                                            <a class="dropdown-item" href="{% url 'admin_orders' %}">All Orders</a>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="5" class="text-center text-muted py-4">No recent orders found</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
-
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'admin/assets/vendor/libs/apex-charts/apexcharts.js' %}"></script>
 <script>
-'use strict';
-
 (function () {
-    const colors = {
-        primary: '#696cff',
-        success: '#71dd37',
-        info: '#03c3ec',
-        warning: '#ffab00',
-        danger: '#ff3e1d',
-        axis: '#a1acb8'
+    if (typeof ApexCharts === 'undefined') { return; }
+
+    /* Tokens repeated from the stylesheet so the charts and the page cannot
+       drift apart when either is edited. */
+    var INK = '#171818', GOLD = '#6f5c37', TINT = '#dcc397',
+        LINE = '#e6e2da', FAINT = '#747878';
+
+    var base = {
+        chart: { toolbar: { show: false }, fontFamily: 'Manrope, sans-serif', animations: { enabled: false } },
+        grid: { borderColor: LINE, strokeDashArray: 0 },
+        dataLabels: { enabled: false },
+        tooltip: { theme: 'light' },
+        legend: { fontSize: '12px', labels: { colors: FAINT }, markers: { width: 8, height: 8, radius: 2 } }
     };
-
-    const monthLabels = [
-        {% for label in month_labels %}'{{ label }}'{% if not forloop.last %},{% endif %}{% endfor %}
-    ];
-    const incomeSeries = [
-        {% for val in income_yearly_series %}{{ val }}{% if not forloop.last %},{% endif %}{% endfor %}
-    ];
-    const expenseSeries = [
-        {% for val in expense_yearly_series %}{{ val }}{% if not forloop.last %},{% endif %}{% endfor %}
-    ];
-    const profitYearlySeries = [
-        {% for val in profit_yearly_series %}{{ val }}{% if not forloop.last %},{% endif %}{% endfor %}
-    ];
-    const visitorsSeries = [
-        {% for val in visitors_weekly_series %}{{ val }}{% if not forloop.last %},{% endif %}{% endfor %}
-    ];
-    const visitorsTodaySeries = [
-        {% for val in visitors_today_series %}{{ val }}{% if not forloop.last %},{% endif %}{% endfor %}
-    ];
-    const visitorsYesterdaySeries = [
-        {% for val in visitors_yesterday_series %}{{ val }}{% if not forloop.last %},{% endif %}{% endfor %}
-    ];
-    const visitorsLastMonthSeries = [
-        {% for val in visitors_last_month_series %}{{ val }}{% if not forloop.last %},{% endif %}{% endfor %}
-    ];
-    const activitySeries = [
-        {% for val in activity_weekly_series %}{{ val }}{% if not forloop.last %},{% endif %}{% endfor %}
-    ];
-    const perfLabels = [
-        {% for label in perf_month_labels %}'{{ label }}'{% if not forloop.last %},{% endif %}{% endfor %}
-    ];
-    const perfIncomeSeries = [
-        {% for val in perf_income_series %}{{ val }}{% if not forloop.last %},{% endif %}{% endfor %}
-    ];
-    const perfProfitSeries = [
-        {% for val in perf_profit_series %}{{ val }}{% if not forloop.last %},{% endif %}{% endfor %}
-    ];
-    const perfSalesSeries = [
-        {% for val in perf_sales_series %}{{ val }}{% if not forloop.last %},{% endif %}{% endfor %}
-    ];
-    const financeLabels = [
-        {% for label in finance_labels %}'{{ label }}'{% if not forloop.last %},{% endif %}{% endfor %}
-    ];
-    const financeIncomeSeries = [
-        {% for val in finance_income_series %}{{ val }}{% if not forloop.last %},{% endif %}{% endfor %}
-    ];
-    const financeExpenseSeries = [
-        {% for val in finance_expense_series %}{{ val }}{% if not forloop.last %},{% endif %}{% endfor %}
-    ];
-    const financeProfitSeries = [
-        {% for val in finance_profit_series %}{{ val }}{% if not forloop.last %},{% endif %}{% endfor %}
-    ];
-
-    const salesRangeData = {
-        today: { value: {{ sales_today }}, label: 'Today' },
-        yesterday: { value: {{ sales_yesterday }}, label: 'Yesterday' },
-        last_month: { value: {{ sales_last_month }}, label: 'Last Month' },
-        last_6_months: { value: {{ sales_last_6_months }}, label: 'Last 6 Months' }
-    };
-
-    const visitorsRangeData = {
-        today: { series: visitorsTodaySeries, value: {{ visitors_today_count }}, label: 'Today' },
-        yesterday: { series: visitorsYesterdaySeries, value: {{ visitors_yesterday_count }}, label: 'Yesterday' },
-        last_month: { series: visitorsLastMonthSeries, value: {{ visitors_last_month_count }}, label: 'Last Month' }
-    };
-
-    // New Visitors (bar)
-    const newVisitorsChartEl = document.querySelector('#newVisitorsChart');
-    if (newVisitorsChartEl) {
-        const newVisitorsChart = new ApexCharts(newVisitorsChartEl, {
-            series: [{ name: 'Visitors', data: visitorsRangeData.today.series }],
-            chart: { type: 'bar', height: 120, sparkline: { enabled: true } },
-            plotOptions: { bar: { columnWidth: '45%', borderRadius: 4 } },
-            colors: [colors.info],
-            tooltip: { enabled: false }
-        });
-        newVisitorsChart.render();
-
-        const rangeBtn = document.getElementById('newVisitorsRangeBtn');
-        const valueEl = document.getElementById('newVisitorsValue');
-        const subtitleEl = document.getElementById('newVisitorsSubtitle');
-        const rangeItems = document.querySelectorAll('#newVisitorsRangeBtn + .dropdown-menu [data-range]');
-
-        rangeItems.forEach(item => {
-            item.addEventListener('click', () => {
-                const rangeKey = item.getAttribute('data-range');
-                const rangeData = visitorsRangeData[rangeKey];
-                if (!rangeData) return;
-
-                newVisitorsChart.updateSeries([{ name: 'Visitors', data: rangeData.series }]);
-                if (rangeBtn) rangeBtn.textContent = rangeData.label;
-                if (valueEl) valueEl.textContent = rangeData.value;
-                if (subtitleEl) subtitleEl.textContent = rangeData.label;
-            });
-        });
+    function axis(cats) {
+        return {
+            categories: cats,
+            labels: { style: { colors: FAINT, fontSize: '11px' } },
+            axisBorder: { color: LINE },
+            axisTicks: { color: LINE }
+        };
+    }
+    /* One chart failing must not take the rest of the dashboard with it. */
+    function render(selector, options) {
+        var el = document.querySelector(selector);
+        if (!el) { return; }
+        try { new ApexCharts(el, options).render(); }
+        catch (err) { el.innerHTML = '<p class="vm-empty">Chart unavailable.</p>'; }
     }
 
-    // Sales range switcher
-    const salesRangeBtn = document.getElementById('salesRangeBtn');
-    const salesValueEl = document.getElementById('salesValue');
-    const salesSubtitleEl = document.getElementById('salesSubtitle');
-    const salesRangeItems = document.querySelectorAll('#salesRangeBtn + .dropdown-menu [data-range]');
+    /* Series come straight from the view - the same context variables the
+       previous dashboard used. */
+    var monthLabels = [{% for m in month_labels %}"{{ m|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+    var incomeYear  = [{% for v in income_yearly_series %}{{ v }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    var expenseYear = [{% for v in expense_yearly_series %}{{ v }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    var profitYear  = [{% for v in profit_yearly_series %}{{ v }}{% if not forloop.last %},{% endif %}{% endfor %}];
 
-    salesRangeItems.forEach(item => {
-        item.addEventListener('click', () => {
-            const rangeKey = item.getAttribute('data-range');
-            const rangeData = salesRangeData[rangeKey];
-            if (!rangeData) return;
+    var perfLabels = [{% for m in perf_month_labels %}"{{ m|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+    var perfIncome = [{% for v in perf_income_series %}{{ v }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    var perfProfit = [{% for v in perf_profit_series %}{{ v }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    var perfSales  = [{% for v in perf_sales_series %}{{ v }}{% if not forloop.last %},{% endif %}{% endfor %}];
 
-            if (salesRangeBtn) salesRangeBtn.textContent = rangeData.label;
-            if (salesValueEl) salesValueEl.textContent = `₹${Math.round(rangeData.value)}`;
-            if (salesSubtitleEl) salesSubtitleEl.textContent = rangeData.label;
-        });
-    });
+    var visitorsWeek = [{% for v in visitors_weekly_series %}{{ v }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    var activityWeek = [{% for v in activity_weekly_series %}{{ v }}{% if not forloop.last %},{% endif %}{% endfor %}];
 
-    // Activity (line)
-    const activityChartEl = document.querySelector('#activityChart');
-    if (activityChartEl) {
-        new ApexCharts(activityChartEl, {
-            series: [{ name: 'Activity', data: activitySeries }],
-            chart: { type: 'line', height: 120, sparkline: { enabled: true } },
-            stroke: { width: 3, curve: 'smooth' },
-            colors: [colors.success],
-            tooltip: { enabled: false }
-        }).render();
-    }
+    /* Visitor comparison series feed the tooltip toggles below the sparkline. */
+    var visitorsToday     = [{% for v in visitors_today_series %}{{ v }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    var visitorsYesterday = [{% for v in visitors_yesterday_series %}{{ v }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    var visitorsLastMonth = [{% for v in visitors_last_month_series %}{{ v }}{% if not forloop.last %},{% endif %}{% endfor %}];
 
-    // Profit (mini bar)
-    const profitChartEl = document.querySelector('#profitChart');
-    if (profitChartEl) {
-        new ApexCharts(profitChartEl, {
-            series: [{ name: 'Profit', data: perfProfitSeries }],
-            chart: { type: 'bar', height: 120, sparkline: { enabled: true } },
-            plotOptions: { bar: { columnWidth: '50%', borderRadius: 3 } },
-            colors: [colors.success],
-            tooltip: { enabled: false }
-        }).render();
-    }
+    var financeLabels  = [{% for m in finance_labels %}"{{ m|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+    var financeIncome  = [{% for v in finance_income_series %}{{ v }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    var financeExpense = [{% for v in finance_expense_series %}{{ v }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    var financeProfit  = [{% for v in finance_profit_series %}{{ v }}{% if not forloop.last %},{% endif %}{% endfor %}];
 
-    // Expenses (donut)
-    const expensesChartEl = document.querySelector('#expensesChart');
-    if (expensesChartEl) {
-        new ApexCharts(expensesChartEl, {
-            series: [{{ expenses_percent }}, {{ expenses_remaining_percent }}],
-            chart: { type: 'donut', height: 90, width: 90 },
-            labels: ['Expenses', 'Remaining'],
-            colors: [colors.danger, '#e7e9ed'],
-            stroke: { width: 0 },
-            dataLabels: { enabled: false },
-            legend: { show: false },
-            tooltip: { enabled: false }
-        }).render();
-    }
+    var dailySales = [{% for d in daily_sales %}{{ d.total|default:0 }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    var dailyLabels = [{% for d in daily_sales %}"{{ d.day|default:''|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}];
 
-    // Total Income (area)
-    const totalIncomeChartEl = document.querySelector('#totalIncomeChart');
-    if (totalIncomeChartEl) {
-        new ApexCharts(totalIncomeChartEl, {
-            series: [{ name: 'Income', data: incomeSeries }],
-            chart: { type: 'area', height: 320, toolbar: { show: false } },
-            colors: [colors.primary],
-            dataLabels: { enabled: false },
-            stroke: { curve: 'smooth', width: 3 },
-            xaxis: { categories: monthLabels, labels: { style: { colors: colors.axis } } },
-            yaxis: { labels: { style: { colors: colors.axis } } },
-            grid: { borderColor: '#eceef1' }
-        }).render();
-    }
+    render('#vmYearChart', Object.assign({}, base, {
+        chart: Object.assign({}, base.chart, { type: 'area', height: 300 }),
+        series: [
+            { name: 'Income', data: incomeYear },
+            { name: 'Expense', data: expenseYear },
+            { name: 'Profit', data: profitYear }
+        ],
+        colors: [INK, TINT, GOLD],
+        stroke: { curve: 'smooth', width: 2 },
+        fill: { type: 'gradient', gradient: { opacityFrom: 0.18, opacityTo: 0 } },
+        xaxis: axis(monthLabels),
+        yaxis: { labels: { style: { colors: FAINT, fontSize: '11px' },
+            formatter: function (v) { return '₹' + Math.round(v).toLocaleString('en-IN'); } } }
+    }));
 
-    // Order Statistics (radial)
-    const orderStatisticsRadialEl = document.querySelector('#orderStatisticsRadial');
-    if (orderStatisticsRadialEl) {
-        new ApexCharts(orderStatisticsRadialEl, {
-            series: [{{ order_statistics_percent }}],
-            chart: { type: 'radialBar', height: 140, sparkline: { enabled: true } },
-            plotOptions: {
-                radialBar: {
-                    hollow: { size: '60%' },
-                    dataLabels: {
-                        value: { fontSize: '18px' }
-                    }
-                }
-            },
-            colors: [colors.success]
-        }).render();
-    }
+    render('#vmOrdersRadial', Object.assign({}, base, {
+        chart: Object.assign({}, base.chart, { type: 'radialBar', height: 150 }),
+        series: [{{ order_statistics_percent|default:0 }}],
+        labels: ['Delivered'],
+        colors: [GOLD],
+        plotOptions: { radialBar: {
+            hollow: { size: '58%' },
+            track: { background: '#f0eee9' },
+            dataLabels: {
+                name: { fontSize: '11px', color: FAINT, offsetY: 18 },
+                value: { fontSize: '22px', fontWeight: 300, color: INK, offsetY: -12 }
+            }
+        } }
+    }));
 
-    // Finance Tabs (line)
-    const financeChartEl = document.querySelector('#financeChart');
-    if (financeChartEl) {
-        new ApexCharts(financeChartEl, {
-            series: [{ name: 'Income', data: financeIncomeSeries }],
-            chart: { type: 'line', height: 220, toolbar: { show: false } },
-            stroke: { curve: 'smooth', width: 3 },
-            colors: [colors.primary],
-            dataLabels: { enabled: false },
-            xaxis: { categories: financeLabels, labels: { style: { colors: colors.axis } } },
-            yaxis: { labels: { style: { colors: colors.axis } } },
-            grid: { borderColor: '#eceef1' }
-        }).render();
-    }
-    const financeExpenseChartEl = document.querySelector('#financeExpenseChart');
-    if (financeExpenseChartEl) {
-        new ApexCharts(financeExpenseChartEl, {
-            series: [{ name: 'Expenses', data: financeExpenseSeries }],
-            chart: { type: 'line', height: 220, toolbar: { show: false } },
-            stroke: { curve: 'smooth', width: 3 },
-            colors: [colors.danger],
-            dataLabels: { enabled: false },
-            xaxis: { categories: financeLabels, labels: { style: { colors: colors.axis } } },
-            yaxis: { labels: { style: { colors: colors.axis } } },
-            grid: { borderColor: '#eceef1' }
-        }).render();
-    }
-    const financeProfitChartEl = document.querySelector('#financeProfitChart');
-    if (financeProfitChartEl) {
-        new ApexCharts(financeProfitChartEl, {
-            series: [{ name: 'Profit', data: financeProfitSeries }],
-            chart: { type: 'line', height: 220, toolbar: { show: false } },
-            stroke: { curve: 'smooth', width: 3 },
-            colors: [colors.success],
-            dataLabels: { enabled: false },
-            xaxis: { categories: financeLabels, labels: { style: { colors: colors.axis } } },
-            yaxis: { labels: { style: { colors: colors.axis } } },
-            grid: { borderColor: '#eceef1' }
-        }).render();
-    }
+    /* Today, yesterday and last month share the axis so the comparison is
+       readable at a glance; the weekly series stays as the filled shape. */
+    render('#vmVisitorsChart', Object.assign({}, base, {
+        chart: Object.assign({}, base.chart, { type: 'area', height: 110, sparkline: { enabled: true } }),
+        series: [
+            { name: 'This week', data: visitorsWeek },
+            { name: 'Today', data: visitorsToday },
+            { name: 'Yesterday', data: visitorsYesterday },
+            { name: 'Last month', data: visitorsLastMonth }
+        ],
+        colors: [GOLD, INK, TINT, LINE],
+        stroke: { curve: 'smooth', width: [2, 1, 1, 1] },
+        fill: { type: 'gradient', gradient: { opacityFrom: [0.25, 0, 0, 0], opacityTo: 0 } }
+    }));
 
-    // Weekly Expense (radial)
-    const weeklyExpenseRadialEl = document.querySelector('#weeklyExpenseRadial');
-    if (weeklyExpenseRadialEl) {
-        new ApexCharts(weeklyExpenseRadialEl, {
-            series: [{{ weekly_expense_percent }}],
-            chart: { type: 'radialBar', height: 90, sparkline: { enabled: true } },
-            plotOptions: {
-                radialBar: {
-                    hollow: { size: '60%' },
-                    dataLabels: { value: { fontSize: '14px' } }
-                }
-            },
-            colors: [colors.primary]
-        }).render();
-    }
+    render('#vmActivityChart', Object.assign({}, base, {
+        chart: Object.assign({}, base.chart, { type: 'bar', height: 70, sparkline: { enabled: true } }),
+        series: [{ name: 'Activity', data: activityWeek }],
+        colors: [TINT],
+        plotOptions: { bar: { columnWidth: '46%', borderRadius: 2 } }
+    }));
 
-    // Performance (radar)
-    const performanceChartEl = document.querySelector('#performanceChart');
-    if (performanceChartEl) {
-        new ApexCharts(performanceChartEl, {
-            series: [
-                { name: 'Earnings', data: perfIncomeSeries },
-                { name: 'Sales', data: perfSalesSeries }
-            ],
-            chart: { type: 'radar', height: 220, toolbar: { show: false } },
-            colors: [colors.primary, colors.info],
-            xaxis: { categories: perfLabels },
-            stroke: { width: 2 }
-        }).render();
-    }
+    render('#vmPerformanceChart', Object.assign({}, base, {
+        chart: Object.assign({}, base.chart, { type: 'line', height: 260 }),
+        series: [
+            { name: 'Income', type: 'column', data: perfIncome },
+            { name: 'Profit', type: 'line', data: perfProfit },
+            { name: 'Sales', type: 'line', data: perfSales }
+        ],
+        colors: [TINT, GOLD, INK],
+        stroke: { width: [0, 2, 2], curve: 'smooth' },
+        plotOptions: { bar: { columnWidth: '38%', borderRadius: 3 } },
+        xaxis: axis(perfLabels),
+        yaxis: { labels: { style: { colors: FAINT, fontSize: '11px' } } }
+    }));
 
-    // Conversion (sparkline line)
-    const conversionChartEl = document.querySelector('#conversionChart');
-    if (conversionChartEl) {
-        const funnelSeries = [{{ impressions_count }}, {{ cart_count }}, {{ checkout_count }}, {{ purchased_count }}];
-        new ApexCharts(conversionChartEl, {
-            series: [{ name: 'Conversion', data: funnelSeries }],
-            chart: { type: 'line', height: 120, sparkline: { enabled: true } },
-            stroke: { curve: 'smooth', width: 3 },
-            colors: [colors.warning],
-            tooltip: { enabled: false }
-        }).render();
-    }
+    render('#vmFinanceChart', Object.assign({}, base, {
+        chart: Object.assign({}, base.chart, { type: 'bar', height: 220, stacked: false }),
+        series: [
+            { name: 'Income', data: financeIncome },
+            { name: 'Expense', data: financeExpense },
+            { name: 'Profit', data: financeProfit }
+        ],
+        colors: [INK, TINT, GOLD],
+        plotOptions: { bar: { columnWidth: '52%', borderRadius: 3 } },
+        xaxis: axis(financeLabels),
+        yaxis: { labels: { style: { colors: FAINT, fontSize: '11px' } } }
+    }));
 
-    // Expenses Yearly (bar)
-    const yearlySeriesConfig = {
-        total_sales: { name: 'Total Sale', data: incomeSeries, color: colors.primary },
-        profit: { name: 'Profit', data: profitYearlySeries, color: colors.success }
-    };
-
-    const expensesYearlyChartEl = document.querySelector('#expensesYearlyChart');
-    if (expensesYearlyChartEl) {
-        const initialConfig = yearlySeriesConfig.total_sales;
-        const yearlyChart = new ApexCharts(expensesYearlyChartEl, {
-            series: [{ name: initialConfig.name, data: initialConfig.data }],
-            chart: { type: 'bar', height: 320, toolbar: { show: false } },
-            plotOptions: { bar: { columnWidth: '45%', borderRadius: 6 } },
-            colors: [initialConfig.color],
-            dataLabels: { enabled: false },
-            xaxis: { categories: monthLabels, labels: { style: { colors: colors.axis } } },
-            yaxis: { labels: { style: { colors: colors.axis } } },
-            grid: { borderColor: '#eceef1' }
-        });
-        yearlyChart.render();
-
-        const yearlyMetricSelect = document.getElementById('yearlyMetricSelect');
-        if (yearlyMetricSelect) {
-            yearlyMetricSelect.addEventListener('change', () => {
-                const config = yearlySeriesConfig[yearlyMetricSelect.value] || yearlySeriesConfig.total_sales;
-                yearlyChart.updateOptions({ colors: [config.color] });
-                yearlyChart.updateSeries([{ name: config.name, data: config.data }]);
-            });
-        }
-    }
-
-    // Auto refresh dashboard every 5 minutes
-    setTimeout(function(){
-        location.reload();
-    }, 300000);
+    render('#vmDailySalesChart', Object.assign({}, base, {
+        chart: Object.assign({}, base.chart, { type: 'bar', height: 150 }),
+        series: [{ name: 'Sales', data: dailySales }],
+        colors: [GOLD],
+        plotOptions: { bar: { columnWidth: '44%', borderRadius: 3 } },
+        xaxis: axis(dailyLabels),
+        yaxis: { labels: { style: { colors: FAINT, fontSize: '11px' },
+            formatter: function (v) { return '₹' + Math.round(v).toLocaleString('en-IN'); } } }
+    }));
 })();
 </script>
 {% endblock %}
