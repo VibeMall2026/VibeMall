@@ -109,11 +109,26 @@
 /* --- grid + cards -------------------------------------------------------- */
 .vm-adm .vm-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; margin-bottom: 32px; }
 .vm-adm .vm-grid:last-child { margin-bottom: 0; }
+.vm-adm .c3 { grid-column: span 3; }
 .vm-adm .c4 { grid-column: span 4; }
+.vm-adm .c6 { grid-column: span 6; }
 .vm-adm .c8 { grid-column: span 8; }
 .vm-adm .c12 { grid-column: span 12; }
-@media (max-width: 1199.98px) { .vm-adm .c4 { grid-column: span 6; } .vm-adm .c8 { grid-column: span 12; } }
-@media (max-width: 767.98px) { .vm-adm .c4, .vm-adm .c8 { grid-column: span 12; } }
+@media (max-width: 1199.98px) { .vm-adm .c3, .vm-adm .c4 { grid-column: span 6; } .vm-adm .c8 { grid-column: span 12; } }
+@media (max-width: 767.98px) { .vm-adm .c3, .vm-adm .c4, .vm-adm .c6, .vm-adm .c8 { grid-column: span 12; } }
+
+/* Cards in the same row end level with each other regardless of how much they
+   hold, so the row reads as a band rather than a ragged edge. */
+.vm-adm .vm-grid > [class^="c"] > .vm-card:only-child { height: 100%; }
+
+/* --- row action ---------------------------------------------------------- */
+.vm-adm .vm-btn {
+    display: inline-block; padding: 6px 12px; border: 1px solid var(--line); border-radius: 4px;
+    background: transparent; font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
+    color: var(--ink); text-decoration: none; white-space: nowrap; line-height: 18px;
+    transition: border-color .15s, background .15s;
+}
+.vm-adm .vm-btn:hover { border-color: var(--ink); background: var(--surface); color: var(--ink); }
 
 .vm-adm .vm-card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 24px; }
 .vm-adm .vm-card__head {
@@ -211,7 +226,20 @@
     width: 34px; height: 34px; border-radius: 999px; background: #f0eee9;
     display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--gold); flex: 0 0 auto;
 }
+/* Product photo in the Top Products / Low Stock lists - square, matches the
+   Recent Orders thumbnails rather than vm-avatar's numbered circle, so a
+   product is recognised by sight instead of by rank. */
+.vm-adm .vm-thumb {
+    width: 34px; height: 34px; flex: 0 0 auto; border-radius: 6px;
+    object-fit: cover; background: #f0eee9;
+}
+.vm-adm .vm-thumb.vm-stack__fallback { display: grid; place-items: center; }
 .vm-adm .vm-stars { color: var(--gold-tint); font-size: 12px; letter-spacing: 1px; }
+.vm-adm .vm-review-date { font-size: 11px; color: var(--ink-faint); white-space: nowrap; }
+.vm-adm .vm-review-text {
+    font-size: 12px; color: var(--ink-soft); margin: 4px 0 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .vm-adm .vm-returns-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px; }
 @media (max-width: 991.98px) { .vm-adm .vm-returns-grid { grid-template-columns: repeat(2, 1fr); } }
 </style>
@@ -423,9 +451,14 @@
         </div>
     </div>
 
-    {% comment %} BAND 5 - the working lists. {% endcomment %}
+    {% comment %}
+    BAND 5 - the orders table, across the full width.
+    In the 8-column slot the seven columns had to share 66% of the page, which
+    ran "Amount" into "Date" and squeezed the thumbnails. Full width also gives
+    the per-row action somewhere to sit.
+    {% endcomment %}
     <div class="vm-grid">
-        <div class="c8">
+        <div class="c12">
             <div class="vm-card">
                 <div class="vm-card__head">
                     <p class="vm-label">Recent Orders</p>
@@ -440,7 +473,7 @@
                 {% endcomment %}
                 <table class="vm-table">
                     <thead>
-                        <tr><th>Order</th><th>Items</th><th>Customer</th><th>Status</th><th>Payment</th><th class="num">Amount</th><th class="num">Date</th></tr>
+                        <tr><th>Order</th><th>Items</th><th>Customer</th><th>Status</th><th>Payment</th><th class="num">Amount</th><th class="num">Date</th><th class="num">Details</th></tr>
                     </thead>
                     <tbody>
                     {% for order in recent_order_items %}
@@ -468,59 +501,86 @@
                             <td><span class="vm-body-sm">{{ order.get_payment_method_display }}</span></td>
                             <td class="num">&#8377;{{ order.total_amount|floatformat:0 }}</td>
                             <td class="num"><span class="vm-body-sm">{{ order.created_at|date:"d M" }}</span></td>
+                            {% comment %}
+                            Same destination as the order number in the first
+                            column. That link is easy to miss because it reads
+                            as plain text; this states the action.
+                            {% endcomment %}
+                            <td class="num"><a href="{% url 'admin_order_details' order.id %}" class="vm-btn">Show Details</a></td>
                         </tr>
                     {% empty %}
-                        <tr><td colspan="7"><p class="vm-empty">No orders yet.</p></td></tr>
+                        <tr><td colspan="8"><p class="vm-empty">No orders yet.</p></td></tr>
                     {% endfor %}
                     </tbody>
                 </table>
             </div>
+        </div>
+    </div>
 
-            <div class="vm-card" style="margin-top:24px;">
+    {% comment %}
+    Bands 6 to 9. Three equal chart cards, a full-width Top Selling banner,
+    four equal list cards, then Transactions as its own full-width table -
+    every row ends level, and the two things worth a second look (what's
+    selling best, what actually moved money) each get a row to themselves
+    instead of splitting one with a chart.
+    {% endcomment %}
+    <div class="vm-grid">
+        <div class="c4">
+            <div class="vm-card">
                 <div class="vm-card__head">
                     <p class="vm-label">Performance</p>
                     <span class="vm-body-sm">Income, profit and sales by month</span>
                 </div>
-                <div id="vmPerformanceChart" style="min-height:260px;"></div>
+                <div id="vmPerformanceChart" style="min-height:230px;"></div>
             </div>
-
-            {% comment %}
-            Finance and daily sales. These were separate tiles before; they sit
-            together here because they answer the same question at two zoom
-            levels - the week in detail, the period in aggregate.
-            {% endcomment %}
-            <div class="vm-card" style="margin-top:24px;">
+        </div>
+        <div class="c4">
+            <div class="vm-card">
                 <div class="vm-card__head">
                     <p class="vm-label">Finance</p>
-                    <span class="vm-body-sm">Weekly expense {{ weekly_expense_percent }}% &middot; &#8377;{{ weekly_expense|floatformat:0 }}</span>
+                    <span class="vm-body-sm">Weekly expense {{ weekly_expense_percent }}%</span>
                 </div>
-                <div id="vmFinanceChart" style="min-height:220px;"></div>
-                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:0 24px;margin-top:8px;">
-                    <div class="vm-row"><span class="vm-body">Expenses used</span><span class="vm-row__v">{{ expenses_percent }}%</span></div>
+                <div id="vmFinanceChart" style="min-height:230px;"></div>
+                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:0 16px;margin-top:8px;">
+                    <div class="vm-row"><span class="vm-body">Used</span><span class="vm-row__v">{{ expenses_percent }}%</span></div>
                     <div class="vm-row"><span class="vm-body">Remaining</span><span class="vm-row__v">{{ expenses_remaining_percent }}%</span></div>
                 </div>
             </div>
-
-            <div class="vm-card" style="margin-top:24px;">
-                <div class="vm-card__head"><p class="vm-label">Daily Sales</p><span class="vm-body-sm">Last 7 days</span></div>
-                <div id="vmDailySalesChart" style="min-height:150px;"></div>
-            </div>
         </div>
-
         <div class="c4">
             <div class="vm-card">
-                <div class="vm-card__head"><p class="vm-label">Top Selling</p><span class="vm-body-sm">{{ top_selling_qty }} units</span></div>
-                <p class="vm-body" style="font-weight:600;color:var(--ink);">{{ top_selling_name|default:"No sales yet" }}</p>
-                <p class="vm-stat-sm">&#8377;{{ top_selling_sales|floatformat:0 }}</p>
-                <div class="vm-bar"><span style="width:{{ top_selling_target_percent }}%;"></span></div>
-                <p class="vm-body-sm" style="margin-top:8px;">{{ top_selling_target_percent }}% of target</p>
+                <div class="vm-card__head"><p class="vm-label">Daily Sales</p><span class="vm-body-sm">Last 7 days</span></div>
+                <div id="vmDailySalesChart" style="min-height:230px;"></div>
             </div>
+        </div>
+    </div>
 
-            <div class="vm-card" style="margin-top:24px;">
+    <div class="vm-grid">
+        <div class="c12">
+            <div class="vm-card" style="display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;">
+                <div>
+                    <p class="vm-label">Top Selling</p>
+                    <p class="vm-stat" style="margin-top:8px;">{{ top_selling_qty }} <span class="vm-body-sm" style="font-size:16px;">units</span></p>
+                </div>
+                <div style="text-align:right;">
+                    <p class="vm-stat-sm" style="font-weight:600;">{{ top_selling_name|default:"No sales yet" }}</p>
+                    <p class="vm-body-sm" style="margin-top:4px;">&#8377;{{ top_selling_sales|floatformat:0 }} &middot; {{ top_selling_target_percent }}% of target</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="vm-grid">
+        <div class="c3">
+            <div class="vm-card">
                 <div class="vm-card__head"><p class="vm-label">Top Products</p><a href="{% url 'admin_product_list' %}" class="vm-link">All</a></div>
                 {% for product in top_products %}
                     <div class="vm-list-row">
-                        <div class="vm-avatar">{{ forloop.counter }}</div>
+                        {% if product.image %}
+                            <img class="vm-thumb" src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">
+                        {% else %}
+                            <span class="vm-thumb vm-stack__fallback">{{ product.name|first|upper }}</span>
+                        {% endif %}
                         <div class="grow">
                             <div class="name">{{ product.name }}</div>
                             <span class="vm-body-sm">{{ product.sold }} sold</span>
@@ -531,11 +591,17 @@
                     <p class="vm-empty">No sales yet.</p>
                 {% endfor %}
             </div>
-
-            <div class="vm-card" style="margin-top:24px;">
+        </div>
+        <div class="c3">
+            <div class="vm-card">
                 <div class="vm-card__head"><p class="vm-label">Low Stock</p><a href="{% url 'admin_product_list' %}" class="vm-link">All</a></div>
                 {% for product in low_stock_products %}
                     <div class="vm-list-row">
+                        {% if product.image %}
+                            <img class="vm-thumb" src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">
+                        {% else %}
+                            <span class="vm-thumb vm-stack__fallback">{{ product.name|first|upper }}</span>
+                        {% endif %}
                         <div class="grow"><div class="name">{{ product.name }}</div></div>
                         <span class="vm-pill {% if product.stock == 0 %}p-cancelled{% else %}p-pending{% endif %}">{{ product.stock }} left</span>
                     </div>
@@ -543,49 +609,69 @@
                     <p class="vm-empty">Every product is well stocked.</p>
                 {% endfor %}
             </div>
-
-            <div class="vm-card" style="margin-top:24px;">
+        </div>
+        <div class="c3">
+            <div class="vm-card">
                 <div class="vm-card__head"><p class="vm-label">Recent Reviews</p></div>
                 {% for review in recent_reviews %}
-                    <div class="vm-list-row">
-                        <div class="grow">
-                            <div class="name">{{ review.product.name }}</div>
-                            <span class="vm-stars">{% for star in "12345"|make_list %}{% if forloop.counter <= review.rating %}&#9733;{% else %}&#9734;{% endif %}{% endfor %}</span>
+                    <div class="vm-list-row" style="align-items:flex-start;flex-direction:column;gap:2px;">
+                        <div style="display:flex;justify-content:space-between;align-items:baseline;width:100%;gap:8px;">
+                            <span class="name">{{ review.product.name }}</span>
+                            <span class="vm-review-date">{{ review.created_at|date:"d M" }}</span>
                         </div>
+                        <span class="vm-body-sm">{{ review.name|default:review.user.get_full_name|default:review.user.username }}</span>
+                        <span class="vm-stars">{% for star in "12345"|make_list %}{% if forloop.counter <= review.rating %}&#9733;{% else %}&#9734;{% endif %}{% endfor %}</span>
+                        <p class="vm-review-text" title="{{ review.comment }}">{{ review.comment }}</p>
                     </div>
                 {% empty %}
                     <p class="vm-empty">No reviews yet.</p>
                 {% endfor %}
             </div>
-
-            <div class="vm-card" style="margin-top:24px;">
+        </div>
+        <div class="c3">
+            <div class="vm-card">
                 <div class="vm-card__head"><p class="vm-label">Recent Customers</p></div>
                 {% for customer in recent_customers %}
                     <div class="vm-list-row">
                         <div class="vm-avatar">{{ customer.username|first|upper }}</div>
                         <div class="grow">
                             <div class="name">{{ customer.get_full_name|default:customer.username }}</div>
-                            <span class="vm-body-sm">{{ customer.date_joined|date:"d M Y" }}</span>
+                            <span class="vm-body-sm">{{ customer.email|default:"No email on file" }}</span>
                         </div>
+                        <span class="vm-review-date">{{ customer.date_joined|date:"d M" }}</span>
                     </div>
                 {% empty %}
                     <p class="vm-empty">No customers yet.</p>
                 {% endfor %}
             </div>
+        </div>
+    </div>
 
-            <div class="vm-card" style="margin-top:24px;">
-                <div class="vm-card__head"><p class="vm-label">Transactions</p><span class="vm-body-sm">{{ transactions_last_30 }} in 30d</span></div>
-                {% for tx in recent_transactions %}
-                    <div class="vm-list-row">
-                        <div class="grow">
-                            <div class="name">{{ tx.label }}</div>
-                            <span class="vm-body-sm">{{ tx.method }}</span>
-                        </div>
-                        <span class="vm-row__v">&#8377;{{ tx.amount|floatformat:0 }}</span>
-                    </div>
-                {% empty %}
-                    <p class="vm-empty">No transactions yet.</p>
-                {% endfor %}
+    <div class="vm-grid">
+        <div class="c12">
+            <div class="vm-card">
+                <div class="vm-card__head">
+                    <p class="vm-label">Transactions</p>
+                    <span class="vm-body-sm">{{ transactions_last_30 }} in 30d</span>
+                </div>
+                <table class="vm-table">
+                    <thead>
+                        <tr><th>Transaction</th><th>Customer</th><th>Method</th><th class="num">Amount</th><th class="num">Date</th></tr>
+                    </thead>
+                    <tbody>
+                    {% for tx in recent_transactions %}
+                        <tr>
+                            <td><span style="font-weight:600;">{{ tx.id }}</span></td>
+                            <td>{{ tx.label }}</td>
+                            <td><span class="vm-body-sm">{{ tx.method }}</span></td>
+                            <td class="num">&#8377;{{ tx.amount|floatformat:0 }}</td>
+                            <td class="num"><span class="vm-body-sm">{{ tx.date|date:"d M" }}</span></td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="5"><p class="vm-empty">No transactions yet.</p></td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -708,7 +794,7 @@
     }));
 
     render('#vmPerformanceChart', Object.assign({}, base, {
-        chart: Object.assign({}, base.chart, { type: 'line', height: 260 }),
+        chart: Object.assign({}, base.chart, { type: 'line', height: 230 }),
         series: [
             { name: 'Income', type: 'column', data: perfIncome },
             { name: 'Profit', type: 'line', data: perfProfit },
@@ -722,7 +808,7 @@
     }));
 
     render('#vmFinanceChart', Object.assign({}, base, {
-        chart: Object.assign({}, base.chart, { type: 'bar', height: 220, stacked: false }),
+        chart: Object.assign({}, base.chart, { type: 'bar', height: 230, stacked: false }),
         series: [
             { name: 'Income', data: financeIncome },
             { name: 'Expense', data: financeExpense },
@@ -735,7 +821,7 @@
     }));
 
     render('#vmDailySalesChart', Object.assign({}, base, {
-        chart: Object.assign({}, base.chart, { type: 'bar', height: 150 }),
+        chart: Object.assign({}, base.chart, { type: 'bar', height: 230 }),
         series: [{ name: 'Sales', data: dailySales }],
         colors: [GOLD],
         plotOptions: { bar: { columnWidth: '44%', borderRadius: 3 } },

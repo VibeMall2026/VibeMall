@@ -546,10 +546,12 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
     recent_transactions = []
     for order in recent_orders[:6]:
         recent_transactions.append({
+            'id': order.order_number,
             'method': order.payment_method,
             'label': order.user.get_full_name() or order.user.username,
             'amount': order.total_amount,
-            'status': order.payment_status
+            'status': order.payment_status,
+            'date': order.created_at,
         })
 
     # Top selling product (last 30 days)

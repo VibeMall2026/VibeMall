@@ -100,6 +100,86 @@ class DashboardRendersTests(TestCase):
         for note in ('vs last period', 'product views', 'products active'):
             self.assertIn(note, html, f'the hero lost its "{note}" caption')
 
+    def test_recent_orders_spans_the_full_width(self):
+        """
+        The table used to share a 12-column grid with the Performance and
+        Top Selling cards below it, in an 8-column slot - that squeezed
+        Amount and Date together. It now gets its own row at c12.
+        """
+        template = TEMPLATE.read_text(encoding='utf-8')
+        head = template.split('<p class="vm-label">Recent Orders</p>', 1)[0]
+        wrapper = head.rsplit('<div class="c', 1)[1]
+        self.assertTrue(wrapper.startswith('12"'), 'Recent Orders is no longer full width')
+
+    def test_each_order_row_has_a_details_button(self):
+        html = self._page()
+        self.assertIn('<th class="num">Details</th>', html)
+        # setUp has no orders, so the {% empty %} branch renders on the live
+        # page - the button markup is checked against the template source.
+        template = TEMPLATE.read_text(encoding='utf-8')
+        self.assertIn('vm-btn', template)
+        self.assertIn('Show Details', template)
+        self.assertIn('colspan="8"', template)
+
+    def test_rows_below_recent_orders_are_grouped_in_even_pairs(self):
+        """
+        The old layout was two unequal stacks (4 cards left, 6 right), which
+        left a blank gap on the left once it ran out before the right column
+        did. Cards are grouped into rows now, each inside its own
+        <div class="vm-grid">, so every row ends level: three equal charts,
+        a full-width Top Selling banner, four equal lists, then Transactions
+        on its own.
+        """
+        template = TEMPLATE.read_text(encoding='utf-8')
+        rows = template.split('Bands 6 to 9', 1)[1].split('<div class="vm-grid">')[1:]
+        labels = [re.search(r'vm-label">([^<]+)<', row).group(1) for row in rows[:4]]
+        self.assertEqual(labels, ['Performance', 'Top Selling', 'Top Products', 'Transactions'])
+
+    def test_transactions_is_a_full_width_table_with_a_date_column(self):
+        """
+        Transactions used to be a label/method list with no date and no
+        per-row identifier - promoted to a table (like Recent Orders) so a
+        transaction can actually be found again.
+        """
+        html = self._page()
+        self.assertIn('<th>Transaction</th>', html)
+        self.assertIn('<th class="num">Date</th>', html)
+
+    def test_top_selling_is_a_full_width_banner(self):
+        template = TEMPLATE.read_text(encoding='utf-8')
+        head = template.split('<p class="vm-label">Top Selling</p>', 1)[0]
+        wrapper = head.rsplit('<div class="c', 1)[1]
+        self.assertTrue(wrapper.startswith('12"'), 'Top Selling is no longer full width')
+
+    def test_top_products_and_low_stock_show_a_photo(self):
+        """
+        A product used to be identified only by rank number or bare name.
+        A photo lets it be recognised the same way Recent Orders already
+        shows thumbnails.
+        """
+        template = TEMPLATE.read_text(encoding='utf-8')
+        top_block = template.split('Top Products</p>', 1)[1].split('</div>\n        </div>', 1)[0]
+        low_block = template.split('Low Stock</p>', 1)[1].split('</div>\n        </div>', 1)[0]
+        self.assertIn('vm-thumb', top_block)
+        self.assertIn('vm-thumb', low_block)
+
+    def test_recent_reviews_names_the_reviewer_and_shows_the_comment(self):
+        """
+        The card used to show only a product name and a star rating - no
+        way to tell who said it or what they actually wrote.
+        """
+        template = TEMPLATE.read_text(encoding='utf-8')
+        block = template.split('Recent Reviews</p>', 1)[1].split('Recent Customers</p>', 1)[0]
+        self.assertIn('review.name', block)
+        self.assertIn('review.comment', block)
+        self.assertIn('review.created_at', block)
+        self.assertIn('review.product.name', block, 'lost which product the review is about')
+
+    def test_recent_customers_shows_an_email(self):
+        html = self._page()
+        template = TEMPLATE.read_text(encoding='utf-8')
+        self.assertIn('customer.email', template)
+
     def test_charts_survive_a_missing_library(self):
         """ApexCharts is guarded, so the page is readable without it."""
         html = self._page()
