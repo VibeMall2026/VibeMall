@@ -1,0 +1,19 @@
+# Daily safety net for vibemall-telegram and vibemall-drafts.
+#
+# Both hold a long-lived SQLite connection. Something else recreating
+# db.sqlite3-wal while they're running (a migration, another service
+# restarting) leaves their open file handle pointing at an unlinked copy -
+# every write after that "succeeds" from their own point of view while being
+# invisible to every other process, with no error anywhere. The deploy
+# workflows now restart both alongside gunicorn on every deploy, which covers
+# the known trigger; this timer is the backstop for any other cause, so the
+# outage self-heals within a day instead of needing a manual restart.
+#
+# Installed on the server at /etc/systemd/system/ - this copy is tracked here
+# for documentation, matching bot/tradingbot.service.
+[Unit]
+Description=Daily safety-net restart for the Telegram listener and draft worker
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl restart vibemall-drafts vibemall-telegram

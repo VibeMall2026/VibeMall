@@ -5,6 +5,13 @@ PROJECT_DIR="${PROJECT_DIR:-/var/www/vibemall}"
 DEPLOY_BRANCH="${DEPLOY_BRANCH:-main}"
 VENV_PATH="${VENV_PATH:-venv/bin/activate}"
 SERVICE_NAME="${SERVICE_NAME:-vibemall}"
+# The Telegram listener and the AI draft worker hold a long-lived SQLite
+# connection each. A restart anywhere else in this script (gunicorn,
+# migrations) can recreate db.sqlite3-wal out from under them - their open
+# file handle keeps writing into the now-unlinked copy, "succeeding" on every
+# call while nothing they write is ever visible to any other process. They
+# must be restarted on every deploy, not just when their own code changes.
+BACKGROUND_SERVICES="${BACKGROUND_SERVICES:-vibemall-drafts vibemall-telegram}"
 NGINX_SERVICE="${NGINX_SERVICE:-nginx}"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 STASH_NAME="pre-deploy-${TIMESTAMP}"
@@ -83,6 +90,9 @@ echo "Restarting application service..."
 sudo systemctl restart "$SERVICE_NAME"
 sleep 5
 
+echo "Restarting background services (${BACKGROUND_SERVICES})..."
+sudo systemctl restart $BACKGROUND_SERVICES
+
 echo "Reloading nginx..."
 sudo systemctl reload "$NGINX_SERVICE"
 
@@ -92,6 +102,14 @@ sudo systemctl is-active "$SERVICE_NAME" >/dev/null || {
   sudo systemctl status "$SERVICE_NAME" --no-pager || true
   exit 1
 }
+
+for svc in $BACKGROUND_SERVICES; do
+  sudo systemctl is-active "$svc" >/dev/null || {
+    echo "Background service failed to start: $svc"
+    sudo systemctl status "$svc" --no-pager || true
+    exit 1
+  }
+done
 
 sudo systemctl is-active "$NGINX_SERVICE" >/dev/null || {
   echo "Service is not running: $NGINX_SERVICE"

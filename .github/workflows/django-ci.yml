@@ -117,6 +117,14 @@ jobs:
             DEPLOY_BRANCH="main"
             VENV_PATH="venv/bin/activate"
             SERVICE_NAME="vibemall"
+            # The Telegram listener and the AI draft worker hold a long-lived
+            # SQLite connection each. `manage.py migrate` below can recreate
+            # db.sqlite3-wal out from under them - their open file handle
+            # keeps writing into the now-unlinked copy, "succeeding" on every
+            # call while nothing they write is ever visible to any other
+            # process. They must be restarted on every deploy, not just when
+            # their own code changes.
+            BACKGROUND_SERVICES="vibemall-drafts vibemall-telegram"
             NGINX_SERVICE="nginx"
             # Deliberately outside PROJECT_DIR: anything untracked inside it is
             # stashed away by the `git status --porcelain` check below, which
@@ -208,6 +216,9 @@ jobs:
             echo "Restarting ${SERVICE_NAME}..."
             sudo systemctl restart "$SERVICE_NAME"
 
+            echo "Restarting background services (${BACKGROUND_SERVICES})..."
+            sudo systemctl restart $BACKGROUND_SERVICES
+
             # Poll instead of sleeping a fixed 5s: usually ready in well under
             # a second, and a genuinely stuck service is still caught.
             for _ in $(seq 1 30); do
@@ -222,6 +233,13 @@ jobs:
               sudo systemctl status "$SERVICE_NAME" --no-pager || true
               exit 1
             }
+            for svc in $BACKGROUND_SERVICES; do
+              sudo systemctl is-active --quiet "$svc" || {
+                echo "Background service failed to start: $svc"
+                sudo systemctl status "$svc" --no-pager || true
+                exit 1
+              }
+            done
             sudo systemctl is-active --quiet "$NGINX_SERVICE" || {
               echo "Nginx is not running."
               sudo systemctl status "$NGINX_SERVICE" --no-pager || true

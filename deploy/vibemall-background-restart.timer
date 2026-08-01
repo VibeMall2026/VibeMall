@@ -1,0 +1,11 @@
+[Unit]
+Description=Run vibemall-background-restart.service daily
+
+[Timer]
+# 03:17 - off-peak, and a few minutes off the hour so it never lines up with
+# anything else that might run on the hour.
+OnCalendar=*-*-* 03:17:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
