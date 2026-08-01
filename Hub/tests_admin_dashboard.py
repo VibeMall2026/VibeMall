@@ -82,6 +82,24 @@ class DashboardRendersTests(TestCase):
         template = TEMPLATE.read_text(encoding='utf-8')
         self.assertIn('vm-stack__fallback', template)
 
+    def test_trend_direction_is_not_carried_by_colour_alone(self):
+        """
+        Green/red chips are indistinguishable to a red-green colour blind
+        reader. A triangle in ::before states the direction a second way.
+        """
+        template = TEMPLATE.read_text(encoding='utf-8')
+        self.assertIn('.vm-chip--up::before', template)
+        self.assertIn('.vm-chip--down::before', template)
+
+    def test_the_hero_keeps_its_supporting_detail(self):
+        """
+        Moving the percentage up beside the label must not throw away what it
+        is a percentage of - "12%" on its own says nothing.
+        """
+        html = self._page()
+        for note in ('vs last period', 'product views', 'products active'):
+            self.assertIn(note, html, f'the hero lost its "{note}" caption')
+
     def test_charts_survive_a_missing_library(self):
         """ApexCharts is guarded, so the page is readable without it."""
         html = self._page()

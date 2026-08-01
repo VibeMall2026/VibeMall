@@ -74,6 +74,15 @@
 }
 .vm-adm .vm-hero > div { padding: 28px 32px; border-left: 1px solid var(--line); }
 .vm-adm .vm-hero > div:first-child { border-left: 0; }
+/* Label and trend sit on one line so the figure below is the only thing at that
+   size - the eye lands on the number instead of scanning past a chip to reach it. */
+.vm-adm .vm-hero__top {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; min-height: 20px;
+}
+.vm-adm .vm-hero__top .vm-chip { margin-top: 0; flex-shrink: 0; }
+.vm-adm .vm-hero__note {
+    font-size: 12px; line-height: 18px; color: var(--ink-faint); margin: 6px 0 0;
+}
 @media (max-width: 1199.98px) {
     .vm-adm .vm-hero { grid-template-columns: repeat(2, 1fr); }
     .vm-adm .vm-hero > div:nth-child(odd) { border-left: 0; }
@@ -92,6 +101,10 @@
 .vm-adm .vm-chip--up { background: rgba(22,163,74,.10); color: var(--ok); }
 .vm-adm .vm-chip--down { background: var(--err-tint); color: var(--err); }
 .vm-adm .vm-chip--flat { background: #f0eee9; color: var(--ink-faint); }
+/* The colour alone carries the direction, which is invisible to the ~8% of men
+   with red-green colour blindness. The arrow states it in a second channel. */
+.vm-adm .vm-chip--up::before { content: "\25B2"; font-size: 8px; line-height: 1; }
+.vm-adm .vm-chip--down::before { content: "\25BC"; font-size: 8px; line-height: 1; }
 
 /* --- grid + cards -------------------------------------------------------- */
 .vm-adm .vm-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; margin-bottom: 32px; }
@@ -211,6 +224,11 @@
         <div>
             <p class="vm-label">VibeMall Atelier</p>
             <h1>Dashboard</h1>
+            {% comment %}
+            {% now %} reads the server clock at render time. No view change and
+            nothing cached, so it stays correct across midnight.
+            {% endcomment %}
+            <p class="vm-body-sm" style="margin-top:6px;">Today is {% now "l, j F" %}. Here is where the shop stands.</p>
         </div>
         <a href="{% url 'admin_orders' %}" class="vm-link">View all orders &rarr;</a>
     </div>
@@ -222,28 +240,36 @@
     {% endcomment %}
     <div class="vm-hero">
         <div>
-            <p class="vm-label">Total Revenue</p>
+            <div class="vm-hero__top">
+                <p class="vm-label">Total Revenue</p>
+                <span class="vm-chip {% if revenue_growth_percent >= 0 %}vm-chip--up{% else %}vm-chip--down{% endif %}">{{ revenue_growth_percent }}%</span>
+            </div>
             <p class="vm-stat">&#8377;{{ total_revenue|floatformat:0 }}</p>
-            <span class="vm-chip {% if revenue_growth_percent >= 0 %}vm-chip--up{% else %}vm-chip--down{% endif %}">
-                {{ revenue_growth_percent }}% vs last period
-            </span>
+            <p class="vm-hero__note">vs last period</p>
         </div>
         <div>
-            <p class="vm-label">Orders</p>
+            <div class="vm-hero__top">
+                <p class="vm-label">Orders</p>
+                <span class="vm-chip {% if transactions_change_percent >= 0 %}vm-chip--up{% else %}vm-chip--down{% endif %}">{{ transactions_change_percent }}%</span>
+            </div>
             <p class="vm-stat">{{ total_orders }}</p>
-            <span class="vm-chip {% if transactions_change_percent >= 0 %}vm-chip--up{% else %}vm-chip--down{% endif %}">
-                {{ transactions_change_percent }}% transactions
-            </span>
+            <p class="vm-hero__note">transactions vs last period</p>
         </div>
         <div>
-            <p class="vm-label">Customers</p>
+            <div class="vm-hero__top">
+                <p class="vm-label">Customers</p>
+                <span class="vm-chip vm-chip--flat">{{ total_products }} products</span>
+            </div>
             <p class="vm-stat">{{ total_users }}</p>
-            <span class="vm-chip vm-chip--flat">{{ total_products }} products &middot; {{ active_products }} active</span>
+            <p class="vm-hero__note">{{ active_products }} products active</p>
         </div>
         <div>
-            <p class="vm-label">Conversion Rate</p>
+            <div class="vm-hero__top">
+                <p class="vm-label">Conversion Rate</p>
+                <span class="vm-chip vm-chip--flat">{{ purchased_count }} sales</span>
+            </div>
             <p class="vm-stat">{{ conversion_rate }}%</p>
-            <span class="vm-chip vm-chip--flat">{{ purchased_count }} of {{ impressions_count }} views</span>
+            <p class="vm-hero__note">of {{ impressions_count }} product views</p>
         </div>
     </div>
 
