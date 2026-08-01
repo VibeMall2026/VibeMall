@@ -543,3 +543,78 @@ def admin_product_drafts_status(request):
             'failed': counts.get(ProductDraft.STATUS_FAILED, 0),
         }
     )
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_latest_processing_draft(request):
+    """
+    Polled from every admin page (base_admin.html) so a product that starts
+    processing anywhere pulls the admin to the queue automatically, rather
+    than them finding out only if they happen to be on that page already.
+
+    Returns the newest draft that has ever entered PROCESSING, not "currently
+    processing" — a draft that finished a second after it started would
+    otherwise vanish from a naive "status=PROCESSING right now" query before
+    the poller's next tick ever saw it. The frontend tracks which id it has
+    already redirected for, so this being "sticky" doesn't mean a repeat
+    redirect once it reaches PENDING.
+    """
+    latest = (
+        ProductDraft.objects
+        .exclude(claimed_at__isnull=True)
+        .order_by('-claimed_at')
+        .values('id', 'status', 'claimed_at')
+        .first()
+    )
+    if not latest:
+        return JsonResponse({'id': None})
+    return JsonResponse({
+        'id': latest['id'],
+        'status': latest['status'],
+        'claimed_at': latest['claimed_at'].isoformat(),
+    })
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_ai_usage(request):
+    """AI usage widget data: active model, today/month spend, and the daily
+    ceiling for whichever model is actually answering right now."""
+    from Hub.automation.ai import PROVIDER_CLAUDE, PROVIDER_GEMINI, PROVIDER_GROQ, PROVIDER_OLLAMA
+    from Hub.automation.ai.usage import usage_summary
+
+    data = usage_summary()
+    data['available_providers'] = [PROVIDER_GROQ, PROVIDER_GEMINI, PROVIDER_CLAUDE, PROVIDER_OLLAMA]
+    data['pending_count'] = ProductDraft.objects.filter(
+        status__in=[ProductDraft.STATUS_RECEIVED, ProductDraft.STATUS_QUEUED, ProductDraft.STATUS_PROCESSING],
+    ).count()
+    return JsonResponse(data)
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+@require_POST
+def admin_ai_usage_switch(request):
+    """
+    Switch the AI provider without a deploy.
+
+    Writes to SiteSettings.ai_provider_override, which Hub.automation.ai
+    checks ahead of AUTOMATION_AI_PROVIDER on every call - so a quota running
+    out mid-day can be worked around from here instead of waiting on an SSH
+    session. 'auto' clears the override and returns to the .env default.
+    """
+    from Hub.automation.ai import PROVIDER_CLAUDE, PROVIDER_GEMINI, PROVIDER_GROQ, PROVIDER_OLLAMA
+    from Hub.automation.ai.usage import usage_summary
+    from Hub.models import SiteSettings
+
+    provider = (request.POST.get('provider') or '').strip().lower()
+    valid = {PROVIDER_GROQ, PROVIDER_GEMINI, PROVIDER_CLAUDE, PROVIDER_OLLAMA, 'auto'}
+    if provider not in valid:
+        return JsonResponse({'success': False, 'error': f'Unknown provider {provider!r}.'}, status=400)
+
+    site_settings = SiteSettings.get_settings()
+    site_settings.ai_provider_override = '' if provider == 'auto' else provider
+    site_settings.save(update_fields=['ai_provider_override'])
+
+    return JsonResponse({'success': True, **usage_summary()})

@@ -916,6 +916,173 @@ class PublishTests(TestCase):
         self.assertIsNotNone(second.duplicate_of_id)
 
 
+class ProviderOverrideTests(TestCase):
+    """SiteSettings.ai_provider_override lets the admin switch providers without a deploy."""
+
+    @override_settings(AUTOMATION_AI_PROVIDER='gemini')
+    def test_no_override_falls_through_to_the_env_default(self):
+        from Hub.automation.ai import _configured_provider
+
+        self.assertEqual(_configured_provider(), 'gemini')
+
+    @override_settings(AUTOMATION_AI_PROVIDER='gemini')
+    def test_an_override_wins_over_the_env_default(self):
+        from Hub.automation.ai import _configured_provider
+        from Hub.models import SiteSettings
+
+        site_settings = SiteSettings.get_settings()
+        site_settings.ai_provider_override = 'groq'
+        site_settings.save(update_fields=['ai_provider_override'])
+
+        self.assertEqual(_configured_provider(), 'groq')
+
+    def test_a_missing_settings_row_does_not_crash_provider_resolution(self):
+        """The very first request before SiteSettings has ever been created."""
+        from Hub.automation.ai import _configured_provider
+        from Hub.models import SiteSettings
+
+        SiteSettings.objects.all().delete()
+        with override_settings(AUTOMATION_AI_PROVIDER='ollama'):
+            self.assertEqual(_configured_provider(), 'ollama')
+
+
+@override_settings(MEDIA_ROOT=MEDIA, AUTOMATION_AI_PROVIDER='none')
+class AiUsageWidgetTests(TestCase):
+    """The AI usage widget's three endpoints, polled from every admin page."""
+
+    def setUp(self):
+        self.user = User.objects.create_user('widget_admin', is_staff=True, is_superuser=True)
+        self.client = Client(SERVER_NAME='localhost')
+        self.client.force_login(self.user)
+
+    def get(self, url):
+        return self.client.get(url, secure=True)
+
+    def post(self, url, data):
+        return self.client.post(url, data, secure=True)
+
+    def test_latest_processing_draft_is_null_when_nothing_has_ever_been_claimed(self):
+        response = self.get('/admin-panel/product-drafts/latest-processing/')
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.json()['id'])
+
+    def test_latest_processing_draft_reports_the_most_recently_claimed_row(self):
+        send('-60', 1, text='Kurti\nPrice 799')
+        draft = ProductDraft.objects.get()
+        draft.claimed_at = timezone.now()
+        draft.status = ProductDraft.STATUS_PROCESSING
+        draft.save(update_fields=['claimed_at', 'status'])
+
+        response = self.get('/admin-panel/product-drafts/latest-processing/')
+        data = response.json()
+        self.assertEqual(data['id'], draft.pk)
+        self.assertEqual(data['status'], ProductDraft.STATUS_PROCESSING)
+
+    def test_latest_processing_draft_stays_reported_after_it_finishes(self):
+        """
+        Sticky by design: a draft that finished a second after starting must
+        not disappear from a poller with a several-second interval before it
+        ever got a chance to see it.
+        """
+        send('-61', 1, text='Kurti\nPrice 799')
+        draft = ProductDraft.objects.get()
+        draft.claimed_at = timezone.now()
+        draft.status = ProductDraft.STATUS_PENDING
+        draft.save(update_fields=['claimed_at', 'status'])
+
+        response = self.get('/admin-panel/product-drafts/latest-processing/')
+        self.assertEqual(response.json()['id'], draft.pk)
+
+    def test_ai_usage_reports_pending_count_and_shape(self):
+        send('-62', 1, text='Kurti\nPrice 799')
+        response = self.get('/admin-panel/product-drafts/ai-usage/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        for key in ('provider', 'model', 'tokens_today', 'tokens_month', 'pending_count',
+                    'daily_limit', 'limit_kind', 'percent_used', 'is_near_limit'):
+            self.assertIn(key, data)
+        self.assertEqual(data['pending_count'], 1)
+
+    def test_ai_usage_sums_tokens_used_today_across_drafts(self):
+        for i, tokens in enumerate((300, 700), start=1):
+            send(f'-{63 + i}', 1, text='Kurti\nPrice 799')
+        drafts = list(ProductDraft.objects.order_by('id'))
+        for draft, tokens in zip(drafts, (300, 700)):
+            draft.ai_model = 'openai/gpt-oss-120b'
+            draft.ai_tokens_used = tokens
+            draft.save(update_fields=['ai_model', 'ai_tokens_used'])
+
+        data = self.get('/admin-panel/product-drafts/ai-usage/').json()
+        self.assertEqual(data['tokens_today'], 1000)
+        self.assertEqual(data['model'], 'openai/gpt-oss-120b')
+
+    def test_ai_usage_computes_percent_used_against_the_known_limit(self):
+        send('-70', 1, text='Kurti\nPrice 799')
+        draft = ProductDraft.objects.get()
+        draft.ai_model = 'openai/gpt-oss-120b'  # 200,000 token/day limit
+        draft.ai_tokens_used = 100_000
+        draft.save(update_fields=['ai_model', 'ai_tokens_used'])
+
+        data = self.get('/admin-panel/product-drafts/ai-usage/').json()
+        self.assertEqual(data['daily_limit'], 200_000)
+        self.assertEqual(data['percent_used'], 50.0)
+        self.assertFalse(data['is_near_limit'])
+
+    def test_ai_usage_flags_near_limit_at_80_percent(self):
+        send('-71', 1, text='Kurti\nPrice 799')
+        draft = ProductDraft.objects.get()
+        draft.ai_model = 'openai/gpt-oss-120b'
+        draft.ai_tokens_used = 170_000
+        draft.save(update_fields=['ai_model', 'ai_tokens_used'])
+
+        data = self.get('/admin-panel/product-drafts/ai-usage/').json()
+        self.assertTrue(data['is_near_limit'])
+
+    def test_switch_sets_the_override_and_returns_updated_usage(self):
+        response = self.post('/admin-panel/product-drafts/ai-usage/switch/', {'provider': 'gemini'})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['provider'], 'gemini')
+
+        from Hub.models import SiteSettings
+        self.assertEqual(SiteSettings.get_settings().ai_provider_override, 'gemini')
+
+    def test_switch_to_auto_clears_the_override(self):
+        from Hub.models import SiteSettings
+
+        site_settings = SiteSettings.get_settings()
+        site_settings.ai_provider_override = 'groq'
+        site_settings.save(update_fields=['ai_provider_override'])
+
+        self.post('/admin-panel/product-drafts/ai-usage/switch/', {'provider': 'auto'})
+        site_settings.refresh_from_db()
+        self.assertEqual(site_settings.ai_provider_override, '')
+
+    def test_switch_rejects_an_unknown_provider(self):
+        response = self.post('/admin-panel/product-drafts/ai-usage/switch/', {'provider': 'not-a-real-provider'})
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()['success'])
+
+    def test_endpoints_require_staff(self):
+        self.client.logout()
+        plain = User.objects.create_user('widget_shopper', password='x')
+        self.client.force_login(plain)
+        for url in (
+            '/admin-panel/product-drafts/latest-processing/',
+            '/admin-panel/product-drafts/ai-usage/',
+        ):
+            response = self.get(url)
+            self.assertIn(response.status_code, (302, 403), f'{url} must not be open to non-staff')
+
+    def test_widget_markup_renders_on_an_ordinary_admin_page(self):
+        """Polled from every page, per the request - not just the drafts queue."""
+        response = self.get('/admin-panel/orders/')
+        html = response.content.decode()
+        self.assertIn('vmAiUsageToggle', html)
+        self.assertIn('vm_last_seen_processing_draft', html)
+
+
 @override_settings(MEDIA_ROOT=MEDIA, AUTOMATION_AI_PROVIDER='none')
 class AdminScreenTests(TestCase):
     """Every admin route must render and every action must work."""

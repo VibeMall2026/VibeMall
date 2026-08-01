@@ -1986,7 +1986,15 @@ class SiteSettings(models.Model):
     
     # Admin Panel Logo
     admin_logo = models.ImageField(upload_to='site/', blank=True, null=True, help_text='Admin panel logo (recommended: 120x40px)')
-    
+
+    # Product-automation AI provider. Blank means "use AUTOMATION_AI_PROVIDER
+    # from .env" - set from the admin panel's AI usage widget when a quota
+    # runs out and switching providers cannot wait for a deploy/restart.
+    ai_provider_override = models.CharField(
+        max_length=20, blank=True, default='',
+        help_text='Overrides AUTOMATION_AI_PROVIDER at runtime. Empty = use the .env default.',
+    )
+
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:

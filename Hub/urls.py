@@ -23,6 +23,21 @@ urlpatterns = [
         name='admin_product_drafts_status',
     ),
     path(
+        'admin-panel/product-drafts/latest-processing/',
+        views_product_automation.admin_latest_processing_draft,
+        name='admin_latest_processing_draft',
+    ),
+    path(
+        'admin-panel/product-drafts/ai-usage/',
+        views_product_automation.admin_ai_usage,
+        name='admin_ai_usage',
+    ),
+    path(
+        'admin-panel/product-drafts/ai-usage/switch/',
+        views_product_automation.admin_ai_usage_switch,
+        name='admin_ai_usage_switch',
+    ),
+    path(
         'admin-panel/product-drafts/<int:draft_id>/',
         views_product_automation.admin_review_product_draft,
         name='admin_review_product_draft',

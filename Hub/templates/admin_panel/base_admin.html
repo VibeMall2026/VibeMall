@@ -234,6 +234,40 @@
         letter-spacing: 0.02em; text-transform: none; color: var(--vm-ink-faint); margin-top: 1px;
       }
       .vm-nav-divider { display: block; width: 1px; height: 28px; background: var(--vm-line); }
+
+      /* --- AI usage widget ------------------------------------------------ */
+      .vm-ai-chip { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; }
+      .vm-ai-ring { transform: rotate(-90deg); }
+      .vm-ai-ring__bg { fill: none; stroke: var(--vm-line); stroke-width: 3; }
+      .vm-ai-ring__fg {
+        fill: none; stroke: var(--vm-gold); stroke-width: 3; stroke-linecap: round;
+        transition: stroke-dashoffset .4s ease, stroke .2s ease;
+      }
+      .vm-ai-chip__label {
+        position: absolute; font-size: 8.5px; font-weight: 800; letter-spacing: 0.02em;
+        color: var(--vm-ink); text-transform: uppercase;
+      }
+      .vm-ai-chip.vm-ai-chip--warn .vm-ai-ring__fg { stroke: #ba1a1a; }
+      .vm-ai-menu { width: 280px; padding: 14px 16px; }
+      .vm-ai-menu__head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+      .vm-ai-menu__title { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--vm-ink-faint); }
+      .vm-ai-menu__time { font-size: 11px; color: var(--vm-ink-faint); }
+      .vm-ai-menu__model {
+        font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: 13px; font-weight: 600;
+        color: var(--vm-ink); margin-bottom: 12px; word-break: break-word;
+      }
+      .vm-ai-menu__bar-wrap { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+      .vm-ai-menu__bar { flex: 1; height: 6px; border-radius: 999px; background: var(--vm-surface); overflow: hidden; }
+      .vm-ai-menu__bar-fill { height: 100%; background: var(--vm-gold); border-radius: 999px; transition: width .4s ease, background .2s ease; }
+      .vm-ai-menu__bar-fill.vm-ai-menu__bar-fill--warn { background: #ba1a1a; }
+      .vm-ai-menu__bar-label { font-size: 11px; font-weight: 700; color: var(--vm-ink-soft); white-space: nowrap; }
+      .vm-ai-menu__stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 4px; }
+      .vm-ai-menu__stats div { display: flex; flex-direction: column; gap: 2px; }
+      .vm-ai-menu__stats span { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--vm-ink-faint); }
+      .vm-ai-menu__stats b { font-size: 13px; color: var(--vm-ink); font-variant-numeric: tabular-nums; }
+      .vm-ai-menu__switch { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; }
+      .vm-ai-menu__switch label { font-size: 11px; font-weight: 700; color: var(--vm-ink-soft); white-space: nowrap; }
+      .vm-ai-menu__switch select { font-family: 'Manrope', sans-serif; font-size: 12px; }
     </style>
 
     <!-- Page CSS -->
@@ -902,6 +936,46 @@
               <!-- /Search -->
 
               <ul class="navbar-nav flex-row align-items-center ms-auto">
+                {% if admin_panel_mode != 'seller' %}
+                <li class="nav-item dropdown me-2">
+                  <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" id="vmAiUsageToggle" data-bs-toggle="dropdown" aria-expanded="false" title="AI usage">
+                    <span class="vm-ai-chip">
+                      <svg class="vm-ai-ring" viewBox="0 0 36 36" width="26" height="26">
+                        <circle class="vm-ai-ring__bg" cx="18" cy="18" r="15.5"></circle>
+                        <circle class="vm-ai-ring__fg" id="vmAiRingFg" cx="18" cy="18" r="15.5" stroke-dasharray="97.4" stroke-dashoffset="97.4"></circle>
+                      </svg>
+                      <span class="vm-ai-chip__label" id="vmAiChipLabel">AI</span>
+                    </span>
+                  </a>
+                  <div class="dropdown-menu dropdown-menu-end shadow vm-ai-menu" aria-labelledby="vmAiUsageToggle">
+                    <div class="vm-ai-menu__head">
+                      <span class="vm-ai-menu__title">AI Usage</span>
+                      <span class="vm-ai-menu__time" id="vmAiAsOf"></span>
+                    </div>
+                    <div class="vm-ai-menu__model" id="vmAiModel">Loading…</div>
+                    <div class="vm-ai-menu__bar-wrap">
+                      <div class="vm-ai-menu__bar"><div class="vm-ai-menu__bar-fill" id="vmAiBarFill"></div></div>
+                      <span class="vm-ai-menu__bar-label" id="vmAiBarLabel"></span>
+                    </div>
+                    <div class="vm-ai-menu__stats">
+                      <div><span>Today</span><b id="vmAiToday">—</b></div>
+                      <div><span>This month</span><b id="vmAiMonth">—</b></div>
+                      <div><span>Pending</span><b id="vmAiPending">—</b></div>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <div class="vm-ai-menu__switch">
+                      <label for="vmAiSelect">Provider</label>
+                      <select id="vmAiSelect" class="form-select form-select-sm">
+                        <option value="auto">Auto (.env default)</option>
+                        <option value="groq">Groq</option>
+                        <option value="gemini">Gemini</option>
+                        <option value="claude">Claude</option>
+                        <option value="ollama">Ollama</option>
+                      </select>
+                    </div>
+                  </div>
+                </li>
+                {% endif %}
                 <li class="nav-item dropdown admin-notification-toggle me-2">
                   <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" id="adminNotificationToggle" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bx bx-bell fs-4 lh-0"></i>
@@ -1276,6 +1350,122 @@
         });
       });
     </script>
+
+    {% if admin_panel_mode != 'seller' %}
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        const ring = document.getElementById('vmAiRingFg');
+        const toggleLi = document.getElementById('vmAiUsageToggle');
+        const chip = toggleLi ? toggleLi.querySelector('.vm-ai-chip') : null;
+        const label = document.getElementById('vmAiChipLabel');
+        const asOf = document.getElementById('vmAiAsOf');
+        const modelEl = document.getElementById('vmAiModel');
+        const barFill = document.getElementById('vmAiBarFill');
+        const barLabel = document.getElementById('vmAiBarLabel');
+        const todayEl = document.getElementById('vmAiToday');
+        const monthEl = document.getElementById('vmAiMonth');
+        const pendingEl = document.getElementById('vmAiPending');
+        const select = document.getElementById('vmAiSelect');
+        if (!ring || !select || !chip) return;
+
+        // 2 * pi * r, r=15.5 - matches the circle's own radius attribute.
+        const RING_CIRC = 2 * Math.PI * 15.5;
+
+        const fmt = (n) => {
+          if (n === null || n === undefined) return '—';
+          if (n >= 100000) return (n / 1000).toFixed(0) + 'K';
+          if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+          return String(n);
+        };
+
+        const render = (data) => {
+          const pct = data.percent_used;
+          const known = pct !== null && pct !== undefined;
+          const offset = known ? RING_CIRC - (Math.min(100, pct) / 100) * RING_CIRC : RING_CIRC * 0.15;
+          ring.setAttribute('stroke-dashoffset', String(offset));
+          chip.classList.toggle('vm-ai-chip--warn', !!data.is_near_limit);
+          label.textContent = known ? Math.round(pct) + '%' : 'AI';
+
+          modelEl.textContent = data.model + (data.provider ? ' · ' + data.provider : '');
+          asOf.textContent = data.as_of ? 'as of ' + data.as_of : '';
+
+          if (known) {
+            barFill.style.width = Math.min(100, pct) + '%';
+            barFill.classList.toggle('vm-ai-menu__bar-fill--warn', !!data.is_near_limit);
+            barLabel.textContent = pct + '% of ' + fmt(data.daily_limit) + ' tok/day';
+          } else if (data.limit_kind === 'rpm') {
+            barFill.style.width = '0%';
+            barLabel.textContent = data.daily_limit + ' req/min limit';
+          } else {
+            barFill.style.width = '0%';
+            barLabel.textContent = 'No published daily limit';
+          }
+
+          todayEl.textContent = fmt(data.tokens_today) + ' tok';
+          monthEl.textContent = fmt(data.tokens_month) + ' tok';
+          pendingEl.textContent = data.pending_count;
+
+          // Don't clobber a selection the admin is mid-way through making.
+          if (document.activeElement !== select) {
+            select.value = data.provider === 'none' ? 'auto' : data.provider;
+          }
+        };
+
+        const load = () => {
+          fetch('{% url "admin_ai_usage" %}')
+            .then((r) => r.json())
+            .then(render)
+            .catch(() => { modelEl.textContent = 'Unavailable'; });
+        };
+
+        load();
+        setInterval(load, 20000);
+
+        select.addEventListener('click', function (e) { e.stopPropagation(); });
+        select.addEventListener('change', function () {
+          fetch('{% url "admin_ai_usage_switch" %}', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: new URLSearchParams({ provider: select.value }).toString(),
+          })
+            .then((r) => r.json())
+            .then((data) => { if (data.success) render(data); });
+        });
+      });
+    </script>
+
+    <script>
+      // A product that starts processing anywhere pulls the admin to the
+      // queue automatically, instead of them finding out only if they
+      // happen to already be on that page. Runs on every admin page via
+      // this shared template.
+      document.addEventListener('DOMContentLoaded', function () {
+        const STORAGE_KEY = 'vm_last_seen_processing_draft';
+        const isDraftsPage = window.location.pathname.startsWith('/admin-panel/product-drafts/');
+
+        const poll = () => {
+          fetch('{% url "admin_latest_processing_draft" %}')
+            .then((r) => r.json())
+            .then((data) => {
+              if (!data.id) return;
+              const seen = localStorage.getItem(STORAGE_KEY);
+              if (String(data.id) === seen) return;
+              localStorage.setItem(STORAGE_KEY, String(data.id));
+              if (!isDraftsPage) {
+                window.location.href = '{% url "admin_product_drafts" %}?status=PROCESSING&highlight=' + data.id;
+              }
+            })
+            .catch(() => {});
+        };
+
+        poll();
+        setInterval(poll, 6000);
+      });
+    </script>
+    {% endif %}
 
     <!-- Page JS -->
     {% block extra_js %}{% endblock %}

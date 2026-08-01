@@ -76,6 +76,22 @@ PROVIDER_OFF = {'none', 'off', 'disabled', 'rules'}
 
 
 def _configured_provider() -> str:
+    """
+    ``SiteSettings.ai_provider_override`` wins when set - it's how the admin
+    panel's AI usage widget switches providers without a deploy, for when a
+    quota runs out mid-day and waiting for a restart isn't an option. Falls
+    through to the .env default when empty, which is what runs before the
+    site settings row even exists (e.g. management commands, tests).
+    """
+    try:
+        from Hub.models import SiteSettings
+        override = (SiteSettings.get_settings().ai_provider_override or '').strip().lower()
+        if override:
+            return override
+    except Exception:
+        # Migrations not yet run, DB unreachable, or a test context with no
+        # database at all - the .env value is always a safe fallback.
+        pass
     return (getattr(settings, 'AUTOMATION_AI_PROVIDER', 'auto') or 'auto').strip().lower()
 
 

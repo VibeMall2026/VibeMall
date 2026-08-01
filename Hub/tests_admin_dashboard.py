@@ -36,10 +36,18 @@ class DashboardRendersTests(TestCase):
             self.assertIn(f'id="{chart}"', html, f'{chart} has no container')
 
     def test_every_chart_is_actually_rendered(self):
-        """A container with no matching render() call is a blank box."""
+        """
+        A container with no matching render() call is a blank box.
+
+        Scoped to the dashboard's own naming convention (every real ApexCharts
+        mount ends in "Chart" or "Radial") rather than every id="vm*" on the
+        page - base_admin.html's AI usage widget also uses vm-prefixed ids for
+        plain DOM elements it fills with textContent, not ApexCharts mounts,
+        and a broader pattern would false-positive on those.
+        """
         html = self._page()
-        mounts = set(re.findall(r'id="(vm[A-Za-z]+)"', html))
-        rendered = set(re.findall(r"render\('#(vm[A-Za-z]+)'", html))
+        mounts = set(re.findall(r'id="(vm[A-Za-z]+(?:Chart|Radial))"', html))
+        rendered = set(re.findall(r"render\('#(vm[A-Za-z]+(?:Chart|Radial))'", html))
         self.assertEqual(mounts - rendered, set(),
                          'these containers are never rendered into')
 
