@@ -352,13 +352,41 @@ def process_once() -> bool:
 
     Returns ``True`` if work was done, ``False`` when the queue was empty.
     """
+    from django.db import DatabaseError, transaction
+
+    from Hub.models import ProductDraft
+
     draft = claim_next()
     if draft is None:
         return False
 
     try:
         process_draft(draft)
+    except ProductDraft.DoesNotExist:
+        # The row was deleted out from under a claimed draft - an admin
+        # clearing the queue mid-process, most likely (bulk-delete now
+        # refuses PROCESSING rows, but an already-in-flight request from
+        # before that guard, or a direct DB edit, can still hit this).
+        # Nothing to save; log and move on rather than falling into the
+        # generic handler below, which would try to reschedule a row that
+        # no longer exists.
+        logger.warning('[pipeline] Draft %s was deleted while being processed; skipping.', draft.pk)
     except Exception as exc:  # noqa: BLE001 - the retry policy handles everything
         logger.exception('[pipeline] Draft %s raised during processing', draft.pk)
-        reschedule(draft, f'{type(exc).__name__}: {exc}')
+        try:
+            # A savepoint, not a bare call: save(update_fields=...) on a row
+            # that no longer exists raises DatabaseError("Save with
+            # update_fields did not affect any rows"), and a failed query
+            # leaves the connection refusing every further query until
+            # something rolls it back to a known point - the caller's loop
+            # over the next draft would fail too, not just this one.
+            with transaction.atomic():
+                reschedule(draft, f'{type(exc).__name__}: {exc}')
+        except DatabaseError:
+            # Django only refuses the silent INSERT fallback here, it does
+            # not re-check existence first - so this is the same "deleted
+            # mid-process" cause as the DoesNotExist branch above, just
+            # surfacing one step later. This used to bury that cause behind
+            # a confusing second traceback instead of resolving cleanly.
+            logger.warning('[pipeline] Draft %s was deleted while being processed; skipping.', draft.pk)
     return True

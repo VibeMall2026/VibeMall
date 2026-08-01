@@ -302,6 +302,48 @@ class WorkerGatingTests(TestCase):
         draft.refresh_from_db()
         self.assertEqual(draft.status, ProductDraft.STATUS_QUEUED)
 
+    def test_a_draft_deleted_mid_process_is_skipped_not_crashed_on(self):
+        """
+        Regression: an admin deleting a PROCESSING draft (or any other route
+        to the row vanishing mid-flight) used to raise DoesNotExist from
+        refresh_from_db, and the generic handler's own attempt to reschedule
+        the now-gone row raised a second, confusing DatabaseError - masking
+        the real cause and leaving nothing in the logs pointing at a delete.
+        Both paths must now resolve to a clean skip.
+        """
+        from unittest.mock import patch
+
+        send('-13', 1, text='Kurti\nPrice 799')
+        draft = ProductDraft.objects.get()
+        age(draft, 300)
+
+        def vanish(_draft):
+            ProductDraft.objects.filter(pk=_draft.pk).delete()
+            raise RuntimeError('boom')
+
+        with patch('Hub.automation.pipeline.process_draft', side_effect=vanish):
+            did_work = pipeline.process_once()
+
+        self.assertTrue(did_work)
+        self.assertFalse(ProductDraft.objects.filter(pk=draft.pk).exists())
+
+    def test_refresh_from_db_finding_no_row_is_also_a_clean_skip(self):
+        """The other path to the same DoesNotExist, hit earlier in process_draft."""
+        from unittest.mock import patch
+
+        send('-14', 1, text='Kurti\nPrice 799')
+        draft = ProductDraft.objects.get()
+        age(draft, 300)
+
+        def vanish(_draft):
+            ProductDraft.objects.filter(pk=_draft.pk).delete()
+            _draft.refresh_from_db(fields=['id'])
+
+        with patch('Hub.automation.pipeline.process_draft', side_effect=vanish):
+            did_work = pipeline.process_once()
+
+        self.assertTrue(did_work)
+
 
 class RuleExtractionTests(TestCase):
     """The deterministic pass is what guards prices and sizes."""
@@ -1015,6 +1057,45 @@ class AdminScreenTests(TestCase):
         self.draft.status = ProductDraft.STATUS_PUBLISHED
         self.draft.save(update_fields=['status'])
         self.post('/admin-panel/product-drafts/bulk-delete/', {'status': 'all'})
+        self.assertTrue(ProductDraft.objects.filter(pk=self.draft.pk).exists())
+
+    def test_single_delete_refuses_a_draft_being_processed(self):
+        """
+        Regression: PROCESSING means a worker currently holds this row.
+        Deleting it out from under process_draft() used to raise a confusing
+        DatabaseError mid-pipeline and silently lose the product - the row
+        must survive this request untouched, with a message saying why.
+        """
+        self.draft.status = ProductDraft.STATUS_PROCESSING
+        self.draft.save(update_fields=['status'])
+        response = self.post(f'/admin-panel/product-drafts/{self.draft.pk}/delete/', {})
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(ProductDraft.objects.filter(pk=self.draft.pk).exists())
+
+    def test_bulk_delete_leaves_processing_drafts_alone(self):
+        """Same guard as the single-delete view, for the 'all' and 'received' tabs."""
+        self.draft.status = ProductDraft.STATUS_PROCESSING
+        self.draft.save(update_fields=['status'])
+
+        send('-33', 1, text='Deletable\nPrice 100')
+        deletable = ProductDraft.objects.exclude(pk=self.draft.pk).get()
+
+        self.post('/admin-panel/product-drafts/bulk-delete/', {'status': 'all'})
+
+        self.assertTrue(
+            ProductDraft.objects.filter(pk=self.draft.pk).exists(),
+            'a PROCESSING draft must never be bulk-deleted',
+        )
+        self.assertFalse(ProductDraft.objects.filter(pk=deletable.pk).exists())
+
+    def test_bulk_delete_received_tab_leaves_processing_drafts_alone(self):
+        """
+        The 'received' tab used to explicitly bundle PROCESSING in with
+        RECEIVED and QUEUED - that was the bug.
+        """
+        self.draft.status = ProductDraft.STATUS_PROCESSING
+        self.draft.save(update_fields=['status'])
+        self.post('/admin-panel/product-drafts/bulk-delete/', {'status': ProductDraft.STATUS_RECEIVED})
         self.assertTrue(ProductDraft.objects.filter(pk=self.draft.pk).exists())
 
     def test_admin_routes_require_staff(self):

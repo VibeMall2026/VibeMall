@@ -444,6 +444,18 @@ def _handle_review_post(request, draft: ProductDraft):
 def admin_delete_product_draft(request, draft_id: int):
     """Discard a draft and its staged images entirely."""
     draft = get_object_or_404(ProductDraft, pk=draft_id)
+    # PROCESSING means a worker currently holds this row (pipeline.py sets
+    # claimed_at and works through vision/extraction/publish). Deleting it
+    # out from under that in-flight request used to crash the worker with a
+    # confusing DatabaseError and silently lose the product - a stuck claim
+    # already self-heals in 30 minutes via pipeline.reclaim_stale(), so there
+    # is never a reason to force it from here.
+    if draft.status == ProductDraft.STATUS_PROCESSING:
+        messages.error(
+            request,
+            f'Draft #{draft_id} is being processed right now — try again in a moment.',
+        )
+        return redirect('admin_product_drafts')
     # A locked file on Windows must not block removing the draft row; an
     # orphaned file is harmless and can be swept up later.
     _delete_draft_files(draft)
@@ -462,27 +474,36 @@ def admin_bulk_delete_product_drafts(request):
     A supplier sending photos one at a time used to create a draft per photo,
     so clearing up meant dozens of individual deletes. Published drafts are
     never touched — deleting those would orphan the audit trail of a live
-    product.
+    product. PROCESSING drafts are never touched either, for the same reason
+    as the single-delete view above: that status means a worker currently
+    holds the row, and deleting it out from under that request used to crash
+    the worker and silently lose the product. A stuck claim self-heals in 30
+    minutes via pipeline.reclaim_stale().
     """
     status = (request.POST.get('status') or '').strip()
 
-    drafts = ProductDraft.objects.exclude(status=ProductDraft.STATUS_PUBLISHED)
+    drafts = ProductDraft.objects.exclude(
+        status__in=[ProductDraft.STATUS_PUBLISHED, ProductDraft.STATUS_PROCESSING]
+    )
     if status == ProductDraft.STATUS_RECEIVED:
-        drafts = drafts.filter(
-            status__in=[
-                ProductDraft.STATUS_RECEIVED,
-                ProductDraft.STATUS_QUEUED,
-                ProductDraft.STATUS_PROCESSING,
-            ]
-        )
+        drafts = drafts.filter(status__in=[ProductDraft.STATUS_RECEIVED, ProductDraft.STATUS_QUEUED])
     elif status and status != 'all':
         drafts = drafts.filter(status=status)
+
+    skipped_processing = ProductDraft.objects.filter(status=ProductDraft.STATUS_PROCESSING).count()
 
     count = 0
     for draft in drafts:
         _delete_draft_files(draft)
         draft.delete()
         count += 1
+
+    if skipped_processing:
+        messages.info(
+            request,
+            f'{skipped_processing} draft{"" if skipped_processing == 1 else "s"} '
+            f'being processed right now — left alone, try again shortly if they still need clearing.',
+        )
 
     messages.success(request, f'Deleted {count} draft{"" if count == 1 else "s"}.')
     return redirect('admin_product_drafts')
