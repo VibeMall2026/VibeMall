@@ -146,6 +146,34 @@
 .vm-adm .vm-table tbody tr:hover { background: var(--surface); }
 .vm-adm .vm-table .num { text-align: right; font-variant-numeric: tabular-nums; padding-right: 0; }
 
+/* --- product thumbnail stack in Recent Orders ---------------------------- */
+.vm-adm .vm-stack { display: flex; align-items: center; }
+.vm-adm .vm-stack__img {
+    width: 40px; height: 40px; flex: 0 0 auto;
+    object-fit: cover; border-radius: 6px;
+    background: #f0eee9;
+    box-shadow: 0 0 0 2px var(--card);   /* the white ring that separates overlaps */
+    margin-left: -10px;
+    transition: margin-left .18s ease;
+}
+.vm-adm .vm-stack__img:first-child { margin-left: 0; }
+.vm-adm .vm-stack__fallback {
+    display: grid; place-items: center;
+    font-size: 13px; font-weight: 700; color: var(--gold);
+}
+.vm-adm .vm-stack__more {
+    display: grid; place-items: center;
+    width: 40px; height: 40px; flex: 0 0 auto;
+    margin-left: -10px; border-radius: 6px;
+    background: var(--gold-tint); color: var(--ink);
+    font-size: 12px; font-weight: 700;
+    box-shadow: 0 0 0 2px var(--card);
+}
+/* Fan the stack out on hover so every item is visible without leaving the row. */
+.vm-adm .vm-table tbody tr:hover .vm-stack__img,
+.vm-adm .vm-table tbody tr:hover .vm-stack__more { margin-left: 4px; }
+.vm-adm .vm-table tbody tr:hover .vm-stack__img:first-child { margin-left: 0; }
+
 /* --- status chips -------------------------------------------------------- */
 .vm-adm .vm-pill {
     display: inline-block; padding: 3px 9px; border-radius: 4px;
@@ -375,17 +403,40 @@
             <div class="vm-card">
                 <div class="vm-card__head">
                     <p class="vm-label">Recent Orders</p>
-                    <span class="vm-body-sm">{{ recent_order_items|length }} recent items</span>
+                    <span class="vm-body-sm">{{ recent_orders|length }} latest</span>
                     <a href="{% url 'admin_orders' %}" class="vm-link">View all</a>
                 </div>
+                {% comment %}
+                Looped over recent_order_items rather than recent_orders: only
+                that queryset prefetches items, and the thumbnails read
+                order.items, so using the other one would fire an extra query
+                per row.
+                {% endcomment %}
                 <table class="vm-table">
                     <thead>
-                        <tr><th>Order</th><th>Customer</th><th>Status</th><th>Payment</th><th class="num">Amount</th><th class="num">Date</th></tr>
+                        <tr><th>Order</th><th>Items</th><th>Customer</th><th>Status</th><th>Payment</th><th class="num">Amount</th><th class="num">Date</th></tr>
                     </thead>
                     <tbody>
-                    {% for order in recent_orders %}
+                    {% for order in recent_order_items %}
                         <tr>
                             <td><a href="{% url 'admin_order_details' order.id %}" style="color:var(--ink);font-weight:600;text-decoration:none;">{{ order.order_number }}</a></td>
+                            <td>
+                                <div class="vm-stack">
+                                    {% for item in order.items.all|slice:":3" %}
+                                        {% if item.product_image %}
+                                            <img class="vm-stack__img" src="{{ item.product_image }}" alt="{{ item.product_name }}" title="{{ item.product_name }}" loading="lazy">
+                                        {% elif item.product.image %}
+                                            <img class="vm-stack__img" src="{{ item.product.image.url }}" alt="{{ item.product_name }}" title="{{ item.product_name }}" loading="lazy">
+                                        {% else %}
+                                            {# No image on the line or the product - show the initial rather than a broken tile. #}
+                                            <span class="vm-stack__img vm-stack__fallback" title="{{ item.product_name }}">{{ item.product_name|first|upper }}</span>
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% with extra=order.items.all|length %}
+                                        {% if extra > 3 %}<span class="vm-stack__more">+{{ extra|add:"-3" }}</span>{% endif %}
+                                    {% endwith %}
+                                </div>
+                            </td>
                             <td>{{ order.user.get_full_name|default:order.user.username }}</td>
                             <td><span class="vm-pill p-{{ order.order_status|lower }}">{{ order.get_order_status_display }}</span></td>
                             <td><span class="vm-body-sm">{{ order.get_payment_method_display }}</span></td>
@@ -393,7 +444,7 @@
                             <td class="num"><span class="vm-body-sm">{{ order.created_at|date:"d M" }}</span></td>
                         </tr>
                     {% empty %}
-                        <tr><td colspan="6"><p class="vm-empty">No orders yet.</p></td></tr>
+                        <tr><td colspan="7"><p class="vm-empty">No orders yet.</p></td></tr>
                     {% endfor %}
                     </tbody>
                 </table>

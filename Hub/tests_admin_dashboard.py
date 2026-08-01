@@ -61,6 +61,27 @@ class DashboardRendersTests(TestCase):
                      'the four figures that answer'):
             self.assertNotIn(leak, html)
 
+    def test_recent_orders_shows_product_thumbnails(self):
+        html = self._page()
+        self.assertIn('<th>Items</th>', html)
+        self.assertIn('vm-stack', html)
+        self.assertIn('.vm-stack__more', html, 'the "+N" badge has no styling')
+
+    def test_the_orders_table_uses_the_prefetched_queryset(self):
+        """
+        The thumbnails read order.items. Only recent_order_items prefetches
+        them; looping recent_orders instead would fire one extra query per row.
+        """
+        template = TEMPLATE.read_text(encoding='utf-8')
+        table = template.split('<th>Items</th>', 1)[1].split('</table>', 1)[0]
+        self.assertIn('for order in recent_order_items', table)
+        self.assertNotIn('for order in recent_orders', table)
+
+    def test_a_product_without_an_image_still_renders(self):
+        """A missing image must show an initial, not a broken tile."""
+        template = TEMPLATE.read_text(encoding='utf-8')
+        self.assertIn('vm-stack__fallback', template)
+
     def test_charts_survive_a_missing_library(self):
         """ApexCharts is guarded, so the page is readable without it."""
         html = self._page()
