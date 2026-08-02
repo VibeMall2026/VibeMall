@@ -1496,13 +1496,19 @@ class GroqRotationTests(TestCase):
         self.assertEqual(set(rotation), set(FALLBACK_MODELS))
 
     def test_only_the_gpt_oss_models_get_strict_mode(self):
+        """
+        Regression: Groq rejects response_format "json_schema" outright from
+        llama-3.1-8b-instant ("This model does not support response format
+        `json_schema`"), even with strict off - so the best-effort overflow
+        model must use "json_object" instead, not json_schema/strict=False.
+        """
         from unittest.mock import patch
 
         client = self._client()
-        seen_strict = {}
+        seen_formats = {}
 
         def capture(url, json=None, **kwargs):
-            seen_strict[json['model']] = json['response_format']['json_schema']['strict']
+            seen_formats[json['model']] = json['response_format']
             return self._rate_limited()
 
         with patch.object(client.session, 'post', side_effect=capture), \
@@ -1510,9 +1516,9 @@ class GroqRotationTests(TestCase):
             with self.assertRaises(Exception):
                 client.complete_json(system='s', content=[{'type': 'text', 'text': 'hi'}], schema={'type': 'object'})
 
-        self.assertTrue(seen_strict['openai/gpt-oss-120b'])
-        self.assertTrue(seen_strict['openai/gpt-oss-20b'])
-        self.assertFalse(seen_strict['llama-3.1-8b-instant'])
+        self.assertTrue(seen_formats['openai/gpt-oss-120b']['json_schema']['strict'])
+        self.assertTrue(seen_formats['openai/gpt-oss-20b']['json_schema']['strict'])
+        self.assertEqual(seen_formats['llama-3.1-8b-instant'], {'type': 'json_object'})
 
     def test_a_rate_limited_model_falls_through_to_the_next(self):
         from unittest.mock import patch
@@ -1585,6 +1591,72 @@ class GroqRotationTests(TestCase):
         self.assertEqual(post.call_count, 2, 'must try the next model instead of giving up')
         slept.assert_not_called()
         self.assertEqual(client.model, expected)
+
+    def test_a_validate_json_wording_variant_also_falls_through(self):
+        """
+        Regression: Groq does not always say "Failed to generate JSON" for a
+        strict-mode decoding failure - "Failed to validate JSON" is another
+        real wording for the same class of error, and the narrow substring
+        match originally used to fix this missed it, so three already-fixed
+        drafts still fell through to the placeholder description on rerun.
+        """
+        from unittest.mock import patch
+
+        client = self._client()
+        validate_failure = self._response(400, {'error': {
+            'message': "Failed to validate JSON. Please adjust your prompt. "
+                       "See 'failed_generation' for more details.",
+        }})
+
+        with patch.object(client.session, 'post', side_effect=[validate_failure, self._ok()]) as post, \
+             patch('Hub.automation.ai.groq.time.sleep') as slept:
+            result = client.complete_json(system='s', content=[{'type': 'text', 'text': 'hi'}], schema={'type': 'object'})
+
+        self.assertEqual(result['name'], 'Kurti')
+        self.assertEqual(post.call_count, 2)
+        slept.assert_not_called()
+
+    def test_an_unsupported_response_format_falls_through_instead_of_aborting(self):
+        """
+        Defensive: complete_json already sends the right response_format per
+        model, so Groq's "does not support response format" 400 should not
+        fire in practice - but if a future model is added to FALLBACK_MODELS
+        without updating STRICT_CAPABLE_MODELS, this must not abort the whole
+        rotation the way the strict-mode bug once did.
+        """
+        from unittest.mock import patch
+
+        client = self._client()
+        unsupported = self._response(400, {'error': {
+            'message': 'This model does not support response format `json_schema`. '
+                       'See supported models at https://console.groq.com/docs/structured-outputs',
+        }})
+
+        with patch.object(client.session, 'post', side_effect=[unsupported, self._ok()]) as post, \
+             patch('Hub.automation.ai.groq.time.sleep') as slept:
+            result = client.complete_json(system='s', content=[{'type': 'text', 'text': 'hi'}], schema={'type': 'object'})
+
+        self.assertEqual(result['name'], 'Kurti')
+        self.assertEqual(post.call_count, 2)
+        slept.assert_not_called()
+
+    def test_best_effort_mode_reminds_the_model_to_answer_in_json(self):
+        """Groq requires the word "json" in the messages when response_format is json_object."""
+        from unittest.mock import patch
+
+        client = self._client()
+        seen_system = {}
+
+        def capture(url, json=None, **kwargs):
+            seen_system[json['model']] = json['messages'][0]['content']
+            return self._rate_limited()
+
+        with patch.object(client.session, 'post', side_effect=capture), \
+             patch('Hub.automation.ai.groq.time.sleep'):
+            with self.assertRaises(Exception):
+                client.complete_json(system='s', content=[{'type': 'text', 'text': 'hi'}], schema={'type': 'object'})
+
+        self.assertIn('json', seen_system['llama-3.1-8b-instant'].lower())
 
     def test_text_only_content_collapses_to_a_plain_string(self):
         from Hub.automation.ai.groq import to_groq_content

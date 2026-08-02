@@ -172,24 +172,44 @@ class GroqClient:
             rate_limited = 0
 
             for model in rotation:
+                strict_capable = model in STRICT_CAPABLE_MODELS
+                system_for_model = system
+                if strict_capable:
+                    response_format: dict[str, Any] = {
+                        'type': 'json_schema',
+                        'json_schema': {
+                            'name': 'product_extraction',
+                            'strict': True,
+                            'schema': schema,
+                        },
+                    }
+                else:
+                    # Groq only accepts response_format "json_schema" from the
+                    # two gpt-oss models above - every other model (the
+                    # llama-3.1-8b-instant overflow) 400s with "This model
+                    # does not support response format `json_schema`" even
+                    # with strict off. "json_object" (schema described in the
+                    # prompt instead of enforced) is the actual best-effort
+                    # mode for those models, and Groq requires the word
+                    # "json" to appear in the messages when using it.
+                    response_format = {'type': 'json_object'}
+                    system_for_model = (
+                        f'{system}\n\nRespond with a single minified JSON object only, '
+                        'matching this schema, and nothing else:\n'
+                        f'{json.dumps(schema)}'
+                    )
+
                 body = {
                     'model': model,
                     'messages': [
-                        {'role': 'system', 'content': system},
+                        {'role': 'system', 'content': system_for_model},
                         {'role': 'user', 'content': user_content},
                     ],
                     'max_completion_tokens': self.max_tokens,
                     # Low but non-zero: catalogue copy should vary between
                     # products without drifting from the supplied facts.
                     'temperature': 0.4,
-                    'response_format': {
-                        'type': 'json_schema',
-                        'json_schema': {
-                            'name': 'product_extraction',
-                            'strict': model in STRICT_CAPABLE_MODELS,
-                            'schema': schema,
-                        },
-                    },
+                    'response_format': response_format,
                 }
 
                 outcome, payload = self._call(model, body)
@@ -280,20 +300,30 @@ class GroqClient:
             return 'retry', RuntimeError(f'Server error {response.status_code} from {model}.')
 
         detail = self._error_detail(response)
+        detail_lower = detail.lower()
 
         # Strict mode's constrained decoding failed to produce output
         # matching the schema on THIS model for THIS input - Groq's own
-        # wording is "Failed to generate JSON... see 'failed_generation'".
-        # That is a property of the model, not the request: gpt-oss-20b (also
-        # strict) or llama-3.1-8b-instant (best-effort, no constrained
-        # decoding to fail) can still succeed on the exact same body. Treated
-        # as fatal, this used to abort the whole rotation on attempt one and
-        # fall the caller straight through to the rule-based extractor -
-        # which is how three real products got published with a placeholder
-        # description ("Full details to be reviewed before publishing")
-        # despite two working fallback models sitting right there unused.
-        if response.status_code == 400 and 'failed to generate json' in detail.lower():
+        # wording varies ("Failed to generate JSON...", "Failed to validate
+        # JSON...") but always points back at 'failed_generation'. That is a
+        # property of the model, not the request: gpt-oss-20b (also strict)
+        # or llama-3.1-8b-instant (best-effort, no constrained decoding to
+        # fail) can still succeed on the exact same body. Treated as fatal,
+        # this used to abort the whole rotation on attempt one and fall the
+        # caller straight through to the rule-based extractor - which is how
+        # three real products got published with a placeholder description
+        # ("Full details to be reviewed before publishing") despite working
+        # fallback models sitting right there unused.
+        if response.status_code == 400 and 'failed_generation' in detail_lower:
             logger.info('[groq] %s could not satisfy strict mode; trying the next model.', model)
+            return 'quota', 0
+
+        # A model that flatly cannot do the requested response_format at all
+        # (a capability gap, not a bad request) - try the next one rather
+        # than aborting. Defensive: complete_json already picks the right
+        # response_format per model, so this should not fire in practice.
+        if response.status_code == 400 and 'does not support response format' in detail_lower:
+            logger.info('[groq] %s does not support this response format; trying the next model.', model)
             return 'quota', 0
 
         # Every other 400/401/403 will not fix themselves — surface immediately.
