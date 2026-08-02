@@ -586,8 +586,19 @@ def admin_ai_usage(request):
 
     data = usage_summary()
     data['available_providers'] = [PROVIDER_GROQ, PROVIDER_GEMINI, PROVIDER_CLAUDE, PROVIDER_OLLAMA]
+    # Everything that still needs *someone's* attention - the AI's (still in
+    # the queue) or the admin's (AI is done, waiting on a review click).
+    # Originally only counted the first group, which reads as "0 pending"
+    # the instant a draft clears the AI step even though it is now sitting
+    # in the Pending Approval tab asking for a decision.
     data['pending_count'] = ProductDraft.objects.filter(
-        status__in=[ProductDraft.STATUS_RECEIVED, ProductDraft.STATUS_QUEUED, ProductDraft.STATUS_PROCESSING],
+        status__in=[
+            ProductDraft.STATUS_RECEIVED,
+            ProductDraft.STATUS_QUEUED,
+            ProductDraft.STATUS_PROCESSING,
+            ProductDraft.STATUS_PENDING,
+            ProductDraft.STATUS_DUPLICATE,
+        ],
     ).count()
     return JsonResponse(data)
 

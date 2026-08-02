@@ -999,9 +999,36 @@ class AiUsageWidgetTests(TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.json()
         for key in ('provider', 'model', 'tokens_today', 'tokens_month', 'pending_count',
-                    'daily_limit', 'limit_kind', 'percent_used', 'is_near_limit'):
+                    'daily_limit', 'limit_kind', 'percent_used', 'is_near_limit',
+                    'tokens_remaining_today'):
             self.assertIn(key, data)
         self.assertEqual(data['pending_count'], 1)
+
+    def test_pending_count_includes_drafts_awaiting_approval(self):
+        """
+        Regression: pending_count originally only counted RECEIVED/QUEUED/
+        PROCESSING, so it read "0 pending" the instant AI finished and the
+        draft moved to STATUS_PENDING - despite that being exactly the
+        state that most needs the admin's attention (a decision, not just
+        waiting on a machine).
+        """
+        send('-72', 1, text='Kurti\nPrice 799')
+        draft = ProductDraft.objects.get()
+        draft.status = ProductDraft.STATUS_PENDING
+        draft.save(update_fields=['status'])
+
+        data = self.get('/admin-panel/product-drafts/ai-usage/').json()
+        self.assertEqual(data['pending_count'], 1)
+
+    def test_tokens_remaining_today_is_the_limit_minus_what_is_used(self):
+        send('-73', 1, text='Kurti\nPrice 799')
+        draft = ProductDraft.objects.get()
+        draft.ai_model = 'openai/gpt-oss-120b'  # 200,000 token/day limit
+        draft.ai_tokens_used = 150_000
+        draft.save(update_fields=['ai_model', 'ai_tokens_used'])
+
+        data = self.get('/admin-panel/product-drafts/ai-usage/').json()
+        self.assertEqual(data['tokens_remaining_today'], 50_000)
 
     def test_ai_usage_sums_tokens_used_today_across_drafts(self):
         for i, tokens in enumerate((300, 700), start=1):

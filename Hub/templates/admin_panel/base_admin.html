@@ -1439,7 +1439,7 @@
           if (known) {
             barFill.style.width = Math.min(100, pct) + '%';
             barFill.classList.toggle('vm-ai-menu__bar-fill--warn', !!data.is_near_limit);
-            barLabel.textContent = pct + '% of ' + fmt(data.daily_limit) + ' tok/day';
+            barLabel.textContent = pct + '% used · ' + fmt(data.tokens_remaining_today) + ' left today';
           } else if (data.limit_kind === 'rpm') {
             barFill.style.width = '0%';
             barLabel.textContent = data.daily_limit + ' req/min limit';

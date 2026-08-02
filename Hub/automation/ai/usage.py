@@ -96,9 +96,11 @@ def usage_summary() -> dict[str, Any]:
 
     limit = DAILY_TOKEN_LIMITS.get(model)
     percent_used = None
+    tokens_remaining_today = None
     limit_kind = 'none'
     if limit:
         percent_used = min(100, round(tokens_today / limit * 100, 1))
+        tokens_remaining_today = max(0, limit - tokens_today)
         limit_kind = 'tokens'
     elif _is_gemini_model(model):
         limit = GEMINI_RPM_LIMIT
@@ -111,6 +113,11 @@ def usage_summary() -> dict[str, Any]:
         'tokens_month': tokens_month,
         'requests_today': requests_today,
         'daily_limit': limit,
+        # No provider here publishes a *monthly* token ceiling (Groq and
+        # Gemini's free tiers are both per-minute/per-day only) - there is
+        # nothing to compute a monthly percentage or remainder against, so
+        # this stays a running total rather than inventing a number.
+        'tokens_remaining_today': tokens_remaining_today,
         'limit_kind': limit_kind,  # 'tokens' | 'rpm' | 'none'
         'percent_used': percent_used,
         'is_near_limit': bool(percent_used is not None and percent_used >= 80),
