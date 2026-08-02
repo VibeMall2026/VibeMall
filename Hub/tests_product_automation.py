@@ -1130,7 +1130,16 @@ class AiUsageWidgetTests(TestCase):
         data = self.get('/admin-panel/product-drafts/ai-usage/').json()
         self.assertTrue(data['is_near_limit'])
 
+    @override_settings(GEMINI_API_KEY='test-key')
     def test_switch_sets_the_override_and_returns_updated_usage(self):
+        """
+        The response's ``provider`` is usage_summary()'s *actually active*
+        provider (it checks the key is really configured, same as a live
+        request would), not just an echo of what was posted - correct for a
+        diagnostics widget, but it means this assertion needs a real-looking
+        key in the environment regardless of whether the machine running the
+        test happens to have one of its own in .env.
+        """
         response = self.post('/admin-panel/product-drafts/ai-usage/switch/', {'provider': 'gemini'})
         self.assertEqual(response.status_code, 200)
         data = response.json()
