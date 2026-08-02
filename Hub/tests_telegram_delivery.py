@@ -123,15 +123,71 @@ class DatabaseConcurrencyTests(TestCase):
     """
 
     def test_the_pragma_hook_is_registered(self):
+        """
+        Regression: this used to unpack ``connection_created.receivers`` as
+        2-tuples of ``(lookup_key, ref)``. Django 5 added a third element
+        (``is_async``, for async signal receivers) to every entry, so the
+        same unpack that passed locally against Django 4.2 raised
+        ``ValueError: too many values to unpack`` in CI against the 5.2 this
+        project actually ships on - and because Django's parallel test
+        runner cannot pickle the resulting traceback to report it, the whole
+        suite died instead of just this one test failing. The receiver is
+        always the second element regardless of how many trailing fields a
+        given Django version appends, so index into it by position rather
+        than unpacking the tuple's exact shape.
+        """
         from django.db.backends.signals import connection_created
 
         from Hub.db_pragmas import apply_sqlite_pragmas
 
-        registered = [ref() for _, ref in connection_created.receivers]
+        registered = [entry[1]() for entry in connection_created.receivers]
         self.assertIn(
             apply_sqlite_pragmas, registered,
             'without this hook SQLite stays in rollback-journal mode',
         )
+
+    def test_the_pragma_hook_actually_sets_wal_on_a_real_connection(self):
+        """
+        A behavioural companion to the registration check above: proves the
+        hook does what it claims once it fires, independent of Django's
+        internal signal bookkeeping entirely. Exercised against a real
+        on-disk SQLite file - the in-memory test database is deliberately
+        skipped by apply_sqlite_pragmas itself (WAL is a file-journal
+        concept), so this cannot use the connection tests already run
+        under.
+        """
+        import sqlite3
+
+        from Hub.db_pragmas import PRAGMAS, apply_sqlite_pragmas
+
+        class _FakeConnection:
+            vendor = 'sqlite'
+
+            def __init__(self, path):
+                self.settings_dict = {'NAME': path}
+                self._conn = sqlite3.connect(path)
+
+            def cursor(self):
+                return self._conn
+
+        # SQLite reports some pragmas back as the integer code behind the
+        # word used to set them, not the word itself - querying journal_mode
+        # returns 'wal', but synchronous=NORMAL reads back as 1 and
+        # foreign_keys=ON reads back as 1, not 'on'.
+        reported_as = {'OFF': '0', 'NORMAL': '1', 'FULL': '2', 'EXTRA': '3', 'ON': '1'}
+
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = str(Path(tmp) / 'pragma_check.sqlite3')
+            fake = _FakeConnection(db_path)
+            apply_sqlite_pragmas(sender=None, connection=fake)
+
+            cur = fake._conn.cursor()
+            for pragma, expected in PRAGMAS:
+                cur.execute(f'PRAGMA {pragma}')
+                actual = str(cur.fetchone()[0]).lower()
+                expected = reported_as.get(str(expected).upper(), str(expected)).lower()
+                self.assertEqual(actual, expected, f'PRAGMA {pragma} was not applied')
+            fake._conn.close()
 
     def test_wal_is_among_the_pragmas(self):
         from Hub.db_pragmas import PRAGMAS
