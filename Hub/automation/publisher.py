@@ -107,6 +107,45 @@ def default_stock() -> int:
     return max(int(getattr(settings, 'AUTOMATION_DEFAULT_STOCK', 50)), 0)
 
 
+def _normalize_image_colors(images: list[Any]) -> None:
+    """
+    Collapse colourways that only one photo supports into the dominant one.
+
+    Vision classifies every staged image independently, so slight lighting or
+    angle drift between shots of the very same physical colour can come back
+    as two or three different colour names for one product. A genuine second
+    colourway in a listing is always represented by more than one photo —
+    sellers photograph each variant, they do not shoot a single stray angle
+    of it — so a colour attested by exactly one image is treated as noise and
+    folded into whichever colour the rest of the shoot agrees on, instead of
+    fragmenting the product into spurious variants and swatches.
+    """
+    counts: dict[str, int] = {}
+    original: dict[str, str] = {}
+    for image in images:
+        color = (image.color or '').strip()
+        if not color:
+            continue
+        key = color.lower()
+        counts[key] = counts.get(key, 0) + 1
+        original.setdefault(key, color)
+
+    if len(counts) <= 1:
+        return
+
+    supported = {key for key, count in counts.items() if count > 1}
+    if not supported:
+        # Every colour is a singleton - no majority to prefer, so leave them
+        # as the AI reported them rather than guessing which one is real.
+        return
+
+    canonical = original[max(supported, key=lambda key: counts[key])]
+    for image in images:
+        color = (image.color or '').strip()
+        if color and color.lower() not in supported:
+            image.color = canonical
+
+
 def _ordered_colors(record: dict[str, Any], main_image: Any) -> list[str]:
     """
     The product's colours, with the hero image's colour first.
@@ -626,6 +665,7 @@ def publish(draft: Any, *, user: Any = None) -> Any:
         stock = default_stock()
 
     images = list(draft.images.all().order_by('order', 'id'))
+    _normalize_image_colors(images)
     main_image = next((i for i in images if i.role == 'main'), None)
     description_image = next((i for i in images if i.role == 'description'), None)
 

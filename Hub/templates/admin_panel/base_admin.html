@@ -260,6 +260,17 @@
       /* Name + role beside the avatar, not just inside the dropdown - the
          admin's identity should read at a glance, not need a click. */
       .vm-user-trigger { display: flex; align-items: center; gap: 10px; }
+      /* Bootstrap's h-auto utility (used alongside w-px-40 on the avatar
+         <img>) carries !important, so it wins over core.css's own
+         .avatar img { height: 100% } - a non-square source photo then
+         renders at its natural aspect ratio inside a 50%-radius mask,
+         which reads as a rounded box rather than a circle. Forcing both
+         dimensions plus object-fit here is robust regardless of the
+         source photo's own proportions. */
+      .vm-user-trigger .avatar img,
+      .dropdown-menu .avatar img {
+        width: 36px !important; height: 36px !important; object-fit: cover;
+      }
       .vm-user-trigger__meta { display: flex; flex-direction: column; line-height: 1.25; text-align: right; }
       .vm-user-trigger__name { font-size: 13px; font-weight: 700; color: var(--vm-ink); }
       .vm-user-trigger__role { font-size: 11px; color: var(--vm-ink-faint); }

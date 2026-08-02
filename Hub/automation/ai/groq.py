@@ -279,9 +279,26 @@ class GroqClient:
         if response.status_code in (500, 502, 503):
             return 'retry', RuntimeError(f'Server error {response.status_code} from {model}.')
 
-        # 400/401/403 will not fix themselves — surface immediately.
+        detail = self._error_detail(response)
+
+        # Strict mode's constrained decoding failed to produce output
+        # matching the schema on THIS model for THIS input - Groq's own
+        # wording is "Failed to generate JSON... see 'failed_generation'".
+        # That is a property of the model, not the request: gpt-oss-20b (also
+        # strict) or llama-3.1-8b-instant (best-effort, no constrained
+        # decoding to fail) can still succeed on the exact same body. Treated
+        # as fatal, this used to abort the whole rotation on attempt one and
+        # fall the caller straight through to the rule-based extractor -
+        # which is how three real products got published with a placeholder
+        # description ("Full details to be reviewed before publishing")
+        # despite two working fallback models sitting right there unused.
+        if response.status_code == 400 and 'failed to generate json' in detail.lower():
+            logger.info('[groq] %s could not satisfy strict mode; trying the next model.', model)
+            return 'quota', 0
+
+        # Every other 400/401/403 will not fix themselves — surface immediately.
         return 'fatal', GroqUnavailable(
-            f'Groq rejected the request ({response.status_code}): {self._error_detail(response)}'
+            f'Groq rejected the request ({response.status_code}): {detail}'
         )
 
     # -- Helpers ------------------------------------------------------------

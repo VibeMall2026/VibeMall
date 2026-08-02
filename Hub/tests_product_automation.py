@@ -15,6 +15,7 @@ import shutil
 import tempfile
 from datetime import timedelta
 from decimal import Decimal
+from types import SimpleNamespace
 
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
@@ -33,6 +34,7 @@ from Hub.automation.parsing.rules import (
 )
 from Hub.automation.publisher import (
     PublishError,
+    _normalize_image_colors,
     build_care_info,
     build_description,
     next_sku,
@@ -731,6 +733,69 @@ class SkuTests(TestCase):
             normalize_sku('T-1', exclude_pk=product.pk), 'T-1',
             'editing a product must not rename its own SKU on every save',
         )
+
+
+class NormalizeImageColorsTests(TestCase):
+    """
+    Vision analyses each staged image independently, so lighting/angle drift
+    across photos of one true colour can come back as several colour names.
+    A single-colour product must not fragment into spurious variants because
+    of that noise; a real multi-colour listing (every colour backed by more
+    than one photo) must be left alone.
+    """
+
+    @staticmethod
+    def _image(color):
+        return SimpleNamespace(color=color)
+
+    def test_a_singleton_colour_is_folded_into_the_majority(self):
+        images = [
+            self._image('Maroon'), self._image('Maroon'), self._image('Maroon'),
+            self._image('Wine Red'),
+        ]
+        _normalize_image_colors(images)
+        self.assertEqual({i.color for i in images}, {'Maroon'}, 'the lone outlier must be dropped')
+
+    def test_two_singletons_both_fold_into_the_majority(self):
+        images = [
+            self._image('Navy'), self._image('Navy'), self._image('Navy'),
+            self._image('Blue'), self._image('Teal'),
+        ]
+        _normalize_image_colors(images)
+        self.assertEqual({i.color for i in images}, {'Navy'})
+
+    def test_a_genuine_two_colour_listing_survives(self):
+        images = [
+            self._image('Red'), self._image('Red'), self._image('Red'),
+            self._image('Black'), self._image('Black'),
+        ]
+        _normalize_image_colors(images)
+        self.assertEqual({i.color for i in images}, {'Red', 'Black'})
+
+    def test_all_singletons_are_left_alone(self):
+        """No majority to prefer - guessing would be worse than doing nothing."""
+        images = [self._image('Red'), self._image('Blue'), self._image('Green')]
+        _normalize_image_colors(images)
+        self.assertEqual({i.color for i in images}, {'Red', 'Blue', 'Green'})
+
+    def test_a_single_colour_is_untouched(self):
+        images = [self._image('Red'), self._image('Red')]
+        _normalize_image_colors(images)
+        self.assertEqual({i.color for i in images}, {'Red'})
+
+    def test_blank_colours_are_ignored(self):
+        images = [self._image('Red'), self._image('Red'), self._image('')]
+        _normalize_image_colors(images)
+        self.assertEqual(images[2].color, '', 'an unanalysed image is left blank, not guessed at')
+
+    def test_a_tie_between_supported_colours_prefers_the_first_seen(self):
+        images = [
+            self._image('Red'), self._image('Red'),
+            self._image('Blue'), self._image('Blue'),
+            self._image('Green'),
+        ]
+        _normalize_image_colors(images)
+        self.assertEqual({i.color for i in images}, {'Red', 'Blue'})
 
 
 @override_settings(MEDIA_ROOT=MEDIA, AUTOMATION_AI_PROVIDER='none')
@@ -1488,6 +1553,38 @@ class GroqRotationTests(TestCase):
             with self.assertRaises(GroqUnavailable):
                 client.complete_json(system='s', content=[{'type': 'text', 'text': 'hi'}], schema={'type': 'object'})
         self.assertEqual(post.call_count, 1, 'a bad request will not fix itself')
+
+    def test_a_strict_mode_decoding_failure_falls_through_to_the_next_model(self):
+        """
+        Regression: this specific 400 ("Failed to generate JSON... see
+        'failed_generation'") used to be treated the same as any other 400 -
+        fatal, abort on attempt one. It is not the same: it means THIS
+        model's constrained decoder could not satisfy the schema for THIS
+        input, not that the request itself is malformed. gpt-oss-20b (also
+        strict) or llama-3.1-8b-instant (best-effort, no constrained decoder
+        to fail) can still succeed on the identical body - and three real
+        products got published with a rule-based placeholder description
+        because this fell straight through to the caller's own rule-based
+        fallback instead of trying either of them.
+        """
+        from unittest.mock import patch
+
+        client = self._client()
+        expected = client.model_rotation()[1]
+
+        strict_failure = self._response(400, {'error': {
+            'message': "Failed to generate JSON. Please adjust your prompt. "
+                       "See 'failed_generation' for more details.",
+        }})
+
+        with patch.object(client.session, 'post', side_effect=[strict_failure, self._ok()]) as post, \
+             patch('Hub.automation.ai.groq.time.sleep') as slept:
+            result = client.complete_json(system='s', content=[{'type': 'text', 'text': 'hi'}], schema={'type': 'object'})
+
+        self.assertEqual(result['name'], 'Kurti')
+        self.assertEqual(post.call_count, 2, 'must try the next model instead of giving up')
+        slept.assert_not_called()
+        self.assertEqual(client.model, expected)
 
     def test_text_only_content_collapses_to_a_plain_string(self):
         from Hub.automation.ai.groq import to_groq_content
