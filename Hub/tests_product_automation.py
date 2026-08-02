@@ -798,6 +798,59 @@ class NormalizeImageColorsTests(TestCase):
         self.assertEqual({i.color for i in images}, {'Red', 'Blue'})
 
 
+class NormalizeFindingsColorwaysTests(TestCase):
+    """
+    The dict-based twin of NormalizeImageColorsTests, applied to a raw
+    vision payload before extraction ever reads it.
+
+    Regression: normalizing only the ProductDraftImage rows (at publish
+    time) was too late - extraction runs long before publish and embeds
+    ``detected_colorways`` straight into its prompt as "what the product
+    images show". Re-running extraction on three real drafts after the
+    per-image fix was already live still produced a 4-colour list, because
+    the vision payload's own ``detected_colorways`` was still the raw,
+    un-normalized noise: ['Maroon', 'Magenta', 'Grey', 'Black'] for a saree
+    that was really just one colour under different lighting.
+    """
+
+    @staticmethod
+    def _findings(*colors):
+        return {'images': [{'index': i, 'color': c} for i, c in enumerate(colors)]}
+
+    def test_a_singleton_colour_is_folded_into_the_majority(self):
+        from Hub.automation.ai.vision import normalize_findings_colorways
+
+        findings = self._findings('Maroon', 'Maroon', 'Maroon', 'Wine Red')
+        normalize_findings_colorways(findings)
+
+        self.assertEqual({e['color'] for e in findings['images']}, {'Maroon'})
+        self.assertEqual(findings['detected_colorways'], ['Maroon'])
+
+    def test_a_genuine_multi_colour_listing_survives(self):
+        from Hub.automation.ai.vision import normalize_findings_colorways
+
+        findings = self._findings('Red', 'Red', 'Black', 'Black')
+        normalize_findings_colorways(findings)
+
+        self.assertEqual({e['color'] for e in findings['images']}, {'Red', 'Black'})
+        self.assertEqual(set(findings['detected_colorways']), {'Red', 'Black'})
+
+    def test_blank_and_missing_entries_are_left_alone(self):
+        from Hub.automation.ai.vision import normalize_findings_colorways
+
+        findings = self._findings('Red', 'Red', '')
+        normalize_findings_colorways(findings)
+
+        self.assertEqual(findings['images'][2]['color'], '')
+
+    def test_a_payload_with_no_images_is_a_no_op(self):
+        from Hub.automation.ai.vision import normalize_findings_colorways
+
+        findings = {'detected_colorways': ['Red']}
+        normalize_findings_colorways(findings)
+        self.assertEqual(findings, {'detected_colorways': ['Red']})
+
+
 @override_settings(MEDIA_ROOT=MEDIA, AUTOMATION_AI_PROVIDER='none')
 class PublishTests(TestCase):
     """Approval writes the full set of live rows, atomically."""
@@ -1747,6 +1800,49 @@ class VisionProviderSplitTests(TestCase):
         from Hub.automation.ai import get_client, get_vision_client
 
         self.assertIs(type(get_vision_client()), type(get_client()))
+
+    def test_extraction_receives_normalized_colorways_not_raw_vision_noise(self):
+        """
+        Regression: normalize_findings_colorways must run before extract()
+        is called, not just before apply_to_images - otherwise extraction
+        embeds vision's raw, un-normalized detected_colorways in its prompt
+        as "what the product images show" and faithfully copies the noise
+        into the product's own colour list, which no amount of cleaning up
+        ProductDraftImage rows afterwards can undo.
+        """
+        from unittest.mock import patch
+
+        send('-41', 1, media=[image_media(1)])
+        send('-41', 2, text='Kurti\nPrice 799')
+        draft = ProductDraft.objects.get()
+        age(draft, 300)
+
+        class Vision:
+            model = 'gemini-3.1-flash-lite'
+            supports_vision = True
+
+        noisy_findings = {
+            'images': [{'index': 0, 'role': 'main', 'color': 'Maroon', 'alt_text': '', 'is_text_heavy': False, 'quality': 'good'}],
+            'detected_colorways': ['Maroon', 'Magenta', 'Grey', 'Black'],
+        }
+
+        seen_image_findings = {}
+
+        def fake_extract(*, raw_text, client, image_findings, source_label):
+            seen_image_findings['value'] = image_findings
+            return {'name': 'Kurti', 'warnings': []}, False
+
+        with patch('Hub.automation.pipeline.is_configured', return_value=True), \
+             patch('Hub.automation.pipeline.get_client', return_value=Vision()), \
+             patch('Hub.automation.pipeline.get_vision_client', return_value=Vision()), \
+             patch('Hub.automation.pipeline.analyse_images', return_value=noisy_findings), \
+             patch('Hub.automation.pipeline.extract', side_effect=fake_extract):
+            pipeline.process_once()
+
+        self.assertEqual(
+            seen_image_findings['value']['detected_colorways'], ['Maroon'],
+            'extraction must see the normalized colourway list, not the raw noisy one',
+        )
 
 
 class OllamaProviderTests(TestCase):

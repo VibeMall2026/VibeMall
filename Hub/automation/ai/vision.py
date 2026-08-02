@@ -125,6 +125,80 @@ def analyse_images(client: Any, images: list[Any], *, context: str = '') -> dict
     return result
 
 
+def normalize_color_pool(colors: list[str]) -> dict[str, str]:
+    """
+    Collapse colourways backed by only one photo into the majority colour.
+
+    Vision classifies each image independently, so slight lighting or angle
+    drift across photos of one true colour can come back as several colour
+    names. A genuine second colourway is always backed by more than one
+    photo — sellers photograph each variant, not one stray angle of it — so
+    a colour attested by exactly one image is treated as noise.
+
+    Returns a ``{lowercased original colour: canonical colour}`` map. Every
+    input colour is a key, including ones that survive unchanged, so a
+    caller can always do ``mapping.get(color.lower(), color)`` without first
+    checking whether normalization actually did anything.
+    """
+    counts: dict[str, int] = {}
+    original: dict[str, str] = {}
+    for color in colors:
+        color = (color or '').strip()
+        if not color:
+            continue
+        key = color.lower()
+        counts[key] = counts.get(key, 0) + 1
+        original.setdefault(key, color)
+
+    mapping = dict(original)
+    if len(counts) <= 1:
+        return mapping
+
+    supported = {key for key, count in counts.items() if count > 1}
+    if not supported:
+        # Every colour is a singleton — no majority to prefer, so leave them
+        # as vision reported them rather than guessing which one is real.
+        return mapping
+
+    canonical = original[max(supported, key=lambda key: counts[key])]
+    for key in original:
+        if key not in supported:
+            mapping[key] = canonical
+    return mapping
+
+
+def normalize_findings_colorways(findings: dict[str, Any]) -> None:
+    """
+    Fold single-photo colour noise out of a vision payload in place.
+
+    Must run before both consumers of ``findings`` see it: before
+    :func:`apply_to_images` assigns per-image colours from it, and before
+    extraction embeds ``detected_colorways`` in its prompt as "what the
+    product images show" — extraction has no way to know a colour named by
+    only one photo is noise, so left un-normalized here it faithfully
+    copies that noise straight into the product's colour list, which
+    normalizing the image rows afterwards at publish time cannot undo.
+    """
+    entries = findings.get('images') or []
+    if not entries:
+        return
+
+    mapping = normalize_color_pool([str(entry.get('color') or '') for entry in entries])
+
+    seen: list[str] = []
+    for entry in entries:
+        color = str(entry.get('color') or '').strip()
+        if not color:
+            continue
+        canonical = mapping.get(color.lower(), color)
+        entry['color'] = canonical
+        if canonical not in seen:
+            seen.append(canonical)
+
+    if seen:
+        findings['detected_colorways'] = seen
+
+
 def apply_to_images(images: list[Any], findings: dict[str, Any]) -> None:
     """
     Write vision results back onto the staged image rows.

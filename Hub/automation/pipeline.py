@@ -29,7 +29,7 @@ from django.utils import timezone
 
 from .ai import AIUnavailable, active_provider, get_client, get_vision_client, is_configured
 from .ai.extraction import extract, suggested_slug
-from .ai.vision import analyse_images, apply_to_images
+from .ai.vision import analyse_images, apply_to_images, normalize_findings_colorways
 from .duplicates import find_duplicate
 from .images import process_draft_images
 from .ingest import (
@@ -276,6 +276,13 @@ def process_draft(draft: Any) -> Any:
                 level='warning',
                 save=False,
             )
+    if findings:
+        # Before either consumer below sees it: a colour named by only one
+        # photo is lighting/angle noise, not a second colourway, and
+        # extraction has no way to tell the difference on its own - it would
+        # otherwise copy that noise straight from "what the images show"
+        # into the product's colour list.
+        normalize_findings_colorways(findings)
     apply_to_images(images, findings)
 
     # --- 3. Extraction ------------------------------------------------------

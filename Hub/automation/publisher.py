@@ -111,39 +111,20 @@ def _normalize_image_colors(images: list[Any]) -> None:
     """
     Collapse colourways that only one photo supports into the dominant one.
 
-    Vision classifies every staged image independently, so slight lighting or
-    angle drift between shots of the very same physical colour can come back
-    as two or three different colour names for one product. A genuine second
-    colourway in a listing is always represented by more than one photo —
-    sellers photograph each variant, they do not shoot a single stray angle
-    of it — so a colour attested by exactly one image is treated as noise and
-    folded into whichever colour the rest of the shoot agrees on, instead of
-    fragmenting the product into spurious variants and swatches.
+    A defensive second pass over :func:`~Hub.automation.ai.vision.normalize_findings_colorways`,
+    which already does this to the vision payload itself before extraction
+    and per-image assignment ever see it — this catches drafts published
+    from data that predates that fix, or images edited after vision ran.
+    Same rule, same reasoning: a colour attested by exactly one photo is
+    noise (lighting/angle drift on one true colour), not a second variant.
     """
-    counts: dict[str, int] = {}
-    original: dict[str, str] = {}
+    from .ai.vision import normalize_color_pool
+
+    mapping = normalize_color_pool([image.color or '' for image in images])
     for image in images:
         color = (image.color or '').strip()
-        if not color:
-            continue
-        key = color.lower()
-        counts[key] = counts.get(key, 0) + 1
-        original.setdefault(key, color)
-
-    if len(counts) <= 1:
-        return
-
-    supported = {key for key, count in counts.items() if count > 1}
-    if not supported:
-        # Every colour is a singleton - no majority to prefer, so leave them
-        # as the AI reported them rather than guessing which one is real.
-        return
-
-    canonical = original[max(supported, key=lambda key: counts[key])]
-    for image in images:
-        color = (image.color or '').strip()
-        if color and color.lower() not in supported:
-            image.color = canonical
+        if color:
+            image.color = mapping.get(color.lower(), color)
 
 
 def _ordered_colors(record: dict[str, Any], main_image: Any) -> list[str]:
