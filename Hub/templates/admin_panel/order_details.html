@@ -4,6 +4,64 @@
 
 {% block title %}Order Details - Admin Panel{% endblock %}
 
+{% block extra_css %}
+<!-- Editorial theme pass: only recolours/retypes what Bootstrap already
+     renders, at the classes the template already uses, so none of the
+     status/payment/RTO/cancellation logic on this page has to change. -->
+<style>
+    h4.fw-bold { font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--vm-ink); }
+    h4.fw-bold .text-muted { color: var(--vm-ink-faint) !important; font-weight: 700 !important; }
+
+    .card { border: 1px solid var(--vm-line); border-radius: 8px; box-shadow: none; }
+    .card-header { background: var(--vm-card); border-bottom: 1px solid var(--vm-line); }
+    .card-header h5 { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--vm-ink); }
+
+    .table thead th {
+        background: var(--vm-surface); border-bottom: 1px solid var(--vm-line);
+        font-size: 10.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--vm-ink-faint);
+    }
+    .table td { border-bottom: 1px solid var(--vm-line); }
+
+    .badge {
+        border-radius: 999px !important; font-weight: 700 !important;
+        letter-spacing: 0.02em; padding: 0.4em 0.8em;
+    }
+    .badge.bg-warning { background-color: #fadfb0 !important; color: #554422 !important; }
+    .badge.bg-info { background-color: #e0edfb !important; color: #1f5b8a !important; }
+    .badge.bg-primary { background-color: #e6e4f7 !important; color: #443c8a !important; }
+    .badge.bg-success { background-color: #e2f5e9 !important; color: #1e6038 !important; }
+    .badge.bg-danger { background-color: #ffdad6 !important; color: #93000a !important; }
+    .badge.bg-secondary { background-color: var(--vm-line) !important; color: var(--vm-ink-soft) !important; }
+
+    .btn-primary { background-color: var(--vm-ink) !important; border-color: var(--vm-ink) !important; }
+    .btn-primary:hover, .btn-primary:focus { background-color: #000 !important; border-color: #000 !important; }
+    .btn-outline-primary { color: var(--vm-ink) !important; border-color: var(--vm-line) !important; }
+    .btn-outline-primary:hover { background-color: var(--vm-ink) !important; border-color: var(--vm-ink) !important; }
+    .btn-outline-dark { color: var(--vm-ink) !important; border-color: var(--vm-ink) !important; }
+    .btn-dark { background-color: var(--vm-ink) !important; border-color: var(--vm-ink) !important; }
+    .btn { border-radius: 8px; font-weight: 700; font-size: 12.5px; }
+
+    /* Status timeline strip. */
+    .vm-timeline { background: var(--vm-card); border: 1px solid var(--vm-line); border-radius: 8px; padding: 24px; margin-bottom: 24px; }
+    .vm-timeline__track { position: relative; display: flex; align-items: flex-start; justify-content: space-between; max-width: 640px; margin: 0 auto; }
+    .vm-timeline__line { position: absolute; top: 15px; left: 0; width: 100%; height: 1px; background: var(--vm-line); z-index: 0; }
+    .vm-timeline__line-fill { position: absolute; top: 15px; left: 0; height: 2px; background: var(--vm-gold); z-index: 0; transition: width .3s ease; }
+    .vm-timeline__step { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; background: var(--vm-card); padding: 0 8px; }
+    .vm-timeline__dot {
+        width: 32px; height: 32px; border-radius: 999px; display: flex; align-items: center; justify-content: center;
+        border: 2px solid var(--vm-line); background: var(--vm-card); color: var(--vm-ink-faint); font-size: 16px;
+    }
+    .vm-timeline__step--done .vm-timeline__dot { background: var(--vm-gold); border-color: var(--vm-gold); color: #fff; }
+    .vm-timeline__step--current .vm-timeline__dot { border-color: var(--vm-gold); }
+    .vm-timeline__pulse { width: 12px; height: 12px; border-radius: 999px; background: var(--vm-gold); animation: vm-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    @keyframes vm-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .5; transform: scale(1.3); } }
+    .vm-timeline__label { font-size: 11px; font-weight: 700; letter-spacing: 0.02em; text-align: center; color: var(--vm-ink-faint); }
+    .vm-timeline__step--done .vm-timeline__label, .vm-timeline__step--current .vm-timeline__label { color: var(--vm-ink); }
+    .vm-timeline__time { font-size: 10px; color: var(--vm-ink-faint); text-align: center; }
+    .vm-timeline--cancelled { border-color: #ffdad6; background: #fff8f7; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -12,6 +70,54 @@
             <i class="bx bx-arrow-back"></i> Back to Orders
         </a>
     </div>
+
+    <!-- Status Timeline -->
+    {% if order.order_status == 'CANCELLED' %}
+    <div class="vm-timeline vm-timeline--cancelled text-center">
+        <span class="badge bg-danger fs-6"><i class="bx bx-x-circle"></i> Order Cancelled</span>
+        <p class="mb-0 mt-2 vm-timeline__time">Placed {{ order.order_date|date:"d M Y, H:i" }}</p>
+    </div>
+    {% else %}
+    <div class="vm-timeline">
+        <div class="vm-timeline__track">
+            <div class="vm-timeline__line"></div>
+            <div class="vm-timeline__line-fill" style="width:
+                {% if order.order_status == 'PENDING' %}0%
+                {% elif order.order_status == 'PROCESSING' %}33%
+                {% elif order.order_status == 'SHIPPED' %}66%
+                {% else %}100%{% endif %};"></div>
+
+            <div class="vm-timeline__step vm-timeline__step--done">
+                <div class="vm-timeline__dot"><i class="bx bx-check"></i></div>
+                <div class="vm-timeline__label">Placed</div>
+                <div class="vm-timeline__time">{{ order.order_date|date:"d M, H:i" }}</div>
+            </div>
+
+            <div class="vm-timeline__step {% if order.order_status == 'PROCESSING' %}vm-timeline__step--current{% elif order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}vm-timeline__step--done{% endif %}">
+                <div class="vm-timeline__dot">
+                    {% if order.order_status == 'SHIPPED' or order.order_status == 'DELIVERED' %}<i class="bx bx-check"></i>
+                    {% elif order.order_status == 'PROCESSING' %}<span class="vm-timeline__pulse"></span>{% endif %}
+                </div>
+                <div class="vm-timeline__label">Processing</div>
+            </div>
+
+            <div class="vm-timeline__step {% if order.order_status == 'SHIPPED' %}vm-timeline__step--current{% elif order.order_status == 'DELIVERED' %}vm-timeline__step--done{% endif %}">
+                <div class="vm-timeline__dot">
+                    {% if order.order_status == 'DELIVERED' %}<i class="bx bx-check"></i>
+                    {% elif order.order_status == 'SHIPPED' %}<span class="vm-timeline__pulse"></span>{% endif %}
+                </div>
+                <div class="vm-timeline__label">Shipped</div>
+                {% if order.tracking_number %}<div class="vm-timeline__time">{{ order.tracking_number }}</div>{% endif %}
+            </div>
+
+            <div class="vm-timeline__step {% if order.order_status == 'DELIVERED' %}vm-timeline__step--done{% endif %}">
+                <div class="vm-timeline__dot">{% if order.order_status == 'DELIVERED' %}<i class="bx bx-check"></i>{% endif %}</div>
+                <div class="vm-timeline__label">Delivered</div>
+                {% if order.delivery_date %}<div class="vm-timeline__time">{{ order.delivery_date|date:"d M, H:i" }}</div>{% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <div class="row">
         <!-- Order Info -->

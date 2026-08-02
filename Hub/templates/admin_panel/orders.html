@@ -4,42 +4,60 @@
 {% block title %}Orders Management - FashioHub Admin{% endblock %}
 
 {% block extra_css %}
+<!-- Editorial theme pass: only recolours/retypes what Bootstrap already
+     renders, at the classes the template already uses, so none of the
+     filtering/bulk-action/modal logic on this page has to change. -->
 <style>
-    .stats-card {
+    h4.fw-bold { font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--vm-ink); }
+
+    .stats-card, .filter-section, .order-table, .card {
+        border: 1px solid var(--vm-line);
         border-radius: 8px;
+        box-shadow: none;
+    }
+    .stats-card {
         padding: 20px;
         margin-bottom: 20px;
+        background: var(--vm-card) !important;
+        color: var(--vm-ink) !important;
     }
     .stats-card h3 {
         font-size: 28px;
-        font-weight: 600;
+        font-weight: 300;
         margin: 0;
+        letter-spacing: -0.01em;
+        color: var(--vm-ink);
     }
     .stats-card p {
         margin: 5px 0 0;
-        color: #6c757d;
-        font-size: 14px;
+        color: var(--vm-ink-faint) !important;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
     }
+    /* Bootstrap's bg-* utilities are applied inline on .stats-card in the
+       template; a thin left rule keeps the colour cue without the solid
+       fills that clashed with the rest of the page. */
+    .stats-card.bg-primary, .stats-card.bg-warning, .stats-card.bg-info,
+    .stats-card.bg-secondary, .stats-card.bg-success, .stats-card.bg-danger {
+        border-left: 3px solid var(--vm-gold);
+    }
+
+    .card-header { background: var(--vm-card); border-bottom: 1px solid var(--vm-line); }
+    .card-header h5, .card-header h6 {
+        font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--vm-ink);
+    }
+
     .badge-status {
         padding: 6px 12px;
-        border-radius: 6px;
+        border-radius: 999px;
         font-size: 12px;
         font-weight: 500;
     }
-    .order-table {
-        background: white;
-        border-radius: 8px;
-        overflow: hidden;
-    }
-    .filter-section {
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-    }
-    .action-dropdown {
-        min-width: 140px;
-    }
+    .order-table { overflow: hidden; }
+    .filter-section { padding: 20px; margin-bottom: 20px; }
+    .action-dropdown { min-width: 140px; }
     .customer-avatar {
         width: 32px;
         height: 32px;
@@ -47,6 +65,54 @@
         object-fit: cover;
         margin-right: 10px;
     }
+
+    /* Table: uppercase tracked headers, mono figures, hairline rows. */
+    .order-table .table thead th {
+        background: var(--vm-surface);
+        border-bottom: 1px solid var(--vm-line);
+        font-size: 10.5px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--vm-ink-faint);
+        white-space: nowrap;
+    }
+    .order-table .table td { border-bottom: 1px solid var(--vm-line); vertical-align: middle; }
+    .order-table .table tbody tr:hover { background: var(--vm-surface); }
+    .order-table .table a.text-primary,
+    .order-table .table strong { color: var(--vm-ink) !important; }
+    .order-table .table td:nth-child(3) a { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-weight: 700; }
+
+    /* Pills: rounded-full, semantic tints matching the rest of the badge set. */
+    .badge {
+        border-radius: 999px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.02em;
+        padding: 0.4em 0.8em;
+    }
+    .badge.bg-warning { background-color: #fadfb0 !important; color: #554422 !important; }
+    .badge.bg-info { background-color: #e0edfb !important; color: #1f5b8a !important; }
+    .badge.bg-primary { background-color: #e6e4f7 !important; color: #443c8a !important; }
+    .badge.bg-success { background-color: #e2f5e9 !important; color: #1e6038 !important; }
+    .badge.bg-danger { background-color: #ffdad6 !important; color: #93000a !important; }
+    .badge.bg-secondary { background-color: var(--vm-line) !important; color: var(--vm-ink-soft) !important; }
+
+    /* Quick-filter / status pills. */
+    .btn-primary {
+        background-color: var(--vm-ink) !important;
+        border-color: var(--vm-ink) !important;
+    }
+    .btn-primary:hover, .btn-primary:focus { background-color: #000 !important; border-color: #000 !important; }
+    .btn-outline-primary {
+        color: var(--vm-ink) !important;
+        border-color: var(--vm-line) !important;
+    }
+    .btn-outline-primary:hover { background-color: var(--vm-ink) !important; border-color: var(--vm-ink) !important; }
+    .btn-outline-primary, .btn-primary { border-radius: 999px; font-weight: 700; font-size: 12.5px; }
+    .btn-outline-secondary, .btn-outline-danger { border-radius: 999px; font-weight: 700; font-size: 12.5px; }
+
+    .pagination .page-link { border-color: var(--vm-line); color: var(--vm-ink-soft); border-radius: 6px; margin: 0 2px; }
+    .pagination .page-item.active .page-link { background-color: var(--vm-ink); border-color: var(--vm-ink); }
 </style>
 {% endblock %}
 
