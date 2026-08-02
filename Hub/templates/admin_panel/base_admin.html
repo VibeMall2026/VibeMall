@@ -227,7 +227,21 @@
       .vm-create-new i { font-size: 18px; line-height: 1; }
 
       /* --- top navbar ----------------------------------------------------- */
-      #layout-navbar.bg-navbar-theme { border-bottom: 1px solid var(--vm-line); box-shadow: none !important; background: var(--vm-card) !important; }
+      #layout-navbar.bg-navbar-theme {
+        border-bottom: 1px solid var(--vm-line); box-shadow: none !important;
+        background: rgba(251, 249, 244, 0.82) !important; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      }
+      /* A bare dot reading "something's new" rather than a numbered pill -
+         the count is still there (title attr + the dropdown itself), this
+         just isn't the first thing the eye lands on across a whole toolbar
+         of icons. JS only ever toggles this element's display and
+         textContent, so the dot look is CSS-only. */
+      .admin-notification-badge {
+        min-width: 0 !important; width: 8px !important; height: 8px !important;
+        padding: 0 !important; top: 4px !important; right: 4px !important;
+        font-size: 0 !important; line-height: 0 !important;
+        box-shadow: 0 0 0 2px var(--vm-card);
+      }
       .bg-navbar-theme .navbar-nav > .nav-link,
       .bg-navbar-theme .navbar-nav > .nav-item > .nav-link { color: var(--vm-ink-soft); }
       .bg-navbar-theme .navbar-nav > .nav-link:hover,
@@ -246,7 +260,7 @@
       /* Name + role beside the avatar, not just inside the dropdown - the
          admin's identity should read at a glance, not need a click. */
       .vm-user-trigger { display: flex; align-items: center; gap: 10px; }
-      .vm-user-trigger__meta { display: flex; flex-direction: column; line-height: 1.25; text-align: left; }
+      .vm-user-trigger__meta { display: flex; flex-direction: column; line-height: 1.25; text-align: right; }
       .vm-user-trigger__name { font-size: 13px; font-weight: 700; color: var(--vm-ink); }
       .vm-user-trigger__role { font-size: 11px; color: var(--vm-ink-faint); }
 
@@ -1044,6 +1058,10 @@
                 <!-- User -->
                 <li class="nav-item navbar-dropdown dropdown-user dropdown">
                   <a class="nav-link dropdown-toggle hide-arrow vm-user-trigger" href="javascript:void(0);" data-bs-toggle="dropdown">
+                    <span class="vm-user-trigger__meta d-none d-md-block">
+                      <span class="vm-user-trigger__name">{{ admin_display_name }}</span>
+                      <span class="vm-user-trigger__role">{{ admin_role_label }}</span>
+                    </span>
                     <div class="avatar {{ admin_presence_class }}">
                       {% if admin_avatar_url %}
                       <img src="{{ admin_avatar_url }}" alt="{{ user.username }}" class="w-px-40 h-auto rounded-circle" />
@@ -1051,10 +1069,6 @@
                       <img src="{% static 'admin/assets/img/avatars/1.png' %}" alt="Admin" class="w-px-40 h-auto rounded-circle" />
                       {% endif %}
                     </div>
-                    <span class="vm-user-trigger__meta d-none d-md-block">
-                      <span class="vm-user-trigger__name">{{ admin_display_name }}</span>
-                      <span class="vm-user-trigger__role">{{ admin_role_label }}</span>
-                    </span>
                   </a>
                   <ul class="dropdown-menu dropdown-menu-end">
                     <li>
@@ -1377,6 +1391,7 @@
 
           badge.textContent = String(items.length);
           badge.style.display = 'inline-block';
+          toggle.title = items.length + ' notification' + (items.length === 1 ? '' : 's');
         };
 
         const loadNotifications = () => {
