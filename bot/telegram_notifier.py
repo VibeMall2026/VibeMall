@@ -208,9 +208,17 @@ def send_algo_execution_alert(
     # trades through, so every other strategy (Smart Money, Breakout) executed
     # silently with no Telegram notification at all.
     if not _is_allowed_execution_account(account_label):
+        logger.warning(
+            f"[TG_NOTIFY] Algo execution alert skipped: account_label '{account_label}' "
+            f"not in TG_EXECUTION_ALERT_ACCOUNT_LABELS"
+        )
         return False
     chat_id = _get_alert_destination()
     if not chat_id:
+        logger.warning(
+            f"[TG_NOTIFY] Algo execution alert skipped for account={account_label}: "
+            f"no alert destination configured"
+        )
         return False
 
     strategy = _extract_strategy_name(strategy_id, comment)
@@ -229,7 +237,7 @@ def send_algo_execution_alert(
     )
 
     try:
-        method = asyncio.run(_send_message(chat_id, text))
+        method = _run_or_schedule(_send_message(chat_id, text))
         logger.info(
             f"[TG_NOTIFY] Algo execution alert sent to {chat_id} | "
             f"{symbol} {side_text} | account={account_label} login={login} | "
@@ -238,7 +246,8 @@ def send_algo_execution_alert(
         return True
     except Exception as exc:
         logger.warning(
-            f"[TG_NOTIFY] Could not send algo execution alert to {chat_id}: {exc}"
+            f"[TG_NOTIFY] Could not send algo execution alert to {chat_id} "
+            f"(account={account_label} login={login}): {exc}"
         )
         return False
 

@@ -1582,7 +1582,10 @@ def execute_on_all_accounts(
                                 comment=comment,
                             )
                         except Exception as notify_exc:
-                            logger.warning(f"[ACCOUNTS] Could not send algo execution alert: {notify_exc}")
+                            logger.warning(
+                                f"[ACCOUNTS] Could not send algo execution alert for {acc.label} "
+                                f"(login={acc.login}): {notify_exc}"
+                            )
                     logger.success(
                         f"[EXECUTION][UNIFIED] strategy={strategy_label} account={acc.label} "
                         f"login={acc.login} status=SUCCESS ticket={result.get('ticket')} "
