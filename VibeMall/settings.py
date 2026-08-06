@@ -322,6 +322,9 @@ N8N_API_KEY = os.getenv('N8N_API_KEY', '').strip()
 # Bot token from @BotFather. Keep it in .env — never commit it.
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '').strip()
 
+# Chat ID the daily Instagram banner gets delivered to (see generate_daily_banner).
+DAILY_BANNER_CHAT_ID = os.getenv('DAILY_BANNER_CHAT_ID', '').strip()
+
 # Optional allow-list of chat/channel IDs the bot will accept products from.
 # Empty means "every chat the bot can see" — set this in production.
 TELEGRAM_ALLOWED_CHAT_IDS = [

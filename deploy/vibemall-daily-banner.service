@@ -1,0 +1,18 @@
+# Generates today's Instagram Story/Reel marketing banner from the next
+# product in rotation. Output lands in media/social_banners/ - download it
+# from the admin panel media browser (or SFTP) each morning and post it.
+#
+# Installed on the server at /etc/systemd/system/ - this copy is tracked
+# here for documentation, matching bot/tradingbot.service.
+[Unit]
+Description=Generate today's Instagram marketing banner
+After=network.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/var/www/vibemall
+Environment=PYTHONPATH=/var/www/vibemall
+ExecStart=/var/www/vibemall/venv/bin/python manage.py generate_daily_banner
+StandardOutput=journal
+StandardError=journal

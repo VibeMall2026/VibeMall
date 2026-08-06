@@ -101,6 +101,12 @@ class TelegramBotSource(ProductSource):
         #: Reasons updates were discarded during the last poll. Surfaced by the
         #: management command so "nothing arrived" is never a silent outcome.
         self.skipped: list[str] = []
+        #: Raw callback_query updates from the last poll (inline button
+        #: presses, e.g. the creative-approval Approve/Reject/Regenerate
+        #: buttons). Telegram allows only one active getUpdates connection
+        #: per bot token, so these ride along on the same poll rather than
+        #: needing a second poller that would 409-conflict with this one.
+        self.callback_queries: list[dict[str, Any]] = []
 
     # -- Offset persistence -------------------------------------------------
 
@@ -309,13 +315,14 @@ class TelegramBotSource(ProductSource):
     def poll(self) -> Iterable[IncomingProduct]:
         """One long-poll cycle. Never raises on transient failure."""
         self.skipped = []
+        self.callback_queries = []
         try:
             updates = self._api(
                 'getUpdates',
                 offset=self._offset,
                 timeout=self.long_poll_seconds,
                 allowed_updates=json.dumps(
-                    ['message', 'channel_post', 'edited_message', 'edited_channel_post']
+                    ['message', 'channel_post', 'edited_message', 'edited_channel_post', 'callback_query']
                 ),
             ) or []
         except requests.Timeout:
@@ -328,6 +335,12 @@ class TelegramBotSource(ProductSource):
         highest = self._offset
         for update in updates:
             highest = max(highest, int(update.get('update_id', 0)) + 1)
+
+            callback_query = update.get('callback_query')
+            if callback_query:
+                self.callback_queries.append(callback_query)
+                continue
+
             try:
                 incoming = self._to_incoming(update)
             except Exception:

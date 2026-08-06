@@ -19,6 +19,7 @@ import time
 
 from django.core.management.base import BaseCommand, CommandError
 
+from Hub.automation.creative_delivery import handle_callback as handle_creative_callback
 from Hub.automation.ingest import ingest
 from Hub.automation.sources.telegram_bot import TelegramBotSource, TelegramConfigError
 
@@ -87,6 +88,18 @@ class Command(BaseCommand):
                         self.stdout.write(
                             console_safe(f'  .. ignored duplicate delivery of {incoming.message_id}')
                         )
+
+                # Approve/Reject/Regenerate presses on creative banners ride
+                # the same poll (Telegram allows only one active getUpdates
+                # connection per bot token).
+                for callback_query in source.callback_queries:
+                    try:
+                        handle_creative_callback(callback_query)
+                        self.stdout.write(
+                            console_safe(f"  -> handled button: {callback_query.get('data', '')}")
+                        )
+                    except Exception:
+                        logger.exception('[telegram] Failed to handle callback_query %s', callback_query.get('id'))
 
                 # Explain anything the source dropped, so a silent queue is
                 # never a mystery.

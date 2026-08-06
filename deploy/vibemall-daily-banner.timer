@@ -1,0 +1,11 @@
+[Unit]
+Description=Run vibemall-daily-banner.service every morning
+
+[Timer]
+# Server clock is UTC; 01:30 UTC = 07:00 IST, ready before the morning
+# posting window. Adjust if your timezone or posting time differs.
+OnCalendar=*-*-* 01:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

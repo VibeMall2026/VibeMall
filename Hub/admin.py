@@ -1638,3 +1638,22 @@ class ProductDraftAdmin(admin.ModelAdmin):
     )
     inlines = [ProductDraftImageInline]
     date_hierarchy = 'created_at'
+
+
+# ── AI Creative Engine ──────────────────────────────────────────────────────
+from .models_creative import CreativeAsset  # noqa: E402
+
+
+@admin.register(CreativeAsset)
+class CreativeAssetAdmin(admin.ModelAdmin):
+    list_display = ('id', 'product', 'theme_name', 'status', 'ai_provider', 'created_at', 'decided_at')
+    list_filter = ('status', 'theme_name', 'ai_provider', 'created_at')
+    search_fields = ('product__name', 'headline', 'caption')
+    readonly_fields = (
+        'product', 'image_path', 'theme_name', 'headline', 'caption', 'hashtags', 'cta_text',
+        'ai_provider', 'regenerated_from', 'telegram_chat_id', 'telegram_message_id',
+        'created_at', 'decided_at',
+    )
+    # 'status' is deliberately editable here as a manual-override escape
+    # hatch - the normal path is the Telegram Approve/Reject buttons.
+    date_hierarchy = 'created_at'

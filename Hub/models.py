@@ -21,6 +21,9 @@ from .models_activation_tracking import *
 # Telegram/AI product automation staging models (lazy 'Hub.Product' FKs, so
 # importing before Product is defined below is safe).
 from .models_product_automation import *
+# AI Creative Engine: generated marketing banners + their approval state
+# (lazy 'Hub.Product' FK, same reason as above).
+from .models_creative import *
 
 
 def _trim_uniform_border(img, tolerance=12):
