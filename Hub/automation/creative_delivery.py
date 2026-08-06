@@ -4,13 +4,16 @@ Telegram delivery + approval for generated creatives.
 Sends each ``CreativeAsset`` to Telegram with Approve / Reject / Regenerate
 buttons, and processes the button press when it comes back.
 
-Sends the *public media URL* rather than uploading the file directly -
-multipart file uploads to api.telegram.org hang indefinitely on this
-network (confirmed by direct testing: plain JSON POSTs like sendMessage
-and callback answers return in under a second; sendPhoto file uploads
-time out after 20s+ every time). Passing a URL keeps every request a
-small POST, and Telegram's own servers fetch the image instead of us
-uploading it.
+Delivered via ``sendMessage`` with the image URL as the message text,
+relying on Telegram's automatic link-preview to render the banner - NOT
+``sendPhoto`` or ``sendDocument``. Confirmed by direct testing: every
+media-transfer endpoint (sendPhoto with a file upload, sendPhoto with a
+URL, sendDocument with a URL) hangs or connect-times-out from this
+network, regardless of payload shape, while plain text endpoints
+(sendMessage, answerCallbackQuery, editMessageText, getMe) all return in
+under a second. That points at network-level filtering of Telegram's
+media-fetch traffic specifically, which sendMessage's link preview
+sidesteps entirely - it is still a plain text POST.
 """
 from __future__ import annotations
 
@@ -51,17 +54,20 @@ def _api(method: str, **payload: Any) -> dict[str, Any] | None:
         return None
 
 
-def _build_caption(asset) -> str:
+def _build_message_text(asset) -> str:
+    """Image URL first so Telegram's link-preview attaches to it, then the
+    copy. Telegram's text message limit is 4096 characters - comfortable
+    headroom, unlike the 1024-char photo-caption limit we'd otherwise hit."""
+    photo_url = f'{_site_url()}/media/{asset.image_path}'
     hashtag_text = ' '.join(f'#{h}' for h in asset.hashtag_list)
-    parts = [asset.headline, '', asset.caption, '', hashtag_text, '', f'CTA: {asset.cta_text}']
-    caption = '\n'.join(p for p in parts if p is not None)
+    parts = [photo_url, '', asset.headline, '', asset.caption, '', hashtag_text, '', f'CTA: {asset.cta_text}']
+    text = '\n'.join(p for p in parts if p is not None)
     status_suffix = {
         'approved': '\n\n✅ APPROVED',
         'rejected': '\n\n❌ REJECTED',
     }.get(asset.status, '')
-    caption += status_suffix
-    # Telegram's photo caption limit is 1024 characters.
-    return caption[:1024]
+    text += status_suffix
+    return text[:4096]
 
 
 def _approval_keyboard(asset_id: int) -> dict[str, Any]:
@@ -80,12 +86,10 @@ def send_for_approval(asset) -> bool:
     if not chat_id:
         return False
 
-    photo_url = f'{_site_url()}/media/{asset.image_path}'
     result = _api(
-        'sendPhoto',
+        'sendMessage',
         chat_id=chat_id,
-        photo=photo_url,
-        caption=_build_caption(asset),
+        text=_build_message_text(asset),
         reply_markup=json.dumps(_approval_keyboard(asset.id)),
     )
     if not result:
@@ -103,10 +107,10 @@ def _finalize(asset, status: str) -> None:
     asset.save(update_fields=['status', 'decided_at'])
     if asset.telegram_chat_id and asset.telegram_message_id:
         _api(
-            'editMessageCaption',
+            'editMessageText',
             chat_id=asset.telegram_chat_id,
             message_id=asset.telegram_message_id,
-            caption=_build_caption(asset),
+            text=_build_message_text(asset),
         )
         _api(
             'editMessageReplyMarkup',
@@ -133,11 +137,14 @@ def _regenerate(asset) -> None:
         )
 
     product = asset.product
+    # Copy first: the CTA text it writes goes into the button on the banner
+    # image itself, not just the caption.
+    copy = generate_copy(product)
+
     filename = f'{date.today().isoformat()}_{product.id}_{product.slug or product.id}_r{asset.id}.png'
     output_path = OUTPUT_DIR / filename
-    compose_banner(product, output_path)
+    compose_banner(product, output_path, cta_text=copy['cta'])
 
-    copy = generate_copy(product)
     new_asset = CreativeAsset.objects.create(
         product=product,
         image_path=f'social_banners/{filename}',

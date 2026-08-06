@@ -1,10 +1,12 @@
 """Daily Instagram Story/Reel banner generator.
 
 Picks the next product in rotation and composes a 1080x1920 marketing
-banner. Every banner is visually unique because the background is built
-from that product's own photo (blurred + tinted), the accent color theme
-rotates through a fixed palette set keyed to the product, and decorative
-sparkle placement is seeded per-product. Pure Pillow — no external services.
+banner. Every banner is visually unique because (1) the composition itself
+rotates through distinct layout structures - not just a recolored copy of
+the same template, (2) the background is built from that product's own
+photo, (3) the accent color theme rotates through a fixed palette, and
+(4) decorative placement is seeded per-product. Pure Pillow — no external
+services.
 """
 from __future__ import annotations
 
@@ -33,6 +35,10 @@ THEMES = [
 ]
 
 WATERMARK_WORDS = ["NEW", "HOT", "TRENDING", "MUST-HAVE", "VIRAL", "FEATURED"]
+
+# Distinct compositions, not just recolors of one template - picked
+# deterministically per product, same rule as THEMES.
+LAYOUTS = ["card_stack", "full_bleed", "split_diagonal"]
 
 
 def _first_existing(*candidates: Path) -> Path:
@@ -133,8 +139,8 @@ def _horizontal_gradient(size: tuple[int, int], left: tuple[int, int, int], righ
 
 
 def _photo_background(canvas_size: tuple[int, int], product_image_path: Path | None, theme: dict) -> Image.Image:
-    """Blurred, darkened, tinted crop of the product's own photo - this is
-    what makes every banner's backdrop unique rather than a repeated template."""
+    """Blurred, darkened, tinted crop of the product's own photo - used as
+    a backdrop behind a card, not as the hero image itself."""
     if product_image_path and product_image_path.exists():
         try:
             with Image.open(product_image_path) as im:
@@ -149,6 +155,19 @@ def _photo_background(canvas_size: tuple[int, int], product_image_path: Path | N
             pass
     dark = tuple(max(0, c // 8) for c in theme["accent2"])
     return _vertical_gradient(canvas_size, (10, 12, 26), dark).convert("RGBA")
+
+
+def _crisp_fit(size: tuple[int, int], product_image_path: Path | None, fallback_top: tuple[int, int, int], fallback_bottom: tuple[int, int, int]) -> Image.Image:
+    """Sharp (unblurred) crop of the product photo filling `size` exactly -
+    used when the photo itself is the hero, not a backdrop."""
+    if product_image_path and product_image_path.exists():
+        try:
+            with Image.open(product_image_path) as im:
+                im = ImageOps.exif_transpose(im).convert("RGB")
+                return ImageOps.fit(im, size, method=Image.LANCZOS).convert("RGBA")
+        except Exception:
+            pass
+    return _vertical_gradient(size, fallback_top, fallback_bottom).convert("RGBA")
 
 
 def _glow_blob(canvas_size: tuple[int, int], center: tuple[int, int], radius: int, color: tuple[int, int, int], peak_alpha: int = 130) -> Image.Image:
@@ -168,12 +187,12 @@ def _dot_grid(canvas: Image.Image, spacing: int = 46, alpha: int = 12) -> None:
     canvas.alpha_composite(layer)
 
 
-def _watermark_word(canvas: Image.Image, word: str, color: tuple[int, int, int], angle: float, alpha: int = 24) -> None:
+def _watermark_word(canvas: Image.Image, word: str, color: tuple[int, int, int], angle: float, center_y: int = 1320, alpha: int = 24) -> None:
     font = _font(FONT_BLACK, 240)
     layer = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
     w = d.textlength(word, font=font)
-    cx, cy = canvas.size[0] / 2, 1320
+    cx, cy = canvas.size[0] / 2, center_y
     d.text((cx - w / 2, cy - 120), word, font=font, fill=color + (alpha,))
     layer = layer.rotate(angle, resample=Image.BICUBIC, expand=False, center=(cx, cy))
     canvas.alpha_composite(layer)
@@ -320,28 +339,21 @@ def _build_tilted_card(canvas_size: tuple[int, int], box: tuple[int, int, int, i
     return rotated, (px, py)
 
 
-# ── Main composition ─────────────────────────────────────────────────────────
+# ── Shared building blocks used by every layout ──────────────────────────────
 
-def compose_banner(product, output_path: Path) -> Path:
-    """Render one banner for `product` (a Hub.models.Product instance)."""
-    rng = random.Random(product.id)
-    theme = THEMES[product.id % len(THEMES)]
-    accent, accent2 = theme["accent"], theme["accent2"]
-    image_path = Path(product.image.path) if product.image else None
+def _compute_discount(product) -> int:
+    discount = int(getattr(product, "discount_percent", 0) or 0)
+    if discount <= 0 and getattr(product, "old_price", None):
+        try:
+            if product.old_price and product.price and product.old_price > product.price:
+                discount = round(100 * (1 - float(product.price) / float(product.old_price)))
+        except Exception:
+            discount = 0
+    return discount
 
-    canvas = _photo_background(CANVAS_SIZE, image_path, theme)
 
-    watermark = WATERMARK_WORDS[product.id % len(WATERMARK_WORDS)]
-    _watermark_word(canvas, watermark, WHITE, angle=rng.choice([-9, -6, 6, 9]))
-
-    canvas.alpha_composite(_glow_blob(CANVAS_SIZE, (140, 1750), 400, accent2, peak_alpha=45))
-    canvas.alpha_composite(_glow_blob(CANVAS_SIZE, (960, 110), 360, accent, peak_alpha=45))
-    _dot_grid(canvas)
-    canvas.alpha_composite(_vertical_alpha_gradient(CANVAS_SIZE, 55, 235, (4, 5, 14)))
-
+def _top_bar(canvas: Image.Image, accent: tuple[int, int, int], accent2: tuple[int, int, int]) -> None:
     draw = ImageDraw.Draw(canvas)
-
-    # Top bar: wordmark + gradient eyebrow tag.
     draw.text((90, 74), "VIBEMALL", font=_font(FONT_BLACK, 42), fill=WHITE)
     tag = "TODAY'S PICK"
     tag_font = _font(FONT_BOLD, 24)
@@ -353,28 +365,13 @@ def compose_banner(product, output_path: Path) -> Path:
     canvas.paste(grad_pill, (int(pill_box[0]), int(pill_box[1])), mask)
     draw.text((pill_box[0] + 22, pill_box[1] + 11), tag, font=tag_font, fill=WHITE)
 
-    # Product card, tilted slightly for a hand-placed, dynamic feel.
-    tilt_angle = rng.choice([-3.5, -2.5, 2.5, 3.5])
-    tilted, pos = _build_tilted_card(CANVAS_SIZE, CARD_BOX, image_path, accent, accent2, tilt_angle, rng)
-    canvas.paste(tilted, pos, tilted)
 
-    discount = int(getattr(product, "discount_percent", 0) or 0)
-    if discount <= 0 and getattr(product, "old_price", None):
-        try:
-            if product.old_price and product.price and product.old_price > product.price:
-                discount = round(100 * (1 - float(product.price) / float(product.old_price)))
-        except Exception:
-            discount = 0
-    if discount > 0:
-        badge_rotation = rng.choice([-90, -75, -105])
-        _discount_badge(canvas, (CARD_BOX[2] - 34, CARD_BOX[1] + 34), discount, accent, accent2, rotation=badge_rotation)
-
-    draw = ImageDraw.Draw(canvas)  # re-bind after alpha_composite/paste calls
-
-    # Text block below the card.
-    left_margin = 90
+def _render_copy_block(canvas: Image.Image, product, accent: tuple[int, int, int], accent2: tuple[int, int, int], y: int, *, left_margin: int = 90, name_start_size: int = 64, name_shadow: bool = True, cta_text: str = "Shop Now") -> None:
+    """Category eyebrow -> name -> price -> rating -> CTA -> footer. The one
+    text sequence every layout shares, so composition differs but copy
+    presentation stays consistent and legible."""
+    draw = ImageDraw.Draw(canvas)
     text_width = 1080 - left_margin * 2
-    y = 1188
 
     category_label = (product.get_category_display() if product.category else "FEATURED").upper()
     cat_font = _font(FONT_BOLD, 26)
@@ -382,9 +379,10 @@ def compose_banner(product, output_path: Path) -> Path:
     draw.text((left_margin + 22, y), category_label, font=cat_font, fill=accent)
     y += 48
 
-    name_font = _fit_text(draw, product.name, FONT_BLACK, text_width, start_size=64, min_size=40)
+    name_font = _fit_text(draw, product.name, FONT_BLACK, text_width, start_size=name_start_size, min_size=36)
     for line in _wrap_lines(draw, product.name, name_font, text_width, max_lines=2):
-        draw.text((left_margin + 2, y + 2), line, font=name_font, fill=(0, 0, 0, 120))  # depth shadow
+        if name_shadow:
+            draw.text((left_margin + 2, y + 2), line, font=name_font, fill=(0, 0, 0, 120))
         draw.text((left_margin, y), line, font=name_font, fill=WHITE)
         y += name_font.size + 12
     y += 16
@@ -409,8 +407,7 @@ def compose_banner(product, output_path: Path) -> Path:
         y += _rating_row(canvas, (left_margin, y), rating) + 22
         draw = ImageDraw.Draw(canvas)
 
-    # CTA: gradient pill with soft glow shadow + arrow.
-    cta_text = "Shop Now  \u2192"
+    cta_text = f"{cta_text}  \u2192"
     cta_font = _font(FONT_BOLD, 34)
     cta_w = draw.textlength(cta_text, font=cta_font)
     pill_w, pill_h = int(cta_w + 84), 80
@@ -423,11 +420,138 @@ def compose_banner(product, output_path: Path) -> Path:
     draw = ImageDraw.Draw(canvas)
     draw.text((left_margin + 42, y + 21), cta_text, font=cta_font, fill=WHITE)
 
-    # Footer.
     footer = "Link in bio"
     footer_font = _font(FONT_REGULAR, 26)
     fw = draw.textlength(footer, font=footer_font)
     draw.text(((1080 - fw) / 2, 1850), footer, font=footer_font, fill=MUTED)
+
+
+# ── Layout 1: Card Stack ─────────────────────────────────────────────────────
+# Blurred-photo backdrop, a tilted white product card floating on top, copy
+# below. The original design - premium and safe.
+
+def _layout_card_stack(product, theme: dict, image_path: Path | None, rng: random.Random, cta_text: str) -> Image.Image:
+    accent, accent2 = theme["accent"], theme["accent2"]
+    canvas = _photo_background(CANVAS_SIZE, image_path, theme)
+
+    watermark = WATERMARK_WORDS[product.id % len(WATERMARK_WORDS)]
+    _watermark_word(canvas, watermark, WHITE, angle=rng.choice([-9, -6, 6, 9]))
+
+    canvas.alpha_composite(_glow_blob(CANVAS_SIZE, (140, 1750), 400, accent2, peak_alpha=45))
+    canvas.alpha_composite(_glow_blob(CANVAS_SIZE, (960, 110), 360, accent, peak_alpha=45))
+    _dot_grid(canvas)
+    canvas.alpha_composite(_vertical_alpha_gradient(CANVAS_SIZE, 55, 235, (4, 5, 14)))
+
+    _top_bar(canvas, accent, accent2)
+
+    tilt_angle = rng.choice([-3.5, -2.5, 2.5, 3.5])
+    tilted, pos = _build_tilted_card(CANVAS_SIZE, CARD_BOX, image_path, accent, accent2, tilt_angle, rng)
+    canvas.paste(tilted, pos, tilted)
+
+    discount = _compute_discount(product)
+    if discount > 0:
+        badge_rotation = rng.choice([-90, -75, -105])
+        _discount_badge(canvas, (CARD_BOX[2] - 34, CARD_BOX[1] + 34), discount, accent, accent2, rotation=badge_rotation)
+
+    _render_copy_block(canvas, product, accent, accent2, y=1188, cta_text=cta_text)
+    return canvas
+
+
+# ── Layout 2: Full Bleed ─────────────────────────────────────────────────────
+# The product photo itself fills the entire canvas, crisp and unblurred -
+# editorial/magazine-cover feel. Copy sits directly on the photo over a
+# heavy bottom scrim for legibility.
+
+def _layout_full_bleed(product, theme: dict, image_path: Path | None, rng: random.Random, cta_text: str) -> Image.Image:
+    accent, accent2 = theme["accent"], theme["accent2"]
+    canvas = _crisp_fit(CANVAS_SIZE, image_path, (20, 22, 40), tuple(max(0, c // 6) for c in accent2))
+
+    # Top scrim so the brand bar stays legible over any photo, bottom scrim
+    # (much heavier) for the copy block.
+    canvas.alpha_composite(_vertical_alpha_gradient(CANVAS_SIZE, 130, 0, (0, 0, 0)))
+    bottom_scrim_h = 950
+    scrim = _vertical_alpha_gradient((CANVAS_SIZE[0], bottom_scrim_h), 0, 250, (4, 4, 12))
+    canvas.alpha_composite(scrim, (0, CANVAS_SIZE[1] - bottom_scrim_h))
+
+    _top_bar(canvas, accent, accent2)
+
+    discount = _compute_discount(product)
+    if discount > 0:
+        _discount_badge(canvas, (990 - 106, 220), discount, accent, accent2, rotation=rng.choice([-90, -75, -105]))
+
+    for _ in range(rng.randint(4, 6)):
+        sx = rng.randint(60, 1020)
+        sy = rng.randint(160, 900)
+        size = rng.randint(8, 18)
+        color = WHITE if rng.random() > 0.5 else GOLD
+        _sparkle(canvas, (sx, sy), size, color, rng.randint(120, 200))
+
+    _render_copy_block(canvas, product, accent, accent2, y=1230, name_start_size=72, name_shadow=True, cta_text=cta_text)
+    return canvas
+
+
+# ── Layout 3: Split Diagonal ─────────────────────────────────────────────────
+# Photo panel on top with an angled bottom edge, solid theme-colored panel
+# below holding the copy - modern, sport-brand energy.
+
+def _layout_split_diagonal(product, theme: dict, image_path: Path | None, rng: random.Random, cta_text: str) -> Image.Image:
+    accent, accent2 = theme["accent"], theme["accent2"]
+    panel_dark = tuple(max(0, c // 10) for c in accent2)
+    canvas = _vertical_gradient(CANVAS_SIZE, (8, 9, 18), panel_dark).convert("RGBA")
+
+    photo_h = 1180
+    slant = rng.choice([1, -1]) * 130
+    panel = _crisp_fit((CANVAS_SIZE[0], photo_h), image_path, accent, accent2)
+
+    mask = Image.new("L", (CANVAS_SIZE[0], photo_h), 0)
+    md = ImageDraw.Draw(mask)
+    if slant >= 0:
+        pts = [(0, 0), (CANVAS_SIZE[0], 0), (CANVAS_SIZE[0], photo_h), (0, photo_h - slant)]
+    else:
+        pts = [(0, 0), (CANVAS_SIZE[0], 0), (CANVAS_SIZE[0], photo_h + slant), (0, photo_h)]
+    md.polygon(pts, fill=255)
+    canvas.paste(panel, (0, 0), mask)
+
+    # Blend the photo panel's cut edge into the panel below with a short
+    # dark fade, and darken its top slightly so the brand bar stays legible.
+    edge_fade = _vertical_alpha_gradient((CANVAS_SIZE[0], 220), 0, 235, panel_dark)
+    canvas.alpha_composite(edge_fade, (0, photo_h - 220))
+    canvas.alpha_composite(_vertical_alpha_gradient((CANVAS_SIZE[0], 200), 120, 0, (0, 0, 0)))
+
+    _top_bar(canvas, accent, accent2)
+
+    discount = _compute_discount(product)
+    if discount > 0:
+        _discount_badge(canvas, (990 - 106, 220), discount, accent, accent2, rotation=rng.choice([-90, -75, -105]))
+
+    text_y = photo_h - (abs(slant) // 2) + 40
+    _render_copy_block(canvas, product, accent, accent2, y=text_y, name_start_size=58, cta_text=cta_text)
+    return canvas
+
+
+_LAYOUT_FUNCS = {
+    "card_stack": _layout_card_stack,
+    "full_bleed": _layout_full_bleed,
+    "split_diagonal": _layout_split_diagonal,
+}
+
+
+# ── Main composition ─────────────────────────────────────────────────────────
+
+def compose_banner(product, output_path: Path, cta_text: str = "Shop Now") -> Path:
+    """Render one banner for `product` (a Hub.models.Product instance).
+
+    `cta_text` should be the AI-written CTA from marketing_copy.generate_copy
+    when available, so the button in the image matches the button implied
+    by the caption - not a generic "Shop Now" regardless of context.
+    """
+    rng = random.Random(product.id)
+    theme = THEMES[product.id % len(THEMES)]
+    layout_name = LAYOUTS[product.id % len(LAYOUTS)]
+    image_path = Path(product.image.path) if product.image else None
+
+    layout_fn = _LAYOUT_FUNCS[layout_name]
+    canvas = layout_fn(product, theme, image_path, rng, cta_text)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     canvas.convert("RGB").save(output_path, "PNG", quality=95)
@@ -495,17 +619,21 @@ def generate_today_banner():
     if product is None:
         return None
 
+    # Copy first: the CTA text it writes (urgency-matched to the discount)
+    # goes into the button on the banner image itself, not just the caption.
+    copy = generate_copy(product)
+
     filename = f"{date.today().isoformat()}_{product.id}_{product.slug or product.id}.png"
     output_path = OUTPUT_DIR / filename
-    compose_banner(product, output_path)
+    compose_banner(product, output_path, cta_text=copy["cta"])
 
-    copy = generate_copy(product)
     theme_name = THEMES[product.id % len(THEMES)]["name"]
+    layout_name = LAYOUTS[product.id % len(LAYOUTS)]
 
     asset = CreativeAsset.objects.create(
         product=product,
         image_path=f"social_banners/{filename}",
-        theme_name=theme_name,
+        theme_name=f"{theme_name} / {layout_name}",
         headline=copy["headline"],
         caption=copy["caption"],
         hashtags=",".join(copy["hashtags"]),
