@@ -47,10 +47,7 @@ TG_ALGO_ERROR_ALERTS_ENABLED: bool = _bool("TG_ALGO_ERROR_ALERTS_ENABLED", True)
 TG_ALGO_ERROR_DEDUPE_SECONDS: int = _int("TG_ALGO_ERROR_DEDUPE_SECONDS", 60)
 TG_EXECUTION_ALERT_ACCOUNT_LABELS: list[str] = [
     label.strip().lower()
-    for label in _list(
-        "TG_EXECUTION_ALERT_ACCOUNT_LABELS",
-        "The5ers Funded,Smart Money",
-    )
+    for label in _list("TG_EXECUTION_ALERT_ACCOUNT_LABELS")
 ]
 TRADING_DASHBOARD_ACCOUNT_LABELS: list[str] = [
     label.strip().lower()
