@@ -1944,6 +1944,38 @@ def _execute_single(
     except Exception as _lot_cap_exc:
         logger.warning(f"[ACCOUNTS] Non-XAU hard cap guard failed: {_lot_cap_exc}")
 
+    # Account-specific fixed max-loss-per-lot override: signal_forge Demo only.
+    # This account intentionally trades a fixed loss-per-lot table instead of
+    # the normal risk-percent sizing above - the lot size from that
+    # calculation is kept, but the stop-loss distance is recomputed so that
+    # actually hitting it loses exactly the mapped dollar amount for the
+    # lot traded. Every other account is untouched.
+    SIGNAL_FORGE_DEMO_LOGIN = 110952238
+    SIGNAL_FORGE_DEMO_SL_TABLE = [
+        (0.01, 10.0),
+        (0.02, 15.0),
+        (0.03, 20.0),
+    ]
+    if info and int(getattr(info, "login", 0) or 0) == SIGNAL_FORGE_DEMO_LOGIN:
+        target_risk_usd = None
+        for lot_tier, risk_usd in SIGNAL_FORGE_DEMO_SL_TABLE:
+            if lot <= lot_tier + 1e-9:
+                target_risk_usd = risk_usd
+                break
+        if target_risk_usd is None:
+            # Above the largest configured tier - use the largest tier's risk.
+            target_risk_usd = SIGNAL_FORGE_DEMO_SL_TABLE[-1][1]
+
+        if tick_size > 0 and tick_value > 0 and lot > 0:
+            sl_ticks_needed = target_risk_usd / (lot * tick_value)
+            sl_distance = sl_ticks_needed * tick_size
+            new_sl = (price - sl_distance) if side.lower() == "buy" else (price + sl_distance)
+            logger.info(
+                f"[ACCOUNTS][signal_forge Demo] SL override | lot={lot} target_risk=${target_risk_usd:.2f} "
+                f"old_sl={sl:.5f} new_sl={new_sl:.5f}"
+            )
+            sl = new_sl
+
     preferred_filling = getattr(sym_info, "filling_mode", mt5.ORDER_FILLING_IOC)
     fill_candidates = []
     for mode in (preferred_filling, mt5.ORDER_FILLING_RETURN, mt5.ORDER_FILLING_IOC, mt5.ORDER_FILLING_FOK):
