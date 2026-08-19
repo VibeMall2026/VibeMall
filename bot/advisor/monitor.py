@@ -39,7 +39,7 @@ EMERGENCY_ALERT_COOLDOWN_SECONDS = 2 * 60
 
 _tracked: dict[int, dict] = {}
 _tracked_lock = threading.Lock()
-_mode2_state: dict = {"last_alert_tier": None, "last_alert_direction": None}
+_mode2_state: dict = {}
 _started = False
 
 
@@ -216,6 +216,11 @@ def _maybe_alert_mode1(ticket: int, pos: dict, result: dict) -> None:
 
 
 def _run_mode2_scan() -> None:
+    """Keeps scanning and caching the result for the dashboard even when no
+    trade is open. Does NOT send Telegram alerts - those only fire for real
+    trades (Mode 1, tracked via register_open_trade after an actual algo
+    execution). A "here's a setup" scan hit is not a trade, so it stays
+    on-screen only, per explicit user instruction."""
     from bot import accounts as accounts_module
     from bot.advisor import data as advisor_data
     from bot.advisor import scanner as advisor_scanner
@@ -234,33 +239,6 @@ def _run_mode2_scan() -> None:
         return
 
     _mode2_state["last_result"] = result
-    _maybe_alert_mode2(result)
-
-
-def _maybe_alert_mode2(result: dict) -> None:
-    from bot.telegram_notifier import send_mode2_alert
-
-    opp = result.get("opportunity")
-    if not opp:
-        _mode2_state["last_alert_tier"] = None
-        _mode2_state["last_alert_direction"] = None
-        return
-
-    tier = opp["confidence_tier"]  # moderate / strong / high
-    direction = opp["direction"]
-    prior_tier = _mode2_state.get("last_alert_tier")
-    prior_direction = _mode2_state.get("last_alert_direction")
-
-    is_new_setup = direction != prior_direction
-    crossed_up = tier != prior_tier and opp["confidence_pct"] >= 75
-
-    if is_new_setup or crossed_up:
-        try:
-            send_mode2_alert(result)
-            _mode2_state["last_alert_tier"] = tier
-            _mode2_state["last_alert_direction"] = direction
-        except Exception:
-            logger.exception("[ADVISOR_MONITOR] Failed to send Mode 2 alert")
 
 
 def _loop() -> None:
