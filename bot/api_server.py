@@ -9,7 +9,7 @@ from typing import Optional
 
 from loguru import logger
 from fastapi import FastAPI, HTTPException, Security, Depends, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.security.api_key import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -140,7 +140,7 @@ app.add_middleware(
 
 @app.middleware("http")
 async def restrict_client_ips(request: Request, call_next):
-    if request.url.path in ("/health", "/accounts/debug"):
+    if request.url.path == "/health":
         return await call_next(request)
 
     allowed_ips = {ip.strip() for ip in config.API_ALLOWED_IPS if ip.strip()}
@@ -263,6 +263,71 @@ async def health():
         "mt5_connected": state.mt5_connected,
         "telegram_connected": state.telegram_connected,
     }
+
+
+class AdvisorAnalyzeRequest(BaseModel):
+    direction: str  # "buy" or "sell"
+    entry: float
+    stop_loss: Optional[float] = None
+    target: Optional[float] = None
+    current_price: Optional[float] = None  # falls back to live price if omitted
+    timeframe_min: int = 15
+
+
+@app.post("/advisor/analyze")
+async def advisor_analyze(body: AdvisorAnalyzeRequest):
+    """Runs the 12-indicator XAUUSD advisor against one trade. Read-only
+    market analysis (no account access), so no API key required - the same
+    reasoning /health already uses."""
+    from bot.advisor import data as advisor_data
+    from bot.advisor import scoring as advisor_scoring
+
+    direction = (body.direction or "").strip().lower()
+    if direction not in ("buy", "sell"):
+        raise HTTPException(status_code=400, detail="direction must be 'buy' or 'sell'")
+
+    candles = advisor_data.get_candles(timeframe_min=body.timeframe_min, count=250)
+    if not candles:
+        raise HTTPException(status_code=503, detail="DATA UNAVAILABLE - could not fetch live XAUUSD candles")
+
+    current_price = body.current_price
+    if current_price is None:
+        current_price = advisor_data.get_live_price()
+    if current_price is None:
+        current_price = candles[-1]["close"]
+
+    try:
+        result = advisor_scoring.analyze_trade(
+            candles=candles,
+            direction=direction,
+            entry=body.entry,
+            current_price=current_price,
+            stop_loss=body.stop_loss,
+            target=body.target,
+        )
+    except Exception as exc:
+        logger.exception("[ADVISOR] analyze_trade failed")
+        raise HTTPException(status_code=500, detail=f"DATA UNAVAILABLE - {exc}") from exc
+
+    return result
+
+
+@app.get("/advisor/live-price")
+async def advisor_live_price():
+    from bot.advisor import data as advisor_data
+    price = advisor_data.get_live_price()
+    if price is None:
+        raise HTTPException(status_code=503, detail="DATA UNAVAILABLE")
+    return {"symbol": "XAUUSD", "price": price}
+
+
+@app.get("/advisor", response_class=HTMLResponse)
+async def advisor_dashboard():
+    """Serves the trader-facing dashboard page directly - no separate build
+    step, just static HTML/JS calling the endpoints above."""
+    from pathlib import Path
+    html_path = Path(__file__).parent / "advisor" / "dashboard.html"
+    return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
 
 
 @app.get("/stats", dependencies=[Depends(verify_api_key)])
@@ -976,7 +1041,7 @@ async def list_strategies():
     return get_all_strategies()
 
 
-@app.get("/accounts/debug")
+@app.get("/accounts/debug", dependencies=[Depends(verify_api_key)])
 async def debug_accounts():
     """Debug endpoint — shows raw .env read result and current account list."""
     import os

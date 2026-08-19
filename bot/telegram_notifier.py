@@ -326,6 +326,56 @@ def send_algo_error_alert(
         return False
 
 
+def send_advisor_alert(analysis: dict) -> bool:
+    """Sends a Hold/Close/Wait trade-risk alert from the XAUUSD Trade Advisor
+    (bot/advisor/scoring.py). Only called when the decision is CLOSE or
+    confidence drops below 50%, per the advisor's own monitor loop."""
+    chat_id = _get_alert_destination()
+    if not chat_id:
+        return False
+
+    trade = analysis["trade"]
+    decision = analysis["decision"]
+    confidence = analysis["confidence_pct"]
+    session = analysis["raw"]["session"]
+    news = analysis["raw"]["news"]
+
+    status_line = "🔴 CLOSE NOW" if decision == "CLOSE" else ("⚠️ RISKY" if confidence < 50 else "🟡 WATCH")
+    action_line = {"CLOSE": "CLOSE NOW", "WAIT": "WAIT", "HOLD": "HOLD"}[decision]
+
+    if news["level"] in ("danger", "warning"):
+        news_line = f"⚠️ {news['event']} in {news['minutes_until']:.0f} min"
+    elif news["level"] == "upcoming":
+        news_line = f"{news['event']} in {news['minutes_until']:.0f} min"
+    else:
+        news_line = "✅ Clear"
+
+    reasons = "; ".join(analysis["top_reasons"][:3])
+    when = datetime.now(timezone.utc).strftime("%H:%M UTC")
+
+    text = (
+        "🚨 XAUUSD TRADE ALERT\n"
+        f"Direction  : {trade['direction'].upper()}\n"
+        f"Entry      : {trade['entry']:.2f}\n"
+        f"Current    : {trade['current_price']:.2f}\n"
+        f"Status     : {status_line}\n"
+        f"Confidence : {confidence:.0f}%\n"
+        f"Reason     : {reasons}\n"
+        f"Action     : {action_line}\n"
+        f"Session    : {session['session']} ({session['volatility']} Volatility)\n"
+        f"News       : {news_line}\n"
+        f"Time       : {when}"
+    )
+
+    try:
+        method = _run_or_schedule(_send_message(chat_id, text))
+        logger.info(f"[TG_NOTIFY] Advisor alert sent to {chat_id} | decision={decision} confidence={confidence}% via={method}")
+        return True
+    except Exception as exc:
+        logger.warning(f"[TG_NOTIFY] Could not send advisor alert to {chat_id}: {exc}")
+        return False
+
+
 def send_text_alert(text: str, chat_id: str | None = None) -> bool:
     destination = str(chat_id or _get_alert_destination() or "").strip()
     if not destination or not str(text or "").strip():

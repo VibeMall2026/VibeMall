@@ -255,6 +255,47 @@ def _checkout_cod_allowed(cart_items) -> bool:
 
 @login_required(login_url='login')
 @staff_member_required(login_url='login')
+def admin_xauusd_advisor(request):
+    """XAUUSD Trade Advisor - served from here, but all live data comes from
+    the trading bot's own API on the Windows VPS via the proxy views below."""
+    return render(request, 'admin_panel/xauusd_advisor.html')
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_xauusd_advisor_live_price(request):
+    """Server-side proxy - the trading VPS firewall only allows this
+    server's IP through, so the browser can never call it directly."""
+    try:
+        resp = requests.get(f'{settings.TRADING_BOT_API_URL}/advisor/live-price', timeout=10)
+        return JsonResponse(resp.json(), status=resp.status_code)
+    except requests.RequestException:
+        return JsonResponse({'detail': 'DATA UNAVAILABLE'}, status=503)
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_xauusd_advisor_analyze(request):
+    if request.method != 'POST':
+        return JsonResponse({'detail': 'POST required'}, status=405)
+    try:
+        import json
+        body = json.loads(request.body or b'{}')
+    except ValueError:
+        return JsonResponse({'detail': 'Invalid JSON body'}, status=400)
+
+    try:
+        resp = requests.post(
+            f'{settings.TRADING_BOT_API_URL}/advisor/analyze',
+            json=body, timeout=20,
+        )
+        return JsonResponse(resp.json(), status=resp.status_code, safe=False)
+    except requests.RequestException:
+        return JsonResponse({'detail': 'DATA UNAVAILABLE - could not reach the trading server'}, status=503)
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
 def admin_test(request):
     """Admin Test Page"""
     return render(request, 'admin_panel/test.html')

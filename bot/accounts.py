@@ -1586,6 +1586,20 @@ def execute_on_all_accounts(
                                 f"[ACCOUNTS] Could not send algo execution alert for {acc.label} "
                                 f"(login={acc.login}): {notify_exc}"
                             )
+                        if str(symbol or "").upper().startswith("XAUUSD") and result.get("ticket"):
+                            try:
+                                from bot.advisor.monitor import register_open_trade
+
+                                register_open_trade(
+                                    ticket=result["ticket"],
+                                    login=acc.login,
+                                    direction=side,
+                                    entry=result.get("entry") or float(entry or 0) or 0.0,
+                                    sl=result.get("sl", sl),
+                                    tp=result.get("tp", tp),
+                                )
+                            except Exception as monitor_exc:
+                                logger.warning(f"[ACCOUNTS] Could not register trade with advisor monitor: {monitor_exc}")
                     logger.success(
                         f"[EXECUTION][UNIFIED] strategy={strategy_label} account={acc.label} "
                         f"login={acc.login} status=SUCCESS ticket={result.get('ticket')} "
@@ -2002,7 +2016,11 @@ def _execute_single(
         result = mt5.order_send(req)
         last_result = result
         if result and result.retcode == mt5.TRADE_RETCODE_DONE:
-            return {"success": True, "ticket": result.order, "lot": lot, "message": "Trade opened"}
+            fill_price = getattr(result, "price", None) or price
+            return {
+                "success": True, "ticket": result.order, "lot": lot, "message": "Trade opened",
+                "entry": fill_price, "sl": sl, "tp": tp,
+            }
         # 10030 = Unsupported filling mode; try next candidate
         if result and result.retcode == 10030:
             continue

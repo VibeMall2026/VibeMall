@@ -1,0 +1,308 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XAUUSD Trade Advisor - VibeMall Admin</title>
+<style>
+  :root {
+    --bg: #0b0e14; --panel: #12161f; --panel-2: #171c27; --border: #232938;
+    --text: #e7ebf3; --muted: #8b93a7; --accent: #d4af37;
+    --green: #22c55e; --yellow: #eab308; --red: #ef4444;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 14px; line-height: 1.5;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+  .back-link { display: inline-block; color: var(--muted); text-decoration: none; font-size: 13px; margin-bottom: 14px; }
+  .back-link:hover { color: var(--text); }
+  header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 8px; }
+  h1 { font-size: 20px; margin: 0; font-weight: 700; letter-spacing: 0.2px; }
+  h1 span { color: var(--accent); }
+  .live-price { font-size: 15px; color: var(--muted); }
+  .live-price b { color: var(--text); font-variant-numeric: tabular-nums; }
+
+  .grid { display: grid; grid-template-columns: 320px 1fr; gap: 16px; }
+  @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .panel h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin: 0 0 12px; }
+
+  label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+  label:first-child { margin-top: 0; }
+  input, select {
+    width: 100%; background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 6px; padding: 8px 10px; font-size: 14px; font-variant-numeric: tabular-nums;
+  }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  button {
+    width: 100%; margin-top: 14px; padding: 11px; border: none; border-radius: 7px;
+    background: var(--accent); color: #14100a; font-weight: 700; font-size: 14px; cursor: pointer;
+  }
+  button:hover { filter: brightness(1.08); }
+  button:disabled { opacity: 0.6; cursor: default; }
+
+  .decision-card { text-align: center; padding: 22px 16px; border-radius: 10px; margin-bottom: 16px; }
+  .decision-card .badge { font-size: 34px; font-weight: 800; letter-spacing: 1px; }
+  .decision-card .conf { font-size: 14px; margin-top: 6px; opacity: 0.85; }
+  .meter { height: 8px; border-radius: 5px; background: rgba(255,255,255,0.12); margin-top: 12px; overflow: hidden; }
+  .meter-fill { height: 100%; border-radius: 5px; }
+
+  .hold { background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.4); }
+  .hold .badge { color: var(--green); }
+  .wait { background: rgba(234,179,8,0.12); border: 1px solid rgba(234,179,8,0.4); }
+  .wait .badge { color: var(--yellow); }
+  .close { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.4); }
+  .close .badge { color: var(--red); }
+
+  .reasons { list-style: none; padding: 0; margin: 0; }
+  .reasons li { padding: 8px 10px; border-radius: 6px; margin-bottom: 6px; font-size: 13px; background: var(--panel-2); }
+  .reasons li.pos { border-left: 3px solid var(--green); }
+  .reasons li.neg { border-left: 3px solid var(--red); }
+  .reasons li.neu { border-left: 3px solid var(--border); color: var(--muted); }
+
+  .levels { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 6px; }
+  .level-box { background: var(--panel-2); border-radius: 6px; padding: 10px; }
+  .level-box .k { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+  .level-box .v { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+
+  canvas { width: 100%; height: 220px; display: block; }
+
+  .indicator-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 4px; }
+  .indicator-table td { padding: 6px 4px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .indicator-table td:first-child { color: var(--muted); white-space: nowrap; width: 160px; }
+  .vote-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .vote-pos { background: var(--green); } .vote-neg { background: var(--red); } .vote-neu { background: var(--muted); }
+
+  .overrides { margin-top: 10px; }
+  .overrides div { font-size: 12.5px; color: var(--yellow); padding: 6px 8px; background: rgba(234,179,8,0.08); border-radius: 6px; margin-bottom: 4px; }
+
+  .empty { color: var(--muted); text-align: center; padding: 40px 10px; }
+  .error-banner { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); color: #ffb4b4; padding: 10px 12px; border-radius: 8px; margin-bottom: 14px; font-size: 13px; }
+  .footer-note { color: var(--muted); font-size: 11.5px; margin-top: 18px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="/admin-panel/" class="back-link">&larr; Back to Admin Panel</a>
+  <header>
+    <h1>XAUUSD <span>Trade Advisor</span></h1>
+    <div class="live-price">Live gold: <b id="livePrice">—</b></div>
+  </header>
+
+  <div id="errorBanner" style="display:none" class="error-banner"></div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Your Trade</h2>
+      <label>Direction</label>
+      <select id="direction">
+        <option value="buy">Buy</option>
+        <option value="sell">Sell</option>
+      </select>
+
+      <label>Entry Price</label>
+      <input id="entry" type="number" step="0.01" placeholder="e.g. 4260.50">
+
+      <div class="row2">
+        <div>
+          <label>Stop Loss (optional)</label>
+          <input id="stopLoss" type="number" step="0.01">
+        </div>
+        <div>
+          <label>Target (optional)</label>
+          <input id="target" type="number" step="0.01">
+        </div>
+      </div>
+
+      <label>Current Price</label>
+      <input id="currentPrice" type="number" step="0.01" placeholder="auto-filled from live feed">
+
+      <label>Timeframe</label>
+      <select id="timeframe">
+        <option value="5">5 minute</option>
+        <option value="15" selected>15 minute</option>
+        <option value="60">1 hour</option>
+        <option value="240">4 hour</option>
+      </select>
+
+      <button id="analyzeBtn">Analyze Trade</button>
+    </div>
+
+    <div id="results">
+      <div class="panel empty">Enter your trade on the left and click Analyze to get a Hold / Close / Wait read.</div>
+    </div>
+  </div>
+
+  <div class="footer-note">This is a decision-support tool, not financial advice. Volume shown is MT5 tick-volume (a proxy), not true market volume. Live data is fetched from the trading VPS through VibeMall's own server - your browser never connects to it directly.</div>
+</div>
+
+<script>
+const API_BASE = '/admin-panel/xauusd-advisor';
+const CSRF_TOKEN = '{{ csrf_token }}';
+
+function fmt(n, d=2) { return (n === null || n === undefined || Number.isNaN(n)) ? '—' : Number(n).toFixed(d); }
+
+async function refreshLivePrice() {
+  try {
+    const r = await fetch(API_BASE + '/live-price/');
+    if (!r.ok) throw new Error();
+    const data = await r.json();
+    document.getElementById('livePrice').textContent = fmt(data.price, 2);
+    const curField = document.getElementById('currentPrice');
+    if (!curField.value) curField.placeholder = fmt(data.price, 2);
+  } catch (e) {
+    document.getElementById('livePrice').textContent = 'DATA UNAVAILABLE';
+  }
+}
+
+function voteDot(v) { return v > 0 ? 'vote-pos' : (v < 0 ? 'vote-neg' : 'vote-neu'); }
+
+function renderChart(canvas, ema) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width = canvas.clientWidth * 2;
+  const h = canvas.height = 220 * 2;
+  ctx.clearRect(0, 0, w, h);
+  ctx.font = '22px sans-serif';
+  ctx.fillStyle = '#8b93a7';
+  ctx.fillText('EMA20: ' + fmt(ema.ema20) + '   EMA50: ' + fmt(ema.ema50) + '   EMA200: ' + fmt(ema.ema200), 10, 30);
+  ctx.fillStyle = '#e7ebf3';
+  ctx.font = 'bold 34px sans-serif';
+  ctx.fillText('Price ' + fmt(ema.price) + ' vs trend', 10, 90);
+  ctx.font = '20px sans-serif';
+  const readLabel = {
+    bullish: 'Bullish stack (price > EMA20 > EMA50 > EMA200)',
+    bearish: 'Bearish stack (price < EMA20 < EMA50 < EMA200)',
+    mixed_above_200: 'Mixed, but above EMA200 (long-term bullish)',
+    mixed_below_200: 'Mixed, but below EMA200 (long-term bearish)',
+  }[ema.read] || ema.read;
+  ctx.fillStyle = '#8b93a7';
+  ctx.fillText(readLabel, 10, 130);
+}
+
+async function analyze() {
+  const btn = document.getElementById('analyzeBtn');
+  const errorBanner = document.getElementById('errorBanner');
+  errorBanner.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Analyzing…';
+
+  const body = {
+    direction: document.getElementById('direction').value,
+    entry: parseFloat(document.getElementById('entry').value),
+    timeframe_min: parseInt(document.getElementById('timeframe').value, 10),
+  };
+  const sl = document.getElementById('stopLoss').value;
+  const tp = document.getElementById('target').value;
+  const cur = document.getElementById('currentPrice').value;
+  if (sl) body.stop_loss = parseFloat(sl);
+  if (tp) body.target = parseFloat(tp);
+  if (cur) body.current_price = parseFloat(cur);
+
+  if (!body.entry) {
+    errorBanner.textContent = 'Enter an entry price first.';
+    errorBanner.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Analyze Trade';
+    return;
+  }
+
+  try {
+    const r = await fetch(API_BASE + '/analyze/', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN},
+      body: JSON.stringify(body),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || 'DATA UNAVAILABLE');
+    render(data);
+  } catch (e) {
+    errorBanner.textContent = e.message || 'DATA UNAVAILABLE';
+    errorBanner.style.display = 'block';
+    document.getElementById('results').innerHTML = '<div class="panel empty">DATA UNAVAILABLE — try again in a moment.</div>';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Analyze Trade';
+  }
+}
+
+function render(data) {
+  const cls = data.decision.toLowerCase();
+  const rr = data.raw.risk_reward;
+
+  let levelsHtml = '';
+  if (data.raw.swing_high_low.available) {
+    levelsHtml += `<div class="level-box"><div class="k">Swing High</div><div class="v">${fmt(data.raw.swing_high_low.swing_high)}</div></div>`;
+    levelsHtml += `<div class="level-box"><div class="k">Swing Low</div><div class="v">${fmt(data.raw.swing_high_low.swing_low)}</div></div>`;
+  }
+  if (data.raw.fibonacci.available) {
+    levelsHtml += `<div class="level-box"><div class="k">Nearest Fib Level</div><div class="v">${data.raw.fibonacci.nearest_level_pct}%</div></div>`;
+  }
+  if (rr.available && rr.pct_target_captured !== undefined) {
+    levelsHtml += `<div class="level-box"><div class="k">Target Captured</div><div class="v">${rr.pct_target_captured}%</div></div>`;
+  }
+  if (rr.available && rr.pct_sl_remaining !== undefined) {
+    levelsHtml += `<div class="level-box"><div class="k">SL Buffer Left</div><div class="v">${rr.pct_sl_remaining}%</div></div>`;
+  }
+  if (rr.available && rr.live_rr !== undefined) {
+    levelsHtml += `<div class="level-box"><div class="k">Live R:R</div><div class="v">1:${rr.live_rr}</div></div>`;
+  }
+
+  let overridesHtml = '';
+  if (data.overrides.length) {
+    overridesHtml = '<div class="overrides">' + data.overrides.map(o => `<div>⚡ ${o}</div>`).join('') + '</div>';
+  }
+
+  const indicatorRows = Object.entries(data.indicators).map(([name, info]) => `
+    <tr><td><span class="vote-dot ${voteDot(info.vote)}"></span>${name}</td><td>${info.reason}</td></tr>
+  `).join('');
+
+  const reasonsHtml = data.top_reasons.map(r => {
+    const isWarning = r.toUpperCase().includes('WARNING') || r.toUpperCase().includes('DANGER');
+    return `<li class="${isWarning ? 'neg' : 'pos'}">${r}</li>`;
+  }).join('');
+
+  document.getElementById('results').innerHTML = `
+    <div class="panel decision-card ${cls}">
+      <div class="badge">${data.decision}</div>
+      <div class="conf">${data.confidence_pct}% confidence — ${data.supportive_votes}/${data.total_indicators} indicators supportive</div>
+      <div class="meter"><div class="meter-fill" style="width:${data.confidence_pct}%; background:${data.color === 'green' ? '#22c55e' : data.color === 'yellow' ? '#eab308' : '#ef4444'}"></div></div>
+      ${overridesHtml}
+    </div>
+
+    <div class="panel" style="margin-bottom:16px">
+      <h2>Why</h2>
+      <ul class="reasons">${reasonsHtml}</ul>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px">
+      <h2>Key Levels</h2>
+      <div class="levels">${levelsHtml}</div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px">
+      <h2>Trend Snapshot</h2>
+      <canvas id="chart"></canvas>
+    </div>
+
+    <div class="panel">
+      <h2>All 12 Indicators</h2>
+      <table class="indicator-table">${indicatorRows}</table>
+    </div>
+  `;
+
+  if (data.raw.ema.available) {
+    renderChart(document.getElementById('chart'), data.raw.ema);
+  }
+}
+
+document.getElementById('analyzeBtn').addEventListener('click', analyze);
+refreshLivePrice();
+setInterval(refreshLivePrice, 30000);
+</script>
+</body>
+</html>

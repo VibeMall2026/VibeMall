@@ -402,6 +402,13 @@ def main() -> None:
     )
     schedule_thread.start()
 
+    # XAUUSD Trade Advisor: watches algo-opened positions and sends a
+    # Telegram alert the moment one turns risky. No-op until a trade
+    # registers itself (see bot/accounts.py, right after the normal
+    # execution alert).
+    from bot.advisor.monitor import start as start_advisor_monitor
+    start_advisor_monitor()
+
     # Run bot (blocking)
     asyncio.run(start_bot())
 
