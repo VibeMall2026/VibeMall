@@ -275,6 +275,19 @@ def admin_xauusd_advisor_live_price(request):
 
 @login_required(login_url='login')
 @staff_member_required(login_url='login')
+def admin_xauusd_advisor_live(request):
+    """Server-side proxy for the always-on Mode 1 / Mode 2 live monitor.
+    Cheap on the trading VPS side - it just reads a cached result, never
+    touches MT5 on this request - so polling this every second is safe."""
+    try:
+        resp = requests.get(f'{settings.TRADING_BOT_API_URL}/advisor/live', timeout=10)
+        return JsonResponse(resp.json(), status=resp.status_code, safe=False)
+    except requests.RequestException:
+        return JsonResponse({'detail': 'DATA UNAVAILABLE'}, status=503)
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
 def admin_xauusd_advisor_analyze(request):
     if request.method != 'POST':
         return JsonResponse({'detail': 'POST required'}, status=405)

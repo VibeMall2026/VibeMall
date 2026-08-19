@@ -73,6 +73,7 @@ urlpatterns = [
     path('admin-panel/new-dashboard/', views.admin_new_dashboard, name='admin_new_dashboard'),
     path('admin-panel/xauusd-advisor/', views.admin_xauusd_advisor, name='admin_xauusd_advisor'),
     path('admin-panel/xauusd-advisor/live-price/', views.admin_xauusd_advisor_live_price, name='admin_xauusd_advisor_live_price'),
+    path('admin-panel/xauusd-advisor/live/', views.admin_xauusd_advisor_live, name='admin_xauusd_advisor_live'),
     path('admin-panel/xauusd-advisor/analyze/', views.admin_xauusd_advisor_analyze, name='admin_xauusd_advisor_analyze'),
     path('admin-panel/test/', views.admin_test, name='admin_test'),
     path('admin-panel/add-product/', views.admin_add_product, name='admin_add_product'),

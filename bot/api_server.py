@@ -321,6 +321,21 @@ async def advisor_live_price():
     return {"symbol": "XAUUSD", "price": price}
 
 
+@app.get("/advisor/live")
+async def advisor_live():
+    """Single polling endpoint for the dashboard - always returns whichever
+    mode (1: active trade, 2: market scan) is currently live, reading from
+    the AdvisorMonitor background thread's cache. Never touches MT5 directly
+    on this request, so it's safe to poll every second."""
+    from bot.advisor import live as advisor_live_module
+
+    try:
+        return advisor_live_module.get_live_state()
+    except Exception as exc:
+        logger.exception("[ADVISOR] get_live_state failed")
+        raise HTTPException(status_code=503, detail=f"DATA UNAVAILABLE - {exc}") from exc
+
+
 @app.get("/advisor", response_class=HTMLResponse)
 async def advisor_dashboard():
     """Serves the trader-facing dashboard page directly - no separate build

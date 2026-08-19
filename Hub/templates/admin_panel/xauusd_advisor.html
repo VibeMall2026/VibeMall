@@ -9,7 +9,7 @@
   :root {
     --bg: #0b0e14; --panel: #12161f; --panel-2: #171c27; --border: #232938;
     --text: #e7ebf3; --muted: #8b93a7; --accent: #d4af37;
-    --green: #22c55e; --yellow: #eab308; --red: #ef4444;
+    --green: #22c55e; --yellow: #eab308; --orange: #f97316; --red: #ef4444;
   }
   * { box-sizing: border-box; }
   body {
@@ -17,19 +17,29 @@
     font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
     font-size: 14px; line-height: 1.5;
   }
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 16px 16px 60px; }
   .back-link { display: inline-block; color: var(--muted); text-decoration: none; font-size: 13px; margin-bottom: 14px; }
   .back-link:hover { color: var(--text); }
-  header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 8px; }
+  header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
   h1 { font-size: 20px; margin: 0; font-weight: 700; letter-spacing: 0.2px; }
   h1 span { color: var(--accent); }
   .live-price { font-size: 15px; color: var(--muted); }
   .live-price b { color: var(--text); font-variant-numeric: tabular-nums; }
 
+  .tabs { display: flex; gap: 6px; margin-bottom: 14px; border-bottom: 1px solid var(--border); }
+  .tab-btn {
+    background: none; border: none; color: var(--muted); font-size: 13px; font-weight: 600;
+    padding: 9px 14px; cursor: pointer; border-bottom: 2px solid transparent; width: auto; margin: 0;
+  }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
   .grid { display: grid; grid-template-columns: 320px 1fr; gap: 16px; }
   @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
 
-  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .panel:last-child { margin-bottom: 0; }
   .panel h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin: 0 0 12px; }
 
   label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
@@ -40,25 +50,33 @@
   }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-  button {
+  button.primary {
     width: 100%; margin-top: 14px; padding: 11px; border: none; border-radius: 7px;
     background: var(--accent); color: #14100a; font-weight: 700; font-size: 14px; cursor: pointer;
   }
-  button:hover { filter: brightness(1.08); }
-  button:disabled { opacity: 0.6; cursor: default; }
+  button.primary:hover { filter: brightness(1.08); }
+  button.primary:disabled { opacity: 0.6; cursor: default; }
 
-  .decision-card { text-align: center; padding: 22px 16px; border-radius: 10px; margin-bottom: 16px; }
-  .decision-card .badge { font-size: 34px; font-weight: 800; letter-spacing: 1px; }
+  .decision-card { text-align: center; padding: 22px 16px; border-radius: 10px; }
+  .decision-card .badge { font-size: 30px; font-weight: 800; letter-spacing: 0.5px; }
+  .decision-card .icon { font-size: 40px; display: block; margin-bottom: 6px; }
   .decision-card .conf { font-size: 14px; margin-top: 6px; opacity: 0.85; }
+  .decision-card .msg { font-size: 13.5px; margin-top: 10px; opacity: 0.95; }
   .meter { height: 8px; border-radius: 5px; background: rgba(255,255,255,0.12); margin-top: 12px; overflow: hidden; }
-  .meter-fill { height: 100%; border-radius: 5px; }
+  .meter-fill { height: 100%; border-radius: 5px; transition: width 0.4s ease; }
 
-  .hold { background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.4); }
-  .hold .badge { color: var(--green); }
-  .wait { background: rgba(234,179,8,0.12); border: 1px solid rgba(234,179,8,0.4); }
-  .wait .badge { color: var(--yellow); }
-  .close { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.4); }
-  .close .badge { color: var(--red); }
+  .hold, .buy { background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.4); }
+  .hold .badge, .buy .badge { color: var(--green); }
+  .watch, .wait { background: rgba(234,179,8,0.12); border: 1px solid rgba(234,179,8,0.4); }
+  .watch .badge, .wait .badge { color: var(--yellow); }
+  .partial { background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.4); }
+  .partial .badge { color: var(--orange); }
+  .exit, .close, .sell { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.4); }
+  .exit .badge, .close .badge, .sell .badge { color: var(--red); }
+  .emergency { background: rgba(239,68,68,0.22); border: 2px solid var(--red); animation: pulse 1.4s infinite; }
+  .emergency .badge { color: var(--red); }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); } 50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); } }
+  @media (prefers-reduced-motion: reduce) { .emergency { animation: none; } }
 
   .reasons { list-style: none; padding: 0; margin: 0; }
   .reasons li { padding: 8px 10px; border-radius: 6px; margin-bottom: 6px; font-size: 13px; background: var(--panel-2); }
@@ -70,6 +88,10 @@
   .level-box { background: var(--panel-2); border-radius: 6px; padding: 10px; }
   .level-box .k { font-size: 11px; color: var(--muted); text-transform: uppercase; }
   .level-box .v { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .level-box.status-safe { border-left: 3px solid var(--green); }
+  .level-box.status-caution { border-left: 3px solid var(--yellow); }
+  .level-box.status-danger { border-left: 3px solid var(--orange); }
+  .level-box.status-critical { border-left: 3px solid var(--red); }
 
   canvas { width: 100%; height: 220px; display: block; }
 
@@ -84,7 +106,34 @@
 
   .empty { color: var(--muted); text-align: center; padding: 40px 10px; }
   .error-banner { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); color: #ffb4b4; padding: 10px 12px; border-radius: 8px; margin-bottom: 14px; font-size: 13px; }
+  .reconnect-banner { background: rgba(234,179,8,0.15); border: 1px solid rgba(234,179,8,0.4); color: #ffe29a; padding: 8px 12px; border-radius: 8px; margin-bottom: 14px; font-size: 12.5px; display: none; }
+  .switch-banner { background: rgba(212,175,55,0.15); border: 1px solid rgba(212,175,55,0.5); color: var(--accent); padding: 8px 12px; border-radius: 8px; margin-bottom: 14px; font-size: 12.5px; display: none; }
   .footer-note { color: var(--muted); font-size: 11.5px; margin-top: 18px; text-align: center; }
+
+  .mode-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 20px; }
+  .mode-badge.m1 { background: rgba(239,68,68,0.15); color: #ff9b9b; border: 1px solid rgba(239,68,68,0.4); }
+  .mode-badge.m2 { background: rgba(34,197,94,0.15); color: #8be7ac; border: 1px solid rgba(34,197,94,0.4); }
+  .status-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .timestamp { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  .checklist { list-style: none; padding: 0; margin: 0; font-size: 12.5px; }
+  .checklist li { display: flex; align-items: center; gap: 8px; padding: 5px 2px; border-bottom: 1px solid var(--border); }
+  .checklist li:last-child { border-bottom: none; }
+  .checklist .mark { width: 16px; text-align: center; flex-shrink: 0; }
+  .checklist li.pass { color: var(--text); }
+  .checklist li.fail { color: var(--muted); }
+
+  .score-pill { display: inline-block; font-weight: 700; font-size: 13px; padding: 3px 10px; border-radius: 20px; }
+  .score-pill.buy { background: rgba(34,197,94,0.15); color: #8be7ac; }
+  .score-pill.sell { background: rgba(239,68,68,0.15); color: #ff9b9b; }
+
+  .health-gauge { display: flex; align-items: center; gap: 14px; }
+  .health-gauge .num { font-size: 36px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .health-gauge .bar-wrap { flex: 1; }
+  .health-gauge .meter { height: 10px; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -95,47 +144,70 @@
     <div class="live-price">Live gold: <b id="livePrice">—</b></div>
   </header>
 
-  <div id="errorBanner" style="display:none" class="error-banner"></div>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="live">Live Monitor</button>
+    <button class="tab-btn" data-tab="manual">Manual Analyze</button>
+  </div>
 
-  <div class="grid">
-    <div class="panel">
-      <h2>Your Trade</h2>
-      <label>Direction</label>
-      <select id="direction">
-        <option value="buy">Buy</option>
-        <option value="sell">Sell</option>
-      </select>
+  <!-- ===================== LIVE MONITOR TAB ===================== -->
+  <div class="tab-panel active" id="tab-live">
+    <div id="reconnectBanner" class="reconnect-banner">⚠️ RECONNECTING... showing last known data</div>
+    <div id="switchBanner" class="switch-banner"></div>
 
-      <label>Entry Price</label>
-      <input id="entry" type="number" step="0.01" placeholder="e.g. 4260.50">
-
-      <div class="row2">
-        <div>
-          <label>Stop Loss (optional)</label>
-          <input id="stopLoss" type="number" step="0.01">
-        </div>
-        <div>
-          <label>Target (optional)</label>
-          <input id="target" type="number" step="0.01">
-        </div>
-      </div>
-
-      <label>Current Price</label>
-      <input id="currentPrice" type="number" step="0.01" placeholder="auto-filled from live feed">
-
-      <label>Timeframe</label>
-      <select id="timeframe">
-        <option value="5">5 minute</option>
-        <option value="15" selected>15 minute</option>
-        <option value="60">1 hour</option>
-        <option value="240">4 hour</option>
-      </select>
-
-      <button id="analyzeBtn">Analyze Trade</button>
+    <div class="status-row">
+      <div id="modeBadge" class="mode-badge m2">⏳ LOADING...</div>
+      <div class="timestamp" id="liveTimestamp">—</div>
     </div>
 
-    <div id="results">
-      <div class="panel empty">Enter your trade on the left and click Analyze to get a Hold / Close / Wait read.</div>
+    <div id="liveContent">
+      <div class="panel empty">Connecting to the live monitor…</div>
+    </div>
+  </div>
+
+  <!-- ===================== MANUAL ANALYZE TAB ===================== -->
+  <div class="tab-panel" id="tab-manual">
+    <div id="errorBanner" style="display:none" class="error-banner"></div>
+
+    <div class="grid">
+      <div class="panel">
+        <h2>Your Trade</h2>
+        <label>Direction</label>
+        <select id="direction">
+          <option value="buy">Buy</option>
+          <option value="sell">Sell</option>
+        </select>
+
+        <label>Entry Price</label>
+        <input id="entry" type="number" step="0.01" placeholder="e.g. 4260.50">
+
+        <div class="row2">
+          <div>
+            <label>Stop Loss (optional)</label>
+            <input id="stopLoss" type="number" step="0.01">
+          </div>
+          <div>
+            <label>Target (optional)</label>
+            <input id="target" type="number" step="0.01">
+          </div>
+        </div>
+
+        <label>Current Price</label>
+        <input id="currentPrice" type="number" step="0.01" placeholder="auto-filled from live feed">
+
+        <label>Timeframe</label>
+        <select id="timeframe">
+          <option value="5">5 minute</option>
+          <option value="15" selected>15 minute</option>
+          <option value="60">1 hour</option>
+          <option value="240">4 hour</option>
+        </select>
+
+        <button class="primary" id="analyzeBtn">Analyze Trade</button>
+      </div>
+
+      <div id="results">
+        <div class="panel empty">Enter your trade on the left and click Analyze to get a Hold / Close / Wait read.</div>
+      </div>
     </div>
   </div>
 
@@ -145,9 +217,42 @@
 <script>
 const API_BASE = '/admin-panel/xauusd-advisor';
 const CSRF_TOKEN = '{{ csrf_token }}';
+let lastGoodLiveData = null;
+let lastSoundKey = null;
+let audioCtx = null;
 
 function fmt(n, d=2) { return (n === null || n === undefined || Number.isNaN(n)) ? '—' : Number(n).toFixed(d); }
+function esc(s) { return String(s === null || s === undefined ? '—' : s); }
 
+/* ---------- Tabs ---------- */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ---------- Sound alert (Web Audio beep, no external file) ---------- */
+function playEmergencyBeep() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    for (let i = 0; i < 3; i++) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.value = 880;
+      gain.gain.value = 0.15;
+      osc.connect(gain).connect(audioCtx.destination);
+      const start = audioCtx.currentTime + i * 0.35;
+      osc.start(start);
+      osc.stop(start + 0.22);
+    }
+  } catch (e) { /* audio not available - non-critical */ }
+}
+
+/* ---------- Live price ticker (top of page, all tabs) ---------- */
 async function refreshLivePrice() {
   try {
     const r = await fetch(API_BASE + '/live-price/');
@@ -155,12 +260,213 @@ async function refreshLivePrice() {
     const data = await r.json();
     document.getElementById('livePrice').textContent = fmt(data.price, 2);
     const curField = document.getElementById('currentPrice');
-    if (!curField.value) curField.placeholder = fmt(data.price, 2);
+    if (curField && !curField.value) curField.placeholder = fmt(data.price, 2);
   } catch (e) {
     document.getElementById('livePrice').textContent = 'DATA UNAVAILABLE';
   }
 }
 
+/* ---------- Live Monitor (Mode 1 / Mode 2) ---------- */
+function slStatusClass(status) {
+  return { SAFE: 'status-safe', CAUTION: 'status-caution', DANGER: 'status-danger', CRITICAL: 'status-critical' }[status] || '';
+}
+
+function decisionClass(decision) {
+  return {
+    HOLD_STRONG: 'hold', HOLD_WATCH: 'watch', PARTIAL_CLOSE: 'partial',
+    EXIT_NOW: 'exit', EMERGENCY_EXIT: 'emergency',
+  }[decision] || 'watch';
+}
+
+function renderMode1(data) {
+  const t = data.trade, d = data.decision, sl = data.sl_analysis, tp = data.tp_analysis, pnl = data.pnl, mom = data.momentum, entryQ = data.entry_analysis;
+  const cls = decisionClass(d.decision);
+
+  let levelsHtml = '';
+  levelsHtml += `<div class="level-box"><div class="k">PnL</div><div class="v" style="color:${pnl.pnl_price >= 0 ? 'var(--green)' : 'var(--red)'}">${pnl.pnl_price >= 0 ? '+' : ''}${fmt(pnl.pnl_price)} (${pnl.pnl_pct}%)</div></div>`;
+  levelsHtml += `<div class="level-box"><div class="k">Drawdown from Peak</div><div class="v">${fmt(pnl.drawdown_pct_of_peak, 1)}%</div></div>`;
+  if (sl.available) {
+    levelsHtml += `<div class="level-box ${slStatusClass(sl.status)}"><div class="k">SL Status</div><div class="v">${esc(sl.status)} (${sl.pct_remaining}% left)</div></div>`;
+  }
+  if (tp.available) {
+    levelsHtml += `<div class="level-box"><div class="k">TP Status</div><div class="v">${esc(tp.status)} (${tp.pct_captured}% captured)</div></div>`;
+  }
+
+  const reasonsHtml = (d.reasons || []).map(r => `<li class="neg">${esc(r)}</li>`).join('') || '<li class="pos">No risk factors flagged</li>';
+
+  const momentumLabel = { YES: '✅ Momentum confirms direction', WEAKENING: '🟡 Momentum weakening', NO: '🔴 Momentum against trade' }[mom.momentum_in_direction] || mom.momentum_in_direction;
+
+  return `
+    <div class="panel decision-card ${cls}">
+      <span class="icon">${d.icon}</span>
+      <div class="badge">${esc(d.label)}</div>
+      <div class="conf">${d.confidence}% confidence</div>
+      <div class="meter"><div class="meter-fill" style="width:${d.confidence}%; background:${cls === 'hold' ? 'var(--green)' : cls === 'exit' || cls === 'emergency' ? 'var(--red)' : cls === 'partial' ? 'var(--orange)' : 'var(--yellow)'}"></div></div>
+      <div class="msg">${esc(d.message)}</div>
+      ${d.action ? `<div class="msg"><b>Action:</b> ${esc(d.action)}</div>` : ''}
+    </div>
+
+    <div class="panel">
+      <h2>Trade Snapshot — ${t.direction.toUpperCase()}</h2>
+      <div class="levels">
+        <div class="level-box"><div class="k">Entry</div><div class="v">${fmt(t.entry)}</div></div>
+        <div class="level-box"><div class="k">Current</div><div class="v">${fmt(t.current_price)}</div></div>
+        ${levelsHtml}
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Trade Health Score</h2>
+      <div class="health-gauge">
+        <div class="num" style="color:${data.health_score >= 70 ? 'var(--green)' : data.health_score >= 40 ? 'var(--yellow)' : 'var(--red)'}">${data.health_score}</div>
+        <div class="bar-wrap"><div class="meter"><div class="meter-fill" style="width:${data.health_score}%; background:${data.health_score >= 70 ? 'var(--green)' : data.health_score >= 40 ? 'var(--yellow)' : 'var(--red)'}"></div></div></div>
+      </div>
+      <div class="msg" style="margin-top:10px">${momentumLabel} • Entry quality: ${esc(entryQ.quality)}</div>
+    </div>
+
+    <div class="panel">
+      <h2>Why This Decision</h2>
+      <ul class="reasons">${reasonsHtml}</ul>
+    </div>
+
+    <div class="panel">
+      <h2>News</h2>
+      <div class="msg">${data.news.level === 'clear' ? '✅ No high-impact news nearby' : `⚠️ ${esc(data.news.event)} in ${Math.round(data.news.minutes_until)} min`}</div>
+    </div>
+  `;
+}
+
+function renderChecklist(score) {
+  return score.checks.map(c => `<li class="${c.passed ? 'pass' : 'fail'}"><span class="mark">${c.passed ? '✅' : '⬜'}</span>${esc(c.label)}</li>`).join('');
+}
+
+function renderMode2(data) {
+  const s = data.structure, opp = data.opportunity, dec = data.decision;
+
+  let opportunityHtml;
+  if (opp) {
+    const setup = opp.setup;
+    const cls = opp.direction === 'buy' ? 'buy' : 'sell';
+    opportunityHtml = `
+      <div class="panel decision-card ${cls}">
+        <span class="icon">${opp.confidence_icon}</span>
+        <div class="badge">${opp.direction.toUpperCase()} — ${esc(opp.confidence_label)}</div>
+        <div class="conf">${opp.confidence_pct}% confidence</div>
+        <div class="meter"><div class="meter-fill" style="width:${opp.confidence_pct}%; background:${cls === 'buy' ? 'var(--green)' : 'var(--red)'}"></div></div>
+      </div>
+      <div class="panel">
+        <h2>Suggested Trade Setup ${setup.weak_setup ? '<span style="color:var(--yellow)">⚠️ WEAK SETUP — R:R below 1:2</span>' : ''}</h2>
+        ${setup.available ? `
+        <div class="levels">
+          <div class="level-box"><div class="k">Entry Zone</div><div class="v">${fmt(setup.entry_zone_low)} – ${fmt(setup.entry_zone_high)}</div></div>
+          <div class="level-box"><div class="k">Stop Loss</div><div class="v">${fmt(setup.stop_loss)}</div></div>
+          <div class="level-box"><div class="k">Take Profit</div><div class="v">${fmt(setup.take_profit)}</div></div>
+          <div class="level-box"><div class="k">Risk:Reward</div><div class="v">1:${setup.rr_ratio}</div></div>
+        </div>` : '<div class="msg">Setup unavailable — market structure unclear</div>'}
+      </div>
+    `;
+  } else {
+    opportunityHtml = `
+      <div class="panel decision-card wait">
+        <span class="icon">⏳</span>
+        <div class="badge">WAIT</div>
+        <div class="msg">${esc(dec.message)}</div>
+        ${dec.news_override ? '<div class="msg">⚠️ Held back by upcoming high-impact news</div>' : ''}
+        ${(dec.missing || []).length ? `<div class="msg">Missing: ${dec.missing.map(esc).join(', ')}</div>` : ''}
+      </div>
+    `;
+  }
+
+  return `
+    ${opportunityHtml}
+    <div class="panel">
+      <h2>Market Structure</h2>
+      <div class="levels">
+        <div class="level-box"><div class="k">Trend</div><div class="v">${esc(s.trend)} (${esc(s.trend_strength)})</div></div>
+        <div class="level-box"><div class="k">Phase</div><div class="v">${esc(s.phase)}</div></div>
+        <div class="level-box"><div class="k">Support</div><div class="v">${fmt(s.support)}</div></div>
+        <div class="level-box"><div class="k">Resistance</div><div class="v">${fmt(s.resistance)}</div></div>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="panel">
+        <h2>BUY Checklist <span class="score-pill buy">${data.buy_score.score_pct}%</span></h2>
+        <ul class="checklist">${renderChecklist(data.buy_score)}</ul>
+      </div>
+      <div class="panel">
+        <h2>SELL Checklist <span class="score-pill sell">${data.sell_score.score_pct}%</span></h2>
+        <ul class="checklist">${renderChecklist(data.sell_score)}</ul>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Session &amp; News</h2>
+      <div class="msg">${esc(data.session.session)} session (${esc(data.session.volatility)} volatility) • ${data.news.level === 'clear' ? '✅ No high-impact news nearby' : `⚠️ ${esc(data.news.event)} in ${Math.round(data.news.minutes_until)} min`}</div>
+    </div>
+  `;
+}
+
+function showSwitchBanner(text) {
+  const b = document.getElementById('switchBanner');
+  b.textContent = '🔄 ' + text;
+  b.style.display = 'block';
+  setTimeout(() => { b.style.display = 'none'; }, 6000);
+}
+
+function renderLive(data, stale) {
+  const modeBadge = document.getElementById('modeBadge');
+  const ts = document.getElementById('liveTimestamp');
+  const content = document.getElementById('liveContent');
+
+  if (data.status === 'warming_up') {
+    modeBadge.className = 'mode-badge ' + (data.mode === 1 ? 'm1' : 'm2');
+    modeBadge.textContent = data.mode === 1 ? '📍 MODE 1 — ACTIVE TRADE' : '🔍 MODE 2 — SCANNING';
+    content.innerHTML = `<div class="panel empty">${esc(data.message)}</div>`;
+    return;
+  }
+
+  if (data.mode === 1) {
+    modeBadge.className = 'mode-badge m1';
+    modeBadge.textContent = '📍 MODE 1 — ACTIVE TRADE MONITOR';
+    content.innerHTML = renderMode1(data);
+
+    const soundKey = 'm1-' + data.ticket + '-' + data.decision.decision;
+    if (data.decision.sound && soundKey !== lastSoundKey) {
+      playEmergencyBeep();
+    }
+    lastSoundKey = soundKey;
+  } else {
+    modeBadge.className = 'mode-badge m2';
+    modeBadge.textContent = '🔍 MODE 2 — SOLO MARKET ANALYZER';
+    content.innerHTML = renderMode2(data);
+  }
+
+  if (data.switched && data.last_switch_reason) {
+    showSwitchBanner('Switched to Mode ' + data.mode + ': ' + data.last_switch_reason);
+  }
+
+  ts.textContent = (stale ? '⚠️ Last updated (stale): ' : 'Updated: ') + new Date().toLocaleTimeString();
+}
+
+async function pollLive() {
+  const reconnectBanner = document.getElementById('reconnectBanner');
+  try {
+    const r = await fetch(API_BASE + '/live/');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    lastGoodLiveData = data;
+    reconnectBanner.style.display = 'none';
+    renderLive(data, false);
+  } catch (e) {
+    reconnectBanner.style.display = 'block';
+    if (lastGoodLiveData) {
+      renderLive(lastGoodLiveData, true);
+    } else {
+      document.getElementById('liveContent').innerHTML = '<div class="panel empty">DATA UNAVAILABLE — reconnecting…</div>';
+    }
+  }
+}
+
+/* ---------- Manual analyze tab (unchanged tool) ---------- */
 function voteDot(v) { return v > 0 ? 'vote-pos' : (v < 0 ? 'vote-neg' : 'vote-neu'); }
 
 function renderChart(canvas, ema) {
@@ -219,7 +525,7 @@ async function analyze() {
     });
     const data = await r.json();
     if (!r.ok) throw new Error(data.detail || 'DATA UNAVAILABLE');
-    render(data);
+    renderManual(data);
   } catch (e) {
     errorBanner.textContent = e.message || 'DATA UNAVAILABLE';
     errorBanner.style.display = 'block';
@@ -230,7 +536,7 @@ async function analyze() {
   }
 }
 
-function render(data) {
+function renderManual(data) {
   const cls = data.decision.toLowerCase();
   const rr = data.raw.risk_reward;
 
@@ -274,17 +580,17 @@ function render(data) {
       ${overridesHtml}
     </div>
 
-    <div class="panel" style="margin-bottom:16px">
+    <div class="panel">
       <h2>Why</h2>
       <ul class="reasons">${reasonsHtml}</ul>
     </div>
 
-    <div class="panel" style="margin-bottom:16px">
+    <div class="panel">
       <h2>Key Levels</h2>
       <div class="levels">${levelsHtml}</div>
     </div>
 
-    <div class="panel" style="margin-bottom:16px">
+    <div class="panel">
       <h2>Trend Snapshot</h2>
       <canvas id="chart"></canvas>
     </div>
@@ -301,8 +607,12 @@ function render(data) {
 }
 
 document.getElementById('analyzeBtn').addEventListener('click', analyze);
+
 refreshLivePrice();
 setInterval(refreshLivePrice, 30000);
+
+pollLive();
+setInterval(pollLive, 1000);
 </script>
 </body>
 </html>

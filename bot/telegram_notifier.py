@@ -376,6 +376,98 @@ def send_advisor_alert(analysis: dict) -> bool:
         return False
 
 
+def send_mode1_alert(result: dict, tp_note: str | None = None) -> bool:
+    """Mode 1 (Active Trade Monitor) alert - fired by bot/advisor/monitor.py
+    when the exit decision turns EMERGENCY_EXIT / EXIT_NOW, or when a TP
+    capture threshold (70% / 90%) is newly crossed (tp_note='partial'/'full')."""
+    chat_id = _get_alert_destination()
+    if not chat_id:
+        return False
+
+    trade = result["trade"]
+    decision = result["decision"]
+    sl = result.get("sl_analysis") or {}
+    tp = result.get("tp_analysis") or {}
+    pnl = result.get("pnl") or {}
+    when = datetime.now(timezone.utc).strftime("%H:%M UTC")
+
+    if tp_note == "full":
+        header = "🎯 XAUUSD — TARGET NEARLY REACHED (90%+)"
+        action_line = "Consider closing full position now"
+    elif tp_note == "partial":
+        header = "🎯 XAUUSD — 70% OF TARGET CAPTURED"
+        action_line = "Consider partial close — lock in profit"
+    else:
+        header = f"{decision['icon']} XAUUSD — {decision['label']}"
+        action_line = decision.get("action") or decision["message"]
+
+    reasons = "; ".join(decision.get("reasons", [])[:3])
+
+    text = (
+        f"{header}\n"
+        f"Direction    : {trade['direction'].upper()}\n"
+        f"Entry        : {trade['entry']:.2f}\n"
+        f"Current      : {trade['current_price']:.2f}\n"
+        f"Health Score : {result.get('health_score', '-')}/100\n"
+        f"SL Status    : {sl.get('status', 'N/A')} ({sl.get('pct_remaining', '-')}% remaining)\n"
+        f"TP Status    : {tp.get('status', 'N/A')} ({tp.get('pct_captured', '-')}% captured)\n"
+        f"PnL          : {pnl.get('pnl_price', '-')} ({pnl.get('pnl_pct', '-')}%)\n"
+        f"Reason       : {reasons or '-'}\n"
+        f"Action       : {action_line}\n"
+        f"Time         : {when}"
+    )
+
+    try:
+        method = _run_or_schedule(_send_message(chat_id, text))
+        logger.info(f"[TG_NOTIFY] Mode 1 alert sent to {chat_id} | decision={decision['decision']} tp_note={tp_note} via={method}")
+        return True
+    except Exception as exc:
+        logger.warning(f"[TG_NOTIFY] Could not send Mode 1 alert to {chat_id}: {exc}")
+        return False
+
+
+def send_mode2_alert(result: dict) -> bool:
+    """Mode 2 (Solo Market Analyzer) alert - fired by bot/advisor/monitor.py
+    when a new BUY/SELL opportunity crosses the 75%+ confidence bar."""
+    chat_id = _get_alert_destination()
+    if not chat_id:
+        return False
+
+    opp = result.get("opportunity")
+    if not opp:
+        return False
+
+    setup = opp.get("setup") or {}
+    structure = result.get("structure") or {}
+    when = datetime.now(timezone.utc).strftime("%H:%M UTC")
+
+    weak_note = " ⚠️ WEAK SETUP (R:R below 1:2)" if setup.get("weak_setup") else ""
+    reasons = "; ".join(opp.get("top_reasons", [])[:4])
+
+    text = (
+        f"{opp['confidence_icon']} XAUUSD — {opp['direction'].upper()} OPPORTUNITY ({opp['confidence_label']})\n"
+        f"Confidence   : {opp['confidence_pct']:.0f}%{weak_note}\n"
+        f"Trend        : {structure.get('trend', '-')} ({structure.get('trend_strength', '-')})\n"
+        + (
+            f"Entry Zone   : {setup['entry_zone_low']:.2f} - {setup['entry_zone_high']:.2f}\n"
+            f"Stop Loss    : {setup['stop_loss']:.2f}\n"
+            f"Take Profit  : {setup['take_profit']:.2f}\n"
+            f"Risk:Reward  : 1:{setup['rr_ratio']}\n"
+            if setup.get("available") else "Trade Setup  : Not available (structure unclear)\n"
+        )
+        + f"Reasons      : {reasons or '-'}\n"
+        f"Time         : {when}"
+    )
+
+    try:
+        method = _run_or_schedule(_send_message(chat_id, text))
+        logger.info(f"[TG_NOTIFY] Mode 2 alert sent to {chat_id} | direction={opp['direction']} confidence={opp['confidence_pct']}% via={method}")
+        return True
+    except Exception as exc:
+        logger.warning(f"[TG_NOTIFY] Could not send Mode 2 alert to {chat_id}: {exc}")
+        return False
+
+
 def send_text_alert(text: str, chat_id: str | None = None) -> bool:
     destination = str(chat_id or _get_alert_destination() or "").strip()
     if not destination or not str(text or "").strip():
