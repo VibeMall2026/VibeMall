@@ -187,10 +187,10 @@
          items - the padding lives on .menu-inner so every row (and the
          Create New button above it) shares one consistent gutter. */
       #layout-menu .menu-inner { padding: 4px 12px 12px; }
-      .bg-menu-theme .menu-item { margin-bottom: 2px; }
+      .bg-menu-theme .menu-item { margin-bottom: 4px; }
       .bg-menu-theme .menu-link {
-        color: var(--vm-ink-soft); font-weight: 500; font-size: 13.5px;
-        border-radius: 8px; padding-top: 11px; padding-bottom: 11px;
+        color: var(--vm-ink-soft); font-weight: 500; font-size: 14px;
+        border-radius: 8px; padding: 11px 14px;
       }
       .bg-menu-theme .menu-link:hover, .bg-menu-theme .menu-link:focus { color: var(--vm-ink); }
       .bg-menu-theme .menu-item:not(.active) > .menu-link:hover:not(.menu-toggle),
@@ -198,22 +198,22 @@
       .bg-menu-theme .menu-link.active { color: var(--vm-ink); }
       .bg-menu-theme .menu-item.open:not(.menu-item-closing) > .menu-toggle,
       .bg-menu-theme .menu-item.active > .menu-link { color: var(--vm-ink); font-weight: 700; }
-      /* Transparent fill + a right-hand accent, not the filled-pill look the
-         first pass used - Sneat's default indicator is its own :before bar
-         on the far right of .menu-inner (outside the rounded row entirely),
-         so it's switched off here and replaced with a border on the row
-         itself, radius-matched on the near corners only. */
+      /* Full rounded pill behind the active row (fill + border), not a thin
+         accent line - matches the flat, capsule-style highlight used
+         elsewhere in the admin panel's newer pages. Sneat's own :before
+         indicator bar sits outside the rounded row entirely, so it's
+         switched off below and replaced by this pill treatment. */
       .bg-menu-theme .menu-item.active > .menu-link:not(.menu-toggle) {
-        background-color: transparent; border-right: 2px solid var(--vm-gold);
-        border-radius: 8px 2px 2px 8px;
+        background-color: var(--vm-surface); border: 1px solid var(--vm-line);
+        border-radius: 8px;
       }
       .layout-wrapper:not(.layout-horizontal) .bg-menu-theme .menu-inner > .menu-item.active:before { display: none; }
       .bg-menu-theme .menu-sub > .menu-item > .menu-link:before { background: var(--vm-line); }
       .bg-menu-theme .menu-sub > .menu-item.active > .menu-link:not(.menu-toggle):before { background: var(--vm-gold); }
       .bg-menu-theme .menu-text { color: var(--vm-ink-soft); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; }
-      .menu-link .menu-icon { color: var(--vm-ink-faint); }
+      .menu-link .menu-icon { color: var(--vm-ink-faint); font-size: 19px; }
       .bg-menu-theme .menu-item.active > .menu-link .menu-icon,
-      .bg-menu-theme .menu-link:hover .menu-icon { color: var(--vm-gold); }
+      .bg-menu-theme .menu-link:hover .menu-icon { color: var(--vm-ink); }
 
       /* --- sidebar: Create New CTA ---------------------------------------- */
       .vm-create-new-wrap { padding: 4px 12px 14px; }
@@ -293,8 +293,8 @@
       .vm-brand-logo-wrap img { max-height: 32px; max-width: 160px; display: block; }
       #layout-menu .app-brand-text { display: block; }
       #layout-menu .app-brand-text::after {
-        content: "Admin Portal"; display: block; font-size: 10px; font-weight: 500;
-        letter-spacing: 0.02em; text-transform: none; color: var(--vm-ink-faint); margin-top: 1px;
+        content: "Admin Panel"; display: block; font-size: 12px; font-weight: 500;
+        letter-spacing: 0.01em; text-transform: none; color: var(--vm-ink-faint); margin-top: 2px;
       }
       .vm-nav-divider { display: block; width: 1px; height: 28px; background: var(--vm-line); }
 
