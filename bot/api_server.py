@@ -721,7 +721,7 @@ async def stop_bot():
 async def strategy_stats(strategy_id: str, period: str = "today", account_login: str = ""):
     """Return per-strategy dashboard stats — fetches history from ALL assigned accounts."""
     from bot.accounts import get_all_accounts, _connect_account, _reconnect_primary
-    from bot.accounts import THE5ERS_FUNDED_LOGIN, THE5ERS_ACCOUNT_SIZE
+    from bot.accounts import THE5ERS_FUNDED_LOGIN, THE5ERS_ACCOUNT_SIZE, THE5ERS_MAX_TRADES_PER_DAY
     from bot.algo.manager import get_risk_status as get_active_risk_status
     from bot.strategies import get_strategy
 
@@ -857,7 +857,7 @@ async def strategy_stats(strategy_id: str, period: str = "today", account_login:
 
     # Account-size-based drawdown model for dashboard risk card.
     # Prevents cross-account peak mixing and keeps DD tied to selected account size.
-    active_risk = get_active_risk_status() or {}
+    active_risk = get_active_risk_status(strategy_id) or {}
     limit_pct = float(active_risk.get("max_drawdown_pct", 10.0) or 10.0)
 
     def _account_size(acc) -> float:
@@ -957,6 +957,39 @@ async def strategy_stats(strategy_id: str, period: str = "today", account_login:
         if t_date and selected_start <= t_date <= selected_end:
             filtered_recent.append(t)
 
+    # Streak: consecutive wins/losses counting back from the most recent closed trade
+    # overall (not limited to the selected period), since a streak spans period
+    # boundaries. `history` is already newest-first from get_trade_history.
+    closed_all = [t for t in history if float(t.get("pnl", 0) or 0) != 0]
+    streak_count = 0
+    streak_type = None
+    for t in closed_all:
+        pnl = float(t.get("pnl", 0) or 0)
+        this_type = "win" if pnl > 0 else "loss"
+        if streak_type is None:
+            streak_type = this_type
+            streak_count = 1
+        elif this_type == streak_type:
+            streak_count += 1
+        else:
+            break
+
+    # Best/worst trade are scoped to the selected period, matching the other stat cards.
+    closed_selected_period = [t for t in filtered_recent if float(t.get("pnl", 0) or 0) != 0]
+    best_trade = max(closed_selected_period, key=lambda t: float(t.get("pnl", 0) or 0), default=None)
+    worst_trade = min(closed_selected_period, key=lambda t: float(t.get("pnl", 0) or 0), default=None)
+
+    def _trade_summary(t):
+        if not t:
+            return None
+        return {
+            "symbol": t.get("symbol"),
+            "pnl": round(float(t.get("pnl", 0) or 0), 2),
+            "closed": t.get("closed") or t.get("opened") or t.get("time"),
+        }
+
+    trades_today_count = len(today_rows)
+
     return {
         "strategy": strat,
         "all_accounts": [acc.to_dict() for acc in all_assigned_accounts],
@@ -990,7 +1023,13 @@ async def strategy_stats(strategy_id: str, period: str = "today", account_login:
             "total": selected_total,
             "win_rate": round(selected_wins / selected_total * 100, 1) if selected_total > 0 else 0,
             "total_pnl": selected_pnl,
+            "streak_count": streak_count,
+            "streak_type": streak_type,
+            "best_trade": _trade_summary(best_trade),
+            "worst_trade": _trade_summary(worst_trade),
         },
+        "trades_today": trades_today_count,
+        "max_trades_per_day": THE5ERS_MAX_TRADES_PER_DAY if selected_single_login == int(THE5ERS_FUNDED_LOGIN) else None,
         "selected_period": selected_period,
         "period_stats": period_stats,
         "pnl_graph": {
@@ -1029,6 +1068,7 @@ class AlgoConfigUpdate(BaseModel):
 
 class AlgoRiskResetRequest(BaseModel):
     reset_peak_equity: Optional[bool] = False
+    strategy_id: Optional[str] = None
 
 
 # ── MT5 Accounts Endpoints ────────────────────────────────────────────────────
@@ -1419,6 +1459,8 @@ async def algo_reset_risk(body: AlgoRiskResetRequest):
     Manually clear algo risk halt flags (daily halt and drawdown halt).
     """
     try:
+        if body.strategy_id:
+            select_strategy(body.strategy_id)
         status = reset_risk_halts(reset_peak_equity=bool(body.reset_peak_equity))
         return {"success": True, "message": "Risk halts reset", "risk": status}
     except ValueError as exc:

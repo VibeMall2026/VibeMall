@@ -5,461 +5,442 @@
 
 {% block extra_css %}
 <style>
-  .status-card { border-radius: 10px; }
-  .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
-  .dot-green  { background: #28c76f; box-shadow: 0 0 6px #28c76f; }
-  .dot-red    { background: #ea5455; box-shadow: 0 0 6px #ea5455; }
-  .dot-grey   { background: #a8aaae; }
-  .pnl-pos    { color: #28c76f; font-weight: 600; }
-  .pnl-neg    { color: #ea5455; font-weight: 600; }
-  .table-dark-custom { background: #2b2c40; color: #cdd0d6; }
-  .table-dark-custom th { background: #232333; color: #a8aaae; font-size: 0.78rem; text-transform: uppercase; letter-spacing: .5px; }
-  .table-dark-custom td { border-color: #3b3d52; vertical-align: middle; font-size: 0.875rem; }
-  .badge-buy  { background: rgba(40,199,111,.15); color: #28c76f; }
-  .badge-sell { background: rgba(234,84,85,.15);  color: #ea5455; }
-  .section-header { font-size: 1rem; font-weight: 600; color: #cdd0d6; margin-bottom: 1rem; }
-  .stat-label { font-size: 0.75rem; color: #a8aaae; text-transform: uppercase; letter-spacing: .5px; }
-  .stat-value { font-size: 1.4rem; font-weight: 700; color: #cdd0d6; }
-  .strat-icon { font-size: 2rem; line-height: 1; }
-  .refresh-indicator { font-size: .75rem; color: #a8aaae; }
-  .empty-row td { color: #a8aaae; font-style: italic; }
-  .mini-stat { font-size: .82rem; color: #a8aaae; }
-  .selected-period-card .stat-value { font-size:1.2rem; }
-  .graph-wrap {
-    background:#232333;
-    border:1px solid #3b3d52;
-    border-radius:10px;
-    padding:12px;
+  :root {
+    --sd-bg: #FBF9F4;
+    --sd-card: #ffffff;
+    --sd-border: #E6E2DA;
+    --sd-text: #1b1b1b;
+    --sd-text-muted: #4c4546;
+    --sd-text-faint: #8f8886;
+    --sd-green: #1a7f4b;
+    --sd-green-bg: #e9f6ee;
+    --sd-red: #c22b2b;
+    --sd-red-bg: #fceaea;
+    --sd-amber: #a05a00;
+    --sd-amber-bg: #fdf1dd;
+    --sd-accent: #1b1b1b;
   }
-  .graph-svg { width:100%; height:220px; display:block; }
-  .graph-axis { stroke:#4a4c65; stroke-width:1; }
-  .graph-line { fill:none; stroke:#28c76f; stroke-width:2.5; }
-  .graph-fill { fill:rgba(40,199,111,.12); }
-  .graph-zero { stroke:#ea5455; stroke-width:1; stroke-dasharray:4 4; opacity:.8; }
-  .period-tabs { display:flex; flex-wrap:wrap; gap:8px; }
-  .period-btn {
-    border:1px solid #3b3d52; background:#232333; color:#cdd0d6;
-    padding:.35rem .7rem; border-radius:999px; font-size:.8rem; cursor:pointer;
-  }
-  .period-btn.active { background:#696cff; border-color:#696cff; color:#fff; }
-  .account-switch { display:flex; flex-wrap:wrap; gap:8px; }
-  .account-btn {
-    border:1px solid #3b3d52; background:#232333; color:#cdd0d6;
-    padding:.35rem .7rem; border-radius:999px; font-size:.8rem; cursor:pointer;
-    transition: all .2s ease;
-  }
-  .account-btn.active { background:#00cfe8; border-color:#00cfe8; color:#0f172a; font-weight:600; }
-  .slide-swap { animation: slideSwap .32s ease; }
-  @keyframes slideSwap {
-    0% { opacity: .45; transform: translateX(16px); }
-    100% { opacity: 1; transform: translateX(0); }
-  }
-  .dd-ring {
-    width: 160px;
-    height: 160px;
-    border-radius: 50%;
-    background: conic-gradient(#28c76f 0deg, #28c76f 0deg, #3b3d52 0deg 360deg);
-    position: relative;
-    margin: 0 auto;
-  }
-  .dd-ring::after {
-    content: "";
-    position: absolute;
-    inset: 12px;
-    border-radius: 50%;
-    background: #232333;
-    border: 1px solid #3b3d52;
-  }
-  .dd-center {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    z-index: 2;
-  }
-  .dd-center .p { font-size: 1.35rem; font-weight: 700; color: #cdd0d6; }
-  .dd-center .s { font-size: .7rem; color: #a8aaae; text-transform: uppercase; letter-spacing: .4px; }
-  .the5ers-mode .period-btn.active { background:#ccf35c; border-color:#ccf35c; color:#0e0f14; }
-  .the5ers-hero {
-    display:none;
-    background: radial-gradient(1200px 300px at 70% 0%, rgba(110,65,255,.25), rgba(0,0,0,0)) , #0d0f14;
-    border:1px solid #2a2f3a; border-radius:16px; padding:16px 18px; color:#dce1eb;
-  }
-  .the5ers-mode .the5ers-hero { display:block; }
-  .t5-title { font-size:2rem; font-weight:800; color:#f4f7ff; letter-spacing:.2px; }
-  .t5-accent { color:#ccf35c; }
-  .t5-grid { display:grid; grid-template-columns:repeat(4,minmax(130px,1fr)); gap:10px; margin-top:10px; }
-  .t5-actions { display:flex; gap:8px; align-items:center; }
-  .t5-pill {
-    border-radius:999px;
-    padding:.35rem .8rem;
-    font-size:.78rem;
-    border:1px solid #2a2f3a;
-    white-space: normal;
-    word-break: break-word;
-    text-transform: none;
-    line-height: 1.2;
-    display: inline-block;
-    max-width: 320px;
-    text-align: left;
-  }
-  .t5-kpi { background:#141822; border:1px solid #2a2f3a; border-radius:12px; padding:10px; }
-  .t5-kpi .k { font-size:.72rem; color:#95a1b8; text-transform:uppercase; }
-  .t5-kpi .v { font-size:1.15rem; font-weight:700; color:#f4f7ff; }
-  .the5ers-mode .status-card,
-  .the5ers-mode .selected-period-card,
-  .the5ers-mode .card { border-radius:14px !important; }
-  .the5ers-mode .section-header { color:#f4f7ff; }
-  #loadingOverlay {
-    position: fixed; inset: 0; background: rgba(35,35,51,.6);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 9999; transition: opacity .3s;
-  }
+  .sd-page { color: var(--sd-text); font-variant-numeric: tabular-nums; }
+  .sd-eyebrow { font-size: .68rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--sd-text-faint); }
+  .sd-card { background: var(--sd-card); border: 1px solid var(--sd-border); border-radius: 8px; }
+  .sd-card-header { padding: 1rem 1rem .5rem; display: flex; align-items: center; justify-content: space-between; }
+  .sd-stat-display { font-size: 1.75rem; font-weight: 300; letter-spacing: -0.02em; color: var(--sd-text); }
+  .sd-stat-value { font-size: 1.5rem; font-weight: 300; letter-spacing: -0.02em; color: var(--sd-text); }
+  .sd-stat-value-sm { font-size: 1.15rem; font-weight: 600; color: var(--sd-text); }
+  .sd-data { font-family: inherit; font-size: .8rem; font-weight: 600; letter-spacing: .01em; }
+  .sd-pos { color: var(--sd-green) !important; }
+  .sd-neg { color: var(--sd-red) !important; }
+  .sd-pill { border-radius: 999px; padding: .5rem 1rem; font-size: .78rem; font-weight: 700; border: 1px solid var(--sd-border); background: var(--sd-card); color: var(--sd-text-muted); cursor: pointer; white-space: nowrap; transition: border-color .15s; }
+  .sd-pill:hover { border-color: #c9c2b6; }
+  .sd-pill.active { background: var(--sd-accent); border-color: var(--sd-accent); color: #fff; }
+  .sd-tabbar { display: inline-flex; gap: 4px; background: var(--sd-card); border: 1px solid var(--sd-border); border-radius: 8px; padding: 4px; flex-wrap: wrap; }
+  .sd-tab { border: none; background: transparent; color: var(--sd-text-muted); font-size: .78rem; font-weight: 700; padding: .35rem .85rem; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+  .sd-tab.active { background: var(--sd-bg); color: var(--sd-text); box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+  .sd-badge { border-radius: 999px; padding: .25rem .65rem; font-size: .68rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+  .sd-badge-green { background: var(--sd-green-bg); color: var(--sd-green); }
+  .sd-badge-red { background: var(--sd-red-bg); color: var(--sd-red); }
+  .sd-badge-amber { background: var(--sd-amber-bg); color: var(--sd-amber); }
+  .sd-badge-grey { background: var(--sd-bg); color: var(--sd-text-muted); border: 1px solid var(--sd-border); }
+  .sd-badge-count { font-size: .72rem; font-weight: 600; color: var(--sd-text-faint); text-transform: none; letter-spacing: 0; background: none; padding: 0; }
+  .sd-table { width: 100%; border-collapse: collapse; }
+  .sd-table th { text-align: left; font-size: .66rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--sd-text-faint); padding: .7rem .85rem; border-bottom: 1px solid var(--sd-border); }
+  .sd-table td { padding: .65rem .85rem; border-bottom: 1px solid var(--sd-border); font-size: .82rem; vertical-align: middle; }
+  .sd-table tbody tr:last-child td { border-bottom: none; }
+  .sd-table tbody tr:hover { background: var(--sd-bg); }
+  .sd-empty-row td { color: var(--sd-text-faint); font-style: italic; text-align: center; padding: 1.5rem; }
+  .sd-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .sd-dot-green { background: var(--sd-green); }
+  .sd-dot-grey { background: #cfcfcf; }
+  .sd-side-badge { border-radius: 5px; padding: .15rem .5rem; font-size: .66rem; font-weight: 800; letter-spacing: .03em; border: 1px solid; }
+  .sd-side-buy { background: var(--sd-green-bg); color: var(--sd-green); border-color: #c7e6d4; }
+  .sd-side-sell { background: var(--sd-red-bg); color: var(--sd-red); border-color: #f2c8c8; }
+  .sd-ring-wrap { position: relative; width: 64px; height: 64px; flex-shrink: 0; }
+  .sd-ring-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .sd-ring-track { fill: none; stroke: var(--sd-border); stroke-width: 3; }
+  .sd-ring-bar { fill: none; stroke: var(--sd-green); stroke-width: 3; stroke-linecap: round; transition: stroke-dasharray .3s; }
+  .sd-ring-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: .68rem; font-weight: 800; }
+  .sd-input-group { display: flex; align-items: center; border: 1px solid var(--sd-border); border-radius: 7px; overflow: hidden; height: 26px; background: var(--sd-bg); }
+  .sd-input-group button { border: none; background: transparent; width: 26px; color: var(--sd-text-muted); font-weight: 700; cursor: pointer; }
+  .sd-input-group button:hover { color: var(--sd-text); background: var(--sd-border); }
+  .sd-input-group input { border: none; background: transparent; text-align: center; font-size: .73rem; font-weight: 700; width: 100%; padding: 0; }
+  .sd-input-group input:focus { outline: none; }
+  .sd-btn { border-radius: 6px; padding: .38rem .8rem; font-size: .78rem; font-weight: 700; border: 1px solid var(--sd-border); background: var(--sd-card); color: var(--sd-text); cursor: pointer; transition: background .15s; }
+  .sd-btn:hover { background: var(--sd-bg); }
+  .sd-btn-dark { background: var(--sd-accent); border-color: var(--sd-accent); color: #fff; }
+  .sd-btn-dark:hover { opacity: .88; background: var(--sd-accent); }
+  .sd-btn-danger { color: var(--sd-red); }
+  .sd-progress { width: 100%; height: 4px; background: var(--sd-border); border-radius: 999px; overflow: hidden; margin-top: 6px; }
+  .sd-progress-bar { height: 100%; border-radius: 999px; background: var(--sd-text); }
+  .sd-progress-bar.warn { background: var(--sd-amber); }
+  .sd-progress-bar.crit { background: var(--sd-red); }
+  .sd-graph-card { padding: 1.25rem 1.25rem .5rem; }
+  .sd-graph-outer { position: relative; padding-left: 46px; padding-bottom: 22px; }
+  .sd-graph-svg { width: 100%; height: 220px; display: block; }
+  .sd-graph-axis { stroke: var(--sd-border); stroke-width: 1; }
+  .sd-graph-line { fill: none; stroke: var(--sd-text); stroke-width: 2; }
+  .sd-graph-fill { fill: rgba(27,27,27,.05); }
+  .sd-graph-zero { stroke: var(--sd-red); stroke-width: 1; stroke-dasharray: 4 4; opacity: .5; }
+  .sd-graph-dot { fill: var(--sd-text); }
+  .sd-graph-ylabels { position: absolute; left: 0; top: 0; bottom: 22px; display: flex; flex-direction: column; justify-content: space-between; font-size: .68rem; color: var(--sd-text-faint); text-align: right; width: 40px; font-weight: 600; }
+  .sd-graph-xlabels { position: absolute; left: 46px; right: 0; bottom: 0; display: flex; justify-content: space-between; font-size: .68rem; color: var(--sd-text-faint); font-weight: 600; }
+  .sd-slide { animation: sdSlide .32s ease; }
+  @keyframes sdSlide { 0% { opacity: .4; transform: translateY(4px); } 100% { opacity: 1; transform: translateY(0); } }
+  .sd-alert { background: var(--sd-red-bg); border-bottom: 1px solid #f2c8c8; padding: .7rem 1rem; display: flex; gap: .6rem; align-items: center; font-size: .85rem; }
+  #loadingOverlay { position: fixed; inset: 0; background: rgba(251,249,244,.9); display: flex; align-items: center; justify-content: center; z-index: 9999; transition: opacity .3s; }
   #loadingOverlay.hidden { opacity: 0; pointer-events: none; }
-
-  #t5StopUntilOverlay {
-    position: fixed; inset: 0; background: rgba(35,35,51,.6);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 10000; transition: opacity .2s;
-  }
+  #t5StopUntilOverlay { position: fixed; inset: 0; background: rgba(27,27,27,.35); display: flex; align-items: center; justify-content: center; z-index: 10000; transition: opacity .2s; }
   #t5StopUntilOverlay.hidden { opacity: 0; pointer-events: none; }
-  .t5-stop-until-card {
-    width: min(520px, calc(100vw - 32px));
-    background: #2b2c40;
-    border: 1px solid #3b3d52;
-    border-radius: 14px;
-    padding: 14px;
-    color: #cdd0d6;
-  }
+  .t5-stop-until-card { width: min(480px, calc(100vw - 32px)); background: var(--sd-card); border: 1px solid var(--sd-border); border-radius: 10px; padding: 16px; color: var(--sd-text); }
+
+  /* Bento layout for hero + risk panel, matching the reference dashboard */
+  .sd-bento { display: grid; grid-template-columns: 2fr 1fr; gap: 1.25rem; align-items: stretch; }
+  @media (max-width: 991px) { .sd-bento { grid-template-columns: 1fr; } }
+  .sd-hero-kpis { display: grid; grid-template-columns: repeat(4, minmax(110px, 1fr)); gap: 1.25rem; }
+  @media (max-width: 640px) { .sd-hero-kpis { grid-template-columns: repeat(2, 1fr); } }
+  .sd-hero-sub-kpis { display: grid; grid-template-columns: repeat(4, minmax(100px, 1fr)); gap: .85rem; }
+  @media (max-width: 640px) { .sd-hero-sub-kpis { grid-template-columns: repeat(2, 1fr); } }
+  .sd-hero-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+  @media (max-width: 767px) { .sd-hero-actions { align-items: stretch; flex-direction: row; flex-wrap: wrap; } }
+  .the5ers-hero { display: none; background: var(--sd-card); border: 1px solid var(--sd-border); border-radius: 8px; padding: 1.25rem; }
+  .the5ers-mode .the5ers-hero { display: block; }
+  .t5-title { font-size: 1.1rem; font-weight: 700; color: var(--sd-text); }
+  .t5-accent { color: var(--sd-green); font-weight: 700; }
+  .t5-kpi .k { font-size: .66rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--sd-text-faint); margin-bottom: 4px; }
+  .t5-kpi .v { font-size: 1.05rem; font-weight: 600; color: var(--sd-text); }
+  .t5-kpi.sub { background: var(--sd-bg); border: 1px solid var(--sd-border); border-radius: 8px; padding: .65rem .8rem; }
+  .t5-kpi.sub .v { font-size: .88rem; }
+  .sd-risk-panel { display: flex; flex-direction: column; gap: 1.25rem; height: 100%; }
+  .sd-risk-row { display: flex; align-items: center; gap: 14px; }
+  .sd-risk-row-body { flex: 1; min-width: 0; }
+  .sd-footer-link { text-align: center; padding: 2rem 0; }
+  .sd-footer-link a { color: var(--sd-text-muted); font-size: .82rem; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; border-bottom: 1px solid transparent; }
+  .sd-footer-link a:hover { color: var(--sd-text); border-color: var(--sd-text); }
 </style>
 {% endblock %}
 
 {% block content %}
+<div class="sd-page">
 
 <!-- Loading overlay -->
 <div id="loadingOverlay">
   <div class="text-center">
-    <div class="spinner-border text-primary mb-3" style="width:3rem;height:3rem;"></div>
-    <div style="color:#cdd0d6;">Loading strategy data…</div>
+    <div class="spinner-border mb-3" style="width:2.5rem;height:2.5rem;color:#1b1b1b;"></div>
+    <div style="color:var(--sd-text-muted);font-size:.85rem;">Loading strategy data…</div>
   </div>
 </div>
 
-<!-- Period Filters -->
-<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
-  <div class="card-body">
-    <div class="period-tabs" id="periodTabs">
-      <button class="period-btn active" data-period="today">Today</button>
-      <button class="period-btn" data-period="yesterday">Yesterday</button>
-      <button class="period-btn" data-period="this_week">This Week</button>
-      <button class="period-btn" data-period="last_week">Last Week</button>
-      <button class="period-btn" data-period="this_month">This Month</button>
-      <button class="period-btn" data-period="last_month">Last Month</button>
-      <button class="period-btn" data-period="last_6_months">Last 6 Months</button>
-    </div>
-  </div>
-</div>
-
-{% if not api_reachable %}``
-<div class="alert alert-danger d-flex align-items-start gap-3 mb-4" role="alert"
-     style="background:#3d1f1f;border:1px solid #ea5455;border-radius:10px;">
-  <i class="bx bx-wifi-off fs-4 mt-1" style="color:#ea5455;flex-shrink:0;"></i>
+{% if not api_reachable %}
+<div class="sd-alert mb-4" style="border-radius:8px;">
+  <i class="bx bx-wifi-off" style="color:var(--sd-red);flex-shrink:0;font-size:1.1rem;"></i>
   <div>
-    <strong style="color:#ea5455;">Bot API Unreachable</strong>
-    <div style="color:#cdd0d6;font-size:.875rem;margin-top:4px;">{{ api_error }}</div>
+    <strong style="color:var(--sd-red);">Bot API Unreachable:</strong>
+    <span style="color:var(--sd-text-muted);">{{ api_error }}</span>
   </div>
 </div>
 {% endif %}
 
 <!-- Page header -->
 <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
-  <a href="/trading/" class="btn btn-outline-secondary btn-sm">
-    <i class="bx bx-arrow-back me-1"></i>Back
-  </a>
+  <a href="/trading/" class="sd-btn" style="width:34px;height:34px;padding:0;display:inline-flex;align-items:center;justify-content:center;"><i class="bx bx-arrow-back"></i></a>
   <div class="d-flex align-items-center gap-3">
-    <div class="strat-icon" id="strategyIcon">⚙️</div>
+    <div style="font-size:1.6rem;line-height:1;" id="strategyIcon">⚙️</div>
     <div>
-      <h4 class="fw-bold mb-0" style="color:#cdd0d6;" id="strategyTitle">Loading…</h4>
-      <p class="text-muted mb-0" style="font-size:.85rem;" id="strategyDesc"></p>
+      <h4 class="fw-bold mb-0" id="strategyTitle" style="color:var(--sd-text);font-size:1.4rem;">Loading…</h4>
+      <p class="mb-0" id="strategyDesc" style="color:var(--sd-text-muted);font-size:.85rem;"></p>
     </div>
   </div>
-  <div class="ms-auto d-flex align-items-center gap-3">
-    <span class="refresh-indicator" id="lastRefreshed"></span>
-    <span class="badge" id="strategyStatusBadge"
-          style="font-size:.85rem;padding:.5rem 1rem;background:rgba(168,170,174,.15);color:#a8aaae;">
-      Loading
-    </span>
-    <button class="btn btn-sm btn-outline-info" onclick="loadStrategyData()">
-      <i class="bx bx-refresh me-1"></i>Refresh
-    </button>
+  <div class="ms-auto d-flex align-items-center gap-2">
+    <span class="sd-badge sd-badge-green" id="strategyStatusBadge">Loading</span>
+    <span class="sd-badge sd-badge-grey" id="refreshCountdown">Next refresh in 30s</span>
+    <span class="sd-eyebrow" id="lastRefreshed" style="text-transform:none;letter-spacing:0;"></span>
+    <button class="sd-btn sd-btn-dark" onclick="loadStrategyData()"><i class="bx bx-refresh me-1"></i>Refresh</button>
   </div>
 </div>
 
 <!-- Account Switch -->
-<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
-  <div class="card-body py-3">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-      <div class="stat-label mb-0">Account View</div>
-      <div class="account-switch" id="accountSwitchTabs">
-        <button class="account-btn active">All Accounts</button>
+<div class="d-flex flex-wrap gap-2 mb-4" id="accountSwitchTabs">
+  <button class="sd-pill active">All Accounts</button>
+</div>
+
+<!-- Bento: Funded-account hero (2 cols) + Risk & Drawdown panel (1 col) -->
+<div class="sd-bento mb-4">
+  <!-- Funded-account hero (shown only when the selected account has prop-firm rules) -->
+  <div id="the5ersHero" class="the5ers-hero">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+      <div class="sd-hero-kpis flex-grow-1">
+        <div class="t5-kpi"><div class="k">Starting Balance</div><div id="t5StartBalance" class="v">—</div></div>
+        <div class="t5-kpi"><div class="k">Current Equity</div><div id="t5Equity" class="v">—</div></div>
+        <div class="t5-kpi"><div class="k">Recognized Profit</div><div id="t5Profit" class="v sd-pos">—</div></div>
+        <div class="t5-kpi"><div class="k">Profit Goal</div><div id="t5Goal" class="v">—</div></div>
+      </div>
+    </div>
+    <div style="height:1px;background:var(--sd-border);margin:1.1rem 0;"></div>
+    <div class="d-flex justify-content-between align-items-end flex-wrap gap-3">
+      <div class="sd-hero-sub-kpis flex-grow-1">
+        <div class="t5-kpi sub"><div class="k">Max Loss Level</div><div id="t5MaxLoss" class="v">—</div></div>
+        <div class="t5-kpi sub"><div class="k">Daily Loss Level</div><div id="t5DailyLoss" class="v">—</div></div>
+        <div class="t5-kpi sub">
+          <div class="k d-flex justify-content-between"><span>Trades Today</span><span id="t5TradesTodayLabel">—</span></div>
+          <div class="sd-progress"><div class="sd-progress-bar" id="t5TradesTodayBar" style="width:0%;"></div></div>
+        </div>
+        <div class="t5-kpi sub"><div class="k">Min Holding</div><div class="v">1 minute</div></div>
+      </div>
+      <div class="sd-hero-actions">
+        <div class="d-flex align-items-center gap-2">
+          <span class="sd-eyebrow" style="letter-spacing:.06em;">Trading Mode:</span>
+          <span id="t5TradeModeBadge" class="sd-badge sd-badge-green">● Trading ON</span>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <button type="button" class="sd-btn sd-btn-danger" onclick="setThe5ersTradeMode('stop_today')">Stop Today</button>
+          <button type="button" class="sd-btn" onclick="openThe5ersStopUntil()">Stop Until</button>
+          <button type="button" class="sd-btn" onclick="setThe5ersTradeMode('start_now')">Start Now</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Risk & Drawdown panel -->
+  <div class="sd-card p-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <span class="sd-eyebrow">Risk &amp; Drawdown</span>
+      <span class="sd-badge sd-badge-grey" id="ddHaltBadge">Loading</span>
+    </div>
+    <div class="sd-risk-panel">
+      <div class="sd-risk-row">
+        <div class="sd-ring-wrap" id="ddRingWrap">
+          <svg viewBox="0 0 36 36">
+            <circle class="sd-ring-track" cx="18" cy="18" r="15.9155"></circle>
+            <circle class="sd-ring-bar" id="ddRingBar" cx="18" cy="18" r="15.9155" stroke-dasharray="0, 100"></circle>
+          </svg>
+          <div class="sd-ring-center" id="ddUsed">0%</div>
+        </div>
+        <div class="sd-risk-row-body">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span style="font-size:.8rem;font-weight:700;">Max Drawdown</span>
+            <span class="sd-badge sd-badge-green" id="ddSafeBadge" style="font-size:.6rem;">SAFE</span>
+          </div>
+          <div class="d-flex justify-content-between" style="font-size:.72rem;color:var(--sd-text-faint);margin-bottom:8px;">
+            <span>Used: <span id="ddCur">0%</span></span>
+            <span>Rem: <span id="ddRem">0%</span></span>
+          </div>
+          <div class="sd-input-group" style="width:130px;">
+            <button type="button" onclick="stepMaxDD(-0.5)">−</button>
+            <input id="ddLimitInput" type="number" min="0.1" max="100" step="0.1" value="10.0">
+            <button type="button" onclick="stepMaxDD(0.5)">+</button>
+          </div>
+        </div>
+      </div>
+      <div style="height:1px;background:var(--sd-border);"></div>
+      <div class="sd-risk-row">
+        <div class="sd-ring-wrap" id="dailyDdRingWrap">
+          <svg viewBox="0 0 36 36">
+            <circle class="sd-ring-track" cx="18" cy="18" r="15.9155"></circle>
+            <circle class="sd-ring-bar" id="dailyDdRingBar" cx="18" cy="18" r="15.9155" stroke-dasharray="0, 100" style="stroke:var(--sd-amber);"></circle>
+          </svg>
+          <div class="sd-ring-center" id="dailyDdUsed">0%</div>
+        </div>
+        <div class="sd-risk-row-body">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span style="font-size:.8rem;font-weight:700;">Daily Drawdown</span>
+            <span class="sd-badge sd-badge-amber" id="dailyDdWarnBadge" style="font-size:.6rem;">OK</span>
+          </div>
+          <div class="d-flex justify-content-between" style="font-size:.72rem;color:var(--sd-text-faint);margin-bottom:8px;">
+            <span>Used: <span id="dailyDdCur">0%</span></span>
+            <span>Rem: <span id="dailyDdRem">0%</span></span>
+          </div>
+          <div class="sd-input-group" style="width:130px;">
+            <button type="button" onclick="stepDailyDD(-0.25)">−</button>
+            <input id="dailyDdLimitInput" type="number" min="0.1" max="100" step="0.1" value="1.0">
+            <button type="button" onclick="stepDailyDD(0.25)">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="sd-btn sd-btn-dark flex-fill" type="button" style="font-size:.72rem;" onclick="saveMaxDD()">Save Max %</button>
+        <button class="sd-btn sd-btn-dark flex-fill" type="button" style="font-size:.72rem;" onclick="saveDailyDD()">Save Daily %</button>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="sd-btn flex-fill" style="font-size:.72rem;" onclick="resetDD(false)">Reset Halt</button>
+        <button class="sd-btn sd-btn-danger flex-fill" id="resetPeakBtn" style="font-size:.72rem;" onclick="resetDD(true)">Reset + Peak</button>
+      </div>
+      <div id="resetPeakNote" class="hidden" style="font-size:.66rem;color:var(--sd-text-faint);">
+        Reset + Peak is disabled for funded accounts — drawdown is measured against your fixed starting balance, not a floating peak.
+      </div>
+      <div style="font-size:.68rem;color:var(--sd-text-faint);display:flex;justify-content:space-between;">
+        <span>Peak: <span id="ddPeak">$0.00</span></span>
+        <span>Equity: <span id="ddEq">$0.00</span></span>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Signal Forge Gold Hero -->
-<div id="the5ersHero" class="the5ers-hero mb-4">
-  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <div>
-      <div class="t5-accent" style="font-size:1.2rem;font-weight:700;">Signal Forge Gold 5%</div>
-      <div class="t5-title">Signal Forge <span class="t5-accent">Dashboard</span></div>
-    </div>
-    <div class="t5-actions">
-      <span id="t5TradeModeBadge" class="t5-pill" style="background:#132013;color:#66e08a;border-color:#254a30;">● Trading ON</span>
-      <button type="button" class="btn btn-sm btn-outline-danger" onclick="setThe5ersTradeMode('stop_today')">Stop Today</button>
-      <button type="button" class="btn btn-sm btn-outline-warning" onclick="openThe5ersStopUntil()">Stop Until</button>
-      <button type="button" class="btn btn-sm btn-outline-success" onclick="setThe5ersTradeMode('start_now')">Start Now</button>
-    </div>
-  </div>
-  <div class="t5-grid">
-    <div class="t5-kpi"><div class="k">Starting Balance</div><div id="t5StartBalance" class="v">—</div></div>
-    <div class="t5-kpi"><div class="k">Current Equity</div><div id="t5Equity" class="v">—</div></div>
-    <div class="t5-kpi"><div class="k">Recognized Profit</div><div id="t5Profit" class="v">—</div></div>
-    <div class="t5-kpi"><div class="k">Profit Goal (5%)</div><div id="t5Goal" class="v">—</div></div>
-  </div>
-  <div class="t5-grid mt-2">
-    <div class="t5-kpi"><div class="k">Max Loss Level</div><div class="v">$2,250</div></div>
-    <div class="t5-kpi"><div class="k">Daily Loss Level</div><div class="v">$125</div></div>
-    <div class="t5-kpi"><div class="k">Max Trades/Day</div><div class="v">15</div></div>
-    <div class="t5-kpi"><div class="k">Min Holding Time</div><div class="v">1 minute</div></div>
-  </div>
-</div>
-
-<!-- The5ers Stop Until overlay -->
+<!-- Stop Until overlay -->
 <div id="t5StopUntilOverlay" class="hidden">
   <div class="t5-stop-until-card">
     <div class="d-flex justify-content-between align-items-center mb-2">
       <div style="font-weight:700;">Stop trading until</div>
-      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeThe5ersStopUntil()">Close</button>
+      <button type="button" class="sd-btn" onclick="closeThe5ersStopUntil()">Close</button>
     </div>
-    <div style="color:#a8aaae;font-size:.85rem;margin-bottom:10px;">
-      Date/time select karo. Aa time sudhi bot new trades place nahi kare.
+    <div style="color:var(--sd-text-muted);font-size:.85rem;margin-bottom:10px;">
+      Pick a date and time. The bot will not place new trades until then.
     </div>
     <div class="d-flex flex-column gap-2">
       <input id="t5StopUntilInput" type="datetime-local" class="form-control"
-             style="background:#232333;border:1px solid #3b3d52;color:#cdd0d6;" />
+             style="background:var(--sd-bg);border:1px solid var(--sd-border);color:var(--sd-text);" />
       <div class="d-flex gap-2 justify-content-end">
-        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeThe5ersStopUntil()">Cancel</button>
-        <button type="button" class="btn btn-sm btn-warning" onclick="submitThe5ersStopUntil()">Stop Until</button>
+        <button type="button" class="sd-btn" onclick="closeThe5ersStopUntil()">Cancel</button>
+        <button type="button" class="sd-btn sd-btn-dark" onclick="submitThe5ersStopUntil()">Stop Until</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Stats cards -->
+<!-- Period Filters -->
+<div class="sd-tabbar mb-4" id="periodTabs">
+  <button class="sd-tab active" data-period="today">Today</button>
+  <button class="sd-tab" data-period="yesterday">Yesterday</button>
+  <button class="sd-tab" data-period="this_week">This Week</button>
+  <button class="sd-tab" data-period="last_week">Last Week</button>
+  <button class="sd-tab" data-period="this_month">This Month</button>
+  <button class="sd-tab" data-period="last_month">Last Month</button>
+  <button class="sd-tab" data-period="last_6_months">Last 6 Months</button>
+</div>
+
+<!-- Stats + streak/best/worst row -->
 <div class="row g-3 mb-4">
-  <div class="col-6 col-md-3">
-    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
-      <div class="card-body py-3 text-center">
-        <div class="stat-label mb-1">Wins</div>
-        <div class="stat-value pnl-pos" id="statWins">—</div>
-      </div>
+  <div class="col-6 col-md-2">
+    <div class="sd-card h-100 p-3">
+      <div class="sd-eyebrow mb-2">Wins</div>
+      <div class="sd-stat-display sd-pos" id="statWins">—</div>
     </div>
   </div>
-  <div class="col-6 col-md-3">
-    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
-      <div class="card-body py-3 text-center">
-        <div class="stat-label mb-1">Losses</div>
-        <div class="stat-value pnl-neg" id="statLosses">—</div>
-      </div>
+  <div class="col-6 col-md-2">
+    <div class="sd-card h-100 p-3">
+      <div class="sd-eyebrow mb-2">Losses</div>
+      <div class="sd-stat-display sd-neg" id="statLosses">—</div>
     </div>
   </div>
-  <div class="col-6 col-md-3">
-    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
-      <div class="card-body py-3 text-center">
-        <div class="stat-label mb-1">Win Rate</div>
-        <div class="stat-value" id="statWinRate" style="color:#696cff;">—</div>
-      </div>
+  <div class="col-6 col-md-2">
+    <div class="sd-card h-100 p-3">
+      <div class="sd-eyebrow mb-2">Win Rate</div>
+      <div class="sd-stat-display" id="statWinRate">—</div>
     </div>
   </div>
-  <div class="col-6 col-md-3">
-    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
-      <div class="card-body py-3 text-center">
-        <div class="stat-label mb-1">Total PnL</div>
-        <div class="stat-value" id="statPnl">—</div>
+  <div class="col-6 col-md-2">
+    <div class="sd-card h-100 p-3">
+      <div class="sd-eyebrow mb-2">Total PnL</div>
+      <div class="sd-stat-display" id="statPnl">—</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4">
+    <div class="sd-card h-100 p-3 d-flex flex-column justify-content-between">
+      <div class="d-flex justify-content-between align-items-center">
+        <span class="sd-eyebrow">Streak</span>
+        <span class="sd-badge sd-badge-grey" id="statStreak">—</span>
+      </div>
+      <div class="row g-2 mt-1">
+        <div class="col-6">
+          <div class="sd-eyebrow" style="font-size:.6rem;">Best Trade</div>
+          <div class="sd-data sd-pos" id="statBestTrade">—</div>
+        </div>
+        <div class="col-6">
+          <div class="sd-eyebrow" style="font-size:.6rem;">Worst Trade</div>
+          <div class="sd-data sd-neg" id="statWorstTrade">—</div>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
 <!-- Selected Period Summary -->
-<div class="card mb-4 selected-period-card" style="background:#2b2c40;border:1px solid #3b3d52;">
-  <div class="card-body py-3">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-      <div>
-        <div class="stat-label mb-1" id="selectedPeriodTitle">TODAY</div>
-        <div class="mini-stat">Range: <span id="selectedPeriodRange">—</span></div>
-      </div>
-      <div class="d-flex gap-4 flex-wrap">
-        <div><div class="mini-stat">Trades</div><div class="stat-value" id="spTrades">—</div></div>
-        <div><div class="mini-stat">Wins / Losses</div><div class="stat-value" id="spWL">—</div></div>
-        <div><div class="mini-stat">Return</div><div class="stat-value" id="spReturn">—</div></div>
-        <div><div class="mini-stat">PnL</div><div class="stat-value" id="spPnl">—</div></div>
-      </div>
+<div class="sd-card mb-4">
+  <div class="p-3 d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <div>
+      <div class="sd-eyebrow mb-1" id="selectedPeriodTitle">TODAY</div>
+      <div style="font-size:.78rem;color:var(--sd-text-faint);">Range: <span id="selectedPeriodRange">—</span></div>
+    </div>
+    <div class="d-flex gap-4 flex-wrap">
+      <div><div class="sd-eyebrow mb-1">Trades</div><div class="sd-stat-value-sm" id="spTrades">—</div></div>
+      <div><div class="sd-eyebrow mb-1">Wins / Losses</div><div class="sd-stat-value-sm" id="spWL">—</div></div>
+      <div><div class="sd-eyebrow mb-1">Return</div><div class="sd-stat-value-sm" id="spReturn">—</div></div>
+      <div><div class="sd-eyebrow mb-1">PnL</div><div class="sd-stat-value-sm" id="spPnl">—</div></div>
     </div>
   </div>
 </div>
 
 <!-- Performance Graph -->
-<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
-  <div class="card-header d-flex justify-content-between align-items-center"
-       style="background:#232333;border-bottom:1px solid #3b3d52;">
-    <span class="section-header mb-0">
-      <i class="bx bx-line-chart me-2" style="color:#28c76f;"></i>Performance Graph
-    </span>
-    <small style="color:#a8aaae;" id="graphSubtitle">Cumulative PnL</small>
-  </div>
-  <div class="card-body">
-    <div class="graph-wrap">
-      <svg id="pnlGraph" class="graph-svg" viewBox="0 0 800 220" preserveAspectRatio="none"></svg>
+<div class="sd-card mb-4">
+  <div class="sd-graph-card">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <span class="sd-eyebrow" style="font-size:.72rem;">Cumulative PnL</span>
+      <small style="color:var(--sd-text-faint);font-size:.72rem;" id="graphSubtitle">Cumulative PnL</small>
+    </div>
+    <div class="sd-graph-outer">
+      <div class="sd-graph-ylabels" id="graphYLabels"></div>
+      <svg id="pnlGraph" class="sd-graph-svg" viewBox="0 0 800 220" preserveAspectRatio="none"></svg>
+      <div class="sd-graph-xlabels" id="graphXLabels"></div>
     </div>
   </div>
 </div>
 
-<!-- Max Drawdown Control -->
-<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
-  <div class="card-header d-flex justify-content-between align-items-center" style="background:#232333;border-bottom:1px solid #3b3d52;">
-    <span class="section-header mb-0">
-      <i class="bx bx-doughnut-chart me-2" style="color:#ff9f43;"></i>Max Drawdown Control
-    </span>
-    <span class="badge bg-label-secondary" id="ddHaltBadge">Loading</span>
-  </div>
-  <div class="card-body">
-    <div class="row g-3 align-items-center">
-      <div class="col-12 col-lg-3 text-center">
-        <div class="dd-ring" id="ddRing">
-          <div class="dd-center">
-            <div class="p" id="ddUsed">0%</div>
-            <div class="s">Used</div>
-          </div>
-        </div>
-        <div class="mini-stat mt-2">Max Drawdown</div>
+<!-- Assigned Accounts + Open Trades, side by side -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-lg-6">
+    <div class="sd-card h-100">
+      <div class="sd-card-header">
+        <span class="sd-eyebrow" style="font-size:.72rem;">Assigned Accounts</span>
+        <span class="sd-badge-count"><span id="accountsBadge">0</span> Total</span>
       </div>
-      <div class="col-12 col-lg-3 text-center">
-        <div class="dd-ring" id="dailyDdRing">
-          <div class="dd-center">
-            <div class="p" id="dailyDdUsed">0%</div>
-            <div class="s">Used</div>
-          </div>
-        </div>
-        <div class="mini-stat mt-2">Daily Drawdown</div>
-      </div>
-      <div class="col-12 col-lg-6">
-        <div class="row g-3">
-          <div class="col-6 col-md-3"><div class="mini-stat">Peak Equity</div><div class="stat-value" style="font-size:1rem;" id="ddPeak">$0.00</div></div>
-          <div class="col-6 col-md-3"><div class="mini-stat">Current Equity</div><div class="stat-value" style="font-size:1rem;" id="ddEq">$0.00</div></div>
-          <div class="col-6 col-md-3"><div class="mini-stat">Current DD</div><div class="stat-value pnl-neg" style="font-size:1rem;" id="ddCur">0%</div></div>
-          <div class="col-6 col-md-3"><div class="mini-stat">DD Remaining</div><div class="stat-value pnl-pos" style="font-size:1rem;" id="ddRem">0%</div></div>
-          <div class="col-6 col-md-6"><div class="mini-stat">Daily DD</div><div class="stat-value pnl-neg" style="font-size:1rem;" id="dailyDdCur">0%</div></div>
-          <div class="col-6 col-md-6"><div class="mini-stat">Daily Remaining</div><div class="stat-value pnl-pos" style="font-size:1rem;" id="dailyDdRem">0%</div></div>
-          <div class="col-12 col-md-8">
-            <div class="mini-stat mb-1">Max DD Limit (Current: <span id="maxLimitCurrent">0.00%</span>)</div>
-            <div class="input-group">
-              <button class="btn btn-outline-secondary" type="button" onclick="stepMaxDD(-0.5)">-</button>
-              <input id="ddLimitInput" type="number" min="0.1" max="100" step="0.1" class="form-control text-center" style="min-width:110px;background:#232333;border-color:#3b3d52;color:#ffffff;font-weight:600;" value="10.0">
-              <button class="btn btn-outline-secondary" type="button" onclick="stepMaxDD(0.5)">+</button>
-              <button class="btn btn-primary" type="button" onclick="saveMaxDD()">Update Limit %</button>
-            </div>
-          </div>
-          <div class="col-12 col-md-8">
-            <div class="mini-stat mb-1">Daily DD Limit (Current: <span id="dailyLimitCurrent">0.00%</span>)</div>
-            <div class="input-group">
-              <button class="btn btn-outline-secondary" type="button" onclick="stepDailyDD(-0.25)">-</button>
-              <input id="dailyDdLimitInput" type="number" min="0.1" max="100" step="0.1" class="form-control text-center" style="min-width:110px;background:#232333;border-color:#3b3d52;color:#ffffff;font-weight:600;" value="1.0">
-              <button class="btn btn-outline-secondary" type="button" onclick="stepDailyDD(0.25)">+</button>
-              <button class="btn btn-info" type="button" onclick="saveDailyDD()">Update Daily %</button>
-            </div>
-          </div>
-          <div class="col-12 col-md-4 d-grid gap-2">
-            <button class="btn btn-warning btn-sm" onclick="resetDD(false)">Reset Halt</button>
-            <button class="btn btn-danger btn-sm" onclick="resetDD(true)">Reset + New Peak</button>
-          </div>
-        </div>
+      <div class="table-responsive">
+        <table class="sd-table">
+          <thead><tr><th>Label</th><th>Login</th><th class="text-end">Balance</th><th class="text-end">Equity</th><th class="text-center">Status</th></tr></thead>
+          <tbody id="accountsBody">
+            <tr class="sd-empty-row"><td colspan="5">Loading…</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
-</div>
-
-<!-- Assigned Accounts -->
-<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
-  <div class="card-header d-flex justify-content-between align-items-center"
-       style="background:#232333;border-bottom:1px solid #3b3d52;">
-    <span class="section-header mb-0">
-      <i class="bx bx-server me-2" style="color:#28c76f;"></i>Assigned Accounts
-    </span>
-    <span class="badge bg-label-success" id="accountsBadge">0</span>
-  </div>
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-dark-custom mb-0">
-        <thead>
-          <tr><th>Label</th><th>Login</th><th>Server</th><th>Balance</th><th>Equity</th><th>Status</th></tr>
-        </thead>
-        <tbody id="accountsBody">
-          <tr class="empty-row"><td colspan="6" class="text-center py-3">Loading…</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-<!-- Open Trades -->
-<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
-  <div class="card-header d-flex justify-content-between align-items-center"
-       style="background:#232333;border-bottom:1px solid #3b3d52;">
-    <span class="section-header mb-0">
-      <i class="bx bx-trending-up me-2" style="color:#28c76f;"></i>Open Trades
-    </span>
-    <span class="badge bg-label-success" id="openTradesBadge">0</span>
-  </div>
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-dark-custom mb-0">
-        <thead>
-          <tr><th>Symbol</th><th>Side</th><th>Volume</th><th>Entry</th><th>SL</th><th>TP</th><th>PnL</th><th>Comment</th><th>Opened</th></tr>
-        </thead>
-        <tbody id="openTradesBody">
-          <tr class="empty-row"><td colspan="9" class="text-center py-3">Loading…</td></tr>
-        </tbody>
-      </table>
+  <div class="col-12 col-lg-6">
+    <div class="sd-card h-100">
+      <div class="sd-card-header">
+        <span class="sd-eyebrow" style="font-size:.72rem;">Open Trades</span>
+        <span class="sd-badge-count"><span id="openTradesBadge">0</span> Active</span>
+      </div>
+      <div class="table-responsive">
+        <table class="sd-table">
+          <thead><tr><th>Symbol</th><th>Side</th><th class="text-end">Vol</th><th class="text-end">Entry</th><th class="text-end">PnL</th><th>Duration</th></tr></thead>
+          <tbody id="openTradesBody">
+            <tr class="sd-empty-row"><td colspan="6">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
 
 <!-- Recent Trades -->
-<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
-  <div class="card-header d-flex justify-content-between align-items-center"
-       style="background:#232333;border-bottom:1px solid #3b3d52;">
-    <span class="section-header mb-0">
-      <i class="bx bx-history me-2" style="color:#696cff;"></i>Recent Trades
-    </span>
-    <span class="badge bg-label-primary" id="recentTradesBadge">0</span>
+<div class="sd-card mb-4">
+  <div class="sd-card-header">
+    <span class="sd-eyebrow" style="font-size:.72rem;">Recent Trades</span>
+    <span class="sd-badge-count"><span id="recentTradesBadge">0</span> Trades</span>
   </div>
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-dark-custom mb-0">
-        <thead>
-          <tr><th>Symbol</th><th>Side</th><th>Volume</th><th>Entry</th><th>PnL</th><th>Status</th><th>Comment</th><th>Opened</th></tr>
-        </thead>
-        <tbody id="recentTradesBody">
-          <tr class="empty-row"><td colspan="8" class="text-center py-3">Loading…</td></tr>
-        </tbody>
-      </table>
-    </div>
+  <div class="table-responsive">
+    <table class="sd-table">
+      <thead><tr><th>Symbol</th><th>Side</th><th>Volume</th><th>Entry</th><th>PnL</th><th>Status</th><th>Comment</th><th>Opened</th></tr></thead>
+      <tbody id="recentTradesBody">
+        <tr class="sd-empty-row"><td colspan="8">Loading…</td></tr>
+      </tbody>
+    </table>
   </div>
 </div>
 
+<!-- Cross-strategy footer link -->
+<div class="sd-footer-link">
+  <a href="/trading/">Compare with other strategies <i class="bx bx-right-arrow-alt"></i></a>
+</div>
+
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -469,6 +450,7 @@ let SELECTED_PERIOD = 'today';
 let SELECTED_ACCOUNT_LOGIN = '';
 let CURRENT_STRATEGY_DATA = null;
 let _AUTO_ACCOUNT_BOOTSTRAPPED = false;
+let _REFRESH_COUNTDOWN = 30;
 
 const STRATEGY_META = {
   breakout:         { name: 'Range Breakout Retest',    icon: '📈', color: '#28c76f' },
@@ -490,21 +472,31 @@ function fmt(val, decimals) {
 
 function sideBadge(side) {
   if (!side) return '—';
-  const cls = side.toLowerCase() === 'buy' ? 'badge-buy' : 'badge-sell';
-  return '<span class="badge ' + cls + '">' + side.toUpperCase() + '</span>';
+  const cls = side.toLowerCase() === 'buy' ? 'sd-side-buy' : 'sd-side-sell';
+  return '<span class="sd-side-badge ' + cls + '">' + side.toUpperCase() + '</span>';
 }
 
 function statusBadge(status) {
   if (!status) return '—';
-  const map = { win: 'success', loss: 'danger', open: 'info', breakeven: 'secondary' };
-  const cls = map[status.toLowerCase()] || 'secondary';
-  return '<span class="badge bg-label-' + cls + '">' + status + '</span>';
+  const map = { win: 'sd-badge-green', loss: 'sd-badge-red', open: 'sd-badge-grey', breakeven: 'sd-badge-grey' };
+  const cls = map[status.toLowerCase()] || 'sd-badge-grey';
+  return '<span class="sd-badge ' + cls + '">' + status + '</span>';
 }
 
 function pnlClass(pnl) {
   const n = parseFloat(pnl);
   if (isNaN(n)) return '';
-  return n > 0 ? 'pnl-pos' : n < 0 ? 'pnl-neg' : '';
+  return n > 0 ? 'sd-pos' : n < 0 ? 'sd-neg' : '';
+}
+
+function durationSince(openedStr) {
+  if (!openedStr) return '—';
+  const opened = new Date(openedStr);
+  if (isNaN(opened.getTime())) return '—';
+  let mins = Math.max(0, Math.floor((Date.now() - opened.getTime()) / 60000));
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return h > 0 ? (h + 'h ' + m + 'm') : (m + 'm');
 }
 
 function renderHeader(data) {
@@ -512,7 +504,6 @@ function renderHeader(data) {
   const meta  = STRATEGY_META[STRATEGY_ID] || {};
   const name  = strat.name || meta.name || STRATEGY_ID;
   const desc  = strat.description || '';
-  const color = meta.color || '#a8aaae';
   const icon  = meta.icon || '⚙️';
 
   document.getElementById('strategyTitle').textContent = name;
@@ -520,17 +511,29 @@ function renderHeader(data) {
   document.getElementById('strategyIcon').textContent  = icon;
 
   const badge = document.getElementById('strategyStatusBadge');
-  badge.style.cssText = 'font-size:.85rem;padding:.5rem 1rem;background:rgba(40,199,111,.15);color:#28c76f;';
+  badge.className = 'sd-badge sd-badge-green';
   badge.textContent = '● Active';
 }
 
+const FUNDED_ACCOUNT_LOGINS = ['26259636', '26225179'];
+
 function applyThe5ersMode(data) {
   const accounts = (data && data.accounts) ? data.accounts : [];
-  const isThe5ers = accounts.some(function(a) { return String(a.login || '') === '26259636'; });
+  const isThe5ers = accounts.some(function(a) { return FUNDED_ACCOUNT_LOGINS.indexOf(String(a.login || '')) !== -1; });
   document.body.classList.toggle('the5ers-mode', isThe5ers);
+
+  const resetPeakBtn = document.getElementById('resetPeakBtn');
+  const resetPeakNote = document.getElementById('resetPeakNote');
+  if (resetPeakBtn) {
+    resetPeakBtn.disabled = isThe5ers;
+    resetPeakBtn.style.opacity = isThe5ers ? '.45' : '1';
+    resetPeakBtn.style.cursor = isThe5ers ? 'not-allowed' : 'pointer';
+  }
+  if (resetPeakNote) resetPeakNote.classList.toggle('hidden', !isThe5ers);
+
   if (!isThe5ers) return;
 
-  const acc = accounts.find(function(a) { return String(a.login || '') === '26259636'; }) || accounts[0] || {};
+  const acc = accounts.find(function(a) { return FUNDED_ACCOUNT_LOGINS.indexOf(String(a.login || '')) !== -1; }) || accounts[0] || {};
   const startBal = 2500.0;
   const eq = parseFloat(acc.equity || 0);
   const recognized = eq > 0 ? (eq - startBal) : parseFloat((data.stats && data.stats.total_pnl) || 0);
@@ -539,14 +542,25 @@ function applyThe5ersMode(data) {
   document.getElementById('t5Equity').textContent = '$' + (isNaN(eq) ? '0.00' : eq.toFixed(2));
   document.getElementById('t5Profit').textContent = (recognized >= 0 ? '+' : '') + '$' + recognized.toFixed(2);
   document.getElementById('t5Goal').textContent = '$' + goal.toFixed(2);
+
+  const risk = data.risk || {};
+  document.getElementById('t5MaxLoss').textContent = risk.max_drawdown_amount != null ? '$' + Number(startBal - (risk.max_drawdown_amount || 0)).toFixed(0) : '$2,250';
+  document.getElementById('t5DailyLoss').textContent = risk.daily_limit_amount != null ? '$' + Number(risk.daily_limit_amount).toFixed(0) : '$125';
+
+  const tradesToday = data.trades_today != null ? data.trades_today : 0;
+  const maxTrades = data.max_trades_per_day || 15;
+  document.getElementById('t5TradesTodayLabel').textContent = tradesToday + ' / ' + maxTrades;
+  const pct = maxTrades > 0 ? Math.min(100, (tradesToday / maxTrades) * 100) : 0;
+  const bar = document.getElementById('t5TradesTodayBar');
+  bar.style.width = pct + '%';
+  bar.className = 'sd-progress-bar' + (pct >= 100 ? ' crit' : pct >= 80 ? ' warn' : '');
+
   refreshThe5ersTradeMode();
 }
 
 function renderAccountTabs(data) {
   const wrap = document.getElementById('accountSwitchTabs');
   const accounts = (data && data.all_accounts && data.all_accounts.length) ? data.all_accounts : (data.accounts || []);
-  // Drawdown is per-account. We do NOT support a combined "All Accounts" drawdown view.
-  // If no account is selected yet, default to the first account.
   const selectedFromApi = (data && data.selected_account_login) ? String(data.selected_account_login) : '';
   if (!SELECTED_ACCOUNT_LOGIN) {
     SELECTED_ACCOUNT_LOGIN = selectedFromApi || (accounts[0] ? String(accounts[0].login || '') : '');
@@ -557,14 +571,10 @@ function renderAccountTabs(data) {
     const login = String(acc.login || '');
     const label = (acc.label || 'Account') + ' (' + login + ')';
     const active = (selected && selected === login) ? 'active' : '';
-    return '<button class="account-btn ' + active + '" data-login="' + login + '">' + label + '</button>';
+    return '<button class="sd-pill ' + active + ' account-btn" data-login="' + login + '">' + label + '</button>';
   }).join('');
-  wrap.innerHTML = accBtns || '<span class="text-muted">No accounts</span>';
+  wrap.innerHTML = accBtns || '<span style="color:var(--sd-text-faint);">No accounts</span>';
 
-  // Backward-compat / cache-safe:
-  // If backend still returns combined stats (no selected_account_login),
-  // force one refresh after we auto-select the first account so request
-  // includes ?account_login=... and UI becomes per-account.
   if (!_AUTO_ACCOUNT_BOOTSTRAPPED && !selectedFromApi && SELECTED_ACCOUNT_LOGIN) {
     _AUTO_ACCOUNT_BOOTSTRAPPED = true;
     setTimeout(function() { loadStrategyData(); }, 50);
@@ -578,13 +588,12 @@ function refreshThe5ersTradeMode() {
       const badge = document.getElementById('t5TradeModeBadge');
       if (!badge || !d) return;
       if (d.allowed) {
+        badge.className = 'sd-badge sd-badge-green';
         badge.textContent = '● Trading ON';
-        badge.style.background = '#132013';
-        badge.style.color = '#66e08a';
-        badge.style.borderColor = '#254a30';
       } else {
         const reason = String(d.reason || '');
         const stopReason = String(d.stop_reason_text || '').trim();
+        badge.className = 'sd-badge sd-badge-red';
         if (reason === 'manually_stopped_for_today') {
           badge.textContent = stopReason ? ('Hard stop: ' + stopReason) : 'Hard stop today';
         } else if (d.halt_until) {
@@ -593,9 +602,6 @@ function refreshThe5ersTradeMode() {
         } else {
           badge.textContent = stopReason ? ('● Stopped for Today - ' + stopReason) : '● Stopped for Today';
         }
-        badge.style.background = '#2a1518';
-        badge.style.color = '#ff8a9e';
-        badge.style.borderColor = '#4d1d27';
       }
     })
     .catch(function() {});
@@ -626,7 +632,6 @@ function setThe5ersTradeMode(action, untilIso) {
 }
 
 function _toDatetimeLocalValue(d) {
-  // yyyy-MM-ddTHH:mm (local)
   function pad(n) { return String(n).padStart(2, '0'); }
   return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
 }
@@ -635,7 +640,7 @@ function openThe5ersStopUntil() {
   const overlay = document.getElementById('t5StopUntilOverlay');
   const input = document.getElementById('t5StopUntilInput');
   if (!overlay || !input) return;
-  const d = new Date(Date.now() + 60 * 60 * 1000); // default +1h
+  const d = new Date(Date.now() + 60 * 60 * 1000);
   input.value = _toDatetimeLocalValue(d);
   overlay.classList.remove('hidden');
   setTimeout(function() { try { input.focus(); } catch(e) {} }, 0);
@@ -658,7 +663,6 @@ function submitThe5ersStopUntil() {
   setThe5ersTradeMode('stop_until', dt.toISOString());
 }
 
-// Allow Enter key to submit stop-until.
 document.addEventListener('keydown', function(e) {
   const overlay = document.getElementById('t5StopUntilOverlay');
   if (!overlay || overlay.classList.contains('hidden')) return;
@@ -676,20 +680,39 @@ function renderStats(stats) {
   const pnl = parseFloat(stats.total_pnl || 0);
   const pnlEl = document.getElementById('statPnl');
   pnlEl.textContent = isNaN(pnl) ? '—' : (pnl >= 0 ? '+' : '') + pnl.toFixed(2);
-  pnlEl.className = 'stat-value ' + (pnl >= 0 ? 'pnl-pos' : 'pnl-neg');
+  pnlEl.className = 'sd-stat-value ' + (pnl >= 0 ? 'sd-pos' : 'sd-neg');
+
+  const streakEl = document.getElementById('statStreak');
+  if (stats.streak_count && stats.streak_type) {
+    const isWin = stats.streak_type === 'win';
+    if (isWin) { streakEl.textContent = '🔥 ' + stats.streak_count + (stats.streak_count > 1 ? ' wins' : ' win') + ' in a row'; }
+    else { streakEl.textContent = stats.streak_count + (stats.streak_count > 1 ? ' losses' : ' loss') + ' in a row'; }
+    streakEl.className = 'sd-badge ' + (isWin ? 'sd-badge-green' : 'sd-badge-red');
+  } else {
+    streakEl.textContent = '—';
+    streakEl.className = 'sd-badge sd-badge-grey';
+  }
+
+  const bestEl = document.getElementById('statBestTrade');
+  const worstEl = document.getElementById('statWorstTrade');
+  if (stats.best_trade) {
+    bestEl.textContent = stats.best_trade.symbol + ' +' + fmt(stats.best_trade.pnl);
+  } else {
+    bestEl.textContent = '—';
+  }
+  if (stats.worst_trade) {
+    worstEl.textContent = stats.worst_trade.symbol + ' ' + fmt(stats.worst_trade.pnl);
+  } else {
+    worstEl.textContent = '—';
+  }
 }
 
 function renderPeriodStats(periodStats) {
   const p = periodStats || {};
   const row = p[SELECTED_PERIOD] || {};
   const labels = {
-    today: 'TODAY',
-    yesterday: 'YESTERDAY',
-    this_week: 'THIS WEEK',
-    last_week: 'LAST WEEK',
-    this_month: 'THIS MONTH',
-    last_month: 'LAST MONTH',
-    last_6_months: 'LAST 6 MONTHS',
+    today: 'TODAY', yesterday: 'YESTERDAY', this_week: 'THIS WEEK', last_week: 'LAST WEEK',
+    this_month: 'THIS MONTH', last_month: 'LAST MONTH', last_6_months: 'LAST 6 MONTHS',
   };
   document.getElementById('selectedPeriodTitle').textContent = labels[SELECTED_PERIOD] || SELECTED_PERIOD.toUpperCase();
   document.getElementById('selectedPeriodRange').textContent = (row.start && row.end) ? (row.start + ' to ' + row.end) : '—';
@@ -699,10 +722,10 @@ function renderPeriodStats(periodStats) {
   const pnl = parseFloat(row.pnl || 0);
   const retEl = document.getElementById('spReturn');
   retEl.textContent = row.return_pct == null ? '—' : ((ret >= 0 ? '+' : '') + ret.toFixed(2) + '%');
-  retEl.className = 'stat-value ' + (ret >= 0 ? 'pnl-pos' : 'pnl-neg');
+  retEl.className = 'sd-stat-value-sm ' + (ret >= 0 ? 'sd-pos' : 'sd-neg');
   const pnlEl = document.getElementById('spPnl');
   pnlEl.textContent = row.pnl == null ? '—' : ((pnl >= 0 ? '+' : '') + pnl.toFixed(2));
-  pnlEl.className = 'stat-value ' + (pnl >= 0 ? 'pnl-pos' : 'pnl-neg');
+  pnlEl.className = 'sd-stat-value-sm ' + (pnl >= 0 ? 'sd-pos' : 'sd-neg');
 }
 
 function renderPnlGraph(graph) {
@@ -716,7 +739,6 @@ function renderPnlGraph(graph) {
   const w = 800, h = 220, pad = 22;
   let minV = Math.min.apply(null, values);
   let maxV = Math.max.apply(null, values);
-  // If all values are equal, create a visual band so the line is visible.
   if (Math.abs(maxV - minV) < 1e-9) {
     const padV = Math.max(0.5, Math.abs(maxV) * 0.05);
     minV -= padV;
@@ -731,18 +753,38 @@ function renderPnlGraph(graph) {
   const areaPts = linePts + ' ' + x(values.length - 1) + ',' + (h - pad) + ' ' + x(0) + ',' + (h - pad);
   const zeroY = (minV <= 0 && maxV >= 0) ? y(0) : null;
   const dots = values.map(function(v, i) {
-    return '<circle cx="' + x(i) + '" cy="' + y(v) + '" r="3.2" fill="#28c76f"></circle>';
+    return '<circle class="sd-graph-dot" cx="' + x(i) + '" cy="' + y(v) + '" r="3"></circle>';
   }).join('');
 
   el.innerHTML =
-    '<line class="graph-axis" x1="' + pad + '" y1="' + (h - pad) + '" x2="' + (w - pad) + '" y2="' + (h - pad) + '"></line>' +
-    (zeroY !== null ? '<line class="graph-zero" x1="' + pad + '" y1="' + zeroY + '" x2="' + (w - pad) + '" y2="' + zeroY + '"></line>' : '') +
-    '<polygon class="graph-fill" points="' + areaPts + '"></polygon>' +
-    '<polyline class="graph-line" points="' + linePts + '"></polyline>' +
+    '<line class="sd-graph-axis" x1="' + pad + '" y1="' + (h - pad) + '" x2="' + (w - pad) + '" y2="' + (h - pad) + '"></line>' +
+    (zeroY !== null ? '<line class="sd-graph-zero" x1="' + pad + '" y1="' + zeroY + '" x2="' + (w - pad) + '" y2="' + zeroY + '"></line>' : '') +
+    '<polygon class="sd-graph-fill" points="' + areaPts + '"></polygon>' +
+    '<polyline class="sd-graph-line" points="' + linePts + '"></polyline>' +
     dots;
   const gSub = document.getElementById('graphSubtitle');
   if (gSub && graph && graph.labels && graph.labels.length) {
     gSub.textContent = 'Cumulative PnL (' + graph.labels[0] + ' to ' + graph.labels[graph.labels.length - 1] + ')';
+  }
+
+  const yLabelsEl = document.getElementById('graphYLabels');
+  if (yLabelsEl) {
+    const steps = 4;
+    const yLabels = [];
+    for (let i = steps; i >= 0; i--) {
+      yLabels.push((minV + (span * i / steps)).toFixed(0));
+    }
+    yLabelsEl.innerHTML = yLabels.map(function(v) { return '<span>' + v + '</span>'; }).join('');
+  }
+  const xLabelsEl = document.getElementById('graphXLabels');
+  if (xLabelsEl && graph && graph.labels && graph.labels.length) {
+    const labels = graph.labels;
+    const maxTicks = 6;
+    const step = Math.max(1, Math.ceil(labels.length / maxTicks));
+    const picked = [];
+    for (let i = 0; i < labels.length; i += step) picked.push(labels[i]);
+    if (picked[picked.length - 1] !== labels[labels.length - 1]) picked.push(labels[labels.length - 1]);
+    xLabelsEl.innerHTML = picked.map(function(v) { return '<span>' + v + '</span>'; }).join('');
   }
 }
 
@@ -750,18 +792,16 @@ function renderAccounts(accounts) {
   const tbody = document.getElementById('accountsBody');
   document.getElementById('accountsBadge').textContent = accounts ? accounts.length : 0;
   if (!accounts || accounts.length === 0) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="6" class="text-center py-4">No accounts assigned</td></tr>';
+    tbody.innerHTML = '<tr class="sd-empty-row"><td colspan="5">No accounts assigned</td></tr>';
     return;
   }
   tbody.innerHTML = accounts.map(function(acc) {
     return '<tr>' +
       '<td><strong>' + (acc.label || '—') + '</strong></td>' +
-      '<td style="font-size:.85rem;">' + (acc.login || '—') + '</td>' +
-      '<td style="font-size:.8rem;color:#a8aaae;">' + (acc.server || '—') + '</td>' +
-      '<td>' + (acc.currency || '') + ' ' + fmt(acc.balance) + '</td>' +
-      '<td>' + (acc.currency || '') + ' ' + fmt(acc.equity) + '</td>' +
-      '<td><span class="badge ' + (acc.connected ? 'bg-label-success' : 'bg-label-danger') + '">' +
-        (acc.connected ? '● Online' : '● Offline') + '</span></td>' +
+      '<td style="color:var(--sd-text-faint);">' + (acc.login || '—') + '</td>' +
+      '<td class="text-end sd-data">' + (acc.currency || '') + ' ' + fmt(acc.balance) + '</td>' +
+      '<td class="text-end sd-data">' + (acc.currency || '') + ' ' + fmt(acc.equity) + '</td>' +
+      '<td class="text-center"><span class="sd-dot ' + (acc.connected ? 'sd-dot-green' : 'sd-dot-grey') + '"></span></td>' +
       '</tr>';
   }).join('');
 }
@@ -770,7 +810,7 @@ function renderOpenTrades(trades) {
   const tbody = document.getElementById('openTradesBody');
   document.getElementById('openTradesBadge').textContent = trades ? trades.length : 0;
   if (!trades || trades.length === 0) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="9" class="text-center py-4">No open trades</td></tr>';
+    tbody.innerHTML = '<tr class="sd-empty-row"><td colspan="6">No open trades</td></tr>';
     return;
   }
   tbody.innerHTML = trades.map(function(t) {
@@ -779,13 +819,10 @@ function renderOpenTrades(trades) {
     return '<tr>' +
       '<td><strong>' + (t.symbol || '—') + '</strong></td>' +
       '<td>' + sideBadge(t.side) + '</td>' +
-      '<td>' + fmt(t.volume) + '</td>' +
-      '<td>' + fmt(t.entry, 5) + '</td>' +
-      '<td>' + (t.sl ? fmt(t.sl, 5) : '—') + '</td>' +
-      '<td>' + (t.tp ? fmt(t.tp, 5) : '—') + '</td>' +
-      '<td class="' + pnlClass(t.pnl) + '">' + pnlStr + '</td>' +
-      '<td style="font-size:.8rem;color:#a8aaae;">' + (t.comment || '—') + '</td>' +
-      '<td style="font-size:.8rem;">' + (t.opened || '—') + '</td>' +
+      '<td class="text-end" style="color:var(--sd-text-faint);">' + fmt(t.volume) + '</td>' +
+      '<td class="text-end sd-data">' + fmt(t.entry, 5) + '</td>' +
+      '<td class="text-end sd-data ' + pnlClass(t.pnl) + '">' + pnlStr + '</td>' +
+      '<td style="color:var(--sd-text-faint);">' + durationSince(t.opened) + '</td>' +
       '</tr>';
   }).join('');
 }
@@ -794,7 +831,7 @@ function renderRecentTrades(trades) {
   const tbody = document.getElementById('recentTradesBody');
   document.getElementById('recentTradesBadge').textContent = trades ? trades.length : 0;
   if (!trades || trades.length === 0) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="8" class="text-center py-4">No trade history</td></tr>';
+    tbody.innerHTML = '<tr class="sd-empty-row"><td colspan="8">No trade history</td></tr>';
     return;
   }
   tbody.innerHTML = trades.map(function(t) {
@@ -807,7 +844,7 @@ function renderRecentTrades(trades) {
       '<td>' + fmt(t.entry, 5) + '</td>' +
       '<td class="' + pnlClass(t.pnl) + '">' + pnlStr + '</td>' +
       '<td>' + statusBadge(t.status) + '</td>' +
-      '<td style="font-size:.8rem;color:#a8aaae;">' + (t.comment || '—') + '</td>' +
+      '<td style="color:var(--sd-text-faint);font-size:.8rem;">' + (t.comment || '—') + '</td>' +
       '<td style="font-size:.8rem;">' + (t.opened || '—') + '</td>' +
       '</tr>';
   }).join('');
@@ -819,7 +856,7 @@ function renderStrategyDashboard(data) {
   renderAccountTabs(data);
   applyThe5ersMode(data);
   SELECTED_PERIOD = data.selected_period || SELECTED_PERIOD;
-  document.querySelectorAll('.period-btn').forEach(function(btn) {
+  document.querySelectorAll('#periodTabs .sd-tab').forEach(function(btn) {
     btn.classList.toggle('active', btn.getAttribute('data-period') === SELECTED_PERIOD);
   });
   renderHeader(data);
@@ -832,6 +869,7 @@ function renderStrategyDashboard(data) {
   renderRiskPanel(data.risk || {});
   const now = new Date();
   document.getElementById('lastRefreshed').textContent = 'Updated ' + now.toLocaleTimeString();
+  _REFRESH_COUNTDOWN = 30;
 }
 
 function stepMaxDD(delta) {
@@ -849,7 +887,7 @@ function saveMaxDD() {
     method: 'PUT',
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
-    body: JSON.stringify({ max_drawdown_pct: v }),
+    body: JSON.stringify({ strategy_id: STRATEGY_ID, max_drawdown_pct: v }),
   }).then(function() { loadStrategyData(); });
 }
 
@@ -870,17 +908,20 @@ function saveDailyDD() {
     method: 'PUT',
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
-    body: JSON.stringify({ daily_loss_limit: dailyLossLimitDollar }),
+    body: JSON.stringify({ strategy_id: STRATEGY_ID, daily_loss_limit: dailyLossLimitDollar }),
   }).then(function() { loadStrategyData(); });
 }
 
 function resetDD(resetPeak) {
+  if (resetPeak && document.body.classList.contains('the5ers-mode')) {
+    return;
+  }
   const csrf = getCookie('csrftoken');
   fetch('/trading/api/algo/reset-risk', {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
-    body: JSON.stringify({ reset_peak_equity: !!resetPeak }),
+    body: JSON.stringify({ strategy_id: STRATEGY_ID, reset_peak_equity: !!resetPeak }),
   }).then(function() { loadStrategyData(); });
 }
 
@@ -888,32 +929,37 @@ function renderRiskPanel(risk) {
   risk = risk || {};
   const used = parseFloat(risk.drawdown_used_pct_of_limit || 0);
   const limit = parseFloat(risk.max_drawdown_pct || 0);
-  const cur = parseFloat(risk.current_drawdown_pct || 0);
   const rem = parseFloat(risk.remaining_drawdown_pct || 0);
   const halted = !!risk.dd_halted;
 
   const safeUsed = Math.max(0, Math.min(100, used));
-  const deg = safeUsed * 3.6;
-  const color = safeUsed >= 100 ? '#ea5455' : (safeUsed >= 75 ? '#ff9f43' : '#28c76f');
-  document.getElementById('ddRing').style.background = 'conic-gradient(' + color + ' 0deg ' + deg + 'deg, #3b3d52 ' + deg + 'deg 360deg)';
-  document.getElementById('ddUsed').textContent = safeUsed.toFixed(1) + '%';
+  const color = safeUsed >= 100 ? '#c22b2b' : (safeUsed >= 75 ? '#b06a00' : '#1a7f4b');
+  document.getElementById('ddRingBar').setAttribute('stroke-dasharray', safeUsed.toFixed(1) + ', 100');
+  document.getElementById('ddRingBar').style.stroke = color;
+  document.getElementById('ddUsed').textContent = safeUsed.toFixed(0) + '%';
   document.getElementById('ddPeak').textContent = '$' + Number(risk.peak_equity || 0).toFixed(2);
   document.getElementById('ddEq').textContent = '$' + Number(risk.equity || 0).toFixed(2);
-  document.getElementById('ddCur').textContent = cur.toFixed(2) + '% / ' + limit.toFixed(2) + '%';
+  document.getElementById('ddCur').textContent = used.toFixed(2) + '%';
   document.getElementById('ddRem').textContent = rem.toFixed(2) + '%';
-  document.getElementById('maxLimitCurrent').textContent = limit.toFixed(2) + '%';
+  const safeBadge = document.getElementById('ddSafeBadge');
+  safeBadge.className = 'sd-badge ' + (safeUsed >= 100 ? 'sd-badge-red' : safeUsed >= 75 ? 'sd-badge-amber' : 'sd-badge-green');
+  safeBadge.style.fontSize = '.6rem';
+  safeBadge.textContent = safeUsed >= 100 ? 'AT LIMIT' : safeUsed >= 75 ? 'WARN' : 'SAFE';
 
   const dailyUsed = Math.max(0, Math.min(100, parseFloat(risk.daily_used_pct_of_limit || 0)));
   const dailyLimit = parseFloat(risk.daily_limit_pct || 0);
-  const dailyCur = parseFloat(risk.daily_drawdown_pct || 0);
   const dailyRem = parseFloat(risk.daily_remaining_pct || 0);
-  const dailyDeg = dailyUsed * 3.6;
-  const dailyColor = dailyUsed >= 100 ? '#ea5455' : (dailyUsed >= 75 ? '#ff9f43' : '#28c76f');
-  document.getElementById('dailyDdRing').style.background = 'conic-gradient(' + dailyColor + ' 0deg ' + dailyDeg + 'deg, #3b3d52 ' + dailyDeg + 'deg 360deg)';
-  document.getElementById('dailyDdUsed').textContent = dailyUsed.toFixed(1) + '%';
-  document.getElementById('dailyDdCur').textContent = dailyCur.toFixed(2) + '% / ' + dailyLimit.toFixed(2) + '%';
+  const dailyColor = dailyUsed >= 100 ? '#c22b2b' : (dailyUsed >= 75 ? '#b06a00' : '#1a7f4b');
+  document.getElementById('dailyDdRingBar').setAttribute('stroke-dasharray', dailyUsed.toFixed(1) + ', 100');
+  document.getElementById('dailyDdRingBar').style.stroke = dailyColor;
+  document.getElementById('dailyDdUsed').textContent = dailyUsed.toFixed(0) + '%';
+  document.getElementById('dailyDdCur').textContent = risk.daily_drawdown_pct != null ? parseFloat(risk.daily_drawdown_pct).toFixed(2) + '%' : '0%';
   document.getElementById('dailyDdRem').textContent = dailyRem.toFixed(2) + '%';
-  document.getElementById('dailyLimitCurrent').textContent = dailyLimit.toFixed(2) + '%';
+  const warnBadge = document.getElementById('dailyDdWarnBadge');
+  warnBadge.className = 'sd-badge ' + (dailyUsed >= 100 ? 'sd-badge-red' : dailyUsed >= 75 ? 'sd-badge-amber' : 'sd-badge-green');
+  warnBadge.style.fontSize = '.6rem';
+  warnBadge.textContent = dailyUsed >= 100 ? 'AT LIMIT' : dailyUsed >= 75 ? 'WARN' : 'OK';
+
   if (document.activeElement !== document.getElementById('dailyDdLimitInput')) {
     document.getElementById('dailyDdLimitInput').value = (dailyLimit > 0 ? dailyLimit : 1).toFixed(2);
   }
@@ -921,7 +967,7 @@ function renderRiskPanel(risk) {
     document.getElementById('ddLimitInput').value = (limit > 0 ? limit : 10).toFixed(1);
   }
   const b = document.getElementById('ddHaltBadge');
-  b.className = 'badge ' + (halted ? 'bg-label-danger' : 'bg-label-success');
+  b.className = 'sd-badge ' + (halted ? 'sd-badge-red' : 'sd-badge-green');
   b.textContent = halted ? 'Halted' : 'Active';
 }
 
@@ -938,9 +984,9 @@ function loadStrategyData() {
     return r.json();
   })
   .then(function(data) {
-    document.querySelectorAll('.card').forEach(function(el) { el.classList.add('slide-swap'); });
+    document.querySelectorAll('.sd-card').forEach(function(el) { el.classList.add('sd-slide'); });
     setTimeout(function() {
-      document.querySelectorAll('.card.slide-swap').forEach(function(el) { el.classList.remove('slide-swap'); });
+      document.querySelectorAll('.sd-card.sd-slide').forEach(function(el) { el.classList.remove('sd-slide'); });
     }, 340);
     renderStrategyDashboard(data);
     const overlay = document.getElementById('loadingOverlay');
@@ -954,7 +1000,7 @@ function loadStrategyData() {
 }
 
 document.addEventListener('click', function(e) {
-  const btn = e.target.closest('.period-btn');
+  const btn = e.target.closest('.sd-tab[data-period]');
   if (btn) {
     SELECTED_PERIOD = btn.getAttribute('data-period') || 'today';
     loadStrategyData();
@@ -967,9 +1013,13 @@ document.addEventListener('click', function(e) {
   }
 });
 
+setInterval(function() {
+  _REFRESH_COUNTDOWN = Math.max(0, _REFRESH_COUNTDOWN - 1);
+  const el = document.getElementById('refreshCountdown');
+  if (el) el.textContent = 'Next refresh in ' + _REFRESH_COUNTDOWN + 's';
+}, 1000);
+
 loadStrategyData();
 setInterval(loadStrategyData, 30000);
 </script>
 {% endblock %}
-
-

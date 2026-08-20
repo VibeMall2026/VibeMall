@@ -118,8 +118,8 @@ def update_algo_config(**kwargs) -> dict:
     return module.update_algo_config(**filtered)
 
 
-def get_risk_status() -> dict:
-    module = _get_strategy_module()
+def get_risk_status(strategy_id: Optional[str] = None) -> dict:
+    module = _get_strategy_module(strategy_id)
     if hasattr(module, "get_risk_status"):
         return module.get_risk_status()
     return {}

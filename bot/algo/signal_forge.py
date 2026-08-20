@@ -99,6 +99,11 @@ class AlgoConfig:
     di_len: int = 14
     adx_threshold: float = 20.0
 
+    # Drawdown risk limits (per assigned account, not combined across accounts —
+    # see get_risk_status()/​_check_drawdown_halt() for why).
+    max_drawdown_pct: float = 0.10      # halt trading on this account if equity draws down this % from its peak
+    daily_loss_limit: float = 0.0       # $ amount; 0 disables the daily check
+
     def get_symbols(self) -> list[str]:
         if self.symbols:
             return list(self.symbols)
@@ -125,6 +130,179 @@ _managed_trades: dict[int, dict] = {}
 _STATE_PATH = Path(__file__).resolve().parent.parent / "sessions" / "signal_forge_managed.json"
 _state_file_lock = threading.Lock()
 _resynced = False
+
+# Per-account drawdown risk state. Keyed by account login (str) since
+# signal_forge trades multiple accounts at once via execute_on_all_accounts,
+# unlike order_block.py's single-account model.
+_RISK_STATE_PATH = Path(__file__).resolve().parent.parent / "sessions" / "signal_forge_risk.json"
+_risk_state_lock = threading.Lock()
+_peak_equity_by_account: dict[str, float] = {}
+_dd_halted_by_account: dict[str, bool] = {}
+_daily_start_equity_by_account: dict[str, float] = {}
+_daily_date_by_account: dict[str, str] = {}
+_daily_halted_by_account: dict[str, bool] = {}
+
+
+def _save_risk_state() -> None:
+    with _risk_state_lock:
+        try:
+            payload = {
+                "peak_equity": _peak_equity_by_account,
+                "dd_halted": _dd_halted_by_account,
+                "daily_start_equity": _daily_start_equity_by_account,
+                "daily_date": _daily_date_by_account,
+                "daily_halted": _daily_halted_by_account,
+            }
+            _RISK_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+            _RISK_STATE_PATH.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        except Exception as exc:
+            logger.error(f"[SIGNAL_FORGE] Failed to save risk state: {exc}")
+
+
+def _load_risk_state() -> None:
+    global _peak_equity_by_account, _dd_halted_by_account
+    global _daily_start_equity_by_account, _daily_date_by_account, _daily_halted_by_account
+    try:
+        if not _RISK_STATE_PATH.exists():
+            return
+        raw = _RISK_STATE_PATH.read_text(encoding="utf-8").strip()
+        if not raw:
+            return
+        data = json.loads(raw)
+        _peak_equity_by_account = {str(k): float(v) for k, v in (data.get("peak_equity") or {}).items()}
+        _dd_halted_by_account = {str(k): bool(v) for k, v in (data.get("dd_halted") or {}).items()}
+        _daily_start_equity_by_account = {str(k): float(v) for k, v in (data.get("daily_start_equity") or {}).items()}
+        _daily_date_by_account = {str(k): str(v) for k, v in (data.get("daily_date") or {}).items()}
+        _daily_halted_by_account = {str(k): bool(v) for k, v in (data.get("daily_halted") or {}).items()}
+    except Exception as exc:
+        logger.error(f"[SIGNAL_FORGE] Failed to load risk state: {exc}")
+
+
+_load_risk_state()
+
+
+def _assigned_accounts() -> list:
+    return [a for a in get_all_accounts() if a.enabled and "signal_forge" in (a.strategy or [])]
+
+
+def _check_drawdown_halt(acc) -> bool:
+    """Update peak equity / halt flags for one account. Returns True if halted."""
+    login = str(acc.login)
+    equity = float(acc.equity or 0.0)
+    if equity <= 0:
+        return bool(_dd_halted_by_account.get(login, False))
+
+    if _dd_halted_by_account.get(login, False):
+        return True
+
+    peak = float(_peak_equity_by_account.get(login, 0.0) or 0.0)
+    if equity > peak:
+        peak = equity
+        _peak_equity_by_account[login] = peak
+
+    if peak > 0:
+        drawdown = (peak - equity) / peak
+        if drawdown >= algo_config.max_drawdown_pct:
+            _dd_halted_by_account[login] = True
+            logger.warning(
+                f"[SIGNAL_FORGE] ⛔ Max drawdown limit reached on {acc.label} ({login}): "
+                f"{drawdown * 100:.2f}% >= {algo_config.max_drawdown_pct * 100:.2f}% — halting new trades on this account"
+            )
+            _save_risk_state()
+            return True
+
+    today = datetime.utcnow().date().isoformat()
+    if _daily_date_by_account.get(login) != today:
+        _daily_date_by_account[login] = today
+        _daily_start_equity_by_account[login] = equity
+        _daily_halted_by_account[login] = False
+
+    if algo_config.daily_loss_limit > 0:
+        start_equity = float(_daily_start_equity_by_account.get(login, equity) or equity)
+        daily_pnl = equity - start_equity
+        if daily_pnl <= -algo_config.daily_loss_limit:
+            if not _daily_halted_by_account.get(login, False):
+                logger.warning(
+                    f"[SIGNAL_FORGE] ⛔ Daily loss limit ${algo_config.daily_loss_limit:.2f} reached on "
+                    f"{acc.label} ({login}): today's PnL ${daily_pnl:.2f} — halting new trades on this account today"
+                )
+            _daily_halted_by_account[login] = True
+            _save_risk_state()
+            return True
+
+    return False
+
+
+def _any_account_tradeable() -> bool:
+    """True if at least one assigned account is below its drawdown/daily-loss limits."""
+    accounts = _assigned_accounts()
+    if not accounts:
+        return True
+    return any(not _check_drawdown_halt(acc) for acc in accounts)
+
+
+def get_risk_status(account_login: Optional[str] = None) -> dict:
+    accounts = _assigned_accounts()
+    if account_login:
+        accounts = [a for a in accounts if str(a.login) == str(account_login)]
+    target = accounts[0] if accounts else None
+
+    if target is None:
+        peak_equity = 0.0
+        equity = 0.0
+        dd_halted = False
+        daily_halted = False
+        daily_pnl = 0.0
+    else:
+        login = str(target.login)
+        equity = float(target.equity or 0.0)
+        dd_halted = _check_drawdown_halt(target)
+        peak_equity = float(_peak_equity_by_account.get(login, equity) or equity)
+        daily_halted = bool(_daily_halted_by_account.get(login, False))
+        start_equity = float(_daily_start_equity_by_account.get(login, equity) or equity)
+        daily_pnl = equity - start_equity
+
+    drawdown = (peak_equity - equity) / peak_equity if peak_equity > 0 else 0.0
+    drawdown_amount = max(peak_equity - equity, 0.0) if peak_equity > 0 else 0.0
+    max_dd_amount = (peak_equity * algo_config.max_drawdown_pct) if peak_equity > 0 else 0.0
+    remaining_dd_pct = max((algo_config.max_drawdown_pct - drawdown) * 100, 0.0)
+    dd_used_pct_of_limit = (
+        min((drawdown / algo_config.max_drawdown_pct) * 100, 100.0) if algo_config.max_drawdown_pct > 0 else 0.0
+    )
+
+    return {
+        "daily_pnl": round(daily_pnl, 2),
+        "daily_loss_limit": algo_config.daily_loss_limit,
+        "daily_halted": daily_halted,
+        "dd_halted": dd_halted,
+        "current_drawdown_pct": round(drawdown * 100, 2),
+        "current_drawdown_amount": round(drawdown_amount, 2),
+        "remaining_drawdown_pct": round(remaining_dd_pct, 2),
+        "remaining_drawdown_amount": round(max(max_dd_amount - drawdown_amount, 0.0), 2),
+        "drawdown_used_pct_of_limit": round(dd_used_pct_of_limit, 2),
+        "max_drawdown_pct": round(algo_config.max_drawdown_pct * 100, 2),
+        "max_drawdown_amount": round(max_dd_amount, 2),
+        "peak_equity": round(peak_equity, 2),
+        "equity": round(equity, 2),
+    }
+
+
+def reset_risk_halts(reset_peak_equity: bool = False, account_login: Optional[str] = None) -> dict:
+    accounts = _assigned_accounts()
+    if account_login:
+        accounts = [a for a in accounts if str(a.login) == str(account_login)]
+    for acc in accounts:
+        login = str(acc.login)
+        _dd_halted_by_account[login] = False
+        _daily_halted_by_account[login] = False
+        if reset_peak_equity:
+            _peak_equity_by_account[login] = float(acc.equity or 0.0)
+    _save_risk_state()
+    logger.info(
+        f"[SIGNAL_FORGE] Manual risk reset applied | accounts={[str(a.login) for a in accounts]} "
+        f"reset_peak_equity={reset_peak_equity}"
+    )
+    return get_risk_status(account_login)
 
 
 def _save_managed_trades() -> None:
@@ -562,6 +740,8 @@ def _scan_symbol(symbol: str) -> None:
 
     if not algo_config.enabled:
         return
+    if not _any_account_tradeable():
+        return
     if long_signal and not short_signal:
         _execute_signal(symbol, "buy", float(f["atr"]))
     elif short_signal and not long_signal:
@@ -706,6 +886,7 @@ def start_algo() -> bool:
     _running = True
     _resynced = False
     _load_managed_trades()
+    _load_risk_state()
     _thread = threading.Thread(target=_loop, daemon=True, name="SignalForgeAlgo")
     _risk_thread = threading.Thread(target=_risk_loop, daemon=True, name="SignalForgeRisk")
     _thread.start()
@@ -752,6 +933,8 @@ def update_algo_config(
     scan_interval_seconds: Optional[int] = None,
     require_all: Optional[bool] = None,
     auto_manage_trades: Optional[bool] = None,
+    max_drawdown_pct: Optional[float] = None,
+    daily_loss_limit: Optional[float] = None,
 ) -> dict:
     if symbol is not None:
         syms = _normalize_symbols(symbol)
@@ -774,5 +957,10 @@ def update_algo_config(
             f"[SIGNAL_FORGE] Auto trade management "
             f"{'ENABLED - the bot will move stops and close positions' if algo_config.auto_manage_trades else 'DISABLED - exits are manual'}"
         )
+    if max_drawdown_pct is not None:
+        parsed = float(max_drawdown_pct)
+        algo_config.max_drawdown_pct = (parsed / 100.0) if parsed > 1 else parsed
+    if daily_loss_limit is not None:
+        algo_config.daily_loss_limit = float(daily_loss_limit)
     logger.info(f"[SIGNAL_FORGE] Config updated: {algo_config}")
     return get_algo_status()
