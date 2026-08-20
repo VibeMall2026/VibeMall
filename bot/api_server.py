@@ -520,6 +520,14 @@ async def modify_position(position_id: int, body: ModifyPositionRequest):
     return result
 
 
+@app.delete("/positions/{position_id}", dependencies=[Depends(verify_api_key)])
+async def close_position(position_id: int):
+    """Close one open position immediately - called from the Trading Bot
+    Control page's Close Position action (admin-initiated, not the algo)."""
+    result = mt5_bridge.close_position(position_id)
+    return result
+
+
 @app.post("/parse-signal", dependencies=[Depends(verify_api_key)])
 async def parse_signal_endpoint(body: ParseSignalRequest):
     sig = parse_signal(body.text)

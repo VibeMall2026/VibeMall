@@ -5,28 +5,28 @@
 
 {% block extra_css %}
 <style>
-  .settings-card { background:#2b2c40; border:1px solid #3b3d52; border-radius:10px; }
-  .settings-card .card-header { background:#232333; border-bottom:1px solid #3b3d52; }
-  .section-title { font-size:.95rem; font-weight:600; color:#cdd0d6; }
-  .form-label { color:#a8aaae; font-size:.85rem; }
+  .settings-card { background:var(--vm-card); border:1px solid var(--vm-line); border-radius:10px; }
+  .settings-card .card-header { background:var(--vm-surface); border-bottom:1px solid var(--vm-line); }
+  .section-title { font-size:.95rem; font-weight:600; color:var(--vm-ink); }
+  .form-label { color:var(--vm-ink-faint); font-size:.85rem; }
   .form-control, .form-select {
-    background:#232333 !important; border:1px solid #3b3d52 !important;
-    color:#cdd0d6 !important;
+    background:var(--vm-surface) !important; border:1px solid var(--vm-line) !important;
+    color:var(--vm-ink) !important;
   }
   .form-control:focus, .form-select:focus {
-    border-color:#696cff !important; box-shadow:0 0 0 .2rem rgba(105,108,255,.25) !important;
+    border-color:var(--vm-gold) !important; box-shadow:0 0 0 .2rem rgba(111,92,55,.2) !important;
   }
-  .form-control::placeholder { color:#5a5c72; }
+  .form-control::placeholder { color:var(--vm-ink-faint); }
   .channel-tag {
     display:inline-flex; align-items:center; gap:6px;
-    background:#3b3d52; color:#cdd0d6; border-radius:20px;
+    background:var(--vm-line); color:var(--vm-ink); border-radius:20px;
     padding:4px 12px; font-size:.85rem; margin:4px;
   }
   .channel-tag button { background:none; border:none; color:#ea5455; cursor:pointer; padding:0; font-size:1rem; line-height:1; }
   .ctrl-btn { min-width:110px; }
   #parseResult {
-    background:#232333; border:1px solid #3b3d52; border-radius:8px;
-    padding:12px; color:#cdd0d6; font-family:monospace; font-size:.85rem;
+    background:var(--vm-surface); border:1px solid var(--vm-line); border-radius:8px;
+    padding:12px; color:var(--vm-ink); font-family:monospace; font-size:.85rem;
     white-space:pre-wrap; min-height:80px;
   }
   .status-dot { width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:6px; }
@@ -39,8 +39,8 @@
 <!-- Page header -->
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
   <div>
-    <h4 class="fw-bold mb-1" style="color:#cdd0d6;">
-      <i class="bx bx-cog me-2" style="color:#696cff;"></i>Bot Settings
+    <h4 class="fw-bold mb-1" style="color:var(--vm-ink);">
+      <i class="bx bx-cog me-2" style="color:var(--vm-gold);"></i>Bot Settings
     </h4>
     <p class="text-muted mb-0" style="font-size:.85rem;">Configure risk, channels, and validation parameters</p>
   </div>
@@ -51,15 +51,15 @@
 
 <!-- Status bar -->
 <div class="d-flex gap-3 mb-4 flex-wrap">
-  <span class="d-flex align-items-center" style="color:#cdd0d6;font-size:.875rem;">
+  <span class="d-flex align-items-center" style="color:var(--vm-ink);font-size:.875rem;">
     <span class="status-dot {% if bot_running %}dot-green{% else %}dot-red{% endif %}"></span>
     Bot: {% if bot_running %}Running{% else %}Stopped{% endif %}
   </span>
-  <span class="d-flex align-items-center" style="color:#cdd0d6;font-size:.875rem;">
+  <span class="d-flex align-items-center" style="color:var(--vm-ink);font-size:.875rem;">
     <span class="status-dot {% if mt5_connected %}dot-green{% else %}dot-red{% endif %}"></span>
     MT5: {% if mt5_connected %}Connected{% else %}Offline{% endif %}
   </span>
-  <span class="d-flex align-items-center" style="color:#cdd0d6;font-size:.875rem;">
+  <span class="d-flex align-items-center" style="color:var(--vm-ink);font-size:.875rem;">
     <span class="status-dot {% if telegram_connected %}dot-green{% else %}dot-red{% endif %}"></span>
     Telegram: {% if telegram_connected %}Connected{% else %}Offline{% endif %}
   </span>
@@ -163,7 +163,7 @@
               <div class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" name="allow_pending" id="allowPending"
                        {% if allow_pending %}checked{% endif %}>
-                <label class="form-check-label" for="allowPending" style="color:#cdd0d6;">Allow Pending Orders</label>
+                <label class="form-check-label" for="allowPending" style="color:var(--vm-ink);">Allow Pending Orders</label>
               </div>
             </div>
           </div>
@@ -234,7 +234,7 @@
   <div id="botToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
     <div class="d-flex">
       <div class="toast-body" id="botToastMsg">Done.</div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
     </div>
   </div>
 </div>

@@ -1,1609 +1,696 @@
-
- {% extends "admin_panel/base_admin.html" %}
 {% load static %}
-
-{% block title %}Trading Bot Dashboard{% endblock %}
-
-{% block extra_css %}
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Trading Bot Control</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "bone-background": "#FBF9F4",
+                        "secondary-fixed": "#fadfb0",
+                        "primary-fixed": "#e2e2e2",
+                        "on-secondary-container": "#75623c",
+                        "surface-container-low": "#f3f3f3",
+                        "inverse-surface": "#303030",
+                        "tertiary-container": "#1b1b1b",
+                        "inverse-primary": "#c6c6c6",
+                        "on-background": "#1b1b1b",
+                        "inverse-on-surface": "#f1f1f1",
+                        "on-primary-fixed-variant": "#474747",
+                        "on-primary-container": "#848484",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed-dim": "#c6c6c6",
+                        "on-tertiary-fixed-variant": "#474747",
+                        "tertiary-fixed": "#e2e2e2",
+                        "primary-container": "#1b1b1b",
+                        "on-secondary-fixed": "#261900",
+                        "tertiary": "#000000",
+                        "on-tertiary-container": "#848484",
+                        "on-error-container": "#93000a",
+                        "secondary": "#6f5c37",
+                        "surface-white": "#FFFFFF",
+                        "surface": "#f9f9f9",
+                        "error-container": "#ffdad6",
+                        "surface-variant": "#e2e2e2",
+                        "on-primary-fixed": "#1b1b1b",
+                        "surface-tint": "#5e5e5e",
+                        "surface-container-high": "#e8e8e8",
+                        "secondary-container": "#fadfb0",
+                        "primary": "#000000",
+                        "outline-variant": "#cfc4c5",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#e2e2e2",
+                        "background": "#f9f9f9",
+                        "on-primary": "#ffffff",
+                        "surface-container": "#eeeeee",
+                        "primary-fixed-dim": "#c6c6c6",
+                        "on-surface-variant": "#4c4546",
+                        "surface-border": "#E6E2DA",
+                        "on-surface": "#1b1b1b",
+                        "on-tertiary-fixed": "#1b1b1b",
+                        "surface-bright": "#f9f9f9",
+                        "error": "#ba1a1a",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed-variant": "#554422",
+                        "secondary-fixed-dim": "#ddc396",
+                        "on-secondary": "#ffffff",
+                        "outline": "#7e7576",
+                        "surface-dim": "#dadada"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "container-max": "1440px",
+                        "margin-desktop": "40px",
+                        "stack-md": "16px",
+                        "gutter": "24px",
+                        "stack-lg": "32px",
+                        "margin-mobile": "20px",
+                        "unit": "4px",
+                        "stack-sm": "8px"
+                    },
+                    fontFamily: {
+                        "body-main": ["Manrope"],
+                        "display-stat": ["Manrope"],
+                        "label-bold": ["Manrope"],
+                        "display-stat-sm": ["Manrope"],
+                        "headline-section": ["Manrope"],
+                        "body-secondary": ["Manrope"],
+                        "data-mono": ["Manrope"]
+                    },
+                    fontSize: {
+                        "body-main": ["14px", { lineHeight: "22px", letterSpacing: "0.01em", fontWeight: "400" }],
+                        "display-stat": ["40px", { lineHeight: "48px", letterSpacing: "-0.02em", fontWeight: "300" }],
+                        "label-bold": ["12px", { lineHeight: "16px", letterSpacing: "0.02em", fontWeight: "700" }],
+                        "display-stat-sm": ["28px", { lineHeight: "34px", letterSpacing: "-0.01em", fontWeight: "300" }],
+                        "headline-section": ["11px", { lineHeight: "16px", letterSpacing: "0.14em", fontWeight: "800" }],
+                        "body-secondary": ["13px", { lineHeight: "20px", letterSpacing: "0.01em", fontWeight: "400" }],
+                        "data-mono": ["13px", { lineHeight: "18px", letterSpacing: "0.03em", fontWeight: "500" }]
+                    }
+                }
+            }
+        }
+    </script>
 <style>
-  .status-card { border-radius: 10px; }
-  .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
-  .dot-green { background: #28c76f; box-shadow: 0 0 6px #28c76f; }
-  .dot-red   { background: #ea5455; box-shadow: 0 0 6px #ea5455; }
-  .dot-grey  { background: #a8aaae; }
-  .pnl-pos { color: #28c76f; font-weight: 600; }
-  .pnl-neg { color: #ea5455; font-weight: 600; }
-  .table-dark-custom { background: #2b2c40; color: #cdd0d6; }
-  .table-dark-custom th { background: #232333; color: #a8aaae; font-size: 0.78rem; text-transform: uppercase; letter-spacing: .5px; }
-  .table-dark-custom td { border-color: #3b3d52; vertical-align: middle; font-size: 0.875rem; }
-  .badge-buy  { background: rgba(40,199,111,.15); color: #28c76f; }
-  .badge-sell { background: rgba(234,84,85,.15);  color: #ea5455; }
-  .trade-mode-badge {
-    white-space: normal !important;
-    word-break: break-word;
-    text-transform: none !important;
-    line-height: 1.2;
-    display: inline-block;
-    max-width: 280px;
-    text-align: left;
-    vertical-align: top;
-    margin-top: 4px;
-  }
-  .section-header { font-size: 1rem; font-weight: 600; color: #cdd0d6; margin-bottom: 1rem; }
-  .ctrl-btn { min-width: 110px; }
-  .stat-label { font-size: 0.75rem; color: #a8aaae; text-transform: uppercase; letter-spacing: .5px; }
-  .stat-value { font-size: 1.4rem; font-weight: 700; color: #cdd0d6; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        [x-cloak] { display: none !important; }
+        .tabular-data { font-variant-numeric: tabular-nums; }
 </style>
-{% endblock %}
+<style>
+  .tbc-page { background: var(--bs-body-bg, #FBF9F4); }
+</style>
+</head>
+<body class="bg-bone-background text-on-surface font-body-main antialiased selection:bg-surface-border selection:text-primary min-h-screen" x-data="{
+    modalAddAccount: false,
+    modalSelectStrategy: false,
+    modalStopUntil: false,
+    modalEditSLTP: false,
+    modalClosePos: false,
+    modalConfirmStart: false,
+    modalConfirmStop: false,
+    modalConfirmRestart: false,
+    modalConfirmEmergency: false,
+    toast: { show: false, msg: '', success: true }
+}">
+<!-- TopNavBar -->
+<nav class="fixed top-0 right-0 left-[260px] h-16 bg-surface-white border-b border-surface-border flex justify-between items-center px-margin-desktop w-full z-40 hidden md:flex" style="width: calc(100% - 260px);">
+<div class="flex items-center gap-gutter">
+<span class="font-headline-section text-headline-section tracking-widest text-primary uppercase">CONTROL CENTER</span>
+</div>
+<div class="flex items-center gap-stack-md">
+<div class="w-8 h-8 rounded-full border border-surface-border overflow-hidden bg-surface-container flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">account_circle</span>
+</div>
+</div>
+</nav>
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-screen w-[260px] bg-bone-background text-primary font-body-main text-body-main border-r border-surface-border flex flex-col py-stack-lg px-margin-mobile z-50 overflow-y-auto">
+<div class="flex items-center gap-stack-sm mb-stack-lg">
+<div>
+<div class="text-headline-section font-headline-section tracking-[0.14em] uppercase text-primary">VIBEMALL</div>
+<div class="font-body-secondary text-body-secondary text-on-surface-variant">Admin Portal</div>
+</div>
+</div>
+<nav class="flex-1 flex flex-col gap-1 mt-stack-md">
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-l" href="/admin-panel/">
+<span class="material-symbols-outlined text-[20px]">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-l" href="/admin-panel/new-dashboard/">
+<span class="material-symbols-outlined text-[20px]">analytics</span>
+<span>Analyse Data</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-l" href="/admin-panel/xauusd-advisor/">
+<span class="material-symbols-outlined text-[20px]">candlestick_chart</span>
+<span>XAUUSD Trade Advisor</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-l" href="/admin-panel/main-page-products/">
+<span class="material-symbols-outlined text-[20px]">web</span>
+<span>Main Page Management</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-l" href="/admin-panel/products/">
+<span class="material-symbols-outlined text-[20px]">inventory_2</span>
+<span>Products</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-l" href="/admin-panel/orders/">
+<span class="material-symbols-outlined text-[20px]">shopping_cart</span>
+<span>Orders</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-primary font-bold border-r-2 border-primary bg-surface-container-low transition-colors rounded-l" href="/trading/">
+<span class="material-symbols-outlined text-[20px]">smart_toy</span>
+<span>Trading Bot Control</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-l" href="/trading/settings/">
+<span class="material-symbols-outlined text-[20px]">settings_applications</span>
+<span>Bot Settings</span>
+</a>
+</nav>
+<div class="mt-auto flex flex-col gap-stack-md pt-stack-lg">
+<div class="flex flex-col gap-1 border-t border-surface-border pt-stack-md">
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-l" href="{% url 'logout' %}">
+<span class="material-symbols-outlined text-[20px]">logout</span>
+<span>Logout</span>
+</a>
+</div>
+</div>
+</aside>
+<main class="ml-0 md:ml-[260px] pt-16 md:pt-16 p-margin-mobile md:p-margin-desktop min-h-screen flex flex-col gap-stack-lg max-w-full mx-auto">
 
-{% block content %}
-<!-- API Unreachable Banner -->
 {% if not api_reachable %}
-<div class="alert alert-danger d-flex align-items-start gap-3 mb-4" role="alert" style="background:#3d1f1f;border:1px solid #ea5455;border-radius:10px;">
-  <i class="bx bx-wifi-off fs-4 mt-1" style="color:#ea5455;flex-shrink:0;"></i>
-  <div>
-    <strong style="color:#ea5455;">Bot API Unreachable</strong>
-    <div style="color:#cdd0d6;font-size:.875rem;margin-top:4px;">
-      {{ api_error }}
-    </div>
-    <div style="color:#a8aaae;font-size:.8rem;margin-top:6px;">
-      <strong>Fix:</strong> Start the bot API or restore the SSH tunnel if you rely on the Windows bridge
-      (<code>{{ bot_api_url }}</code>). The bot may still be executing trades — this only affects the dashboard display.
-    </div>
-  </div>
+<div class="bg-error-container border border-error rounded p-4 flex items-start gap-3">
+<span class="material-symbols-outlined text-error mt-0.5">wifi_off</span>
+<div>
+<strong class="text-error">Bot API Unreachable</strong>
+<div class="text-on-surface-variant text-sm mt-1">{{ api_error }}</div>
+<div class="text-on-surface-variant text-xs mt-1 opacity-70">Check that the trading bot's Windows service is running and that the trading VPS (<code>{{ bot_api_url }}</code>) is reachable. The bot may still be executing trades — this only affects the dashboard display.</div>
+</div>
 </div>
 {% endif %}
 
-<!-- MT5 Accounts Section -->
-<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
-  <div class="card-header d-flex justify-content-between align-items-center" style="background:#232333;border-bottom:1px solid #3b3d52;">
-    <span class="section-header mb-0"><i class="bx bx-server me-2" style="color:#28c76f;"></i>MT5 Accounts</span>
-    <div class="d-flex gap-2">
-      <button class="btn btn-sm btn-outline-info" onclick="refreshAccounts()"><i class="bx bx-refresh me-1"></i>Refresh</button>
-      <button class="btn btn-sm btn-success" onclick="openAddAccount()"><i class="bx bx-plus me-1"></i>Add Account</button>
-    </div>
-  </div>
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-dark-custom mb-0" id="accountsTable">
-        <thead>
-          <tr>
-            <th>Label</th><th>Login</th><th>Server</th><th>Balance</th><th>Equity</th><th>Strategy</th><th>Status</th><th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="accountsBody">
-          <tr><td colspan="7" class="text-center text-muted py-3">Loading...</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+<!-- Header & Actions -->
+<header class="flex flex-col md:flex-row md:items-end justify-between gap-stack-md">
+<div>
+<h1 class="font-display-stat-sm text-display-stat-sm text-primary">Trading Bot Control</h1>
+<p class="font-body-secondary text-body-secondary text-on-surface-variant mt-1">Live monitoring &amp; control panel</p>
 </div>
-
-<!-- Strategy Edit Modal -->
-<div class="modal fade" id="strategyModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="background:#2b2c40;border:1px solid #3b3d52;color:#cdd0d6;">
-      <div class="modal-header" style="border-bottom:1px solid #3b3d52;">
-        <h5 class="modal-title"><i class="bx bx-layer me-2" style="color:#696cff;"></i>Select Strategy</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <input type="hidden" id="strategyAccountId">
-        <p style="color:#a8aaae;font-size:.85rem;">You can select multiple strategies:</p>
-        <div class="d-flex flex-column gap-2">
-          <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
-            <input type="checkbox" name="account_strategy" value="breakout" id="strat_breakout" class="form-check-input mt-1">
-            <div>
-              <div style="font-weight:600;">📈 Range Breakout Retest</div>
-              <small style="color:#a8aaae;">Breakout + trend + ATR + volume + retest confirmation</small>
-            </div>
-          </label>
-          <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
-            <input type="checkbox" name="account_strategy" value="signal_forge" id="strat_signal_forge" class="form-check-input mt-1">
-            <div>
-              <div style="font-weight:600;">✨ Signal Forge</div>
-              <small style="color:#a8aaae;">Modular multi-indicator signal engine</small>
-            </div>
-          </label>
-          <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#232333;cursor:pointer;">
-            <input type="checkbox" name="account_strategy" value="telegram_signals" id="strat_telegram_signals" class="form-check-input mt-1">
-            <div>
-              <div style="font-weight:600;">📡 Telegram Signals Only</div>
-              <small style="color:#a8aaae;">Execute trades only from Telegram channel signals</small>
-            </div>
-          </label>
-          <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#1a1a2e;cursor:not-allowed;opacity:.5;">
-            <input type="checkbox" value="ema_crossover" disabled class="form-check-input mt-1">
-            <div>
-              <div style="font-weight:600;">📈 EMA Crossover <span class="badge bg-secondary ms-1" style="font-size:.65rem;">Soon</span></div>
-              <small style="color:#a8aaae;">Classic EMA 9/21 crossover strategy</small>
-            </div>
-          </label>
-          <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#1a1a2e;cursor:not-allowed;opacity:.5;">
-            <input type="checkbox" value="rsi_reversal" disabled class="form-check-input mt-1">
-            <div>
-              <div style="font-weight:600;">🔄 RSI Reversal <span class="badge bg-secondary ms-1" style="font-size:.65rem;">Soon</span></div>
-              <small style="color:#a8aaae;">RSI overbought/oversold reversal</small>
-            </div>
-          </label>
-          <label class="d-flex align-items-start gap-2 p-2 rounded" style="background:#1a1a2e;cursor:not-allowed;opacity:.5;">
-            <input type="checkbox" value="bollinger_breakout" disabled class="form-check-input mt-1">
-            <div>
-              <div style="font-weight:600;">📊 Bollinger Breakout <span class="badge bg-secondary ms-1" style="font-size:.65rem;">Soon</span></div>
-              <small style="color:#a8aaae;">Bollinger Band breakout strategy</small>
-            </div>
-          </label>
-        </div>
-        <div class="mt-3">
-          <label class="form-label" style="color:#a8aaae;">Only Trade (Pairs)</label>
-          <div class="p-2 rounded" style="background:#232333;border:1px solid #3b3d52;">
-            <div class="d-flex flex-wrap gap-3 align-items-center">
-              <label class="d-flex align-items-center gap-2 mb-0" style="cursor:pointer;">
-                <input type="radio" name="editOnlyTradeMode" id="editOnlyTradeAll" class="form-check-input" checked>
-                <span>All pairs</span>
-              </label>
-              <label class="d-flex align-items-center gap-2 mb-0" style="cursor:pointer;">
-                <input type="radio" name="editOnlyTradeMode" id="editOnlyTradeSelected" class="form-check-input">
-                <span>Selected pairs</span>
-              </label>
-              <button type="button" class="btn btn-sm btn-outline-info ms-auto" onclick="loadMarketwatchSymbolsForEdit(this)">
-                <i class="bx bx-download me-1"></i>Load MarketWatch
-              </button>
-            </div>
-            <div id="editOnlyTradeSelectedWrap" style="display:none;margin-top:10px;">
-              <input type="text" id="editSymbolSearch" class="form-control form-control-sm mb-2"
-                     style="background:#1f2030;border:1px solid #3b3d52;color:#cdd0d6;"
-                     placeholder="Search symbol..." oninput="filterSymbolsEdit()" />
-              <div id="editSymbolsList"
-                   style="max-height:160px;overflow:auto;border:1px solid #3b3d52;border-radius:10px;padding:8px;background:#1f2030;">
-                <div class="text-muted" style="font-size:.85rem;">Load MarketWatch symbols first</div>
-              </div>
-              <small style="color:#a8aaae;display:block;margin-top:6px;">Clear the current selection and choose new ones</small>
-            </div>
-          </div>
-        </div>
-        <div id="strategyResult" class="mt-2" style="display:none;"></div>
-      </div>
-      <div class="modal-footer" style="border-top:1px solid #3b3d52;">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary" onclick="saveStrategies()"><i class="bx bx-save me-1"></i>Save</button>
-      </div>
-    </div>
-  </div>
+<div class="flex flex-wrap items-center gap-unit">
+<button @click="modalConfirmStart = true" class="h-9 px-4 bg-primary text-surface-white font-label-bold text-label-bold uppercase tracking-wider rounded hover:bg-inverse-surface transition-colors">Start Bot</button>
+<button @click="modalConfirmStop = true" class="h-9 px-4 bg-surface-white border border-surface-border text-primary font-label-bold text-label-bold uppercase tracking-wider rounded hover:bg-surface-container-low transition-colors">Stop Bot</button>
+<button @click="modalConfirmRestart = true" class="h-9 px-4 bg-surface-white border border-surface-border text-primary font-label-bold text-label-bold uppercase tracking-wider rounded hover:bg-surface-container-low transition-colors">Restart</button>
+<button @click="modalConfirmEmergency = true" class="h-9 px-4 bg-surface-white border border-surface-border text-primary font-label-bold text-label-bold uppercase tracking-wider rounded hover:bg-surface-container-low transition-colors">Weekend Shutdown</button>
+<a href="/trading/algo/" class="h-9 px-4 bg-surface-white border border-surface-border text-primary font-label-bold text-label-bold uppercase tracking-wider rounded hover:bg-surface-container-low transition-colors flex items-center">Algo</a>
 </div>
+</header>
 
-<!-- Add Account Modal -->
-<div class="modal fade" id="addAccountModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="background:#2b2c40;border:1px solid #3b3d52;color:#cdd0d6;">
-      <div class="modal-header" style="border-bottom:1px solid #3b3d52;">
-        <h5 class="modal-title"><i class="bx bx-plus-circle me-2" style="color:#28c76f;"></i>Add MT5 Account</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div class="mb-3">
-          <label class="form-label" style="color:#a8aaae;">Label (Display Name)</label>
-          <input type="text" id="accLabel" class="form-control" style="background:#232333;border:1px solid #3b3d52;color:#cdd0d6;" placeholder="e.g. Demo Account 2">
-        </div>
-        <div class="mb-3">
-          <label class="form-label" style="color:#a8aaae;">MT5 Login</label>
-          <input type="number" id="accLogin" class="form-control" style="background:#232333;border:1px solid #3b3d52;color:#cdd0d6;" placeholder="12345678">
-        </div>
-        <div class="mb-3">
-          <label class="form-label" style="color:#a8aaae;">Password</label>
-          <input type="password" id="accPassword" class="form-control" style="background:#232333;border:1px solid #3b3d52;color:#cdd0d6;" placeholder="MT5 password">
-        </div>
-        <div class="mb-3">
-          <label class="form-label" style="color:#a8aaae;">Server</label>
-          <input type="text" id="accServer" class="form-control" style="background:#232333;border:1px solid #3b3d52;color:#cdd0d6;" placeholder="e.g. MetaQuotes-Demo">
-        </div>
-        <div class="mb-3">
-          <label class="form-label" style="color:#a8aaae;">Trading Strategy (multi-select)</label>
-          <div class="d-flex flex-column gap-2 p-2 rounded" style="background:#232333;border:1px solid #3b3d52;">
-            <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
-              <input type="checkbox" value="breakout" id="newAccStrat_breakout" class="form-check-input">
-              <span>📈 Range Breakout Retest</span>
-            </label>
-            <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
-              <input type="checkbox" value="signal_forge" id="newAccStrat_signal_forge" class="form-check-input" checked>
-              <span>✨ Signal Forge</span>
-            </label>
-            <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
-              <input type="checkbox" value="telegram_signals" id="newAccStrat_telegram_signals" class="form-check-input">
-              <span>📡 Telegram Signals Only</span>
-            </label>
-          </div>
-          <small style="color:#a8aaae;">You can select multiple strategies</small>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label" style="color:#a8aaae;">Only Trade (Pairs)</label>
-          <div class="p-2 rounded" style="background:#232333;border:1px solid #3b3d52;">
-            <div class="d-flex flex-wrap gap-3 align-items-center">
-              <label class="d-flex align-items-center gap-2 mb-0" style="cursor:pointer;">
-                <input type="radio" name="onlyTradeMode" id="onlyTradeAll" class="form-check-input" checked>
-                <span>All pairs</span>
-              </label>
-              <label class="d-flex align-items-center gap-2 mb-0" style="cursor:pointer;">
-                <input type="radio" name="onlyTradeMode" id="onlyTradeSelected" class="form-check-input">
-                <span>Selected pairs</span>
-              </label>
-              <button type="button" class="btn btn-sm btn-outline-info ms-auto" onclick="loadMarketwatchSymbols(this)">
-                <i class="bx bx-download me-1"></i>Load MarketWatch
-              </button>
-            </div>
-            <div id="onlyTradeSelectedWrap" style="display:none;margin-top:10px;">
-              <input type="text" id="symbolSearch" class="form-control form-control-sm mb-2"
-                     style="background:#1f2030;border:1px solid #3b3d52;color:#cdd0d6;"
-                     placeholder="Search symbol (e.g. EURUSD, XAUUSD)..." oninput="filterSymbols()" />
-              <div id="symbolsList"
-                   style="max-height:160px;overflow:auto;border:1px solid #3b3d52;border-radius:10px;padding:8px;background:#1f2030;">
-                <div class="text-muted" style="font-size:.85rem;">Load MarketWatch symbols first</div>
-              </div>
-              <small style="color:#a8aaae;display:block;margin-top:6px;">Multiple select supported</small>
-            </div>
-          </div>
-        </div>
-        <div id="addAccountResult" class="mt-2" style="display:none;"></div>
-      </div>
-      <div class="modal-footer" style="border-top:1px solid #3b3d52;">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-success" onclick="submitAddAccount()"><i class="bx bx-save me-1"></i>Add Account</button>
-      </div>
-    </div>
-  </div>
+<!-- Status Area (Bento Grid) -->
+<section class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-unit">
+<div class="bg-surface-white border border-surface-border p-3 rounded flex flex-col gap-1 justify-between h-[80px]">
+<span class="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-wider">Bot Status</span>
+<span class="font-data-mono text-data-mono text-primary flex items-center gap-2">
+<span class="w-2 h-2 rounded-full {% if bot_running %}bg-green-500{% else %}bg-red-500{% endif %} block"></span> {% if bot_running %}Running{% else %}Stopped{% endif %}
+</span>
 </div>
-
-<!-- Trade Mode (Stop Until) Modal -->
-<div class="modal fade" id="tradeModeModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="background:#2b2c40;border:1px solid #3b3d52;color:#cdd0d6;">
-      <div class="modal-header" style="border-bottom:1px solid #3b3d52;">
-        <h5 class="modal-title"><i class="bx bx-pause-circle me-2" style="color:#ff9f43;"></i>Stop Until</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <input type="hidden" id="tradeModeLogin">
-        <div style="color:#a8aaae;font-size:.85rem;margin-bottom:10px;" id="tradeModeInfo"></div>
-        <input id="tradeModeUntilInput" type="datetime-local" class="form-control"
-               style="background:#232333;border:1px solid #3b3d52;color:#cdd0d6;" />
-        <div id="tradeModeResult" class="mt-2" style="display:none;"></div>
-      </div>
-      <div class="modal-footer" style="border-top:1px solid #3b3d52;">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-warning" onclick="submitStopUntil()">
-          <i class="bx bx-timer me-1"></i>Stop Until
-        </button>
-      </div>
-    </div>
-  </div>
+<div class="bg-surface-white border border-surface-border p-3 rounded flex flex-col gap-1 justify-between h-[80px]">
+<span class="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-wider">MT5</span>
+<span class="font-data-mono text-data-mono text-primary flex items-center gap-2">
+<span class="w-2 h-2 rounded-full {% if mt5_connected %}bg-green-500{% else %}bg-red-500{% endif %} block"></span> {% if mt5_connected %}Connected{% else %}Offline{% endif %}
+</span>
 </div>
+<div class="bg-surface-white border border-surface-border p-3 rounded flex flex-col gap-1 justify-between h-[80px]">
+<span class="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-wider">Telegram</span>
+<span class="font-data-mono text-data-mono text-primary flex items-center gap-2">
+<span class="w-2 h-2 rounded-full {% if telegram_connected %}bg-green-500{% else %}bg-red-500{% endif %} block"></span> {% if telegram_connected %}Connected{% else %}Offline{% endif %}
+</span>
+</div>
+<div class="bg-surface-white border border-surface-border p-3 rounded flex flex-col gap-1 justify-between h-[80px]">
+<span class="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-wider">Open Pos.</span>
+<span class="font-data-mono text-data-mono text-primary tabular-data">{{ open_positions }}</span>
+</div>
+<div class="bg-surface-white border border-surface-border p-3 rounded flex flex-col gap-1 justify-between h-[80px]">
+<span class="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-wider">Balance</span>
+<span class="font-data-mono text-data-mono text-primary tabular-data">{{ currency }} {{ balance|floatformat:2 }}</span>
+</div>
+<div class="bg-surface-white border border-surface-border p-3 rounded flex flex-col gap-1 justify-between h-[80px]">
+<span class="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-wider">Equity</span>
+<span class="font-data-mono text-data-mono text-primary tabular-data">{{ currency }} {{ equity|floatformat:2 }}</span>
+</div>
+<div class="bg-surface-white border border-surface-border p-3 rounded flex flex-col gap-1 justify-between h-[80px]">
+<span class="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-wider">Free Margin</span>
+<span class="font-data-mono text-data-mono text-primary tabular-data">{{ currency }} {{ free_margin|floatformat:2 }}</span>
+</div>
+<div class="bg-surface-white border border-surface-border p-3 rounded flex flex-col gap-1 justify-between h-[80px]">
+<span class="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-wider">Signals</span>
+<span class="font-data-mono text-data-mono text-primary tabular-data">{{ signals_processed }}</span>
+</div>
+</section>
+
+<!-- Performance Area -->
+<section class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-unit">
+<div class="bg-surface-white border border-surface-border p-stack-md rounded flex flex-col items-center justify-center text-center gap-2 h-[120px]">
+<span class="font-headline-section text-headline-section text-on-surface-variant uppercase tracking-widest">Wins</span>
+<span class="font-display-stat-sm text-display-stat-sm text-green-600 tabular-data">{{ wins }}</span>
+</div>
+<div class="bg-surface-white border border-surface-border p-stack-md rounded flex flex-col items-center justify-center text-center gap-2 h-[120px]">
+<span class="font-headline-section text-headline-section text-on-surface-variant uppercase tracking-widest">Losses</span>
+<span class="font-display-stat-sm text-display-stat-sm text-error tabular-data">{{ losses }}</span>
+</div>
+<div class="bg-surface-white border border-surface-border p-stack-md rounded flex flex-col items-center justify-center text-center gap-2 h-[120px]">
+<span class="font-headline-section text-headline-section text-on-surface-variant uppercase tracking-widest">Total Trades</span>
+<span class="font-display-stat-sm text-display-stat-sm text-primary tabular-data">{{ total_trades }}</span>
+</div>
+<div class="bg-surface-white border border-surface-border p-stack-md rounded flex flex-col items-center justify-center text-center gap-2 h-[120px]">
+<span class="font-headline-section text-headline-section text-on-surface-variant uppercase tracking-widest">Today PnL</span>
+<span class="font-display-stat-sm text-display-stat-sm tabular-data {% if today_net_pnl >= 0 %}text-green-600{% else %}text-error{% endif %}">{% if today_net_pnl >= 0 %}+{% endif %}{{ today_net_pnl|floatformat:2 }}</span>
+</div>
+<div class="bg-surface-white border border-surface-border p-stack-md rounded flex flex-col items-center justify-center text-center gap-2 h-[120px]">
+<span class="font-headline-section text-headline-section text-on-surface-variant uppercase tracking-widest">Win Rate</span>
+<span class="font-display-stat-sm text-display-stat-sm text-primary tabular-data">{{ win_rate|floatformat:1 }}%</span>
+</div>
+<div class="bg-surface-white border border-surface-border p-stack-md rounded flex flex-col items-center justify-center text-center gap-2 h-[120px]">
+<span class="font-headline-section text-headline-section text-on-surface-variant uppercase tracking-widest">Total PnL</span>
+<span class="font-display-stat-sm text-display-stat-sm tabular-data {% if total_pnl >= 0 %}text-green-600{% else %}text-error{% endif %}">{% if total_pnl >= 0 %}+{% endif %}{{ total_pnl|floatformat:2 }}</span>
+</div>
+</section>
 
 <!-- Strategy Dashboards -->
-<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
-  <div class="card-header d-flex justify-content-between align-items-center" style="background:#232333;border-bottom:1px solid #3b3d52;">
-    <span class="section-header mb-0"><i class="bx bx-layer me-2" style="color:#696cff;"></i>Strategy Dashboards</span>
-    <small style="color:#a8aaae;">Click a strategy to view its dedicated dashboard</small>
-  </div>
-  <div class="card-body">
-    <div id="strategyButtonsContainer">
-      <span class="text-muted" style="font-size:.85rem;">Loading strategies...</span>
-    </div>
-  </div>
-</div>
+<section class="flex flex-wrap gap-unit" id="strategyButtonsContainer">
+<span class="text-on-surface-variant text-sm">Loading strategies...</span>
+</section>
 
-<!-- Page header -->
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-  <div>
-    <h4 class="fw-bold mb-1" style="color:#cdd0d6;">
-      <i class="bx bx-line-chart me-2" style="color:#696cff;"></i>Trading Bot Dashboard
-    </h4>
-    <p class="text-muted mb-0" style="font-size:.85rem;">Live monitoring &amp; control panel</p>
-  </div>
-  <div class="d-flex gap-2 flex-wrap">
-    <button class="btn btn-success ctrl-btn" onclick="botAction('start')"><i class="bx bx-play me-1"></i>Start Bot</button>
-    <button class="btn btn-danger ctrl-btn"  onclick="botAction('stop')"><i class="bx bx-stop me-1"></i>Stop Bot</button>
-    <button class="btn btn-warning ctrl-btn" onclick="botAction('restart')"><i class="bx bx-refresh me-1"></i>Restart</button>
-    <button class="btn btn-secondary ctrl-btn" onclick="weekendShutdown()"><i class="bx bx-moon me-1"></i>Weekend</button>
-    <a href="/trading/settings/" class="btn btn-outline-primary ctrl-btn"><i class="bx bx-cog me-1"></i>Settings</a>
-    <a href="/trading/algo/" class="btn btn-outline-info ctrl-btn"><i class="bx bx-bot me-1"></i>Algo</a>
-  </div>
+<!-- MT5 Accounts Table -->
+<section class="bg-surface-white border border-surface-border rounded overflow-hidden">
+<div class="px-4 py-3 border-b border-surface-border flex justify-between items-center bg-surface-container-lowest">
+<h2 class="font-headline-section text-headline-section uppercase tracking-widest text-primary">MT5 Accounts</h2>
+<div class="flex items-center gap-2">
+<button onclick="refreshAccounts()" class="w-8 h-8 flex items-center justify-center rounded border border-surface-border text-on-surface-variant hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-[18px]">refresh</span>
+</button>
+<button @click="openAddAccount()" class="h-8 px-3 bg-primary text-surface-white font-label-bold text-label-bold uppercase tracking-wider rounded hover:bg-inverse-surface transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">add</span> Add Account
+</button>
 </div>
-
-<!-- Status Cards Row -->
-<div class="row g-3 mb-4">
-  <!-- Bot Running -->
-  <div class="col-6 col-md-3 col-xl-3">
-    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
-      <div class="card-body py-3">
-        <div class="stat-label mb-1">Bot Status</div>
-        <div class="d-flex align-items-center">
-          <span class="status-dot {% if bot_running %}dot-green{% else %}dot-red{% endif %}"></span>
-          <span class="stat-value" style="font-size:1rem;">{% if bot_running %}Running{% else %}Stopped{% endif %}</span>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- MT5 -->
-  <div class="col-6 col-md-3 col-xl-3">
-    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
-      <div class="card-body py-3">
-        <div class="stat-label mb-1">MT5</div>
-        <div class="d-flex align-items-center">
-          <span class="status-dot {% if mt5_connected %}dot-green{% else %}dot-red{% endif %}"></span>
-          <span class="stat-value" style="font-size:1rem;">{% if mt5_connected %}Connected{% else %}Offline{% endif %}</span>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- Telegram -->
-  <div class="col-6 col-md-3 col-xl-3">
-    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
-      <div class="card-body py-3">
-        <div class="stat-label mb-1">Telegram</div>
-        <div class="d-flex align-items-center">
-          <span class="status-dot {% if telegram_connected %}dot-green{% else %}dot-red{% endif %}"></span>
-          <span class="stat-value" style="font-size:1rem;">{% if telegram_connected %}Connected{% else %}Offline{% endif %}</span>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- Open Positions -->
-  <div class="col-6 col-md-3 col-xl-3">
-    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
-      <div class="card-body py-3">
-        <div class="stat-label mb-1">Open Positions</div>
-        <div class="stat-value">{{ open_positions }}</div>
-      </div>
-    </div>
-  </div>
-  <!-- Balance -->
-  <div class="col-6 col-md-3 col-xl-3">
-    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
-      <div class="card-body py-3">
-        <div class="stat-label mb-1">Balance</div>
-        <div class="stat-value">{{ currency }} {{ balance|floatformat:2 }}</div>
-      </div>
-    </div>
-  </div>
-  <!-- Equity -->
-  <div class="col-6 col-md-3 col-xl-3">
-    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
-      <div class="card-body py-3">
-        <div class="stat-label mb-1">Equity</div>
-        <div class="stat-value">{{ currency }} {{ equity|floatformat:2 }}</div>
-      </div>
-    </div>
-  </div>
-  <!-- Free Margin -->
-  <div class="col-6 col-md-3 col-xl-3">
-    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
-      <div class="card-body py-3">
-        <div class="stat-label mb-1">Free Margin</div>
-        <div class="stat-value">{{ currency }} {{ free_margin|floatformat:2 }}</div>
-      </div>
-    </div>
-  </div>
-  <!-- Signals Processed -->
-  <div class="col-6 col-md-3 col-xl-3">
-    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
-      <div class="card-body py-3">
-        <div class="stat-label mb-1">Signals Processed</div>
-        <div class="stat-value">{{ signals_processed }}</div>
-      </div>
-    </div>
-  </div>
 </div>
-
-<!-- Today Stats Row -->
-<div class="row g-3 mb-4">
-  <div class="col-6 col-md-2">
-    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
-      <div class="card-body py-3 text-center">
-        <div class="stat-label mb-1">Wins</div>
-        <div class="stat-value pnl-pos">{{ wins }}</div>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-md-2">
-    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
-      <div class="card-body py-3 text-center">
-        <div class="stat-label mb-1">Losses</div>
-        <div class="stat-value pnl-neg">{{ losses }}</div>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-md-2">
-    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
-      <div class="card-body py-3 text-center">
-        <div class="stat-label mb-1">Total Trades</div>
-        <div class="stat-value">{{ total_trades }}</div>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-md-2">
-    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
-      <div class="card-body py-3 text-center">
-        <div class="stat-label mb-1">Today PnL</div>
-        <div class="stat-value {% if today_net_pnl >= 0 %}pnl-pos{% else %}pnl-neg{% endif %}">
-          {{ today_net_pnl|floatformat:2 }}
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-md-2">
-    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
-      <div class="card-body py-3 text-center">
-        <div class="stat-label mb-1">Win Rate</div>
-        <div class="stat-value">{{ win_rate|floatformat:1 }}%</div>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-md-2">
-    <div class="card status-card h-100" style="background:#2b2c40;border:1px solid #3b3d52;">
-      <div class="card-body py-3 text-center">
-        <div class="stat-label mb-1">Total PnL</div>
-        <div class="stat-value {% if total_pnl >= 0 %}pnl-pos{% else %}pnl-neg{% endif %}">
-          {{ total_pnl|floatformat:2 }}
-        </div>
-      </div>
-    </div>
-  </div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-surface-border bg-bone-background font-headline-section text-headline-section text-on-surface-variant tracking-wider uppercase">
+<th class="px-4 py-3 font-normal">Label</th>
+<th class="px-4 py-3 font-normal">Login</th>
+<th class="px-4 py-3 font-normal">Server</th>
+<th class="px-4 py-3 font-normal text-right">Balance</th>
+<th class="px-4 py-3 font-normal text-right">Equity</th>
+<th class="px-4 py-3 font-normal">Strategy</th>
+<th class="px-4 py-3 font-normal text-center">Status</th>
+<th class="px-4 py-3 font-normal text-center">Action</th>
+</tr>
+</thead>
+<tbody class="font-data-mono text-data-mono" id="accountsBody">
+<tr><td colspan="8" class="text-center text-on-surface-variant py-4">Loading...</td></tr>
+</tbody>
+</table>
 </div>
+</section>
 
 <!-- Open Trades Table -->
-<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
-  <div class="card-header d-flex justify-content-between align-items-center" style="background:#232333;border-bottom:1px solid #3b3d52;">
-    <span class="section-header mb-0"><i class="bx bx-trending-up me-2" style="color:#28c76f;"></i>Open Trades</span>
-    <span class="badge bg-label-success">{{ open_trades|length }}</span>
-  </div>
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-dark-custom mb-0">
-        <thead>
-          <tr>
-            <th>Symbol</th><th>Side</th><th>Volume</th><th>Entry</th>
-            <th>SL</th><th>TP</th><th>Risk</th><th>R:R</th><th>Opened</th><th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for t in open_trades %}
-          <tr>
-            <td><strong>{{ t.symbol|default:"-" }}</strong></td>
-            <td>
-              <span class="badge {% if t.side|lower == 'buy' %}badge-buy{% else %}badge-sell{% endif %}">
-                {{ t.side|upper|default:"-" }}
-              </span>
-            </td>
-            <td>{{ t.volume|default:"-" }}</td>
-            <td>{{ t.entry|default:"-" }}</td>
-            <td>{{ t.sl|default:"-" }}</td>
-            <td>{{ t.tp|default:"-" }}</td>
-            <td>{{ t.risk|default:"-" }}</td>
-            <td>{{ t.rr|default:"-" }}</td>
-            <td style="font-size:.8rem;">{{ t.opened|default:"-" }}</td>
-            <td>
-              <button class="btn btn-sm btn-outline-warning"
-                onclick="openModify({{ t.id|default:0 }}, '{{ t.sl|default:'' }}', '{{ t.tp|default:'' }}')">
-                Edit SL/TP
-              </button>
-            </td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="10" class="text-center text-muted py-4">No open trades</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
+<section class="bg-surface-white border border-surface-border rounded overflow-hidden">
+<div class="px-4 py-3 border-b border-surface-border flex justify-between items-center bg-surface-container-lowest">
+<h2 class="font-headline-section text-headline-section uppercase tracking-widest text-primary">Open Trades</h2>
+<span class="px-2 py-1 text-[10px] bg-surface-container-low rounded border border-surface-border">{{ open_trades|length }}</span>
 </div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse whitespace-nowrap">
+<thead>
+<tr class="border-b border-surface-border bg-bone-background font-headline-section text-headline-section text-on-surface-variant tracking-wider uppercase">
+<th class="px-4 py-3 font-normal">Symbol</th>
+<th class="px-4 py-3 font-normal">Side</th>
+<th class="px-4 py-3 font-normal text-right">Volume</th>
+<th class="px-4 py-3 font-normal text-right">Entry</th>
+<th class="px-4 py-3 font-normal text-right">SL</th>
+<th class="px-4 py-3 font-normal text-right">TP</th>
+<th class="px-4 py-3 font-normal text-right">Risk</th>
+<th class="px-4 py-3 font-normal text-right">R:R</th>
+<th class="px-4 py-3 font-normal">Opened</th>
+<th class="px-4 py-3 font-normal text-center">Action</th>
+</tr>
+</thead>
+<tbody class="font-data-mono text-data-mono">
+{% for t in open_trades %}
+<tr class="border-b border-surface-border hover:bg-surface-container-low transition-colors">
+<td class="px-4 py-3 font-bold">{{ t.symbol|default:"-" }}</td>
+<td class="px-4 py-3 {% if t.side|lower == 'buy' %}text-blue-600{% else %}text-red-600{% endif %}">{{ t.side|upper|default:"-" }}</td>
+<td class="px-4 py-3 text-right">{{ t.volume|default:"-" }}</td>
+<td class="px-4 py-3 text-right">{{ t.entry|default:"-" }}</td>
+<td class="px-4 py-3 text-right text-error">{{ t.sl|default:"-" }}</td>
+<td class="px-4 py-3 text-right text-green-600">{{ t.tp|default:"-" }}</td>
+<td class="px-4 py-3 text-right">{{ t.risk|default:"-" }}</td>
+<td class="px-4 py-3 text-right">{{ t.rr|default:"-" }}</td>
+<td class="px-4 py-3 text-on-surface-variant">{{ t.opened|default:"-" }}</td>
+<td class="px-4 py-3 flex justify-center gap-2">
+<button onclick="openModify('{{ t.id|default:0 }}', '{{ t.sl|default:'' }}', '{{ t.tp|default:'' }}')" class="text-on-surface-variant hover:text-primary transition-colors text-[11px] uppercase tracking-wider font-bold">Edit</button>
+<button onclick="openClosePosition('{{ t.id|default:0 }}', '{{ t.symbol|default:'' }}', '{{ t.side|default:'' }}', '{{ t.pnl|default:'0' }}')" class="text-on-surface-variant hover:text-error transition-colors text-[11px] uppercase tracking-wider font-bold">Close</button>
+</td>
+</tr>
+{% empty %}
+<tr><td colspan="10" class="text-center text-on-surface-variant py-6">No open trades</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</section>
 
+<!-- Two Column Split for Recent Data -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-stack-lg">
 <!-- Recent Trades Table -->
-<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
-  <div class="card-header d-flex justify-content-between align-items-center" style="background:#232333;border-bottom:1px solid #3b3d52;">
-    <span class="section-header mb-0"><i class="bx bx-history me-2" style="color:#696cff;"></i>Recent Trades</span>
-    <span class="badge bg-label-primary">{{ recent_trades|length }}</span>
-  </div>
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-dark-custom mb-0">
-        <thead>
-          <tr>
-            <th>Symbol</th><th>Side</th><th>Volume</th><th>Entry</th>
-            <th>SL</th><th>TP</th><th>R:R</th><th>PnL</th><th>Status</th><th>Channel</th><th>Opened</th><th>Detail</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for t in recent_trades %}
-          <tr>
-            <td><strong>{{ t.symbol|default:"-" }}</strong></td>
-            <td>
-              <span class="badge {% if t.side|lower == 'buy' %}badge-buy{% else %}badge-sell{% endif %}">
-                {{ t.side|upper|default:"-" }}
-              </span>
-            </td>
-            <td>{{ t.volume|default:"-" }}</td>
-            <td>{{ t.entry|default:"-" }}</td>
-            <td>{{ t.sl|default:"-" }}</td>
-            <td>{{ t.tp|default:"-" }}</td>
-            <td>{{ t.rr|default:"-" }}</td>
-            <td class="{% if t.pnl > 0 %}pnl-pos{% elif t.pnl < 0 %}pnl-neg{% endif %}">
-              {{ t.pnl|default:"-" }}
-            </td>
-            <td>
-              <span class="badge bg-label-{% if t.status == 'win' %}success{% elif t.status == 'loss' %}danger{% else %}secondary{% endif %}">
-                {{ t.status|default:"-" }}
-              </span>
-            </td>
-            <td style="font-size:.8rem;">
-              {% if t.source == 'ALGO' %}
-                <span class="badge" style="background:rgba(105,108,255,.15);color:#696cff;">⚡ Algo</span>
-              {% else %}
-                {{ t.channel|default:"-" }}
-              {% endif %}
-            </td>
-            <td style="font-size:.8rem;">{{ t.opened|default:"-" }}</td>
-            <td>
-              {% if t.ticket %}
-              <button class="btn btn-sm btn-outline-info" onclick="showTradeDetail({{ t.ticket }})">
-                <i class="bx bx-info-circle"></i>
-              </button>
-              {% else %}-{% endif %}
-            </td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="12" class="text-center text-muted py-4">No recent trades</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
+<section class="bg-surface-white border border-surface-border rounded overflow-hidden h-full flex flex-col">
+<div class="px-4 py-3 border-b border-surface-border bg-surface-container-lowest flex justify-between items-center">
+<h2 class="font-headline-section text-headline-section uppercase tracking-widest text-primary">Recent Trades History</h2>
+<span class="px-2 py-1 text-[10px] bg-surface-container-low rounded border border-surface-border">{{ recent_trades|length }}</span>
 </div>
-
-<!-- Trade Detail Modal -->
-<div class="modal fade" id="tradeDetailModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content" style="background:#2b2c40;border:1px solid #3b3d52;color:#cdd0d6;">
-      <div class="modal-header" style="border-bottom:1px solid #3b3d52;">
-        <h5 class="modal-title"><i class="bx bx-analyse me-2" style="color:#696cff;"></i>Trade Summary</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body" id="tradeDetailBody">
-        <div class="text-center py-4"><div class="spinner-border text-primary"></div></div>
-      </div>
-    </div>
-  </div>
+<div class="overflow-x-auto flex-1">
+<table class="w-full text-left border-collapse whitespace-nowrap">
+<thead>
+<tr class="border-b border-surface-border bg-bone-background font-headline-section text-headline-section text-on-surface-variant tracking-wider uppercase">
+<th class="px-4 py-3 font-normal">Symbol</th>
+<th class="px-4 py-3 font-normal">Side</th>
+<th class="px-4 py-3 font-normal text-right">PnL</th>
+<th class="px-4 py-3 font-normal text-center">Status</th>
+<th class="px-4 py-3 font-normal">Channel</th>
+<th class="px-4 py-3 font-normal text-center">Detail</th>
+</tr>
+</thead>
+<tbody class="font-data-mono text-data-mono">
+{% for t in recent_trades %}
+<tr class="border-b border-surface-border hover:bg-surface-container-low transition-colors">
+<td class="px-4 py-3">{{ t.symbol|default:"-" }}</td>
+<td class="px-4 py-3 {% if t.side|lower == 'buy' %}text-blue-600{% else %}text-red-600{% endif %}">{{ t.side|upper|default:"-" }}</td>
+<td class="px-4 py-3 text-right {% if t.pnl >= 0 %}text-green-600{% else %}text-error{% endif %}">{% if t.pnl >= 0 %}+{% endif %}{{ t.pnl|default:"-" }}</td>
+<td class="px-4 py-3 text-center"><span class="px-2 py-1 text-[10px] bg-surface-container-low border border-surface-border rounded">{{ t.status|default:"-" }}</span></td>
+<td class="px-4 py-3 text-on-surface-variant text-[11px]">{{ t.channel|default:"-" }}</td>
+<td class="px-4 py-3 text-center">
+-
+</td>
+</tr>
+{% empty %}
+<tr><td colspan="6" class="text-center text-on-surface-variant py-6">No recent trades</td></tr>
+{% endfor %}
+</tbody>
+</table>
 </div>
-
-<!-- Channel Messages Table -->
-<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
-  <div class="card-header d-flex justify-content-between align-items-center" style="background:#232333;border-bottom:1px solid #3b3d52;">
-    <span class="section-header mb-0"><i class="bx bx-message-dots me-2" style="color:#ff9f43;"></i>Channel Messages</span>
-    <span class="badge bg-label-warning">{{ channel_messages|length }}</span>
-  </div>
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-dark-custom mb-0">
-        <thead>
-          <tr>
-            <th>Channel</th><th>Message</th><th>Time</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for m in channel_messages %}
-          <tr>
-            <td><span class="badge" style="background:rgba(105,108,255,.15);color:#696cff;">{{ m.channel|default:"-" }}</span></td>
-            <td style="font-size:.8rem;max-width:400px;white-space:pre-wrap;word-break:break-word;">{{ m.text|default:"-" }}</td>
-            <td style="font-size:.8rem;white-space:nowrap;">{{ m.time|default:"-" }}</td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="3" class="text-center text-muted py-4">No messages yet</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-<!-- Channel Messages Table -->
-<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
-  <div class="card-header d-flex justify-content-between align-items-center" style="background:#232333;border-bottom:1px solid #3b3d52;">
-    <span class="section-header mb-0"><i class="bx bxl-telegram me-2" style="color:#29b6f6;"></i>Channel Messages</span>
-    <span class="badge bg-label-info">{{ channel_messages|length }}</span>
-  </div>
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-dark-custom mb-0">
-        <thead>
-          <tr>
-            <th style="width:130px;">Channel</th>
-            <th style="width:140px;">Time</th>
-            <th>Message</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for m in channel_messages %}
-          <tr>
-            <td>
-              <span class="badge" style="background:rgba(41,182,246,.15);color:#29b6f6;">{{ m.channel|default:"-" }}</span>
-            </td>
-            <td style="font-size:.8rem;color:#a8aaae;">{{ m.time|default:"-" }}</td>
-            <td style="font-size:.82rem;white-space:pre-wrap;max-width:600px;word-break:break-word;">{{ m.text|default:"-" }}</td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="3" class="text-center text-muted py-4">No messages received yet</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
+</section>
 <!-- Recent Signals Table -->
-<div class="card mb-4" style="background:#2b2c40;border:1px solid #3b3d52;">
-  <div class="card-header d-flex justify-content-between align-items-center" style="background:#232333;border-bottom:1px solid #3b3d52;">
-    <span class="section-header mb-0"><i class="bx bx-signal-5 me-2" style="color:#ff9f43;"></i>Recent Signals</span>
-    <span class="badge bg-label-warning">{{ recent_signals|length }}</span>
-  </div>
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-dark-custom mb-0">
-        <thead>
-          <tr>
-            <th>Symbol</th><th>Side</th><th>SL</th><th>TP</th>
-            <th>Status</th><th>Channel</th><th>Reason</th><th>Time</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for s in recent_signals %}
-          <tr>
-            <td><strong>{{ s.symbol|default:"-" }}</strong></td>
-            <td>
-              <span class="badge {% if s.side|lower == 'buy' %}badge-buy{% else %}badge-sell{% endif %}">
-                {{ s.side|upper|default:"-" }}
-              </span>
-            </td>
-            <td>{{ s.sl|default:"-" }}</td>
-            <td>{{ s.tp|default:"-" }}</td>
-            <td>
-              <span class="badge bg-label-{% if s.status == 'executed' %}success{% elif s.status == 'rejected' %}danger{% else %}secondary{% endif %}">
-                {{ s.status|default:"-" }}
-              </span>
-            </td>
-            <td style="font-size:.8rem;">{{ s.channel|default:"-" }}</td>
-            <td style="font-size:.8rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-              {{ s.reason|default:"-" }}
-            </td>
-            <td style="font-size:.8rem;">{{ s.time|default:"-" }}</td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="8" class="text-center text-muted py-4">No recent signals</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
+<section class="bg-surface-white border border-surface-border rounded overflow-hidden h-full flex flex-col">
+<div class="px-4 py-3 border-b border-surface-border bg-surface-container-lowest flex justify-between items-center">
+<h2 class="font-headline-section text-headline-section uppercase tracking-widest text-primary">Recent Signals</h2>
+<span class="px-2 py-1 text-[10px] bg-surface-container-low rounded border border-surface-border">{{ recent_signals|length }}</span>
+</div>
+<div class="overflow-x-auto flex-1">
+<table class="w-full text-left border-collapse whitespace-nowrap">
+<thead>
+<tr class="border-b border-surface-border bg-bone-background font-headline-section text-headline-section text-on-surface-variant tracking-wider uppercase">
+<th class="px-4 py-3 font-normal">Symbol</th>
+<th class="px-4 py-3 font-normal">Side</th>
+<th class="px-4 py-3 font-normal text-center">Status</th>
+<th class="px-4 py-3 font-normal">Reason</th>
+<th class="px-4 py-3 font-normal text-right">Time</th>
+</tr>
+</thead>
+<tbody class="font-data-mono text-data-mono">
+{% for s in recent_signals %}
+<tr class="border-b border-surface-border hover:bg-surface-container-low transition-colors">
+<td class="px-4 py-3">{{ s.symbol|default:"-" }}</td>
+<td class="px-4 py-3 {% if s.side|lower == 'buy' %}text-blue-600{% else %}text-red-600{% endif %}">{{ s.side|upper|default:"-" }}</td>
+<td class="px-4 py-3 text-center">
+<span class="px-2 py-1 text-[10px] rounded-sm border {% if s.status == 'executed' %}border-primary text-primary{% elif s.status == 'rejected' %}border-error text-error{% else %}border-surface-border text-on-surface-variant{% endif %}">{{ s.status|default:"-" }}</span>
+</td>
+<td class="px-4 py-3 text-on-surface-variant text-[11px]" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;">{{ s.reason|default:"-" }}</td>
+<td class="px-4 py-3 text-right text-on-surface-variant">{{ s.time|default:"-" }}</td>
+</tr>
+{% empty %}
+<tr><td colspan="5" class="text-center text-on-surface-variant py-6">No recent signals</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</section>
+</div>
+
+<footer class="mt-auto pt-stack-lg pb-stack-md text-center border-t border-surface-border">
+<p class="font-body-secondary text-body-secondary text-on-surface-variant opacity-70 max-w-2xl mx-auto">
+Live monitoring is active. Trading involves significant risk of loss and is not suitable for all investors. Ensure you fully understand the risks before deploying automated strategies.
+</p>
+</footer>
+</main>
+
+
+<!-- Toast -->
+<div x-show="toast.show" x-cloak x-transition class="fixed bottom-6 right-6 z-[200] max-w-sm rounded px-4 py-3 shadow-xl font-label-bold text-label-bold text-surface-white" :class="toast.success ? 'bg-green-600' : 'bg-error'">
+<span x-text="toast.msg"></span>
+</div>
+
+<!-- Modals Overlay -->
+<div aria-modal="true" class="relative z-[100]" role="dialog" x-cloak x-show="modalAddAccount || modalSelectStrategy || modalStopUntil || modalEditSLTP || modalClosePos || modalConfirmStart || modalConfirmStop || modalConfirmRestart || modalConfirmEmergency">
+<div class="fixed inset-0 bg-primary/20 backdrop-blur-sm"></div>
+<div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+<div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+
+<!-- Add MT5 Account Modal -->
+<div @click.away="modalAddAccount = false" class="relative transform overflow-hidden rounded bg-surface-white border border-surface-border text-left shadow-xl sm:my-8 w-full sm:max-w-lg" x-show="modalAddAccount">
+<div class="bg-surface-container-lowest px-4 pb-4 pt-5 sm:p-6 sm:pb-4 border-b border-surface-border flex justify-between items-center">
+<h3 class="font-headline-section text-headline-section uppercase tracking-widest text-primary">Add MT5 Account</h3>
+<button @click="modalAddAccount = false" class="text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-[20px]">close</span></button>
+</div>
+<div class="p-4 sm:p-6 bg-surface-white font-body-main text-body-main flex flex-col gap-4 text-left max-h-[70vh] overflow-y-auto">
+<div id="addAccountResult" style="display:none;"></div>
+<div>
+<label class="block font-label-bold text-label-bold text-on-surface-variant mb-1">Label</label>
+<input id="accLabel" class="w-full border border-surface-border rounded px-3 py-2 text-primary focus:outline-none focus:border-primary" placeholder="e.g. Demo Account 2" type="text"/>
+</div>
+<div>
+<label class="block font-label-bold text-label-bold text-on-surface-variant mb-1">MT5 Login</label>
+<input id="accLogin" class="w-full border border-surface-border rounded px-3 py-2 text-primary focus:outline-none focus:border-primary" placeholder="12345678" type="number"/>
+</div>
+<div>
+<label class="block font-label-bold text-label-bold text-on-surface-variant mb-1">Password</label>
+<input id="accPassword" class="w-full border border-surface-border rounded px-3 py-2 text-primary focus:outline-none focus:border-primary" placeholder="MT5 password" type="password"/>
+</div>
+<div>
+<label class="block font-label-bold text-label-bold text-on-surface-variant mb-1">Server</label>
+<input id="accServer" class="w-full border border-surface-border rounded px-3 py-2 text-primary focus:outline-none focus:border-primary" placeholder="e.g. MetaQuotes-Demo" type="text"/>
+</div>
+<div>
+<label class="block font-label-bold text-label-bold text-on-surface-variant mb-1">Trading Strategy (multi-select)</label>
+<div class="flex flex-col gap-2 mt-2 p-2 rounded border border-surface-border bg-surface-container-low">
+<label class="flex items-center gap-2"><input type="checkbox" id="newAccStrat_breakout" class="rounded border-surface-border text-primary focus:ring-primary"/> Range Breakout Retest</label>
+<label class="flex items-center gap-2"><input type="checkbox" id="newAccStrat_signal_forge" class="rounded border-surface-border text-primary focus:ring-primary" checked/> Signal Forge</label>
+<label class="flex items-center gap-2"><input type="checkbox" id="newAccStrat_telegram_signals" class="rounded border-surface-border text-primary focus:ring-primary"/> Telegram Signals Only</label>
+</div>
+</div>
+<div>
+<label class="block font-label-bold text-label-bold text-on-surface-variant mb-1">Only Trade (Pairs)</label>
+<div class="p-2 rounded border border-surface-border">
+<div class="flex flex-wrap gap-3 items-center">
+<label class="flex items-center gap-2 mb-0"><input type="radio" name="onlyTradeMode" id="onlyTradeAll" checked/> <span>All pairs</span></label>
+<label class="flex items-center gap-2 mb-0"><input type="radio" name="onlyTradeMode" id="onlyTradeSelected"/> <span>Selected pairs</span></label>
+<button type="button" onclick="loadMarketwatchSymbols(this)" class="ml-auto h-7 px-2 text-[11px] border border-surface-border rounded text-on-surface-variant hover:bg-surface-container-low">Load MarketWatch</button>
+</div>
+<div id="onlyTradeSelectedWrap" style="display:none;margin-top:10px;">
+<input type="text" id="symbolSearch" oninput="filterSymbols()" class="w-full border border-surface-border rounded px-2 py-1 text-sm mb-2" placeholder="Search symbol (e.g. EURUSD, XAUUSD)..."/>
+<div id="symbolsList" style="max-height:140px;overflow:auto;" class="border border-surface-border rounded p-2 text-sm">
+<div class="text-on-surface-variant text-xs">Load MarketWatch symbols first</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 border-t border-surface-border">
+<button onclick="submitAddAccount()" class="inline-flex w-full justify-center rounded bg-primary px-3 py-2 text-sm font-label-bold text-label-bold text-surface-white hover:bg-inverse-surface sm:ml-3 sm:w-auto uppercase tracking-wider" type="button">Add Account</button>
+<button @click="modalAddAccount = false" class="mt-3 inline-flex w-full justify-center rounded bg-surface-white px-3 py-2 text-sm font-label-bold text-label-bold text-primary border border-surface-border hover:bg-surface-container-low sm:mt-0 sm:w-auto uppercase tracking-wider" type="button">Cancel</button>
+</div>
+</div>
+
+<!-- Select Strategy Modal -->
+<div @click.away="modalSelectStrategy = false" class="relative transform overflow-hidden rounded bg-surface-white border border-surface-border text-left shadow-xl sm:my-8 w-full sm:max-w-md" x-show="modalSelectStrategy">
+<div class="bg-surface-container-lowest px-4 pb-4 pt-5 sm:p-6 sm:pb-4 border-b border-surface-border flex justify-between items-center">
+<h3 class="font-headline-section text-headline-section uppercase tracking-widest text-primary">Select Strategy</h3>
+<button @click="modalSelectStrategy = false" class="text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-[20px]">close</span></button>
+</div>
+<div class="p-4 sm:p-6 bg-surface-white font-body-main text-body-main flex flex-col gap-3 text-left max-h-[70vh] overflow-y-auto">
+<input type="hidden" id="strategyAccountId"/>
+<div id="strategyResult" style="display:none;"></div>
+<label class="flex items-center gap-2 p-3 border border-surface-border rounded cursor-pointer hover:bg-surface-container-lowest">
+<input type="checkbox" id="strat_breakout" class="rounded border-surface-border text-primary focus:ring-primary"/> <span class="font-bold">Range Breakout Retest</span>
+</label>
+<label class="flex items-center gap-2 p-3 border border-surface-border rounded cursor-pointer hover:bg-surface-container-lowest">
+<input type="checkbox" id="strat_signal_forge" class="rounded border-surface-border text-primary focus:ring-primary"/> <span class="font-bold">Signal Forge</span>
+</label>
+<label class="flex items-center gap-2 p-3 border border-surface-border rounded cursor-pointer hover:bg-surface-container-lowest">
+<input type="checkbox" id="strat_telegram_signals" class="rounded border-surface-border text-primary focus:ring-primary"/> <span class="font-bold">Telegram Signals Only</span>
+</label>
+<label class="flex items-center justify-between p-3 border border-surface-border rounded opacity-50 cursor-not-allowed">
+<span class="flex items-center gap-2"><input type="checkbox" disabled class="rounded border-surface-border"/> <span class="font-bold">EMA Crossover</span></span>
+<span class="px-2 py-1 text-[10px] bg-surface-container-low border border-surface-border rounded">Soon</span>
+</label>
+<div class="mt-2">
+<label class="block font-label-bold text-label-bold text-on-surface-variant mb-1">Only Trade (Pairs)</label>
+<div class="p-2 rounded border border-surface-border">
+<div class="flex flex-wrap gap-3 items-center">
+<label class="flex items-center gap-2 mb-0"><input type="radio" name="editOnlyTradeMode" id="editOnlyTradeAll" checked/> <span>All pairs</span></label>
+<label class="flex items-center gap-2 mb-0"><input type="radio" name="editOnlyTradeMode" id="editOnlyTradeSelected"/> <span>Selected pairs</span></label>
+<button type="button" onclick="loadMarketwatchSymbolsForEdit(this)" class="ml-auto h-7 px-2 text-[11px] border border-surface-border rounded text-on-surface-variant hover:bg-surface-container-low">Load MarketWatch</button>
+</div>
+<div id="editOnlyTradeSelectedWrap" style="display:none;margin-top:10px;">
+<input type="text" id="editSymbolSearch" oninput="filterSymbolsEdit()" class="w-full border border-surface-border rounded px-2 py-1 text-sm mb-2" placeholder="Search symbol..."/>
+<div id="editSymbolsList" style="max-height:140px;overflow:auto;" class="border border-surface-border rounded p-2 text-sm">
+<div class="text-on-surface-variant text-xs">Load MarketWatch symbols first</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 border-t border-surface-border">
+<button onclick="saveStrategies()" class="inline-flex w-full justify-center rounded bg-primary px-3 py-2 text-sm font-label-bold text-label-bold text-surface-white hover:bg-inverse-surface sm:ml-3 sm:w-auto uppercase tracking-wider" type="button">Apply</button>
+<button @click="modalSelectStrategy = false" class="mt-3 inline-flex w-full justify-center rounded bg-surface-white px-3 py-2 text-sm font-label-bold text-label-bold text-primary border border-surface-border hover:bg-surface-container-low sm:mt-0 sm:w-auto uppercase tracking-wider" type="button">Cancel</button>
+</div>
+</div>
+
+<!-- Stop Until Modal -->
+<div @click.away="modalStopUntil = false" class="relative transform overflow-hidden rounded bg-surface-white border border-surface-border text-left shadow-xl sm:my-8 w-full sm:max-w-sm" x-show="modalStopUntil">
+<div class="bg-surface-container-lowest px-4 pb-4 pt-5 sm:p-6 sm:pb-4 border-b border-surface-border flex justify-between items-center">
+<h3 class="font-headline-section text-headline-section uppercase tracking-widest text-primary">Stop Bot Until</h3>
+<button @click="modalStopUntil = false" class="text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-[20px]">close</span></button>
+</div>
+<div class="p-4 sm:p-6 bg-surface-white font-body-main text-body-main flex flex-col gap-4 text-left">
+<input type="hidden" id="tradeModeLogin"/>
+<p id="tradeModeInfo" class="text-on-surface-variant text-sm"></p>
+<div id="tradeModeResult" style="display:none;"></div>
+<div>
+<label class="block font-label-bold text-label-bold text-on-surface-variant mb-1">Select Date &amp; Time</label>
+<input id="tradeModeUntilInput" class="w-full border border-surface-border rounded px-3 py-2 text-primary focus:outline-none focus:border-primary font-data-mono" type="datetime-local"/>
+</div>
+</div>
+<div class="bg-surface-container-lowest px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 border-t border-surface-border">
+<button onclick="submitStopUntil()" class="inline-flex w-full justify-center rounded bg-primary px-3 py-2 text-sm font-label-bold text-label-bold text-surface-white hover:bg-inverse-surface sm:ml-3 sm:w-auto uppercase tracking-wider" type="button">Confirm Pause</button>
+<button @click="modalStopUntil = false" class="mt-3 inline-flex w-full justify-center rounded bg-surface-white px-3 py-2 text-sm font-label-bold text-label-bold text-primary border border-surface-border hover:bg-surface-container-low sm:mt-0 sm:w-auto uppercase tracking-wider" type="button">Cancel</button>
+</div>
 </div>
 
 <!-- Edit SL/TP Modal -->
-<div class="modal fade" id="modifyModal" tabindex="-1" aria-labelledby="modifyModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="background:#2b2c40;border:1px solid #3b3d52;color:#cdd0d6;">
-      <div class="modal-header" style="border-bottom:1px solid #3b3d52;">
-        <h5 class="modal-title" id="modifyModalLabel">
-          <i class="bx bx-edit me-2" style="color:#ff9f43;"></i>Edit SL / TP
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <input type="hidden" id="modifyPositionId" value="">
-        <div class="mb-3">
-          <label class="form-label" style="color:#a8aaae;">Stop Loss (SL)</label>
-          <input type="number" step="any" id="modifySL" class="form-control"
-                 style="background:#232333;border:1px solid #3b3d52;color:#cdd0d6;"
-                 placeholder="Enter new SL">
-        </div>
-        <div class="mb-3">
-          <label class="form-label" style="color:#a8aaae;">Take Profit (TP)</label>
-          <input type="number" step="any" id="modifyTP" class="form-control"
-                 style="background:#232333;border:1px solid #3b3d52;color:#cdd0d6;"
-                 placeholder="Enter new TP">
-        </div>
-        <div id="modifyResult" class="mt-2" style="display:none;"></div>
-      </div>
-      <div class="modal-footer" style="border-top:1px solid #3b3d52;">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-warning" onclick="submitModify()">
-          <i class="bx bx-save me-1"></i>Update
-        </button>
-      </div>
-    </div>
-  </div>
+<div @click.away="modalEditSLTP = false" class="relative transform overflow-hidden rounded bg-surface-white border border-surface-border text-left shadow-xl sm:my-8 w-full sm:max-w-sm" x-show="modalEditSLTP">
+<div class="bg-surface-container-lowest px-4 pb-4 pt-5 sm:p-6 sm:pb-4 border-b border-surface-border flex justify-between items-center">
+<h3 class="font-headline-section text-headline-section uppercase tracking-widest text-primary">Edit SL/TP</h3>
+<button @click="modalEditSLTP = false" class="text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-[20px]">close</span></button>
+</div>
+<div class="p-4 sm:p-6 bg-surface-white font-body-main text-body-main flex flex-col gap-4 text-left">
+<input type="hidden" id="modifyPositionId"/>
+<div class="bg-surface-container p-3 rounded border border-surface-border text-[12px] flex items-start gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-error mt-0.5">warning</span>
+<p><strong>Warning:</strong> This affects a live trade currently managed by the bot.</p>
+</div>
+<div id="modifyResult" style="display:none;"></div>
+<div>
+<label class="block font-label-bold text-label-bold text-on-surface-variant mb-1">Stop Loss</label>
+<input id="modifySL" class="w-full border border-surface-border rounded px-3 py-2 text-primary font-data-mono focus:outline-none focus:border-primary" step="any" type="number"/>
+</div>
+<div>
+<label class="block font-label-bold text-label-bold text-on-surface-variant mb-1">Take Profit</label>
+<input id="modifyTP" class="w-full border border-surface-border rounded px-3 py-2 text-primary font-data-mono focus:outline-none focus:border-primary" step="any" type="number"/>
+</div>
+</div>
+<div class="bg-surface-container-lowest px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 border-t border-surface-border">
+<button onclick="submitModify()" class="inline-flex w-full justify-center rounded bg-primary px-3 py-2 text-sm font-label-bold text-label-bold text-surface-white hover:bg-inverse-surface sm:ml-3 sm:w-auto uppercase tracking-wider" type="button">Update Limits</button>
+<button @click="modalEditSLTP = false" class="mt-3 inline-flex w-full justify-center rounded bg-surface-white px-3 py-2 text-sm font-label-bold text-label-bold text-primary border border-surface-border hover:bg-surface-container-low sm:mt-0 sm:w-auto uppercase tracking-wider" type="button">Cancel</button>
+</div>
 </div>
 
-<!-- Toast notification -->
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index:11000;">
-  <div id="botToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
-    <div class="d-flex">
-      <div class="toast-body" id="botToastMsg">Action completed.</div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-    </div>
-  </div>
+<!-- Close Position Modal -->
+<div @click.away="modalClosePos = false" class="relative transform overflow-hidden rounded bg-surface-white border border-error text-left shadow-xl sm:my-8 w-full sm:max-w-sm" x-show="modalClosePos">
+<div class="bg-error-container px-4 pb-4 pt-5 sm:p-6 sm:pb-4 border-b border-error/20 flex justify-between items-center">
+<h3 class="font-headline-section text-headline-section uppercase tracking-widest text-error">Close Position</h3>
+<button @click="modalClosePos = false" class="text-error hover:text-on-error-container"><span class="material-symbols-outlined text-[20px]">close</span></button>
 </div>
-{% endblock %}
+<div class="p-4 sm:p-6 bg-surface-white font-body-main text-body-main flex flex-col gap-2 text-center">
+<input type="hidden" id="closePositionId"/>
+<p class="text-on-surface-variant">Are you sure you want to close this position manually?</p>
+<div class="font-data-mono text-lg font-bold text-primary mt-2" id="closePositionSymbolSide">—</div>
+<div class="font-data-mono text-xl" id="closePositionPnl">—</div>
+<div id="closePositionResult" style="display:none;" class="text-left mt-2"></div>
+</div>
+<div class="bg-surface-container-lowest px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 border-t border-surface-border">
+<button onclick="submitClosePosition()" class="inline-flex w-full justify-center rounded bg-error px-3 py-2 text-sm font-label-bold text-label-bold text-surface-white hover:bg-on-error-container sm:ml-3 sm:w-auto uppercase tracking-wider" type="button">Confirm Close</button>
+<button @click="modalClosePos = false" class="mt-3 inline-flex w-full justify-center rounded bg-surface-white px-3 py-2 text-sm font-label-bold text-label-bold text-primary border border-surface-border hover:bg-surface-container-low sm:mt-0 sm:w-auto uppercase tracking-wider" type="button">Cancel</button>
+</div>
+</div>
 
-{% block extra_js %}
+<!-- Confirm Start -->
+<div @click.away="modalConfirmStart = false" class="relative transform overflow-hidden rounded bg-surface-white border border-surface-border text-left shadow-xl sm:my-8 w-full sm:max-w-sm" x-show="modalConfirmStart">
+<div class="p-6 text-center">
+<h3 class="font-headline-section text-headline-section uppercase tracking-widest text-primary mb-4">Start Bot</h3>
+<p class="text-on-surface-variant text-sm mb-6">Are you sure you want to start automated trading on all active accounts?</p>
+<div class="flex flex-col sm:flex-row-reverse gap-3 justify-center">
+<button onclick="botAction('start')" @click="modalConfirmStart = false" class="inline-flex justify-center rounded bg-primary px-4 py-2 text-sm font-label-bold text-label-bold text-surface-white hover:bg-inverse-surface uppercase tracking-wider" type="button">Confirm Start</button>
+<button @click="modalConfirmStart = false" class="inline-flex justify-center rounded bg-surface-white px-4 py-2 text-sm font-label-bold text-label-bold text-primary border border-surface-border hover:bg-surface-container-low uppercase tracking-wider" type="button">Cancel</button>
+</div>
+</div>
+</div>
+
+<!-- Confirm Stop -->
+<div @click.away="modalConfirmStop = false" class="relative transform overflow-hidden rounded bg-surface-white border border-surface-border text-left shadow-xl sm:my-8 w-full sm:max-w-sm" x-show="modalConfirmStop">
+<div class="p-6 text-center">
+<h3 class="font-headline-section text-headline-section uppercase tracking-widest text-primary mb-4">Stop Bot</h3>
+<p class="text-on-surface-variant text-sm mb-6">Are you sure you want to stop the bot? All strategies will halt and no new trades will be placed. Existing open trades stay open.</p>
+<div class="flex flex-col sm:flex-row-reverse gap-3 justify-center">
+<button onclick="botAction('stop')" @click="modalConfirmStop = false" class="inline-flex justify-center rounded bg-error px-4 py-2 text-sm font-label-bold text-label-bold text-surface-white hover:bg-on-error-container uppercase tracking-wider" type="button">Confirm Stop</button>
+<button @click="modalConfirmStop = false" class="inline-flex justify-center rounded bg-surface-white px-4 py-2 text-sm font-label-bold text-label-bold text-primary border border-surface-border hover:bg-surface-container-low uppercase tracking-wider" type="button">Cancel</button>
+</div>
+</div>
+</div>
+
+<!-- Confirm Restart -->
+<div @click.away="modalConfirmRestart = false" class="relative transform overflow-hidden rounded bg-surface-white border border-surface-border text-left shadow-xl sm:my-8 w-full sm:max-w-sm" x-show="modalConfirmRestart">
+<div class="p-6 text-center">
+<h3 class="font-headline-section text-headline-section uppercase tracking-widest text-primary mb-4">Restart Bot</h3>
+<p class="text-on-surface-variant text-sm mb-6">Are you sure you want to restart the bot? It will briefly go offline while it restarts, then resume automated trading.</p>
+<div class="flex flex-col sm:flex-row-reverse gap-3 justify-center">
+<button onclick="botAction('restart')" @click="modalConfirmRestart = false" class="inline-flex justify-center rounded bg-primary px-4 py-2 text-sm font-label-bold text-label-bold text-surface-white hover:bg-inverse-surface uppercase tracking-wider" type="button">Confirm Restart</button>
+<button @click="modalConfirmRestart = false" class="inline-flex justify-center rounded bg-surface-white px-4 py-2 text-sm font-label-bold text-label-bold text-primary border border-surface-border hover:bg-surface-container-low uppercase tracking-wider" type="button">Cancel</button>
+</div>
+</div>
+</div>
+
+<!-- Confirm Weekend Shutdown -->
+<div @click.away="modalConfirmEmergency = false" class="relative transform overflow-hidden rounded bg-surface-white border border-error text-left shadow-xl sm:my-8 w-full sm:max-w-sm" x-show="modalConfirmEmergency">
+<div class="p-6 text-center">
+<h3 class="font-headline-section text-headline-section uppercase tracking-widest text-error mb-4">Weekend Shutdown</h3>
+<p class="text-on-surface-variant text-sm mb-6">This will immediately stop the bot for the weekend, closing weekend-exempt symbol handling. Use this before markets close for the weekend.</p>
+<div class="flex flex-col sm:flex-row-reverse gap-3 justify-center">
+<button onclick="weekendShutdown()" @click="modalConfirmEmergency = false" class="inline-flex justify-center rounded bg-error px-4 py-2 text-sm font-label-bold text-label-bold text-surface-white hover:bg-on-error-container uppercase tracking-wider" type="button">Confirm Shutdown</button>
+<button @click="modalConfirmEmergency = false" class="inline-flex justify-center rounded bg-surface-white px-4 py-2 text-sm font-label-bold text-label-bold text-primary border border-surface-border hover:bg-surface-container-low uppercase tracking-wider" type="button">Cancel</button>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+
 <script>
-  // ── MT5 Accounts ──────────────────────────────────────────────────────────
-  function loadAccounts() {
-    refreshAccounts(false);
-  }
+  function modals() { return Alpine.$data(document.body); }
 
-  const STRATEGY_LABELS = {
-    'breakout': '📈 Range Breakout Retest',
-    'signal_forge': '✨ Signal Forge',
-    'telegram_signals': '📡 Telegram Signals',
-    'ema_crossover': '📈 EMA Crossover',
-    'rsi_reversal': '🔄 RSI Reversal',
-    'bollinger_breakout': '📊 Bollinger Breakout',
-  };
-
-  const STRATEGY_OPTIONS = `
-    <option value="breakout">Range Breakout Retest</option>
-    <option value="signal_forge">Signal Forge</option>
-    <option value="telegram_signals">Telegram Signals Only</option>
-    <option value="ema_crossover" disabled>EMA Crossover (Soon)</option>
-    <option value="rsi_reversal" disabled>RSI Reversal (Soon)</option>
-    <option value="bollinger_breakout" disabled>Bollinger Breakout (Soon)</option>
-  `;
-
-  const VISIBLE_ACCOUNT_LABELS = new Set([
-    'signal forge gold',
-    'the5ers funded',
-  ]);
-
-  function filterVisibleAccounts(accounts) {
-    return (accounts || []).filter(acc => VISIBLE_ACCOUNT_LABELS.has(String(acc.label || '').trim().toLowerCase()));
-  }
-
-  function renderAccounts(accounts) {
-    const tbody = document.getElementById('accountsBody');
-    accounts = filterVisibleAccounts(accounts);
-    if (!accounts || accounts.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">No accounts configured</td></tr>';
-      renderStrategyButtons([]);
-      return;
-    }
-    tbody.innerHTML = accounts.map(acc => `
-      <tr>
-        <td><strong>${acc.label}</strong></td>
-        <td style="font-size:.85rem;">${acc.login}</td>
-        <td style="font-size:.8rem;color:#a8aaae;">${acc.server}</td>
-        <td>${acc.currency} ${acc.balance.toFixed(2)}</td>
-        <td>${acc.currency} ${acc.equity.toFixed(2)}</td>
-        <td>
-          <div class="d-flex flex-wrap gap-1">
-            <button class="btn btn-sm btn-outline-info bo-edit-btn"
-              data-account-id="${acc.id}"
-              data-strategies="${(Array.isArray(acc.strategy) ? acc.strategy : [acc.strategy]).join(',')}"
-              data-allowed-symbols="${(Array.isArray(acc.allowed_symbols) ? acc.allowed_symbols : (acc.allowed_symbols ? [acc.allowed_symbols] : [])).join(',')}">
-              <i class="bx bx-edit me-1"></i>Edit
-            </button>
-            <small class="text-muted d-block w-100" style="font-size:.75rem;">
-              ${Array.isArray(acc.strategy) ? acc.strategy.join(', ') : (acc.strategy || '')}
-            </small>
-          </div>
-        </td>
-        <td>
-          <span class="badge ${acc.enabled ? (acc.connected ? 'bg-label-success' : 'bg-label-danger') : 'bg-label-secondary'}">
-            ${acc.enabled ? (acc.connected ? '● MT5 Online' : '● MT5 Offline') : '● Disabled'}
-          </span>
-          <span class="badge bg-label-secondary ms-1 trade-mode-badge" id="tradeModeBadge_${acc.login}">Trading: —</span>
-          ${acc.error ? `<small class="text-danger d-block" style="font-size:.7rem;">${acc.error}</small>` : ''}
-        </td>
-        <td>
-          <div class="d-flex gap-1 flex-wrap">
-            <button class="btn btn-sm ${acc.enabled ? 'btn-outline-warning' : 'btn-outline-success'}"
-              onclick="toggleAccount('${acc.id}', ${!acc.enabled})">
-              ${acc.enabled ? 'Disable' : 'Enable'}
-            </button>
-            ${acc.id !== 'acc_1' ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteAccount('${acc.id}', '${acc.label}')">Remove</button>` : ''}
-          </div>
-          <div class="d-flex gap-1 flex-wrap mt-1">
-            <button class="btn btn-sm btn-outline-danger" onclick="setAccountTradeMode(${acc.login}, 'stop_today')">Stop Today</button>
-            <button class="btn btn-sm btn-outline-warning" onclick="openStopUntilModal(${acc.login})">Stop Until</button>
-            <button class="btn btn-sm btn-outline-success" onclick="setAccountTradeMode(${acc.login}, 'start_now')">Start</button>
-          </div>
-        </td>
-      </tr>
-    `).join('');
-    renderStrategyButtons(accounts);
-    refreshTradeModes(accounts);
-  }
-
-  let GLOBAL_MT5_CONNECTED = {% if mt5_connected %}true{% else %}false{% endif %};
-
-  function renderConnectionBadge(acc) {
-    const enabled = !!acc.enabled;
-    const connected = !!acc.connected;
-    const errorText = String(acc.error || '');
-    const ipcIssue = /IPC/i.test(errorText);
-
-    if (!enabled) {
-      return `
-        <span class="badge bg-label-secondary">● Disabled</span>
-        <span class="badge bg-label-secondary ms-1 trade-mode-badge" id="tradeModeBadge_${acc.login}">Trading: —</span>
-        ${errorText ? `<small class="text-danger d-block" style="font-size:.7rem;">${errorText}</small>` : ''}
-      `;
-    }
-
-    if (connected) {
-      return `
-        <span class="badge bg-label-success">● MT5 Online</span>
-        <span class="badge bg-label-secondary ms-1 trade-mode-badge" id="tradeModeBadge_${acc.login}">Trading: —</span>
-        ${errorText ? `<small class="text-danger d-block" style="font-size:.7rem;">${errorText}</small>` : ''}
-      `;
-    }
-
-    if (GLOBAL_MT5_CONNECTED && ipcIssue) {
-      return `
-        <span class="badge bg-label-warning">● MT5 Syncing</span>
-        <span class="badge bg-label-secondary ms-1 trade-mode-badge" id="tradeModeBadge_${acc.login}">Trading: —</span>
-        <small class="text-warning d-block" style="font-size:.7rem;">${errorText}</small>
-      `;
-    }
-
-    return `
-      <span class="badge bg-label-danger">● MT5 Offline</span>
-      <span class="badge bg-label-secondary ms-1 trade-mode-badge" id="tradeModeBadge_${acc.login}">Trading: —</span>
-      ${errorText ? `<small class="text-danger d-block" style="font-size:.7rem;">${errorText}</small>` : ''}
-    `;
-  }
-
-  renderAccounts = function(accounts) {
-    const tbody = document.getElementById('accountsBody');
-    accounts = filterVisibleAccounts(accounts);
-    if (!accounts || accounts.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">No accounts configured</td></tr>';
-      renderStrategyButtons([]);
-      return;
-    }
-    tbody.innerHTML = accounts.map(acc => `
-      <tr>
-        <td><strong>${acc.label}</strong></td>
-        <td style="font-size:.85rem;">${acc.login}</td>
-        <td style="font-size:.8rem;color:#a8aaae;">${acc.server}</td>
-        <td>${acc.currency} ${acc.balance.toFixed(2)}</td>
-        <td>${acc.currency} ${acc.equity.toFixed(2)}</td>
-        <td>
-          <div class="d-flex flex-wrap gap-1">
-            <button class="btn btn-sm btn-outline-info bo-edit-btn"
-              data-account-id="${acc.id}"
-              data-strategies="${(Array.isArray(acc.strategy) ? acc.strategy : [acc.strategy]).join(',')}"
-              data-allowed-symbols="${(Array.isArray(acc.allowed_symbols) ? acc.allowed_symbols : (acc.allowed_symbols ? [acc.allowed_symbols] : [])).join(',')}">
-              <i class="bx bx-edit me-1"></i>Edit
-            </button>
-            <small class="text-muted d-block w-100" style="font-size:.75rem;">
-              ${Array.isArray(acc.strategy) ? acc.strategy.join(', ') : (acc.strategy || '')}
-            </small>
-          </div>
-        </td>
-        <td>
-          ${renderConnectionBadge(acc)}
-        </td>
-        <td>
-          <div class="d-flex gap-1 flex-wrap">
-            <button class="btn btn-sm ${acc.enabled ? 'btn-outline-warning' : 'btn-outline-success'}"
-              onclick="toggleAccount('${acc.id}', ${!acc.enabled})">
-              ${acc.enabled ? 'Disable' : 'Enable'}
-            </button>
-            ${acc.id !== 'acc_1' ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteAccount('${acc.id}', '${acc.label}')">Remove</button>` : ''}
-          </div>
-          <div class="d-flex gap-1 flex-wrap mt-1">
-            <button class="btn btn-sm btn-outline-danger" onclick="setAccountTradeMode(${acc.login}, 'stop_today')">Stop Today</button>
-            <button class="btn btn-sm btn-outline-warning" onclick="openStopUntilModal(${acc.login})">Stop Until</button>
-            <button class="btn btn-sm btn-outline-success" onclick="setAccountTradeMode(${acc.login}, 'start_now')">Start</button>
-          </div>
-        </td>
-      </tr>
-    `).join('');
-    renderStrategyButtons(accounts);
-    refreshTradeModes(accounts);
-  }
-
-  function updateTradeModeBadge(login, d) {
-    const badge = document.getElementById(`tradeModeBadge_${login}`);
-    if (!badge) return;
-    if (!d) {
-      badge.textContent = 'Trading: ?';
-      badge.className = 'badge bg-label-secondary ms-1 trade-mode-badge';
-      return;
-    }
-    if (d.allowed) {
-      badge.textContent = 'Trading: ON';
-      badge.className = 'badge bg-label-success ms-1 trade-mode-badge';
-    } else {
-      const reason = String(d.reason || '');
-      const stopReason = String(d.stop_reason_text || '').trim();
-      if (reason === 'manually_stopped_for_today') {
-        badge.textContent = stopReason ? `Hard stop: ${stopReason}` : 'Hard stop today';
-      } else if (d.halt_until) {
-        badge.textContent = 'Trading: OFF (until ' + new Date(d.halt_until).toLocaleString() + (stopReason ? ` • ${stopReason}` : '') + ')';
-      } else {
-        badge.textContent = stopReason ? `Trading: OFF (today • ${stopReason})` : 'Trading: OFF (today)';
-      }
-      badge.className = 'badge bg-label-danger ms-1 trade-mode-badge';
-    }
-  }
-
-  function hexToRgb(hex) {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `${r},${g},${b}`;
-  }
-
-  function renderStrategyButtons(accounts) {
-    accounts = filterVisibleAccounts(accounts);
-    const strategies = new Set();
-    accounts.forEach(acc => {
-      (acc.strategy || []).forEach(s => strategies.add(s));
-    });
-
-    const strategyNames = {
-      'breakout': '📈 Range Breakout Retest',
-      'signal_forge': '✨ Signal Forge',
-      'telegram_signals': '📡 Telegram Signals',
-    };
-    const strategyColors = {
-      'breakout': '#28c76f',
-      'signal_forge': '#f6c94c',
-      'telegram_signals': '#29b6f6',
-    };
-
-    const container = document.getElementById('strategyButtonsContainer');
-    if (!container) return;
-
-    if (strategies.size === 0) {
-      container.innerHTML = '<span class="text-muted" style="font-size:.85rem;">No strategies assigned yet</span>';
-      return;
-    }
-
-    container.innerHTML = '';
-    strategies.forEach(sid => {
-      const name = strategyNames[sid] || sid;
-      const color = strategyColors[sid] || '#a8aaae';
-      const btn = document.createElement('a');
-      btn.href = `/trading/strategy/${sid}/`;
-      btn.className = 'btn btn-sm me-2 mb-2';
-      btn.style.cssText = `background:rgba(${hexToRgb(color)},.15);color:${color};border:1px solid ${color};`;
-      btn.innerHTML = `${name} <i class="bx bx-right-arrow-alt ms-1"></i>`;
-      container.appendChild(btn);
-    });
-  }
-
-  function refreshAccounts(showMessage = true) {
-    const csrfToken = getCookie('csrftoken');
-    Promise.all([
-      fetch('/trading/api/health', { credentials: 'same-origin' })
-        .then(async (r) => {
-          const text = await r.text();
-          try {
-            return JSON.parse(text || '{}');
-          } catch (e) {
-            return null;
-          }
-        })
-        .catch(() => null),
-      fetch('/trading/api/accounts/refresh', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
-        body: '{}'
-      })
-        .then(async (r) => {
-          const text = await r.text();
-          try {
-            return JSON.parse(text || '[]');
-          } catch (e) {
-            throw new Error(`HTTP ${r.status} ${r.statusText} | ${text.slice(0, 160)}`);
-          }
-        })
-    ])
-      .then(([health, accounts]) => {
-        if (!Array.isArray(accounts)) {
-          throw new Error(accounts && (accounts.error || accounts.detail || JSON.stringify(accounts)));
-        }
-        if (health && typeof health.mt5_connected === 'boolean') {
-          GLOBAL_MT5_CONNECTED = health.mt5_connected;
-        }
-        renderAccounts(accounts);
-        if (showMessage) {
-          showToast('Accounts refreshed', true);
-        }
-      })
-      .catch((err) => {
-        document.getElementById('accountsBody').innerHTML =
-          `<tr><td colspan="8" class="text-center text-muted py-3">Could not refresh accounts (${err})</td></tr>`;
-        if (showMessage) {
-          showToast('Refresh failed', false);
-        }
-      });
-  }
-
-  function openAddAccount() {
-    document.getElementById('accLabel').value = '';
-    document.getElementById('accLogin').value = '';
-    document.getElementById('accPassword').value = '';
-    document.getElementById('accServer').value = '';
-    // reset strategies
-    ['breakout', 'signal_forge', 'telegram_signals'].forEach(s => {
-      const el = document.getElementById(`newAccStrat_${s}`);
-      if (el) el.checked = (s === 'signal_forge');
-    });
-    // reset only-trade
-    const all = document.getElementById('onlyTradeAll');
-    if (all) all.checked = true;
-    toggleOnlyTradeUI();
-    window._marketwatchSymbols = [];
-    renderSymbolsList();
-    const resultEl = document.getElementById('addAccountResult');
-    resultEl.style.display = 'none';
-
-    // Check if bot API is reachable before opening modal
-    fetch('/trading/api/health', { credentials: 'same-origin' })
-      .then(r => r.json())
-      .then(() => {
-        new bootstrap.Modal(document.getElementById('addAccountModal')).show();
-      })
-      .catch(() => {
-        resultEl.style.display = 'block';
-        resultEl.innerHTML = `<div class="alert alert-danger py-2 mb-0">
-          <strong>Bot API Offline</strong><br>
-          <small>Start the bot on Windows PC first, then try adding an account.</small>
-        </div>`;
-        new bootstrap.Modal(document.getElementById('addAccountModal')).show();
-      });
-  }
-
-  function toggleOnlyTradeUI() {
-    const wrap = document.getElementById('onlyTradeSelectedWrap');
-    const selected = document.getElementById('onlyTradeSelected');
-    if (!wrap || !selected) return;
-    wrap.style.display = selected.checked ? 'block' : 'none';
-  }
-
-  document.addEventListener('change', function(e) {
-    if (e.target && (e.target.id === 'onlyTradeAll' || e.target.id === 'onlyTradeSelected')) {
-      toggleOnlyTradeUI();
-    }
-  });
-
-  window._marketwatchSymbols = window._marketwatchSymbols || [];
-
-  function renderSymbolsList(filtered) {
-    const listEl = document.getElementById('symbolsList');
-    if (!listEl) return;
-    const symbols = filtered || window._marketwatchSymbols || [];
-    if (!symbols.length) {
-      listEl.innerHTML = '<div class="text-muted" style="font-size:.85rem;">Load MarketWatch symbols first</div>';
-      return;
-    }
-    listEl.innerHTML = symbols.map(s => {
-      const id = 'sym_' + s.replace(/[^a-zA-Z0-9_]+/g, '_');
-      return `
-        <label class="d-flex align-items-center gap-2 mb-1" style="cursor:pointer;">
-          <input type="checkbox" class="form-check-input sym-check" data-symbol="${s}" id="${id}">
-          <span style="font-size:.9rem;">${s}</span>
-        </label>
-      `;
-    }).join('');
-  }
-
-  function filterSymbols() {
-    const q = (document.getElementById('symbolSearch')?.value || '').trim().toUpperCase();
-    if (!q) {
-      renderSymbolsList();
-      return;
-    }
-    const filtered = (window._marketwatchSymbols || []).filter(s => String(s).toUpperCase().includes(q));
-    renderSymbolsList(filtered);
-  }
-
-  function loadMarketwatchSymbols(btnEl) {
-    const login = parseInt(document.getElementById('accLogin').value);
-    const password = document.getElementById('accPassword').value;
-    const server = document.getElementById('accServer').value;
-    if (!login || !password || !server) {
-      alert('Fill in Login, Password and Server first, then press Load MarketWatch');
-      return;
-    }
-    const csrfToken = getCookie('csrftoken');
-    const btn = btnEl || null;
-    if (btn) btn.disabled = true;
-    fetch('/trading/api/accounts/probe-marketwatch', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ login, password, server, path: '' }),
-    })
-    .then(async r => {
-      const raw = await r.text();
-      let data = {};
-      try { data = raw ? JSON.parse(raw) : {}; } catch(e) { data = { success:false, message: raw || ('HTTP ' + r.status) }; }
-      return { ok: r.ok, status: r.status, data };
-    })
-    .then(res => {
-      if (!res.ok || !res.data || !res.data.success) {
-        const msg = res.data?.detail || res.data?.message || ('HTTP ' + res.status);
-        alert('MarketWatch load failed: ' + msg);
-        return;
-      }
-      window._marketwatchSymbols = Array.isArray(res.data.symbols) ? res.data.symbols : [];
-      renderSymbolsList();
-      document.getElementById('onlyTradeSelected').checked = true;
-      toggleOnlyTradeUI();
-    })
-    .catch(err => alert('MarketWatch load failed: ' + (err && err.message ? err.message : 'unknown')))
-    .finally(() => { if (btn) btn.disabled = false; });
-  }
-
-  function changeStrategy(accountId, strategy) {
-    const csrfToken = getCookie('csrftoken');
-    fetch(`/trading/api/accounts/${accountId}/strategy/`, {
-      method: 'PUT',
-      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ strategy }),
-    })
-    .then(r => r.json())
-    .then(data => showToast(data.success ? `Strategy updated` : 'Update failed', data.success))
-    .catch(() => showToast('Request failed', false));
-  }
-
-  // NOTE: openStrategyModal is defined later (with allowedSymbols support).
-
-  function saveStrategies() {
-    const accountId = document.getElementById('strategyAccountId').value;
-    const selected = ['breakout', 'signal_forge', 'telegram_signals']
-      .filter(s => document.getElementById(`strat_${s}`)?.checked);
-    if (!selected || selected.length === 0) {
-      document.getElementById('strategyResult').style.display = 'block';
-      document.getElementById('strategyResult').innerHTML = '<div class="alert alert-warning py-2 mb-0">At least 1 strategy select karo</div>';
-      return;
-    }
-    const csrfToken = getCookie('csrftoken');
-    // 1) Save strategies
-    fetch(`/trading/api/accounts/${accountId}/strategy`, {
-      method: 'PUT',
-      credentials: 'same-origin',
-      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ strategy: selected }),
-    })
-    .then(r => r.json())
-    .then(data => {
-      if (!data.success) throw new Error(data.message || 'Strategy update failed');
-      // 2) Save allowed symbols
-      let allowed_symbols = null;
-      if (document.getElementById('editOnlyTradeSelected')?.checked) {
-        const selectedSyms = Array.from(document.querySelectorAll('#editSymbolsList .sym-check-edit:checked'))
-          .map(el => el.getAttribute('data-symbol'))
-          .filter(Boolean);
-        if (!selectedSyms.length) throw new Error('Selected pairs mode ma at least 1 symbol select karo');
-        allowed_symbols = selectedSyms;
-      }
-      return fetch(`/trading/api/accounts/${accountId}/symbols`, {
-        method: 'PUT',
-        credentials: 'same-origin',
-        headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ allowed_symbols: allowed_symbols }),
-      }).then(r2 => r2.json());
-    })
-    .then(data2 => {
-      if (data2 && data2.success) {
-        bootstrap.Modal.getInstance(document.getElementById('strategyModal')).hide();
-        showToast('Account updated', true);
-        loadAccounts();
-      } else {
-        throw new Error((data2 && (data2.message || data2.detail)) || 'Pairs update failed');
-      }
-    })
-    .catch((err) => {
-      document.getElementById('strategyResult').style.display = 'block';
-      document.getElementById('strategyResult').innerHTML = `<div class="alert alert-danger py-2 mb-0">Error: ${err && err.message ? err.message : err}</div>`;
-    });
-  }
-
-  function submitAddAccount() {
-    const csrfToken = getCookie('csrftoken');
-    const strategies = ['breakout', 'signal_forge', 'telegram_signals']
-      .filter(s => document.getElementById(`newAccStrat_${s}`)?.checked);
-    if (!strategies.length) {
-      alert('At least 1 strategy select karo');
-      return;
-    }
-    let allowed_symbols = null;
-    if (document.getElementById('onlyTradeSelected')?.checked) {
-      const selectedSyms = Array.from(document.querySelectorAll('#symbolsList .sym-check:checked'))
-        .map(el => el.getAttribute('data-symbol'))
-        .filter(Boolean);
-      if (!selectedSyms.length) {
-        alert('Selected pairs mode ma at least 1 symbol select karo');
-        return;
-      }
-      allowed_symbols = selectedSyms;
-    }
-    const payload = {
-      label: document.getElementById('accLabel').value,
-      login: parseInt(document.getElementById('accLogin').value),
-      password: document.getElementById('accPassword').value,
-      server: document.getElementById('accServer').value,
-      strategy: strategies,
-      allowed_symbols: allowed_symbols,
-    };
-    const resultEl = document.getElementById('addAccountResult');
-    fetch('/trading/api/accounts/', {
-      method: 'POST',
-      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-    .then(async r => {
-      const raw = await r.text();
-      let data = {};
-      try {
-        data = raw ? JSON.parse(raw) : {};
-      } catch (e) {
-        data = { success: false, message: raw || `HTTP ${r.status}` };
-      }
-      return { ok: r.ok, status: r.status, data };
-    })
-    .then(data => {
-      resultEl.style.display = 'block';
-      if (data.data && data.data.success) {
-        resultEl.innerHTML = '<div class="alert alert-success py-2 mb-0">Account added successfully!</div>';
-        setTimeout(() => {
-          bootstrap.Modal.getInstance(document.getElementById('addAccountModal')).hide();
-          loadAccounts();
-        }, 1000);
-      } else {
-        const errorMsg =
-          data.data?.error ||
-          data.data?.message ||
-          data.data?.detail ||
-          `HTTP ${data.status}`;
-        resultEl.innerHTML = `<div class="alert alert-danger py-2 mb-0">Error: ${errorMsg}</div>`;
-      }
-    })
-    .catch(err => {
-      resultEl.style.display = 'block';
-      resultEl.innerHTML = `<div class="alert alert-danger py-2 mb-0">
-        <strong>Request failed</strong><br>
-        <small style="opacity:.85;">${err && err.message ? err.message : 'Could not reach Bot API'}</small><br>
-        <small style="opacity:.7;">Make sure the bot is running on Windows PC (port 8001)</small>
-      </div>`;
-    });
-  }
-
-  // ── Per-account trade mode controls ───────────────────────────────────────
-  function _toDatetimeLocalValue(d) {
-    function pad(n) { return String(n).padStart(2, '0'); }
-    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
-  }
-
-  function setAccountTradeMode(login, action, untilIso) {
-    const csrfToken = getCookie('csrftoken');
-    fetch(`/trading/api/accounts/${login}/trade-mode`, {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: action, until: untilIso || null }),
-    })
-    .then(async r => {
-      const raw = await r.text();
-      let data = {};
-      try { data = raw ? JSON.parse(raw) : {}; } catch(e) { data = { detail: raw || ('HTTP ' + r.status) }; }
-      return { ok: r.ok, status: r.status, data };
-    })
-    .then(res => {
-      if (!res.ok) {
-        const msg = res.data?.detail || res.data?.message || ('HTTP ' + res.status);
-        showToast(`Trade mode failed: ${msg}`, false);
-        return;
-      }
-      // Update badge immediately from response, then refresh list.
-      updateTradeModeBadge(login, res.data);
-      showToast('Trade mode updated', true);
-      setTimeout(() => refreshAccounts(false), 250);
-    })
-    .catch(err => showToast(`Trade mode failed: ${err && err.message ? err.message : 'unknown'}`, false));
-  }
-
-  function openStopUntilModal(login) {
-    document.getElementById('tradeModeLogin').value = String(login || '');
-    document.getElementById('tradeModeInfo').textContent = `Account login: ${login}`;
-    const input = document.getElementById('tradeModeUntilInput');
-    const d = new Date(Date.now() + 60 * 60 * 1000);
-    input.value = _toDatetimeLocalValue(d);
-    document.getElementById('tradeModeResult').style.display = 'none';
-    new bootstrap.Modal(document.getElementById('tradeModeModal')).show();
-    setTimeout(() => { try { input.focus(); } catch(e) {} }, 0);
-  }
-
-  function submitStopUntil() {
-    const login = parseInt(document.getElementById('tradeModeLogin').value);
-    const val = document.getElementById('tradeModeUntilInput').value;
-    if (!login || !val) return;
-    const dt = new Date(val);
-    if (isNaN(dt.getTime())) {
-      document.getElementById('tradeModeResult').style.display = 'block';
-      document.getElementById('tradeModeResult').innerHTML = '<div class="alert alert-warning py-2 mb-0">Invalid date/time</div>';
-      return;
-    }
-    bootstrap.Modal.getInstance(document.getElementById('tradeModeModal')).hide();
-    setAccountTradeMode(login, 'stop_until', dt.toISOString());
-  }
-
-  function toggleAccount(accountId, enabled) {
-    const csrfToken = getCookie('csrftoken');
-    fetch(`/trading/api/accounts/${accountId}/toggle/`, {
-      method: 'POST',
-      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ enabled }),
-    })
-    .then(r => r.json())
-    .then(data => { if (data.success) loadAccounts(); })
-    .catch(() => showToast('Toggle failed', false));
-  }
-
-  function deleteAccount(accountId, label) {
-    if (!confirm(`Remove account "${label}"?`)) return;
-    const csrfToken = getCookie('csrftoken');
-    fetch(`/trading/api/accounts/${accountId}/`, {
-      method: 'DELETE',
-      headers: { 'X-CSRFToken': csrfToken },
-    })
-    .then(r => r.json())
-    .then(data => {
-      showToast(data.success ? 'Account removed' : data.message, data.success);
-      if (data.success) loadAccounts();
-    });
-  }
-
-  // Load accounts on page load
-  loadAccounts();
-
-  // Keep account connection status live for all MT5 accounts.
-  setInterval(() => refreshAccounts(false), 30000);
-
-  // Event delegation for Edit button (avoids onclick in template literal)
-  document.getElementById('accountsBody').addEventListener('click', function(e) {
-    const btn = e.target.closest('.bo-edit-btn');
-    if (btn) {
-      const accountId = btn.dataset.accountId;
-      const strategies = btn.dataset.strategies ? btn.dataset.strategies.split(',').filter(Boolean) : [];
-      const allowedSymbols = btn.dataset.allowedSymbols ? btn.dataset.allowedSymbols.split(',').filter(Boolean) : [];
-      openStrategyModal(accountId, strategies, allowedSymbols);
-    }
-  });
-
-  // ── Trading status (separate from MT5 online/offline) ──────────────────────
-  function refreshTradeModes(accounts) {
-    if (!accounts || !accounts.length) return;
-    accounts.forEach(acc => {
-      const badge = document.getElementById(`tradeModeBadge_${acc.login}`);
-      if (!badge) return;
-      badge.textContent = 'Trading: ...';
-      fetch(`/trading/api/accounts/${acc.login}/trade-mode`, { credentials: 'same-origin' })
-        .then(r => r.json())
-        .then(d => {
-          updateTradeModeBadge(acc.login, d);
-        })
-        .catch(() => {
-          updateTradeModeBadge(acc.login, null);
-        });
-    });
-  }
-
-  // ── Edit modal: pairs UI helpers ───────────────────────────────────────────
-  function toggleOnlyTradeEditUI() {
-    const wrap = document.getElementById('editOnlyTradeSelectedWrap');
-    const selected = document.getElementById('editOnlyTradeSelected');
-    if (!wrap || !selected) return;
-    wrap.style.display = selected.checked ? 'block' : 'none';
-  }
-
-  document.addEventListener('change', function(e) {
-    if (e.target && (e.target.id === 'editOnlyTradeAll' || e.target.id === 'editOnlyTradeSelected')) {
-      toggleOnlyTradeEditUI();
-    }
-  });
-
-  window._editMarketwatchSymbols = window._editMarketwatchSymbols || [];
-
-  function renderSymbolsListEdit(filtered, preselected) {
-    const listEl = document.getElementById('editSymbolsList');
-    if (!listEl) return;
-    const symbols = filtered || window._editMarketwatchSymbols || [];
-    const sel = Array.isArray(preselected) ? preselected : [];
-    if (!symbols.length) {
-      listEl.innerHTML = '<div class="text-muted" style="font-size:.85rem;">Load MarketWatch symbols first</div>';
-      return;
-    }
-    listEl.innerHTML = symbols.map(s => {
-      const id = 'edit_sym_' + s.replace(/[^a-zA-Z0-9_]+/g, '_');
-      const checked = sel.includes(s) ? 'checked' : '';
-      return `
-        <label class="d-flex align-items-center gap-2 mb-1" style="cursor:pointer;">
-          <input type="checkbox" class="form-check-input sym-check-edit" data-symbol="${s}" id="${id}" ${checked}>
-          <span style="font-size:.9rem;">${s}</span>
-        </label>
-      `;
-    }).join('');
-  }
-
-  function filterSymbolsEdit() {
-    const q = (document.getElementById('editSymbolSearch')?.value || '').trim().toUpperCase();
-    if (!q) {
-      renderSymbolsListEdit();
-      return;
-    }
-    const filtered = (window._editMarketwatchSymbols || []).filter(s => String(s).toUpperCase().includes(q));
-    renderSymbolsListEdit(filtered);
-  }
-
-  function loadMarketwatchSymbolsForEdit(btnEl) {
-    const accountId = document.getElementById('strategyAccountId').value;
-    if (!accountId) return;
-    const csrfToken = getCookie('csrftoken');
-    const btn = btnEl || null;
-    if (btn) btn.disabled = true;
-    fetch(`/trading/api/accounts/${accountId}/marketwatch`, {
-      method: 'GET',
-      credentials: 'same-origin',
-      headers: { 'X-CSRFToken': csrfToken },
-    })
-    .then(async r => {
-      const raw = await r.text();
-      let data = {};
-      try { data = raw ? JSON.parse(raw) : {}; } catch(e) { data = { success:false, message: raw || ('HTTP ' + r.status) }; }
-      return { ok: r.ok, status: r.status, data };
-    })
-    .then(res => {
-      if (!res.ok || !res.data || !res.data.success) {
-        const msg = res.data?.detail || res.data?.message || ('HTTP ' + res.status);
-        alert('MarketWatch load failed: ' + msg);
-        return;
-      }
-      window._editMarketwatchSymbols = Array.isArray(res.data.symbols) ? res.data.symbols : [];
-      renderSymbolsListEdit(undefined, window._editCurrentAllowedSymbols || []);
-      document.getElementById('editOnlyTradeSelected').checked = true;
-      toggleOnlyTradeEditUI();
-    })
-    .catch(err => alert('MarketWatch load failed: ' + (err && err.message ? err.message : 'unknown')))
-    .finally(() => { if (btn) btn.disabled = false; });
-  }
-
-  // Overload openStrategyModal to also accept current allowed symbols.
-  function openStrategyModal(accountId, currentStrategies, allowedSymbols) {
-    document.getElementById('strategyAccountId').value = accountId;
-    ['breakout', 'signal_forge', 'telegram_signals'].forEach(s => {
-      const el = document.getElementById(`strat_${s}`);
-      if (el) el.checked = (currentStrategies || []).includes(s);
-    });
-    document.getElementById('strategyResult').style.display = 'none';
-    // Pre-fill pairs
-    const hasAllowed = Array.isArray(allowedSymbols) && allowedSymbols.length > 0;
-    document.getElementById('editOnlyTradeSelected').checked = hasAllowed;
-    document.getElementById('editOnlyTradeAll').checked = !hasAllowed;
-    toggleOnlyTradeEditUI();
-    // Keep list empty until MarketWatch load; but preserve current selections so user can unselect/reselect after load.
-    window._editCurrentAllowedSymbols = allowedSymbols || [];
-    // If user has already loaded marketwatch once (in this session), render list with preselection.
-    if (window._editMarketwatchSymbols && window._editMarketwatchSymbols.length) {
-      renderSymbolsListEdit(undefined, window._editCurrentAllowedSymbols || []);
-    } else {
-      renderSymbolsListEdit([], window._editCurrentAllowedSymbols || []);
-    }
-    new bootstrap.Modal(document.getElementById('strategyModal')).show();
-  }
-
-  function showTradeDetail(ticket) {
-    const body = document.getElementById('tradeDetailBody');
-    body.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
-    new bootstrap.Modal(document.getElementById('tradeDetailModal')).show();
-
-    fetch(`/trading/api/algo/trade-detail/${ticket}`, { credentials: 'same-origin' })
-      .then(r => r.json())
-      .then(data => {
-        if (!data.found) {
-          body.innerHTML = '<div class="alert alert-warning">Trade detail not found in memory. Only available for trades executed in current session.</div>';
-          return;
-        }
-        const d = data.detail;
-        const pnl = d.pnl || d.final_pnl || 0;
-        const pnlClass = pnl > 0 ? 'pnl-pos' : pnl < 0 ? 'pnl-neg' : '';
-        const trailLog = d.sl_trail_log || [];
-        const trailHtml = trailLog.length > 0
-          ? trailLog.map(t => `<tr><td style="font-size:.8rem;">${t.time ? t.time.substring(11,19) : '-'}</td><td>${t.new_sl || '-'}</td><td><span class="badge bg-label-info">${t.stage || '-'}</span></td></tr>`).join('')
-          : '<tr><td colspan="3" class="text-muted text-center">No SL trail — SL not moved</td></tr>';
-
-        body.innerHTML = `
-          <div class="row g-3 mb-3">
-            <div class="col-6 col-md-3">
-              <div class="p-2 rounded" style="background:#232333;">
-                <div style="font-size:.7rem;color:#a8aaae;">SYMBOL</div>
-                <div style="font-weight:700;">${d.symbol || '-'}</div>
-              </div>
-            </div>
-            <div class="col-6 col-md-3">
-              <div class="p-2 rounded" style="background:#232333;">
-                <div style="font-size:.7rem;color:#a8aaae;">SIDE</div>
-                <div><span class="badge ${(d.side||'').toLowerCase() === 'buy' ? 'badge-buy' : 'badge-sell'}">${(d.side||'-').toUpperCase()}</span></div>
-              </div>
-            </div>
-            <div class="col-6 col-md-3">
-              <div class="p-2 rounded" style="background:#232333;">
-                <div style="font-size:.7rem;color:#a8aaae;">ENTRY PRICE</div>
-                <div style="font-weight:700;">${d.entry || '-'}</div>
-              </div>
-            </div>
-            <div class="col-6 col-md-3">
-              <div class="p-2 rounded" style="background:#232333;">
-                <div style="font-size:.7rem;color:#a8aaae;">FINAL P&L</div>
-                <div class="${pnlClass}" style="font-weight:700;">${pnl ? '$'+parseFloat(pnl).toFixed(2) : '-'}</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="mb-3 p-3 rounded" style="background:#232333;border-left:3px solid #696cff;">
-            <div style="font-size:.75rem;color:#a8aaae;margin-bottom:4px;">ENTRY REASON</div>
-            <div style="font-size:.9rem;">${d.entry_reason || 'Telegram Signal / Manual'}</div>
-          </div>
-
-          <div class="row g-3 mb-3">
-            <div class="col-6">
-              <div class="p-2 rounded" style="background:#232333;">
-                <div style="font-size:.7rem;color:#a8aaae;">INITIAL SL</div>
-                <div>${d.initial_sl || d.sl || '-'}</div>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="p-2 rounded" style="background:#232333;">
-                <div style="font-size:.7rem;color:#a8aaae;">INITIAL TP</div>
-                <div>${d.initial_tp || d.tp || '-'}</div>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="p-2 rounded" style="background:#232333;">
-                <div style="font-size:.7rem;color:#a8aaae;">RISK:REWARD</div>
-                <div>1:${d.risk_reward || d.rr || '-'}</div>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="p-2 rounded" style="background:#232333;">
-                <div style="font-size:.7rem;color:#a8aaae;">1R VALUE</div>
-                <div>${d.one_r ? parseFloat(d.one_r).toFixed(5) : '-'}</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="mb-3 p-3 rounded" style="background:#232333;border-left:3px solid ${pnl > 0 ? '#28c76f' : pnl < 0 ? '#ea5455' : '#a8aaae'};">
-            <div style="font-size:.75rem;color:#a8aaae;margin-bottom:4px;">EXIT REASON</div>
-            <div style="font-size:.9rem;font-weight:600;">${d.exit_reason || (d.status === 'win' ? 'TP Hit' : d.status === 'loss' ? 'SL Hit' : 'Unknown')}</div>
-          </div>
-
-          <div>
-            <div style="font-size:.8rem;color:#a8aaae;margin-bottom:8px;">SL TRAIL HISTORY ${trailLog.length > 0 ? '<span class="badge bg-label-success ms-1">Trailed '+trailLog.length+'x</span>' : '<span class="badge bg-label-secondary ms-1">Not Trailed</span>'}</div>
-            <table class="table table-dark-custom mb-0" style="font-size:.82rem;">
-              <thead><tr><th>Time</th><th>New SL</th><th>Stage</th></tr></thead>
-              <tbody>${trailHtml}</tbody>
-            </table>
-          </div>
-        `;
-      })
-      .catch(err => {
-        body.innerHTML = `<div class="alert alert-danger">Error loading detail: ${err}</div>`;
-      });
-  }
+  const CSRF_TOKEN = '{{ csrf_token }}';
 
   function getCookie(name) {
     let cookieValue = null;
@@ -1621,21 +708,438 @@
   }
 
   function showToast(msg, success) {
-    const toast = document.getElementById('botToast');
-    const msgEl = document.getElementById('botToastMsg');
-    msgEl.textContent = msg;
-    toast.className = 'toast align-items-center text-white border-0 ' + (success ? 'bg-success' : 'bg-danger');
-    const bsToast = new bootstrap.Toast(toast, { delay: 4000 });
-    bsToast.show();
+    const d = modals();
+    d.toast.msg = msg;
+    d.toast.success = !!success;
+    d.toast.show = true;
+    setTimeout(() => { d.toast.show = false; }, 4000);
   }
 
+  // ── MT5 Accounts ──────────────────────────────────────────────────────────
+  function loadAccounts() { refreshAccounts(false); }
+
+  function filterVisibleAccounts(accounts) {
+    return accounts || [];
+  }
+
+  let GLOBAL_MT5_CONNECTED = {% if mt5_connected %}true{% else %}false{% endif %};
+
+  function renderConnectionBadge(acc) {
+    const enabled = !!acc.enabled;
+    const connected = !!acc.connected;
+    const errorText = String(acc.error || '');
+    if (!enabled) return `<span class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Disabled</span>`;
+    if (connected) return `<span class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-green-600">Active</span>`;
+    return `<span class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-error">Offline</span>${errorText ? `<div class="text-error text-[10px] mt-1">${errorText}</div>` : ''}`;
+  }
+
+  function renderAccounts(accounts) {
+    const tbody = document.getElementById('accountsBody');
+    accounts = filterVisibleAccounts(accounts);
+    if (!accounts || accounts.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-on-surface-variant py-4">No accounts configured</td></tr>';
+      renderStrategyButtons([]);
+      return;
+    }
+    tbody.innerHTML = accounts.map(acc => `
+      <tr class="border-b border-surface-border hover:bg-surface-container-low transition-colors">
+        <td class="px-4 py-3 font-bold">${acc.label}</td>
+        <td class="px-4 py-3">${acc.login}</td>
+        <td class="px-4 py-3 text-on-surface-variant text-[11px]">${acc.server}</td>
+        <td class="px-4 py-3 text-right">${acc.currency} ${acc.balance.toFixed(2)}</td>
+        <td class="px-4 py-3 text-right">${acc.currency} ${acc.equity.toFixed(2)}</td>
+        <td class="px-4 py-3"><span class="px-2 py-1 text-[10px] bg-surface-container-low rounded border border-surface-border">${Array.isArray(acc.strategy) ? acc.strategy.join(', ') : (acc.strategy || '')}</span></td>
+        <td class="px-4 py-3 text-center">${renderConnectionBadge(acc)}</td>
+        <td class="px-4 py-3">
+          <div class="flex justify-center gap-2 flex-wrap">
+            <button class="bo-edit-btn text-on-surface-variant hover:text-primary transition-colors text-[11px] uppercase tracking-wider font-bold"
+              data-account-id="${acc.id}"
+              data-strategies="${(Array.isArray(acc.strategy) ? acc.strategy : [acc.strategy]).join(',')}"
+              data-allowed-symbols="${(Array.isArray(acc.allowed_symbols) ? acc.allowed_symbols : (acc.allowed_symbols ? [acc.allowed_symbols] : [])).join(',')}">Edit</button>
+            <button onclick="toggleAccount('${acc.id}', ${!acc.enabled})" class="text-on-surface-variant hover:text-primary transition-colors text-[11px] uppercase tracking-wider font-bold">${acc.enabled ? 'Disable' : 'Enable'}</button>
+          </div>
+          <div class="flex justify-center gap-2 flex-wrap mt-1">
+            <button onclick="setAccountTradeMode(${acc.login}, 'stop_today')" class="text-error hover:opacity-70 transition-colors text-[10px] uppercase tracking-wider font-bold">Stop Today</button>
+            <button onclick="openStopUntilModal(${acc.login})" class="text-on-surface-variant hover:text-primary transition-colors text-[10px] uppercase tracking-wider font-bold">Stop Until</button>
+            <button onclick="setAccountTradeMode(${acc.login}, 'start_now')" class="text-green-600 hover:opacity-70 transition-colors text-[10px] uppercase tracking-wider font-bold">Start</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+    renderStrategyButtons(accounts);
+    refreshTradeModes(accounts);
+  }
+
+  function hexToRgb(hex) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `${r},${g},${b}`;
+  }
+
+  function renderStrategyButtons(accounts) {
+    accounts = filterVisibleAccounts(accounts);
+    const strategies = new Set();
+    accounts.forEach(acc => { (acc.strategy || []).forEach(s => strategies.add(s)); });
+
+    const strategyNames = { 'breakout': 'Range Breakout Retest', 'signal_forge': 'Signal Forge', 'telegram_signals': 'Telegram Signals' };
+    const strategyColors = { 'breakout': '#28c76f', 'signal_forge': '#6f5c37', 'telegram_signals': '#29b6f6' };
+
+    const container = document.getElementById('strategyButtonsContainer');
+    if (!container) return;
+    if (strategies.size === 0) {
+      container.innerHTML = '<span class="text-on-surface-variant text-sm">No strategies assigned yet</span>';
+      return;
+    }
+    container.innerHTML = '';
+    strategies.forEach(sid => {
+      const name = strategyNames[sid] || sid;
+      const color = strategyColors[sid] || '#4c4546';
+      const btn = document.createElement('a');
+      btn.href = `/trading/strategy/${sid}/`;
+      btn.className = 'h-9 px-4 font-label-bold text-label-bold uppercase tracking-wider rounded transition-colors flex items-center gap-2 border';
+      btn.style.cssText = `background:rgba(${hexToRgb(color)},.10);color:${color};border-color:${color};`;
+      btn.innerHTML = `<span class="w-2 h-2 rounded-full block" style="background:${color}"></span> ${name}`;
+      container.appendChild(btn);
+    });
+  }
+
+  function updateTradeModeBadge() { /* trade-mode text now shown via toast on change; badges simplified in new layout */ }
+
+  function refreshAccounts(showMessage = true) {
+    const csrfToken = getCookie('csrftoken');
+    Promise.all([
+      fetch('/trading/api/health', { credentials: 'same-origin' })
+        .then(async (r) => { const text = await r.text(); try { return JSON.parse(text || '{}'); } catch (e) { return null; } })
+        .catch(() => null),
+      fetch('/trading/api/accounts/refresh', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }, body: '{}'
+      }).then(async (r) => {
+        const text = await r.text();
+        try { return JSON.parse(text || '[]'); } catch (e) { throw new Error(`HTTP ${r.status} ${r.statusText} | ${text.slice(0, 160)}`); }
+      })
+    ])
+    .then(([health, accounts]) => {
+      if (!Array.isArray(accounts)) throw new Error(accounts && (accounts.error || accounts.detail || JSON.stringify(accounts)));
+      if (health && typeof health.mt5_connected === 'boolean') GLOBAL_MT5_CONNECTED = health.mt5_connected;
+      renderAccounts(accounts);
+      if (showMessage) showToast('Accounts refreshed', true);
+    })
+    .catch((err) => {
+      document.getElementById('accountsBody').innerHTML = `<tr><td colspan="8" class="text-center text-on-surface-variant py-3">Could not refresh accounts (${err})</td></tr>`;
+      if (showMessage) showToast('Refresh failed', false);
+    });
+  }
+
+  function toggleOnlyTradeUI() {
+    const wrap = document.getElementById('onlyTradeSelectedWrap');
+    const selected = document.getElementById('onlyTradeSelected');
+    if (!wrap || !selected) return;
+    wrap.style.display = selected.checked ? 'block' : 'none';
+  }
+  document.addEventListener('change', function(e) {
+    if (e.target && (e.target.id === 'onlyTradeAll' || e.target.id === 'onlyTradeSelected')) toggleOnlyTradeUI();
+  });
+
+  window._marketwatchSymbols = window._marketwatchSymbols || [];
+
+  function renderSymbolsList(filtered) {
+    const listEl = document.getElementById('symbolsList');
+    if (!listEl) return;
+    const symbols = filtered || window._marketwatchSymbols || [];
+    if (!symbols.length) { listEl.innerHTML = '<div class="text-on-surface-variant text-xs">Load MarketWatch symbols first</div>'; return; }
+    listEl.innerHTML = symbols.map(s => {
+      const id = 'sym_' + s.replace(/[^a-zA-Z0-9_]+/g, '_');
+      return `<label class="flex items-center gap-2 mb-1 cursor-pointer"><input type="checkbox" class="sym-check" data-symbol="${s}" id="${id}"><span class="text-sm">${s}</span></label>`;
+    }).join('');
+  }
+
+  function filterSymbols() {
+    const q = (document.getElementById('symbolSearch')?.value || '').trim().toUpperCase();
+    if (!q) { renderSymbolsList(); return; }
+    renderSymbolsList((window._marketwatchSymbols || []).filter(s => String(s).toUpperCase().includes(q)));
+  }
+
+  function loadMarketwatchSymbols(btnEl) {
+    const login = parseInt(document.getElementById('accLogin').value);
+    const password = document.getElementById('accPassword').value;
+    const server = document.getElementById('accServer').value;
+    if (!login || !password || !server) { alert('Fill in Login, Password and Server first, then press Load MarketWatch'); return; }
+    const csrfToken = getCookie('csrftoken');
+    const btn = btnEl || null;
+    if (btn) btn.disabled = true;
+    fetch('/trading/api/accounts/probe-marketwatch', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ login, password, server, path: '' }),
+    })
+    .then(async r => {
+      const raw = await r.text(); let data = {};
+      try { data = raw ? JSON.parse(raw) : {}; } catch(e) { data = { success:false, message: raw || ('HTTP ' + r.status) }; }
+      return { ok: r.ok, status: r.status, data };
+    })
+    .then(res => {
+      if (!res.ok || !res.data || !res.data.success) { alert('MarketWatch load failed: ' + (res.data?.detail || res.data?.message || ('HTTP ' + res.status))); return; }
+      window._marketwatchSymbols = Array.isArray(res.data.symbols) ? res.data.symbols : [];
+      renderSymbolsList();
+      document.getElementById('onlyTradeSelected').checked = true;
+      toggleOnlyTradeUI();
+    })
+    .catch(err => alert('MarketWatch load failed: ' + (err && err.message ? err.message : 'unknown')))
+    .finally(() => { if (btn) btn.disabled = false; });
+  }
+
+  function openAddAccount() {
+    document.getElementById('accLabel').value = '';
+    document.getElementById('accLogin').value = '';
+    document.getElementById('accPassword').value = '';
+    document.getElementById('accServer').value = '';
+    ['breakout', 'signal_forge', 'telegram_signals'].forEach(s => {
+      const el = document.getElementById(`newAccStrat_${s}`);
+      if (el) el.checked = (s === 'signal_forge');
+    });
+    const all = document.getElementById('onlyTradeAll');
+    if (all) all.checked = true;
+    toggleOnlyTradeUI();
+    window._marketwatchSymbols = [];
+    renderSymbolsList();
+    document.getElementById('addAccountResult').style.display = 'none';
+    modals().modalAddAccount = true;
+  }
+
+  function submitAddAccount() {
+    const csrfToken = getCookie('csrftoken');
+    const strategies = ['breakout', 'signal_forge', 'telegram_signals'].filter(s => document.getElementById(`newAccStrat_${s}`)?.checked);
+    if (!strategies.length) { alert('Select at least 1 strategy'); return; }
+    let allowed_symbols = null;
+    if (document.getElementById('onlyTradeSelected')?.checked) {
+      const selectedSyms = Array.from(document.querySelectorAll('#symbolsList .sym-check:checked')).map(el => el.getAttribute('data-symbol')).filter(Boolean);
+      if (!selectedSyms.length) { alert('Select at least 1 symbol in "Selected pairs" mode'); return; }
+      allowed_symbols = selectedSyms;
+    }
+    const payload = {
+      label: document.getElementById('accLabel').value,
+      login: parseInt(document.getElementById('accLogin').value),
+      password: document.getElementById('accPassword').value,
+      server: document.getElementById('accServer').value,
+      strategy: strategies,
+      allowed_symbols: allowed_symbols,
+    };
+    const resultEl = document.getElementById('addAccountResult');
+    fetch('/trading/api/accounts/', {
+      method: 'POST', headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+    })
+    .then(async r => {
+      const raw = await r.text(); let data = {};
+      try { data = raw ? JSON.parse(raw) : {}; } catch (e) { data = { success: false, message: raw || `HTTP ${r.status}` }; }
+      return { ok: r.ok, status: r.status, data };
+    })
+    .then(data => {
+      resultEl.style.display = 'block';
+      if (data.data && data.data.success) {
+        resultEl.innerHTML = '<div class="p-2 rounded bg-green-100 text-green-800 text-sm">Account added successfully!</div>';
+        setTimeout(() => { modals().modalAddAccount = false; loadAccounts(); }, 1000);
+      } else {
+        resultEl.innerHTML = `<div class="p-2 rounded bg-red-100 text-red-800 text-sm">Error: ${data.data?.error || data.data?.message || data.data?.detail || `HTTP ${data.status}`}</div>`;
+      }
+    })
+    .catch(err => {
+      resultEl.style.display = 'block';
+      resultEl.innerHTML = `<div class="p-2 rounded bg-red-100 text-red-800 text-sm">Request failed: ${err && err.message ? err.message : 'Could not reach Bot API'}</div>`;
+    });
+  }
+
+  // ── Per-account trade mode controls ─────────────────────────────────────
+  function _toDatetimeLocalValue(d) {
+    function pad(n) { return String(n).padStart(2, '0'); }
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  function setAccountTradeMode(login, action, untilIso) {
+    const csrfToken = getCookie('csrftoken');
+    fetch(`/trading/api/accounts/${login}/trade-mode`, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: action, until: untilIso || null }),
+    })
+    .then(async r => {
+      const raw = await r.text(); let data = {};
+      try { data = raw ? JSON.parse(raw) : {}; } catch(e) { data = { detail: raw || ('HTTP ' + r.status) }; }
+      return { ok: r.ok, status: r.status, data };
+    })
+    .then(res => {
+      if (!res.ok) { showToast(`Trade mode failed: ${res.data?.detail || res.data?.message || ('HTTP ' + res.status)}`, false); return; }
+      showToast('Trade mode updated', true);
+      setTimeout(() => refreshAccounts(false), 250);
+    })
+    .catch(err => showToast(`Trade mode failed: ${err && err.message ? err.message : 'unknown'}`, false));
+  }
+
+  function openStopUntilModal(login) {
+    document.getElementById('tradeModeLogin').value = String(login || '');
+    document.getElementById('tradeModeInfo').textContent = `Account login: ${login}`;
+    const input = document.getElementById('tradeModeUntilInput');
+    const d = new Date(Date.now() + 60 * 60 * 1000);
+    input.value = _toDatetimeLocalValue(d);
+    document.getElementById('tradeModeResult').style.display = 'none';
+    modals().modalStopUntil = true;
+    setTimeout(() => { try { input.focus(); } catch(e) {} }, 0);
+  }
+
+  function submitStopUntil() {
+    const login = parseInt(document.getElementById('tradeModeLogin').value);
+    const val = document.getElementById('tradeModeUntilInput').value;
+    if (!login || !val) return;
+    const dt = new Date(val);
+    if (isNaN(dt.getTime())) {
+      document.getElementById('tradeModeResult').style.display = 'block';
+      document.getElementById('tradeModeResult').innerHTML = '<div class="p-2 rounded bg-yellow-100 text-yellow-800 text-sm">Invalid date/time</div>';
+      return;
+    }
+    modals().modalStopUntil = false;
+    setAccountTradeMode(login, 'stop_until', dt.toISOString());
+  }
+
+  function toggleAccount(accountId, enabled) {
+    const csrfToken = getCookie('csrftoken');
+    fetch(`/trading/api/accounts/${accountId}/toggle/`, {
+      method: 'POST', headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled }),
+    })
+    .then(r => r.json())
+    .then(data => { if (data.success) loadAccounts(); })
+    .catch(() => showToast('Toggle failed', false));
+  }
+
+  // Event delegation for Edit button
+  document.getElementById('accountsBody').addEventListener('click', function(e) {
+    const btn = e.target.closest('.bo-edit-btn');
+    if (btn) {
+      const accountId = btn.dataset.accountId;
+      const strategies = btn.dataset.strategies ? btn.dataset.strategies.split(',').filter(Boolean) : [];
+      const allowedSymbols = btn.dataset.allowedSymbols ? btn.dataset.allowedSymbols.split(',').filter(Boolean) : [];
+      openStrategyModal(accountId, strategies, allowedSymbols);
+    }
+  });
+
+  function refreshTradeModes(accounts) { /* simplified in new layout - status shown via Refresh */ }
+
+  // ── Edit modal: pairs UI helpers ─────────────────────────────────────────
+  function toggleOnlyTradeEditUI() {
+    const wrap = document.getElementById('editOnlyTradeSelectedWrap');
+    const selected = document.getElementById('editOnlyTradeSelected');
+    if (!wrap || !selected) return;
+    wrap.style.display = selected.checked ? 'block' : 'none';
+  }
+  document.addEventListener('change', function(e) {
+    if (e.target && (e.target.id === 'editOnlyTradeAll' || e.target.id === 'editOnlyTradeSelected')) toggleOnlyTradeEditUI();
+  });
+
+  window._editMarketwatchSymbols = window._editMarketwatchSymbols || [];
+
+  function renderSymbolsListEdit(filtered, preselected) {
+    const listEl = document.getElementById('editSymbolsList');
+    if (!listEl) return;
+    const symbols = filtered || window._editMarketwatchSymbols || [];
+    const sel = Array.isArray(preselected) ? preselected : [];
+    if (!symbols.length) { listEl.innerHTML = '<div class="text-on-surface-variant text-xs">Load MarketWatch symbols first</div>'; return; }
+    listEl.innerHTML = symbols.map(s => {
+      const id = 'edit_sym_' + s.replace(/[^a-zA-Z0-9_]+/g, '_');
+      const checked = sel.includes(s) ? 'checked' : '';
+      return `<label class="flex items-center gap-2 mb-1 cursor-pointer"><input type="checkbox" class="sym-check-edit" data-symbol="${s}" id="${id}" ${checked}><span class="text-sm">${s}</span></label>`;
+    }).join('');
+  }
+
+  function filterSymbolsEdit() {
+    const q = (document.getElementById('editSymbolSearch')?.value || '').trim().toUpperCase();
+    if (!q) { renderSymbolsListEdit(); return; }
+    renderSymbolsListEdit((window._editMarketwatchSymbols || []).filter(s => String(s).toUpperCase().includes(q)));
+  }
+
+  function loadMarketwatchSymbolsForEdit(btnEl) {
+    const accountId = document.getElementById('strategyAccountId').value;
+    if (!accountId) return;
+    const csrfToken = getCookie('csrftoken');
+    const btn = btnEl || null;
+    if (btn) btn.disabled = true;
+    fetch(`/trading/api/accounts/${accountId}/marketwatch`, { method: 'GET', credentials: 'same-origin', headers: { 'X-CSRFToken': csrfToken } })
+    .then(async r => {
+      const raw = await r.text(); let data = {};
+      try { data = raw ? JSON.parse(raw) : {}; } catch(e) { data = { success:false, message: raw || ('HTTP ' + r.status) }; }
+      return { ok: r.ok, status: r.status, data };
+    })
+    .then(res => {
+      if (!res.ok || !res.data || !res.data.success) { alert('MarketWatch load failed: ' + (res.data?.detail || res.data?.message || ('HTTP ' + res.status))); return; }
+      window._editMarketwatchSymbols = Array.isArray(res.data.symbols) ? res.data.symbols : [];
+      renderSymbolsListEdit(undefined, window._editCurrentAllowedSymbols || []);
+      document.getElementById('editOnlyTradeSelected').checked = true;
+      toggleOnlyTradeEditUI();
+    })
+    .catch(err => alert('MarketWatch load failed: ' + (err && err.message ? err.message : 'unknown')))
+    .finally(() => { if (btn) btn.disabled = false; });
+  }
+
+  function openStrategyModal(accountId, currentStrategies, allowedSymbols) {
+    document.getElementById('strategyAccountId').value = accountId;
+    ['breakout', 'signal_forge', 'telegram_signals'].forEach(s => {
+      const el = document.getElementById(`strat_${s}`);
+      if (el) el.checked = (currentStrategies || []).includes(s);
+    });
+    document.getElementById('strategyResult').style.display = 'none';
+    const hasAllowed = Array.isArray(allowedSymbols) && allowedSymbols.length > 0;
+    document.getElementById('editOnlyTradeSelected').checked = hasAllowed;
+    document.getElementById('editOnlyTradeAll').checked = !hasAllowed;
+    toggleOnlyTradeEditUI();
+    window._editCurrentAllowedSymbols = allowedSymbols || [];
+    if (window._editMarketwatchSymbols && window._editMarketwatchSymbols.length) {
+      renderSymbolsListEdit(undefined, window._editCurrentAllowedSymbols || []);
+    } else {
+      renderSymbolsListEdit([], window._editCurrentAllowedSymbols || []);
+    }
+    modals().modalSelectStrategy = true;
+  }
+
+  function saveStrategies() {
+    const accountId = document.getElementById('strategyAccountId').value;
+    const selected = ['breakout', 'signal_forge', 'telegram_signals'].filter(s => document.getElementById(`strat_${s}`)?.checked);
+    if (!selected.length) {
+      document.getElementById('strategyResult').style.display = 'block';
+      document.getElementById('strategyResult').innerHTML = '<div class="p-2 rounded bg-yellow-100 text-yellow-800 text-sm">Select at least 1 strategy</div>';
+      return;
+    }
+    const csrfToken = getCookie('csrftoken');
+    fetch(`/trading/api/accounts/${accountId}/strategy`, {
+      method: 'PUT', credentials: 'same-origin', headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }, body: JSON.stringify({ strategy: selected }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) throw new Error(data.message || 'Strategy update failed');
+      let allowed_symbols = null;
+      if (document.getElementById('editOnlyTradeSelected')?.checked) {
+        const selectedSyms = Array.from(document.querySelectorAll('#editSymbolsList .sym-check-edit:checked')).map(el => el.getAttribute('data-symbol')).filter(Boolean);
+        if (!selectedSyms.length) throw new Error('Select at least 1 symbol in "Selected pairs" mode');
+        allowed_symbols = selectedSyms;
+      }
+      return fetch(`/trading/api/accounts/${accountId}/symbols`, {
+        method: 'PUT', credentials: 'same-origin', headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }, body: JSON.stringify({ allowed_symbols: allowed_symbols }),
+      }).then(r2 => r2.json());
+    })
+    .then(data2 => {
+      if (data2 && data2.success) { modals().modalSelectStrategy = false; showToast('Account updated', true); loadAccounts(); }
+      else throw new Error((data2 && (data2.message || data2.detail)) || 'Pairs update failed');
+    })
+    .catch((err) => {
+      document.getElementById('strategyResult').style.display = 'block';
+      document.getElementById('strategyResult').innerHTML = `<div class="p-2 rounded bg-red-100 text-red-800 text-sm">Error: ${err && err.message ? err.message : err}</div>`;
+    });
+  }
+
+  // ── Bot-wide control ──────────────────────────────────────────────────────
   function botAction(action) {
     const csrfToken = getCookie('csrftoken');
     const body = new URLSearchParams({ action: action });
     fetch('/trading/bot-control/', {
-      method: 'POST',
-      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body.toString()
+      method: 'POST', headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString()
     })
     .then(r => r.json())
     .then(data => {
@@ -1645,17 +1149,15 @@
     .catch(() => showToast('Bot is offline or unreachable.', false));
   }
 
-  function weekendShutdown() {
-    botAction('weekend_shutdown');
-  }
+  function weekendShutdown() { botAction('weekend_shutdown'); }
 
+  // ── Open trade actions ───────────────────────────────────────────────────
   function openModify(positionId, sl, tp) {
     document.getElementById('modifyPositionId').value = positionId;
     document.getElementById('modifySL').value = sl;
     document.getElementById('modifyTP').value = tp;
     document.getElementById('modifyResult').style.display = 'none';
-    const modal = new bootstrap.Modal(document.getElementById('modifyModal'));
-    modal.show();
+    modals().modalEditSLTP = true;
   }
 
   function submitModify() {
@@ -1664,30 +1166,68 @@
     const tp = document.getElementById('modifyTP').value;
     const csrfToken = getCookie('csrftoken');
     const resultEl = document.getElementById('modifyResult');
-
     const body = new URLSearchParams({ sl: sl, tp: tp });
     fetch(`/trading/modify-position/${positionId}/`, {
-      method: 'POST',
-      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body.toString()
+      method: 'POST', headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString()
     })
     .then(r => r.json())
     .then(data => {
       resultEl.style.display = 'block';
       if (data.success) {
-        resultEl.innerHTML = '<div class="alert alert-success py-2 mb-0">Position updated successfully.</div>';
-        setTimeout(() => {
-          bootstrap.Modal.getInstance(document.getElementById('modifyModal')).hide();
-          location.reload();
-        }, 1200);
+        resultEl.innerHTML = '<div class="p-2 rounded bg-green-100 text-green-800 text-sm">Position updated successfully.</div>';
+        setTimeout(() => { modals().modalEditSLTP = false; location.reload(); }, 1200);
       } else {
-        resultEl.innerHTML = '<div class="alert alert-danger py-2 mb-0">Error: ' + (data.error || 'Failed to update') + '</div>';
+        resultEl.innerHTML = '<div class="p-2 rounded bg-red-100 text-red-800 text-sm">Error: ' + (data.error || 'Failed to update') + '</div>';
       }
     })
     .catch(() => {
       resultEl.style.display = 'block';
-      resultEl.innerHTML = '<div class="alert alert-danger py-2 mb-0">Bot is offline or unreachable.</div>';
+      resultEl.innerHTML = '<div class="p-2 rounded bg-red-100 text-red-800 text-sm">Bot is offline or unreachable.</div>';
     });
   }
+
+  function openClosePosition(positionId, symbol, side, pnl) {
+    document.getElementById('closePositionId').value = positionId;
+    document.getElementById('closePositionSymbolSide').innerHTML = `${symbol} <span class="${String(side).toLowerCase() === 'buy' ? 'text-blue-600' : 'text-red-600'} ml-2">${String(side).toUpperCase()}</span>`;
+    const pnlNum = parseFloat(pnl) || 0;
+    const pnlEl = document.getElementById('closePositionPnl');
+    pnlEl.textContent = (pnlNum >= 0 ? '+ ' : '- ') + '$' + Math.abs(pnlNum).toFixed(2);
+    pnlEl.className = 'font-data-mono text-xl ' + (pnlNum >= 0 ? 'text-green-600' : 'text-error');
+    document.getElementById('closePositionResult').style.display = 'none';
+    modals().modalClosePos = true;
+  }
+
+  function submitClosePosition() {
+    const positionId = document.getElementById('closePositionId').value;
+    const csrfToken = getCookie('csrftoken');
+    const resultEl = document.getElementById('closePositionResult');
+    fetch(`/trading/api/positions/${positionId}`, {
+      method: 'DELETE', headers: { 'X-CSRFToken': csrfToken },
+    })
+    .then(async r => {
+      const raw = await r.text(); let data = {};
+      try { data = raw ? JSON.parse(raw) : {}; } catch(e) { data = { success:false, message: raw || ('HTTP ' + r.status) }; }
+      return { ok: r.ok, status: r.status, data };
+    })
+    .then(res => {
+      resultEl.style.display = 'block';
+      if (res.data && res.data.success) {
+        resultEl.innerHTML = '<div class="p-2 rounded bg-green-100 text-green-800 text-sm">Position closed successfully.</div>';
+        setTimeout(() => { modals().modalClosePos = false; location.reload(); }, 1200);
+      } else {
+        resultEl.innerHTML = `<div class="p-2 rounded bg-red-100 text-red-800 text-sm">Error: ${res.data?.message || res.data?.detail || 'Failed to close'}</div>`;
+      }
+    })
+    .catch(() => {
+      resultEl.style.display = 'block';
+      resultEl.innerHTML = '<div class="p-2 rounded bg-red-100 text-red-800 text-sm">Bot is offline or unreachable.</div>';
+    });
+  }
+
+  // Load accounts on page load
+  loadAccounts();
+  setInterval(() => refreshAccounts(false), 30000);
+
 </script>
-{% endblock %}
+</body>
+</html>

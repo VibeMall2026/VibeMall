@@ -1,111 +1,44 @@
 import json
 import logging
-import os
-from pathlib import Path
 
 import requests
+from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
-from time import time as _time
 
 logger = logging.getLogger(__name__)
 
-
-def _read_simple_env(env_path: Path) -> dict[str, str]:
-    # Keep .env parsing dependency-free so CI and production share the same path.
-    values: dict[str, str] = {}
-    try:
-        for raw_line in env_path.read_text(encoding="utf-8").splitlines():
-            line = raw_line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, value = line.split("=", 1)
-            values[key.strip()] = value.strip().strip('"').strip("'")
-    except FileNotFoundError:
-        return values
-    except Exception as exc:
-        logger.warning("Could not read bot env file at %s: %s", env_path, exc)
-    return values
-
-
-BOT_ENV = _read_simple_env(Path(__file__).resolve().parent.parent / "bot" / ".env")
-DEFAULT_BOT_API_CANDIDATES = [
-    "http://100.124.101.92:8001",   # Windows PC Tailscale IP (primary)
-    "http://127.0.0.1:8001",        # localhost fallback
-    "http://127.0.0.1:2222",        # SSH tunnel fallback
-    "http://127.0.0.1:8000",        # Django port fallback
-]
-API_KEY = os.environ.get("BOT_API_KEY") or os.environ.get("API_KEY") or BOT_ENV.get("API_KEY", "")
+# Same address and key the XAUUSD Advisor pages already use successfully
+# (Hub/views.py) - one source of truth in Django settings instead of each
+# app guessing its own candidate addresses or reading files that don't
+# exist on this server.
+API_KEY = settings.TRADING_BOT_API_KEY
 HEADERS = {"X-API-Key": API_KEY} if API_KEY else {}
-TIMEOUT = 3  # Reduced from 5s to 3s for faster failover
-
-# Cache the last working bot API URL to avoid "flip-flopping" between multiple
-# reachable candidates (which would reset in-memory controls like trade-mode).
-_BOT_API_URL_CACHE: dict[str, object] = {"url": None, "ts": 0.0}
-_BOT_API_URL_CACHE_TTL_SEC = 120.0
-
-
-def _candidate_bot_api_urls():
-    urls = []
-    configured = os.environ.get("BOT_API_URL", "").strip()
-    for url in [configured, *DEFAULT_BOT_API_CANDIDATES]:
-        normalized = url.rstrip("/")
-        if normalized and normalized not in urls:
-            urls.append(normalized)
-    return urls
+TIMEOUT = 10
 
 
 def _check_api_health():
-    errors = []
-    candidates = _candidate_bot_api_urls()
+    base_url = settings.TRADING_BOT_API_URL
+    try:
+        health_resp = requests.get(f"{base_url}/health", timeout=TIMEOUT)
+        health_resp.raise_for_status()
 
-    # 1) Prefer cached URL first (stability).
-    cached_url = _BOT_API_URL_CACHE.get("url")
-    cached_ts = float(_BOT_API_URL_CACHE.get("ts") or 0.0)
-    if cached_url and (_time() - cached_ts) < _BOT_API_URL_CACHE_TTL_SEC:
-        try:
-            health_resp = requests.get(f"{cached_url}/health", timeout=TIMEOUT)
-            health_resp.raise_for_status()
-
-            status_resp = requests.get(f"{cached_url}/status", headers=HEADERS, timeout=TIMEOUT)
-            if status_resp.status_code != 403:
-                status_resp.raise_for_status()
-                return True, str(cached_url), None
-            errors.append(f"{cached_url}: rejected API key or client IP")
-        except Exception:
-            # Ignore and fall back to full scan below.
-            pass
-
-    for base_url in candidates:
-        try:
-            health_resp = requests.get(f"{base_url}/health", timeout=TIMEOUT)
-            health_resp.raise_for_status()
-
-            status_resp = requests.get(f"{base_url}/status", headers=HEADERS, timeout=TIMEOUT)
-            if status_resp.status_code == 403:
-                errors.append(f"{base_url}: rejected API key or client IP")
-                continue
-            status_resp.raise_for_status()
-            _BOT_API_URL_CACHE["url"] = base_url
-            _BOT_API_URL_CACHE["ts"] = _time()
-            return True, base_url, None
-        except requests.exceptions.ConnectionError:
-            errors.append(f"{base_url}: connection refused")
-        except requests.exceptions.Timeout:
-            errors.append(f"{base_url}: timed out")
-        except requests.exceptions.HTTPError as exc:
-            status_code = exc.response.status_code if exc.response is not None else "HTTP error"
-            errors.append(f"{base_url}: returned {status_code}")
-        except Exception as exc:
-            errors.append(f"{base_url}: {exc}")
-
-    primary = candidates[0] if candidates else "unknown"
-    if len(errors) > 1:
-        detail = "; ".join(errors)
-        return False, primary, f"Cannot connect to Bot API. Checked: {detail}"
-    return False, primary, f"Cannot connect to Bot API at {primary}"
+        status_resp = requests.get(f"{base_url}/status", headers=HEADERS, timeout=TIMEOUT)
+        if status_resp.status_code == 403:
+            return False, base_url, f"{base_url}: rejected API key or client IP"
+        status_resp.raise_for_status()
+        return True, base_url, None
+    except requests.exceptions.ConnectionError:
+        return False, base_url, f"Cannot connect to Bot API at {base_url}: connection refused"
+    except requests.exceptions.Timeout:
+        return False, base_url, f"Cannot connect to Bot API at {base_url}: timed out"
+    except requests.exceptions.HTTPError as exc:
+        status_code = exc.response.status_code if exc.response is not None else "HTTP error"
+        return False, base_url, f"Cannot connect to Bot API at {base_url}: returned {status_code}"
+    except Exception as exc:
+        return False, base_url, f"Cannot connect to Bot API at {base_url}: {exc}"
 
 
 def _request(method, base_url, endpoint, default=None, json_body=None, params=None):
@@ -442,7 +375,6 @@ def algo_signals(request):
     return JsonResponse(data, safe=False)
 
 
-@staff_member_required
 @staff_member_required
 def bot_api_proxy(request, endpoint):
     api_reachable, bot_api_url, api_error_msg = _check_api_health()

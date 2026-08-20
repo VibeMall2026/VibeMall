@@ -205,11 +205,15 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'VibeMall <info.vibemall@gm
 SERVER_EMAIL = os.getenv('SERVER_EMAIL', EMAIL_HOST_USER or 'info.vibemall@gmail.com').strip()
 SITE_URL = os.getenv('SITE_URL', 'https://vibemall.in').rstrip('/')
 
-# Trading bot API (Windows VPS) - powers the XAUUSD Trade Advisor admin page.
-# The trading VPS's firewall only allows this server's IP to reach it, so all
-# calls go through the Django backend (server-to-server) - the browser never
-# talks to the trading VPS directly.
+# Trading bot API (Windows VPS) - powers the XAUUSD Trade Advisor admin page
+# and the Trading Bot admin page. The trading VPS's firewall only allows this
+# server's IP to reach it, so all calls go through the Django backend
+# (server-to-server) - the browser never talks to the trading VPS directly.
 TRADING_BOT_API_URL = os.getenv('TRADING_BOT_API_URL', 'http://87.106.11.131:8001').rstrip('/')
+# Same key already injected into this server's environment via the vibemall.service
+# systemd unit (Environment="BOT_API_KEY=...") - reused here instead of each app
+# picking its own source, so there's exactly one place this value comes from.
+TRADING_BOT_API_KEY = os.getenv('BOT_API_KEY', '').strip()
 
 # Admin Notification Settings
 ADMIN_NOTIFICATION_EMAILS = [
