@@ -37,6 +37,12 @@ DUPLICATE_HAMMING_THRESHOLD = 6
 STAGE_MAX_EDGE = 1600
 STAGE_JPEG_QUALITY = 85
 
+#: Quality for crops applied directly to a final, already-published product
+#: image (e.g. the admin "Convert to Meesho style" action) — higher than the
+#: draft-staging quality above since this re-encode is permanent, not a
+#: throwaway preview.
+FINAL_CROP_JPEG_QUALITY = 92
+
 
 def _pillow():
     try:
@@ -159,7 +165,7 @@ def detect_footer_band(path_or_file: Any) -> int:
     return band
 
 
-def cropped_bytes(path: str, crop_bottom_px: int) -> bytes | None:
+def cropped_bytes(path: str, crop_bottom_px: int, quality: int = STAGE_JPEG_QUALITY) -> bytes | None:
     """Re-encode an image with ``crop_bottom_px`` trimmed off the bottom."""
     Image = _pillow()
     if Image is None or crop_bottom_px <= 0:
@@ -182,7 +188,7 @@ def cropped_bytes(path: str, crop_bottom_px: int) -> bytes | None:
             cropped = img.crop((0, 0, width, keep))
 
             buffer = io.BytesIO()
-            cropped.save(buffer, format='JPEG', quality=STAGE_JPEG_QUALITY, optimize=True)
+            cropped.save(buffer, format='JPEG', quality=quality, optimize=True)
             return buffer.getvalue()
     except Exception as exc:
         logger.warning('[images] Could not crop %s: %s', path, exc)

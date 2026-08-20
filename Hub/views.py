@@ -2977,7 +2977,7 @@ def _meesho_crop_product_image(instance, request, silent=False):
     "convert all" flow, which reports one summary message instead).
     """
     from django.core.files.base import ContentFile
-    from Hub.automation.images import cropped_bytes, detect_footer_band
+    from Hub.automation.images import cropped_bytes, detect_footer_band, FINAL_CROP_JPEG_QUALITY
 
     if not instance.image:
         if not silent:
@@ -2986,7 +2986,7 @@ def _meesho_crop_product_image(instance, request, silent=False):
 
     image_field = instance.image
     crop_px = detect_footer_band(image_field.path) or getattr(settings, 'AUTOMATION_MEESHO_CROP_PX', 28)
-    result = cropped_bytes(image_field.path, crop_px)
+    result = cropped_bytes(image_field.path, crop_px, quality=FINAL_CROP_JPEG_QUALITY)
     if result is None:
         if not silent:
             messages.error(request, 'Could not convert image to Meesho style (image too small to crop safely).')
