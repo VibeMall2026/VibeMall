@@ -2904,9 +2904,99 @@ def admin_delete_gallery_image(request, image_id):
     gallery_image = get_object_or_404(ProductImage, **gallery_filter)
     product_name = gallery_image.product.name
     gallery_image.delete()
-    
+
     messages.success(request, f'Gallery image deleted from product "{product_name}"!')
     return redirect('admin_edit_product', product_id=gallery_image.product.id)
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_meesho_crop_gallery_image(request, image_id):
+    """Crop the wholesale catalogue-code strip off the bottom of an already-saved gallery image."""
+    gallery_filter = {'id': image_id}
+    if is_seller_user(request.user):
+        gallery_filter['product__created_by'] = request.user
+    gallery_image = get_object_or_404(ProductImage, **gallery_filter)
+    _meesho_crop_product_image(gallery_image, request)
+    return redirect('admin_edit_product', product_id=gallery_image.product.id)
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_meesho_crop_main_image(request, product_id):
+    """Crop the wholesale catalogue-code strip off the bottom of a product's main image."""
+    product_filter = {'id': product_id}
+    if is_seller_user(request.user):
+        product_filter['created_by'] = request.user
+    product = get_object_or_404(Product, **product_filter)
+    _meesho_crop_product_image(product, request)
+    return redirect('admin_edit_product', product_id=product.id)
+
+
+@login_required(login_url='login')
+@staff_member_required(login_url='login')
+def admin_meesho_crop_all_images(request, product_id):
+    """Crop the wholesale catalogue-code strip off the main image and every gallery image for this product."""
+    product_filter = {'id': product_id}
+    if is_seller_user(request.user):
+        product_filter['created_by'] = request.user
+    product = get_object_or_404(Product, **product_filter)
+
+    converted = 0
+    skipped = 0
+
+    if product.image:
+        if _meesho_crop_product_image(product, request, silent=True):
+            converted += 1
+        else:
+            skipped += 1
+
+    for gallery_img in product.additional_images.all():
+        if gallery_img.image:
+            if _meesho_crop_product_image(gallery_img, request, silent=True):
+                converted += 1
+            else:
+                skipped += 1
+
+    if converted and not skipped:
+        messages.success(request, f'Converted all {converted} image(s) to Meesho style.')
+    elif converted and skipped:
+        messages.warning(request, f'Converted {converted} image(s); {skipped} could not be converted (too small to crop safely).')
+    else:
+        messages.error(request, 'No images could be converted (none were large enough to crop safely).')
+
+    return redirect('admin_edit_product', product_id=product.id)
+
+
+def _meesho_crop_product_image(instance, request, silent=False):
+    """
+    Shared crop step for both ProductImage and Product.image.
+    Auto-detects the wholesale catalogue-code strip height; falls back to the
+    same default used on the draft-review page if detection finds nothing.
+    Returns True on success, False if the image could not be converted.
+    When silent=True, skips per-image messages.success/error (used by the
+    "convert all" flow, which reports one summary message instead).
+    """
+    from django.core.files.base import ContentFile
+    from Hub.automation.images import cropped_bytes, detect_footer_band
+
+    if not instance.image:
+        if not silent:
+            messages.error(request, 'No image to convert.')
+        return False
+
+    image_field = instance.image
+    crop_px = detect_footer_band(image_field.path) or getattr(settings, 'AUTOMATION_MEESHO_CROP_PX', 28)
+    result = cropped_bytes(image_field.path, crop_px)
+    if result is None:
+        if not silent:
+            messages.error(request, 'Could not convert image to Meesho style (image too small to crop safely).')
+        return False
+
+    original_name = image_field.name.rsplit('/', 1)[-1]
+    image_field.save(original_name, ContentFile(result), save=True)
+    if not silent:
+        messages.success(request, f'Converted to Meesho style ({crop_px}px trimmed from the bottom).')
+    return True
 
 @login_required(login_url='login')
 @staff_member_required(login_url='login')

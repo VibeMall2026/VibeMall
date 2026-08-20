@@ -228,12 +228,29 @@
                         </div>
                     </div>
                     
+                    {% if product.image or gallery_images %}
+                    <div class="mb-3">
+                        <a href="{% url 'admin_meesho_crop_all_images' product.id %}"
+                           class="btn btn-primary"
+                           onclick="return confirm('Convert ALL images for this product (main + every gallery image) to Meesho style? This trims the catalogue-code strip off the bottom of each and cannot be undone.')"
+                           title="Crop the bottom strip off the main image and every gallery image at once">
+                            <i class="bx bx-crop"></i> Convert All Images to Meesho Style
+                        </a>
+                    </div>
+                    {% endif %}
+
                     <div class="mb-3">
                         <label class="form-label" for="image">Main Product Image</label>
                         {% if product.image %}
                             <div class="mb-2">
                                 <img src="{{ product.image.url }}" alt="{{ product.name }}" class="admin-preview-thumb admin-resize-target" style="max-width: 200px; height: 200px;">
                             </div>
+                            <a href="{% url 'admin_meesho_crop_main_image' product.id %}"
+                               class="btn btn-sm btn-outline-primary mb-2"
+                               onclick="return confirm('Convert this image to Meesho style? This trims the catalogue-code strip off the bottom and cannot be undone.')"
+                               title="Crop off the bottom catalogue-code strip">
+                                <i class="bx bx-crop"></i> Convert to Meesho style
+                            </a>
                         {% endif %}
                         <input class="form-control" type="file" id="image" name="image" accept="image/*" />
                         <small class="text-muted">Leave empty to keep current image</small>
@@ -295,11 +312,19 @@
                                                     value="{{ gallery_img.order }}"
                                                 />
                                             </div>
-                                            <a href="{% url 'admin_delete_gallery_image' gallery_img.id %}" 
-                                               class="btn btn-sm btn-danger"
-                                               onclick="return confirm('Delete this gallery image?')">
-                                                <i class="bx bx-trash"></i> Delete
-                                            </a>
+                                            <div class="d-flex gap-1 justify-content-center flex-wrap">
+                                                <a href="{% url 'admin_meesho_crop_gallery_image' gallery_img.id %}"
+                                                   class="btn btn-sm btn-outline-primary"
+                                                   onclick="return confirm('Convert this image to Meesho style? This trims the catalogue-code strip off the bottom and cannot be undone.')"
+                                                   title="Crop off the bottom catalogue-code strip">
+                                                    <i class="bx bx-crop"></i> Meesho
+                                                </a>
+                                                <a href="{% url 'admin_delete_gallery_image' gallery_img.id %}"
+                                                   class="btn btn-sm btn-danger"
+                                                   onclick="return confirm('Delete this gallery image?')">
+                                                    <i class="bx bx-trash"></i> Delete
+                                                </a>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
