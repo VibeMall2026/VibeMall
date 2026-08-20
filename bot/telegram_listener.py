@@ -655,11 +655,7 @@ async def _handle_control_command(event, text: str, channel_name: str) -> bool:
         if not state.running:
             state.running = True
             started = start_all_strategies()
-        resumed_logins = []
-        for reason_code in ("telegram_bot_stop", "night_auto_stop"):
-            for login in start_accounts_stopped_by_reason(reason_code):
-                if login not in resumed_logins:
-                    resumed_logins.append(login)
+        resumed_logins = start_accounts_stopped_by_reason("telegram_bot_stop")
         running_after = get_runner_status().get("running_strategies", [])
         summary_text = build_accounts_summary_text()
         greeting = "🌅 Good morning" if _daypart_label() == "morning" else "✅ Bot start confirmed"
@@ -1021,3 +1017,4 @@ async def stop_listener() -> None:
 
 def get_client() -> TelegramClient | None:
     return _client
+
