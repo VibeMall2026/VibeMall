@@ -316,6 +316,13 @@ class MT5Account:
     error: str = ""
     strategy: list = None   # list of strategy IDs assigned to this account
     allowed_symbols: Optional[list[str]] = None  # None = all symbols; otherwise whitelist
+    # Per-account override for risk-per-trade (fraction, e.g. 1.0 = 100% of balance).
+    # None = use the strategy's shared/global risk_percent. Exists because
+    # signal_forge's risk_percent is one global setting shared by every account
+    # running that strategy — a tiny account (e.g. a $5 balance) needs a much
+    # higher risk fraction just to clear the broker's minimum lot size, but
+    # raising the global value would also raise risk on funded accounts.
+    risk_percent_override: Optional[float] = None
 
     def __post_init__(self):
         if self.strategy is None:
@@ -347,6 +354,7 @@ class MT5Account:
             "error": self.error,
             "strategy": self.strategy if isinstance(self.strategy, list) else [self.strategy],
             "allowed_symbols": self.allowed_symbols,
+            "risk_percent_override": self.risk_percent_override,
         }
 
 
@@ -404,14 +412,21 @@ def _load_extra_accounts() -> None:
     without restarting the bot process.
 
     Format (semicolon-separated entries):
-        Label|login|password|server|strategy|path|allowed_symbols
+        Label|login|password|server|strategy|path|allowed_symbols|risk_percent_override
 
     allowed_symbols is optional and can be comma-separated, e.g.:
         XAUUSD
         XAUUSD,BTCUSD
 
+    risk_percent_override is optional — a fraction (e.g. 1.0 = risk 100% of
+    balance per trade) that replaces the strategy's shared risk_percent for
+    just this account. Leave blank to use the strategy's normal setting.
+    Only meant for accounts too small for the broker's minimum lot to fit
+    under the normal risk percent — it does not affect other accounts.
+
     Example:
         Example Account|106903766|password|MetaQuotes-Demo|breakout|C:\MT5\terminal64.exe|XAUUSD
+        Vantage Micro|123456|password|VantageInternational-Live|signal_forge|C:\MT5-Vantage\terminal64.exe|EURUSD,GBPJPY|1.0
     """
     # In one-account-per-process mode, skip loading shared extra accounts from .env.
     # Each process should only run its own primary account credentials.
@@ -471,6 +486,13 @@ def _load_extra_accounts() -> None:
                 if s and s.strip()
             ] or None
 
+        risk_percent_override = None
+        if len(parts) >= 8 and str(parts[7]).strip():
+            try:
+                risk_percent_override = float(parts[7].strip())
+            except ValueError:
+                logger.warning(f"[ACCOUNTS] Invalid risk_percent_override in extra account entry: {entry!r}")
+
         # Avoid duplicates — check by login number
         if any(a.login == login for a in _accounts):
             logger.debug(f"[ACCOUNTS] Extra account already loaded: {label} ({login})")
@@ -493,6 +515,7 @@ def _load_extra_accounts() -> None:
             enabled=True,
             strategy=strategies,
             allowed_symbols=allowed_symbols,
+            risk_percent_override=risk_percent_override,
         )
         _accounts.append(acc)
         logger.info(
@@ -659,7 +682,10 @@ def start_accounts_stopped_by_reason(reason_code: str = "telegram_bot_stop") -> 
             _account_trade_halts.pop(key, None)
             _account_trade_halts_until.pop(key, None)
             _account_trade_halt_reasons.pop(key, None)
-            _account_trade_resume_overrides[key] = _utc_today_iso()
+            # Must match the IST trading-day string is_manual_resume_override_active
+            # compares against — a UTC-day stamp here would silently fail to
+            # activate the override whenever UTC and IST disagree on the date.
+            _account_trade_resume_overrides[key] = _ist_trading_day_iso()
             resumed_logins.append(key)
         if resumed_logins:
             _persist_trade_modes_to_disk()
@@ -702,6 +728,13 @@ def is_account_trade_allowed_today(login: int) -> tuple[bool, str]:
     trading_day = _ist_trading_day_iso()
     in_window = _is_within_ist_trading_window()
 
+    # A same-trading-day manual /start beats the night auto-stop window. It
+    # self-expires at the next 09:00 IST rollover — the same moment the
+    # normal schedule would resume trading anyway — so it never lingers into
+    # a day nobody asked to override.
+    if is_manual_resume_override_active(key):
+        return True, "manual_resume_override"
+
     if not in_window:
         # Outside the allowed trading window, force a persisted halt so the
         # dashboard and live instances agree immediately.
@@ -717,9 +750,6 @@ def is_account_trade_allowed_today(login: int) -> tuple[bool, str]:
         if local_now.hour < IST_TRADING_START_HOUR:
             return False, "outside_ist_trading_window"
         return False, "night_auto_stop"
-
-    if is_manual_resume_override_active(key):
-        return True, "manual_resume_override"
 
     # Priority 1: stop-until (datetime-based).
     until_iso = _account_trade_halts_until.get(key)
@@ -1438,7 +1468,15 @@ def execute_on_all_accounts(
                         logger.warning(f"[ACCOUNTS] Trade skipped for {acc.label}: symbol_not_allowed {sym}")
                         continue
 
-                effective_risk_percent = risk_percent
+                # A per-account risk override (e.g. a small account that needs a much
+                # higher risk fraction just to clear the broker's minimum lot) always
+                # wins over the strategy's shared/global risk_percent.
+                base_account_risk = (
+                    float(acc.risk_percent_override)
+                    if acc.risk_percent_override is not None
+                    else risk_percent
+                )
+                effective_risk_percent = base_account_risk
                 if algo_trade:
                     try:
                         from bot.algo.human_mind import can_enter_trade, get_lot_multiplier
@@ -1471,7 +1509,7 @@ def execute_on_all_accounts(
                             })
                             logger.warning(f"[ACCOUNTS] Algo trade skipped for {acc.label}: {algo_reason}")
                             continue
-                        base_risk = _config.RISK_PERCENT if risk_percent is None else float(risk_percent)
+                        base_risk = _config.RISK_PERCENT if base_account_risk is None else float(base_account_risk)
                         effective_risk_percent = max(0.01, base_risk * float(get_lot_multiplier(1.0)))
                     except Exception as algo_gate_exc:
                         logger.warning(f"[ACCOUNTS] Algo quality gate failed open for {acc.label}: {algo_gate_exc}")

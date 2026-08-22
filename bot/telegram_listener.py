@@ -639,6 +639,8 @@ async def _bot_control_poll_loop() -> None:
 async def _handle_control_command(event, text: str, channel_name: str) -> bool:
     from bot.accounts import (
         get_account_trade_mode,
+        get_all_accounts,
+        start_account_now,
         start_accounts_stopped_by_reason,
         stop_account_until,
         stop_all_accounts_for_today,
@@ -656,6 +658,15 @@ async def _handle_control_command(event, text: str, channel_name: str) -> bool:
             state.running = True
             started = start_all_strategies()
         resumed_logins = start_accounts_stopped_by_reason("telegram_bot_stop")
+        # Force-start every account right now, including ones currently held by
+        # the night auto-stop window. This is a same-trading-day override only —
+        # it self-expires at the next 09:00 IST rollover, so the normal night
+        # auto-stop / morning auto-resume schedule is untouched going forward.
+        for acc in get_all_accounts():
+            try:
+                start_account_now(int(acc.login))
+            except Exception as exc:
+                logger.warning(f"[TG_BOT] Could not force-start account {acc.login}: {exc}")
         running_after = get_runner_status().get("running_strategies", [])
         summary_text = build_accounts_summary_text()
         greeting = "🌅 Good morning" if _daypart_label() == "morning" else "✅ Bot start confirmed"
